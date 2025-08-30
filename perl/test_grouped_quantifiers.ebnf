@@ -1,0 +1,17 @@
+# Simple test for grouped quantifiers
+# This should previously have shown "SKIPPED: Unhandled quantified element type"
+
+# Test case 1: Simple comma-separated list
+number_list := number (',' /\s*/ number)*
+
+# Test case 2: Mixed elements  
+expression_list := expression (',' /\s*/ expression)*
+
+# Test case 3: Whitespace-separated sequence
+word_sequence := word (/\s+/ word)*
+
+# Basic terminals
+number := /(\d+)/
+expression := identifier | number  
+word := /([a-zA-Z]+)/
+identifier := /([a-zA-Z_]\w*)/

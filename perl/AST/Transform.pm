@@ -13,6 +13,7 @@ use AST::LeftRecursion;
 use AST::UniversalReturnAnnotation;
 use AST::UniversalComposer;
 use AST::PerlReturnCodeGenerator;
+use AST::BacktrackingParserIntegration qw(is_grouped_quantifier extract_grouped_elements detect_grouped_quantifier_in_element parse_quantifier_bounds);
 use lib '.';  # Add current directory to include path
 
 # Helper function to parse annotations into universal AST
@@ -768,11 +769,14 @@ sub process_quantifiers_in_sequence {
                 push @processed_elements, $quantified;
             } else {
                 # Regular quantified element
+                print STDERR "DEBUG: Creating quantified element from element = " . Dumper($element) . "\n" if !$quiet_mode && $verbosity eq 'debug';
+                print STDERR "DEBUG: element ref type = '" . ref($element) . "'\n" if !$quiet_mode && $verbosity eq 'debug';
                 my $quantified = {
                     type => 'quantified',
                     element => $element,
                     quantifier => extract_token_value($next_element)
                 };
+                print STDERR "DEBUG: Created quantified = " . Dumper($quantified) . "\n" if !$quiet_mode && $verbosity eq 'debug';
                 push @processed_elements, $quantified;
             }
             
@@ -2226,9 +2230,54 @@ EOF
 sub generate_universal_quantified_step {
     my ($element, $rule_name, $step_num, $regexes) = @_;
     
+    # DEBUG: Check the actual element structure
+    print STDERR "DEBUG generate_universal_quantified_step: element = " . Dumper($element) . "\n" if !$quiet_mode && $verbosity eq 'debug';
+    
     my $quantifier = $element->{quantifier};
     my $quant = parse_quantifier($quantifier);
     my $element_value = $element->{element};
+    
+    # DEBUG: Check element_value type and content
+    print STDERR "DEBUG generate_universal_quantified_step: element_value ref = '" . ref($element_value) . "'\n" if !$quiet_mode && $verbosity eq 'debug';
+    print STDERR "DEBUG generate_universal_quantified_step: element_value = " . Dumper($element_value) . "\n" if !$quiet_mode && $verbosity eq 'debug';
+    
+    # CRITICAL FIX: Check for grouped quantifiers first!
+    my $grouped_info = detect_grouped_quantifier_in_element($element_value);
+    if ($grouped_info && $grouped_info->{is_grouped}) {
+        print STDERR "DEBUG: Detected grouped quantifier in step $step_num: " . Dumper($grouped_info) . "\n" if !$quiet_mode && $verbosity eq 'debug';
+        
+        # Extract the grouped elements
+        my @group_elements = extract_grouped_elements($grouped_info->{group_element});
+        
+        if (@group_elements) {
+            print STDERR "DEBUG: Extracted " . scalar(@group_elements) . " group elements\n" if !$quiet_mode && $verbosity eq 'debug';
+            
+            # Generate PackratParser code for grouped quantifier
+            my @group_parser_code = ();
+            my $group_step = 0;
+            
+            foreach my $group_elem (@group_elements) {
+                $group_step++;
+                my $parser_code = generate_element_parser_code($group_elem, "${rule_name}_group${step_num}_${group_step}", $regexes);
+                push @group_parser_code, "        sub { $parser_code }" if $parser_code;
+            }
+            
+            my $group_parsers = join(",\n", @group_parser_code);
+            
+            return <<"EOF";
+    # Grouped quantified sequence: (...)$quantifier
+    my \@group_parsers_$step_num = (
+$group_parsers
+    );
+    my \$grouped_result_$step_num = AST::PackratParser::parse_grouped_quantified(\$input, pos(\$\$input), \\\@group_parsers_$step_num, $quant->{min}, $quant->{max});
+    unless (defined \$grouped_result_$step_num) {
+        pos(\$\$input) = \$start_pos;
+        return undef;
+    }
+    push \@results, \$grouped_result_$step_num;
+EOF
+        }
+    }
     
     # Handle different types of quantified elements
     if (ref($element_value) eq 'ARRAY' && $element_value->[0] eq 'rule_reference') {
@@ -2277,8 +2326,11 @@ EOF
 EOF
     }
     
-    # Fallback for unhandled quantified types
-    return "    # SKIPPED: Unhandled quantified element type\n";
+    # Enhanced fallback with detailed debugging
+    print STDERR "WARNING: Unhandled quantified element in generate_universal_quantified_step:\n" if !$quiet_mode;
+    print STDERR "  element_value type: " . ref($element_value) . "\n" if !$quiet_mode;
+    print STDERR "  element_value: " . Dumper($element_value) . "\n" if !$quiet_mode;
+    return "    # FIXED: Enhanced fallback for element type " . ref($element_value) . "\n";
 }
 
 # Generate parsing code for a non-quantified atom element
@@ -2340,6 +2392,60 @@ sub generate_universal_other_step {
     # Handle sequences, groups, or other complex structures
     # For now, provide a placeholder
     return "    # TODO: Handle other element type: $element->{type}\n";
+}
+
+# Helper function to generate parser code for individual elements in grouped quantifiers
+sub generate_element_parser_code {
+    my ($element, $element_name, $regexes) = @_;
+    
+    # Handle different element types
+    if (ref($element) eq 'ARRAY') {
+        # Array format like ['quoted_string', ','] or ['regex', '\\s*'] or ['rule', 'expr']
+        if ($element->[0] eq 'quoted_string') {
+            # Terminal literal
+            my $literal = $element->[1];
+            my $escaped = escape_regex_literal($literal);
+            push @$regexes, "    '$element_name' => qr/$escaped/o";
+            return "AST::PackratParser::parse_literal(\$input_ref, pos(\$\$input_ref), '$literal')";
+        } elsif ($element->[0] eq 'regex') {
+            # Regex pattern
+            my $pattern = $element->[1];
+            push @$regexes, "    '$element_name' => qr/$pattern/o";
+            return "AST::PackratParser::parse_regex(\$input_ref, pos(\$\$input_ref), qr/$pattern/)";
+        } elsif ($element->[0] eq 'rule' || $element->[0] eq 'rule_reference') {
+            # Rule reference
+            my $rule_name = $element->[1];
+            return "parse_$rule_name(\$input_ref, pos(\$\$input_ref))";
+        }
+    } elsif (ref($element) eq 'HASH') {
+        # Hash format - check for different structures
+        if ($element->{type} eq 'atom' && ref($element->{value}) eq 'ARRAY') {
+            # Nested atom structure
+            return generate_element_parser_code($element->{value}, $element_name, $regexes);
+        } elsif ($element->{type} eq 'terminal' || $element->{type} eq 'literal') {
+            # Terminal element
+            my $value = $element->{value};
+            my $escaped = escape_regex_literal($value);
+            push @$regexes, "    '$element_name' => qr/$escaped/o";
+            return "AST::PackratParser::parse_literal(\$input_ref, pos(\$\$input_ref), '$value')";
+        } elsif ($element->{type} eq 'regex') {
+            # Regex element
+            my $pattern = $element->{value} || $element->{pattern};
+            push @$regexes, "    '$element_name' => qr/$pattern/o";
+            return "AST::PackratParser::parse_regex(\$input_ref, pos(\$\$input_ref), qr/$pattern/)";
+        } elsif ($element->{type} eq 'rule_reference') {
+            # Rule reference
+            my $rule_name = $element->{rule_name} || $element->{name};
+            return "parse_$rule_name(\$input_ref, pos(\$\$input_ref))";
+        }
+    } elsif (!ref($element)) {
+        # Simple string - assume it's a rule name
+        return "parse_$element(\$input_ref, pos(\$\$input_ref))";
+    }
+    
+    # Fallback for unhandled element types
+    print STDERR "WARNING: Unhandled element type in generate_element_parser_code: " . Dumper($element) . "\n" if !$quiet_mode;
+    return "AST::PackratParser::parse_epsilon(\$input_ref, pos(\$\$input_ref))";
 }
 
 sub generate_atom_parser {

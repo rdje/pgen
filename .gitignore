@@ -97,9 +97,19 @@ test_outputs/
 # Editor files
 .vscode/
 .idea/
+
+# Vim files
 *.swp
 *.swo
-*~
+*.sw?
+*.un~
+Session.vim
+.netrwhist
+
+# Development notes and commit messages
+git_message_brief.txt
+
+# OS files
 .DS_Store
 Thumbs.db
 
