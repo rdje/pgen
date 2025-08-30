@@ -1,0 +1,20 @@
+# Real HDL-style patterns to test production readiness
+# Port declarations
+port_list := port (',' port)* -> [$1, $2*]
+port := identifier ':' direction -> {name: $1, dir: $3}
+
+# Signal declarations  
+signal_list := signal_decl (',' signal_decl)* -> [$1, $2*]
+signal_decl := identifier ':' signal_type -> {name: $1, type: $3}
+
+# Expressions with precedence
+expression := term (('+'|'-') term)* -> {left: $1, ops: $2*}
+term := factor (('*'|'/') factor)* -> {left: $1, ops: $2*}
+factor := number | identifier | '(' expression ')'
+
+# Basic terminals
+identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/ -> $1
+number := /(\d+)/ -> $1
+direction := 'in' -> "input" | 'out' -> "output"
+signal_type := 'std_logic' -> "logic" | 'integer' -> "int"
+

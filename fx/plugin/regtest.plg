@@ -1,0 +1,346 @@
+register_test {
+my ($conf) = @_;
+
+ my $parse_info  = Storable::retrieve($$conf{_argv}[0]);
+
+ my $pl = new PPlugin;
+ my $ru = new RTLUtils;
+
+ my $h = {};
+ foreach my $can (@$parse_info) {
+  print "F $can->[1]\n";
+  # Looking for
+  # - signal assignments
+  # - component instantiation
+  #
+  # both referencing ios_read_data
+  # 
+  # Also linking every instance w/ in containing Architecture/Entity pair
+  #
+  foreach my $arch (get_anode_list($can, '?architecture_body:')) {
+   
+   print "\tA $arch->[1] : $arch->[2]\n"; 
+   foreach (get_anode_list($arch, '?concurrent_signal_assignment_statement:')) {
+     if ($$_[2] =~ /ios_read_data.*?\(addr_.+?\)/sio) {
+      print "\t  CONCURRENT SIGNAL ASSIGN ($$_[1]) <= ($$_[2])\n";
+
+      HUtils::avv_get($h, 'architecture', "$arch->[1]:$arch->[2]", 'signal', $$_[1]) = $$_[2];
+     }
+   }
+
+   print "\n";
+   foreach my $cinst (get_anode_list($arch, '?component_instantiation_statement:')) {
+    print "\t  I $$cinst[1] : $$cinst[2]\n";
+    HUtils::avv_get($h, 'architecture', "$arch->[1]:$arch->[2]", 'instance', "$$cinst[1]:$$cinst[2]", "__DUMMY__") = 0;
+
+    foreach (get_anode_list($cinst, '?association_element:')) {
+      if ($$_[2] =~ /ios_read_data.*?\(addr_.+?\)/sio) {
+       print "\t    PORT MAP ASPECT ($$_[1]) => ($$_[2])\n";
+       HUtils::avv_get($h, 'architecture', "$arch->[1]:$arch->[2]", 'instance', "$$cinst[1]:$$cinst[2]", $$_[1]) = $$_[2];
+      }
+    }
+   }
+
+   print "\n\n"
+  }
+
+  #print "\n###############################         PACKAGE       #########################\n";
+  foreach my $pkg (get_anode_list($can,  '?package_declaration:')) {
+          #print "\t  P $$pkg[1]\n";
+   foreach my $cst (get_anode_list($pkg, '?constant_declaration:')) {
+           # print "\t\tC $$cst[1] = ($$cst[3])\n";
+
+     $h->{package}{$$pkg[1]}{constant}{$$cst[1]} = $$cst[3];
+   }
+
+   foreach my $stp (get_anode_list($pkg, '?subtype_declaration:')) {
+           # print "\t\tST $$stp[1] = ($$stp[2])\n";
+
+     $h->{package}{$$pkg[1]}{subtype}{$$stp[1]} = $$stp[2];
+   }
+
+   my %subh = map {$_, $h->{package}{$$pkg[1]}{constant}{$_}} grep {$h->{package}{$$pkg[1]}{constant}{$_} !~ /\(|--|\&/o} keys %{$h->{package}{$$pkg[1]}{constant}};
+   $pl->exec('hvalue_substitute', \%subh);
+   HUtils::Merge($h->{package}{$$pkg[1]}{constant}, \%subh);
+
+   #print "---------------------\n";
+   #HUtils::Print($h->{package}{$$pkg[1]}{constant});
+   #print "\n";
+  }
+  #print "###############################         DONE          #########################\n\n";
+ }
+
+ # For not hard-coding the file path
+ my ($regdefile)   = slurp("reg_def_file_path.txt") =~ /(\S+)/o;
+ my $regdef_parser = $pl->_get_parser('regdef');
+
+ my $reg_def = $regdef_parser->(\(my $foo= slurp((slurp("reg_def_file_path.txt") =~ /(\S+)/o)[0])));
+
+ my $reg_def_info      = {};
+ my $reg_def_info_type = {};
+ print "#" x 80, "\n";
+ foreach my $creg_def (get_anode_list($reg_def, '?reg_def:')) {
+  print "REG_DEF $$creg_def[1]\n";
+
+  foreach my $creg_fld (get_anode_list($creg_def, '?reg_fld:')) {
+   print "\tREG_FLD <@$creg_fld[1,2]>\n";
+   HUtils::avv_get ($reg_def_info, $$creg_def[1], @$creg_fld[1,2])    = 1;
+   HUtils::avv_get ($reg_def_info_type, $$creg_def[1], $$creg_fld[1]) = $$creg_fld[2];
+  }
+  print "\n";
+ }
+
+ print "-" x 80, "\n\n";
+
+ my %skipped; 
+ my %skipped_reg_n_field; 
+ my %ecode;
+ my @ecode_xls;
+ my %e_module_reg_field_uniq;
+ my $defined_n_read = {};
+ HUtils::Recurse($h, sub {my ($ks, $ios_info) = @_;
+   return if $$ks[0] eq 'package';
+   return unless $ios_info;
+
+   my ($entity) = $$ks[1] =~ /:(.+)/o;  
+
+   my @paths = get_path_from_top ($h, $entity);
+
+   my $path_tail = $$ks[-2] eq 'signal' ? $$ks[-1] : ($$ks[-2] =~ /(.+?):/o)[0]."/$$ks[-1]";
+
+   $ios_info =~ s/\n//gio;
+   $ios_info =~ s/\s{2,}/  /gio; 
+
+   my @reg_field = grep {defined} $ios_info =~ /(?i)\(\s*addr_(\w+)_c\s*\)\s*\(\s*(?:((?:bit|range)_\w+_(?:c|t)\s+downto\s+bit_\w+_c)|(?:bit|range)_(\w+)_(?:c|t))\s*\)/o; 
+      @reg_fd    = grep {defined} $ios_info =~ /(?i)\(\s*addr_(\w+)_c\s*\)\s*\(\s*(?:(bit_\w+_c)\s+downto\s+(bit_\w+_c)|((?:bit|range)_\w+_(?:c|t)))\s*\)/o; 
+
+      push @reg_fd, ('-') x (3 - @reg_fd) if @reg_fd != 3;
+   #print ">>>>> $_/$path_tail ==>($ios_info)\n" foreach @paths;
+
+   foreach (@paths) {
+    if (/radig_subsys_specman_tb/o) {
+     my $full_path = "$_/$path_tail";
+
+     @reg_field =  map {s/\s{2,}/  /gio; $_} @reg_field;
+     my @regname_field = @reg_field == 2 && $ios_info !~ /\b(?:when|else)\b|\&|=/io ? @reg_field : ($ios_info, '-');
+   
+     if ($ios_info =~ /\b(?:when|else)\b|\&|=/io || $path_tail =~ /\)\s*\./o || $reg_field[1] =~ /^\d+$/o || $reg_fd[0] eq '-' || $reg_fd[2] ne '-') {
+      print "\n-W- Skipping *$full_path* ($ios_info)\n\n";
+      HUtils::avv_get(\%skipped, $entity, $full_path, @regname_field) = 1;
+      HUtils::avv_get(\%skipped_reg_n_field, @regname_field) = 1;
+      next;
+     }
+
+     # Using only the part that is useful
+     pop @reg_fd;
+
+     print "[$full_path] <@reg_fd>\n";
+
+     my $do_full_path = $full_path;
+
+     $full_path =~ s/\(/\[/go;
+     $full_path =~ s/\)/\]/go;
+     $full_path =~ s/\s+downto\s+/:/io;
+     $full_path =~ s/\s+//io;
+
+     my $e_regname   = $reg_fd[0];
+     my $e_fieldname = ($reg_fd[1] =~ /(?:bit|range)_(\w+)_(?:c|t)/o)[0];
+     my $e_full_path = do {$full_path =~ s#/radig_subsys_specman_tb#~#o; $full_path};
+     my $e_size      = $reg_fd[1] =~ /_c$/o ? 1 : do {my ($msi, $lsi) = $h->{package}{radig_common_pkg}{subtype}{$reg_fd[1]} =~ /(\d+)\s+downto\s+(\d+)/io; $msi - $lsi + 1};
+     my $e_type      = $$reg_def_info_type{$e_regname}{$e_fieldname} || '-';
+
+     next if $e_module_reg_field_uniq{$entity}{$do_full_path}{$e_regname}{$e_fieldname};
+
+     push @{$ecode{$entity}}, {full_path    => $e_full_path,
+                               regname      => $e_regname,
+                               fieldname    => $e_fieldname,
+                               size         => $e_size,
+                               module       => $entity,
+			       do_full_path => $do_full_path,
+			       type         => $e_type
+                              };
+
+    $e_module_reg_field_uniq{$entity}{$do_full_path}{$e_regname}{$e_fieldname} = 1;
+    push @ecode_xls, [$entity, $e_full_path, $e_regname, $e_fieldname, $e_size, $e_type];
+
+    $$defined_n_read{$e_regname}{$e_fieldname} = 1 if $e_type ne '-';
+   }
+  }
+ });
+
+ 
+ print "Generating E Files..\n";
+ drive_regtest_e(\%ecode);
+
+ print "Generating DO Files..\n";
+ drive_regtest_do(\%ecode);
+
+
+ my $reg_def_more_info = {};
+ HUtils::Recurse ($reg_def_info, sub {HUtils::avv_get($reg_def_more_info, @{$_[0]}, $$defined_n_read{$_[0][0]}{$_[0][1]} ? 'X' : ($skipped_reg_n_field{$_[0][0]}{$_[0][1]} ? '!' : '-')) = 1});
+
+ my $wbid      = Table2SS::AddWorkBook($conf->{_excelfile});
+ my $table     = HUtils::Key2Table(\%skipped)->{table};
+ my $reg_def_t = HUtils::Key2Table($reg_def_more_info)->{table};
+ unshift @$table,     [qw/Block Path Register Field/];
+ unshift @ecode_xls,  [qw/Block Path Register Field Size Type/];
+ unshift @$reg_def_t, [qw/Register Field Type Used/];
+ Table2SS::DriveSheet($wbid, 'processed', Table2SS::RCAllocate(1, 1, 1, [[@ecode_xls]], "raw"));
+ Table2SS::DriveSheet($wbid, 'skipped',   Table2SS::RCAllocate(1, 1, 1, [$table],       "raw"));
+ Table2SS::DriveSheet($wbid, 'reg_def',   Table2SS::RCAllocate(1, 1, 1, [$reg_def_t],   "raw"));
+ Table2SS::Close     ($wbid);
+}
+
+
+drive_regtest_do {
+my ($ecode) = @_;
+
+ foreach my $ce (keys %$ecode) {
+   my $list_of_ecode = Table::list2table ($$ecode{$ce}, 75);
+   my $ecode_cnt     = @$list_of_ecode;
+
+   my $c_ecode_idx   = 0;
+   foreach my $c_ecode (@$list_of_ecode) {
+     my $suffix = $ecode_cnt > 1 ? "_$c_ecode_idx" : "";
+
+     my $wave_name = "${ce}_regtest_wave$suffix.do";
+     open (my $e, ">$wave_name") || die "Can't write open '$wave_name',"; my $of = select $e;
+     print STDOUT "\tCreating '$wave_name'..\n";
+
+     my $areg  = RTLUtils::string_align([map {$$_{regname}}   @$c_ecode]);
+     my $afd   = RTLUtils::string_align([map {$$_{fieldname}} @$c_ecode]);
+     my $at    = RTLUtils::string_align([map {$$_{type}}      @$c_ecode]);
+     my $ai    = RTLUtils::string_align([0 .. $#$c_ecode]);
+
+     print "transcript off\n";
+     print "view wave -new -title ". uc($ce) . " -undock\n";
+
+
+     print "add wave -window wave1 -color Gold  -format Literal -label radig_subsys_seq /radig_subsys_specman_tb/iradig_subsys_tb_wrapper/sn_instruction\n";
+     print "add wave -window wave1 -color Coral -format Literal -label digrf_seq        /radig_subsys_specman_tb/iradig_subsys_tb_wrapper/sn_instruction2\n";
+     print "add wave -window wave1 -color {Violet Red} -format Logic -radix hexadecimal /radig_subsys_specman_tb/iradig_subsys/iradig_subsys/a_rad_digrf/digrf_rx_in\n";
+     print "add wave -window wave1 -color {Violet Red} -format Logic -radix hexadecimal /radig_subsys_specman_tb/iradig_subsys/iradig_subsys/a_rad_digrf/digrf_tx_out\n";
+
+     print "add wave -window wave1 -divider\n"; 
+     print "add wave -window wave1 -divider \"". uc($ce) ." SIGNALs\"\n";
+     print "add wave -window wave1 -divider\n"; 
+
+     my $idx = 0;
+     foreach (@$c_ecode) {
+      print "add wave -window wave1 -label {[$ai->{$idx}][$$at{$$_{type}}] $$areg{$$_{regname}} - $$afd{$$_{fieldname}}} -format ".($$_{size} == 1 ? "Logic  " : "Literal"). "   {$$_{do_full_path}}\n";
+      $idx++;
+     }
+
+     select $of;
+     $c_ecode_idx ++;
+   }
+ }
+}
+
+
+drive_regtest_e {
+my ($ecode) = @_;
+
+ foreach my $ce (keys %$ecode) {
+   my $list_of_ecode = Table::list2table ($$ecode{$ce}, 75);
+   my $ecode_cnt     = @$list_of_ecode;
+
+   my $c_ecode_idx   = 0;
+   foreach my $c_ecode (@$list_of_ecode) {
+     my $suffix = $ecode_cnt > 1 ? "_$c_ecode_idx" : "";
+
+     my $e_name = "${ce}_regtest$suffix.e";
+     open (my $e, ">$e_name") || die "Can't write open '$e_name',"; my $of = select $e;
+     print STDOUT "\tCreating '$e_name'..\n";
+
+
+     print "\n<'\n";
+     print "import conf/er_radig_subsys_config.e;\n\n";
+  
+     print qq/WAVE_CONFIG {"${ce}_regtest_wave$suffix.do"};\n\n/;
+     print "// Internal nodes path definition\n";
+     my %seen;
+     my $p_idx = 0;
+     my $ah = RTLUtils::string_align([map {"id".$p_idx++."_$$_{regname}_$$_{fieldname}"} @$c_ecode]);
+     $p_idx = 0;
+     foreach my $f (@$c_ecode) {
+      #next if $seen{"$$f{regname}_$$f{fieldname}"};
+       my $define_name = "id".$p_idx++."_$$f{regname}_$$f{fieldname}";
+  
+       print "define  ".$ah->{$define_name}."  '$$f{full_path}';\n";
+  
+       $seen{$define_name} = 1;
+     }
+  
+     print "\n\n";
+     print "TEST {\n";
+     print "  // Starts the root clocks\n";
+     print "  do SET_HIGHSPEED;\n\n";
+  
+     _reg_write_n_check ($ce, $c_ecode, 1);
+     print "\n\n";
+     _reg_write_n_check ($ce, $c_ecode, 0);
+
+     print "\n};\n";
+     print "\n'>\n";
+  
+     select $of;
+     $c_ecode_idx++;
+   }
+ }
+}
+
+
+_reg_write_n_check {
+my ($ce, $ecode, $pat) = @_;
+
+ print "  // Writing IO-Socket $pat...\n";
+ my %write_it_once;
+ foreach my $f (@$ecode) {
+  next if $write_it_once{$$f{regname}}{$$f{fieldname}};
+
+  print "  // Module: $ce  Register: $$f{regname}  Field: $$f{fieldname}  Type: $$f{type}\n";
+  if ($$f{type} ne 'R') {
+   if ($$f{type} ne '-') {
+    print "  REGISTERS WRITE_FLD $$f{regname} $$f{fieldname} ". get_binary_alt ($$f{size}, $pat) .";\n";
+   } else {
+    print qq{  out (append("\\n", vt.text_style(LIGHT_RED, "-E-"), " ", vt.text_style(YELLOW, "Can't write to a NON-EXISTING a/o NON-DEFINED Field (Module:$ce  Register:$$f{regname}  Field:$$f{fieldname}  Type:$$f{type})"), "\\n"));\n};
+   }
+  } else {
+    print qq/  out (append("\\n", vt.text_style(LIGHT_ORANGE, "-I-"), " ", vt.text_style(LIGHT_CYAN, "Can't write to a READ-ONLY Field (Module:$ce  Register:$$f{regname}  Field:$$f{fieldname}  Type:$$f{type})"), "\\n"));\n/;
+  }
+
+  $write_it_once{$$f{regname}}{$$f{fieldname}} = 1;
+ }
+  
+ print "\n  WAIT(100);\n";
+
+ print "\n  // Checking internal signal(s)/pin(s)\n";
+
+ my $p_idx = 0;
+ foreach my $f (@$ecode) {
+  my $ref_value = get_binary_alt ($$f{size}, $pat);
+  my $define_name = "id".$p_idx."_$$f{regname}_$$f{fieldname}";
+
+  print "  // Module: $ce  CheckPoint: [$p_idx]  Register: $$f{regname}  Field: $$f{fieldname}  Type: $$f{type}\n";
+  if ($$f{type} eq 'RW') {
+   print "  check that $define_name == $ref_value" . 
+         qq/ else dut_error(appendf  ("- $ce:[$p_idx]:$$f{regname}:$$f{fieldname} - Expected (%0$$f{size}b) Observed (%0$$f{size}b)", $ref_value, $define_name));\n/;
+  } else {
+   print qq/  out (append ("\\n", vt.text_style(LIGHT_ORANGE, "-I-"), " ", vt.text_style(CYAN, "Please Visually check  - $ce:[$p_idx][$$f{type}] $$f{regname}:$$f{fieldname} -\\n")));\n/ unless $$f{type} eq '-';
+  }
+
+  $p_idx++;
+ }
+ 
+ print "\n  WAIT(200);\n";
+}
+
+get_binary_alt {
+my ($sz, $pat) = @_;
+
+ my $cv = $pat;
+ join "", "$sz\'b", map {($cv+$_)%2} 0 .. $sz-1;
+}
+
+

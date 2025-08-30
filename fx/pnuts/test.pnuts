@@ -1,0 +1,24 @@
+#! env pnuts
+
+function f () {
+i = 0
+project(list([1, 2, 3, 4]), function (x) {println("x:"+x); ++i})
+println("i:"+i)
+}
+
+f()
+
+println("
+
+fdjfmlgjqfg
+qdgffg
+qsdfd"+ "
+
+
+
+yes
+
+")
+
+ar =[1, 2]
+project(ar, function (x) println(x))

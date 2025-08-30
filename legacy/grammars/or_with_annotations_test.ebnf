@@ -1,0 +1,3 @@
+# OR rule with return annotations
+choice := 'a' -> "option_a" | 'b' -> "option_b" | 'c' -> "option_c"
+

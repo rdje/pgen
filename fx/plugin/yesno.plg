@@ -1,0 +1,35 @@
+sub yes_no {
+my $this = shift @_ if ref $_[0];
+
+  while (1) {
+   print "$_[0] [y] ";
+   chomp(my $ui = <STDIN>); $ui =~ s/\s+//go;
+
+   if (!length($ui) || "yes" =~ /^$ui/) {
+    if ($_[1]) {
+     if (ref $_[1] eq 'CODE') {
+      &{$_[1]}
+     } elsif (ref $_[1] eq 'ARRAY') {
+       $_[1][0]->(@{$_[1]}[1 .. $#{$_[1]}])
+     } else {
+      die "\nSorry Can't handle the second argument (*Yes* Code) !\n"
+     }
+    }
+
+    return 1
+   } elsif ("no"  =~ /^$ui/) {
+    
+    if ($_[2]) {
+     if (ref $_[2] eq 'CODE') {
+      &{$_[2]}
+     } elsif (ref $_[1] eq 'ARRAY') {
+       $_[2][0]->(@{$_[2]}[1 .. $#{$_[2]}])
+     } else {
+      die "\nSorry Can't handle the third argument (*No* Code)!\n"
+     }
+    }
+
+    return 0
+   }
+  }
+}

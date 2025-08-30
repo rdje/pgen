@@ -1,0 +1,10 @@
+# Simple Calculator (Non-Left-Recursive)
+expr := term (('+' / '-') term)* -> {type: "expr", base: $1, ops: [$2*]}
+
+term := factor (('*' / '/') factor)* -> {type: "term", base: $1, ops: [$2*]}
+
+factor := '(' expr ')' -> $2
+factor := number -> $1
+
+number := /(\d+)/ -> {type: "number", value: $1}
+

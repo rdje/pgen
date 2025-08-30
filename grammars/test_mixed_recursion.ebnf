@@ -1,0 +1,12 @@
+# Test mixed left and right recursion
+# Some rules are left-recursive, others are right-recursive  
+
+expr := expr '+' term    # Left-recursive
+expr := term
+
+term := factor '*' term  # Right-recursive
+term := factor
+
+factor := '(' expr ')'   # Nested recursion
+factor := 'x'
+

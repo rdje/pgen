@@ -1,0 +1,24 @@
+# Configuration File Parser
+config := section* -> [$1*]
+
+section := header assignment* -> {section: $1, assignments: [$2*]}
+
+header := /\[([^\]]+)\]/ -> {type: "section", name: $1}
+
+assignment := key /\s*=\s*/ value -> {key: $1, value: $3}
+
+key := /([a-zA-Z_][a-zA-Z0-9_]*)/ -> $1
+
+value := string -> $1
+value := number -> $1
+value := boolean -> $1
+
+string := /"([^"]*)"/ -> {type: "string", value: $1}
+string := /'([^']*)'/ -> {type: "string", value: $1}
+
+number := /(\d+\.\d+)/ -> {type: "float", value: $1}
+number := /(\d+)/ -> {type: "int", value: $1}
+
+boolean := /true/ -> {type: "bool", value: true}
+boolean := /false/ -> {type: "bool", value: false}
+

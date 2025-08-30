@@ -1,0 +1,391 @@
+#! /apps/perl/5.8.3/bin/perl -w -I/home/rdje/perl/lib/site_perl/5.8.3 -I/home/rdje/EXPERIMENTAL/perl
+
+#===================================================================
+# Timing Closure Fixes Helper command
+#
+# Copyright (c) 2005-2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+require TcFlow;
+require Sheetnames;
+
+my $progname     = (reverse split(/\//, $0))[0];
+
+my $help 		= 0;
+my $reference		= 0;
+
+use Getopt::Long;
+GetOptions('interface'	=> \$interface,
+	   'reference'	=> \$reference,
+	   'clockre=s'	=> \$clockre,
+	   'output=s'	=> \$output,
+	   'minns=s'    => \$minodeslacks,
+	   'maxns=s'    => \$maxnodeslacks,
+	   'wd=s'       => \$workdir,
+	   'dpfix'      => \$dpfix,
+	   'help'    	=> \$help
+   	   );
+
+
+
+unless (@ARGV) {
+ print "($progname) -E- Please provide the input LOF file.\n";
+ usage()
+}
+
+my $conf 	   = HUtils::Link(PathSearch->go($progname));
+
+my $interface	   = $interface || $conf->{interface}             || die "($progname) -E- *interface* parameter NOT Defined,";
+my $filter         = $conf->{interface_filter}{$interface}        || die "($progname) -E- *$interface* interface's filter NOT Defined,";
+my $workdir	   = $workdir   || $conf->{'default-workdir'}     || die "($progname) -E- *default-workdir* parameter NOT Defined,";
+my $fixfile_prefix = $conf->{'fixfile-prefix'}                    || die "($progname) -E- *fixfile-prefix* parameter NOT Defined,";
+my $output 	   = $output    || $conf->{'default-margin-file'} || die "($progname) -E- *default-margin-file* or *output* NOT Defined,";
+
+
+my $SPCLOCK 	   = TableGrep::IndexOf('startpoint_clock');
+my $EPCLOCK 	   = TableGrep::IndexOf('endpoint_clock');
+my $SLACK 	   = TableGrep::IndexOf('slack');
+
+
+print "($progname) -I- Processing '$ARGV[0]'.\n";
+my $setup_hold = TcFlow::GetSH($ARGV[0]);
+
+clk2clk_margin($setup_hold, $output) unless $dpfix;
+dp_fix_info($setup_hold, $maxnodeslacks, $minodeslacks) if $dpfix;
+
+
+print "($progname) -I- Done.\n";
+   
+
+sub dp_fix_info {
+my ($setup_hold, $maxnodeslacks, $minodeslacks) = @_;
+
+ system("mkdir -p $workdir; rm -f $workdir/$fixfile_prefix*");
+
+ my $uniq = uniquify_paths($setup_hold);
+ my $ns   = xt_pointslacks($uniq, $maxnodeslacks, $minodeslacks);
+ 
+ ns_check($uniq, $ns);
+ fix_lof_driver($uniq)
+}
+
+
+sub fix_lof_driver {
+my $fixinfo = shift;
+ 
+ foreach my $type (qw(setup hold)) {
+  print "($progname) -I- Writing '$type' INFO..\n";
+
+  foreach my $md5sum (keys %{$$fixinfo{$type}}) {
+   my $set = $$fixinfo{$type}{$md5sum};
+
+   my $file_idx= $$set{idx};
+
+   open(DPFIX, ">$workdir/$fixfile_prefix${type}_$file_idx.lof") || die "($progname) -E- Can't write open '$workdir/$fixfile_prefix${type}_$file_idx.lof'";
+   # One set per file
+   print DPFIX "=regrestatus_$type=\n";
+   print DPFIX "@$_\n" foreach (@{$$set{paths}});
+   print DPFIX "=regrestatus_${type}_end=\n";
+   
+   print DPFIX "=tcfix_check=\n";
+   print DPFIX "@{$$set{points}}\n";
+   print DPFIX "@$_\n" foreach (@{$$set{check}});
+   print DPFIX "=tcfix_check_end=\n";
+
+   print  "=regrestatus_$type=\n";
+   print  "@$_\n" foreach (@{$$set{paths}});
+   print  "=regrestatus_${type}_end=\n";
+   
+   print  "=tcfix_check=\n";
+   print  "@{$$set{points}}\n";
+   print  "@$_\n" foreach (@{$$set{check}});
+   print  "=tcfix_check_end=\n";
+
+   close(DPFIX)
+  }
+ }
+}
+
+sub uniquify_paths {
+my $setup_hold = shift;
+
+ my %up_o;
+ foreach my $type (qw(setup hold)) {
+  my $uniq     = TcFlow::UniquifyPath($$setup_hold{$type}, $type, $filter, $workdir);
+  $up_o{$type} = $uniq ? $uniq->{uniq} : undef
+ }
+
+ return {%up_o}
+}
+
+
+sub xt_pointslacks {
+my ($uniqset, $setupns, $holdns) = @_;
+
+ my %smallest_pointset;
+ foreach my $type (qw(setup hold)) {
+
+  foreach my $md5sum (keys %{$$uniqset{$type}}) {
+   my $set = $$uniqset{$type}{$md5sum};
+   $smallest_pointset{$type}{$_} = 1 foreach (@{$$set{points}});	  
+  }
+
+ }
+
+ my $setup_set = [keys %{$smallest_pointset{setup}}];
+ my $hold_set  = [keys %{$smallest_pointset{hold}}];
+
+ # For HOLD violations we need to check SETUP Margins for pins
+ my $setup_nodeslacks="";
+ if (@$hold_set) {
+  print "($progname) -I- Extracting *setup* NODESLACKs..\n";
+
+
+  my $holdpins = join("|", map {s/(\[|\])/\\$1/g; $_} @$hold_set);
+  open(HOLDPINS, ">$workdir/HOLDPINS") || die "($progname) -E- Can't write open '$workdir/HOLDPINS',";
+  print HOLDPINS $holdpins;
+  close(HOLDPINS);
+  $setup_nodeslacks .= qx(egrep -f $workdir/HOLDPINS $setupns);
+ }
+ 
+ print "\n";
+ # For SETUP violations we need to check HOLD Margins for pins
+ my $hold_nodeslacks="";
+ if (@$setup_set) {
+  print "($progname) -I- Extracting 'hold' NODESLACKs..\n";
+
+  my $setupins = join("|", map {s/(\[|\])/\\$1/g; $_} @$setup_set);
+  open(SETUPINS, ">$workdir/SETUPINS") || die "($progname) -E- Can't write open '$workdir/SETUPINS',";
+  print SETUPINS $setupins;
+  close(SETUPINS);
+
+  $hold_nodeslacks .= qx(egrep -f $workdir/SETUPINS $holdns);
+ }
+
+ print "\n";
+
+ return analyze_nodeslack($setup_nodeslacks, $hold_nodeslacks);
+}
+
+
+sub xt_ps {
+my ($uniq, $ns, $flag) = @_;
+
+ my %smallest_pointset;
+ foreach my $set (@{$$uniq{$flag}}) {
+  $smallest_pointset{$flag}{$_} = 1 foreach (@{$$set{points}});	  
+ }
+
+ my $flag_set = [keys %{$smallest_pointset{$flag}}];
+ my $flag_nodeslacks="";
+ if (@$flag_set) {
+  print "($progname) -I- Extracting *$flag* NODESLACKs..\n";
+  TOP: while (1) {
+   my @subset = ();
+   foreach (1 .. 5) {
+    if(@$flag_set) {
+     push @subset, shift @$flag_set
+    } elsif (@subset) {
+      last
+    } else {last TOP}
+   }
+
+   my $grep_cmd = "egrep '".join("|", @subset)."' $ns";
+   $flag_nodeslacks .= qx($grep_cmd);
+  }
+ }
+}
+
+sub ns_check {
+my ($uniqset, $ns) = @_;
+
+ foreach my $type (qw(setup hold)) {
+  print "($progname) -I- Checking '$type' margins..\n";
+
+  foreach my $md5sum (keys %{$$uniqset{$type}}) {
+   my $set = $$uniqset{$type}{$md5sum};
+
+   my $opposite = $type eq 'setup' ? 'hold' : 'setup';
+   $$set{ns} = [map {$$ns{$opposite}{$_}} @{$$set{points}}];
+   #print "\Q@{$$set{ns}}\E: <@{$$set{ns}}>\n";
+
+   foreach my $path (@{$$set{paths}}) {
+    push @{$$set{check}}, [map { length($_) ? (/infinity/io ? $_ : ($_ >= abs($$path[$SLACK]) ? "good:$_" : "bad:$_")) : "-"}  @{$$set{ns}}];
+   }
+  }
+ }
+}
+
+
+sub clk2clk_margin {
+my ($setup_hold, $output) = @_;
+
+ #
+ # I should check the return value of TableGrep::Filter
+ #
+ my $setup_data  = TableGrep::Filter($filter, $$setup_hold{setup});
+ my $hold_data   = TableGrep::Filter($filter, $$setup_hold{hold});
+
+ print "($progname) -E- NO 'setup' MATCH for filter ** $filter **\n" unless $setup_data; 
+ print "($progname) -E- NO 'hold'  MATCH for filter ** $filter **\n" unless $hold_data; 
+
+ my @setupslacks;
+ my @holdslacks;
+ @setupslacks = map {[@$_[$SPCLOCK,$EPCLOCK,$SLACK]]} @$setup_data if $setup_data;
+ @holdslacks  = map {[@$_[$SPCLOCK,$EPCLOCK,$SLACK]]} @$hold_data  if $hold_data;
+
+ my %allclocks;
+ my %fromto;
+ my %setup_negslack_cnt;
+ my %hold_negslack_cnt;
+ my %reference;
+ 
+ # Processing Max/Min DATA
+ foreach (@setupslacks) {
+  next  unless $_->[0] || $_->[1];
+  #
+  # Only fully contrained paths are to be analyzed
+  #
+  next  if $_->[0] eq '-' || $_->[1] eq '-';
+  #print "MAX: [", join('*', @$_[0 .. 1]), "]\n";
+
+  # Matching inverted and non-inverted clocks
+  $_->[0] =~ s/'//g;
+  $_->[1] =~ s/'//g;
+
+  $allclocks{$_->[0]} = 1; 
+  $allclocks{$_->[1]} = 1; 
+
+  $reference{"$_->[0]_2_$_->[1]"} = 1;
+  
+  # from $_->[0]  to $_->[1] one more Max/Min delay slack to push
+  push @{$fromto{$_->[0]}{$_->[1]}{'max'}}, $_->[2];
+
+  # Incrementing the number of violating paths from $_->[0]  to $_->[1]
+  ++$setup_negslack_cnt{$_->[0]}{$_->[1]} if $_->[2] < 0;
+ }
+
+ # Processing Min DATA
+ foreach (@holdslacks) {
+  next  unless $_->[0] || $_->[1];
+  #
+  # Only fully contrained paths are to be analyzed
+  #
+  next  if $_->[0] eq '-' || $_->[1] eq '-';
+  #print "min: [", join('*', @$_[0 .. 1]), "]\n";
+ 
+  # Matching inverted and non-inverted clocks
+  $_->[0] =~ s/'//g;
+  $_->[1] =~ s/'//g;
+ 
+  $allclocks{$_->[0]} = 1; 
+  $allclocks{$_->[1]} = 1; 
+ 
+  $reference{"$_->[0]_2_$_->[1]"} = 1;
+ 
+  # from $_->[0]  to $_->[1] one more Min delay slack to push
+  push @{$fromto{$_->[0]}{$_->[1]}{'min'}}, $_->[2];
+ 
+  # Incrementing the number of violating paths from $_->[0]  to $_->[1]
+  ++$hold_negslack_cnt{$_->[0]}{$_->[1]} if $_->[2] < 0;
+ }
+
+ # Selecting the worst slack from each from/to clock pair for either max/min
+ foreach my $from (keys %fromto) {
+  #print "from : $from\n";
+  foreach my $to (keys %{$fromto{$from}}) {
+   #print "  to : $to\n";
+   foreach my $maxmin (keys %{$fromto{$from}{$to}}) {
+    #print "    maxmin : $maxmin\n";
+    #print "      arrayval : ", join(' ', @{$fromto{$from}{$to}{$maxmin}}), "\n";
+    $fromto{$from}{$to}{$maxmin} = (sort {$a <=> $b} @{$fromto{$from}{$to}{$maxmin}})[0];
+    #print "      selected : =$fromto{$from}{$to}{$maxmin}=\n\n";
+   }
+  }
+ }
+
+ # Array containing all clocks
+ my @allclocks = sort {$b cmp $a} keys %allclocks;
+ # Associating a uniq index within that array to each clocks
+ my %clock2index;
+ my $index=0;
+ foreach (@allclocks) {
+  $clock2index{$_} = $index;
+  ++$index
+ }
+ 
+ open(OUT, ">$output") || die "(clock_margin) -E- Can't write open '$output',";
+
+ my $uniq 	= {};
+ my %sheetnames = map {($_, Sheetnames::Get($uniq, $_))} sort {$a cmp $b} keys %reference;
+
+ my $clockre_comp = $clockre ? qr/$clockre/ : qr/^::$/;
+ print OUT "=clock_margin=\n";
+ print OUT ($clockre ? "+ ".join(" ", map { /$clockre_comp/ ? "re:$_" : $_} @allclocks)."\n" : "+ @allclocks\n");
+
+ foreach my $from (@allclocks) {
+  my @lineout = ('-') x @allclocks;
+  unshift @lineout, $from =~ /$clockre_comp/ ? "re:$from" : $from;
+
+  unless(exists $fromto{$from}) {
+   # '*' is used to tell whether or not a given is a start clock of at least one path
+   $lineout[$clock2index{$from} + 1] = '*';
+   print OUT join("\t", @lineout), "\n";
+   next
+  }
+
+  # '+' is used for setting the background of cells corresponding to inner clock domain paths Green
+  # There is no inner paths (violating or not) for that set of report timing
+  $lineout[$clock2index{$from} + 1] = '+';
+
+  # The '+ 1' is due to the unshift of $from in @lineout.
+  foreach my $to (keys %{$fromto{$from}}) {
+   my $holdslacks   = exists($hold_negslack_cnt{$from}{$to})  ? "($hold_negslack_cnt{$from}{$to})" : "";
+   my $setupslacks  = exists($setup_negslack_cnt{$from}{$to}) ? "($setup_negslack_cnt{$from}{$to})" : "";
+
+   my $filename = $from.'_2_'.$to;
+   $lineout[$clock2index{$to} + 1] = ($reference ? "internal:$sheetnames{$filename}!A1@" : "").
+   				     ($fromto{$from}{$to}{'min'} || "").$holdslacks.'/'.($fromto{$from}{$to}{'max'} || "").$setupslacks;
+
+  }
+
+  print OUT join("\t", @lineout), "\n";
+ }
+
+
+ print OUT "=clock_margin_end=\n";
+ close(OUT)
+}
+
+
+sub analyze_nodeslack	{
+my ($setupdata, $holddata)  = @_;
+
+ my $nodeinfo_re = qr/^(\S+)\s+(\S+)\s+(\S+)/o;
+
+ my %setupinfo;
+ foreach (split /\n/, $setupdata) { 
+  my @nodeinfo = /$nodeinfo_re/g; push @{$setupinfo{$nodeinfo[2]}}, @nodeinfo[0 .. 1]
+ }
+
+ $setupinfo{$_} = (sort {$a <=> $b} grep {!/infinity/io} @{$setupinfo{$_}})[0] foreach (keys %setupinfo);
+
+ my %holdinfo;
+ foreach (split /\n/, $holddata) { 
+  my @nodeinfo = /$nodeinfo_re/g; push @{$holdinfo{$nodeinfo[2]}}, @nodeinfo[0 .. 1]
+ }
+  
+ $holdinfo{$_}  = (sort {$a <=> $b} grep {!/infinity/io} @{$holdinfo{$_}})[0]  foreach (keys %holdinfo);
+
+ return {setup=>{%setupinfo}, hold=>{%holdinfo}}
+}
+
+
+sub usage {
+ print "usage: $progname  [--reference] [--clockre=<ClockRE>] [--output=<OutputFile>] [--help] LOFile\n";
+ exit
+}
+

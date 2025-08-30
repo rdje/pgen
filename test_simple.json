@@ -1,0 +1,10 @@
+{
+  "grammar_name": "simple",
+  "raw_ast": [
+    [
+      ["rule", "greeting"],
+      ["quoted_string", "hello"],
+      ["identifier", "name"]
+    ]
+  ]
+}

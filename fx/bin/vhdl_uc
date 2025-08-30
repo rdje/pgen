@@ -1,0 +1,11 @@
+#! /home/qdjeric/install/bin/perl -w -I/home/qdjeric/project/fsm/afx/fx/perl
+
+use HUtils;
+
+my $conf = HUtils::Link(PathSearch->go((reverse split /\//, $0)[0]));
+my $vhdl_keywords = '\b('.join('|', @{$conf->{keywords}}).')\b';
+
+my $file  = do {local($ARGV, $/) = $ARGV[0]; <>};
+
+print map {s/$vhdl_keywords/uc($1)/egoi unless /--|"/o; $_} split /(--.*|".*?")/, $file;
+

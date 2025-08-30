@@ -1,0 +1,40 @@
+nlc        {
+ &{$_[0]{diag_cbx}{$$_[1]} || 'nlc_diag'} ($_[0], $_) foreach @{Table::list2table([do {open (my $f, $_[0]{_argv}[0]); local $/; <$f>} =~ m/$_[0]{diag_re}/g], 3)};
+
+ my $c = $_[0];
+ HUtils::Recurse($c->{nlc_diag}, sub {my ($ks, $v) = @_;
+   HUtils::avv_set($c, ['nlc_report', @$ks[0,1], scalar (@$v) , $ks->[2]], $v)
+ });
+
+my $wbid = Table2SS::AddWorkBook($_[0]{_excelfile});
+Table2SS::DriveTableTree($_[0]{_excelfile}, 
+	                 'nl_checks', 
+			 $_[0]{nlc_report}, 
+			 xpad=>2,
+			 ypad=>2,
+			 table_per_row => 2, 
+			 table2script  => sub {my %arg = @_; "nlc_". $arg{key2table}[$arg{table_index}][0]},
+			 link_script   => 'nlc_link'
+		        ); 
+		 
+Table2SS::Close($wbid);
+}
+
+nlc_diag   {
+
+  unless (defined $_[0]{diag_captre}{$_[1][1]}) {
+
+   print "-W- Unknown '$_[1][1]'\n" unless $_[0]{__unknown}{$_[1][1]};
+
+   $_[0]{__unknown}{$_[1][1]} = 1;
+
+   return;
+  }
+
+  push @{$_[0]{nlc_diag}{$_[1][1]}{$_[1][0]}{$_[0]{diag_msg}{$_[1][1]}}}, [$_[1][2] =~ m/$_[0]{diag_captre}{$_[1][1]}/g];
+}
+
+nlc_r2_cb {
+ my ($net) = $_[1][2] =~ /'(\S+)'/o;
+ push @{$_[0]{nlc_diag}{$_[1][1]}{$_[1][0]}{$_[0]{diag_msg}{$_[1][1]}}}, ['NET:'.$net, 'NET:'], @{Table::list2table([$_[1][2] =~ /pin\s+(\S+)\s+of\s+cell\s+(\S+)/go], 2)};
+}

@@ -1,0 +1,17 @@
+lighttpd {
+ my $lighttpd_conf             = slurp (Global->lighttpd_conf);
+ my $host                      = Sys::Hostname::hostname.($_[0]{_notail} ? '' : Global->http_hostail);
+ my $port                      = $_[0]{_port} || Global->http_default_port;
+ #my $fh                        = new File::Temp (TEMPLATE=>"_$port"."_XXXXX");
+ my ($fh, $filename)            = File::Temp::tempfile("_$port"."_XXXXX", UNLINK => 1);
+
+ $lighttpd_conf =~ s/<server_name>/$host/o;
+ $lighttpd_conf =~ s/<server_port>/$port/o;
+
+ print $fh $lighttpd_conf;
+ system ("lighttpd -f ".$filename);
+}
+
+
+set_http_hostport  {Global->set ('http_hostport') = ($_[0] || Sys::Hostname::hostname.Global->http_hostail).":".($_[1] || Global->http_default_port)}
+set_http_localhost {set_http_hostport (undef, $_[0])}

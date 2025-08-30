@@ -1,0 +1,35 @@
+qclib_compile {
+my ($qconf) = @_;
+
+  -s $qconf->{qclib_compile} || die "($qconf->{progname}) -E- LIB file '$qconf->{qclib_compile}' is either empty or doesn't exist,";
+
+  print "($qconf->{progname}) -I- Loading LIB file '$qconf->{qclib_compile}'..\n";
+  my $libcontent = do {local(@ARGV, $/) = $qconf->{qclib_compile}; <>};
+  my $lib = LibReader::Read(\$libcontent);
+
+
+# HUtils::KeyGrep($lib, qr/pin:/o, sub {my ($info, $data) = @_; print "[A] @$info : "; print ref($data) ? "[@$data]\n" : "<$data>\n"});
+# HUtils::Grep($lib, qr/pin:.*(related_pin|direction)/o, sub {my ($info, $data) = @_; print "[A] @$info : "; print ref($data) ? "[@$data]\n" : "<$data>\n"});
+
+ $lib || die "($qconf->{progname}) -E- Problem reading LIB '$qconf->{qclib_compile}',";
+
+ my ($base)     = $qconf->{qclib_compile} =~ /(.+)\./;
+
+ my $compname   = ($base ? $base : $qconf->{qclib_compile}).".qclib";
+    $compname   =~ s/.*\///;
+
+ my $output_dir = $qconf->{output_dir} || $qconf->{default_output_directory};
+ system("mkdir -p $output_dir");
+ $compname      = "$output_dir/$compname";
+ 
+
+ print "($qconf->{progname}) -I- Writing '$compname'..";
+ Storable::store($lib, $compname);
+ print " Done.\n";
+
+ return $lib
+
+ 
+ #HUtils::Grep(retrieve($qconf->{qclib}), qr/pin:/o, sub {my ($info, $data) = @_; print "[B] @$info : "; print ref($data) ? "[@$data]\n" : "<$data>\n"})
+ #HUtils::KeyGrep(retrieve($qconf->{qclib}), qr/pin:/o, sub {my ($info, $data) = @_; print "[B] @$info : "; print ref($data) eq 'ARRAY' ? "[@$data]\n" : (ref($data) eq 'HASH' ? "{@{[%$data]}}\n" : "<$data>\n")})
+}

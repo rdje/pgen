@@ -1,0 +1,4 @@
+# Test multiple word collection
+wordlist := word+ -> [$1*]
+word := /\w+/ /\s*/ -> $1
+

@@ -1,0 +1,128 @@
+#! /home/qdjeric/install/bin/perl -w -I/home/qdjeric/project/fsm/afx/fx/perl
+
+
+use HUtils;
+use Table2SS;
+use Table;
+
+use re 'eval';
+
+use Fatal qw/:void open/;
+
+use Getopt::Long;
+use Cwd;
+
+sub getmatch ();
+
+my $cr = {};
+GetOptions (
+  'conf=s'          => \$$cr{conf},
+  'xls=s'           => \$$cr{xls},
+  'unmapped=s'      => \$$cr{_unmapped},
+  'synt-log=s'      => \$$cr{_synt_log},
+  'hierarchy-map=s' => \$$cr{_hierarchy_map},
+  'help'            => \$$cr{help}
+);
+
+my  $cr1    = HUtils::Conf($$cr{conf} || PathSearch->go('fv_check'));
+my ($block) = grep {length} split /\//, (getcwd =~ /$cr1->{top}(\S+)/o)[0];
+
+# Substituing the blockname
+HUtils::wrecurse ($cr1, sub {$_[0][-1] =~ /^_/o ? glob "$cr1->{top}/$block/$_[1]" : $_[1]});
+
+# Building $CR
+$cr         = HUtils::Merge($cr1,  $cr);
+
+# path 2 module reference map
+open my $path2mod, $$cr{_hierarchy_map}; $$cr{_path2mod} = {map {m/^(\S+)/o; $1} do {local $/; <$path2mod>} =~ /(\S.+?)\((.+?)\)/g};
+# reversing path2mod
+HUtils::recurse ($$cr{_path2mod}, sub {push @{$$cr{_mod2path}{$_[1]}}, $_[0][-1]});
+# Turning list w/ only one path to scalar
+HUtils::wrecurse ($$cr{_mod2path}, sub {$_[1][1] ? $_[1] : $_[1][0]});
+
+
+# Longest First !!
+$$cr{_modre} = eval q{qr/^(?:}.join('|', sort {length($b) <=> length($a)} keys %{$$cr{_mod2path}}).q{)/};
+
+# Building the pattern-action list ==> TODO Since Perl RE ARE NOT re-reentrant yet I can't do a clean Pattern-Action implementation 
+foreach (qw/re ure/) {
+ HUtils::recurse ($$cr{$_}, sub {push @{$$cr{_pa}{$_}}, qq/\$\$cr{$_}{$_[0][-1]} (?{\$\$cr{_callback}{$_} = '$_[0][-1]'})/});
+ $$cr{_qr}{$_} = eval "qr/". join ('|', @{$$cr{_pa}{$_}}) ."/x";
+}
+
+my $syntlog = do {open my $f, $$cr{_synt_log}; local $/; <$f>}; &{$$cr{cb}{$$cr{_callback}{re}}} ($cr) while $syntlog =~ /$$cr{_qr}{re}/g;
+my $um_kp   = do {open my $f, $$cr{_unmapped}; local $/; <$f>}; &{$$cr{cb}{$$cr{_callback}{ure}}}($cr) while $um_kp   =~ /$$cr{_qr}{ure}/g;
+
+
+#print "\n\n<", $$cr{_qr}{$_}, ">\n\n\n" foreach qw/re ure/;
+
+HUtils::KeyGrep($$cr{_keypoinfo}, qr/G .+ DFF/o, sub {
+  my @dcshell_removed = map {"\t$_\n"} grep {$$cr{_reginfo}{$_}} @{$_[1]};
+  my @dcshell_unknown = map {"\t$_\n"} grep {!$$cr{_reginfo}{$_}} @{$_[1]};
+  print "\n\n-I- (Golden) Over (", scalar(@{$_[1]}) ,") Unmapped DFFs the following (", scalar(@dcshell_removed) ,") were removed by DC-Shell:\n";
+  print join '', @dcshell_removed, "\n\n";
+
+  print "-W- (Golden) Can't say anything for the remaining (", scalar(@dcshell_unknown) ,"):\n";
+  print join '', @dcshell_unknown, "\n\n";
+
+});
+
+sub procb {
+ unless ($_[0]{_cpath} = $_[0]{_mod2path}{$_[0]{_cmod}  = (getmatch)[0]}) {
+  # Can't find the path for this module.
+  # Sounds like an automatically generated module name
+
+  # Skipping DesignWare
+  my $gotit = $_[0]{_cmod} !~ /DW/o && $_[0]{_cmod} =~ $$cr{_modre};
+
+  $_[0]{_cpath} = "__NO_MODULE_PATH_DEFINED__";
+  unless ($gotit) {
+   print "-W- No defined module match *$_[0]{_cmod}*\n" unless $_[0]{_cmod} =~ /DW(?:\d+)?_/o;
+  } else {
+   print "-I- Selected reference module '$&' for generated module *$_[0]{_cmod}*\n";
+   $_[0]{_cpath} = $_[0]{_mod2path}{$&}
+  }
+ }
+}
+
+sub opt120x_cb {
+my ($regpin, $optid) = getmatch;
+
+ if ($regpin =~ /\//o) {
+  my @parts = split /\//o, $regpin;
+
+  $_[0]{_creg} = pop  @parts;
+  $_[0]{_cmod} = $_[0]{_path2mod}{$_[0]{_cpath} = join '/', @parts}
+
+ } else {
+  $_[0]{_creg} = $regpin;
+ }
+
+ my $path_n_reg = $_[0]{_cpath}. '/' .$_[0]{_creg};
+
+ push @{$_[0]{_reglist}}, $_[0]{_reginfo}{$_[0]{_cpath}. '/' .$_[0]{_creg}} = [$_[0]{_cmod}, $_[0]{_cpath}, $_[0]{_creg}, $optid] unless $_[0]{_reglist_seen}{$path_n_reg};
+ $_[0]{_reglist_seen}{$path_n_reg} = 1;
+}
+
+sub unmaped_point_cb {
+($_[0]{_cutype}, $_[0]{_cudescr}) = getmatch;
+
+ $_[0]{_cudescr} ||= '-';
+
+#print "unmaped_point_cb: ($_[0]{_cutype}, $_[0]{_cudescr})\n";
+}
+
+sub keypoint_cb {
+# gr = Golden/Revised
+# kp_type = DFF|DLAT|BBOX 
+my ($gr, $kp_type, $kp) = getmatch;
+
+#print "keypoint_cb: ($gr, $kp_type, $kp)\n";
+
+ $kp = join '/', grep {length} split /\//, $kp;
+ 
+ push @{$_[0]{_keypoinfo}{$gr}{$_[0]{_cutype}}{$_[0]{_cudescr}}{$kp_type}}, $kp unless $_[0]{_keypoint_seen}{$kp};
+ $_[0]{_keypoint_seen}{$kp} = 1;
+}
+
+sub getmatch () {grep {defined} map {eval '$'.$_} 1 .. $#+}

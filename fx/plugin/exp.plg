@@ -1,0 +1,14 @@
+
+exp {
+my ($conf) = @_;
+
+use Expect;
+use Cwd qw/chdir/;
+
+
+ print "Spawning dc_load_netlist..\n";
+ chdir $$conf{run_dir};
+ my $x = new Expect(@{$$conf{dc_load_cmd}}, $$conf{ddc});
+
+ $x->expect (undef, 'dc_shell-xg-t> ', sub {$_[0]->send ("help report*\n"); exp_continue});
+}

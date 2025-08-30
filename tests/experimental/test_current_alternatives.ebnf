@@ -1,0 +1,4 @@
+// Test current alternative syntax
+rule1 := alt1 | alt2 -> $1
+alt1 := /a/ -> $1
+alt2 := /b/ -> $1

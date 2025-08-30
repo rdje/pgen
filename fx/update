@@ -1,0 +1,70 @@
+#! perl -w
+
+#===================================================================
+# DevFx Update
+#
+# Copyright (c) 2005-2008 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+use lib 'perl';
+use Global;
+
+use File::Spec;
+
+my $not_unix       = File::Spec->tmpdir() =~ /^[[:alpha:]]:\\/o;
+my $progname       = 'update';
+
+print "($progname) -I- Configuring AFX environment..\n\n";
+ 
+my $he             = new Global;
+
+my $FX_TOP         = $he->set('FX_TOP');
+my $PERLBIN        = $he->set('PERLBIN');
+my $PERLMOD_PATH   = $he->set('PERLMOD_PATH');
+my $PROG_LIST      = $he->set('PROG_LIST');
+my $FX_BIN         = $he->set('FX_BIN');
+my $FX_PERL        = $he->set('FX_PERL');
+
+#HUtils::Print($he);exit;
+print "($progname) -WW- Please **let** the update process run 'til its **full completion** !\n";
+my $bindir         = File::Spec->catfile($FX_TOP, $FX_BIN);
+my $perldir        = File::Spec->catfile($FX_TOP, $FX_PERL);
+
+#============= Updating Programs ================
+
+$PROG_LIST  = [$PROG_LIST] unless ref $PROG_LIST;
+foreach (@$PROG_LIST) {
+ my $biname = File::Spec->catfile($bindir, $_);
+
+ unless (-f $biname) {
+  print "($progname) -W- Can't locate program '$_' in '$bindir'\n";
+  next
+ }
+ 
+ print "($progname) -I- Setting up program '$_'\n";
+ my $binf;
+ unless (open($binf, $biname)) {
+  warn "($progname) -W- Can't open file '$biname',";
+  next
+ }
+
+ my $content = do {local $/ = undef; <$binf>};
+ close $binf;
+
+ my @dirlist = map {"-I$_"} grep {!/^--/} (ref($PERLMOD_PATH) ? @$PERLMOD_PATH : $PERLMOD_PATH, $perldir);
+ $content    =~ s/^#!.+?\n/#! $PERLBIN -w @dirlist\n/s;
+
+ if ($content =~ /^\s+$/so) {
+  warn "($progname) -W- Issue with while processing '$_', skipping";
+  next
+ }
+
+ open (my $bin, "> $biname") || die "($progname) -E- Can't write open '$biname',";
+ print $bin $content;
+ close($bin);
+}
+
+
+print "\n($progname) -I- Done, Your Package should be ready for use :)\n\n";

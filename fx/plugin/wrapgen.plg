@@ -1,0 +1,84 @@
+wrapgen_dft_mbist_rst_n {my ($cf, $wrapper_name, $cell_name, $cellpin) = @_;
+ $$cf{cell_instance_portmap}{$wrapper_name}{$cell_name}{$cellpin} = 'synced_mbist_rst_n';
+ 
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'rst_sync'}{'a_rst_sync_mbist_rst_n'}{portmap}{clk}{actual}               = '?get_mbist_clock';
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'rst_sync'}{'a_rst_sync_mbist_rst_n'}{portmap}{rst_n}{actual}             = 'synced_mbist_rst_n';
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'rst_sync'}{'a_rst_sync_mbist_rst_n'}{portmap}{test_reset_bypass}{actual} = 'dft_ctrl_in(dft_ctrl_rstsync_bypass_c)';
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'rst_sync'}{'a_rst_sync_mbist_rst_n'}{portmap}{async_rst_n}{actual}       = 'rst_n';
+
+ push @{$$cf{wrapinfo}{$wrapper_name}{signal_decl}}, ['rst_n', 'STD_LOGIC'], ['synced_mbist_rst_n', 'STD_LOGIC']
+}
+
+wrapgen_dft_mbist_en {my ($cf, $wrapper_name, $cell_name, $cellpin) = @_;
+ $$cf{cell_instance_portmap}{$wrapper_name}{$cell_name}{$cellpin} = 'synced_mbist_en';
+
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'sync_s'}{'a_sync_s_mbist_en'}{portmap}{clk}{actual}           = '?get_mbist_clock';
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'sync_s'}{'a_sync_s_mbist_en'}{portmap}{rst_n}{actual}         = 'synced_mbist_rst_n';
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'sync_s'}{'a_sync_s_mbist_en'}{portmap}{test_en}{actual}       = 'dft_ctrl_in(dft_ctrl_sync_bypass_c)';
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'sync_s'}{'a_sync_s_mbist_en'}{portmap}{async_signal}{actual}  = $cellpin;
+ $$cf{wrapinfo}{$wrapper_name}{additional_instances}{'sync_s'}{'a_sync_s_mbist_en'}{portmap}{synced_signal}{actual} = 'synced_mbist_en';
+
+ push @{$$cf{wrapinfo}{$wrapper_name}{signal_decl}}, [$cellpin, 'STD_LOGIC'], ['synced_mbist_en', 'STD_LOGIC']
+}
+
+wrapgen_mbist_clock {my ($cf, $wrapper_name, $mbist_clock) = @_;
+ $$cf{wrapinfo}{$wrapper_name}{mbist_clock_name} = $mbist_clock
+}
+
+wrapgen_get_mbist_clock {$_[0]{wrapinfo}{$_[1]}{mbist_clock_name}}
+
+
+get_z0_wrapper_architecture {my ($cf, $cwrap) = @_;
+my ($height, $width, $instcount) = $cwrap =~ /(\d+)x(\d+)x(\d+)$/o;
+
+my ($wrapid) = $cwrap =~ /$$cf{wrapid_listre}/;
+
+   fsmgen_from_string (string_substitute (
+      "
+         (?top:<top>
+          
+          <portlist>
+         
+          <instances>
+         )
+         
+      ",
+   
+     top       => $cwrap,
+     portlist  => portinfo_2interface_object (avv_get ($$cf{wrapinfo}, $cwrap, qw/port list default/)),
+     instances => join ("\n", map {string_substitute ("
+   			        (?rtl:<block>
+   
+                                     -mem_word_count_g=<height>
+                                     -data_bus_size_g=<width>
+                                     -address_bus_size_g=<addr_sz>
+   
+   
+                                     /wmem_clk/mem_<winfix>clk<index>/   
+                                     /wr_n/mem_wr_n<index>/       
+                                     /w_en_n/wmem_en_n<index>/     
+                                     /waddr/wmem_addr<index>/      
+                                     /wdata/mem_wdata<index>/      
+                                     /rmem_clk/mem_<rinfix>clk<index>/   
+                                     /r_en_n/rmem_en_n<index>/     
+                                     /raddr/rmem_addr<index>/      
+                                     /rdata/mem_rdata<index>/      
+   			        )
+   			        ",
+   			         
+   				 block   => 'lte_dif_gsim_tpram_word'                   ,
+				 winfix  => $$cf{mem_map}{$wrapid}{is_async} ? 'w_' : '',
+				 rinfix  => $$cf{mem_map}{$wrapid}{is_async} ? 'r_' : '',
+   				 height  => $height                                     ,
+   				 width   => $width                                      ,
+   				 addr_sz => get_log2 ($height)                          ,
+   				 index   => $instcount != 1 ? "_$_" : ''
+   			        )
+                              } 1 .. $instcount)  
+     ), 
+
+     rtldb                 => $$cf{rtldb},
+     add_package_list      => $$cf{pkglist},
+     corporate_file_header => \$$cf{mandatory_header}
+    );
+}

@@ -1,0 +1,94 @@
+qc_summary  {
+my ($qconf) = @_;
+
+ unless (@ARGV) {
+  print "(qc_summary) -E- No CSV file provided,";
+  exit 2
+ }
+
+ my %qcsum;
+ foreach my $csv (@ARGV) {
+  $qcsum{$csv} = [grep {$$_[0]} map {s/^\s*\|//o; [map {s/^\s|\s+$//go; $_} split(/\s*[,\|]\s*/o, $_)]} split /\n/o, do {local(@ARGV, $/) = $csv;<>}]
+ }
+ 
+ my %myexcel;
+ my $slack   = TableGrep::IndexOf('slack', 'csv2pts_makexls');
+ my $cts_tpd = TableGrep::IndexOf('cts_tpd', 'csv2pts_makexls');
+ my $comment = TableGrep::IndexOf('comment', 'csv2pts_makexls');
+ my $io_type = TableGrep::IndexOf('io_type', 'csv2pts_makexls');
+ 
+ my $clone   = Storable::dclone(\%qcsum);
+ 
+ HUtils::Recurse(HUtils::WRecurse(HUtils::WRecurse(\%qcsum, sub {print "Processing '@{$_[0]}'..\n"; TableGrep::Filter($qconf->{main_filter_re}, $_[1], maptable=>'csv2pts_makexls') }), 
+		                  sub {HUtils::GenericFilter({filter_sequence => ['by_status'], by_status  => {status=>['group_by', 'status']}}, $_[1], 'filter_sequence',  maptable=>'csv2pts_makexls')}), 
+		 sub {my ($info, $data) = @_;
+ 		      my $index =  $info->[2] eq 'Status'          ? 0 : 
+		                  ($info->[2] =~ /^PATH/o          ? 2 : 
+		                  ($info->[2] =~ /^NOT_CONS/o      ? 3 : 
+		                  ($info->[2] =~ /^CLOCK_GATING/o  ? 4 : 1)));
+		          #print "<$info->[2]> ($index)\n";
+		          splice @$data, 1 unless $index;
+ 		          $myexcel{$info->[0]}[$index] = [map {my $v = $_; [map {$$v[$_] || '-'} (0 .. $comment)]} @$data];
+ });
+ 
+ 
+ my %myclone_excel;
+ HUtils::Recurse(HUtils::WRecurse(HUtils::WRecurse($clone, sub {TableGrep::Filter($qconf->{secondary_filter_re}, $_[1], maptable=>'csv2pts_makexls') }),
+		                  sub {HUtils::GenericFilter({filter_sequence => ['by_status'], by_status  => {status=>['group_by', 'status']}}, $_[1], 'filter_sequence',  maptable=>'csv2pts_makexls')}), 
+		 sub {my ($info, $data) = @_;
+ 		      my $index =  $info->[2] eq 'Status'          ? 0 : 
+		                  ($info->[2] =~ /^PATH/o          ? 2 : 
+		                  ($info->[2] =~ /^NOT_CONS/o      ? 3 : 
+		                  ($info->[2] =~ /^CLOCK_GATING/o  ? 4 : 1)));
+		          #print "<$info->[2]> ($index)\n";
+		          splice @$data, 1 unless $index;
+ 		          $myclone_excel{$info->[0]}[$index] = [map {my $v = $_; [map {$$v[$_] || '-'} (0 .. $comment)]} @$data];
+ });
+
+ my $od = $qconf->{output_dir} || $qconf->{default_output_directory};
+ system("mkdir -p $od;");
+
+ my @summary;
+ HUtils::Recurse(\%myexcel, [PPlugin->get ('qc_summary_merge'), \@summary, $comment, $io_type, $cts_tpd, $slack]); 
+ my $qcwb        = Table2SS::AddWorkBook("$od/qcsummary.xls");
+ my $rca_summary = Table2SS::RCAllocate(1, 1, 2, [@summary], 'qcsummary');
+ Table2SS::DriveSheet($qcwb, 'summary',  $rca_summary);
+ 
+ HUtils::Recurse(\%myclone_excel, sub {my ($info, $data) = @_;
+  my $mysummary = [];
+  PPlugin->get ('qc_summary_merge')->($info, $data, $mysummary, $comment, $io_type, $cts_tpd, $slack);
+  my $c_rca = Table2SS::RCAllocate(1, 1, 2, $mysummary, 'qcsummary');
+  my ($sheetname) = $info->[0] =~ /(.+)\./;
+  Table2SS::DriveSheet($qcwb, $sheetname,  $c_rca);
+ });
+ 
+ Table2SS::Close($qcwb);
+}
+
+
+qc_summary_merge {
+my ($info, $data, $a2dlist, $comment, $io_type, $cts_tpd, $slack) = @_;
+
+ my $name = join('/',(split(/\./, $info->[0]))[1 .. 2]);
+ #print "qc_summary_merge: <$info->[0]>\n"; 
+ my @lsummary;
+ push @lsummary, [$name, ('+') x $comment];
+ 
+ my $i = 0;
+ foreach my $sec (@$data) {
+  push @lsummary,  [('+') x ($comment + 1)] if $i >= 2;
+ 
+  #print "qc_summary_merge: Driving index($i) type..\n";
+  do {
+   $sec->[0][$io_type] = "IO_Type";
+   $sec->[0][$cts_tpd] = "Cts_Tpd"; 
+   $sec->[0][$comment] = "Comment"; 
+  } unless $i;
+
+  push @lsummary, [@$_] foreach (($i == 1 || $i == 4) ? sort {$a->[$slack] <=> $b->[$slack]} @$sec : @$sec);
+ 
+  ++$i
+ }
+ 
+ push @$a2dlist, [@lsummary];
+}

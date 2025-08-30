@@ -1,0 +1,4 @@
+// This grammar has intentional errors to demonstrate improved error reporting
+invalid_rule := missing_semicolon_here
+another_rule := undefined_reference_here -> $1
+circular_rule := circular_rule -> $1

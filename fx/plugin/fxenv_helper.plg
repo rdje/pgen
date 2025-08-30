@@ -1,0 +1,46 @@
+check4diff {
+ rmtree ('COMPARE', {verbose=>1});
+ mkpath ('COMPARE', {verbose=>1});
+
+ my $iosmap_windir = config_read('uref_2cidl')->{output_directory};
+ my $fsmgen_odir   = config_read('fsmgen')->{output_directory};
+ my $wrapgen_odir  = config_read('pcsally_mem')->{output_directory};
+
+ say "\n-I- Populating 'COMPARE'";
+ system ("find $fsmgen_odir $wrapgen_odir $iosmap_windir CIDL_OUT ".q/ -type f | grep  '\.v\(hdl\?\)\?$' | xargs -l -i cp -v {} COMPARE/);
+
+ say "\n-I- Diffing with '$_[0]{_argv}[0]'";
+ my @diff_list = grep {grep !/^(14c14|29c29)$/o, qx(diff @$_) =~ /^\d+.+/mgio} 
+                    map {[split /\s+/]} split /\n/, qx(diff -rq $_[0]{_argv}[0] COMPARE | grep differ | cut -d' ' -f2,4);
+
+ my $diffcnt = @diff_list;
+ say "\nThe following ".($diffcnt ~~ 1 ? 'file is' : "($diffcnt) files are")." different\n" if @diff_list;
+
+ my @ronly_list;
+ my $index;
+ map {say '['.sprintf ('%-2d', ++$index).'] '.(-w $$_[0] ? '    ' : do {push @ronly_list, $$_[0]; '(RO)'})." $$_[0]"} @diff_list; 
+ say '';
+
+ if (@ronly_list) {
+  yes_no ('Should I try to check-out ALL Read-Only files ?', sub {yes_no ('Are you sure ?', sub {system ("dssc pop -lock $_") foreach @ronly_list})});
+ }
+
+ say '';
+ if (@diff_list) {
+  yes_no ('Should I update ALL files now ?', 
+          sub {system ("cp  -v  @$_[1,0]") foreach @diff_list; say ''},
+          sub {yes_no ('Selectively (No->Quit) ?', 
+                       sub {map {yes_no ("$$_[0] ?", sub {system ("cp -v @$_[1,0]"); say ''})} @diff_list})
+          }
+  );
+ }
+
+ say "\n".'-' x 80;
+ system ("diff -rq COMPARE $_[0]{_argv}[0] | grep Only | grep COMPARE");
+ say "\n".'-' x 80;
+ if (-f 'win_cidl_iosocket_data/lte_digital_rf_iosocket.cid') {
+  say "\n\n".'-' x 80;
+  system ("diff -q   win_cidl_iosocket_data/lte_digital_rf_iosocket.cid  \$WS/z0_lte_digital_rf-rtl/model/cfg/lte_digital_rf_iosocket.cid");
+  say "\n".'-' x 80;
+ }
+}

@@ -1,0 +1,4 @@
+# Test grammar with multiple alternatives
+expr := 'first'
+expr := 'second'  
+expr := 'third'

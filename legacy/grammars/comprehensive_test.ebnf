@@ -1,0 +1,38 @@
+# Comprehensive Test of Self-Hosting Return Annotation Parser
+# This tests all the patterns we've implemented
+
+# Simple scalar return
+simple_value := 'hello' -> $1
+
+# Simple array
+simple_list := word word -> [$1, $2]
+
+# Multi-element array (our breakthrough!)
+triple_list := word word word -> [$1, $2, $3]
+
+# Single-property object
+simple_obj := key value -> {key: $1, value: $2}
+
+# Multi-property object (enhanced feature!)
+person := name age location -> {name: $1, age: $2, location: $3}
+
+# Mixed complex structure
+data_structure := id items count -> {
+    id: $1,
+    items: [$2, $3],
+    metadata: {count: $3, type: "list"}
+}
+
+# Test quantified patterns (from our original work)
+list_items := item* -> [$1*]
+
+# Basic terminals with capturing groups
+word := /(\w+)/ -> $1
+name := /([A-Z][a-z]+)/ -> $1
+key := /([a-z_]+)/ -> $1
+value := /([0-9]+)/ -> $1
+age := /([0-9]+)/ -> $1
+location := /([A-Z][a-z]+)/ -> $1
+id := /([A-Z0-9]+)/ -> $1
+item := /(\w+)/ -> $1
+count := /([0-9]+)/ -> $1

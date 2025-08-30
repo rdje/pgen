@@ -1,0 +1,17 @@
+EBNF Parser Generator Stability Test Report
+Generated: Mon Aug 11 14:18:31 2025
+
+Summary: 12/12 tests passed
+
+Empty EBNF Grammar                                 PASSED (0.082s)
+Single Rule Grammar                                PASSED (0.079s)
+Malformed EBNF Syntax                              PASSED (0.079s)
+Invalid Probability Syntax                         PASSED (0.073s)
+Circular Rule References                           PASSED (0.080s)
+Large Grammar (100 Rules)                          PASSED (0.275s)
+Deep Recursion Grammar                             PASSED (0.095s)
+Wide Alternatives (50 OR branches)                 PASSED (0.114s)
+JSON Grammar                                       PASSED (0.111s)
+Arithmetic Expressions                             PASSED (0.101s)
+Complete Pipeline: Grammar -> Parser -> Input -> Parse PASSED (0.192s)
+Parser Handles Invalid Input Gracefully            PASSED (0.124s)

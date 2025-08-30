@@ -1,0 +1,10 @@
+fixscript {
+  my $s = slurp ($_[0]{_argv}[0]);
+
+  $s =~ s/\e\[.*?[a-zA-Z]//g;
+  $s =~ s/\cM//g;
+  do {$s =~ s/.\cH//o} while $s =~ /\cH/o;
+
+  open (my $o, ">$_[0]{_argv}[0].fix") || die "(fixscript) -E- Can't write open $_[0]{_argv}[0].fix,";
+  print $o $s;
+}

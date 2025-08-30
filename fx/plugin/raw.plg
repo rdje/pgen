@@ -1,0 +1,8 @@
+raw {
+my ($conf) = @_;
+
+ my $wbid = Table2SS::AddWorkBook($conf->{_excelfile} || "$conf->{_action}.xls");
+ my $raw  = Table2SS::RCAllocate(1, 1, 1, [TcFlow::GetAll($conf->{_argv})], 'raw');
+ Table2SS::DriveSheet($wbid, 'raw', $raw);
+ Table2SS::Close($wbid);
+}

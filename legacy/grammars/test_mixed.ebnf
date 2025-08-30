@@ -1,0 +1,2 @@
+result := word word word+ -> [$1, $2, $3*]  
+word := /\w+\s*/ -> $1

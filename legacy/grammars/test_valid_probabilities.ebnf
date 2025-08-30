@@ -1,0 +1,7 @@
+# Valid: probabilities sum to exactly 100%
+expr := "a" @40% | "b" @35% | "c" @25%
+
+
+
+
+

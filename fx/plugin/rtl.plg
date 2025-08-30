@@ -1,0 +1,722 @@
+rtl_file_list       {
+my @rtl;
+my @dirs;
+
+ foreach (@_) {
+  if (-f || -l && -f readlink)  {
+   if (-f && -T || -l && -T readlink) {
+    push @rtl, $_ if /\.(?:vhdl?|v)$/io;
+   } elsif (-f && /\.db$/o) {
+    my $db = Storable::retrieve($_);
+    push @rtl, grep {m/\.(?:vhdl?|v)$/io} map {my $c_h = $_; map {File::Spec->catfile($$c_h{dir_basename}, $_)} @{$$c_h{dir_hierarchy}}} @$db;
+   } else {
+    print "-W- Skipping file '$_'.\n";
+   }
+  } elsif (-d || -l && -d readlink) {
+   push @dirs, $_;
+  } else {
+    print "-W- Skipping '$_'.\n";
+  }
+ }
+
+ File::Find::find ({wanted=> sub {push @rtl, $_ if /\.(?:vhdl?|v)$/io && (-f  && -s || -l && -s $File::Find::fullname)}, no_chdir=>1, follow=>1}, grep {-d || -l && -d readlink} map {ref ($_) ? @$_ : $_} @dirs) if @dirs;
+
+ my $include_re = Global->set('_fx_conf', '_include_regex');
+ my $exclude_re = Global->set('_fx_conf', '_exclude_regex');
+
+ @rtl           = grep {m/$include_re/} @rtl;
+ if (defined $exclude_re) {@rtl = grep {!/$exclude_re/} @rtl }
+
+ wantarray ? @rtl : \@rtl
+}
+
+vhdl_file_list      {my @list = grep {m/\.vhdl?$/o} rtl_file_list(@_); wantarray ? @list : \@list}
+verilog_file_list   {my @list = grep {m/\.v$/o}     rtl_file_list(@_); wantarray ? @list : \@list}
+
+vhdl_drive          {join "", map {(my $c = $$_[0]) =~ s/\?|://go; &{'vhdl_'$c}($_)} @{$_[0]}}
+vhdl_library_clause {"LIBRARY $_[0][1];"}
+vhdl_use_clause     {"USE     $_[0][1];"}
+vhdl_entity         {
+my ($args) = @_;
+
+ join "", "ENTITY $args->[1] IS", (map {$$_[0] ne '?port_clause:' ?  $$_[1] :
+                                                                       do {
+                                                                         my @cport_declst; Lispish::recurse($_, sub {my ($v, $t, $i) = @_; push @cport_declst, $t if $i == 0 && $v eq '?port_decl:'});
+                                                                         my $align = RTLUtils::string_align ([map {$$_[1][0]} @cport_declst]);
+
+                                                                         @cport_declst ? join("", "PORT (", (map {$$_[0] eq '?port_decl:' ? "$$align{$$_[1][0]}  :  $$_[1][1] " .
+                                                                                                                                            ($$_[1][1] eq 'IN' ? " " : "")      .
+                                                                                                                                            $$_[1][2]                           .
+                                                                                                                                            ($$_[1][3] ? "($$_[1][3] DOWNTO $$_[1][4])" : "") : $$_[1]
+
+                                                                                                             } @{$$_[1]}),");") : "";
+
+                                                                       }
+                                    } @{$args->[2]}), "END ENTITY $args->[1];";
+
+}
+
+
+# to be updated
+vhdl_instance {
+my ($args, $id) = @_;
+
+ my $idstr = defined $id ? "_$id" : "";
+ my $align = RTLUtils::string_align ([map {$$_[1][0], defined $id ? "$$_[1][0]$idstr" : ()} grep {$$_[0] eq 'port_decl'} @{$args->[2]}]); 
+
+ join "", "a_$args->[1]$idstr : $args->[1]\n",
+          "  PORT MAP (",
+          (map {s/;/,/o; $_} map {$$_[0] eq '?port_decl:' ? "$$align{$$_[1][0]}  =>  $$align{$$_[1][0].$idstr}" : $$_[1]} @{$args->[2]}),
+          ");";
+
+}
+
+vhdl_architecture  {my ($args) = @_; join "", "ARCHITECTURE  $args->[1]  OF  $args->[2]  IS", join ("", @{$args->[3]}), "BEGIN", join ("", @{$args->[4]}), "END ARCHITECTURE $args->[1];"}
+vhdl_component     {(my $e = vhdl_entity (@_)) =~ s/\bENTITY\b/COMPONENT/go; $e}
+vhdl_comment       {$_[0][1]}
+vhdl_space         {$_[0][1]}
+get_anode_list {
+ my ($where, $what) = @_;
+
+ my @list;
+ Lispish::recurse ($where, sub {my ($v, $t, $i) = @_;
+   push @list, $t if $i == 0 && !ref($v) && $v eq $what;
+  });
+
+ wantarray ? @list : \@list;
+}
+
+# Design Unit (Entity/Architecture/Package) -to- VHDL latest file info
+dunit_2data {# Reads in a vhdl_compile DB
+my ($vhdb) = shift @_;
+
+ my $full    = {};
+ my $ea      = {};
+ my $f_2info = {};
+
+ # Looping on ALL files' entry
+ foreach my $fi (Lispish::grep($vhdb, qr/\?analyzed_vhdl_file:/o)) {
+  my $filename = $fi->[1];
+
+  avv_set ($f_2info, $filename, 'data', $fi);
+  my $fi_mt = (stat($filename))[9] || die "(dunit_2data) -E- Can't stat '$filename', $!";
+
+  my $html_file = 'HTML/'.(File::Spec->splitpath($filename))[-1].'.html';
+  avv_set ($f_2info, $filename, 'html', File::Spec->rel2abs($html_file));
+
+  foreach my $ent (Lispish::grep($fi, qr/\?entity_declaration:/o)) {
+    avv_push($full, 'entity', $ent->[1], 'mtime', $fi_mt, {file=>$filename, data=>$ent});
+    avv_set ($f_2info, $filename, 'entity', $ent->[1], 1);
+  }
+
+  foreach my $arch (Lispish::grep($fi, qr/\?architecture_body:/o)) {
+    my $archi_d = {file=>$filename, mtime=>$fi_mt, data=>$arch};
+
+
+    avv_push($full, 'architecture', "$arch->[1]:$arch->[2]", 'mtime', $fi_mt, $archi_d);
+    avv_set ($f_2info, $filename, 'architecture', "$arch->[1]:$arch->[2]", 1);
+
+    foreach my $ci (Lispish::grep($arch, qr/\?component_instantiation_statement:/o)) {
+     avv_set($archi_d->{instance}, 'instance', "$$ci[1]:$$ci[2]", 1);
+     avv_set($full,      'icomponent', $$ci[2], 1); # Instantiated COMPONENT
+    }
+
+  }
+
+  foreach my $pack (Lispish::grep($fi, qr/\?package_declaration:/o)) {
+    avv_push($full, 'package', $pack->[1], 'mtime', $fi_mt, {file=>$filename, data=>$pack});
+    avv_set ($f_2info, $filename, 'package', $pack->[1], 1);
+  }
+
+ }
+
+ # Retrieving the latest file/data for each E/A
+ my $ea2f = {};
+ HUtils::KeyGrep($full, sub {@{$_[0]} == 3 && $_[0][-1] eq 'mtime'}, sub {my ($ks, $sh) = @_;
+  my ($latest) = sort {$b <=> $a} keys %$sh;
+
+  avv_set($ea2f, @$ks[0 .. $#$ks-1], $sh->{$latest}[0]); 
+  avv_push($ea,  @$ks[0 .. $#$ks-1]);
+ }); 
+
+
+ avv_set ($ea2f, 'entity_list',       [sort {$a cmp $b} keys %{{map {$_ => 1}  @{avv_get ($ea, 'entity')       || []}}}]);
+ avv_set ($ea2f, 'architecture_list', [sort {$a cmp $b} keys %{{map {$_ => 1}  @{avv_get ($ea, 'architecture') || []}}}]);
+ avv_set ($ea2f, 'package_list',      [sort {$a cmp $b} keys %{{map {$_ => 1}  @{avv_get ($ea, 'package')      || []}}}]);
+ avv_set ($ea2f, 'icomponent_list',   [sort {$a cmp $b} keys %{avv_get ($full, 'icomponent') || {}}]);
+
+
+ # Latest architecture for each entity
+ foreach my $ce (@{avv_get($ea2f, 'entity_list')}) {
+  my @a_list; HUtils::KeyGrep($ea2f, sub {@{$_[0]} == 2 && $_[0][-1] =~ qr/\w+:$ce\b/}, sub {my ($ks, $v) = @_; push @a_list, $v});
+
+  my $latest = (sort {$b->{mtime} <=> $a->{mtime}} @a_list)[0];
+  avv_set($ea2f, 'entity', $ce, 'latest_architecture', "$latest->{data}[1]:$latest->{data}[2]");
+ }
+
+ avv_set ($ea2f, 'file', $f_2info);
+ avv_set ($ea2f, 'raw_info', $full);
+
+ return $ea2f
+}
+
+
+retrieve_vhdlcompile_db {
+my $cache = private_state ('retrieve_vhdlcompile_db');
+
+[map {$$cache{$_} //= do {say "(retrieve_vhdlcompile_db) -I- Loading '$_'..."; Storable::retrieve($_)}} @{$_[0]}]
+}
+
+entity_2ss {# Reads in a vhdl_compile DB
+ my $mlist = retrieve_vhdlcompile_db ($_[0]{_argv}); # [map {say "(entity_2ss) -I- Loading '$_'..."; Storable::retrieve($_)} @{$_[0]{_argv}}];
+
+ set_http_hostport ($_[0]{_host}, $_[0]{_port});
+
+ my $ea_2d = dunit_2data($mlist);
+ __vhd_2html($ea_2d);
+
+ # For each entities retriving only the ports' declaration (comments+spaces are ignored)
+ my %e2ports = map {$_, [get_anode_list(avv_get ($ea_2d, 'entity', $_, 'data'), '?port_decl:')]} @{avv_get ($ea_2d, 'entity_list')};
+ 
+ print "\n";
+
+ my %final_e2ports = map {my $ce = $_;
+	                  my @archis = map {'archi:'.avv_get($ea_2d, 'file', avv_get($ea_2d, 'architecture', $_, 'file'), 'html').':'.(/^(\w+):/o)[0]} 
+			                 grep m/:$ce$/i, @{avv_get ($ea_2d, 'architecture_list')};
+
+                          $ce => [[$ce, 'ent:'.avv_get($ea_2d, 'file', avv_get($ea_2d, 'entity', $ce, 'file'), 'html'), @archis],
+
+                                  map {
+                                   my @d = @{$$_[1]};
+                                   my $szinfo = defined $d[3] ? (scalar(grep /[a-z_]/oi, map {$_ // '_'} @d[3,4]) ? "-" : abs($d[3] - $d[4]) + 1) : 1;
+       
+                                   [@d[0,1], $szinfo, $d[2], $d[3] // '-', $d[4] // '-']
+                                  } @{$e2ports{$ce}}];
+
+                     } keys %e2ports;
+
+ Table2SS::DriveTableTree($_[0]{_excelfile}, 
+                          'Blocks', 
+                          \%final_e2ports,
+                          table_sheet    => 'Interfaces',
+                          script         => 'labeled_vhdl_entities',
+                          link_script    => "module_link",
+                          table_per_row  => 10,
+                          xpad           => 2,
+                          ypad           => 2
+                  );
+}
+
+mversion_2ss {# Reads in a vhdl_compile DB
+ use POSIX qw(strftime);
+
+ my $mlist = retrieve_vhdlcompile_db ($_[0]{_argv}); # Storable::retrieve($_[0]{_argv}[0]);
+
+ set_http_hostport ($_[0]{_host}, $_[0]{_port});
+ print "(mversion_2ss) -I- Extracting design units info...\n";
+
+ my $ea_2d = dunit_2data($mlist);
+
+ print "(mversion_2ss) -I- Post-processing the extracted data...\n";
+ # For each mtime of a given entity
+ # will convert its list (N entries) value to a table with xN row and one column
+ my $v_2table = {}; hrecurse($ea_2d->{raw_info}, sub {avv_set($v_2table, @{$_[0]}[0 .. $#{$_[0]}-1], Table::list2table([map {$$_{file}} @{$_[1]}], 1))});
+
+ # For a given Design Unit, vertically concatenate all of its corresponding table from Latest -to- Oldest
+ my $v_2vmerge = {};
+ keygrep($v_2table, sub {@{$_[0]} == 2}, sub {my ($ks, $sh) = @_;
+    my @mtime_lst = sort {$b <=> $a} keys %$sh;
+
+    my $filecnt   = 0;
+    my $m         = Table::vmerge(map {$filecnt += @{$$sh{$_}}; $$sh{$_}} @mtime_lst); 
+
+    # Small dirty trick to avoid archi name to be removed by table2ss::write()
+    unshift @$m, ["d:".$$ks[-1]], [map {strftime "%a %b %e %H:%M:%S %Y", localtime $_} @mtime_lst]; 
+
+    avv_set($v_2vmerge, $ks, $filecnt, $m);
+
+ });
+
+
+ print "(mversion_2ss) -I- Writing '$_[0]{_excelfile}'...\n";
+ Table2SS::DriveTableTree($_[0]{_excelfile}, 
+                          'DesignUnits', 
+                          $v_2vmerge,
+                          table_sheet    => 'Versions',
+                          script         => 'raw',
+                          link_script    => "raw",
+                          table_per_row  => 10,
+                          xpad           => 2,
+                          ypad           => 2
+                  );
+
+}
+
+xdep_2ss {# Reads in a vhdl_compile DB
+ my $mlist = retrieve_vhdlcompile_db ($_[0]{_argv}); # [map {say "(xdep_2ss) -I- Loading '$_'..."; Storable::retrieve($_)} @{$_[0]{_argv}}];
+
+ set_http_hostport ($_[0]{_host}, $_[0]{_port});
+ print "(xdep_2ss) -I- Extracting design units info...\n";
+ my $ea_2d = dunit_2data($mlist);
+
+ __vhd_2html($ea_2d);
+
+ print "(xdep_2ss) -I- Post-processing the extracted data...\n";
+
+ #my $instree = $ea_2d->{raw_info};
+ my @paths_from_tops;
+
+ Global->set('get_path_from_top', 'options', 'add_component_name') = 1;
+
+ my @eic_list = sort {$a cmp $b} keys %{{map {$_ => 1} @{avv_get($ea_2d, 'entity_list')}, @{avv_get($ea_2d, 'icomponent_list')}}};
+ foreach my $ce (@eic_list) {
+  # print "E $ce\n";
+
+
+  my $is_a_top = isa_top_module($ea_2d, $ce);
+  # print "TOP  $ce\n" if $is_a_top;
+  next               if $is_a_top;
+
+  # Retrieving all of its instantiation of the the tops
+  my @raw_path_from_top = get_path_from_top($ea_2d, $ce);
+
+  push @paths_from_tops, @raw_path_from_top;
+ } 
+
+ Global->set('get_path_from_top', 'options', 'add_component_name') = 0;
+
+ my $deshier_table = design_hierarchy_2citable(\@paths_from_tops);
+
+ Table::iterate($deshier_table, sub {
+      my $cv = $_[0];
+
+      unless ($cv =~ /^\d+$/o) {
+       if ($cv !~ /:/o) {
+        # A top module
+        my $cv_exists = avv_get($ea_2d, 'entity', $cv);
+        my $cv_html   = $cv_exists ? avv_get($ea_2d, 'file', avv_get($cv_exists, 'file'), 'html') : undef;
+	my $cva;
+	my $cva_html  = do {
+			  if($cva = avv_get($ea_2d, 'entity', $cv, 'latest_architecture')) {
+			    avv_get($ea_2d, 'file', avv_get($ea_2d, 'architecture', $cva, 'file'), 'html')
+			  } else {
+			   undef
+			  }
+	};
+
+        $cva = ($cva =~ /(\w+):/o)[0] if $cva;
+
+	$_[0] = "top:". do {$cva ? "$cva:$cva_html" : $cva} . "|". do {$cv ? "$cv:$cv_html" : $cv};
+
+       } else {
+        # An instance <instance name>:<component name>
+        my ($ci, $cc) = $cv =~ /(\w+):(\w+)/o;
+        my $cc_exists = avv_get($ea_2d, 'entity', $cc);
+        my $cc_html   = $cc_exists ? avv_get($ea_2d, 'file', avv_get($cc_exists, 'file'), 'html') : undef;
+
+	my $cca_html  = do {
+	                 if ($cc_html) {
+			  if(my $cca_exists = avv_get($ea_2d, 'entity', $cc, 'latest_architecture')) {
+			    avv_get($ea_2d, 'file', avv_get($ea_2d, 'architecture', $cca_exists, 'file'), 'html')
+			  } else {
+			   undef
+			  }
+			 } else {
+			  undef
+			 }
+	};
+
+        $ci = $cca_html ? "$ci:$cca_html" : $ci; 
+        $cc = $cc_html  ? "$cc:$cc_html"  : $cc; 
+
+	$_[0] = 'node:'."$ci|$cc"
+       }
+      }
+ });
+
+ my $itable = citable_2itable($deshier_table);
+
+ print "(xdep_2ss) -I- Writing '$_[0]{_excelfile}'...\n";
+ my $wbid      = Table2SS::AddWorkBook($_[0]{_excelfile});
+ Table2SS::DriveSheet($wbid, 'TREE', Table2SS::RCAllocate(1, 1, 1, [$itable], 'xdep_2ss'));
+ Table2SS::Close($wbid);
+}
+
+xinstance_2ss {# Reads in a vhdl_compile DB
+ my $mlist = retrieve_vhdlcompile_db ($_[0]{_argv}); #Storable::retrieve($_[0]{_argv}[0]);
+
+ set_http_hostport ($_[0]{_host}, $_[0]{_port});
+ print "(xinstance_2ss) -I- Extracting design units info...\n";
+
+ __vhd_2html(my $ea_2d = dunit_2data($mlist));
+
+ print "(xinstance_2ss) -I- Post-processing the extracted data...\n";
+
+ my $ea_2inst = {};
+ foreach my $ce (@{avv_get($ea_2d, 'entity_list')}) {
+  print "E $ce\n";
+
+  my $ent    = avv_get($ea_2d, 'file', avv_get($ea_2d, 'entity', $ce, 'file'), 'html').":$ce";
+
+  foreach my $ca (grep {m/:$ce$/} @{avv_get($ea_2d, 'architecture_list')}) {
+   print "   A $ca\n";
+
+   my $cdata = avv_get($ea_2d, 'architecture', $ca, 'data');
+   my $can   = ($ca =~ /(\w+):/o)[0];
+   my $archi = avv_get($ea_2d, 'file', avv_get($ea_2d, 'architecture', $ca, 'file'), 'html').":$can";
+
+   foreach my $ci (get_anode_list($cdata, '?component_instantiation_statement:')) {
+    print "      I $$ci[1]:$$ci[2]\n";
+
+    my $la        = avv_get($ea_2d, 'entity', $ci->[2], 'latest_architecture');
+    my $laf       = avv_get($ea_2d, 'architecture', $la, 'file') if $la;
+    my $comp_html = $laf ? avv_get($ea_2d, 'file', $laf, 'html').":$ci->[2]" : "-:$ci->[2]";
+
+    avv_push ($ea_2inst, $ce, $can, [$ci->[1], $comp_html]);
+   }
+
+   my $ea_t = avv_get ($ea_2inst, $ce, $can);
+   if ($ea_t) {  
+    unshift @$ea_t,                  [$archi, $ent], ['Instance Name', 'Module Name'];
+   } else {
+    avv_push ($ea_2inst, $ce, $can,  [$archi, $ent]);
+    avv_push ($ea_2inst, $ce, $can,  ['Instance Name', 'Module Name']);
+   }
+  }
+ } 
+
+ # Adding whether or not the Architecture a of entity E instantiate (1) sub-block or not (0)
+ my $ea_2inst_final = {}; hrecurse($ea_2inst, sub {my $sz = @{avv_get($ea_2inst, $_[0])}; avv_set($ea_2inst_final, $_[0], $sz > 2, $_[1])});
+
+ print "(xinstance_2ss) -I- Writing '$_[0]{_excelfile}'...\n";
+ Table2SS::DriveTableTree($_[0]{_excelfile}, 
+                          'EA', 
+                          $ea_2inst_final,
+                          table_sheet    => 'I',
+                          script         => 'xinstance_2ss',
+                          link_script    => "xinstance_2ss_linkscript",
+                          table_per_row  => 10,
+                          xpad           => 2,
+                          ypad           => 2
+                  );
+}
+
+
+#-----------------------------------------------------------------------
+#   FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+#-----------------------------------------------------------------------
+# As soon as I have time I SHOULD modify the way HTML files are created
+#
+# Because the way it written right now if TWO files located at different
+# places have the SAME NAME then the latter will override the former
+# 
+# I SHOULD may iterate over all 'entities' and 'architectures' and
+# 'packages' and ONLY generate HTML files defining them.
+#-----------------------------------------------------------------------
+__vhd_2html {
+my ($ea_2d) = @_;
+
+ mkdir 'HTML';
+ foreach $fi (keys %{avv_get($ea_2d, 'file')}) {
+   print "(vhd_2html) -I- Generating HTML file for '$fi'..\n";
+
+   my $html_file  = avv_get($ea_2d, 'file', $fi, 'html');
+
+   system(Global->enscript." --line-numbers -Evhdl --color --language=html -q -o - $fi > $html_file");
+   my $html = slurp ($html_file);
+
+   $html =~ s#<h1>.+?</h1>##io;
+   $html =~ s#(?<=<title>).+?(?=</title>)#$fi#io;
+   $html =~ s#<address>.+?</address>##io;
+
+   $html =~ s!</head>!<style type="text/css">
+                      .has_link   {background : #98FB98}
+                      .has_nolink {background : #BA55D3; color : #FFFFFF; font-weight : bold}
+                      </style></head>!i;
+
+   if (my $w_entity = avv_get($ea_2d, 'file', $fi, 'entity')) {
+    # E alone, i.e, its latest architecture is not contained in the current file
+    foreach my $ce (keys %$w_entity) {
+     my $la  = avv_get($ea_2d, 'entity', $ce, 'latest_architecture');
+     my $laf = avv_get($ea_2d, 'architecture', $la, 'file');
+
+     if ($fi ne $laf) {
+      my $re   = qr#(entity</font></b>\s*)$ce(\s+)#i;
+      
+      my $http = httplink(avv_get($ea_2d, 'file', $laf, 'html'));
+
+         $la   =~ s/:.+//o;
+         $html =~ s{$re}{$1<a class="has_link" title="$la" href="$http">$ce</a>$2};
+     }
+    }
+   }
+
+   # package link in *use_clause*
+   foreach my $use (get_anode_list(avv_get($ea_2d, 'file', $fi, 'data'), '?use_clause:')) {
+     my @use_clauses = map {[split /\./o]} split /\s*,\s*/o, $use->[1];
+
+     foreach my $cuse (@use_clauses) {
+      # More than 3 part in the use_clause is not supported
+      next if @$cuse > 3;
+
+      my ($library, $package, $prefix) = @$cuse;
+
+      # Skip standard libraries
+      next if $library =~ /\b(?:ieee|std|modelsim_lib)\b/io;
+
+      my $re    = qr#(use</font></b>\s*$library\.)$package\b#i; 
+      my $p_f   = avv_get($ea_2d, 'package', lc $package, 'file');
+
+      if ($p_f) {
+       my $http  = httplink(avv_get($ea_2d, 'file', $p_f, 'html'));
+
+        $html     =~ s{$re}{$1<A class="has_link" href="$http">$package</A>}g;
+      } else {
+        $html     =~ s{$re}{$1<span title="Source not available" class="has_nolink">$package</span>}g;
+      }
+     }
+
+     pos $html = 0;
+   }
+
+   # HTTP links on component instantiations
+   foreach my $cis (get_anode_list(avv_get($ea_2d, 'file', $fi, 'data'), '?component_instantiation_statement:')) {
+     # say "\tFound Instance\t'$cis->[1] : $cis->[2]'";
+
+     # Should match an instantiation of entity *$cis->[2]* 
+     # (?i) because VHDL is *not* case sensitive
+     my $re       = qr/(?i)\b(?<instance_name>$cis->[1])(?<separator>\s*:\s*)(?<component_name>$cis->[2])\b/; 
+
+     my $latest_a = avv_get($ea_2d, 'entity', $cis->[2], 'latest_architecture');
+     if ($latest_a) {
+      my $http     = httplink(avv_get($ea_2d, 'file', avv_get($ea_2d, 'architecture', $latest_a, 'file'), 'html'));
+
+      $latest_a =~ s/:.+//o;
+      $html     =~ s{$re}{$+{instance_name}$+{separator}<A class="has_link" title="$latest_a" href="$http">$+{component_name}</A>}g;
+     } else {
+      $html     =~ s{$re}{$+{instance_name}$+{separator}<span class="has_nolink">$+{component_name}</span>}g;
+     }
+   }
+
+   open (my $htmo, ">$html_file") || die "(vhd_2html) -E- Can't Write open $html_file,";
+   print $htmo $html;
+ }
+
+}
+
+
+vhdl_compile {
+my ($conf) = @_;
+
+ my $p          = new RTLUtils;
+ my $parse_info = [map {say "(vhdl_compile) -I- Loading '$_'.."; $p->vhdl_file($_)} grep {m/$conf->{_include_regex}/} vhdl_file_list (@{$$conf{_argv}} ? @{$$conf{_argv}} : File::Spec->rel2abs('.'))];
+
+ Storable::store($parse_info, $$conf{_output} || "$$conf{_action}.db");
+}
+
+
+isa_top_module {my $isatop = 1; keygrep ($_[0], qr/\sinstance\s+.+:$_[1]\b/, sub {$isatop = 0}); $isatop}
+
+get_path_from_top {
+my ($h, $e) = @_;
+
+ my %opt    = %{Global->set('get_path_from_top', 'options')}; 
+
+ my $exists = Global->set(qw/get_path_from_top path_from_top/, "$h", $e);
+ if ($exists) {
+  # print "----------------------------------> Entity<$e> Searched Already -----------------------------\n";
+  return wantarray ? @$exists : $exists;
+ }
+
+ # print "get_path_from_top:  Called with -------------------------------- e -------------------------------- =\$h<$h><$e>\n";
+ my @paths;
+ keygrep ($h, qr/\sinstance\s+.+:$e\b/, sub {my ($ks, $sh) = @_;
+   # [0] = archicteture keyword
+   # [1] = <current architecture>:<corresponding entity>
+
+   # print "Current I:E = -$$ks[-1]-\n";
+   my $cinst_name = ($$ks[-1] =~ /(.+?):/o)[0];
+
+   # print "cinst_name($cinst_name)\n";
+
+   # Extract the name of entity/module instantiation the current component ()
+   my ($entity) = $$ks[1] =~ /:(.+)/o;   
+   # print "-I- Recursively calling get_path_from_top with e=<$entity> h=<$h>\n";
+   if ($entity ~~ $e) {
+    say "(get_path_from_top) -E- Module '$e' Instantiates Itself, Might be due to VHDL parsing issue <@$ks>!!";
+    exit 1
+   }
+
+   my @paths_l    = get_path_from_top ($h, $entity);
+
+   push @paths, map {"$_/$cinst_name".($opt{add_component_name} ? ":$e" : "")} @paths_l;
+
+   #print "Built paths:\n", join "\n", @paths, "\n"
+ });
+
+ Global->set(qw/get_path_from_top path_from_top/, "$h", $e) = \@paths;
+
+ unless (@paths) {
+  # print "Entity -$e- is a TOP module\n";
+  push @paths, "/$e";
+ }
+
+ wantarray ? @paths : \@paths;
+}
+
+modelsim_do {# Reads in a vhdl_compile DB
+my ($conf) = @_;
+
+ my $parse_info  = retrieve_vhdlcompile_db ($$conf{_argv}); # Storable::retrieve($$conf{_argv}[0]);
+
+ my $h = {};
+ foreach my $can (@$parse_info) {
+  print "F $can->[1]\n";
+  # Looking for
+  # - interface signal declaration
+  # - signal declaration
+  # - linking every instance w/ its containing Architecture/Entity pair
+  #   This will enable hierarchy traversal
+  #
+
+  foreach my $ent (get_anode_list($can, '?entity_declaration:')) {
+    # print "\tE $ent->[1]\n"; 
+
+    my $has_port = 0;
+    foreach my $pdcl (get_anode_list($ent, '?port_decl:')) {
+      # print "\t  P $pdcl->[1][0] : $pdcl->[1][1]\n"; 
+      HUtils::avv_get($h, 'entity', $ent->[1], 'port', $has_port.':'.$pdcl->[1][0]) = [@{$pdcl->[1]}[1 .. $#{$pdcl->[1]}]];
+
+      $has_port++;
+    }
+
+    HUtils::avv_get($h, 'entity', $ent->[1]) = 1 unless $has_port;
+
+    # print "\n";
+  }
+
+  foreach my $arch (get_anode_list($can, '?architecture_body:')) {
+   # print "\tA $arch->[1] : $arch->[2]\n"; 
+
+   my $sig_id = 0;
+   foreach my $csig (get_anode_list($arch, '?signal_declaration:')) {
+    # print "\t  S $$csig[1]\n";
+    HUtils::avv_get($h, 'architecture', "$arch->[1]:$arch->[2]", 'signal', "$sig_id:$$csig[1]") = $$csig[2]; # [1]= name [2]= type info
+    $sig_id++
+   }
+
+   foreach my $cinst (get_anode_list($arch, '?component_instantiation_statement:')) {
+    # print "\t  I $$cinst[1] : $$cinst[2]\n";
+    HUtils::avv_get($h, 'architecture', "$arch->[1]:$arch->[2]", 'instance', "$$cinst[1]:$$cinst[2]") = 1;
+   }
+
+   # print "\n";
+  }
+
+ }
+
+ keygrep ($h, qr/entity\s/o, sub {
+  my $e_name  = $_[0][-1];
+  my @e_paths = grep {m/$conf->{_include_regex}/} get_path_from_top($h, $e_name);
+
+  # After applying the filter @e_paths should not be empty and should have ports
+  return unless @e_paths; # && ref $_[1];
+
+  my @ports; HUtils::Recurse ($_[1], sub {$ports[($_[0][-1] =~ /(\d+):/o)[0]] = [($_[0][-1] =~ /:(.+)/o)[0], @{$_[1]}]});
+  my $a_p = RTLUtils::string_align([map {$$_[0]} @ports]);
+
+  my %signals_per_architecture; keygrep ($h, qr/:$e_name\ssignal\s/, 
+	                                             sub {$signals_per_architecture{($_[0][1] =~ /(.+):/o)[0]}[($_[0][-1] =~ /(\d+):/o)[0]] = ($_[0][-1] =~ /:(.+)/o)[0].":$_[1]"}); # $_[1]= type info
+
+  my $ofh;
+  mkdir "WAVES";
+
+  my $do_path = "WAVES/${e_name}_wave.do";
+  open (my $cfh, ">$do_path") || die "-E- Cant't write open $do_path,"; $ofh = select $cfh;
+
+  print "transcript off\n";
+  print "view wave -new -title ". uc($e_name) . " -undock\n\n";
+
+  #print "add wave -window wave1 -divider\n"; 
+  print "add wave -divider\n"; 
+  print "add wave -divider \"". uc($e_name) ."\"\n";
+  print "add wave -divider\n"; 
+
+  my $i_idx = 0;
+  my $i_cnt = @e_paths;
+  foreach my $c_ip (@e_paths) {
+   if ($i_idx && $i_cnt > 0) {
+    print "\nadd wave -divider\n" foreach 0 .. 1; 
+   }
+
+   my $prefix = $i_cnt > 1 ? "[$i_idx] " : "";
+   foreach $c_p (@ports) {
+    my $label  = $prefix . ($c_p->[1] =~ /\bIN\b/io ? "-I-" : "-O-") .  " " . $$a_p{$c_p->[0]};
+    my $format = $c_p->[2] =~ /\b(?:std_logic|bit)\b/oi ? "Logic  " : "Literal";
+    my $fpath  = "$c_ip/$c_p->[0]";
+
+    print "add wave -label {$label} -format $format  {$fpath}\n";
+   }
+
+
+   my $add_sep  = 0;
+   my $arch_cnt = keys %signals_per_architecture;
+   HUtils::Recurse(\%signals_per_architecture, sub {my ($ks, $v) = @_;
+    print "add wave -divider\n" unless $add_sep; $add_sep = 0;
+    if (@$v) {
+     print "add wave -divider {$$ks[0]}\n" if $arch_cnt > 1;
+
+     my $a_s = RTLUtils::string_align([map {($_ =~ /(.+):/o)[0]} @$v]);
+     foreach my $c_s (@$v) {
+      my $s_name = ($c_s =~ /(.+):/o)[0];
+      my $format = ($c_s =~ /:(.+)/o)[0] =~ /\b(?:std_logic|bit)\b/oi ? "Logic  " : "Literal";
+      my $fpath  = "$c_ip/$s_name";
+      print "add wave -label {-S- $$a_s{$s_name}} -format $format  {$fpath}\n";
+     }
+    }
+
+    $add_sep++
+   });
+
+   $i_idx++;
+  }
+
+  select $ofh
+ });
+}
+
+ls_dirlist {# Reads in a 'dirlist_2db'  DB
+ my $db = Storable::retrieve($_[0]{_argv}[0]);
+
+ print join "\n", map {my $c_h = $_; map {File::Spec->catfile($$c_h{dir_basename}, $_)} @{$$c_h{dir_hierarchy}}} @$db;
+ print "\n";
+}
+
+string_substitute {
+my ($string, @subst_data) = @_;
+
+ my @timeinfo = localtime;
+ my $day      = sprintf "%02d",     $timeinfo[3];
+ my $month    = sprintf "%02d", 1 + $timeinfo[4];
+ my $year     = 1900 + $timeinfo[5];
+
+ my $date     = join '-', $year, $month, $day;
+
+ sub {local $_ = shift; my %h = map {!ref($_) ? $_ : (ref eq 'HASH' ? %$_ : @$_)} @_; s{(?<!\\)<(\w+?)>}{$h{lc $1} // "<$1>"}goe; s/"/\\"/go; eval(qq("$_"))}
+     -> ($string, @subst_data, date=>$date, year=>$year);
+}
+
+
+rtldb_2portinfo {# Reads in a vhdl_compile DB
+ my $db    = retrieve_vhdlcompile_db ([map {ref ($_) ? @$_ : $_} @_]);
+ my $ea_2d = dunit_2data($db);
+ 
+ my $info  = {};
+ $$info{$_}{port}{hash} = portlist_2hash($$info{$_}{port}{list}{default} = [Lispish::grep(avv_get($ea_2d, 'entity', $_, 'data'), qr/\?port_decl:/o, sub {$_[0][1]})]) foreach  @{avv_get($ea_2d, 'entity_list')}; 
+
+ return $info;
+}
+
+drive_instances {my ($cr, $module) = @_;
+}
+

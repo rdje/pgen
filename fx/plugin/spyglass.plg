@@ -1,0 +1,145 @@
+spyglass_2ss {
+
+my %db; 
+my %ruleseverity;
+
+ my $conf = config_read ('spyglass');
+
+ my $filecnt = 0;
+ foreach my $crpt (@{$_[0]{_argv}}) {
+  my $realp     = realpath($crpt);
+
+  next unless qx(grep -il 'detailed status' $realp);
+  ++$filecnt;
+
+  say "(spyglass_2ss) -I- Loading file '$realp'..";
+  my $slurp = slurp ($realp);
+  $ruleseverity{$realp} = {map {$$_[1] => $$_[0]} @{list_2table([($slurp =~ /summary\s+status\s+.+?=\n(.+?)\n\n/sio)[0] =~ /^(error|warning|info)\s+(\S+).+?(?=(?1)|\n\n)/msgio], 2)}};
+
+  $slurp =~ /detailed\s+status\s+/pio;
+  my $detailedstatus_postmatch = ${^POSTMATCH};
+
+  my $listp     = -1;
+
+   map {
+    ++$listp if /^id/io;
+    push @{$db{$realp}[$listp]}, $_; 
+   } $detailedstatus_postmatch =~ /^(?:id\s+rule\s+alias\s+severity\s+file\s+line\s+wt\s+message|\[[[:xdigit:]]+\].+)/mgio;
+ }
+
+ unless ($filecnt) {
+  say "\n(spyglass_2ss) -W- No Detailed report files was found !\n";
+  exit;
+ }
+
+ my %table_o;
+ foreach my $cf (keys %db) {
+  my @fileparts = split /--|\./o, filename($cf);
+  (my $sheetname = $fileparts[-2]) =~ s/[[:punct:]]+/_/go; 
+
+  say "(spyglass_2ss) -I- Preparing sheet '$sheetname'..";
+
+  push @{$table_o{$sheetname}}, [@fileparts[0 .. $#fileparts-1]];
+  push @{$table_o{$sheetname}}, $$conf{header_header};
+
+  foreach my $clst (@{$db{$cf}}) {
+   my $hdr = shift @$clst;
+   (my $hdr_re = $hdr) =~ s/(\w+)/($1)/go;
+   $hdr_re =~ s/\s+/\\s+/go;
+
+   $hdr =~ /$hdr_re/;
+   ## say "$hdr\n$hdr_re : @-[1 .. $#-]\n";
+   my @match_start = map {[$-[$_], $-[$_+1] ? $-[$_+1] - $-[$_] : ()]} 1 .. $#-;
+   foreach my $cl (@$clst) {
+    my $crow     = [map {s/^\s+|;?\s+$//go; $_} map {$$_[1] ? substr ($cl, $$_[0], $$_[1]) : substr ($cl, $$_[0])} @match_start];
+    my $severity = lc ($ruleseverity{$cf}{$crow->[1]} // ($crow->[3] && $crow->[3] =~ /(error|warning|info)/io ? $1 : 'UNKNOWN'));
+    $crow->[1]   = $$conf{severity_pos}{$severity}.$severity.':'.$crow->[1];
+
+    push @{$table_o{$sheetname}}, $crow;
+    ## say '*' x 20
+   }
+  }
+
+  @{$table_o{$sheetname}}[2 .. $#{$table_o{$sheetname}}] = sort {$a->[1] cmp $b->[1]} @{$table_o{$sheetname}}[2 .. $#{$table_o{$sheetname}}];
+  ## say '=' x 80;
+ }
+
+ my $wbid = Table2SS::AddWorkBook($_[0]{_excelfile} // "$_[0]{_action}.xls");
+ Table2SS::DriveSheet($wbid, $_, Table2SS::RCAllocate(1, 1, 1, [$table_o{$_}], 'sg_2ss')) foreach keys %table_o;
+ Table2SS::Close($wbid);
+}
+
+
+spyglass_waive {
+ my $conf = config_read ('spyglass');
+ my $xcel = excel_start ();
+
+ my $wb   = $xcel->Workbooks->Open(realpath ($_[0]{_argv}[0]));
+
+ #my $wbid = Table2SS::AddWorkBook($_[0]{_excelfile} // "$_[0]{_action}.xls");
+ my %waived;
+ my %xcel_col_index_of = map {$_ => ($$conf{waive_fields}{$_} =~ /(\d+)/o)[0] - 1} @{$$conf{waive_arg_list}};
+
+ foreach my $csi (1 .. $wb->Worksheets->{Count}) {
+  my $cs  = $wb->Worksheets ($csi);
+  my $csn = $cs->{Name};
+
+  say "(spyglass_waive) -I- Processing sheet '$csn'..";
+
+  # The Magic Command :) 
+  #my $tbl = $cs->UsedRange->{Value};
+  my $urg = $cs->UsedRange;
+
+  # The color attribute is the RGB code, expressed in base 256
+  # That is, 0 <= R,G,B <= 255
+  #
+  # color = B*256^2 + G*256^1 + R
+  #
+  # R = (color / 256^0) % 256 =  color        & 0xff
+  # G = (color / 256^1) % 256 = (color >> 8 ) & 0xff
+  # B = (color / 256^2) % 256 = (color >> 16) & 0xff
+
+  my $ofile = join ('--', grep defined, @{$urg->Rows(1)->{Value}[0]}).'.swl';
+  foreach my $cr (3 .. $urg->Rows->{Count}) {
+   my $colorindex = $urg->Offset($cr-1, 0)->Range($$conf{waive_fields}{waived})->Interior->{ColorIndex};
+    
+   # Will only consider waived lines
+   next if $colorindex < 0;
+
+   my $crow_info = shift @{$urg->Rows($cr)->{Value}};
+   push @{$waived{$ofile}}, [@$crow_info[map {$xcel_col_index_of{$_}} @{$$conf{waive_arg_list}}]];
+  }
+  #Table2SS::DriveSheet($wbid, $csn, Table2SS::RCAllocate(1, 1, 1, [$tbl], 'raw'));
+ }
+
+ # In general, doing this on an arbitrary array one should assume that there is no duplicate
+ my %index_of = map {$$conf{waive_arg_list}[$_] => $_}  0 .. $#{$$conf{waive_arg_list}};
+
+ my $corporate_header = slurp (config_read('uref_2cidl')->{'corporate_file_header'});
+ mkdir $$conf{waive_directory};
+ foreach  (keys %waived) {
+  my $swlf = catfile ($$conf{waive_directory}, $_);
+
+  open (my $swl, ">$swlf") || die "(spyglass_waive) -E- Can't write open '$swlf',";
+  say "(spyglass_waive) -I- Creating '$swlf'..";
+
+   my $corporate_header       = string_substitute ($corporate_header,
+                                                   file_name      => $_,
+						   file_type      => 'SWL',
+                                                   author_name    => 'Richard DJE',
+                                                   author_signame => 'QDJERIC',
+                                                   revision       => 'Initial Revision',
+                                                   language       => '',
+						   description    => ''
+                                                  );
+  say $swl join ("\n", $corporate_header, map {
+   my @waive_args = map {s/^\s+|\s+$//go; $_}  map {$_ // ''} @$_;
+
+   string_substitute ($$conf{waive_command_line}[0].($waive_args[$index_of{comment}] ? $$conf{waive_command_line}[1] : ''), 
+                      map {$$conf{waive_arg_list}[$_] => do {$waive_args[$_] =~ s/\[.+\]//o if $$conf{waive_arg_list}[$_] ~~ 'message'; $waive_args[$_]}} 0 .. $#{$$conf{waive_arg_list}}) 
+
+  } sort {$a->[$index_of{rule}] cmp $b->[$index_of{rule}]} @{$waived{$_}});
+ }
+ #Table2SS::Close($wbid);
+}
+

@@ -1,0 +1,7 @@
+# Test mixed left/right recursion
+expr := expr '+' term -> {type: "add", left: $1, right: $3}
+expr := term -> $1
+term := factor '*' term -> {type: "mul", left: $1, right: $3}  
+term := factor -> $1
+factor := /\d+/ -> {type: "number", value: $1}
+

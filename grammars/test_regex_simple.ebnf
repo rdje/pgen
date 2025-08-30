@@ -1,0 +1,5 @@
+# Simple test of new regex syntax
+digit := /[0-9]/
+letter := /[a-zA-Z]/
+word := /\w+/
+

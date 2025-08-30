@@ -1,0 +1,95 @@
+#! /apps/perl/5.8.3/bin/perl -w -I/usr/lib/perl5/site_perl/5.8 -I/home/rdje/perl/lib/site_perl/5.8.3 -I/home/rdje/perl/lib/site_perl/5.8.3/sun4-solaris-thread-multi -I/home/rdje/fx/perl
+
+use HUtils;
+
+
+my $conf = HUtils::Conf(PathSearch->go('m2g'));
+
+
+my %setpin;
+HUtils::recurse($conf->{master_list}, sub {my ($info, $data) = @_;
+
+  if (ref $data) {
+   my $refpin = $data->[0];
+   if ($refpin =~ /\//o) {
+     $setpin{$info->[0]} = "$info->[0]_pin";
+     print "set $info->[0]_pin  $refpin\n";
+   }
+
+  } else {
+   if ($data =~ /\//o) {
+     $setpin{$info->[0]} = "$info->[0]_pin";
+     print "set $info->[0]_pin  $data\n";
+   }
+  }
+});
+
+print "\n\n";
+
+my $isapin = qr/\/|_pin$/o;
+
+my %list_of_gen;
+my %list_allclock;
+my @propagating_clocks;
+my $crecount = 0;
+foreach my $genclk (@{$conf->{genlist}}) {
+ print "# $genclk\n";
+ foreach my $msclk (keys %{$conf->{master_list}}) {
+  if ($msclk =~ /^CRE/o) {
+   my $refpin = $setpin{$msclk} ? "\$$setpin{$msclk}" : $conf->{master_list}{$msclk};
+   print "create_clock             -name ${msclk}_${genclk}_$conf->{gendescr}{$genclk}{freq} -add -period ". sprintf("%.2f", 10**6/$conf->{gendescr}{$genclk}{freq}) 
+        ." [get_".($conf->{master_list}{$msclk} =~ $isapin ? "pins" : "ports")." $refpin]\n";
+
+   push @propagating_clocks, "${msclk}_${genclk}_$conf->{gendescr}{$genclk}{freq}";
+   push @{$list_allclock{$genclk}}, "${msclk}_${genclk}_$conf->{gendescr}{$genclk}{freq}";
+  } else {
+   my $refpin = $setpin{$msclk} ? "\$$setpin{$msclk}" : $conf->{master_list}{$msclk}[0];
+
+   my $crename = uc($conf->{master_list}{$msclk}[1])."${crecount}_${msclk}_$conf->{gendescr}{$genclk}{freq}";
+   ++$crecount;
+   print "create_clock             -name $crename -add -period ". sprintf("%.2f", 10**6/$conf->{gendescr}{$genclk}{freq}) 
+        ." [get_".($conf->{master_list}{$msclk}[1] =~ $isapin ? "pins" : "ports")." $conf->{master_list}{$msclk}[1]]\n";
+   print "create_generated_clock   -name ${msclk}_${genclk}_$conf->{gendescr}{$genclk}{freq} -add -divide_by 1 ".
+         " -source [get_".($conf->{master_list}{$msclk}[1] =~ $isapin ? "pins" : "ports")." $conf->{master_list}{$msclk}[1]] -master $crename ".
+	 " [get_".($conf->{master_list}{$msclk}[0] =~ $isapin ? "pins" : "ports")." $refpin]\n";
+
+   push @propagating_clocks, $crename, "${msclk}_${genclk}_$conf->{gendescr}{$genclk}{freq}";
+   push @{$list_allclock{$genclk}}, $crename, "${msclk}_${genclk}_$conf->{gendescr}{$genclk}{freq}";
+  }
+
+   print "create_generated_clock   -name ${genclk}_${msclk}_$conf->{gendescr}{$genclk}{freq} -add -divide_by 1 ".
+         " -source  \$$conf->{gendescr}{$genclk}{source} -master ${msclk}_${genclk}_$conf->{gendescr}{$genclk}{freq} " .
+         " [get_".($conf->{gendescr}{$genclk}{port} =~ $isapin ? "pins" : "ports")." $conf->{gendescr}{$genclk}{port}] \n";
+
+  push @propagating_clocks, "${genclk}_${msclk}_$conf->{gendescr}{$genclk}{freq}";
+  push @{$list_allclock{$genclk}}, "${genclk}_${msclk}_$conf->{gendescr}{$genclk}{freq}";
+  push @{$list_of_gen{$genclk}}, "${genclk}_${msclk}_$conf->{gendescr}{$genclk}{freq}";
+ }
+
+ print "\n\n";
+}
+
+HUtils::recurse(\%list_of_gen, sub {my ($info, $listofgen) = @_;
+ print "# @$info related generated clock\n";
+ print "set GENLIST_@$info {@$listofgen}\n\n";
+});
+
+print "\n\n";
+my @setclockgroup_list;
+HUtils::recurse(\%list_allclock, sub {my ($info, $listallclock) = @_;
+ print "# @$info related group\n";
+ print "set GRP_@$info {@$listallclock}\n\n";
+
+ push @setclockgroup_list, "GRP_@$info"
+});
+print "\n\n";
+
+foreach (@setclockgroup_list) {
+ print "set_clock_group  -exclusive -group \$$_\n";
+}
+
+print "\n\n";
+print "# Propagating clocks\n";
+foreach (@propagating_clocks) {
+ print "set_propagated_clock [get_clock $_]\n";
+}

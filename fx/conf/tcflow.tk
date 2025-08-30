@@ -1,0 +1,149 @@
+main   {
+ tixlistnotebook main  (.hlist  selectbackground:blue1 selectforeground:white)
+   (call tcflow)
+   (call rpt_consolidate/main)
+   (call regrestatus/main)
+   (call tcfix/main)
+}
+
+
+tcflow  {
+ frame tcflow (popup poptcflow) (event Enter helloworld) 
+                                (event Leave goodbye)
+
+; frame tcflow (popup poptcflow) (event Enter helloworld ".main.pane.p2.tcflow.tcflow.tcflow.cmdoptions.cmdoptions.rpt_consolidate.frame.*") 
+;                                (event Leave goodbye ".main.pane.p2.tcflow.tcflow.tcflow.cmdoptions.cmdoptions.rpt_consolidate.frame.*")
+
+   (tixpanedwindow tcflow (pack fill:both expand:1) (options orientation:horizontal)
+     (call root_dir)       (.root_dir   min:600)
+     (call cmdoptions)     (.cmdoptions min:490)
+     (call more_switches) ;(.more_switches min:190)
+   )
+
+   (button Start  (pack fill:x)   (options bg:grey73 text:Start height:5 bg:green3 command:\&gogo))
+   (entry  status  (pack side:bottom fill:x) (conf bg:white textvariable:"\$widget_path" selectbackground:black selectforeground:white)) 
+   (call tkgui/quit)
+}
+
+
+root_dir     {
+ frame root_dir (pack fill:both expand:1) (options bg:grey88)
+
+      (frame tixregressdir (pack fill:x) (options bg:skyblue3)
+        (tixcombobox cbb (pack side:left) (options  variable:"\$conf->{guivar}{regresss_directory_root}")
+
+	     (fcall regression_directories "RICHARD" "IS" "REALLY" (COOOL COOL))
+
+;============ fcall directive may also provide arguments to its routine to be called
+; 
+;	     (fcall regression_directories "RICHARD" "IS" "REALLY" (COOOL COOL))
+;            (history  "/db/omap2430c_es2_sta-si/reports" "/db/omap2430c_es1p_sta/reports")
+
+             (options dropdown:true history:true)
+             (options  label:"Regression Directory")
+             (.slistbox scrollbar:x)
+             (.listbox    bg:gray87)
+             (.entry  width:30 
+                      background:white 
+                      selectbackground:blue3 
+                      selectforeground:white)
+             (.label  bg:skyblue3)
+        )
+
+        (button OK (pack padx:5) (options text:OK  width:7 bg:blue command:\&set_regress_root))
+      )
+
+      (frame regression_directory (pack fill:x) (options bg:grey88 bd:2 relief:solid)
+        (tixdirtree tixdirlist (pack fill:both) 
+                               (options value:"/db/omap2430c_es1p_sta-si/reports" 
+                                        browsecmd:\&regression_directory)
+                               (.hlist bg:grey96 
+                                       width:62 
+                                       height:15 
+                                       selectbackground:blue 
+                                       selectforeground:white)
+        )
+
+        (tixlabelentry output_directory (pack fill:x) 
+                                        (options label:"Output Directory" 
+                                                 labelside:top) 
+                                        (.label bg:skyblue3) 
+                                        (.entry selectbackground:blue3 
+                                                selectforeground:white 
+                                                bg:white 
+                                                textvariable:"\$rpt_outputdir")
+        )
+        
+        (tixlabelentry excel_file_name  (pack fill:x) 
+                                        (options label:"Output Excel File" 
+                                                 labelside:top) 
+                                        (.label bg:skyblue3) 
+                                        (.entry selectbackground:blue3 
+                                                selectforeground:white 
+                                                bg:white 
+                                                textvariable:"\$excel_file_name")
+        )
+      )
+}
+
+# Here is comment
+
+more_switches {
+ tixlabelframe cf       (pack anchor:w fill:both expand:1) (options  label:"More switches" labelside:top bg:grey88)  
+         (.frame bg:lightyellow1) 
+         (.label bg:skyblue3)
+         (checkbutton  exec            (pack anchor:w) (options text:"No execution"    bg:lightyellow1 variable:"\$noexecution"))
+         (checkbutton  uniq            (pack anchor:w) (options text:"Uniquify path"   bg:lightyellow1 variable:"\$uniquify_path" command:\&uniquify_path_cb))
+         (checkbutton  noregrestatus   (pack anchor:w) (options text:"No regrestatus"  bg:lightyellow1 variable:"\$noregrestatus"))
+         (checkbutton  notcfix         (pack anchor:w) (options text:"No tcfix"        bg:lightyellow1 variable:"\$notcfix"))
+         (checkbutton  nostan          (pack anchor:w) (options text:"No stan"         bg:lightyellow1 variable:"\$nostan"))
+         (checkbutton  noxls           (pack anchor:w) (options text:"No XLS"          bg:lightyellow1 variable:"\$noxls"))
+         (checkbutton  fixinfo         (pack anchor:w) (options text:"Fixinfo"         bg:lightyellow1 variable:"\$fixinfo"))
+         (checkbutton  qcmax_scale     (pack anchor:w) (options text:"Scale 2 QC_MAX"  bg:lightyellow1 variable:"\$scale_2_qcmax"))
+}
+
+
+cmdoptions    {
+ frame cmdoptions (pack anchor:w fill:both expand:1) (options bg:grey88  height:80)
+
+     (call rpt_consolidate/main)
+     (frame mix
+       (call regrestatus/main)
+       (call tcfix/main)
+     )
+
+}
+
+
+
+
+myhlist1 {tixtree       myhlist1 (pack fill:both expand:1)  (.hlist  bg:lightblue selectbackground:olivedrab selectforeground:white width:30 height:30)}
+myhlist2 {tixtree       myhlist2 (pack fill:both expand:1)  (.hlist  bg:purple selectbackground:steelblue    selectforeground:white width:30 height:30)}
+myhlist3 {tixtree       myhlist3 (pack fill:both expand:1)  (.hlist  bg:white selectbackground:steelblue     selectforeground:white width:30 height:30)}
+ 
+panedw   {
+ tixpanedwindow  panedw  (options orientation:horizontal)
+  ;(button b0 (pack fill:both expand:1) (options bg:green3)) (.b0 size:100)
+  (tixpanedwindow sidebyside (pack fill:both expand:1) (options orientation:horizontal)
+   (tixtree     myhlist1 (pack fill:both expand:1) (.hlist  browsecmd:\&show_value bg:lightblue selectbackground:olivedrab selectforeground:white width:30 height:30))
+
+   ;(tixtree    myhlist2 (pack fill:both expand:1)  (.hlist  bg:purple selectbackground:steelblue    selectforeground:white width:30 height:30))
+   (entry     configval (options width:40 bg:white selectbackground:steelblue     selectforeground:white textvariable:"\$myentryval"))
+
+;   (.myhlist1  size:300)
+;   (.configval size:300)
+  ) (.sidebyside  min:600)
+  (button b1 (pack fill:both expand:1) (options bg:blue3  command:\&TESTHLIST)) (.b1 size:100)
+}
+
+
+txw {tixscrolledwindow txw  (options scrollbar:auto) (call tcflow)}
+
+
+poptcflow {
+ menu poptcflow (options bd:1p)
+
+  (command label:"Get path" command:\&get_path) 
+  (separator)
+  (command label:PAN2 command:\&setpan2) 
+}

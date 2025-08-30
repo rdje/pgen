@@ -1,0 +1,26 @@
+// Test grammar for grouped alternatives feature
+
+// Simple grouped alternatives
+literal := (string_literal | numeric_literal | bit_literal) -> $1
+
+// Mixed: grouped and individual alternatives  
+expression := (signal_name | literal) -> $1
+           | '(' expression ')' -> $2
+
+// Test with complex return annotations
+data_value := (integer_val | float_val | string_val) -> {type: "value", content: $1}
+
+// Test with nested grouping
+complex_expr := ((primary_expr | unary_expr) | binary_expr) -> $1
+
+// Lexical elements
+string_literal := /"([^"]*)"/ -> {type: "string", value: $1}
+numeric_literal := /(\d+)/ -> {type: "number", value: $1}  
+bit_literal := /'([01])'/ -> {type: "bit", value: $1}
+signal_name := /([a-zA-Z]\w*)/ -> {type: "signal", name: $1}
+integer_val := /(\d+)/ -> {type: "int", value: $1}
+float_val := /(\d+\.\d+)/ -> {type: "float", value: $1}
+string_val := /"([^"]*)"/ -> {type: "str", value: $1}
+primary_expr := /([a-zA-Z]\w*)/ -> {type: "primary", name: $1}
+unary_expr := /'([a-zA-Z]\w*)/ -> {type: "unary", name: $1}
+binary_expr := /([a-zA-Z]\w*\+[a-zA-Z]\w*)/ -> {type: "binary", expr: $1}

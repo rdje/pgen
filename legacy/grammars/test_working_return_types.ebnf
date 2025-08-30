@@ -1,0 +1,5 @@
+# Test return annotation types with working grammar
+simple_collection := word+ -> [$1*]
+object_collection := word word+ -> {first: $1, rest: [$2*]}
+word := /\w+\s*/ -> $1
+

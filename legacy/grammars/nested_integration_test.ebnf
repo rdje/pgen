@@ -1,0 +1,13 @@
+# Test Nested Quantified Integration
+
+# Simple quantified collection (should still work)
+items := item* -> [$1*]
+
+# Nested quantified pattern (the breakthrough!)
+data_set := header item* footer -> {header: $1, items: [$2*], footer: $3}
+
+# Basic terminals
+item := /(\w+)/ -> $1
+header := /(BEGIN)/ -> $1  
+footer := /(END)/ -> $1
+

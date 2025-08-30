@@ -1,0 +1,77 @@
+#! /usr/bin/perl -w -I/usr/lib/perl5/site_perl/5.8 -I/home/rdje/perl/lib/site_perl/5.8.3 -I/home/rdje/perl/lib/site_perl/5.8.3/sun4-solaris-thread-multi -I/home/qdjeric/install/lib/perl5/site_perl/5.8.0 -I/home/qdjeric/project/fsm/afx/fx/perl
+
+#===================================================================
+# Copyright (c) 2005-2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+use Getopt::Long;
+use Storable;
+use File::Basename;
+
+require TcFlow;
+require LibReader;
+require Table2SS;
+
+my ($progname) = $0 =~ /.*\/(\S+)/;
+
+my $qconf = HUtils::Link(PathSearch->go($progname));
+
+GetOptions('log=s'          => \$qconf->{logfile},
+	   'compile-lib=s'  => \$qconf->{qclib_compile},
+	   'glc=s'          => \$qconf->{glc_xcel2hm},
+	   'iomap=s'        => \$qconf->{iomap},
+	   'qclib=s'        => \$qconf->{qclib},
+	   'noctslib=s'     => \$qconf->{noctslib},
+	   'scale'          => \$qconf->{scale},
+	   'output-dir=s'   => \$qconf->{output_dir},
+	   'xls=s'          => \$qconf->{xls},
+	   'filter=s'       => \$qconf->{filter},
+	   'tcl4interconn'  => \$qconf->{tcl4interconn},
+	   'fanx=s'         => \$qconf->{fanx},
+	   'uicomment'      => \$qconf->{uicomment},
+	   'summary'        => \$qconf->{summary},
+	   'help'           => \$qconf->{help}
+          );
+
+
+$qconf->{help}          && usage();
+$qconf->{progname}       = $progname;
+
+$qconf->{glc_xcel2hm}   && PPlugin->exec ('glc_xcel2hm')->($qconf);
+$qconf->{summary}       && PPlugin->exec ('qc_summary')->($qconf);
+$qconf->{qclib_compile} && PPlugin->exec ('qclib_compile')->($qconf);
+
+die $@ if $@;
+
+$qconf->{qclib}         && small_check($qconf);
+
+
+
+sub usage {
+ print "usage: $progname  [--glc=<XCEl2HM_csv>]\n";
+ print "               [--qclib=<QCLibrary_File>]\n";
+ print "               [--noctslib=<NOCTSLibrary_File>]\n";
+ print "               [--compile-lib=<LIBFile>]\n";
+ print "               [--xls=<EXCEL_CheckFile>]\n";
+ print "               [--filter=<FilterFile>]\n";
+ print "               [--fanx=<FanxFile>]\n";
+ print "               [--output-dir=<OutputDirectory>]\n";
+ print "               [--log=<LogFile>] [--help]\n";
+ exit
+}
+
+
+sub small_check {
+my $qconf = shift;
+
+ HUtils::KeyGrep(retrieve($qconf->{qclib}), qr/pin:/o, sub {my ($info, $data) = @_;
+  HUtils::KeyGrep($data, qr/\s\S*(?:rise|fall)\S*:/o, sub {my ($tinfo, $tdata) = @_;
+		  print "<@$tinfo> : **@{[%$tdata]}**\n";
+		  #print "$info->[$#$info] direction($data->{direction}) timing_type($tdata->{timing_type}) related_pin($tdata->{related_pin}) min_delay_flag(".($tdata->{min_delay_flag} || "-").")\n"
+   });
+ }) 
+}
+

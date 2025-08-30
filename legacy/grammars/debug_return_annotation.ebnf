@@ -1,0 +1,14 @@
+# Debug Return Annotation - Ultra Simple
+# Find exactly what breaks
+
+return_annotation := '->' /\s*/ return_expression
+
+return_expression := simple_array | scalar_ref
+
+# Test just arrays without quantifiers first
+simple_array := '[' /\s*/ scalar_ref /\s*/ ']' -> {type: "array", element: $3}
+
+scalar_ref := '$' number -> {type: "scalar_ref", index: $2}
+
+number := /(\d+)/ -> $1
+

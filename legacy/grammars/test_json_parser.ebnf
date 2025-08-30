@@ -1,0 +1,25 @@
+# JSON Parser Grammar with Return Annotations
+json := value -> $1
+
+value := object -> $1
+value := array -> $1  
+value := string -> $1
+value := number -> $1
+value := /true|false/ -> $1
+value := /null/ -> $1
+
+object := /\s*\{\s*/ pairs /\s*\}\s*/ -> {type: "object", pairs: $2}
+object := /\s*\{\s*\}\s*/ -> {type: "object", pairs: []}
+
+pairs := pair (/\s*,\s*/ pair)* -> [$1, $2*]
+
+pair := string /\s*:\s*/ value -> {key: $1, value: $3}
+
+array := /\s*\[\s*/ elements /\s*\]\s*/ -> {type: "array", elements: $2}
+array := /\s*\[\s*\]\s*/ -> {type: "array", elements: []}
+
+elements := value (/\s*,\s*/ value)* -> [$1, $2*]
+
+string := /"([^"\\]|\\.)*"/ -> {type: "string", value: $1}
+number := /-?\d+(\.\d+)?([eE][+-]?\d+)?/ -> {type: "number", value: $1}
+

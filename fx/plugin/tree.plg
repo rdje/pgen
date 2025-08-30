@@ -1,0 +1,212 @@
+string2tree {
+ my $str = (slurp ($_[0]{_argv}[0]) =~ /(path\s+\d+:(?s:.+?)(?=path\s+\d+:))/)[0];
+
+ my $d   = [map {m/(\s*)(.+)/o; [length $1, $2]} split /\n/, (($str =~ /-{50,}\s*(.+?)\s*(?=^-)/ms)[0] =~ /^(\w.+)/ms)[0]];
+
+
+ HUtils::Print(HUtils::Format(itable_2atree ($d)));
+}
+
+itable_2atree {
+my ($d, $li) = @_;
+
+ $li ||= 0;
+
+ my @lvd;
+ my $lli = $li;
+ while (1) {
+  last unless defined $$d[$lli + 1];
+  
+  if ($$d[$lli + 1][0] > $$d[$li][0]) {
+   push @lvd, itable_2atree ($d, my $nli = $lli + 1);
+
+   $lli = $nli;
+
+  } else {
+   $_[1] = $lli if defined $_[1];
+
+   my @t = $$d[$li][1] =~ /(\S+)(.*)/o;
+   return @lvd ? [$t[0].($t[1] ? "::$t[1]" : ""), \@lvd] : [$t[0], [$t[1], @{$$d[$li]}[2 .. $#{$$d[$li]}]]]
+  }
+ } 
+
+ $_[1] = $lli if defined $_[1];
+ my @t = $$d[$li][1] =~ /(\S+)(.*)/o;
+ return @lvd ? [$t[0].($t[1] ? "::$t[1]" : ""), \@lvd] : [$t[0], [$t[1], @{$$d[$li]}[2 .. $#{$$d[$li]}]]]
+}
+
+dirlist_2db {
+ my @info;
+ my $cwd     = Cwd::getcwd();
+
+ # ---------------------------------------------------------------------------
+ # Needed because in Perl 5.10 the following
+ # @{$_[0]{_argv}} || $cwd
+ # does not work as expected. It behaves as if the left operand was evaluated
+ # in scalar context !!??!?!!
+ # ---------------------------------------------------------------------------
+ foreach (@{$_[0]{_argv}} ? @{$_[0]{_argv}} : $cwd) {
+  if (-d || -l && -d readlink) {
+   my %d_info;
+
+   print "(dirlist_2db) -I- Processing '$_'..\n";
+   my $abspath            = File::Spec->rel2abs($_);
+   my @dirparts           = File::Spec->splitdir ($abspath);
+   $d_info{dir_path}      = $abspath;
+   $d_info{dir_basename}  = File::Spec->catdir (@dirparts[0 .. $#dirparts-1]);
+   $d_info{dir_leafname}  = $dirparts[-1];
+   
+   chdir $d_info{dir_basename};
+   $d_info{dir_hierarchy} = [split /\n/, slurp ("find  $d_info{dir_leafname} -follow |")];
+   
+   push @info, \%d_info;
+  } else {
+   print "(dirlist_2db) -W- '$_' is not a directory, skipping.\n";
+  }
+ }
+
+ chdir $cwd;
+ my $odb_name = $_[0]{_output} || $_[0]{_action}.".db";
+ if (@info) {
+  print "(dirlist_2db) -I- Writing '$odb_name'..\n";
+  Storable::store(\@info, $odb_name);
+ } else {
+  print "(dirlist_2db) -I- File '$odb_name' not created, please check your directory list.\n";
+ }
+}
+
+dirlist_2itable     {
+ my $d_info = shift @_;
+
+ my $o      = [map {my @f         = (File::Spec->splitpath ($_))[1,2]; 
+                    my $full_path = "$d_info->{dir_basename}/$_";
+                    my $prefix    = -f $full_path || -l $full_path && -f readlink $full_path ? "leaf:" : (-d _ ? "node:" : "notsupported:"); [scalar (File::Spec->splitdir ($f[0])) , $prefix.$f[1], "info:$full_path"]
+               } @{$d_info->{dir_hierarchy}}];
+
+ return $o;
+}
+
+#dirlist_2atree      {HUtils::Print(HUtils::Format(  itable_2atree (dirlist_2itable (@_))  ))}
+#dirlist_2ascii_def  {itable_2ascii_def( dirlist_2itable (@_) )}
+#dirlist_2ascii      {atree_2ascii( itable_2atree (dirlist_2itable (@_)) )}
+
+atree_2itable    {
+my ($cn, $cind, $table) = @_;
+
+ $table    ||= [];
+ $cind     ||= 0;
+
+ my @subs    = grep {ref} @{$cn->[1]};
+ my @tailist = @subs ? (($cn->[0] =~ /::(.+)/o)[0] ? $1 : ()) : @{$cn->[1]};
+
+ push @$table, [$cind, $cn->[0], @tailist];
+
+ atree_2itable ($_, $cind+1, $table)  foreach @subs;
+
+ $table
+}
+
+atree_2ascii {
+my ($cn, $cind, $first, $last, $parentlast_list, $info) = @_;
+
+ $cind            ||= 0;
+ $parentlast_list ||= [];
+
+ $info            ||= {};
+
+ if ($cind) {
+  my @pdata     = ('|') x $cind;
+     $pdata[-1] = $last ? ' --' : '|--';
+
+     @pdata[@$parentlast_list] = (" ") x @$parentlast_list if @$parentlast_list;
+ 
+  my $clv_string = join ("    ", @pdata) . " $cn->[0]";
+
+  my $h_pad     =  join "    ", do {$pdata[-1] = "|"; @pdata};
+
+  print "$h_pad\n" if not ($first) && $$info{last_was_hier_node} && length ($clv_string) > $info->{current_max_length};
+
+  print "$clv_string\n";
+
+  $info->{current_max_length} = length ($clv_string) - length ($cn->[0]) - 3;
+  
+ } else {
+  print "$cn->[0]\n";
+ }
+
+ # @$parentlast_list entries are used to index @pdata. Since indexes are zero-based
+ # we have to decrement the current index, potential LAST.
+ push @$parentlast_list, $cind-1 if $last;
+
+ my $nxt_max_len;
+ my $cnt = my @subs  = grep {ref} @{$cn->[1]};
+ foreach (@subs) {
+  atree_2ascii ($_, $cind+1, $cnt == @subs, !--$cnt, [@$parentlast_list], $info);
+ }
+
+ $$info{last_was_hier_node}  = @subs; 
+} 
+
+itable_2ascii_default {print '  ' x (1+$$_[0]), "$$_[1]\n" foreach @{$_[0]}}
+
+dirlist_2ss {
+ set_http_localhost ($_[0]{_port});
+
+ my $db_name  = $_[0]{_argv}[0];
+
+ unless (-f $db_name) {
+  print "(dirlist_2ss) -E- Can't open file '$db_name'.\n";
+  exit 1;
+ }
+
+ my $wbid     = Table2SS::AddWorkBook($_[0]{_excelfile});
+
+ print "(dirlist_2ss) -I- Loading '$db_name'..\n";
+
+ my $dirdb    = Storable::retrieve($db_name);
+ foreach my $hier (@$dirdb) {
+  print "(dirlist_2ss) -I- Processing '$hier->{dir_path}'..\n";
+  Table2SS::DriveSheet($wbid, $hier->{dir_leafname}, Table2SS::RCAllocate(1, 1, 1, [[map {[(" ") x $$_[0], @$_[1 .. $#$_]]} @{atree_2itable(itable_2atree(dirlist_2itable ($hier)))}]], 'dirlist_2ss'));
+  print "\n";
+ }
+
+ Table2SS::Close($wbid);
+}
+
+slurp {open (my $f, ref ($_[0]) ? $_[1] : $_[0]); local $/; <$f>}
+
+hkey_2table  {HUtils::Key2Table($_[0])->{table}}
+
+# In slashed '/' format
+design_hierarchy_2htree {
+ my $hierarchy_paths_list = shift @_;
+
+ # This was needed because we can not do the following
+ #
+ # (1) avv_set($h, qw/A B/, 1)      B is block with at least one instance
+ # (2) avv_set($h, qw/A B C/, 1)    C is an instance of B ...
+ #
+ # Because once an intermediate value HAS been set to a scalar value (NOT a REF) 
+ # It CAN'T BE Turned InTO a REF, that's 
+ # for (1) -> (2)
+ #
+ # So I needed to find a somewhat not bad workaround :) 
+ # I just replaced the scalar value by an empty anonymous HASH  {}
+ #
+ # (1') avv_set($h, qw/A B/, {})      B is a block with at least one instance
+ # (2') avv_set($h, qw/A B C/, {})    C is an instance of B ...
+ my $h = {};
+ foreach (@$hierarchy_paths_list) {
+  my @s = split /\//o;
+  HUtils::avv_get ($h, @s) = {} unless ref (avv_get ($h, @s)) eq 'HASH';
+ } 
+
+ $h
+}
+
+htree_2itable             {HUtils::itable(@_)}
+# citable = Compact ITABLE
+design_hierarchy_2citable {itable_citable(htree_2itable(design_hierarchy_2htree(@_)))}
+htree_2citable            {itable_2citable(htree_2itable(@_))}
+citable_2itable           {[map {[(' ') x $$_[0], $$_[1]]} @{$_[0]}]}
+itable_citable            {[map {my @t = @$_; [$#t, $t[-1]]} @{$_[0]}]}

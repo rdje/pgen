@@ -1,0 +1,147 @@
+#! /apps/perl/5.8.3/bin/perl -w -I/home/rdje/perl/modules
+
+use HUtils;
+use Storable;
+
+my %merged;
+#system("date");
+#my $retrieve1 = retrieve("TEST_SETUP.slacks.MERGE.MERGE");
+# %merged = %$retrieve1;
+#system("date");
+#my $retrieve2 = retrieve("TEST_SETUP.slacks.MERGE");
+#print "DIFFING..\n";
+#HUtils::recurse($retrieve2, \&do_diff);
+#
+##system("date");
+##merge($retrieve);
+##system("date");
+##store \%merged, "TEST_SETUP.slacks.MERGE.MERGE";
+##system("date");
+#exit;
+
+my @filelist = map {chomp; $_} `find $ARGV[0] -type f | egrep '1.3_setup.nodeslack.rpt'`;
+
+#my @filelist = map {chomp; $_} `find $ARGV[0] -type f | egrep '\/(1.4_QC_MAX|QC_MAX)\/.*node_max_slacks'`;
+my $hfilename = "SETUP_Jan28.slacks";
+
+#my @filelist = map {chomp; $_} `find $ARGV[0] -type f | egrep '\/QC_MIN\/.*node_max_slacks'`;
+#my $hfilename = "TEST_HOLD.slacks";
+
+my $filecount = @filelist;
+
+unless ($filecount) {
+ print "(nodeslack) -W- No file to process.\n";
+ exit
+}
+
+my $idx = 1;
+foreach my $nodefilename_list (group_by(5, @filelist)) {
+ #chomp $nodefilename;
+
+ print "(nodeslack2h) -I- Processing GROUP ($idx) - ($filecount) :\n ".join("\n ", @$nodefilename_list)."\n";
+
+ #my ($handoff, $starxtormagma, $mode, $corner, $ptmode, $iomode) = (split(/\//, $nodefilename_list->[0]))[4,5,7,9,10,11];
+ #$hfilename = "MERGEDNS_${handoff}_$starxtormagma.hash";
+ my %allinfo = ();
+ 
+my $splitre 	= qr/ /o;
+my $grepre 	= qr/\d/o;
+my $nodesplitre = qr/\//o;
+my $nsxt_re     = qr/^-?\S+\s+\S+\s+\S+/o;
+
+system("date");
+#print "##################### ALLINFO ################\n";
+#my @push_evals = map {
+#                    my ($slack1, $slack2, $node) = split /$splitre/;
+#		    #my ($min) = sort {$a <=> $b} grep { /$grepre/} ($slack1, $slack2);
+#		    #print q(push @{$allinfo{').join(qq('}{'), split(/$nodesplitre/, $node)).qq('}},).(sort {$a <=> $b} grep { /$grepre/} ($slack1, $slack2))[0].";\n";
+#                    q(push @{$allinfo{').join(qq('}{'), split(/$nodesplitre/, $node)).qq('}},).(sort {$a <=> $b} grep { /$grepre/} ($slack1, $slack2))[0].';';
+#                  } qx(egrep -h -v 'INFINITY INFINITY|#' @$nodefilename_list) =~ /$nsxt_re/mg;
+#
+#system("date");
+#print "##################### PUSH EVALs ################\n";
+#eval foreach (@push_evals);
+#system("date");
+#print "##################### recurse GET_MIN ################\n";
+#HUtils::wrecurse(\%allinfo, \&get_min);
+#system("date");
+#print "##################### MERGE ################\n";
+
+my @evals = map {
+                    my ($slack1, $slack2, $node) = split /$splitre/;
+                    my ($min) = sort {$a <=> $b} grep { /$grepre/} ($slack1, $slack2);
+                    my $join = q($allinfo{').join(qq('}{'), split(/$nodesplitre/, $node)).qq('});
+                    qq(\$tmpv = $join; $join = defined(\$tmp) && (\$tmpv < $min) ? \$tmpv : $min).';';
+                  } qx(egrep -v 'INFINITY INFINITY|#' @$nodefilename_list) =~ /$nsxt_re/mg;
+
+system("date");
+print "\n##################### Now Let's PLAY ################\n";
+system("date");
+my $tmpv;
+eval foreach (@evals);
+system("date");
+print "\n##################### Done ################\n";
+
+ unless ($idx > 1) {
+  %merged = %allinfo;
+ } else {
+  merge(\%allinfo);
+ }
+
+ ++$idx;
+}
+
+print "(nodeslack2h) -I- Storing HASH data\n";
+store \%merged, $hfilename;
+
+print "\nDone.\n";
+
+
+sub merge {
+ print "(nodeslack2h) -I- Merging..\n";
+ HUtils::recurse($_[0], \&do_merge);
+}
+
+sub do_merge {
+my ($info, $scalar) = @_;
+
+ my $merged_join     = q($merged{').join(q('}{'), @$info).q('});
+ eval qq(my \$prev_merged_v = $merged_join; $merged_join = defined(\$prev_merged_v) && ($scalar > \$prev_merged_v) ? \$prev_merged_v : $scalar);
+}
+
+sub do_diff {
+my ($info, $scalar) = @_;
+
+ my $merged_join     = q($merged{').join(q('}{'), @$info).q('});
+ if ((my $val = eval($merged_join)) != $scalar) {
+   print "@$info HAS DIFFERENT VALUES ($val) ($scalar)\n";
+ }
+}
+
+sub group_by {
+my $gb = shift;
+
+ my $idx = 0;
+ my @group_o;
+ my @subgrp;
+ foreach (@_) {
+  if(@subgrp && ($idx % $gb == 0) && int($idx/$gb)) {
+   push @group_o, [@subgrp];
+
+   #print "GROUP DONE(".int($idx/$gb)."):\n  ".join("\n ", @subgrp)."\n\n";
+
+   @subgrp = ();
+  }
+
+  push @subgrp, $_;
+  #print "(pushed) $_\n";
+
+  ++$idx;
+ }
+
+ push @group_o, [@subgrp] if @subgrp;
+ 
+ return @group_o
+}
+
+sub get_min {my ($info, $minlist) = @_; (sort {$a <=> $b} @$minlist)[0]}

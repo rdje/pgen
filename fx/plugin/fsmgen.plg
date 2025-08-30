@@ -1,0 +1,526 @@
+interface_object {
+ $_[0] =~ /^(?<port>\w+)(?:(?<direction>[<>])(?<size>\d+)?(?:=(?<force>0(?i:x[\da-f]+|b[01]+)|\d+\'\d+))?(?::(?<type>\w+))?)?$/o;
+ my ($port, $direction, $size, $force, $type) = @+{qw/port direction size force type/};
+
+ return undef unless $port;
+
+ my @info = ($port, defined $direction ? ($direction =~ /</o ? 'IN' : 'OUT') : 'IN');
+ if (defined $size && $size > 0) {
+   push @info, $type // 'STD_LOGIC_VECTOR', $size-1, 0;
+ } else {
+   push @info, $type // 'STD_LOGIC';
+ }
+
+ $info[5] = lc($force) if defined $force && defined ($direction) && $direction ~~ />/o;
+ 
+ [@info]
+}
+
+get_instance_name          {my ($iname) = map {m/(\w+)/o} grep {!ref && m/^:[[:alpha:]]/o} @{$_[0]}; $iname}
+getop_plugin_list          {
+my %plugins;
+
+ # Current Plugin Specif
+ foreach my $cps (map {s/\+//o; $_} grep {!ref && m/^\+\S/o} @{$_[0]}) {
+  $cps =~ /=/po;
+
+  my ($type, $plugin_list) = (${^PREMATCH}, ${^POSTMATCH});
+
+  my @plg_n_args = split /#/o, $plugin_list;
+  push @{$plugins{$type}}, {plugin=> plugin ($plg_n_args[0]), args=>[@plg_n_args[1 .. $#plg_n_args]]}
+ }
+
+ return  %plugins ? \%plugins : undef
+}
+
+override_interface_objects {my %ov = map {$$_[0] => $_} grep {defined} map {interface_object ($_)} map {s/=//o; $_} grep {!ref && m/^=/o} @{$_[0]}; \%ov}
+interface_objects          {
+ # Also uniquifying ports names, in case some of them appear more than once.
+ my @io;
+ my @portnames;
+ foreach (grep {defined} map {interface_object ($_)} grep {!ref && m/^[[:alpha:]]\w*/o && !/[[:alpha:]]:/o} @{$_[0]}) {
+   push @io, $_ unless @portnames ~~ $$_[0];
+   push @portnames, $$_[0]
+ }
+
+ \@io
+}
+
+map_objects                {[map {{@$_}} @{Table::list2table([map {m{/(.+?)/(.+)/}o; search=>$1, replace=>$2} grep {!ref && m/^\//o} @{$_[0]}], 4)}]}
+generic_objects            {my $r = {map {split /[=,]/o} map {m/--?(\S+)/o} grep {!ref && m/^--?\S+/o} @{$_[0]}}; $r}
+portinfo_2interface_object {my ($pt, %opt) = @_;
+ join "\n", map {
+  $$_[0].
+  ($$_[1] ~~ /(?i)in/o ? '<' : '>').
+  (defined $$_[3] && defined $$_[4] ? abs ($$_[3] - $$_[4]) + 1 : '').
+  ($$_[2] !~ /(?i)std_logic(_vector)?/o ? ":$$_[2]" : '')
+ } @$pt
+}
+
+
+signalist_2hash {my ($st, %opt) = @_;
+ my $k2c = Global->set(qw/rtl signal_key2col/);
+ #say "signalist_2hash:k2c($k2c)";
+
+ my %all_signalhash;
+ foreach my $cs (@$st) {
+  my %signalhash;
+
+  # Keeping a link to $cs
+  $signalhash{to_array} = $cs;
+
+  # Building the hash table for the current signal
+  # The 'name' field is skipped since it will be added in %all_signalhash
+  $signalhash{$_} = $$cs[$$k2c{$_}] foreach grep !/name/o, keys %$k2c;
+
+  # Adding a size field
+  # 
+  # !!! Here I assume that both 'msi' and 'lsi' resolve to integer and not to constant names !!!
+  #
+  $signalhash{size} = $signalhash{msi} ? abs ($signalhash{msi} - $signalhash{lsi} + 1) : 1;
+
+  # pluging the current signal hash now to 'all_signalhash'
+  $all_signalhash{$$cs[$$k2c{name}]} = \%signalhash
+ }
+
+ return \%all_signalhash
+}
+
+
+# mre = map spec RE list
+# pt  = port table
+# mp  = map parser
+portlist_2hash {my ($pt, %opt) = @_;
+ my $k2c = Global->set(qw/rtl port_key2col/);
+
+ if ($opt{thrumap}) {
+  $$_{replace}   = mapspec_atree_2signame ($$_{replace_atree} = _get_parser ('portmap')->(\$$_{replace})) foreach @{$opt{thrumap}}; 
+ }
+
+ my %all_porthash;
+ foreach my $cp (@$pt) {
+  my %porthash;
+
+
+  # Keeping a link to $cp
+  $porthash{to_array} = $cp;
+
+  # The default connexion is to have an actual with the 
+  # same name as the port
+  $porthash{actual} = $$cp[$$k2c{name}];
+
+  if ($opt{thrumap}) {
+   # Looking for an explicit mapping specification
+   foreach my $ci (0 .. $#{$opt{thrumap}}) {
+    if ($$cp[$$k2c{name}] =~ /$opt{thrumap}[$ci]{search}/) {
+     # Got it !
+
+     # Connecting the current port as per the spec 
+     $porthash{actual}  = $opt{thrumap}[$ci]{replace};
+
+     # Keeping a link to the current spec entry (hash)
+     $porthash{mapspec} = $opt{thrumap}[$ci];
+
+     # Exit the loop after the first successful match
+     last
+    }
+   }
+  }
+
+  # Building the hash table for the current port
+  # The 'name' field is skipped since it will be added in %all_porthash
+  $porthash{$_} = $$cp[$$k2c{$_}] foreach grep !/name/o, keys %$k2c;
+
+  # Adding a size field
+  # 
+  # !!! Here I assume that both 'msi' and 'lsi' resolve to integer and not to constant names !!!
+  # Finally I had to find a workaround for not having a bunch warnings/errors when the assumption is wrong
+  $porthash{size} = $porthash{msi} ? ("$porthash{msi} $porthash{lsi}" =~ /[[:alpha:]]/o ? "$porthash{msi} - $porthash{lsi} + 1" : abs ($porthash{msi} - $porthash{lsi} + 1)) : 1;
+
+  # pluging the current port hash now to 'all_porthash'
+  $all_porthash{$$cp[$$k2c{name}]} = \%porthash
+ }
+
+ return \%all_porthash
+}
+
+# FIXME the code inside the foreach is the same as the one in the 'constant' WHEN entry 
+# in function 'get_signal_n_assignment_objects'
+# As a consequence something needs to be done in order to have something as code sharing
+portlist_2force {my ($pt, %opt) = @_;             
+ my $k2c = Global->set(qw/rtl port_key2col/); 
+
+ my %decl_obj;
+ foreach (grep {defined $$_[$$k2c{force}]} @$pt) {
+   my ($name, $direction, $force) = @$_[@$k2c{qw/name direction force/}];
+
+   $force =~ /0(?<base>x|b)(?<based_value>.+)|(?<rqst_size>\d+)'(?<decimal_value>\d+)/io;
+
+   my ($base, $value)   = @+{qw/base based_value/};
+   my ($rsize, $dvalue) = @+{qw/rqst_size decimal_value/};
+
+   my $size           = $rsize // length $value;
+   my $rtl_value      = $base ? ($base ~~ 'x' ? 'X"'.uc($value).'"' : ($size ~~ 1 ? "\'$value\'" : "\"$value\"")) : decimal_constant_string ($dvalue, $size);
+   my $sz_in_bit      = $base ? ($base ~~ 'x' ? 4 : 1) * $size : $size;
+  (my $constname      = 'const_'.$force.'_c') =~ s/'/b/o;
+   
+   unless ($opt{uniq}{$constname}) {
+    if ($sz_in_bit > 1) {
+     push @{$decl_obj{constant}}, [$constname, 'STD_LOGIC_VECTOR', $sz_in_bit-1, 0, $rtl_value];
+    }
+
+    $opt{uniq}{$constname} = 1;
+   }
+   
+   unless ($opt{uniq}{$name}) {
+    push @{$decl_obj{assign}},    [$name, 'constant', $direction, [$sz_in_bit > 1 ? $constname : $rtl_value]];
+
+    $opt{uniq}{$name} = 1;
+   }
+   
+ }
+
+ \%decl_obj
+}
+
+mapspec_atree_2signame {join '_', map {s/\?//go; m/^(?:0x[\da-f]+|0b[01]+|\d+\'\d+)$/io ? do {s/\'/b/o; "constsig_$_"} : $_} grep {defined && !/:/o} Lispish::flatten ($_[0])}
+get_signal_n_assignment_objects {my ($ct, $c_atree, $uniq, $decl_obj, $port_n_sig_ht, $direction) = @_;
+
+ #Lispish::ascii($c_atree);
+ Lispish::recurse ($c_atree, postcheck=> sub {!ref ($_[0][0]) && $_[0][0] =~ /^\?\w+:/o}, post=> sub {my ($raw, $capt, $lvl) = @_;
+
+   my $name = mapspec_atree_2signame ($raw->[1]);
+
+   given ($raw->[0]) {
+    when (/\?bare:/o)    {
+             my $sig_decl = [$name, $port_n_sig_ht->{$name}{size}];
+
+             say STDOUT "(fsmgen) -E- ($ct) No size/type defined for bare signal/port name '$name'" unless $port_n_sig_ht->{$name}{size};
+
+             return $sig_decl
+    } 
+
+    when (/\?bit:/o)    {
+             my $sig_decl = [$name, 1];
+
+             unless ($uniq->{$name}) {
+              push @{$decl_obj->{signal}}, [$name, 'STD_LOGIC'];
+              push @{$decl_obj->{assign}}, [$name, 'bit', $direction, [map {m/(\w+)/} @{$raw->[1]}]];
+
+              $uniq->{$name} = 1;
+             }
+
+             return $sig_decl
+    } 
+    
+    when (/\?slice:/o)  {  
+             my $sig_decl = [$name, abs ($raw->[1][1] -$raw->[1][2] + 1)];
+
+             unless ($uniq->{$name}) {
+              push @{$decl_obj->{signal}}, [$name, 'STD_LOGIC_VECTOR', $sig_decl->[1]-1, 0];
+              push @{$decl_obj->{assign}}, [$name, 'slice', $direction, [@{$raw->[1]}]];
+
+              $uniq->{$name} = 1;
+             }
+
+             return $sig_decl
+    }
+
+    when (/\?concat:/o) {
+             my @greped   = grep {defined} @$capt;
+             my $sig_decl = [$name, eval join '+', map {$$_[1]} @greped];
+
+             unless ($uniq->{$name}) {
+              push @{$decl_obj->{signal}}, [$name, 'STD_LOGIC_VECTOR', $sig_decl->[1]-1, 0];
+              push @{$decl_obj->{assign}}, [$name, 'concat', $direction, [@greped]];
+
+              $uniq->{$name} = 1;
+             }
+
+             return $sig_decl
+    }
+
+    when (/\?constant:/o) {
+             if ($direction ~~ /out/io) {
+	      say "(fsmgen) -E- Assignment a constant on an output pin of a sub-block of top ($ct) issue.";
+	      exit 1;
+	     }
+
+             $raw->[1][0] =~ /0(?<base>x|b)(?<based_value>.+)|(?<rqst_size>\d+)'(?<decimal_value>\d+)/io;
+
+             my ($base, $value)   = @+{qw/base based_value/};
+	     my ($rsize, $dvalue) = @+{qw/rqst_size decimal_value/};
+
+	     my $size             = $rsize // length $value;
+	     my $rtl_value        = $base ? ($base ~~ 'x' ? 'X"'.uc($value).'"' : ($size ~~ 1 ? "\'$value\'" : "\"$value\"")) : decimal_constant_string ($dvalue, $size);
+             my $sz_in_bit        = $base ? ($base ~~ 'x' ? 4 : 1) * $size : $size;
+	     my $constname        = 'const_'.$name.'_c';
+
+             unless ($uniq->{$name}) {
+	      if ($sz_in_bit > 1) {
+               push @{$decl_obj->{constant}}, [$constname, 'STD_LOGIC_VECTOR', $sz_in_bit-1, 0, $rtl_value];
+               push @{$decl_obj->{signal}},   [$name,      'STD_LOGIC_VECTOR', $sz_in_bit-1, 0];
+	      } else {
+               push @{$decl_obj->{signal}},   [$name,      'STD_LOGIC'];
+	      }
+
+              push @{$decl_obj->{assign}},    [$name, 'constant', $direction, [$sz_in_bit > 1 ? $constname : $rtl_value]];
+             
+              $uniq->{$name} = 1;
+             }
+
+             return [$name, $sz_in_bit]
+    }
+
+    when (/\?multi:/o) {# FIXME This part is not finalized yet FIXME
+             my @greped   = grep {defined} @$capt;
+             my $sig_decl = [$name, eval join '+', map {$$_[1]} @greped];
+
+             unless ($uniq->{$name}) {
+             
+              $uniq->{$name} = 1;
+             }
+
+             return $sig_decl
+    }
+   }
+ });
+}
+
+
+decimal_constant_string {my ($value, $size) = @_;
+ if ($value ~~ 0 && $size > 1) {
+  q/(OTHERS => '0')/
+ } elsif ($size > 1 && ($size % 4 == 0)) {
+  'X"'.uc (sprintf ('%0'.($size/4).'x', $value)).'"'
+ } else {
+  ($size ~~ 1 ? '\'' : '"').sprintf ("%0${size}b", $value).($size ~~ 1 ? '\'' : '"')
+ }
+}
+
+# acneb_2modpin 
+#
+# Href hierarchy having the following structure
+# actual_or_embeded_bare/direction/module/ --> this port hash 
+helper_find_signalport_size {my ($cr, $acneb_2modpin, $nodename, $acebn, $type) = @_;
+ my $k2c = Global->set(qw/rtl port_key2col/);
+
+ # say "helper_find_signalport_size: $nodename : $acebn : $type";
+ my %size;
+ keygrep ($$acneb_2modpin{$acebn}, qr/actual/o, sub {my ($ks, $v) = @_;
+  # it is an actual, at least once if
+  if ($v eq $acebn) {
+   # say "#-----------------> ($type) $acebn: @$ks=$v";
+   #
+   #                                                     0=direction 1=current module
+   my %genericmap         = %{avv_get ($acneb_2modpin, $acebn, @$ks[0 .. 1], '_generic_map') // {}};
+   my %override           = %{avv_get ($acneb_2modpin, $acebn, @$ks[0 .. 1], '_override')    // {}};
+   my %vhdl_constants_map = %{$$cr{VHDL_CONSTANTS_HASH} // {}};
+   my $current_sz_expr    = avv_get ($acneb_2modpin, $acebn, @$ks[0 .. $#$ks -1], 'size');
+   my @portsig_info       = @{avv_get ($acneb_2modpin, $acebn, @$ks[0 .. $#$ks -1], 'to_array')};
+   my $piname             = $portsig_info[0];
+
+   if ($current_sz_expr =~ /[[:alpha:]]/o) {
+     unless (%genericmap) {
+       
+      # ------------------------------------------------
+      #                     FIXME                         
+      # ------------------------------------------------
+      #           Code to be cleaned later
+      #  Since it's the same as the outer ELSE-BRANCH
+      # The only difference being the %hash
+      # and the Error Message
+      # ------------------------------------------------
+      if (%vhdl_constants_map) {
+        @portsig_info[@$k2c{qw/msi lsi/}] =   map {string_substitute(join('', map {m/[[:alpha:]_]/o ? "<$_>": $_} split /([[:alpha:]]\w*)/o, $_), %vhdl_constants_map)} @portsig_info[@$k2c{qw/msi lsi/}];
+        my $nwsz_expr  = $portsig_info[$$k2c{msi}].' - '.$portsig_info[$$k2c{lsi}].' + 1';
+
+        if ($nwsz_expr =~ m/[[:alpha:]_]/o) {
+         # It looks like not ALL generic values have been provided
+
+	 unless ($override{$piname}) {
+          # The module pin has no override definition
+          $nwsz_expr =~ s/<|>//go;
+          say "\n(fsmgen) -E- Constant Map Error, FAULTY-EXPRESSION($nwsz_expr) top($nodename) subblock($$ks[1]) pin($piname). (-> override?) ";
+          exit;
+         } else {
+          # The module pin has an override definition
+	  say "(fsmgen) -I- Applying override definition for pin '$nodename.$$ks[1].$piname'";
+          @portsig_info    = @{$override{$piname}};
+          $current_sz_expr = eval $portsig_info[$$k2c{msi}].' - '.$portsig_info[$$k2c{lsi}].' + 1';
+	 }
+        } else {
+         $current_sz_expr = abs eval $nwsz_expr;
+        }
+
+      } else {
+         say "\n(fsmgen) -E- Missing Generic or Constant definition, FAULTY-EXPRESSION($current_sz_expr) top($nodename) subblock($$ks[1]) pin($piname)";
+      }
+
+
+     } else {
+
+      # say "(fsmgen) -I- GenericMappedPort Handling: <$piname> - @{[%genericmap]}";
+      @portsig_info[@$k2c{qw/msi lsi/}] = map {string_substitute(join('', map {m/[[:alpha:]_]/o ? "<$_>": $_} split /([[:alpha:]]\w*)/o, $_), %genericmap)} @portsig_info[@$k2c{qw/msi lsi/}];
+      my $nwsz_expr  = $portsig_info[$$k2c{msi}].' - '.$portsig_info[$$k2c{lsi}].' + 1';
+
+      if ($nwsz_expr =~ m/[[:alpha:]_]/o) {
+       # It looks like not ALL generic values have been provided
+       unless ($override{$piname}) {
+        $nwsz_expr =~ s/<|>//go;
+        say "\n(fsmgen) -E- Generic map Error, FAULTY-EXPRESSION($nwsz_expr) top($nodename) subblock($$ks[1]) pin($piname)";
+        exit;
+       } else {
+        # The module pin has an override definition
+	say "(fsmgen) -I- Applying override definition for pin '$nodename.$$ks[1].$piname'";
+        @portsig_info    = @{$override{$piname}};
+        $current_sz_expr = eval $portsig_info[$$k2c{msi}].' - '.$portsig_info[$$k2c{lsi}].' + 1';
+       }
+      } else {
+       $current_sz_expr = abs eval $nwsz_expr;
+      }
+
+
+
+     }
+   }
+
+   @portsig_info[@$k2c{qw/msi lsi/}] = map {defined ($_) ? eval : $_} @portsig_info[@$k2c{qw/msi lsi/}];
+   $size{$current_sz_expr} = [@portsig_info];
+  }
+ });
+ 
+ my @class = $type ~~ 'port' ? qw/port list/ : 'signal';
+ my $szcnt = keys %size;
+ if ($szcnt > 1) {
+  say "(fsmgen) -E- ($nodename) Size conflict for $type '$acebn'"
+ 
+ } elsif ($szcnt == 1) {
+  # Adding the new 'port' or 'signal'
+  #
+  # One thing here is that if the MSI or LSI contains identifiers then I SHOULD try the expand them.
+  # Usually idenfier are generic names, so may I thing I should be using the generic map for that particular
+  # instance.
+  avv_push ($cr, 'module', $nodename, @class, 'default', [$acebn, @{$size{(keys %size)[0]}}[@class ~~ 'port' ? (1 .. 4) : (2 .. 4)]]);
+ } else {
+  say STDOUT "(fsmgen) -W- ($nodename) Can't deduce the size/type of $type '$acebn', please help :-)"
+ }
+}
+
+
+# Build the library and use clauses
+add_header_n_context_clause {my ($cr, %opt) = @_;
+
+my $std_context_clause = Global->set(qw/rtl std_context_clause/);
+
+ HUtils::avv_get ($cr, '_raw_header_') //= do {
+   my $header = get_leaf ($cr, 'corporate_file_header');
+
+   if ($header) {
+     if (ref ($header) eq 'SCALAR') {
+      $$header
+     } elsif (-f $header) {
+      slurp ($header)
+     } else {
+      say STDOUT "(fsmgen) -W- Can't stat header file '$header', ignoring it.";
+      ''
+     }
+   } else {''}
+ };
+
+ my $corporate_file_header = get_leaf ($cr, '_raw_header_') ? string_substitute (get_leaf($cr, '_raw_header_'),
+                                                              file_name      => $opt{file_name}               ,
+                                                              file_type      => 'VHDL'                        ,
+                                                              author_signame => $opt{author_signame}          ,
+                                                              author_name    => $opt{author_name}             ,
+							      description    => $opt{description}             ,
+                                                              revision       => 'Initial Version'             ,
+                                                              language       => 'VHDL\'93'
+                                                             ) : '';
+ my $user_defined_clause = '';
+ if (get_leaf ($cr, 'user_defined_clause')) {
+  my $add_package_re    = get_leaf ($cr, 'add_package_re');
+  my $under_add_package = get_leaf ($cr, 'add_package_list');
+
+  my @last_minute_package_list = $opt{last_minute_pkg} ?  (ref $opt{last_minute_pkg} ? @{$opt{last_minute_pkg}} : $opt{last_minute_pkg}) : ();
+
+  foreach (@{Table::list2table([map {m/$add_package_re/o} map {split /,/o} @$under_add_package, @last_minute_package_list], 2)}) {
+    $user_defined_clause .= "LIBRARY $$_[0];".($$_[1] ? "\nUSE".(' ' x 5)."$$_[0].$$_[1].ALL;" : '')."\n\n";
+  }
+ }
+
+ $corporate_file_header                                    .
+ (get_leaf ($cr, 'context_clause') || $std_context_clause) .
+ $user_defined_clause                                      . 
+ "\n"
+}
+
+
+get_entity_file_name       {
+  string_substitute(get_leaf($_[0], 'entity_file_name_template')                                            , 
+  	             module_name        => $_[1]                                                            ,
+  	             entity_name_suffix => get_leaf($_[0], '\bmerge$') ? get_leaf($_[0], 'merge_name_suffix')  : 
+  		                                                         get_leaf($_[0], 'entity_name_suffix') ,
+  	             vhdl_file_suffix   => get_leaf($_[0], 'vhdl_file_suffix')
+  	         )
+}
+
+get_architecture_file_name {
+  string_substitute(get_leaf($_[0], 'architecture_file_name_template')                     , 
+  	            module_name              => $_[1]                                      ,
+  	            architecture_name_suffix => get_leaf($_[0], 'architecture_name_suffix'),
+  	            vhdl_file_suffix         => get_leaf($_[0], 'vhdl_file_suffix')
+  	         )
+}
+
+register_process   {string_substitute (get_leaf($_[0], 'register_process_template_w_asyncreset'), @_[1 .. $#_])}
+
+get_entity_file_description {
+ 'Entity '                                            .
+ (get_leaf($_[0], '\bmerge$') ? 'and Architecture' : '') .
+ ' of module '                                        .  
+ uc $_[1]
+}
+
+get_architecture_file_description {'Architecture of module '. uc $_[1]}
+
+fsmgen_from_string {FSMGen::top_from_string (@_)}
+fsmgen_from_tree   {FSMGen::top_from_tree   (@_)}
+
+
+
+specific_context_clause {my ($cr, %opt) = @_;
+ @{$opt{cclausearch}{pkg_list}} = map {split /,/o} @{$opt{_args}};
+}
+
+move_port_2signal {my ($cr, %opt) = @_;
+# top=>$nodename, submodules=>$submodules{$nodename}, topdata=>$top_o, _args=>$$_{args}
+
+ my @pt      = @{$$cr{module}{$opt{top}}{port}{list}{default}};
+ my $port_re = join '|', @{$opt{_args}};
+
+ push @{private_state('fsmgen.plg')->{move_port_2signal}{$opt{top}}} ,  grep {$$_[0] =~ /$port_re/} @pt;
+ $$cr{module}{$opt{top}}{port}{list}{default}                        = [grep {$$_[0] !~ /$port_re/} @pt];
+
+}
+
+decl_signal_from_port {my ($cr, %opt) = @_;
+# $cr                                                  
+# top          => $ct                                  
+# submodules   => $submodules->{$ct}                   
+# align_hash   => $al                                  
+# constant_tbl => $$cr{module}{$ct}{constant}{default}
+# signal_tbl   => $$cr{module}{$ct}{signal}{default}  
+# _args        => $$_{args}
+
+# Removing the direction (#1) creates a signal object
+push @{$opt{signal_tbl}}, map {[@$_[0, 2 .. $#$_]]}  @{private_state('fsmgen.plg')->{move_port_2signal}{$opt{top}}};
+
+private_state('fsmgen.plg')->{move_port_2signal}{$opt{top}} = [];
+
+${$opt{align_hash}} = RTLUtils::string_realign (${$opt{align_hash}}, [map {$$_[0]} @{$opt{signal_tbl}}]);
+}
+
+assign_add {my ($cr, %opt) = @_;
+ push @{$opt{_common}{top}{$opt{top}}{assignment_list}}, map {[split /:/o]} @{$opt{_args}}
+}

@@ -1,0 +1,122 @@
+setup_hold_tmax_tmin {
+my ($conf, $maxcheck, $mincheck) = @_;
+
+ my @iomodes = sort {$a cmp $b} keys %{$conf->{iomode}};
+ my @corners = sort {$b <=> $a} keys %{$conf->{corner}};
+ my @modes   = sort {$a <=> $b} keys %{$conf->{mode}};
+
+ HUtils::Recurse($conf->{DxCy}, [PPlugin->get ('DxCy'), $maxcheck, $mincheck, \@iomodes, \@corners, \@modes, my $crail = {}, $conf]);
+
+ open(SHTT, ">$conf->{_workdir}/shtm_SUMMARY.lof") || die "($conf->{_program}) -E- Can't write open '$conf->{_workdir}/shtm_SUMMARY.lof',";
+ foreach my $cpath (sort {$a cmp $b} keys %{$crail->{pathtype}}) {
+  print SHTT "=setup_hold_tmax_tmin=\n";
+
+  my @ports;
+  my %seen;
+  push @ports, map {$seen{$_} = 1; $_} ref($conf->{ports}{$cpath}{input})  ? @{$conf->{ports}{$cpath}{input}}  : $conf->{ports}{$cpath}{input};
+  push @ports, grep {!$seen{$_}} (ref($conf->{ports}{$cpath}{output}) ? @{$conf->{ports}{$cpath}{output}} : $conf->{ports}{$cpath}{output});
+
+  my @official_target_freqs = map {$conf->{'official-target-frequencies'}{$cpath}{$_}."(Mhz)"} @corners;
+  print SHTT "+ + + @official_target_freqs\n";
+  print SHTT "$crail->{pathtype}{$cpath}{header}\n";
+  foreach my $cport (@ports) {
+   HUtils::Recurse($crail->{pathtype}{$cpath}{data}{$cport}, [sub {my ($info, $numbers, $port) = @_; print SHTT "$port @$info @$numbers\n"}, $cport]);
+  }
+
+  print SHTT "=setup_hold_tmax_tmin_end=\n";
+ }
+ close SHTT;
+
+
+ HUtils::Recurse($$crail{pathsets}, sub {
+   my ($info, $a2d) = @_;
+   
+   my ($sheet, $setup_hold) = @$info;
+
+   open(my $fh, ">$conf->{_workdir}/$sheet.lof") || die "($conf->{_program}) -E- Can't write open '$conf->{_workdir}/$sheet.lof',";
+   print $fh "=regrestatus_$setup_hold=\n";
+   print $fh "@$_\n" foreach (@$a2d);
+   print $fh "=regrestatus_${setup_hold}_end=\n";
+   close $fh;
+ });
+}
+
+DxCy {
+my ($info, $dxcy, $maxcheck, $mincheck, $iomodes, $corners, $modes, $crail, $conf) = @_;
+
+ my ($path_type, $sens, $port) = @$info; 
+
+ $dxcy = PPlugin->get ($dxcy);
+
+ my $callnum = $$crail{callnum} || 0;
+
+ $crail->{pathtype}{$path_type}{header} = "+ $path_type + @$corners";
+ foreach my $cmode (@$modes) {
+  my $i=0;
+  foreach my $ciomode (@$iomodes) {
+   my $j=0;
+   foreach my $ccorner (@$corners) {
+    my $official_target_period = 1000/$conf->{'official-target-frequencies'}{$path_type}{$ccorner};
+
+    my $sheetname = "shtm_${path_type}_$callnum$i$j";
+    $$crail{pathsets}{$sheetname}{setup} = $maxcheck->{$ccorner}{$cmode}{$ciomode}{$path_type}{$sens}{$port};
+    $$crail{pathsets}{$sheetname}{hold}  = $mincheck->{$ccorner}{$cmode}{$ciomode}{$path_type}{$sens}{$port};
+    
+    my $maxdelay               = sprintf("%4.2f", $dxcy->($maxcheck->{$ccorner}{$cmode}{$ciomode}{$path_type}{$sens}{$port}[0], 'max')) || '-';
+    my $mindelay               = sprintf("%4.2f", $dxcy->($mincheck->{$ccorner}{$cmode}{$ciomode}{$path_type}{$sens}{$port}[0], 'min')) || '-';
+    my $maxbudget              = sprintf("%3.1f", 100*$maxdelay/$official_target_period);
+    my $maxv                   = "$maxdelay($maxbudget%)";
+
+    push @{$crail->{pathtype}{$path_type}{data}{$port}{$sens}{$ciomode}}, "internal:$sheetname!A1@"."$maxv/$mindelay";
+    ++$j
+   }
+
+   ++$i;
+  }
+ }
+
+ ++$$crail{callnum}
+}
+
+
+DiCi {
+my ($conf, $path, $type) = @_;
+#print "DiCi: <($path->[$$conf{_indexes}{capture_start_time}] - $path->[$$conf{_indexes}{startpoint_delay}])  - $path->[$$conf{_indexes}{slack}]>\n";
+
+# max :   Tcapture - Tstartpoint - SLACK
+# min :   Tstartpoint - Tcapture - SLACK = - (Tcapture - Tstartpoint) - SLACK
+# print "DiCi: <@$path>\n";
+ ($type eq 'max' ? 1 : -1)*($path->[$$conf{_indexes}{capture_start_time}] - $path->[$$conf{_indexes}{startpoint_delay}])  - $path->[$$conf{_indexes}{slack}];
+}
+
+DiCo {
+my ($conf, $path, $type) = @_; 
+#print "DiCo: <($path->[$$conf{_indexes}{capture_start_time}] - $path->[$$conf{_indexes}{launch_start_time}] - $path->[$$conf{_indexes}{input_external_delay}])  - $path->[$$conf{_indexes}{slack}]>\n";
+
+# max :   Tcapture - Tlaunch - input_external_delay - SLACK
+# min :   Tlaunch - Tcapture + input_external_delay - SLACK = - (Tcapture - Tlaunch - input_external_delay) - SLACK
+# print "DiCo: <@$path>\n";
+ ($type eq 'max' ? 1 : -1)*($path->[$$conf{_indexes}{capture_start_time}] - $path->[$$conf{_indexes}{launch_start_time}] - $path->[$$conf{_indexes}{input_external_delay}])  - $path->[$$conf{_indexes}{slack}];
+}
+
+DoCi {
+my ($conf, $path, $type) = @_; 
+#print "DoCi: <$path->[$$conf{_indexes}{arrival_time}] - $path->[$$conf{_indexes}{launch_start_time}]>\n";
+
+return $path->[$$conf{_indexes}{arrival_time}] - $path->[$$conf{_indexes}{launch_start_time}];
+
+# max: Tcapture - Tlaunch - output_external_delay - SLACK = Tcapture - Tlaunch  + Extracted_output_external_delay - SLACK
+# min: Tcapture - Tlaunch - output_external_delay + SLACK = Tcapture - Tlaunch  + Extracted_output_external_delay + SLACK
+ $path->[$$conf{_indexes}{capture_start_time}] - $path->[$$conf{_indexes}{launch_start_time}] + $path->[$$conf{_indexes}{output_external_delay}]  - ($type eq 'max' ? 1 : -1)*$path->[$$conf{_indexes}{slack}];
+}
+
+DoCo {
+my ($conf, $path, $type) = @_; 
+#print "DoCo: <($path->[$$conf{_indexes}{capture_start_time}] - $path->[$$conf{_indexes}{launch_start_time}] + $path->[$$conf{_indexes}{output_external_delay}])  - $path->[$$conf{_indexes}{slack}]>\n";
+
+# max :   Tcapture - Tlaunch - output_external_delay - SLACK = Tcapture - Tlaunch  + Extracted_output_external_delay - SLACK
+# min :   Tlaunch - Tcapture - output_external_delay - SLACK = Tlaunch  - Tcapture - Extracted_output_external_delay - SLACK
+#                                                            = - (Tcapture - Tlaunch + Extracted_output_external_delay) - SLACK
+# print "DoCo: <@$path>\n";
+ ($type eq 'max' ? 1 : -1)*($path->[$$conf{_indexes}{capture_start_time}] - $path->[$$conf{_indexes}{launch_start_time}] + $path->[$$conf{_indexes}{output_external_delay}])  - $path->[$$conf{_indexes}{slack}];
+}

@@ -1,0 +1,30 @@
+# Simplified Return Annotation Grammar (Bootstrap Version)
+# Avoids grouped quantifiers to break the bootstrap dependency
+
+# Top-level rule
+return_annotation := '->' whitespace* return_expression
+
+# Core expression types  
+return_expression := scalar_ref | simple_array | simple_object | literal
+
+# Simple scalar references: $1, $1* (no dot notation yet)
+scalar_ref := '$' number quantifier? -> {type: "scalar_ref", index: $2, quantified: $3}
+
+# Simple arrays: [$1], [$1*], [$1, $2] (limited patterns)
+simple_array := '[' whitespace* array_element whitespace* ']' -> {type: "array", contents: [$3]}
+array_element := scalar_ref | literal
+
+# Simple objects: {key: $1} (single pair only for now)
+simple_object := '{' whitespace* object_pair whitespace* '}' -> {type: "object", contents: [$3]}
+object_pair := identifier whitespace* ':' whitespace* return_expression -> {key: $1, value: $5}
+
+# Literals: "string", 123
+literal := quoted_string | number -> {type: "literal", value: $1}
+
+# Basic terminals
+quoted_string := /"[^"]*"/ -> $1
+number := /(\d+)/ -> $1
+identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/ -> $1
+quantifier := '*' -> "quantified"
+whitespace := /\s+/
+

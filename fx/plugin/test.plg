@@ -1,0 +1,32 @@
+mytest {
+my ($conf) = @_;
+
+ my $scalar = which_context (1, 2, 3, 4, 5);
+
+ print "$scalar\n";
+}
+
+which_context {
+ if (wantarray) {
+  print "Array Wanted\n";
+ } else {
+  print "Scalar Wanted\n";
+ }
+
+ @_
+}
+
+
+lispish_bup {
+ Lispish::bottom_up ({}, retrieve_vhdlcompile_db ($_[0]{_argv}), 
+
+                     '?component:'             => sub {say "   component_declaration: $_[0][1]"},
+                     '?package_declaration:'   => sub {say "package_declaration: $_[0][1]"},
+		     '?constant_declaration:'  => sub {say "   constant_declaration: $_[0][1]"},
+		     '?entity_declaration:'    => sub {say "entity_declaration: $_[0][1]"},
+		     '?architecture_body:'     => sub {say "architecture_body: @{$_[0]}[1,2]"},
+		     '?signal_declaration:'    => sub {say "   signal_declaration: $_[0][1]"},
+		     '?variable_declaration:'  => sub {say "   variable_declaration: $_[0][1]"},
+		     '?type_declaration:'      => sub {say "   type_declaration: $_[0][1]"}
+ )
+}

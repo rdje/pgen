@@ -1,0 +1,88 @@
+// 🔧 VHDL Subset Grammar for Parser Testing
+// Focus on core VHDL constructs commonly found in real designs
+
+vhdl_design := entity_declaration architecture_body -> {entity: $1, architecture: $2}
+
+// Entity Declaration
+entity_declaration := 'entity' identifier 'is' port_clause 'end' 'entity' identifier ';' 
+                   -> {type: "entity", name: $2, ports: $4}
+
+port_clause := 'port' '(' port_list ')' ';' -> $3
+             | '' -> []
+
+port_list := port_declaration (';' port_declaration)* -> {type: "port_list", ports: [$1, $2*]}
+
+port_declaration := identifier_list ':' port_mode data_type 
+                 -> {names: $1, mode: $3, type: $4}
+
+identifier_list := identifier (',' identifier)* -> {type: "identifier_list", names: [$1, $2*]}
+
+port_mode := 'in' -> {type: "port_mode", direction: "input"}
+          | 'out' -> {type: "port_mode", direction: "output"}
+          | 'inout' -> {type: "port_mode", direction: "bidirectional"}
+          | 'buffer' -> {type: "port_mode", direction: "buffer"}
+
+// Architecture Body  
+architecture_body := 'architecture' identifier 'of' identifier 'is' 
+                    declaration_part 'begin' statement_part 'end' 'architecture' identifier ';'
+                 -> {type: "architecture", name: $2, entity: $4, declarations: $6, statements: $8}
+
+declaration_part := declaration* -> {type: "declaration_part", declarations: [$1*]}
+
+declaration := signal_declaration | constant_declaration -> $1
+
+signal_declaration := 'signal' identifier_list ':' data_type ';' 
+                   -> {type: "signal", names: $2, data_type: $4}
+
+constant_declaration := 'constant' identifier ':' data_type ':=' expression ';'
+                     -> {type: "constant", name: $2, data_type: $4, value: $6}
+
+statement_part := statement* -> {type: "statement_part", statements: [$1*]}
+
+statement := assignment_statement | process_statement | instantiation_statement -> $1
+
+assignment_statement := signal_name '<=' expression ';' 
+                     -> {type: "assignment", target: $1, value: $3}
+
+process_statement := 'process' '(' sensitivity_list ')' 'begin' statement_part 'end' 'process' ';'
+                  -> {type: "process", sensitivity: $3, statements: $6}
+
+instantiation_statement := identifier ':' identifier 'port' 'map' '(' association_list ')' ';'
+                        -> {type: "instantiation", label: $1, component: $3, ports: $7}
+
+sensitivity_list := signal_name (',' signal_name)* -> {type: "sensitivity_list", signals: [$1, $2*]}
+
+association_list := association_element (',' association_element)* -> {type: "association_list", associations: [$1, $2*]}
+
+association_element := signal_name '=>' signal_name -> {formal: $1, actual: $3}
+
+// Expressions and Data Types
+expression := signal_name -> $1
+           | literal -> $1  
+           | '(' expression ')' -> $2
+
+signal_name := identifier -> {type: "signal_name", name: $1.name}
+
+literal := string_literal -> $1
+        | numeric_literal -> $1
+        | bit_literal -> $1
+
+data_type := 'std_logic' -> {type: "data_type", name: "std_logic"}
+           | 'std_logic_vector' '(' range ')' -> {type: "data_type", name: "std_logic_vector", range: $3}
+           | 'integer' -> {type: "data_type", name: "integer"}
+           | 'boolean' -> {type: "data_type", name: "boolean"}
+
+range := numeric_literal 'downto' numeric_literal -> {high: $1, low: $3}
+       | numeric_literal 'to' numeric_literal -> {low: $1, high: $3}
+
+// Lexical Elements
+identifier := /([a-zA-Z][a-zA-Z0-9_]*)/ -> {type: "identifier", name: $1}
+
+string_literal := /"([^"]*)"/ -> {type: "string", value: $1}
+
+numeric_literal := /(\d+)/ -> {type: "number", value: $1}
+
+bit_literal := /'([01])'/ -> {type: "bit", value: $1}
+
+// Whitespace (ignored)
+whitespace := /\s+/ -> " "

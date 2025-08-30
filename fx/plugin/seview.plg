@@ -1,0 +1,151 @@
+seview {
+my ($conf) = @_;
+
+ # --tcl=<OutputTCLfile>
+ # --report=<OutputReportFile>
+ # --filter=<RE4filterFile>
+ # --sdc=<SDCFile_2_ReadFrom>
+ my $wbid      = Table2SS::AddWorkBook($conf->{_excelfile} || "$conf->{_action}.xls");
+ my $annotated = seview_annotate(uniquify_se($conf->{_pargs}{sdc} ? load_sdcannotate($conf->{_pargs}{sdc})->{senadjust} : TcFlow::GetAll($conf->{_argv})), 
+	                         $conf->{_pargs}{filter} && HUtils::Conf($conf->{_pargs}{filter}));
+                 Table2SS::DriveSheet($wbid, 'nodepairs', Table2SS::RCAllocate(1, 1, 1, [$annotated->{table}], 'seview'.($conf->{_pargs}{sdc} ? "_n_adjust" : ""))
+				     );
+
+                 Table2SS::Close($wbid);
+}
+
+uniquify_se {
+my ($table) = @_;
+
+ my %uniq;
+ eval(q($uniq{").join(q("}{"), @$_).q("} = 1)) foreach @$table;
+
+ my @otable;
+ HUtils::Key2Table(\%uniq)->{table}
+}
+
+seview_annotate {
+my ($table, $filter_table) = @_; 
+
+ return {table=>$table, re=>undef} unless $filter_table;
+ die "(seview) -W- No filter entry defined," unless $filter_table->{filter};
+ 
+ my @filter_re = $filter_table->{filter} =~ /(\S+)/g;
+ my $f_re = join("|", map {"^\Q$$_[0]\E \Q$$_[1]\E.*"} @{Table::list2table(\@filter_re, 2)});
+ my $c_re = qr/$f_re/o;
+
+ {table=>[map {"@$_" =~ $c_re ? [map {"removed:$_"} @$_] : $_} @$table], re=>$c_re}
+}
+
+sdcgen {
+my ($conf) = @_;
+
+ # --tcl=<OutputTCLfile>
+ # --report=<OutputReportFile>
+ # --filter=<RE4filterFile>
+ # --annotate=<Input_SDCFile_4_AdjustValues>
+
+ my $fhash     = $conf->{_pargs}{filter} && HUtils::Conf($conf->{_pargs}{filter});
+
+ my $f_exp;
+ if ($fhash->{filter}) {
+  my @filter_re   = $fhash->{filter} =~ /(\S+)/g;
+     $f_exp       = join(" || ", map {"[0] =~ /^\Q$$_[0]\E\$/ && [1] =~ /^\Q$$_[1]\E\$/"} @{Table::list2table(\@filter_re, 2)});
+ }
+
+ my $s_table      = uniquify_se(TcFlow::GetAll($conf->{_argv}));
+ my $filtered     = $fhash->{filter} ? TableGrep::Filter($f_exp, $s_table, invert=>1) : $s_table;
+
+ my $iosort       = HUtils::GenericFilter($conf, $filtered, "$conf->{_action}_sequence", maptable=>'reportiming');
+ 
+ my $annotate     = {};
+    $annotate     = load_sdcannotate($conf->{_pargs}{annotate})->{se2adjust} if $conf->{_pargs}{annotate};
+
+ my $sdctclfile   = $conf->{_pargs}{tcl}    || "$conf->{_action}.tcl";
+ my $reportclfile = $conf->{_pargs}{report} || "$conf->{_action}_report.tcl";
+
+ my %maxcount;
+ my %setmaxdelay;
+ my %path2index;
+ my %index2path;
+ my %report;
+ HUtils::Recurse($iosort, sub {my ($info, $table) = @_;
+
+  my $type = $$info[0] eq 'input' ? 'I' : ($$info[0] eq 'feedthru' ? 'FT' : 'O');
+
+  $maxcount{$type} = @$table;  
+  my $ccount = 0;
+  my @dummy;
+  foreach (@$table) {
+   push @{$setmaxdelay{$type}}, "set_max_delay\t\$MAGMA_MAX_DELAY_JTAG_$type".sprintf("%-4i", $ccount)."\t-from [get_port $$_[0]]\t-to [get_pin $$_[1]]";
+   push @{$report{$type}},      "report_timing -delay max -input -nosplit -trans -capa -path_type full_clock_expanded  -from [get_port $$_[0]]  -to [get_pin $$_[1]]";
+
+   $path2index{$type}{$$_[0]}{$$_[1]} = $ccount;
+   $index2path{$type}{$ccount}        = $_;
+
+   ++$ccount;
+  }
+   
+
+ });
+
+ my %adjust;
+ my %set_adjust;
+ HUtils::Recurse(\%maxcount, sub {my ($info, $count) = @_;
+  for (my $i=0; $i < $count; ++$i) {
+
+   my $sdc_adjust = $annotate->{"@{$index2path{$$info[0]}{$i}}"} || 0; 
+   push @{$adjust{$$info[0]}},     "set\tMAGMA_ADJUST_$$info[0]".sprintf("%-4i", $i)."\t$sdc_adjust";
+   push @{$set_adjust{$$info[0]}}, "set\tMAGMA_MAX_DELAY_JTAG_$$info[0]".sprintf("%-4i", $i)."\t\[set_max_delay_adjust 1 \$MAGMA_MAX_DELAY_JTAG_".($$info[0] eq 'I' ? 'IN' : 'OUT')."\t$$info[0]$i\]"
+  }
+ });
+
+ open(my $sdc, "> $sdctclfile") || die "(seview) -E- Can't write open '$sdctclfile',";
+ HUtils::Recurse(\%adjust, sub {my ($info, $table) = @_;
+  my $sens= $$info[0] eq 'I' ? 'INPUTS' : ($$info[0] eq 'FT' ? 'FEEDTHRUS' : 'OUTPUTS');
+
+  print $sdc "# $sens ADJUSTs\n";
+  print $sdc join("\n", @$table)."\n\n";
+ });
+
+ HUtils::Recurse(\%set_adjust, sub {my ($info, $table) = @_;
+  my $sens= $$info[0] eq 'I' ? 'INPUTS' : ($$info[0] eq 'FT' ? 'FEEDTHRUS' : 'OUTPUTS');
+
+  print $sdc "# $sens SET ADJUSTs\n";
+  print $sdc join("\n", @$table)."\n\n";
+ });
+
+ HUtils::Recurse(\%setmaxdelay, sub {my ($info, $table) = @_;
+  my $sens= $$info[0] eq 'I' ? 'INPUTS' : ($$info[0] eq 'FT' ? 'FEEDTHRUS' : 'OUTPUTS');
+
+  print $sdc "# $sens SET_MAX_DELAYs\n";
+  print $sdc join("\n", @$table)."\n\n";
+ });
+
+ close($sdc);
+
+
+ open(my $rpt, "> $reportclfile") || die "(seview) -E- Can't write open '$reportclfile',";
+ HUtils::Recurse(\%report, sub {my ($info, $table) = @_;
+  my $sens= $$info[0] eq 'I' ? 'INPUTS' : ($$info[0] eq 'FT' ? 'FEEDTHRUS' : 'OUTPUTS');
+
+  print $rpt "# $sens REPORTs\n";
+  print $rpt join("\n", @$table)."\n\n";
+ });
+ close($rpt);
+}
+
+load_sdcannotate {
+my ($loa) = @_;
+
+ my $sdc = do {local(@ARGV, $/) = $loa; <>};
+
+ my %idx2adjust = $sdc =~ /set\s+MAGMA_ADJUST_([IO]\d+)\s+(\S+)/g; pos $sdc = 0;
+ my @se2idx     = $sdc =~ /set_max_delay\s+\$MAGMA_MAX_DELAY_.+?([IO]\d+)\s+-from\s+\[\s*get_\S+\s+(\S+)\s*\]\s+-to\s+\[\s*get_\S+\s+(\S+)\s*\]/g;
+ my $by3        = Table::list2table(\@se2idx, 3);
+ my %se2adjust  = map {join(" ", @$_[1..2]) => $idx2adjust{$$_[0]}} @$by3;
+
+ #HUtils::Recurse(\%idx2adjust, sub {print "@{$_[0]} = [$_[1]]\n"});
+ 
+ {se2adjust=>\%se2adjust, senadjust=> [map {[@$_[1, 2], $idx2adjust{$$_[0]}]} @$by3]}
+}

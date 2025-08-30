@@ -1,0 +1,1116 @@
+
+glc_xcel2hm {
+my ($qconf) = @_;
+
+ -s $qconf->{glc_xcel2hm} || die "($qconf->{progname}) -E- CSV file '$qconf->{glc_xcel2hm}' is either empty or doesn't exist,";
+	
+ Table2SS::UConf($qconf);
+
+ my @groups;
+ my %groups;
+ my %qclog;
+ my %once;
+ 
+ system("mkdir -p $qconf->{default_output_directory}");
+ 
+ $qconf->{logfile}       ||= "$qconf->{default_output_directory}/$qconf->{progname}.log";
+
+ $qconf->{indexes}	   = $qconf->{iomap} ? HUtils::Link($qconf->{iomap})->{'xcel2hm_io'} : TableGrep::IndexOf('ALL',  'xcel2hm_io');
+ $qconf->{clock_indexes}   = TableGrep::IndexOf('ALL',  'xcel2hm_clock');
+
+ my ($csvxls_log, $cpath)  = File::Basename::fileparse($qconf->{glc_xcel2hm}, qr/\.[^.]+/);
+     $qconf->{_csvxls_log} = "$qconf->{default_output_directory}/qclog_${csvxls_log}_hmvsgl.xls"; 
+
+ # Extracting the two groups of data, i.e., CLOCKs & DATA;
+ push @groups, [grep {$$_[0] ne '0'} 
+                 map {s/[\r\n]+//g; s/".*?"//g; my @l = map {s/^\s+|\s+$//g; s/\(/\[/; s/\)/\]/; $_} split /,/; [@l[1 .. $#l]]} 
+		   split /\n/] foreach (qx(cat $qconf->{glc_xcel2hm}) =~ /$qconf->{table_re}/g);
+ 
+ $groups{$qconf->{groups}[$_]} = $groups[$_] foreach (0 .. 1);
+ 
+ HUtils::WRecurse(\%groups, sub {my ($info, $a2d) = @_;
+ 		           print "($qconf->{progname}) -I- Loading *@$info*..\n"; 
+ 			   
+ 			   my @last= ();
+ 			   
+ 			   [map {
+ 			     if ($$_[0] == $qconf->{start_code})  {@last = @$_; shift @$_; $_} 
+ 			     elsif ($$_[0] == $qconf->{continuation_code}) {
+ 			      die "($qconf->{progname}) -E- Wrongly formatted XLS, 'CONTINUATION ERROR'," unless @last;
+ 
+ 			      my @n = @last;
+ 			      my $i = 0;
+ 			      foreach (@$_) {$n[$i] = $_ if length; $i++} shift @n; [@n]
+ 			     } else {
+ 			      die "($qconf->{progname}) -E- Wrongly formatted XLS, 'LINE TYPE ERROR',"
+ 			     }
+                              
+ 			   } @$a2d]
+ 	                  });
+ 
+ 
+ HUtils::WRecurse(\%groups, sub {HUtils::GenericFilter($qconf, $_[1], [$_[0][0] eq 'clocks' ? 'by_clocknames' : 'by_ionames'])});
+ 
+ #HUtils::Recurse(\%groups, sub {print "{@{$_[0]}} <@$_>\n" foreach(@{$_[1]})});
+ 
+ my %match_port;
+ my @portlist;
+ my @tcl4interconn;
+ my $tcl4code       = PPlugin->get ('tcl4interconn');
+    $qconf->{_fanx} = $qconf->{fanx} ? PPlugin->get ('tcl4fanx')->($qconf) : undef;
+ HUtils::Recurse($groups{ios}, sub {my ($info, $a2d) = @_;
+ 		               my $port = $info->[1];
+ 			       print "($qconf->{progname}) -I- Checking port '$port'..\n" unless $qconf->{tcl4interconn};
+ 			       push @portlist, $port;
+ 
+			       $tcl4code->($qconf, \%groups, $port, \@tcl4interconn) if $qconf->{tcl4interconn};
+
+ 			       foreach my $cgl (@{$qconf->{sequence}}) {
+ 				HUtils::Recurse($qconf->{$cgl}, sub {my ($i, $d) = @_;
+ 						                 my $port_re     = pop @$i;
+ 
+ 								 if ($port =~ /$port_re/i) {
+ 								   ++$match_port{$port}{count};
+ 								   push @{$match_port{$port}{regexes}}, join('/', $cgl, @$i)." : '$port_re'";
+ 								   push @{$match_port{$port}{info}}, [$cgl, @$i, $port_re]
+ 								 }
+ 					                        })
+ 			       }
+ 	                      });
+ 		      
+ 
+ 
+ if($qconf->{tcl4interconn}) {
+  open (my $tclo, "> $qconf->{default_output_directory}/tcl4interconn.tcl") || die "($qconf->{progname}) -E- Can't write open file '$qconf->{default_output_directory}/tcl4interconn.tcl'";
+  unshift @tcl4interconn, "  set MODULE_PATH {}\n";
+  print $tclo join("\n", @tcl4interconn)."\n";
+  close $tclo;
+  exit;
+ }
+ 
+ my %budget_check;
+ open(my $qcflowlog, ">$qconf->{logfile}") || die "($qconf->{progname}) -E- Can't write open '$qconf->{logfile}'";
+ my $qc_pushonce         = PPlugin->get ('qc_pushonce');
+ my $single_n_zero_match = PPlugin->get ('qc_budget_check_01match_code');
+ HUtils::Recurse($groups{ios}, [PPlugin->get ('qc_budget_check'), $qc_pushonce, $single_n_zero_match, $qconf, \%groups, $qcflowlog, \%budget_check, \%match_port, \%qclog, \%once]);
+ 
+ # Multiple matches List
+ foreach my $mmatch (sort {$a cmp $b} keys %{$budget_check{mmatch}}) {
+  $qc_pushonce->(\%qclog, \%once, '(XCEL2HM vs GUIDELINE) Ports With Multiple Matches in the GUIDELINE', $mmatch, @{$match_port{$mmatch}{regexes}});
+ }
+
+ #my $portcount           = keys %{$groups{ios}{ion}};
+ #my $smatch              = keys %{$budget_check{smatch}};
+ #my $mmatch              = keys %{$budget_check{mmatch}};
+ #my $unknown             = keys %{$budget_check{unknown}};
+ #my $vssvdd              = keys %{$budget_check{vssvdd}};
+ #my $edges_mismatches    = $budget_check{edges_mismatches} || 0;
+ #my $budget_failed       = $budget_check{budget_failed}    || 0;
+ #
+ #print "\n\nSTATUS:\n";
+ #print "\tFailed           : $budget_failed\n";
+ #print "\tEdge mismatches  : $edges_mismatches\n";
+ #print "\t# of Ports       : $portcount\n";
+ #print "\tSingle Match     : ".sprintf("%4.2f", $smatch  *100 /$portcount)."%  ($smatch  / $portcount)\n";
+ #print "\tMultiple Matches : ".sprintf("%4.2f", $mmatch  *100 /$portcount)."%  ($mmatch  / $portcount)\n";
+ #print "\tUnknown          : ".sprintf("%4.2f", $unknown *100 /$portcount)."%  ($unknown / $portcount)\n";
+ #print "\tVSS/VDD          : ".sprintf("%4.2f", $vssvdd  *100 /$portcount)."%  ($vssvdd  / $portcount)\n";
+ #
+ #print $qcflowlog "\n\nSTATUS:\n";
+ #print $qcflowlog "\tFailed           : $budget_failed\n";
+ #print $qcflowlog "\tEdge mismatches  : $edges_mismatches\n";
+ #print $qcflowlog "\t# of Ports       : $portcount\n";
+ #print $qcflowlog "\tSingle Match     : ".sprintf("%4.2f", $smatch  *100 /$portcount)."%  ($smatch  / $portcount)\n";
+ #print $qcflowlog "\tMultiple Matches : ".sprintf("%4.2f", $mmatch  *100 /$portcount)."%  ($mmatch  / $portcount)\n";
+ #print $qcflowlog "\tUnknown          : ".sprintf("%4.2f", $unknown *100 /$portcount)."%  ($unknown / $portcount)\n";
+ #print $qcflowlog "\tVSS/VDD          : ".sprintf("%4.2f", $vssvdd  *100 /$portcount)."%  ($vssvdd  / $portcount)\n";
+ 
+ close($qcflowlog);
+ 
+ print "\nPlease check '$qconf->{logfile}'\n\n";
+
+ # Loading QCFLOW specific table2ss' scripts
+ Table2SS::UConf(PathSearch->go('qcflow_table2ss'));
+
+    $qconf->{_filter_handler}  = PPlugin->get ('qcflow_filter_handler');
+ my $qcflow_qclogdata          = PPlugin->get ('qcflow_qclogdata');
+ my $qcflow_links_n_qclog      = PPlugin->get ('qcflow_links_n_qclog');
+
+ if ($qconf->{filter}) {
+  unless (-s $qconf->{filter}) {
+   print "($qconf->{progname}) -W- Filter file '$qconf->{filter}' is either empty or doesn't exist.\n";
+  } else {
+   $qconf->{_filter_info} = HUtils::Conf($qconf->{filter});
+  }
+ }
+  
+ HUtils::Recurse($groups{ios}{ion}, sub {my ($info, $table) = @_;
+        my $fanx_info  = PPlugin->get ('get_fanxinfo')->($qconf, $info->[$#$info]);
+	foreach (@$table) {
+         # Frequency in Mhz
+	 my $clock    = $$_[$qconf->{indexes}{reference_signal}];
+         
+         my  $freq    = $groups{clocks}{clockn}{$clock}[0][$qconf->{clock_indexes}{silicon_frequency}] if $groups{clocks}{clockn}{$clock};
+         # In nano-seconds
+         my $period   = sprintf("%4.1f", 1000/$freq) if $freq;
+
+	 my $min      = $$_[$qconf->{indexes}{min_budget}];
+	 my $max      = $$_[$qconf->{indexes}{max_budget}];
+
+	 my $min_ispc = $min =~ /%/o;
+	 my $max_ispc = $max =~ /%/o;
+	 my ($min_v)  = $min =~ /(-?\d+)/o;
+	 my ($max_v)  = $max =~ /(-?\d+)/o;
+
+         $$_[15]      = $qconf->{fanx} ?  $fanx_info : '+';
+         $$_[16]      = $freq ? "$freq    ($period)" : '-';
+         $$_[17]      = $min.($min_ispc && defined($min_v) && $freq ? "     (".sprintf("%4.1f", $min_v  *10/$freq).")" : "");
+         $$_[18]      = $max.($max_ispc && defined($max_v) && $freq ? "     (".sprintf("%4.1f", $max_v  *10/$freq).")" : "");
+	}
+ });
+
+ $qconf->{_rca_qcflow_port_2_xcel2hm_budget} = Table2SS::TableTreeAllocate($groups{ios}{ion}, table_per_row=>1, script=>'qcflow_port_2_xcel2hm_budget'.($qconf->{uicomment} ? "_w_comment" : ""));
+ $qconf->{_qclogdata_h}                      = {};
+ $qconf->{_qclogdata_a}                      = [];
+ $qconf->{_qclog}                            = \%qclog;
+ $qconf->{_qco}                              = $qconf->{xls};
+ $qconf->{_groups}                           = \%groups;
+
+ if ($qconf->{qclib} || $qconf->{noctslib}) {
+  $qconf->{qclib} && (-s $qconf->{qclib} || die "($qconf->{progname}) -E- LIB file '$qconf->{qclib}' is either empty or doesn't exist,");
+
+  my $noctslib;
+  if ($qconf->{noctslib}) {
+   -s $qconf->{noctslib} || die "($qconf->{progname}) -E- LIB file '$qconf->{noctslib}' is either empty or doesn't exist,";
+   $noctslib = Storable::retrieve($qconf->{noctslib});
+  }
+  
+  print "\n\n($qconf->{progname}) -I- Comparing Extracted LIB with ".($noctslib ? "Extracted" : "Budgeted")."CTS against XCEL2HM UI-Timing Sheet..\n";
+
+  my %violated;
+  my %extracted_cts;
+  my %noctslib_info;
+  my %ctslib_info;
+
+  my $actualib_name = $qconf->{qclib} ? 'qclib'  : 'noctslib';
+  my $cts_nocts     = $qconf->{qclib} ? 'ctslib' : 'noctslib';
+
+  # Iterating over all pins
+  HUtils::KeyGrep(Storable::retrieve($qconf->{$actualib_name}), qr/pin:/o, sub {my ($info, $pinhash) = @_;
+
+   my ($piname)  = $info->[$#$info] =~ /pin:(\S+)/o;
+   my ($busname) = "@$info" =~ /bus:(\S+)\s+pin:/o;
+
+   #
+   # Small sanity checks
+   # 
+
+   # Does this pin also appear in the Excel Sheet ?
+   if ($busname && !$groups{ios}{ion}{$piname}) {
+    # A Bus Slice (i.e. bit)
+    my ($pindex) = $piname =~ /\[(.+)\]/o;
+    
+    unless (defined $pindex) {
+     print "($qconf->{progname}) -W- Pin *$piname* belongs to a bus but has no defined index.\n";
+    } else {
+     if ($groups{ios}{ion}{$busname}) {
+      # The current pin has an index, so let's check the Xcel sheet
+      foreach my $cbgt (@{$groups{ios}{ion}{$busname}}) {
+       if ($cbgt->[$qconf->{indexes}{bus}]) {
+        unless ($cbgt->[$qconf->{indexes}{bus}] =~ /^(\d+):(\d+)$/) {
+         print "($qconf->{progname}) -W- Bus range information not *correctly* specified in XCEL for LIB Bus *$busname*.\n";
+	 $qc_pushonce->(\%qclog, \%once, 'Incorrectly specified Bus range in XCEL2HM', $busname);
+
+        } else {
+         unless ($2 <= $pindex && $pindex <= $1) {
+          print "($qconf->{progname}) -W- LIB pin *$piname* is out-of XCEL bus *$busname* range [$1:$2].\n";
+	  $qc_pushonce->(\%qclog, \%once, 'Bus Slice defined in the LIB file not belonging to the range defined in XCEL2HM', $piname, $busname."[$1:$2]");
+
+         } else {
+          # Direction checking
+          unless ($pinhash->{direction} =~ /$cbgt->[$qconf->{indexes}{direction}]/i) {
+           print "($qconf->{progname}) -E- Pin Direction mismatch for *$piname* (LIB:$pinhash->{direction} vs. XCEL:$cbgt->[$qconf->{indexes}{direction}]).\n";
+	   $qc_pushonce->(\%qclog, \%once, 'Pin Direction mismatch between LIB vs XCEL2HM', $piname, $pinhash->{direction}, $cbgt->[$qconf->{indexes}{direction}]);
+          }
+         }
+        }
+       } else {
+        print "($qconf->{progname}) -W- Bus range information not specified in XCEL for LIB Bus *$busname*.\n";
+	$qc_pushonce->(\%qclog, \%once, 'Bus range information not specified in XCEL2HM', $busname);
+       }
+      }
+     } else {
+      print "($qconf->{progname}) -W- Bus *$busname* is defined in the LIB file but not in the XCEL2HM sheet.\n";
+      $qc_pushonce->(\%qclog, \%once, 'Port definition missing from XCEL2HM', $busname, $pinhash->{direction});
+      return
+     }
+    }
+   } else {
+    # A Simple pin
+    unless ($groups{ios}{ion}{$piname}) {
+     print "($qconf->{progname}) -W- Pin *$piname* is defined in the LIB file but not in the XCEL2HM sheet.\n";
+     $qc_pushonce->(\%qclog, \%once, 'Port definition missing from XCEL2HM', $piname, $pinhash->{direction});
+      
+     # As a consequence, there is no need to Check its timing information
+     return
+    } else {
+     # The current pin is defined in both places
+     # Now checking its direction
+     foreach my $cbgt (@{$groups{ios}{ion}{$piname}}) {
+      unless ($pinhash->{direction} =~ /$cbgt->[$qconf->{indexes}{direction}]/i) {
+       print "($qconf->{progname}) -E- Pin Direction mismatch for *$piname* (LIB:$pinhash->{direction} vs. XCEL:$cbgt->[$qconf->{indexes}{direction}]).\n";
+       $qc_pushonce->(\%qclog, \%once, 'Pin Direction mismatch between LIB vs XCEL2HM', $piname, $pinhash->{direction}, $cbgt->[$qconf->{indexes}{direction}]);
+      }
+     }
+    }
+   }
+   
+   
+   # Iterating over all timing groups of that pin
+   my $timing_grp_cnt = 0;
+   HUtils::KeyGrep($pinhash, qr/timing:/o, sub {my ($tinfo, $thash) = @_;
+
+    ++$timing_grp_cnt;
+
+    #
+    #
+    # Clock gating Support is not yet implemented in XCEL2HM
+    #
+    #
+    if ($thash->{clock_gating_flag} && $thash->{clock_gating_flag} =~ /true/oi) {
+     print "($qconf->{progname}) -W- Ignoring Clock Gating Check for pin *$piname* w.r.t reference signal *$thash->{related_pin}* ($thash->{timing_type}).\n";
+     $qc_pushonce->(\%qclog, \%once, 'Port declared as Clock Gating Check Enable in LIB file', $piname, $pinhash->{direction}, $thash->{related_pin}, $thash->{timing_type});
+     return;
+    }
+    
+    # Checking *related_pin* attribute
+    # Checking *timing_type* attribute
+    my $related_pin;
+    my $gotit = 0;
+    foreach my $cbgt (@{$groups{ios}{ion}{$piname} || $groups{ios}{ion}{$busname}}) {
+      if ($cbgt->[$qconf->{indexes}{reference_signal}] eq $thash->{related_pin}) {
+       if ($qconf->{intsim_code}{$thash->{timing_type}}) {
+         $gotit += grep {$cbgt->[$qconf->{indexes}{intsim_code}] =~ /$_/i} @{$qconf->{intsim_code}{$thash->{timing_type}}};
+       } else {
+	# This timing type ONLY appears in the extracted LIB
+        print "($qconf->{progname}) -W- Timing type *$thash->{timing_type}* for PIN:$piname w.r.t reference signal *$thash->{related_pin}* is not yet supported by XCEL2HM.\n";
+        $qc_pushonce->(\%qclog, \%once, 'Timing Type not support in XCEL2HM', $piname, $thash->{related_pin}, $thash->{timing_type});
+	return;
+       }
+
+       ++$related_pin
+      }
+    }
+    
+    unless ($gotit) {
+     # This timing type ONLY appears in the extracted LIB
+     print "($qconf->{progname}) -W- Timing type *$thash->{timing_type}* not specified in XCEL2HM for pin *$piname* w.r.t reference signal *$thash->{related_pin}*.\n";
+     unless ($thash->{timing_type} =~ /$qconf->{ignored_timing_types_re}/o) {
+      $qc_pushonce->(\%qclog, \%once, 'Timing Arcs ONLY defined in the LIB file, though missing from XCEL2HM', $piname, $pinhash->{direction}, $thash->{related_pin}, $thash->{timing_type});
+     }
+    
+     return;
+    }
+
+    unless ($related_pin) {
+     print "($qconf->{progname}) -E- LIB reference signal *$thash->{related_pin}* is never used as a reference clock for pin *$piname* in XCEL2HM sheet.\n";
+     $qc_pushonce->(\%qclog, \%once, 'LIB *related_pin* never used as a reference clock in XCEL2HM', $piname, $pinhash->{direction}, $thash->{related_pin});
+     return
+     #
+     # There is no need to check timing info if the 'related_pin' is never used as a reference clock for this pin
+     #
+    }
+
+    # Timing arcs info check
+    HUtils::KeyGrep($thash, qr/\S*(?:rise|fall)\S*:/o, sub {my ($rfi, $rfd) = @_;
+     my ($timinfoname, $timing_id) = $rfi->[$#$rfi] =~ /(\S+):(\S+)/o;
+
+     if ($qconf->{lib_check}{$pinhash->{direction}}{$timinfoname}) {
+      # Is the reference clock defined in XCEL2HM ?
+      if ($groups{clocks}{clockn}{$thash->{related_pin}}) {
+       # Retrieving the Xcel2hm budget limit
+       my $xxx_budget = do {
+                         if ($pinhash->{direction} eq 'input') {
+                          $thash->{timing_type} =~ /setup/o ? 'max_budget' : 'min_budget';
+                         } else {
+                          $thash->{min_delay_flag} && $thash->{min_delay_flag} eq 'true' ? 'min_budget' : 'max_budget';
+                         }
+                        };
+
+       my $budget_limit;
+       my $budget_limit_pc;
+       my $budget_limit_abs;
+       my $is_in_percent;
+       foreach my $cbgt (@{$groups{ios}{ion}{$piname} || $groups{ios}{ion}{$busname}}) {
+        if ($cbgt->[$qconf->{indexes}{reference_signal}] eq $thash->{related_pin}) {
+		#print "#####################budget%($cbgt->[$qconf->{indexes}{$xxx_budget}]) $thash->{related_pin} ################\n";
+         ($budget_limit, $is_in_percent) = $cbgt->[$qconf->{indexes}{$xxx_budget}] =~ /(-?\d+(?:\.\d+)?)\s*(%)?/o;
+	 $budget_limit = defined $budget_limit && $budget_limit ne '-' ? $budget_limit : undef;
+         last
+        }
+       }
+
+       # Converting *budget_limit* to its timing arc equivalent
+       #
+       # All ports constrained w.r.t a given clock are given the same
+       # clock-tree information (min/max).
+       #
+       my $budget_ctsinfo = do {
+	       if ($pinhash->{direction} eq 'input') {
+                 if ($xxx_budget eq 'max_budget') {
+		   -$groups{clocks}{clockn}{$thash->{related_pin}}[0][$qconf->{clock_indexes}{smallest_insertion_delay}]	 
+		 } else {
+		    ($groups{clocks}{clockn}{$thash->{related_pin}}[0][$qconf->{clock_indexes}{smallest_insertion_delay}] +
+		     $groups{clocks}{clockn}{$thash->{related_pin}}[0][$qconf->{clock_indexes}{skew}])
+		 }
+	       } else {
+                 if ($xxx_budget eq 'max_budget') {
+		    ($groups{clocks}{clockn}{$thash->{related_pin}}[0][$qconf->{clock_indexes}{smallest_insertion_delay}] +
+		     $groups{clocks}{clockn}{$thash->{related_pin}}[0][$qconf->{clock_indexes}{skew}])
+		 } else {
+		   $groups{clocks}{clockn}{$thash->{related_pin}}[0][$qconf->{clock_indexes}{smallest_insertion_delay}]	 
+		 }
+	       }
+       };
+       
+
+       # Applying the scaling factor from MAX corners to MIN corners if requested
+       $budget_ctsinfo *= $qconf->{max2min_scaling_factor} if $qconf->{scale};
+
+       # The budget limit value may not be defined
+       #my $is_max   = $xxx_budget eq 'max_budget' || $pinhash->{direction} eq 'input';
+       my $is_max   = $xxx_budget eq 'max_budget';
+       unless (defined $budget_limit) {
+        print "($qconf->{progname}) -E- ".ucfirst($xxx_budget)." for '$pinhash->{direction}' pin *$piname* w.r.t reference signal *$thash->{related_pin}* is not defined in XCEL2HM sheet.\n";
+        $qc_pushonce->(\%qclog, \%once, 'Missing budget in XCEL2HM', $piname, $pinhash->{direction}, $thash->{related_pin}, $xxx_budget);
+	return
+       }
+       
+       # In pico seconds
+       my $ref_period = 1000*$groups{clocks}{clockn}{$thash->{related_pin}}[0][$qconf->{clock_indexes}{period}];
+       unless($groups{clocks}{clockn}{$thash->{related_pin}}[0][$qconf->{clock_indexes}{period}]) {
+         HUtils::Recurse($groups{clocks}, sub {print "{@{$_[0]}} <@$_>\n" foreach(@{$_[1]})});
+	 exit;
+       }
+       
+       # Budget_limit is specified in % of the reference signal period
+            #print "Before budget_limit(%)($budget_limit) ref_period(ps)($ref_period)\n";
+       if ($is_in_percent) {
+        $budget_limit_pc  = $budget_limit;
+        $budget_limit     = $budget_limit*$ref_period/100;
+
+	# When Checking HOLD the budget value when expressed w.r.t a clock reference signal clock cycle
+	# the XCEL2HM budget should be positive
+	if($xxx_budget eq 'min_budget' && $pinhash->{direction} eq 'input') {
+         $qc_pushonce->(\%qclog, \%once, 'Non negative HOLD budget when expressed w.r.t a reference clock', 
+		                         $piname, 
+					 $pinhash->{direction}, 
+					 $thash->{related_pin}, 
+					 $budget_limit_pc.'%') if $budget_limit > 0;
+
+         $budget_limit     = abs($budget_limit);
+	}
+       } else {
+	# In pico-seconds
+	### print "($qconf->{progname}) -I- Absolute value specified for *$thash->{timing_type}*/*$timinfoname* budget for pin *$piname* w.r.t reference signal *$thash->{related_pin}*\n";
+        $budget_limit    *= 1000;
+        $budget_limit_abs = $budget_limit;
+        $budget_limit_pc  = $budget_limit*100/$ref_period;
+       }
+
+            #print "budget_limit(ps)($budget_limit) budget_ctsinfo(ns)($budget_ctsinfo) pin($piname) related_pin($thash->{related_pin})\n";
+       # Converting in Pico seconds
+       $budget_ctsinfo *= 1000;
+       #$budget_limit   += $budget_ctsinfo unless $noctslib;
+
+       # The budget limit should be considered as a maximum value is we are
+       # doing a max delay check (SETUP/TMAX) or a min delay check for an input (HOLD).
+       # It should be seen as a minimum value for an output min delay check (TMIN).
+       my $index2sz    = @{$rfd->{index_2}};
+       my $pt          = 0;
+       my $failed_once = 0;
+       my @cts_extract;
+       my @noctslib_info;
+
+       my $noctsvalues;
+       if ($noctslib && $qconf->{qclib}) {
+        # The library name should not be used since it is not guarantued to be same !!!!
+	# Different tools may 
+	my $noctslib_value_1 = join(" ", @$info);
+        HUtils::KeyGrep($noctslib, qr/\Q$noctslib_value_1\E/, sub {my ($fi, $fd) = @_; my $c = 0;
+         HUtils::KeyGrep($_[1], qr/timing:/o, sub {my ($ti, $td) = @_;
+          if ($td->{related_pin} eq $thash->{related_pin} && $td->{timing_type} eq $thash->{timing_type}) {
+           HUtils::KeyGrep($td, qr/\S*(?:rise|fall)\S*:/o, sub {my ($ri, $rd) = @_;
+             my ($r_timinfoname, $r_timing_id) = $ri->[$#$ri] =~ /(\S+):(\S+)/o;
+             if ($r_timinfoname eq $timinfoname) {
+	       $noctsvalues = $rd->{values} ;
+	     }
+
+	  ++$c
+	   });
+	  }
+
+         }); # print "\n";
+        });
+
+
+	if ($noctsvalues) {
+         unless (@{$rfd->{values}} == @$noctsvalues) {
+	  #print "($qconf->{progname}) -E- Timing Arc Table with Size mismatch between CTS LIB and NoCTS LIB.\n";
+          $qc_pushonce->(\%qclog, 
+	 	         \%once, 
+	 	         'Timing Arc Table with Size mismatch between CTS LIB and NoCTS LIB', 
+	 		 $piname, 
+	 	         $pinhash->{direction},
+	 		 $thash->{related_pin},
+	 		 $xxx_budget,
+	 		 $thash->{timing_type},
+	 		 $timinfoname,
+		         scalar(@{$rfd->{values}}),
+		         scalar(@$noctsvalues));
+          return
+         }
+        } else {
+	  #print "($qconf->{progname}) -E- Timing ARCs missing in the noCTS LIB vs CTS LIB\n";
+          $qc_pushonce->(\%qclog, 
+	 	         \%once, 
+	 	         'Timing ARCs missing in the noCTS LIB vs CTS LIB', 
+	 		 $piname, 
+	 	         $pinhash->{direction},
+	 		 $thash->{related_pin},
+	 		 $xxx_budget,
+	 		 $thash->{timing_type},
+	 		 $timinfoname);
+         return
+	}
+       }
+
+
+       my $sign_4delay   = $pinhash->{direction} eq 'input' && $xxx_budget eq 'min_budget' ? -1 : 1;
+
+       foreach my $val (@{$rfd->{values}}) {
+	#print "[$piname||$busname <$thash->{related_pin}><$pt>] VAL NOT DEFINED: <$val> \n"               unless defined $val;
+        #print "[$piname||$busname <$thash->{related_pin}><$pt>] LIMIT NOT DEFINED: <$budget_limit> $piname||$busname $thash->{related_pin}\n"  unless defined $budget_limit;
+
+        # The current value does not satisfy the budget
+        my $index_1      = int($pt/$index2sz);
+        my $index_2      = $pt - $index_1*$index2sz;
+
+	my $real_budget  = $sign_4delay * ($noctslib && $qconf->{qclib} ? $noctsvalues->[$pt] : ($noctslib ? $val : ($val - $budget_ctsinfo)));
+
+	if ($is_max ? ($real_budget > $budget_limit) : ($real_budget < $budget_limit)) {
+         push @{$violated{$piname}{$pinhash->{direction}}{$thash->{related_pin}}{$xxx_budget}{$thash->{timing_type}}{$timinfoname}{vindexes}}, {
+		                                                                                                        index_1          => $index_1, 
+															index_2          => $index_2, 
+															budget_limit_pc  => $budget_limit_pc, 
+															budget_limit_abs => $budget_limit_abs, 
+															budget_limit     => $budget_limit, 
+															val              => $val,
+															is_in_percent    => $is_in_percent, 
+															real_budget      => sprintf("%3.2f", $real_budget),
+															real_budget_pc   => sprintf("%3.2f", $real_budget*100/$ref_period)
+														       };
+
+														       #print "<<<<<<<<@$info : @$tinfo : @$rfi>>>>>>>\n";
+              #print "F=========>pin($piname) related_pin($thash->{related_pin}) real_budget(ps)[$real_budget][$pinhash->{direction}][$thash->{timing_type}][$is_max] 1=$index_1 2=$index_2 v=$val L=$budget_limit\n";
+	 unless ($failed_once) {
+          $violated{$piname}{$pinhash->{direction}}{$thash->{related_pin}}{$xxx_budget}{$thash->{timing_type}}{$timinfoname}{vvalues}      = $rfd->{values};
+          $violated{$piname}{$pinhash->{direction}}{$thash->{related_pin}}{$xxx_budget}{$thash->{timing_type}}{$timinfoname}{vindex2_size} = scalar(@{$rfd->{index_2}});
+         }
+
+	 $failed_once++;
+        }
+
+	# Calculating and storing the CTS information for the current timing arc
+	my $sign_4cts   = $pinhash->{direction} eq 'input' && $xxx_budget eq 'max_budget' ? -1 : 1;
+	if ($noctslib && $qconf->{qclib}) {
+         push @cts_extract, $sign_4cts * do {
+	  if ($pinhash->{direction} eq 'input') {
+           if ($xxx_budget eq 'max_budget') {  # SETUP
+            $val - $noctsvalues->[$pt]; # $noctsvalues->[$pt] is > 0 : val = (DELAY[MAX] + ts) - CTS[min] 
+          } else {                             # HOLD
+            $val - $noctsvalues->[$pt]; # $noctsvalues->[$pt] is < 0 : val = (CTS[MAX] + th  ) - DELAY[min]
+          }
+         } else {
+            if ($xxx_budget eq 'max_budget') { # TMAX
+            $val - $noctsvalues->[$pt]; # $noctsvalues->[$pt] is > 0 : val = CTS[MAX] + DELAY[MAX]
+           } else {                            # TMIN
+            $val - $noctsvalues->[$pt]; # $noctsvalues->[$pt] is > 0 : val = CTS[min] + DELAY[min]
+           }
+         }
+         };
+
+	 push @noctslib_info, $noctsvalues->[$pt];
+	}
+	
+        ++$pt
+       }
+
+       # Saving the ctslib timing arc information
+       $ctslib_info{$piname}{$pinhash->{direction}}{$thash->{related_pin}}{$xxx_budget}{$thash->{timing_type}}{$timinfoname}   = Table2SS::List2Table($rfd->{values}, $index2sz);
+       if ($noctslib && $qconf->{qclib}) {
+        # Saving the computed CTS information
+        $extracted_cts{$piname}{$pinhash->{direction}}{$thash->{related_pin}}{$xxx_budget}{$thash->{timing_type}}{$timinfoname} = Table2SS::List2Table(\@cts_extract, $index2sz);
+        # Saving the noctslib timing arc information
+        $noctslib_info{$piname}{$pinhash->{direction}}{$thash->{related_pin}}{$xxx_budget}{$thash->{timing_type}}{$timinfoname} = Table2SS::List2Table(\@noctslib_info, $index2sz);
+       }
+
+      } else {
+        if ($pinhash->{clock} && $pinhash->{clock} =~ /true/io) {
+         print "($qconf->{progname}) -E- LIB reference clock signal *$thash->{related_pin}* is not defined in XCEL2HM sheet.\n";
+         $qc_pushonce->(\%qclog, \%once, 'Port used as *related_pin* in the LIB file but not defined as clock in XCEL2HM', $thash->{related_pin});
+        } else {
+         print "($qconf->{progname}) -W- Port *$thash->{related_pin}* used as a reference signal for a non-combinational check and not defined as a clock in XCEL2HM sheet.\n" 
+	    unless $thash->{timing_type} !~ /combinational/io;
+	}
+       }
+      }
+    });
+   });
+
+   unless($timing_grp_cnt) {
+    my $defined_xcel_tiarcs = 0;
+
+    my $xcel_ent_ref =  $piname && $groups{ios}{ion}{$piname}  || $busname && $groups{ios}{ion}{$busname};
+    return unless $xcel_ent_ref;
+
+    foreach my $cbgt (@$xcel_ent_ref) {
+     # Increment the total number of defined Timing ARCs each time we see a reference clock
+     # associated with the $busname / $pinname
+     ++$defined_xcel_tiarcs if $cbgt->[$qconf->{indexes}{reference_signal}] ne '-';
+    }
+
+    if ($defined_xcel_tiarcs) {
+     print "($qconf->{progname}) -W- Pin/bus ** ".($piname || $busname)." ** has NO Timing Information.\n"; 
+     $qc_pushonce->(\%qclog, \%once, '(LIB vs XCEL2HM) Port with NO timing information in the LIB file', $piname || $busname);
+    }
+
+    $qc_pushonce->(\%qclog, \%once, '(LIB) Port(s) with NO Timing Information', $piname || $busname);
+   }
+
+   #print "-[$piname]-\n"
+  });
+
+  my $rca_extracted;
+  my $rca_noctslib_info;
+  if ($noctslib && $qconf->{qclib}) {
+   # Retrieving and RCAllocating CTS tables
+   $rca_extracted     = Table2SS::TableTreeAllocate(\%extracted_cts,  script => 'qcflow_xcts');
+
+   # Retrieving and RCAllocating the noctslib info tables
+   $rca_noctslib_info  = Table2SS::TableTreeAllocate(\%noctslib_info, script => 'qcflow_arcinfo');
+  }
+
+  # Retrieving and RCAllocating the ctslib info tables
+  my $rca_ctslib_info   = Table2SS::TableTreeAllocate(\%ctslib_info,  script => 'qcflow_arcinfo');
+
+  # Creating Timing tables list
+  my @vlist;
+  # Used to MAP violating ARC identifier to the index value in both
+  # @vlist and @vlistindexes
+  my %vlist;
+  my $vlist = 0;
+  my @vlistindexes;
+  my %vlistindexes;
+  my $vlistindexes = 0;
+  #my %reverse;
+  #my %reverse_cnt;
+  HUtils::KeyGrep(\%violated, qr/vvalues/o, sub {my ($info, $vvalues) = @_;
+   my @keyseq     = @$info[0 .. ($#$info - 1)];
+   my $keyseq     = join(":", @keyseq);
+   my $size       = eval q($violated{").join(q("}{"), @keyseq).q("}{vindex2_size});
+   my $vindexes   = eval q($violated{").join(q("}{"), @keyseq).q("}{vindexes});
+
+   my $vtable = Table2SS::List2Table($vvalues, $size);
+
+   push @vlist, $vtable;
+
+   # Mapping ARC to index for both @vlist and @vlistindexes
+   $vlist{$keyseq} = $vlist++;
+
+   my @vtindexes = map {[('-') x $size]} @$vtable;
+   foreach my $v (@$vindexes) {
+    $vtindexes[$v->{index_1}][$v->{index_2}] = "$v->{real_budget} ($v->{real_budget_pc}%) / ".($v->{is_in_percent} ? "$v->{budget_limit_pc}%" : "$v->{budget_limit_abs}");
+   }
+
+   push @vlistindexes, [@vtindexes];
+  });
+
+  
+  # Need to RC allocate VTINDEXES
+  my $rca_vtindexes = Table2SS::RCAllocate(1, 1, 15, [@vlistindexes], 'qcflow_realbudgets');
+
+  # Need to update VTABLEs with information indicating violating entries based on VTINDEXES
+  # and this need to be done before allocating RCs for VTABLEs
+  my $update_i = 0;
+  foreach my $vle (@vlist) {
+   my $r = 0; my $cnt = 0;
+   foreach my $vidxline (@{$vlistindexes[$update_i]}) {
+    my $c = 0;
+    foreach my $f (@$vidxline) {
+     unless ($f eq '-') {
+       my $newa1 = Spreadsheet::WriteExcel::Utility::xl_rowcol_to_cell($rca_vtindexes->[$update_i]{row} + $r, $rca_vtindexes->[$update_i]{col} + $c);
+       $vle->[$r][$c] = "internal:realbudgets!$newa1\@$vle->[$r][$c]";
+       #print "\t\tFAILED<$f>\n"; 
+       $cnt++;
+     }
+
+     ++$c;
+    }
+
+    ++$r;
+   }
+
+   #print "UPDATE[$update_i] Failed($cnt) ($reverse{$update_i}) CNT(".$reverse_cnt{$reverse{$update_i}}.")\n"; 
+   ++$update_i;
+  }
+  
+  my $rca_vlist = Table2SS::RCAllocate(1, 1, 15, [@vlist], 'qcflow_vvalues');
+  
+  my @extracted_arcid_list;
+  my %index_arcid_map;
+  my %location_index;
+  #
+  # It is important to note that $rca_ctslib_info will contin the CTS LIB info when *only* --qclib is provided
+  # and that of the noCTS LIB when *only* --noctslib is provided.
+  #
+  HUtils::Recurse($rca_ctslib_info->{'link'}, sub {my ($info, $index) = @_;
+   my $keyindex    = -1;
+   my $keylocation = eval(q($violated{").join(q("}{"), @$info).q("})) ? 0 : 1;
+   my $keystr      = join(":", @$info);
+   push @{$extracted_arcid_list[$keylocation]}, [$index, map {++$keyindex;
+				     ($keyindex == 0                                 ? "internal:"  . ($keylocation ? "${cts_nocts}_info!".$rca_ctslib_info->{rca}[$index]{a1}      : 
+						                                                                      "timing_info!".$rca_vlist->[$vlist{$keystr}]{a1})  .'@' :
+
+				     ($keyindex == 2 && $noctslib && $qconf->{qclib} ? "internal:extracted_CTS!". Table2SS::TableTreeA1($rca_extracted,     $info)       .'@' :
+				     ($keyindex == 5 && $noctslib && $qconf->{qclib} ? "internal:noctslib_info!". Table2SS::TableTreeA1($rca_noctslib_info, $info)       .'@' :
+			                               ""))). $_
+			            } @$info];
+
+   $location_index{$keylocation} = defined $location_index{$keylocation} ? ++$location_index{$keylocation} : 0;
+   $index_arcid_map{$index}      = $location_index{$keylocation};
+  });
+  
+  my $rca_extracted_arcid_list         = Table2SS::RCAllocate(1, 1, 2, \@extracted_arcid_list, 'qcflow_ctsinfo');
+  # Now Linking rca_extracted to rca_extracted_arcid_list
+  HUtils::Recurse($rca_extracted->{'link'}, sub {my ($info, $index) = @_;
+   my $keylocation    = eval(q($violated{").join(q("}{"), @$info).q("})) ? 0 : 1;
+
+   # Retriving the top-left cell row-column coordinate of the $keylocation table in $rca_extracted_arcid_list
+   my @topleft_rowcol = @{$rca_extracted_arcid_list->[$keylocation]}{'row','col'};
+
+   # Replacing the place holder (at the header location) by in a link to the timing arc defined in timingarc_ID's sheet
+   Table2SS::TableTreeLeaf($rca_extracted, $info)->[0][0]{url} = "internal:timingarc_ID!".
+                                                                   Spreadsheet::WriteExcel::Utility::xl_rowcol_to_cell($topleft_rowcol[0] + $index_arcid_map{$index} + 1, $topleft_rowcol[1]);
+
+   Table2SS::TableTreeLeaf($rca_extracted, $info)->[0][0]{value} = "[$index]";
+  });
+
+
+  # violated --> qclog
+  my %seen;
+  my %violarc_index_map;
+  my $violarc_index = 0;
+  HUtils::KeyGrep(\%violated, qr/vvalues/o, sub {my ($info) = @_; 
+    my @vinfo    = @$info[0 .. ($#$info - 1)]; 
+    my $vinfo    = join(":", @vinfo);
+    # ARC to index mapping in 'Violating Timing Arcs' table
+    $violarc_index_map{$vinfo} = $violarc_index;
+
+    my $vindexes = eval q($violated{").join(q("}{"), @vinfo).q("}{vindexes});
+    my @sorted   = sort  {$$a{real_budget_pc} <=> $$b{real_budget_pc}} @$vindexes;
+    my $worst    = $vinfo[1] =~ /out/oi && $vinfo[3] =~ /min/oi ? $sorted[0] : $sorted[$#sorted];
+
+    my @more_col = $worst->{is_in_percent} ? ("$worst->{real_budget_pc}% (".@sorted.")", 
+	                                      "$worst->{budget_limit_pc}%", 
+					       sprintf("%4.2f", $worst->{real_budget_pc} - abs($worst->{budget_limit_pc})).'%')
+
+					   : ("$worst->{real_budget} (".@sorted.")",       
+					       $worst->{budget_limit_abs},   
+					       sprintf("%4.2f",  $worst->{real_budget}   - $worst->{budget_limit_abs}));
+
+    my $a1_ref   =  $rca_vlist->[$vlist{$vinfo}]{a1};
+    push @{$qclog{'Violating Timing Arcs'}}, [map {"internal:timing_info!$a1_ref\@$_"} ($violarc_index+1, @vinfo, @more_col)];
+
+    $violarc_index++;
+  });
+  
+  $qcflow_qclogdata->($qconf);
+
+  my ($default_o, $default_path) = File::Basename::fileparse($qconf->{$actualib_name}, qr/\.[^.]+/);
+      $default_o  = $default_o ? $default_path."qclog_$default_o.xls" : undef;
+      
+  $qconf->{_qco} ||= $default_o || 'qclog.xls';
+
+  # Extracting the CTS information per Clock
+  PPlugin->get ('qcflow_clock_ctsinfo')->($qconf, \%extracted_cts);
+
+  $qcflow_links_n_qclog->($qconf);
+
+  # Now Linking the realbudgets sheet tables to the respective violating ARC in qclog 'Violating Timing Arcs' table
+  my @violtiarc_table_rc = @{$qconf->{_logallocate}[$qconf->{_qclogdata_h}{"Violating Timing Arcs"}]}{'row','col'} if $violarc_index;
+  HUtils::KeyGrep(\%violated, qr/vvalues/o, sub {my ($info) = @_;
+   my $keyseq             = join(":", @$info[0 .. ($#$info - 1)]);
+   my $vtrealbudget_table = $rca_vtindexes->[$vlist{$keyseq}]{data};
+
+   my $ca1 = Spreadsheet::WriteExcel::Utility::xl_rowcol_to_cell($violtiarc_table_rc[0] + $violarc_index_map{$keyseq} + 1, $violtiarc_table_rc[1]);
+   foreach my $cline (@$vtrealbudget_table) {
+    foreach (@$cline) {
+     next if $$_{value} eq '-';
+     $$_{url} = "internal:qclog!$ca1";
+    }
+   }
+  });
+
+  Table2SS::DriveSheet($qconf->{_qcwb}, 'timing_info',       $rca_vlist)             if $violarc_index;
+  Table2SS::DriveSheet($qconf->{_qcwb}, 'realbudgets',       $rca_vtindexes)         if $violarc_index;
+  Table2SS::DriveSheet($qconf->{_qcwb}, 'timingarc_ID',      $rca_extracted_arcid_list);
+  Table2SS::DriveSheet($qconf->{_qcwb}, 'extracted_CTS',     $rca_extracted)         if $noctslib && $qconf->{qclib};
+  Table2SS::DriveSheet($qconf->{_qcwb}, "${cts_nocts}_info", $rca_ctslib_info);
+  Table2SS::DriveSheet($qconf->{_qcwb}, 'noctslib_info',     $rca_noctslib_info)     if $noctslib && $qconf->{qclib};
+  Table2SS::DriveSheet($qconf->{_qcwb}, 'clock_ctsinfo',     $qconf->{_ctsinfo_rca}) if $qconf->{_ctsinfo_rca}; 
+
+
+ } else {
+  $qcflow_qclogdata->($qconf);
+  $qconf->{_qco} ||= $qconf->{_csvxls_log};
+  $qcflow_links_n_qclog->($qconf);
+ }
+
+
+ Table2SS::DriveSheet($qconf->{_qcwb}, 'fanx',              $qconf->{_fanxtree}) if $qconf->{_fanxtree};
+ Table2SS::DriveSheet($qconf->{_qcwb}, 'XCEL2HM_UITiming',  $qconf->{_rca_qcflow_port_2_xcel2hm_budget});
+ Table2SS::Close($qconf->{_qcwb});
+
+ exit 0
+}
+
+qc_pushonce {
+my ($qclog, $once, $entryname) = splice @_, 0, 3;
+
+ unless ($$once{$entryname}{join(':', @_)}) {
+  push @{$$qclog{$entryname}}, [@_];
+ }
+
+ $$once{$entryname}{join(':', @_)}++;
+}
+
+qc_budget_check {
+my ($info, $a2d, $qc_pushonce, $single_n_zero_match, $qconf, $groups, $qcflowlog, $budget_check, $match_port, $qclog, $once) = @_;
+my $port = $info->[1];
+
+ if ($$match_port{$port}) {
+  # Known port
+  if ($$match_port{$port}{count} == 1) {
+   $single_n_zero_match->($port, $qc_pushonce, $qconf, $groups, $qcflowlog, $budget_check, $match_port, $qclog, $once, 1);
+  } else {
+   # Multiple matches. Will be flagged but not checked
+   #  print "($qconf->{progname}) -W- Port '$port' matched more than once, Skipping.\n";
+   $$budget_check{mmatch}{$port} = 1
+  }
+
+ } else {
+  # Unknown port
+  #  print "($qconf->{progname}) -W- Can't find port '$port', Skipping.\n";
+  unless ($$groups{ios}{ion}{$port}[0][$qconf->{indexes}{direction}] =~ /$qconf->{vssvdd_re}/) {
+   unless ($$budget_check{unknown}{$port}) {
+    $qc_pushonce->($qclog, $once, '(XCEL2HM vs GUIDELINE) Ports not defined in the GUIDELINE', $port);
+    $$budget_check{unknown}{$port} = 1;
+
+    $single_n_zero_match->($port, $qc_pushonce, $qconf, $groups, $qcflowlog, $budget_check, $match_port, $qclog, $once, 0);
+   }
+  } else {
+   $$budget_check{vssvdd}{$port} = 1 
+  }
+ }
+}
+
+qc_budget_check_01match_code {
+my ($port, $qc_pushonce, $qconf, $groups, $qcflowlog, $budget_check, $match_port, $qclog, $once, $zero_one_flag) = @_;
+ # Single match. Will be budget checked
+
+ print $qcflowlog "\n".('#' x 40)." $port ".('#' x 40)."\n";
+ # Is it a clock ?
+ # Clock ports don't have budget, so no check
+ unless ($$groups{clocks}{clockn}{$port}) {
+  $$budget_check{smatch}{$port} = 1 if $zero_one_flag;
+
+  # We have a data port here
+  print $qcflowlog "($qconf->{progname}) -I- Budget Checking DATA port '$port'..\n";
+  #print $qcflowlog "($qconf->{progname}) -I- Match info  <$$match_port{$port}{regexes}[0]>\n";
+
+  foreach my $cbgt (@{$$groups{ios}{ion}{$port}}) {
+   # Is its reference clock defined ?
+   my $reference_clock = $cbgt->[$qconf->{indexes}{reference_signal}];
+   
+   my $dir                = $cbgt->[$qconf->{indexes}{direction}];
+
+   unless ($$groups{clocks}{clockn}{$reference_clock}) {
+    if ($reference_clock ne '-') {
+     $qc_pushonce->($qclog, $once, 'Port used as a clock in XCEL2HM but not defined as clock in XCEL2HM', $reference_clock)
+    } else {
+     $qc_pushonce->($qclog, $once, '(XCEL2HM vs GUIDELINE) Ports with NO reference clock', $port, $dir)
+    }
+
+    next
+   }
+
+   #print $qcflowlog "($qconf->{progname}) -I- Actual Budget <@$cbgt>\n";
+   #print "($qconf->{progname})        '$port' / '$reference_clock'\n";
+
+   # Retrieving the GUIDELINE budget for that port
+   my $port_budgets       = eval q($qconf->{').join(q('}{'), $zero_one_flag ? @{$$match_port{$port}{info}[0]} : "not-covered").q('});
+
+   # output: pos(tmin)  = 0  = 2*0 + 0
+   # output: pos(tmax)  = 1  = 2*0 + 1
+   # input : pos(hold)  = 2  = 2*1 + 0
+   # input : pos(setup) = 3  = 2*1 + 1
+   my @minmax             = map {$port_budgets->[2*($dir =~ /in/io) + $_]}      0 .. 1;
+   my @cminmax            = map {$cbgt->[$qconf->{indexes}{min_budget} + $_]}   0 .. 1;
+
+   my $no_minmax          = grep /^-$/, @cminmax;
+   if ($no_minmax == 2) {
+    $qc_pushonce->($qclog, 
+    	           $once, 
+    	           "(XCEL2HM vs GUIDELINE) Ports with a reference clock but with NO min & max budgets", 
+    	           $port, 
+    	           $dir);
+    next
+   }
+
+   # 1 == Rising, 0 == Falling
+   my @minmax_edges       = map { /F:/io ? 0 : 1} @minmax;
+   # 1 == Rising, 0 == Falling
+   my @cminmax_edges      = map { /A|R/io ? 1 : 0} reverse split(/\//, $cbgt->[$qconf->{indexes}{intsim_code}]);
+
+   # Removing Fall edge information
+   @minmax                = map {s/F://; $_} @minmax;
+
+   # Edge information count check
+   if ($cbgt->[$qconf->{indexes}{direction}] =~ /in/io) {
+    # Inputs have two edges info, one for HOLD and one for SETUP
+    unless (@cminmax_edges == 2) {
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      #
+      # Should be adding the following log message into EXCEL output
+      #
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     print $qcflowlog "($qconf->{progname}) -W- input port '$port' should have exactly two edge information.\n";
+     @cminmax_edges = (@cminmax_edges) x 2;
+    }
+   } else {
+    # Ouputs have only one edge info for both TMIN and TMAX, so it needs be duplicated
+    if (@cminmax_edges == 1) {
+     @cminmax_edges = (@cminmax_edges) x 2
+    } else {
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      #
+      # Should be adding the following log message into EXCEL output
+      #
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     print $qcflowlog "($qconf->{progname}) -W- Output port '$port' has two edges information, Is it normal ??\n";
+    }
+   }
+
+   #  print "dir<$dir>\n";
+   #  print "port_budgets<@$port_budgets>\n\n";
+   #  print "minmax<@minmax>\n";
+   #  print "cminmax<@cminmax>\n";
+   #  print "minmax_edges<@minmax_edges>\n";
+   #  print "cminmax_edges<@cminmax_edges>\n";
+
+   # Clock edges and Budget information check
+   # 0= Min Check 1= Max Check
+   foreach (0 .. 1) {
+    unless ($minmax_edges[$_] == $cminmax_edges[$_]) {
+     $qc_pushonce->($qclog, 
+                    $once, 
+      	            "(XCEL2HM vs GUIDELINE) Clock Edge Mismatch", 
+      	            $port, 
+      	            $dir, 
+      	            $reference_clock, 
+      	            ($cminmax_edges[$_] ? "PosEdge" : "NegEdge"), 
+      	            ($minmax_edges[$_]  ? "PosEdge" : "NegEdge"));
+
+     $$budget_check{edges_mismatches}++;
+    }
+
+    unless ($minmax[$_] =~ /^(?:\?|NS:\S+|-)$/io) {
+     my ($cxbudget) = $cminmax[$_] =~ /(-?\d+)/;
+     my $inpercent_or_null  = $cminmax[$_] =~ /^0$|%$/;
+     unless ($inpercent_or_null) {
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      #
+      # Should be qdding the following log message into EXCEL output
+      #
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      print $qcflowlog "($qconf->{progname}) -W- Actual *".($_ ? 'Max' : 'Min').
+                      "* budget 'A:$cminmax[$_]' (vs. GL:$minmax[$_]) for '$port'/'$reference_clock' is NOT expressed in '%' or is not zero, Skipping.\n";
+      next
+     } elsif ($_ || $dir =~ /in/io ? ($minmax[$_] < $cxbudget) : ($minmax[$_] > $cxbudget)) {
+      # For Max Check There is a failure if GL(MAX) < XCEL(MAX) for both input and output
+      # For Min Check there is a failure if GL(min) > XCEL(min) for output and GL(Max) < XCEL(Max) for input
+      my @interface_n_re_info = $zero_one_flag ? split(/\s+:\s+/, $$match_port{$port}{regexes}[0]) : ('NOT_COVERED', 'not_applicable');
+      my $freq       = $$groups{clocks}{clockn}{$reference_clock}[0][$qconf->{clock_indexes}{silicon_frequency}];
+      my $fanx_info  = PPlugin->get ('get_fanxinfo')->($qconf, $port);
+
+      # In nano-seconds
+      my $period     = sprintf("%4.1f", 1000/$freq);
+      my $xcel_delay = sprintf("%4.1f", $cxbudget  *10/$freq);
+      my $gl_delay   = sprintf("%4.1f", $minmax[$_]*10/$freq);
+      $qc_pushonce->($qclog, 
+      	             $once, 
+      	             "(XCEL2HM vs GUIDELINE) Budget Check: Failed", 
+      	             $port, 
+      	             $dir, 
+      	             $reference_clock, 
+		     "$freq    ($period)",
+      	             ($_ ? 'Max' : 'Min'), 
+      	             "$cxbudget     ($xcel_delay)", 
+		     "$minmax[$_]     ($gl_delay)", 
+      	             @interface_n_re_info, $qconf->{fanx} ? $fanx_info : '+', $qconf->{uicomment} ? $cbgt->[$qconf->{indexes}{comment}] : '+');
+
+      $$budget_check{budget_failed}++;
+     } else {
+      #
+      # Check passed :)
+      #
+      my @interface_n_re_info = $zero_one_flag ? split(/\s+:\s+/, $$match_port{$port}{regexes}[0]) : ('NOT_COVERED', 'not_applicable');
+      my $freq       = $$groups{clocks}{clockn}{$reference_clock}[0][$qconf->{clock_indexes}{silicon_frequency}];
+      my $fanx_info  = PPlugin->get ('get_fanxinfo')->($qconf, $port);
+      # In nano-seconds
+      my $period     = sprintf("%4.1f", 1000/$freq);
+      my $xcel_delay = sprintf("%4.1f", $cxbudget  *10/$freq);
+      my $gl_delay   = sprintf("%4.1f", $minmax[$_]*10/$freq);
+      $qc_pushonce->($qclog, 
+        	     $once, 
+        	     "(XCEL2HM vs GUIDELINE) Budget Check: Passed", 
+        	     $port, 
+        	     $dir, 
+        	     $reference_clock, 
+          	     "$freq    ($period)",
+        	     ($_ ? 'Max' : 'Min'), 
+        	     "$cxbudget     ($xcel_delay)", 
+          	     "$minmax[$_]     ($gl_delay)", 
+        	     @interface_n_re_info, $qconf->{fanx} ? $fanx_info : '+',  $qconf->{uicomment} ? $cbgt->[$qconf->{indexes}{comment}] : '+');
+     }
+
+    } elsif ($minmax[$_] eq '-') {
+      $qc_pushonce->($qclog, 
+        	     $once, 
+        	     "(XCEL2HM vs GUIDELINE) No Guideline Budget defined", 
+        	     $port, 
+        	     $dir, 
+        	     ($_ ? 'Max' : 'Min'), 
+        	     $minmax[$_])
+
+    } elsif ($minmax[$_] eq '?') {
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      #
+      # Should be adding the following log message into EXCEL output
+      #
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      print $qcflowlog "($qconf->{progname}) -W- Please manually check the *".($_ ? 'Max' : 'Min').
+                      "* Budget for port '$port'/'$reference_clock' (A:$cminmax[$_] vs. GL:$minmax[$_]).\n";
+    } else {
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      #
+      # Should be adding the following log message into EXCEL output
+      #
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      print $qcflowlog "($qconf->{progname}) -W- Please manually check the *".($_ ? 'Max' : 'Min').
+                      "* Budget for port '$port'/'$reference_clock'. GL is expressed in (ns) (A:$cminmax[$_] vs. GL:$minmax[$_]).\n";
+    }
+   }
+
+   print $qcflowlog "\n".('#' x 80)."\n";
+  }
+
+  print $qcflowlog "\n\n";
+ }
+
+}
+
+qcflow_filter_handler {
+ return $_[0] unless ref $_[0];
+ return q{(}.join(') || (', @{$_[0]}).q{)}
+}
+
+qcflow_qclogdata {
+my ($qconf) = @_;
+
+ my $logindex = 0;
+ HUtils::Recurse($qconf->{_qclog}, sub {my ($info, $a2d) = @_;
+  print "($qconf->{progname}) -I- Processing '$info->[0]'..\n";
+
+  if ($qconf->{_filter_info}{$info->[0]}) {
+   print "($qconf->{progname}) -I- Filtering '$info->[0]'..\n";
+
+   $a2d = TableGrep::Filter($qconf->{_filter_handler}->($qconf->{_filter_info}{$info->[0]}), $a2d, invert=>1);
+   return unless $a2d;
+  }
+
+  # Mapping between table names, 'Violating timing arcs', ..., and their position in the qclog tables.
+  $qconf->{_qclogdata_h}{$info->[0]} = $logindex;
+  my $myre = join('|', @{$qconf->{tableport_2_xcel2hm_re}});
+  if ($info->[0] =~ /$myre/o) {
+   $a2d = [map {my $lindex = -1; 
+	        [map {++$lindex; 
+		      $lindex == 0 ? "internal:XCEL2HM_UITiming!".Table2SS::TableTreeA1($qconf->{_rca_qcflow_port_2_xcel2hm_budget}, [$_]).'@'.$_: $_
+	             } @$_]
+	       } @$a2d];
+  }
+
+  push @{$qconf->{_qclogdata_a}}, Table2SS::TableHandler($a2d, "qcflow_$info->[0]");
+  ++$logindex;
+ });
+}
+
+qcflow_links_n_qclog {
+my ($qconf) = @_;
+
+  $qconf->{_qcwb} = Table2SS::AddWorkBook($qconf->{_qco});
+  my $logallocate = Table2SS::RCAllocate(1, 1, 1, $qconf->{_qclogdata_a});
+  
+  print "($qconf->{progname}) -I- Creating '$qconf->{_qco}'..\n";
+  my @links_list  = ([map {["internal:qclog!".$logallocate->[$qconf->{_qclogdata_h}{$_}]{a1}."\@$_"]} keys %{$qconf->{_qclogdata_h}}]);
+  push @links_list, [["internal:clock_ctsinfo!".$qconf->{_ctsinfo_rca}[0]{a1}."\@Clocks Min and Max CTS information"]] if $qconf->{_ctsinfo_rca};
+
+  Table2SS::DriveSheet($qconf->{_qcwb}, 'links', Table2SS::RCAllocate(5, 5, 1, [@links_list], 'qcflow_links', ypad=> 10));
+  Table2SS::DriveSheet($qconf->{_qcwb}, 'qclog', $logallocate);
+
+  # Saving the RCAllocate of qclog tables
+  $qconf->{_logallocate} = $logallocate;
+}
+
+
+qcflow_clock_ctsinfo {
+my ($qconf, $extracted_cts) = @_;
+
+ return unless $qconf->{qclib} && $qconf->{noctslib};
+
+ my %ctsinfo_range;
+ my %clock_2_pin;
+ HUtils::Recurse($extracted_cts, sub {my ($info, $cts_table) = @_;
+   push @{$ctsinfo_range{$info->[2]}}, map {@$_} @$cts_table[1 .. $#$cts_table];
+   push @{$clock_2_pin{$info->[2]}{$info->[0]}}, map {@$_} @$cts_table[1 .. $#$cts_table];
+ });
+
+ my @ctsinfo;
+ foreach (keys %ctsinfo_range) {
+  # Will consider only positive CTS info
+  my @sorted = sort {$a <=> $b} grep {$_ >= 0} @{$ctsinfo_range{$_}};
+
+  # Need to also convert them in pico-seconds
+  my $xcel2hmin = $qconf->{_groups}{clocks}{clockn}{$_}[0][$qconf->{clock_indexes}{smallest_insertion_delay}] * 1000;
+  my $xcel2hmax = ($xcel2hmin + $qconf->{_groups}{clocks}{clockn}{$_}[0][$qconf->{clock_indexes}{skew}] * 1000);
+
+  push @ctsinfo, [$_, 
+                  ($sorted[0]         < $xcel2hmin ? "V:" : "").sprintf("%4.2f", $sorted[0]), 
+                  ($sorted[$#$sorted] > $xcel2hmax ? "V:" : "").sprintf("%4.2f", $sorted[$#$sorted]), 
+		  sprintf("%4.2f", $xcel2hmin), 
+		  sprintf("%4.2f", $xcel2hmax)] 
+ }
+
+ $qconf->{_ctsinfo_rca} = Table2SS::RCAllocate(1, 1, 1, [\@ctsinfo], 'ctsinfo');
+}

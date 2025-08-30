@@ -1,0 +1,184 @@
+minimalistic {call start} 
+
+start  {
+;tixlistnotebook nb (.hlist selectbackground:blue1 selectforeground:white)
+tixnotebook nb_tixnotebook (popup popup)
+
+ (call   tcflow/tcflow) ;(.tcflow label:"Yeeees")
+
+ (tixpanedwindow topa (pack fill:both) (conf orientation:horizontal height:400 width:1200) (tkpopupmenu popup)
+ (frame twow (pack fill:y expand:1) 
+  (call quit)			  
+  (tixscrolledlistbox slb (pack fill:both) (conf scrollbar:auto height:150 command:\&start_gui) 
+                          (.listbox listvar:"\$tkgui{listvar}" bg:yellow))
+  (call   tcflow/txw) 
+  )
+
+  (frame toplevel (pack fill:both) (conf bg:orange width:200 height:300) (tkpopupmenu popup))
+  ;(call   /home/rdje/conf/tcflow/txw)
+  ;(call   /home/rdje/conf/tcflow/txw)
+  )  (.topa label:tooooooooooopa)
+
+  (tixlistnotebook nb (.hlist selectbackground:blue1 selectforeground:white)
+   (call   tcflow/panedw)
+   (call   tcflow/txw) 
+   (call   tcflow/tcflow)
+   ;(call   tcflow/panedw)
+   ;(call   /home/rdje/conf/tcflow/panedw) 
+   ;(call   /home/rdje/conf/tcflow/tcflow)
+   ;(call   /home/rdje/conf/tcflow/txw) 
+   (call   quit)
+  ) (.nb  label:tixlistnotebook)
+} 
+
+quit {button quit (pack  side:bottom fill:both expand:1)  (conf bg:red3 text:Quit command:{sub {$_[1]->Eval("destroy .")}}) (tkpopupmenu popup)}
+
+popup {
+menu popup 
+   (conf tearoff:false bd:1p)
+   (conf activebackground:dodgerblue4 activeforeground:white)
+   (command label:foo1oo command:"sub {system 'gvim' }") 
+   (command label:foo2oo command:"sub {system 'gvim' }") 
+   (command label:foo3oo command:"sub {system 'gvim' }") 
+   (separator)
+   (menu SSMenu-0008786 
+	 (conf tearoff:false bd:1p)
+    (command label:faaa0oo command:"sub {system 'gvim' }") 
+    (command label:faaa1oo command:"sub {system 'gvim' }") 
+    (separator)
+    (command label:faaa2oo command:"sub {system 'gvim' }") 
+    (command label:faaa3oo command:"sub {system 'gvim' }") 
+    (command label:faaa3oo command:"sub {system 'gvim' }") 
+   )
+   (command label:foo3oo command:"sub {system 'gvim' }") 
+   (separator)
+   (checkbutton label:CheckB1)
+   (checkbutton label:CheckB2)
+   (checkbutton label:CheckB3)
+   (separator)
+   (radiobutton label:RadioButton0 variable:RV)
+   (radiobutton label:RadioButton1 variable:RV)
+   (radiobutton label:RadioButton2 variable:RV)
+   (radiobutton label:RadioButton3 variable:RV)
+}
+
+test {
+frame testf (popup poptkgui) (pack  fill:both expand:1)
+ (frame status_button_bar (pack anchor:n fill:x expand:1)
+  (entry  status  (pack anchor:w fill:x expand:1) 
+    (tixballoon bm 
+      (.message bg:snow font:"Helvetica -12")
+      (.label bg:snow) (bind balloonmsg:"Hello World")) 
+      (conf bg:white textvariable:"\$tkgui{widget_path}" selectbackground:black selectforeground:white)
+  )
+
+  (frame buttons (pack pady:10) (pack  fill:x expand:1)
+   (button delete (pack side:left) (conf bg:red text:Delete width:10 command:\&delete_widget))
+   (button apply  (pack side:left fill:x expand:1) (conf bg:orange width:20 text:Apply command:\&apply_setting) ;(event Enter apply_effect_e) (event Leave apply_effect_l)
+   )
+   (button quit   (pack anchor:e)  (conf bg:red3 text:Quit width:10 command:{sub {Tkx::eval("destroy .")}}))
+  )
+ )
+
+ (tixlistnotebook lnb (conf width:610 height:500) (pack anchor:nw fill:both expand:1) (.hlist bg:grey94 
+                                                                                              font:"Helvetica -12" 
+											      selectbackground:blue1 
+											      selectforeground:white 
+											      browsecmd:\&hlist_browsecmd)
+
+  (toplevel widget_area (event FocusIn toplevel_event) (event Button-1 toplevel_event) (event Motion motion)
+   (frame topframe  (pack fill:both expand:1) (conf bg:snow1 width:900 height:900) 
+    (tixscrolledwindow sw  (pack fill:both expand:1) (conf scrollbar:y width:800 height:800) (frame myframe  (pack fill:both expand:1) (conf bg:lightblue)))
+   )
+  )
+ ) 
+
+ (frame shell (pack fill:x expand:1)
+   (entry shell-input (pack side:left fill:x expand:1) (conf bg:beige font:"Courier 12" selectbackground:black selectforeground:white textvariable:"\$tkgui{tkshell}"))
+   (button run        (conf bg:green3 width:10 font:"Helvetica -12 bold" text:Run height:1 command:\&shell_exec))
+ )
+}
+
+poptkgui {
+ menu poptcflow (conf bd:1p font:"Helvetica -12")
+
+  (command label:"Get path"         command:\&get_path) 
+  (command label:"Move"             command:\&move) 
+  (command label:"Stop Move"        command:\&stop_move) 
+
+  (command label:"Add button"       command:{sub {&add_widget("button")}}) 
+  (command label:"Add checkbutton"  command:{sub {&add_widget("checkbutton")}}) 
+  (command label:"Add entry"        command:{sub {&add_widget("entry")}}) 
+  (command label:"Add frame"        command:{sub {&add_widget("frame")}}) 
+  (command label:"Add label"        command:{sub {&add_widget("label")}}) 
+  (command label:"Add listbox"      command:{sub {&add_widget("listbox")}}) 
+  (command label:"Add menu"         command:{sub {&add_widget("menu")}}) 
+  (command label:"Add menubutton"   command:{sub {&add_widget("menubutton")}}) 
+  (command label:"Add message"      command:{sub {&add_widget("message")}}) 
+  (command label:"Add radiobutton"  command:{sub {&add_widget("radiobutton")}}) 
+  (command label:"Add text"         command:{sub {&add_widget("text")}}) 
+  (separator)
+  (command label:Quit command:{sub {Tkx::eval("destroy .")}}) 
+}
+
+grid {
+frame frame
+ (grid 
+  (-)
+  (-)
+  (-)
+  (sticky we (button bt0 (conf text:bt00)))
+;  (button bt0 (conf text:bt00))
+  (-)
+  (button bt1 (conf text:bt01))
+  (button bt2 (conf text:bt02))
+  (-)
+  (button bt3 (conf text:bt03))
+  (button bt4 (conf text:bt04))
+  (-)
+  (button bt5 (conf text:bt05))
+  (next-row)
+  (button bt10 (conf text:bt10))
+  (-)
+  (button bt11 (conf text:bt11))
+  (call test)
+  (button bt12 (conf text:bt12))
+  (button bt13 (conf text:bt13))
+  (button bt14 (conf text:bt14))
+  (next-row)
+  (button bt20 (conf text:bt20))
+  (button bt21 (conf text:bt21))
+  (button bt22 (conf text:bt22))
+  (-)
+  (call settings)
+  (button bt23 (conf text:bt23))
+  (button bt24 (conf text:bt24))
+  (-)
+  (button bt25 (conf text:bt25))
+  )
+ 
+}
+
+settings_popup {
+ menu settings (conf bd:1p)
+
+  (command label:"Settings"   command:\&settings) 
+  (separator)
+  (command label:Quit command:{sub {$_[1]->Eval("destroy .")}})
+}
+
+button_settings {toplevel button-setting0 (popup poptkgui) (call settings)}
+entry_settings  {toplevel entry-setting0  (popup poptkgui) (call settings)}
+radiobutton_settings  {toplevel radiobutton-setting0  (popup poptkgui) (call  settings)}
+
+settings {
+ frame setting
+ (tixlabelentry tle1  (conf label:"background-color") (.label width:23) (.entry width:20 bg:white))
+ (tixlabelentry tle2  (conf label:"foreground-color") (.label width:23) (.entry width:20 bg:orange))
+ (tixlabelentry tle3  (conf label:"width") (.label width:23) (.entry width:20 bg:purple))
+ (tixlabelentry tle4  (conf label:"side") (.label width:23) (.entry width:20 bg:orange))
+ (tixlabelentry tle5  (conf label:"anchor") (.label width:23) (.entry width:20 bg:orange))
+ (tixlabelentry tle6  (conf label:"fill") (.label width:23) (.entry width:20 bg:orange))
+ (tixlabelentry tle7  (conf label:"expand") (.label width:23) (.entry width:20 bg:orange))
+ (button quit (conf bg:red1 text:Quit command:{sub {$_[1]->Eval("destroy .")}}))
+}

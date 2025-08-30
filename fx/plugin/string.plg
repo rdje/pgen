@@ -1,0 +1,21 @@
+var_subst  {
+my ($string, $subst_re, %subst_data) = @_;
+
+ sub {local $_ = shift; my %h = map {!ref($_) ? $_ : (ref eq 'HASH' ? %$_ : @$_)} @_; s{$subst_re}{$h{$1} || $1}ge; s/"/\\"/go; eval(qq("$_"))} -> ($string, %subst_data);
+}
+
+#string_subst  {
+#my ($string, $subst_re, $subst_code, %subst_data) = @_;
+#
+# sub {local $_ = shift; my %h = map {!ref($_) ? $_ : (ref eq 'HASH' ? %$_ : @$_)} @_; s{$subst_re}{$subst_code->(\%h, grep {defined} map {eval "\$$_"} 1 .. scalar @+)}ge; s/"/\\"/go; eval(qq("$_"))} -> ($string, %subst_data);
+#}
+
+var_subst_test {
+  open (my $f, $_[0]{_argv}[0]); local $/; my $file = <$f>;
+ Global->set ('cgi') = HUtils::Conf(PathSearch->go('cgi'));
+  
+  set_http_localhost ();
+  my $fo = PPlugin->exec('file_list_path2http', $file);
+
+  print "var_subst_test: ($fo)\n";
+}

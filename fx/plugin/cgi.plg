@@ -1,0 +1,14 @@
+file_list_path2http {
+   join "", map {!/#/o ? join ("", map {m/\//o ? do {
+				                        my $subst = var_subst ($_, qr/\$(\w+)/o, %ENV, 'VOB_ROOT' => Global->VOB_ROOT);
+							my $http  = httplink ($subst);
+
+							qq{<A HREF="$http">$_</A>};
+						    } : $_
+
+					  } split /(\S*\/\S+)/o, $_) : $_
+
+		   } split /(#.*)/o, $_[0];
+
+}
+

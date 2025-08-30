@@ -1,0 +1,150 @@
+# EBNF Grammar for FSM Expressions
+# This grammar parses FSM condition and assignment expressions into ASTs
+
+# Top-level expression entry point
+expression := logical_or_expr -> $1
+
+# Logical operations (in order of precedence, lowest to highest)
+logical_or_expr := logical_and_expr ("|" logical_and_expr)*
+    -> {
+        type: "logical_or",
+        operands: [$1, $3*]
+    }
+
+logical_and_expr := equality_expr ("&" equality_expr)*
+    -> {
+        type: "logical_and",
+        operands: [$1, $3*]
+    }
+
+equality_expr := relational_expr (("==" | "!=" | "=") relational_expr)*
+    -> {
+        type: "comparison",
+        op: $2,
+        left: $1,
+        right: $3
+    }
+
+relational_expr := additive_expr (("<" | ">" | "<=" | ">=") additive_expr)*
+    -> {
+        type: "comparison", 
+        op: $2,
+        left: $1,
+        right: $3
+    }
+
+additive_expr := multiplicative_expr (("+" | "-") multiplicative_expr)*
+    -> {
+        type: "arithmetic",
+        op: $2,
+        left: $1,
+        right: $3
+    }
+
+multiplicative_expr := unary_expr (("*" | "/" | "%") unary_expr)*
+    -> {
+        type: "arithmetic",
+        op: $2, 
+        left: $1,
+        right: $3
+    }
+
+# Unary operations
+unary_expr := unary_op primary_expr
+    -> {
+        type: "unary_op",
+        op: $1,
+        operand: $2
+    }
+    | primary_expr -> $1
+
+unary_op := "!" | "-" | "+" -> $1
+
+# Primary expressions
+primary_expr := signal_ref -> $1
+    | constant -> $1
+    | "(" expression ")" -> $2
+
+# Signal references with all FSMGen variants
+signal_ref := signal_slice -> $1
+    | signal_bit -> $1  
+    | signal_name -> $1
+
+signal_slice := base_signal_name "[" number ":" number "]"
+    -> {
+        type: "signal",
+        name: $1.name,
+        slice_type: "range",
+        high: $3,
+        low: $5,
+        width: $1.width,
+        is_output: $1.is_output
+    }
+
+signal_bit := base_signal_name "[" number "]" 
+    -> {
+        type: "signal",
+        name: $1.name,
+        slice_type: "bit",
+        bit: $3,
+        width: $1.width,
+        is_output: $1.is_output
+    }
+
+signal_name := base_signal_name
+    -> {
+        type: "signal",
+        name: $1.name,
+        slice_type: "full",
+        width: $1.width,
+        is_output: $1.is_output
+    }
+
+base_signal_name := identifier width_annotation? output_marker?
+    -> {
+        name: $1,
+        width: $2,
+        is_output: $3
+    }
+
+width_annotation := "'" number -> $2
+output_marker := ">" -> true
+
+# Constants - FSMGen style
+constant := binary_constant -> $1
+    | hex_constant -> $1
+    | decimal_constant -> $1
+
+binary_constant := "const_" number "b" /([01]+)/
+    -> {
+        type: "constant",
+        format: "binary",
+        width: $2,
+        value: $4,
+        bit_value: $4
+    }
+
+hex_constant := "const_" number "h" /([0-9a-fA-F]+)/  
+    -> {
+        type: "constant",
+        format: "hex", 
+        width: $2,
+        value: $4,
+        bit_value: $4
+    }
+
+decimal_constant := /(\d+)/
+    -> {
+        type: "constant",
+        format: "decimal",
+        width: 32,
+        value: $1,
+        bit_value: $1
+    }
+
+# Lexical elements
+identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/ -> $1
+number := /(\d+)/ -> $1
+
+# Whitespace handling (ignored in lexical analysis)
+ws := /\s*/ -> null

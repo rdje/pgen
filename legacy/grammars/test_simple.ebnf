@@ -1,0 +1,7 @@
+number := "0" | "1" | "2"
+word := "hello" | "world"
+
+
+
+
+

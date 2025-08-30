@@ -1,0 +1,16 @@
+httpd {
+ my $httpd_conf      = slurp (Global->httpd_conf);
+ my $host            = Sys::Hostname::hostname.($_[0]{_notail} ? '' : Global->http_hostail);
+ my $port            = $_[0]{_port} || Global->http_default_port;
+ my $email           = Global->author_email_address;
+ my ($fh, $filename) = File::Temp::tempfile("_$port"."_XXXXX"); # , UNLINK => 1);
+
+ $httpd_conf =~ s/<server_name>/$host/go;
+ $httpd_conf =~ s/<server_port>/$port/go;
+ $httpd_conf =~ s/<author_email_address>/$email/o;
+
+ print $fh $httpd_conf;
+ system ("apachectl -k ".($_[0]{_argv}[0] || 'start')." -f ".rel2abs($filename));
+ unlink $filename
+}
+

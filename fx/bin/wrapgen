@@ -1,0 +1,935 @@
+#! /home/qdjeric/install/bin/perl -w -I/home/qdjeric/project/fsm/afx/fx/perl
+
+use 5.010;
+
+use Fatal qw/:void open/;
+use File::Find;
+use File::Path;
+use Storable;
+use Getopt::Long;
+use re 'eval';
+
+use HUtils;
+use Table2SS;
+use Table;
+use PPlugin;
+use RTLUtils;
+use FSMGen;
+
+
+$|=1;
+
+GetOptions (
+          'conf=s'     => \$config,
+          'rtldb=s'    => \@rtldb,
+	  'create!'    => \$create,
+	  'store'      => \$store,
+	  'retrieve=s' => \$retrieve,
+	  'debug'      => \$debug,
+	  'fake'       => \$fake,
+          'moredb=s'   => \@morertldb,
+          'pkglist=s'  => \@pkglist,
+          'zone0|z0'   => \$zone0
+) || die;
+
+
+my $cf;
+unless ($retrieve && -f $retrieve && -s _) {
+ $config      =~ s/\.conf$//o;
+ $cf          = confread ($config);
+ 
+ my @dblist   = map {split /,/} @rtldb;
+ $cf->{debug} = $debug;
+ $$cf{create} = $create;
+ $$cf{rtlif}  = rtldb_2portinfo (@dblist);
+ avv_push ($cf, 'rtldb',   $_) foreach @dblist;
+ 
+ my $cellist  = join '|', keys %{{map {$$cf{mem_map}{$_}{cell} => 1} keys %{$$cf{mem_map}}}};
+ my $cellsre  = qr/$cellist/o;
+ 
+ my @memcells;
+ find({wanted=> sub {push @memcells, $_ if (-f || -l && -f readlink) && m/$$cf{mbist_filter}/ && m/$cellsre/}, no_chdir=>1, follow=>1}, $$cf{mbist_path});
+ 
+
+ # For making sure auto-generated fake memmodule can be plugged into it
+ # When @memcells is EMPTY
+ $$cf{cellinfo} = {}; 
+ vcell_parse ($cf, $_) foreach @memcells;
+
+ fake_memmodule  ($cf->{rtldb}, $$cf{cellinfo})    if $fake;
+ Storable::store ($cf, 'wrapgen.db') if $store;
+
+} else {
+  say "(wrapgen) -I- Loading '$retrieve'...";
+  $cf             = Storable::retrieve ($retrieve);
+  $cf->{retrieve} = 1;
+}
+
+$cf->{zone0} = $zone0;
+
+HUtils::Recurse ($cf, sub {say "<@{$_[0]}> ($_[1])"}) if $$cf{debug};
+
+HUtils::Merge($$cf{rtlif}, rtldb_2portinfo (map {split /,/} @morertldb)) if @morertldb;
+
+avv_push ($cf, 'rtldb',   $_) foreach map {split /,/} @morertldb;
+avv_push ($cf, 'pkglist', $_) foreach map {split /,/} @pkglist;
+
+create_wrapper ($cf);
+
+
+my $c;
+sub vcell_parse {
+my ($cf, $mf) = @_;
+
+
+ say "-I- Processing $mf ..";
+ open (my $fh, $mf); local $/; my $fc=<$fh>; $fc =~ s/\/\/.*//go; $fc =~ s/\/\*.*?\*\///sgo;   
+
+ my $module = qr/\bmodule\s+\w+\s*\(.+?\)\s*;/sio;
+ my $port   = qr/\b(?:input|output)\b.+?;/soi;
+
+ my $top    = qr/ $module (?{$c = 0}) |
+                  $port   (?{$c = 1}) 
+                /xo;
+ 
+ while (1) {
+   last unless $fc =~ /$top/g;
+
+   my $bus_re    = qr/\[\s*(\d+)\s*:\s*(\d+)\s*\]/o;
+
+   local $_      = $&;
+
+   if ($c) {
+    my ($dir)    = /(\w+)/o;
+    my @bus_info =  grep {defined} m/$bus_re/;
+
+    m/$dir\s*$bus_re?/; 
+
+       $dir         = $dir eq 'input' ? 'IN' : 'OUT';
+    my @signalist   = map {(m/(\w+)/o)[0]} split /\s*,\s*/o, $';
+
+    my ($msi, $lsi) = @bus_info ?  @bus_info : (undef, undef);
+    my @port_info   = ($dir, ($msi ? "STD_LOGIC_VECTOR" : "STD_LOGIC"), $msi, $lsi);
+
+    foreach (@signalist) {
+     push @{$cf->{cellinfo}{$$cf{vmem_cmodule}}{port}{list}{default}}, [$_, @port_info];
+     $$cf{cellinfo}{$$cf{vmem_cmodule}}{port}{hash}{$_}  = {direction=> $dir, type=>$port_info[1], size=> $msi ? $msi - $lsi + 1 : 1, msi=> $msi, lsi=> $lsi};
+    }
+
+   } else {
+    ($$cf{vmem_cmodule}) = /\s(\w+)/o; # Put the module name in 'vmem_cmodule'
+   }
+ }
+}
+
+
+sub get_interface {
+my ($cf, $cell, %opt) = @_;
+
+ my $xxinfo = ($opt{wrapper} ? 'wrap' : 'cell') . "info";
+
+ return unless $$cf{$xxinfo}{$cell};
+
+
+ if ($opt{wrapper} && !$opt{noupdate}) {
+  push @{$$cf{wrapinfo}{$cell}{port}{list}{default}}, map {[$_, uc((/(in|out)$/o)[0]), $_."_t"]} sort {$a cmp $b} keys %{$$cf{has_generic_mbist_port}{$cell}};
+ }
+
+ unless ($$cf{zone0}) {
+  my $type = !$opt{type} || $opt{type} eq 'entity'  ? 'ENTITY' : 'COMPONENT';
+
+  my ($fh, $ofh); 
+  my $content = "";
+  open ($fh, $opt{keep_opened} ? ">>" : '>', $opt{create} &&  $type eq 'ENTITY' ?  "$$cf{output_directory}/".$cell.'_e.vhd' : ($opt{output} || \$content)); $ofh = select $fh;
+
+  my $align = align (map {$$_[0]} @{$$cf{$xxinfo}{$cell}{port}{list}{default}}); 
+
+  if ($type eq 'ENTITY') {
+   print ''.string_substitute ($$cf{mandatory_header}, author_signame  => 'QDJERIC', 
+                                                       author_name     => 'Richard DJE',
+                                                       language        => q/VHDL'93/,
+                                                       file_name       => $cell.'_e.vhd',
+                                                       file_type       => 'VHDL',
+                                                       revision        => 'First Version',
+                                                       description     => "Entity of $cell Memory Wrapper"
+                             );
+
+   print ''.string_substitute ($$cf{required_context_clause});
+   print ''.string_substitute ($$cf{optional_context_clause_1}) if $$cf{wrapinfo}{$cell}{has_emp_dft_pkg};
+   print ''.string_substitute ($$cf{block_context_clause}, block=>$$cf{block}, blockname=>$$cf{blockname});
+
+   print "\n\n\n";
+  }
+
+  print "$type $cell IS\n";
+  print "  PORT (\n";
+  print join ";\n", map {"    $$align{$$_[0]}  : $$_[1] ".($$_[1] eq 'IN' ? " " : "").$$_[2].($$_[3] ? "($$_[3] DOWNTO $$_[4])" : "")} @{$$cf{$xxinfo}{$cell}{port}{list}{default}};
+  print "\n  );\n";
+  print "END $type $cell;\n";
+
+  select $ofh;
+
+  print "\n$content\n\n" unless $opt{create} || $opt{output};
+ }
+}
+
+sub get_wrapper_architecture {
+my ($cf, $wrap, %opt) = @_;
+
+ return unless $$cf{wrapinfo}{$wrap}{mbist_connection} || !$$cf{zone0};
+
+ my ($fh, $ofh); 
+ my $content = "";
+ open ($fh, '>', $opt{create} ?  "$$cf{output_directory}/".$wrap.'_str_a.vhd' : \$content); $ofh = select $fh;
+
+ my $cellname = $$cf{wrapinfo}{$wrap}{cellname};
+
+ print ''.string_substitute ($$cf{mandatory_header}, author_signame  => 'QDJERIC', 
+                                                     author_name     => 'Richard DJE',
+                                                     language        => q/VHDL'93/,
+                                                     file_name       => $wrap.'_str_a.vhd',
+                                                     file_type       => 'VHDL',
+                                                     revision        => 'First Version',
+                                                     description     => "Architecture of $wrap Memory Wrapper"
+                            );
+
+ print ''.string_substitute ($$cf{required_context_clause});
+ print ''.string_substitute ($$cf{optional_context_clause_1}) if $$cf{wrapinfo}{$wrap}{has_emp_dft_pkg};
+ print ''.string_substitute ($$cf{optional_context_clause_2});
+ print ''.string_substitute ($$cf{block_context_clause}, block=>$$cf{block}, blockname=>$$cf{blockname});
+
+ 
+ print "\n\n\n";
+ print "ARCHITECTURE str of $wrap IS\n";
+
+ get_interface($cf, $cellname, type=>'component');
+
+ if ($$cf{rtlif}) {
+  if ($$cf{wrapinfo}{$wrap}{additional_instances}) {
+   RTLUtils::drive_component(undef, $$cf{rtlif}, $_ ) foreach keys %{$$cf{wrapinfo}{$wrap}{additional_instances}};
+  }
+ } else {
+  say STDOUT '(wrapgen) -W- RTL DB not provided !';
+  exit 1;
+ }
+
+ # Processing '?\w+'
+ hwrecurse ($$cf{wrapinfo}{$wrap}{additional_instances}, sub {$_[1] =~ m/\?(\w+)/o ? plugin('wrapgen_'.$1)->($cf, $wrap) : $_[1]});
+ my (@fo, @ac); hrecurse  ($$cf{wrapinfo}{$wrap}{additional_instances}, sub {push @fo, $_[0][-2]; push @ac, $_[1]});
+
+ my @wrap_internal_sigs = grep {!$$cf{cell_instance_portmap}{$wrap}{$cellname}{$_}} map {$$_[0]} @{$$cf{cellinfo}{$cellname}{port}{list}{default}};
+ my $align              = align (@wrap_internal_sigs, map {$$_[0]} @{$$cf{wrapinfo}{$wrap}{signal_decl}});
+
+ say '';
+ foreach my $csig (@wrap_internal_sigs) {
+  print join '', "SIGNAL  ", $$align{$csig}, "  :  ", $$cf{cellinfo}{$cellname}{port}{hash}{$csig}{type}, 
+                        ($$cf{cellinfo}{$cellname}{port}{hash}{$csig}{msi} ? join '', '(', $$cf{cellinfo}{$cellname}{port}{hash}{$csig}{msi}, " DOWNTO ", $$cf{cellinfo}{$cellname}{port}{hash}{$csig}{lsi} ,')' : ""), ";\n"
+ }
+
+
+ foreach my $csig (@{$$cf{wrapinfo}{$wrap}{signal_decl}}) {
+  say 'SIGNAL  ', $$align{$csig->[0]}, '  :  ', $csig->[1], ';'
+ }
+
+ print "\nBEGIN\n";
+
+ get_cell_instances ($cf, $wrap, %opt, same_output=>1);
+
+ my $fo = align (@fo);
+ my $ac = align (@ac);
+ keygrep ($$cf{wrapinfo}{$wrap}{additional_instances}, sub {@{$_[0]} == 3}, sub {my ($ks, $sh) = @_;
+        	  say '';
+        	  say $ks->[1], '  :  ', $ks->[0]; 
+                  say '  PORT MAP (';
+                  my @pm  = map {"    $$fo{$$_[0]}  =>  $$ac{$$sh{$$_[0]}{actual}}, -- ".$$_[1].($$_[3] ? ('in' eq lc($$_[1]) ? '  ' : ' ')."[$$_[3]:$$_[4]]" : '')} 
+                                 @{$$cf{rtlif}{$ks->[0]}{port}{list}{default}};
+
+                  $pm[-1] =~ s/,(?= --)/ /o;
+                  print join "\n", @pm;
+
+                  say "\n  );"
+ });
+
+ say '';
+
+ hrecurse ($$cf{wrapinfo}{$wrap}, sub {my ($i, $t) = @_;
+
+         return unless "@$i" =~ /mbist_connection/o;
+
+         print join '', "  ", ($$cf{cell_mbist_disable_align}{$$_[0]} ? $$_[0] : $$cf{cell_mbist_align}{$$_[0]}), "  <=  ", $$_[1], ";\n" foreach @$t;
+ });
+
+ print "\n\n";
+ print "END ARCHITECTURE str;\n";
+ select $ofh;
+
+ print "$content\n\n" unless $opt{create} || $opt{noprint};
+}
+
+sub get_cell_instances {
+my ($cf, $wrap, %opt) = @_;
+
+ return unless $$cf{cell_instance_portmap}{$wrap};
+
+ my ($fh, $ofh);
+ my $content = "";
+
+ unless ($opt{same_output}) {
+  open ($fh, '>', \$content); $ofh = select $fh;
+ }
+
+ my @align_wraports;
+ # Here I assume that only one instance of each cell type is created.
+ my @cells;
+ # Assumnig just one instantiated cell here
+ hrecurse ($$cf{cell_instance_portmap}{$wrap}, sub {my ($i, $p) = @_;
+  # i[0] = cellname
+  # i[1] = cell port
+  
+   push @align_wraports,  $p;
+
+   #$cells{$$i[0]} = 1;
+   @cells   = $$i[0];
+ });
+
+ my @cellports        = map {$$_[0]} @{$$cf{cellinfo}{$cells[0]}{port}{list}{default}};
+ my %cellport_aligned = %{align (@cellports)};
+ my %wraport_aligned  = %{align (@align_wraports, @cellports)};
+
+ foreach my $cinst (@cells) {
+  print "\n\n-- CELL $cinst instance\n";
+  
+  print "a_$cinst  :  $cinst\n";
+  print "  PORT MAP (\n";
+
+  my @pm  = map {"    $cellport_aligned{$$_[0]}  =>  " . 
+	         ($wraport_aligned{$$cf{cell_instance_portmap}{$wrap}{$cinst}{$$_[0]} || $$_[0]}). ', -- '.$$_[1].($$_[3] ? ('in' eq lc($$_[1]) ? '  ' : ' ')."[$$_[3]:$$_[4]]" : '')} 
+              @{$$cf{cellinfo}{$cinst}{port}{list}{default}};
+
+  $pm[-1] =~ s/,(?= --)/ /o;
+  print join "\n", @pm;
+  say "\n  );\n\n";
+ }
+
+ select $ofh unless $opt{same_output};
+
+ print "$content\n\n" unless $create;
+}
+
+sub get_wrapper_components {
+my ($cf, %opt) = @_;
+
+ foreach (sort {$a cmp $b} keys %{$$cf{wrapinfo}}) {
+  get_interface ($cf, $_, noupdate    => 1, 
+	                  type        => 'component', 
+			  wrapper     => 1, 
+			  create      => 1, 
+			  output      => "wrapper_components.txt", 
+			  keep_opened => 1
+		  )
+ }
+}
+
+sub get_wrapper_instances {
+my ($cf, %opt) = @_;
+
+ open (my $pkg, '>', "wrapper_instances.txt"); my $oh = select $pkg;
+ 
+ my @aligned; HUtils::Grep ($cf, qr/\bport\slist/o, sub {push @aligned, map {$$_[0]} @{$_[1]}});
+ my $aligned = align (@aligned);
+
+ foreach my $cw (sort {$a cmp $b} keys %{$$cf{wrapinfo}}) {
+  print "a_$cw  :  $cw\n";
+  print "  PORT MAP (\n";
+
+  my $once = 0;
+  foreach (@{$$cf{wrapinfo}{$cw}{port}{list}{default}}) {
+   print " ,\n" if $once;
+
+   print join '', "    ", $$aligned{$$_[0]}, "  =>  ", $$aligned{$$_[0]};
+
+   ++$once;
+  } 
+
+  print "\n  );\n\n";
+ }
+
+ select $oh;
+}
+
+sub get_constants {
+my ($cf, %opt) = @_;
+
+ 
+ open (my $pkg, '>', "$$cf{output_directory}/$$cf{block}_mem_pkg_p.vhd"); my $oh = select $pkg;
+
+ my @align;
+ my @align_t;
+ hrecurse ($$cf{constants}, sub {my ($ks, $v) = @_;
+
+    my $block_wrapid_mem_dir         = join '_', $$cf{block}, $$ks[0], "mem", $$ks[2];
+    my $block_wrapid_mem_dir_size_c  = join '_', $block_wrapid_mem_dir, 'size_c';
+    my $block_wrapid_mem_dir_init_c  = join '_', $block_wrapid_mem_dir, 'init_c';
+
+  push @align, $$ks[3], $block_wrapid_mem_dir_size_c, $block_wrapid_mem_dir. '_t', $block_wrapid_mem_dir_init_c;
+  push @align, $$ks[4] if $$ks[4];
+  push @align_t, $block_wrapid_mem_dir. '_t';
+ });
+
+ push @align_t, "emp_mem_integer_t";
+
+ my $align   = align (keys %{{map {$_ => 1} @align}});
+ my $align_t = align (keys %{{map {$_ => 1} @align_t}});
+
+ print ''.string_substitute ($$cf{mandatory_header}, author_signame  => 'QDJERIC', 
+                                                     author_name     => 'Richard DJE',
+                                                     language        => q/VHDL'93/,
+                                                     file_name       => "$$cf{block}_mem_pkg_p.vhd",
+                                                     file_type       => 'VHDL',
+                                                     revision        => 'First Version',
+                                                     description     => "$$cf{blockname} Wrapper DFT/MBIST Generic Constants Declaration Package"
+                           );
+
+ print ''.string_substitute ($$cf{required_context_clause});
+ print ''.string_substitute ($$cf{optional_context_clause_2}), "\n\n";
+
+ print "PACKAGE $$cf{block}_mem_pkg IS\n\n\n";
+
+ print " -----------------------------------------------------------------------------\n";
+ print " --  I.   M E M O R Y   B I S T   S H E L L   D E C L A R A T I O N S         \n";
+ print " -----------------------------------------------------------------------------\n";
+
+ my $wrapid;
+ my $is_same_wrapid;
+ my $direction;
+ my $const_idx_v;
+ my $prev_size;
+ my $block_wrapid_mem_dir_size_c;
+ HUtils::Grep ($$cf{constants}, qr/\ssizes\s/o, sub {my ($ks, $v) = @_;
+  # [0] = wrapper id
+  # [1] = 'sizes'
+  # [2] = direction
+  # [3] = signal constant name
+  # [4] = signal size constant name
+
+
+  if (!$wrapid || !($is_same_wrapid = $wrapid eq $$ks[0])) {
+   if ($wrapid) {
+    say     " CONSTANT  ",  $$align{$block_wrapid_mem_dir_size_c}, "  :  ", $$align_t{emp_mem_integer_t}, "  := ".($$cf{zone0} ? 1 : "$const_idx_v + $prev_size").';'; 
+    push @{$$cf{mbist_offsets}{parameters}}, [$block_wrapid_mem_dir_size_c, $$cf{zone0} ? 1 : "$const_idx_v + $prev_size"];
+
+    print "\n\n";
+   }
+
+   print "\n -- =====================        Constants for '$$ks[0]'        =====================";
+   $const_idx_v = undef;
+  }
+
+  $wrapid = $$ks[0];
+  if ($const_idx_v && $direction && $direction ne $$ks[2]) {
+   say     " CONSTANT  ",  $$align{$block_wrapid_mem_dir_size_c}, "  :  ", $$align_t{emp_mem_integer_t}, "  := ".($$cf{zone0} ? 1 : "$const_idx_v + $prev_size").';';
+   push @{$$cf{mbist_offsets}{parameters}}, [$block_wrapid_mem_dir_size_c, $$cf{zone0} ? 1 : "$const_idx_v + $prev_size"];
+
+   $const_idx_v = undef;
+  }
+
+  print "\n -- $$ks[2]put\n" if !$direction || $direction ne $$ks[2];  $direction = $$ks[2];
+
+  unless ($$cf{zone0}) {
+   say     " CONSTANT  ", $$align{$$ks[3]},  "  :  ", $$align_t{emp_mem_integer_t}, "  := ", $const_idx_v ? "$const_idx_v + " . $prev_size :  0, ";"; 
+   push @{$$cf{mbist_offsets}{parameters}}, [$$ks[3], $const_idx_v ? "$const_idx_v + " . $prev_size :  0];
+  }
+
+
+  if (!$$cf{zone0} && $v > 1) {
+   say     " CONSTANT  ",  $$align{$$ks[4]},  "  :  ", $$align_t{emp_mem_integer_t}, "  := ", $v, ";"; 
+   push @{$$cf{mbist_offsets}{parameters}}, [$$ks[4], $v];
+  }
+
+  $const_idx_v                  = $$ks[3];
+  $prev_size                    = $v > 1 ? $$ks[4] : $v;
+  $block_wrapid_mem_dir_size_c  = join '_', $$cf{block}, $$ks[0], "mem", $$ks[2], 'size_c';
+ });
+ # Required for the last contants definition
+ say     " CONSTANT  ",  $$align{$block_wrapid_mem_dir_size_c}, "  :  ", $$align_t{emp_mem_integer_t}, "  := ".($$cf{zone0} ? 1 : "$const_idx_v + $prev_size").';'; 
+
+ push @{$$cf{mbist_offsets}{parameters}}, [$block_wrapid_mem_dir_size_c, $$cf{zone0} ? 1 : "$const_idx_v + $prev_size"];
+
+
+ say "\n";
+ say " -----------------------------------------------------------------------------";
+ say " --  I.   M E M O R Y   W R A P P E R   D E C L A R A T I O N S               ";
+ say " -----------------------------------------------------------------------------";
+
+ $wrapid         = "";
+ $is_same_wrapid = "";
+ $direction      = "";
+ # Wrapper Level constants first
+ HUtils::Grep ($$cf{constants}, qr/\sstart\s/o, sub {my ($ks, $v) = @_;
+    if (!$wrapid || !($is_same_wrapid = $wrapid eq $$ks[0])) {
+     print "\n\n" if $wrapid;
+     print "\n -- =====================        Wrapper Interface '$$ks[0]'        =====================";
+    }
+
+    $wrapid = $$ks[0];
+
+    my $block_wrapid_mem_dir         = join '_', $$cf{block}, $wrapid, "mem", $$ks[2];
+    my $block_wrapid_mem_dir_start_c = $$ks[$#$ks];
+    my $block_wrapid_mem_dir_size_c  = join '_', $block_wrapid_mem_dir, 'size_c';
+    my $block_wrapid_mem_dir_init_c  = join '_', $block_wrapid_mem_dir, 'init_c' if $$ks[2] ~~ /in/o;
+
+    say "\n -- $$ks[2]put" if !$direction || $direction ne $$ks[2];  $direction = $$ks[2];
+
+    say     " CONSTANT  ",  $$align{$block_wrapid_mem_dir_start_c}, "  :  ", $$align_t{emp_mem_integer_t},           "   :=  0;";
+    push @{$$cf{mbist_offsets}{parameters}}, [$block_wrapid_mem_dir_start_c, 0];
+
+    say " SUBTYPE   ", $$align{$block_wrapid_mem_dir.'_t'} ,   "  IS STD_LOGIC_VECTOR($block_wrapid_mem_dir_start_c + $block_wrapid_mem_dir_size_c - 1", 
+                                                                                      " DOWNTO $block_wrapid_mem_dir_start_c);";
+    say " CONSTANT  ", $$align{$block_wrapid_mem_dir_init_c},  "  :  ", $$align_t{"${block_wrapid_mem_dir}_t"}, "  :=  (OTHERS => '0');"  if $$ks[2] ~~ /in/o;
+
+ });
+
+
+ say "\n";
+ say " -----------------------------------------------------------------------------";
+ say " -- II.   B L O C K   L E V E L   D E C L A R A T I O N S                     ";
+ say " -----------------------------------------------------------------------------\n";
+
+ # Block/IP level constants next
+ my @align_lhs;
+ my @align_rhs;
+ my @wrapper_instance_count = @{list_2table ($$cf{instance_count}, 2)};
+ foreach my $dir (qw/in out/) {
+  foreach my $cw (@wrapper_instance_count) {
+   my ($wid, $cnt)         = @$cw;
+
+   foreach my $ci (0 .. $cnt-1) { 
+    my ($constant_start, $constant_size, $constant_end, $constant_init) = map {join '_', $$cf{block}, $wid, $ci, "mem", $dir, $_} qw/start_c size_c end_c init_c/;
+
+    push @align_lhs, $constant_start, $constant_size, $constant_end, $constant_init;
+    push @align_rhs, "$$cf{block}_${wid}_mem_${dir}_t";
+   }
+  }
+
+  my ($bp_size_c, $bp_t, $bp_init_c) = map {"$$cf{block}_mem_${dir}_$_"} qw/size_c t init_c/;
+
+  push @align_lhs, $bp_size_c, $bp_init_c, $bp_t;
+  push @align_rhs, "$$cf{block}_mem_${dir}_t", "emp_mem_integer_t";
+ }
+
+
+ my $align_lhs = align (@align_lhs);
+ my $align_rhs = align (@align_rhs);
+ foreach my $dir (qw/in out/) {
+  my @size_constants_list;
+  my @init_constants_list;
+  my $previous_end;
+
+  foreach my $cw (@wrapper_instance_count) {
+   my ($wid, $cnt)         = @$cw;
+
+   foreach my $ci (0 .. $cnt-1) { 
+    my $start_c    =  $previous_end ? "$previous_end + 1" : 0;
+
+    my ($constant_start, $constant_size, $constant_end, $constant_init) = map {join '_', $$cf{block}, $wid, $ci, "mem", $dir, $_} qw/start_c size_c end_c init_c/;
+
+    push @size_constants_list, $constant_size;
+    push @init_constants_list, $constant_init;
+
+    print " -- Wrapper '$wid' instance #$ci  (".uc($dir).")\n";
+    print " CONSTANT  ", $$align_lhs{$constant_start}, "  :  ", $$align_rhs{emp_mem_integer_t}, " := $start_c;\n";
+    print " CONSTANT  ", $$align_lhs{$constant_size},  "  :  ", $$align_rhs{emp_mem_integer_t}, " := $$cf{block}_${wid}_mem_${dir}_size_c;\n";
+    print " CONSTANT  ", $$align_lhs{$constant_end},   "  :  ", $$align_rhs{emp_mem_integer_t}, " := $constant_start + $constant_size - 1;\n";
+    print " CONSTANT  ", $$align_lhs{$constant_init},  "  :  ", $$align_rhs{"$$cf{block}_${wid}_mem_${dir}_t"}, " := $$cf{block}_${wid}_mem_${dir}_init_c;\n\n" if $dir ~~ /in/o;
+
+    $$cf{mbist_offsets}{block}{top}{$dir}{$wid}{$ci} = $constant_start;
+    push @{$$cf{mbist_offsets}{parameters}}, [$constant_start, $start_c], 
+                                             [$constant_size,  "$$cf{block}_${wid}_mem_${dir}_size_c"], 
+					     [$constant_end,   "$constant_start + $constant_size - 1"];
+
+    $previous_end = "$$cf{block}_${wid}_${ci}_mem_${dir}_end_c";
+   }
+  }
+
+  print " -- $$cf{block} level interface (".uc($dir).")\n";
+  my ($bp_size_c, $bp_t, $bp_init_c) = map {"$$cf{block}_mem_${dir}_$_"} qw/size_c t init_c/;
+
+  print " CONSTANT  ", $$align_lhs{$bp_size_c}, "  :  ", $$align_rhs{emp_mem_integer_t}, " := ", join(' + ', @size_constants_list), ";\n";
+  print " SUBTYPE   ", $$align_lhs{$bp_t},      "  IS STD_LOGIC_VECTOR($bp_size_c - 1 DOWNTO 0);\n"; 
+  print " CONSTANT  ", $$align_lhs{$bp_init_c}, "  :  ", $$align_rhs{$bp_t},             " := ", join(' & ', @init_constants_list), ";\n\n" if $dir ~~ /in/o;
+
+  push @{$$cf{mbist_offsets}{parameters}}, [$bp_size_c, join(' + ', @size_constants_list)], ["$$cf{block}_mem_${dir}_hsi", "$bp_size_c - 1"];
+
+  push @{$$cf{mbist_offsets}{regs}}, "[$$cf{block}_mem_${dir}_hsi:0] $$cf{block}_mem_$dir";
+
+  @size_constants_list = ();
+  @init_constants_list = ();
+
+  print "\n\n";
+ }
+
+ print "\nEND PACKAGE $$cf{block}_mem_pkg;\n";
+
+ select $oh;
+}
+
+sub get_offsets {
+my ($cf) = @_;
+
+
+ my %view2d;
+ hrecurse (avv_get($cf, qw/mbist_offsets block top/), sub {my ($ks, $sc) = @_;
+   # ks[0] = direction
+   # ks[1] = wrapper-id
+   # ks[2] = instance index
+
+   hrecurse (avv_get($cf, qw/mbist_offsets block wrapper/, $$ks[1], $$ks[0]), sub {my ($k, $c) = @_;
+      my $constant_name = join '_', $$cf{block}, @$ks[1,2], 'mem', $$ks[0], $$k[0], 'c'; 
+
+      $view2d{$$k[0]}{$$ks[1].'_'.$$ks[2]} = "$$ks[0]:[<$constant_name>]";
+    
+      avv_push ($cf, qw/mbist_offsets parameters/, [$constant_name, "$sc + $c"]);
+   });
+ });
+
+ my $rows    = {};
+ my $columns = {};
+ keygrep (\%view2d, sub {@{$_[0]} == 1}, 
+	            sub {my ($ks, $sh) = @_;
+		      keygrep ($sh, sub {@{$_[0]} == 1}, 
+			            sub {my ($kss, $v) = @_;
+                                      avv_set  ($columns, $kss, 1);
+                                      avv_push ($rows,    $ks,  [$kss,  $v]);
+                      }); 
+ });
+
+ my $k2t_rows    = HUtils::Key2Table ($rows);
+ my $k2t_columns = HUtils::Key2Table ($columns);
+
+ my @table_o;
+ hrecurse ($rows, sub {my ($ks, $vl) = @_;
+    my $rowi = HUtils::GetKeyIndex ($k2t_rows, $ks);
+
+    foreach (@$vl) {
+     my ($kss, $v) = @$_;
+
+     my $coli = HUtils::GetKeyIndex ($k2t_columns, $kss);
+     $table_o[$rowi][$coli] = $v;
+
+    }
+
+    unshift @{$table_o[$rowi]}, @$ks;
+ });
+
+ unshift @table_o, map {push @$_, (undef) x $k2t_rows->{width}; [reverse @$_]} @{Table2SS::SwapTable($k2t_columns->{table})};
+
+
+ my $wbid  = Table2SS::AddWorkBook("wrapgen_constants.xls");
+
+
+ my $param = {map {@$_} @{$$cf{mbist_offsets}{parameters}}}; hv_subst ($param);
+
+ Table2SS::DriveSheet($wbid, 'DFT constants', Table2SS::RCAllocate(1, 1, 1, [Table::iterate (\@table_o, sub {$_[0] =~ s/<(\w+)>/sprintf "%-3i", $$param{$1}/eo if defined $_[0]})], "wrapgen"));
+ Table2SS::Close($wbid);
+
+
+ my $align = align (my @const_names = map {$$_[0]} @{$$cf{mbist_offsets}{parameters}}); 
+
+ open (my $vc, '>mbist_constants.v');
+ print $vc map {"parameter\t$$align{$_}  = $$param{$_};\n"} @const_names;
+ print $vc "\n\n";
+ print $vc map {"reg $_;\n"} @{$$cf{mbist_offsets}{regs}};
+}
+
+sub confread  {
+ my $c = config_read (@_);
+
+ wrapper_interface ($c);
+ mem_map           ($c);
+
+ return $c
+}
+
+
+sub mem_map    {
+ my %memo;
+ foreach (@{list_2table ($_[0]{mem_map}, 7)}) {
+  unless ($memo{$$_[0]}) {
+   $memo{$$_[0]}{cell}     = $$_[2]; 
+   $memo{$$_[0]}{type}     = $$_[3]; 
+   $memo{$$_[0]}{access}   = $$_[4]; 
+   $memo{$$_[0]}{sizinfo}  = $$_[5];
+   $memo{$$_[0]}{is_async} = $$_[6];
+  }
+
+  push @{$memo{$$_[0]}{mem_ids}}, $$_[1] unless @{$memo{$$_[0]}{mem_ids}} ~~ $$_[1];
+ }
+
+ $_[0]{wrapid_listre} = '('.join ('|', keys %memo).')';
+ $_[0]{mem_map}       = \%memo;
+}
+
+sub wrapper_interface {$_[0]{wrapper_interface} = [map {[$$_[0], ($$_[1] =~ /^\w+(?:\|\w+)*(?:->\w+)?$/o ? ('subst_this', [$$_[0], $$_[1]])                                  : 
+                                                                                     ($$_[1] =~ /:/o     ? (do {my @t = split /:/o, $$_[1];  $t[0], [$$_[0], @t[1 .. $#t]]}) : 
+                                                                                                           ('ignore_it', [])))
+                                                  ]}  @{list_2table ($_[0]{wrapper_interface}, 2)}]}
+
+sub align {
+ my $maxlen = (sort {$b <=> $a} map {length} @_)[0];
+ return {map {$_ => $_. " " x ($maxlen - length)} @_}
+}
+
+
+# <bp>_<wrap-id>_<type>_<access>_<HxWxB>
+sub create_wrapper {
+my ($cf, %opt) = @_;
+
+ my @real_cell_names = sort {$a cmp $b} keys %{$$cf{cellinfo}};
+
+ while (my ($wrap_id, $wpinfo) = each %{$$cf{mem_map}}) {
+  my $wrapper_name = join '_', $$cf{block}, $wrap_id, @$wpinfo{qw/type access sizinfo/}; 
+
+  push @wrappers_list, $wrapper_name;
+
+  my ($cellfile_base) = grep {m/$$wpinfo{cell}$/} @real_cell_names;
+  unless ($cellfile_base) {
+   say "-W- Cell '$$wpinfo{cell}' did not match. (ignoring)"; 
+   next
+  }
+
+  foreach my $cpinfo (@{$$cf{cellinfo}{$cellfile_base}{port}{list}{default}}) {
+   local $_ = $$cpinfo[0];
+   print "#################$cellfile_base<$_>##############################\n" if $$cf{debug};
+
+   # To be able to retrieve the  wrap_id strait from the actual cell name.
+   $$cf{wrapinfo}{$wrapper_name}{cellname} = $cellfile_base;
+
+   my $got_it = 0;
+   my @got_it;
+   foreach my $celpin (@{$$cf{wrapper_interface}}) {
+    print "   ================= <@$celpin>\n" if $$cf{debug};
+    #my $cellpin_re = ref $celpin->[0] ? ${$celpin->[0]};
+
+    if (m/$celpin->[0]/) {
+     push @got_it, $celpin->[0];
+     $got_it++;
+
+     say "           ---------------------------- GOT IT <$_>" if $$cf{debug};
+     # The current cell's current pin matched the current RE
+     # an action need to be taken.
+
+     #
+     #================ MEM-ID deduction =============
+     # NOT robust !! but seams to work
+     #
+
+     # A Memory Wrapper may contain more than one memory *cell*, each with is own MBIST channel.
+     # My understanding is that MEM-ID is not the most accurate word, it should have been named (M)BIST-ID.
+     #
+     # Because MEM/MBIST, call it whatever you like :), are essentially used to allocate a specific slot in the MEM_IN/MEM_OUT busses
+     # for a given Memory wrapper.
+     #
+     # Why I am discussing this being that we may have:
+     # - 1 MBIST module *for all* (N) memory modules of a given memory cell  ---> 1 MBIST channel
+     # - 1 MBIST module *per* memory module (N) of a given memory cell       ---> N MBIST channels
+     # ...
+     # - Or any other MBIST scheme   for    a given memory cell              ---> (M <N) MBIST channel
+     #
+     # 
+     # As a conclusion, MEM-IDs (Should) only applies to the Actual number of MBIST channels available
+     # in total for a specific memory wrapper.
+     #
+     (my $piname = $_) =~ s/$celpin->[0]|_//g; 
+
+     my $check    = $piname;
+     my $memid_index = $celpin->[1] ne 'tech_mbist' ? 0 : (!$piname ? 0 : ($piname =~ /^\d+$/o ? $piname -1 : $piname));
+
+     if ($check eq $memid_index) {
+      # The modified version of $piname still contains letters
+      # this small solution failed
+      print "\n-W- Can't Deduced the MEM-ID for WRAP-ID<$wrap_id> CELL<$cellfile_base> CELLPIN<$_> RE<$celpin->[0]>\n";
+     }
+
+     # As of today the following $mem_id variable is not used
+     my $mem_id      = $$cf{mem_map}{$wrap_id}{mem_ids}[$check eq $memid_index ? 0 : $memid_index];
+     #============================================================================================================
+
+     &{$celpin->[1]}($cf,                     # common data structure
+                     # Required arguments
+                     $wrapper_name,             # wrapper name
+                     $cellfile_base,            # actual cell name
+                     $_,                        # current cell pin/port
+                     $wrap_id,                  # wrapper id
+                     $mem_id,                   # memory id of the this wrapper id, As I said ABOVE mem-id SHOULD ONLY apply to MBIST channels or shells
+		                                # and NOT to the number of memory module actually wrapped into a single memory cell
+						# 
+						# As a consequent for this particular version, the mem-id would be ignored to simplify the algorithm since
+						# currently we are dealing only with 1 MBISt channel for N >= 1 memory module(s)
+
+		     # Variable number of arguments
+                     @{$$celpin[2]}            # defined via CONFILE, c.f wrapper_interface()
+                    );
+    }
+   } 
+
+   unless ($got_it) {
+    print "-W- Pin *$_* of cell *$cellfile_base* doesn't match any functional port.\n";
+    print "-I- Trying to match it against MBIST ports ..\n";
+   } elsif ($got_it > 1) {
+    print "\n-E- Pin *$_* of cell *$cellfile_base* Matched more than one functional port !!\n";
+    print "   -> <@got_it>\n\n";
+   }
+
+  } 
+ }
+
+
+ hrecurse ($cf, sub {print "<@{$_[0]}> => <$_[1]>\n"}) if $$cf{debug};
+
+ if ($$cf{create}) {
+  rmtree $$cf{output_directory};
+  mkpath $$cf{output_directory};
+  unlink 'wrapper_components.txt';
+ }
+
+ get_interface            ($cf, $_, wrapper=> 1, create=>$$cf{create}) foreach @wrappers_list;
+
+ $$cf{cell_mbist_align} = align (@{$$cf{cell_mbist_align}});
+
+ foreach (@wrappers_list) {
+  if ($$cf{zone0}) {
+   get_z0_wrapper_architecture ($cf, $_);
+  } else {
+   get_wrapper_architecture ($cf, $_,   create=> $$cf{create}, noprint=>$$cf{zone0});
+  }
+ }
+
+ get_wrapper_components   ($cf, noupdate=>1) unless $$cf{zone0};
+ get_wrapper_instances    ($cf)              unless $$cf{zone0};
+ get_mbist_clkgates       ($cf)              unless $$cf{zone0};
+ get_constants            ($cf);
+ get_offsets              ($cf)              unless $$cf{zone0};
+}
+
+
+sub get_mbist_clkgates {
+my ($cf) = @_;
+
+ my $cg_template_n = $$cf{mbist_clkgate_wrapper_template};
+ my $cg;
+
+ my $ph = select;
+ open (my $cg_template, $cg_template_n); local $/; my $cgf = <$cg_template>; 
+
+
+ my @clkgate_re_list = split /\s+/o, $$cf{clkgate_name_re_list};
+ hrecurse ($$cf{mem_map}, sub {my ($info, $cell) = @_;
+	 return unless "@{$_[0]}" =~ / cell/o;
+
+	 $cell = do {local $_ = $cell; foreach my $re (@clkgate_re_list) {eval $re} $_};
+
+	 (my $cg_fo = $cg_template_n) =~ s/my-mbist/$cell/o;
+	 open $cg, '>', "$$cf{output_directory}/$cg_fo"; select $cg;
+         print ''.string_substitute ($$cf{mandatory_header}, author_signame  => 'QDJERIC', 
+                                                             author_name     => 'Richard DJE',
+                                                             language        => q/VHDL'93/,
+                                                             file_name       => $cg_fo,
+                                                             file_type       => 'VHDL',
+                                                             revision        => 'First Version',
+                                                             description     => "$cell MBIST specific clock gate wrapper"
+                            );
+
+         print "\n";
+         print ''.string_substitute ($cgf, my_mbist => $cell)
+ });
+
+ select $ph;
+}
+
+# wrapper interface handlers
+sub subst_this {
+my ($cf, @args) = @_;
+
+my ($wrapper_name, $cellname, $cellport, $wrapper_id, undef, $subst_re, $wraports) = @args;
+
+my $cellport_initial = $cellport;
+
+######## say "##############> <$wrapper_id>($$cf{mem_map}{$wrapper_id}{is_async})[wraports<$wraports>]";
+my @port_n_act = split /->/o, $wraports; 
+my @right_port = split /\|/, $port_n_act[0]; ####### say 'View -=====> [', join ('-', @right_port), ']';
+my $wraport    = $right_port[$$cf{mem_map}{$wrapper_id}{is_async}] // $right_port[0];
+
+print "subst_this BEFORE <$wrapper_name, $cellname, $cellport, $subst_re, $wraport>\n" if $$cf{debug};
+ $cellport =~ s/$subst_re/$wraport/gi;
+print "subst_this AFTER <$wrapper_name, $cellname, $cellport, $subst_re, $wraport>\n" if $$cf{debug};
+
+ push @{$$cf{wrapinfo}{$wrapper_name}{port}{list}{default}}, [$cellport, @{$$cf{cellinfo}{$cellname}{port}{hash}{$cellport_initial}}{qw/direction type msi lsi/}]
+    unless $$cf{wrapinfo}{$wrapper_name}{port_uniquify}{$cellport};
+
+ $$cf{cell_instance_portmap}{$wrapper_name}{$cellname}{$cellport_initial} = $cellport;
+ $$cf{wrapinfo}{$wrapper_name}{port_uniquify}{$cellport}                  = 1;
+
+ $port_n_act[1] && plugin ('wrapgen_'.$port_n_act[1])->($cf, $wrapper_name, $cellport)
+}
+
+sub do_this {my ($cf, $action, $args, @more_args) = @_; &$action($cf, @$args, @more_args)}
+
+sub dft_ctrl_in {
+my ($cf, @args) = @_;
+
+# [0] = wrapper name
+# [1] = actual mbist cell name
+# [2] = cell pin/port name
+# [3] = wrapper id
+# [4] = mem id (or bist id)
+# [5] = cell pin/port RE (via CONFILE)
+# [6] = argument specified in the config file
+my ($wrapper_name, $cell_pinport_name) = @args[0, 2];
+
+ print "\n\ndft_ctrl_in<@_>\n\n" if $$cf{debug};
+
+ push @{$$cf{wrapinfo}{$wrapper_name}{port}{list}{default}}, ['dft_ctrl_in', 'IN', 'dft_ctrl_in_t'];
+
+ push @{$$cf{wrapinfo}{$wrapper_name}{mbist_connection}{input}}, [$cell_pinport_name,  "dft_ctrl_in(dft_ctrl_clk_force_c)"];
+ $$cf{wrapinfo}{$wrapper_name}{has_emp_dft_pkg} = 1;
+
+ push @{$$cf{cell_mbist_align}}, $cell_pinport_name;
+}
+
+sub tech_mbist {
+my ($cf, @args) = @_;
+
+ my ($wrapper_name, $cell_name, $cellpin_name, $wrapper_id, $mem_id, $cellpinport_re, $direction, $signal) = splice @args, 0, 8;
+ 
+ my $block_wrapid_mem_dir               = "$$cf{block}_${wrapper_id}_mem_$direction";
+ #my $block_wrapid_mem_dir_memid         = join '_', $block_wrapid_mem_dir, $mem_id;
+ # MEM-ID, aka BIST-ID, is ignored for this implementation
+ my $block_wrapid_mem_dir_memid         = $block_wrapid_mem_dir;
+ my $block_wrapid_mem_dir_memid_start_c = $block_wrapid_mem_dir_memid.'_start_c'; # to be defined
+
+ (my $const_name = $cellpin_name)       =~ s/$cellpinport_re/$signal/i; # print "########################## <$cellpin_name> =======> <$const_name>\n";
+ my $mem_xx_c                           = join '_', $block_wrapid_mem_dir_memid, $const_name, 'c';                       
+
+ $$cf{mbist_offsets}{block}{wrapper}{$wrapper_id}{$direction}{$const_name} = $mem_xx_c; 
+ $$cf{has_generic_mbist_port}{$wrapper_name}{$block_wrapid_mem_dir}        = 1;
+
+ my $pinport_size             = $$cf{cellinfo}{$cell_name}{port}{hash}{$cellpin_name}{size};
+ my $block_wrapid_mem_size_c  = join '_', $block_wrapid_mem_dir_memid, $const_name, 'size', 'c'; # to be defined
+
+ my $slice                    = $pinport_size > 1 ? "$block_wrapid_mem_dir($block_wrapid_mem_dir_memid_start_c + $mem_xx_c + $block_wrapid_mem_size_c -1 DOWNTO $block_wrapid_mem_dir_memid_start_c + $mem_xx_c)" :
+                                                    "$block_wrapid_mem_dir($block_wrapid_mem_dir_memid_start_c + $mem_xx_c)"; 
+
+ push @{$$cf{wrapinfo}{$wrapper_name}{mbist_connection}{$direction."put"}},  $direction eq 'in' ? [$cellpin_name,  $slice] : [$slice, $cellpin_name];
+ push @{$$cf{cell_mbist_align}},                                             $direction eq 'in' ?  $cellpin_name           :  $slice;
+
+ $$cf{constants}{$wrapper_id}{start}{$direction}{$block_wrapid_mem_dir_memid_start_c} += $pinport_size;
+ $$cf{constants}{$wrapper_id}{sizes}{$direction}{$mem_xx_c}{$block_wrapid_mem_size_c}  = $pinport_size;
+
+ plugin ('wrapgen_'.$signal)->($cf, $wrapper_name, $cell_name, $cellpin_name);
+}
+
+sub ignore_it {}
+
+sub hv_subst {my $h = shift; foreach my $k (keys %$h) {local $_ = $$h{$k}; s/((?<!')\b[a-z]\w*)/$$h{$1}/goi while /(?<!')\b[a-z]\w*/oi; $$h{$k} = eval}}
+
+sub AUTOLOAD {PPlugin->exec ($AUTOLOAD, @_)}

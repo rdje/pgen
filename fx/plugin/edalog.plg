@@ -1,0 +1,28 @@
+edalog_2ss {
+  my $msg = {};
+  my $chk = {};
+
+  map {
+   HUtils::avv_get ($msg, $$_[0], $$_[2], $$_[1])++; 
+  } @{Table::list2table([map {say "(edalog_2ss) -I- Processing report '$_'..";
+                              slurp($_) =~ /^((?i:information|warning|error)):\s*(.+?)\.?\s*\(([A-Z]+-\d+)\)/gmo} @{$_[0]{_argv}}], 3)};
+
+  my $msg_w_cnt = {};
+  keygrep ($msg, sub {@{$_[0]} == 2}, sub {my ($ks, $sh) = @_; 
+                            my $cnt = eval join "+", values %$sh; 
+			    map {avv_push ($msg_w_cnt, $ks, $cnt, [$$sh{$_}, $_])} keys %$sh;
+  });
+
+  my $edalog_xcel = $_[0]{_excelfile} || "$_[0]{_action}.xls";
+
+  say "(edalog_2ss) -I- Generating '$edalog_xcel'";
+
+  Table2SS::DriveTableTree($edalog_xcel,
+                           "Messages",
+                           $msg_w_cnt,
+			   xpad        => 2 ,
+                           ypad        => 2 ,
+			   link_script => 'edalog_link',
+			   script      => 'edalog_script'
+  );
+}

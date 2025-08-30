@@ -1,0 +1,17 @@
+# Generated with seed: 123
+# Main rule: expression
+# Input 1:
+2 + 5
+
+# Input 2:
+1 + 2
+
+# Input 3:
+4 - 3
+
+# Input 4:
+4 + 2
+
+# Input 5:
+1
+

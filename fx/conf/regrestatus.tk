@@ -1,0 +1,35 @@
+#==============================================
+# *regrestatus* GUI description
+#==============================================
+
+main   {
+ tixlabelframe regrestatus (options label:"regrestatus" bg:grey88 labelside:top)
+
+       (.frame bg:grey67) (.label bg:skyblue3)
+       (checkbutton    cb0 (pack anchor:w) (options text:"merge"  
+                                                    variable:"\$regrestatus{'merge'}"  
+                                                    bg:grey67 
+                                                    relief:ridge))
+
+       (checkbutton    cb1 (pack anchor:w) (options text:"md5sum" 
+                                                    variable:"\$regrestatus{'md5sum'}" 
+                                                    bg:grey67 
+                                                    relief:ridge 
+                                                    command:\&md5sum_cb))
+       
+       (tixlabelentry  le_modere   (pack fill:x expand:1) (options label:"Mode     RE") 
+                                   (.label bg:lightsteelblue3) 
+                                   (.entry bg:white  
+                                           selectbackground:blue3 
+                                           selectforeground:white  
+                                           width:15 textvariable:"\$regrestatus{'mre'}"))
+
+       (tixlabelentry  le_clockre  (pack fill:x expand:1) (options label:"Clock    RE") 
+                                   (.label bg:lightsteelblue3) 
+                                   (.entry bg:white  
+                                           selectbackground:blue3 
+                                           selectforeground:white  
+                                           width:15 
+                                           textvariable:"\$regrestatus{'cre'}"))
+
+}

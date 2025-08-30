@@ -1,0 +1,19 @@
+vhdconst_eval {
+ my %constants = %{vhdl_constant_value_eval ($_[0]{_argv}[0])};
+
+ my $align     = RTLUtils::string_align([keys %constants]);
+ print map {"$$align{$_} : $constants{$_}\n"} keys %constants;
+}
+
+vhdl_constant_value_eval       {
+(my $slurp    = slurp ($_[0])) =~ s/--.*//go;
+
+my $constants = {$slurp =~ /\bconstant\s+(\w+?)\s*:.+?:=\s*(.+?)\s*;/sgi};
+   $constants = {map {$_ => $$constants{$_}}  grep {!/init_c$/o} keys %$constants};
+
+ hvalue_substitute ($constants);
+
+ $constants
+}
+
+hvalue_substitute {foreach my $k (keys %{$_[0]}) {local $_ = $_[0]{$k}; next unless $_; s/((?<!')\b[a-z]\w*)/$_[0]{$1}/goi while /(?<!')\b[a-z]\w*/oi; $_[0]{$k} = eval}}

@@ -1,0 +1,326 @@
+uref_2cidl {
+$|=1;
+
+
+  my $cf = HUtils::Merge($_[0], config_read ('uref_2cidl'));
+
+  if ($_[0]{_argv}[0] =~ /\.doc$/io) {
+   use Win32::OLE::Const 'Microsoft Word';
+   # open (STDERR , '>', devnull ());
+
+    # eval {$wa = Win32::OLE->GetActiveObject('Word.Application')};
+    # die "Word not installed" if $@;
+    # $wa //= Win32::OLE->new ('Word.Application', sub {$_[0]->Quit;}) || die "Oops, cannot start Word";
+
+    # my $d = $wa->Documents->Open (realpath($_[0]{_argv}[0]));
+    my $realpath = realpath($_[0]{_argv}[0]);
+    say "(uref_2cidl) -I- Opening '$realpath'..";
+
+    my $d   = Win32::OLE->GetObject($realpath);
+    die "Can't open $_[0]{_argv}[0]"  unless $d;
+   $d->{Application}->{Visible} = 1;
+
+
+   # ---------------------
+   # All level 3 outlines
+   # ---------------------
+   my @level3_outline;
+   # Should take care of handling the case where
+   # a huge question is split into two, three, ...
+   foreach (1 .. $d->{ListParagraphs}{Count}) {
+    my $p = $d->ListParagraphs($_);
+
+    next unless $p->{OutlineLevel} == 3;
+    (my $t = $p->{Range}{Text}) =~ s/^\s+|\s+$//go;
+    push @level3_outline, $t;
+   }
+
+
+   # -----------
+   # All Tables
+   # -----------
+   my @tables;
+   foreach (1 .. $d->{Tables}{Count}) {
+    my $table = $d->{Tables}->Item($_);
+    
+    my @table;
+    foreach my $cr (1 .. $table->{Rows}{Count}) {
+    #say "  Row #$cr:";
+     my @row;
+     foreach  my $cc (1 .. $table->Rows($cr)->{Cells}{Count}) {
+      # say "    Cell #$cc:";
+      # say "Properties: <@{[keys %{$d->Tables($ct)->Rows($cr)->Cells($cc)}]}>";
+
+      push @row, $table->Rows($cr)->Cells($cc)->{Range}{Text};
+     }
+     
+     push @table, [map {s/^\s+|\s+$//go; s/[[:^print:]]+//go; $_} @row];
+    }
+
+    push @tables, [@table]
+   }
+
+   my @t_i = grep {
+                      (@{$$_[0]} == $$cf{first_row_column_count} || @{$$_[0]} == $$cf{others_rows_column_count}) && 
+		      do {
+		       # -----------------------------------------------------------------------
+		       # CAEVATS: If we entered here because of 'others_rows_column_count' then
+		       #          we SHOULD check if there are others ROWs here.
+		       #          That is to check if '@$_[1 .. $#$_]' is not empty
+		       # -----------------------------------------------------------------------
+		       my @widths = keys %{{map {scalar (@$_), 1} @$_[1 .. $#$_]}};
+                       @widths == 1 && $widths[0] == $$cf{others_rows_column_count} 
+		      }
+                  } @tables;
+
+   
+   # ---------------------------------
+   # Re-assembling the pieces, if any
+   # ---------------------------------
+   # This is to handle the case where a huge table is split into several others
+   # As a consequence we have to re-assemble the pieces..
+   my @f_tables = $t_i[0];
+   foreach my $ct (1 .. $#t_i) {
+    if (@{${$t_i[$ct]}[0]} == $$cf{first_row_column_count}) {
+     # If first row of the current table has 'first_row_column_count' columns then with have a
+     # brand new table and not the continuation of the '$f_tables[-1]' table
+     push @f_tables, $t_i[$ct]
+    } else {# == 'others_rows_column_count'
+     # N-th part of a table
+     push @{$f_tables[-1]}, @{$t_i[$ct]}
+    }
+   }
+
+   say '';
+
+   # Now synchronizing the register name with its description.
+   # After thi step the register name will appear on the first row of each table
+   my $i = -1;
+   my $cidl_info = [map {unshift @$_, [$level3_outline[++$i]]; $_} @f_tables];
+
+   my $outputfile = $_[0]{_excelfile} || "$_[0]{_action}.xls";
+   say "(uref_2cidl) -I- Creation \'$outputfile\'..";
+
+   my $wbid = Table2SS::AddWorkBook($outputfile);
+   Table2SS::DriveSheet($wbid, 'raw', Table2SS::RCAllocate(1, 1, 20, $cidl_info, 'raw'));
+   Table2SS::Close($wbid);
+
+ # $d->Close
+   Storable::store($cidl_info, 'msword.db');
+
+   drive_cidl ($_[0], $cidl_info);
+
+ } else {
+  drive_cidl ($_[0], Storable::retrieve($_[0]{_argv}[0]))
+ }
+}
+
+
+drive_cidl {my ($cr, $cidl_info) = @_;
+ my $cidl_file_name         = catfile ($$cr{output_directory}, lc string_substitute ($$cr{cidl_file_name},     block_name => $$cr{block_name}));
+ my $cidl_file_description  = string_substitute ($$cr{cidl_file_description}, block_name => $$cr{block_name});
+ my $corporate_header       = string_substitute (slurp ($$cr{'corporate_file_header'})            ,
+                                                 file_name      => $cidl_file_name                ,
+						 file_type      => 'CIDL register definition file',
+                                                 author_name    => 'Richard DJE'                  ,
+                                                 author_signame => 'QDJERIC'                      ,
+                                                 revision       => 'Initial Revision'             ,
+                                                 language       => 'CIDL'                         ,
+                                                 description    => $cidl_file_description
+                                                );
+
+ my @ios_code_info;
+ mkdir $$cr{output_directory};
+ open (my $cidlo, '>', $cidl_file_name);
+
+ say $cidlo string_substitute ($$cr{cidl_top}                             ,
+                               corporate_header     => $corporate_header  ,
+                               block_name           => $$cr{block_name}   ,
+                               block_prefix         => $$cr{block_prefix} ,
+                               signal_prefix        => $$cr{signal_prefix},
+                               register_definitions => cidl_register_definitions ($cr, $cidl_info, \@ios_code_info)
+ );
+
+  my $iosmap_top = string_substitute ($$cr{iosmap_top},
+                                      name          => lc $$cr{block_prefix}.'_iosmap',
+         			      signal_prefix => lc $$cr{signal_prefix}         ,
+                                      interface     => join ("\n", grep defined, map {
+					               my $access_type = $$_{access_type} ~~ /wop|rwp/io  && $$_{field_width} ~~ '' ? 'WOP_RWP_1bit' : $$_{access_type};
+         			                       $$_{register_name} ~~ m/$$cr{reg_2ignore}/o ? undef : string_substitute ($$cr{iosmap_interface_entry}{$access_type}, $_)   
+         			                      } @ios_code_info).$$cr{iosmap_last_interface_info}
+  );
+
+  my @iosmap_content = map {[split /\s+<=\s+/o]} grep defined, map {
+    my $ccode_info      = $_;
+
+    my $access_type     = $$_{access_type} ~~ /wop|rwp/io  && $$_{field_width} ~~ '' ? 'WOP_RWP_1bit' : $$_{access_type};
+    my $current_content =  $$cr{$$ccode_info{field_name} =~ m/$$cr{common_fld_re}/o ? 'iosmap_special_content_entry' : 'iosmap_content_entry'}{$access_type};
+    map {$$ccode_info{register_name} ~~ m/$$cr{reg_2ignore}/o ? undef : string_substitute ($_, 
+		                                                        $ccode_info, 
+			                                                ios_statrecord => lc $$cr{signal_prefix}.'_stat', 
+			                                                ios_confrecord => lc $$cr{signal_prefix}.'_conf')} ref $current_content ? @$current_content : $current_content
+  } @ios_code_info;
+
+  private_state ('msword.plg')->{'iosmap_archi'} = \@iosmap_content;
+  fsmgen_from_string ($iosmap_top, 
+                      output_directory      => $$cr{output_directory},
+                      add_package_list      => [qw/common_cidl_lib.lte_cidl_common_pkg  lte_digital_rf_lib.lte_dif_iosocket_pkg/], 
+		      corporate_file_header => \config_read('pcsally_mem')->{mandatory_header})
+}
+
+cidl_register_definitions {my ($cr, $cidl_info, $ios_code_info) = @_;
+ my $regidx = -1;
+ join "\n", map {
+  ++$regidx;
+  my $reg_offset = '0x'.uc sprintf "%02x", 2 * $regidx;
+  my $regname    = ${shift @$_}[0];
+  splice @$_, 0, 2;
+
+  my @ftable = @$_;
+
+  my $reg_header_text = string_substitute ($$cr{reg_header_text}            ,
+                                           block_name    => $$cr{block_name},
+					   register_name => $regname
+                                          );
+
+  say "(uref_2cidl) -I- Processing register #$reg_offset '$regname'..";
+
+  $regname = lc $regname;
+
+  if ($regname =~ /$$cr{common_reg_re}/) {
+   my $max_fuena_index;
+   my $mandatory_reg = $+{mandatory_reg};
+   
+   given ($mandatory_reg) {
+     when (/^io_ctrl/io) {
+      my $max_start = grep {$$_[3] && uc ($$_[3]) =~ /RW/io} @ftable;
+         $max_fuena_index = $max_start - 2;
+
+      # Requirement information for creating the iosmap VHDL code
+      push @$ios_code_info, {register_name => $regname, field_name => lc $mandatory_reg.'_'."fuena$_",    field_width => '', access_type=> 'RW'} foreach 0 .. $max_fuena_index;
+      push @$ios_code_info, {register_name => $regname, field_name => lc $mandatory_reg.'_'.'core_start', field_width => '', access_type=> 'RW'};
+     }
+
+     when (/^io_stat/)  {
+       my $first_row       = 1;
+       my @fieldef;
+       foreach my $cfield (@ftable) {
+         my ($bitnumbers, $fieldname, $resetvalue, $rw, $description) = @$cfield;
+         $fieldname  ||= '-';
+         $rw         ||= '-';
+
+         next if $first_row && $fieldname =~ /$$cr{not_used_field_re}/o;
+
+         $first_row = 0;
+
+         my (@indexes) = $bitnumbers =~ /(\d+)/go;
+         my $width     = abs($indexes[0] - $indexes[-1] + 1);
+
+         # Required information for creating the iosmap VHDL code
+         push @$ios_code_info, {register_name => $regname, field_name => lc $mandatory_reg.'_'.$fieldname, field_width => $width ~~ 1 ? '' : $width, access_type=> 'RO_STD'}
+       }
+     }
+
+     when (/^io_intmask/)  {
+       my $first_row       = 1;
+       my @fieldef;
+       foreach my $cfield (@ftable) {
+         my ($bitnumbers, $fieldname, $resetvalue, $rw, $description) = @$cfield;
+         $fieldname  ||= '-';
+         $rw         ||= '-';
+
+         next if $first_row && $fieldname =~ /$$cr{not_used_field_re}/o;
+
+         $first_row = 0;
+
+         my (@indexes) = $bitnumbers =~ /(\d+)/go;
+         my $width     = abs($indexes[0] - $indexes[-1] + 1);
+
+         # Required information for creating the iosmap VHDL code
+         push @$ios_code_info, {register_name => $regname, field_name => lc $mandatory_reg.'_id', field_width => $width ~~ 1 ? '' : $width, access_type=> 'RO_STD'}
+       }
+     }
+
+     default  {
+       my $first_row       = 1;
+       my @fieldef;
+       foreach my $cfield (@ftable) {
+         my ($bitnumbers, $fieldname, $resetvalue, $rw, $description) = @$cfield;
+         $fieldname  ||= '-';
+         $rw         ||= '-';
+
+         next if $first_row && $fieldname =~ /$$cr{not_used_field_re}/o;
+
+         $first_row = 0;
+
+         my (@indexes) = $bitnumbers =~ /(\d+)/go;
+         my $width     = abs($indexes[0] - $indexes[-1] + 1);
+
+         # Required information for creating the iosmap VHDL code
+         push @$ios_code_info, {register_name => $regname, field_name => lc $mandatory_reg.'_id', field_width => $width ~~ 1 ? '' : $width, access_type=> uc($rw)}
+       }
+     }
+   }
+
+   string_substitute ($$cr{common_reg_decl}{lc $mandatory_reg},
+                      max_fuena_index => $max_fuena_index     ,
+                      reg_offset      => $reg_offset
+                     );
+  
+  } else {
+
+   my $first_row       = 1;
+   my @fieldef;
+   foreach (@ftable) {
+     my ($bitnumbers, $fieldname, $resetvalue, $rw, $description) = @$_;
+
+     $fieldname  ||= '-';
+     $rw         ||= '-';
+     $resetvalue   = sprintf "%d", eval ($resetvalue ? ($resetvalue =~ /-/o ? 0 : $resetvalue): 0);
+
+
+     next if $first_row && $fieldname =~ /$$cr{not_used_field_re}/o;
+     $first_row = 0;
+
+     my (@indexes) = $bitnumbers =~ /(\d+)/go;
+     my $width     = abs($indexes[0] - $indexes[-1] + 1);
+
+     # say "          [$rw] $width-bit Field '$fieldname'";
+
+     push @fieldef, string_substitute ($$cr{$width == 1 ? 'cidl_common_single_bit_field' : 'cidl_common_multi_bit_field'}{uc $rw} ,
+                                       field_name    => $fieldname            ,
+                                       field_width   => $width                ,
+				       default_value => $resetvalue
+                                      );
+             		
+    # Required information for creating the iosmap VHDL code
+    push @$ios_code_info, {register_name => $regname, field_name => lc $fieldname, field_width => $width ~~ 1 ? '' : $width, access_type=>uc $rw}
+   }
+
+   string_substitute ($$cr{register_definition}                          ,
+	              reg_offset                 => $reg_offset          ,
+		      reg_header_text            => $reg_header_text     ,
+		      register_field_definitions => join ("\n", @fieldef),
+		      register_name              => uc $regname             
+		      
+   );
+  }
+  
+ } @$cidl_info;
+}
+
+iosmap_archi {
+ my $iosmap_content  = private_state ('msword.plg')->{'iosmap_archi'};
+ my @last_archi_info = map {[split /\s+<=\s+/o]} @{config_read ('uref_2cidl')->{iosmap_last_archi_info}};
+
+  my $content_al = RTLUtils::string_align([map {$$_[0]} @$iosmap_content, @last_archi_info]);
+  my %uniq_assign;
+  my @assigns;
+  foreach (@$iosmap_content, @last_archi_info) {
+   push @assigns, "$$content_al{$$_[0]}  <=  $$_[1];" unless $uniq_assign{$$_[0]};
+   $uniq_assign{$$_[0]}++
+  }
+
+ say ''.join ("\n", @assigns);
+ say "\n\n\n";
+}

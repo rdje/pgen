@@ -1,0 +1,1217 @@
+#!/usr/bin/env julia
+
+"""
+# Julia Parser Generator - Complete 5-Stage AST Transformation Pipeline
+
+Generates Julia parser code from JSON raw AST using the exact 5-step transformation pipeline.
+Strictly follows algorithms specified in docs/ast_transformation_pipeline.md
+
+## Usage
+
+```bash
+julia_parser_gen [options] <json_file>
+ebnf_to_json.pl grammar.ebnf | julia_parser_gen [options]
+```
+
+## Architecture
+
+Implements the complete 5-step transformation pipeline exactly as documented:
+
+```
+Raw AST JSON → Step 2 → Step 2.5 → Step 3 → Step 4 → Step 5 → Julia Parser
+               Group    Handle      Parse    Handle    Build
+               by OR    Parens      Sequences Quantifiers Tree
+```
+
+Every step follows the algorithms in docs/ast_transformation_pipeline.md precisely.
+"""
+
+using JSON3
+using ArgParse
+
+# Return annotation AST for structured semantic actions
+abstract type ReturnAnnotation end
+
+struct ScalarRef <: ReturnAnnotation
+    index::Int
+end
+
+struct ArrayExpr <: ReturnAnnotation
+    contents::Vector{ReturnAnnotation}
+end
+
+struct ObjectExpr <: ReturnAnnotation
+    contents::Vector{Tuple{String, ReturnAnnotation}}
+end
+
+struct LiteralAnnotation <: ReturnAnnotation
+    value::String
+end
+
+struct DotAccess <: ReturnAnnotation
+    base::ReturnAnnotation
+    field::String
+end
+
+struct QuantifiedAnnotation <: ReturnAnnotation
+    base::ReturnAnnotation
+end
+
+# Grammar production for left recursion elimination
+struct Production
+    symbols::Vector{String}
+    annotation::Union{ReturnAnnotation, Nothing}
+end
+
+# Grammar rule with alternatives and annotations
+struct GrammarRule
+    name::String
+    productions::Vector{Production}
+end
+
+# Semantic AST node types following the specification exactly
+abstract type ASTNode end
+
+struct Terminal <: ASTNode
+    value::String
+end
+
+struct NonTerminal <: ASTNode
+    name::String
+end
+
+struct Sequence <: ASTNode
+    elements::Vector{ASTNode}
+end
+
+struct Choice <: ASTNode
+    rule::String
+    alternatives::Vector{ASTNode}
+end
+
+struct QuantifiedNode <: ASTNode
+    symbol::ASTNode
+    quantifier::String  # "?", "*", "+"
+end
+
+struct GroupNode <: ASTNode
+    inner::ASTNode
+end
+
+struct WithAnnotation <: ASTNode
+    node::ASTNode
+    annotation::ReturnAnnotation
+end
+
+# Token structure - exactly as defined in docs
+struct Token
+    token_type::String
+    value::String
+end
+
+# Parse error with position information
+struct ParseError <: Exception
+    message::String
+    position::Int
+    expected::Vector{String}
+end
+
+Base.showerror(io::IO, e::ParseError) = print(io, "Parse error at position $(e.position): $(e.message)")
+
+# Command line options
+struct Options
+    input_file::Union{String, Nothing}
+    output_file::Union{String, Nothing}
+    module_name::Union{String, Nothing}
+    quiet::Bool
+end
+
+function parse_command_line_args()
+    s = ArgParseSettings(description = """
+    🔷 JULIA PARSER GENERATOR - JSON to Julia
+    
+    Generates Julia parser code from JSON raw AST using the 5-step transformation pipeline.
+    """)
+
+    @add_arg_table! s begin
+        "--output", "-o"
+            help = "Write parser to <basename>.jl"
+            arg_type = String
+        "--module", "-m"
+            help = "Set module name (default: derived from grammar)"
+            arg_type = String
+        "--quiet", "-q"
+            help = "Suppress progress messages"
+            action = :store_true
+        "json_file"
+            help = "Input JSON file (optional, reads from stdin if not provided)"
+            required = false
+    end
+
+    parsed_args = parse_args(ARGS, s)
+    
+    return Options(
+        parsed_args["json_file"],
+        parsed_args["output"], 
+        parsed_args["module"],
+        parsed_args["quiet"]
+    )
+end
+
+function main()
+    options = parse_command_line_args()
+    
+    try
+        run_generator(options)
+        if !options.quiet
+            @info "🎉 Julia parser generated successfully!"
+        end
+    catch e
+        @error "🚨 JULIA PARSER GENERATION FAILED!"
+        @error string(e)
+        exit(1)
+    end
+end
+
+function run_generator(options::Options)
+    # Read JSON input
+    json_content = if options.input_file !== nothing
+        if !options.quiet
+            @info "📄 Reading JSON from: $(options.input_file)"
+        end
+        read(options.input_file, String)
+    else
+        if !options.quiet
+            @info "📄 Reading JSON from STDIN"
+        end
+        read(stdin, String)
+    end
+    
+    # Parse JSON
+    json_data = JSON3.read(json_content)
+    
+    # Validate JSON structure
+    if !haskey(json_data, :grammar_name) || !haskey(json_data, :raw_ast)
+        throw(ArgumentError("Invalid JSON: missing grammar_name or raw_ast"))
+    end
+    
+    grammar_name = string(json_data.grammar_name)
+    raw_ast = json_data.raw_ast
+    
+    if !options.quiet
+        @info "🔷 Generating Julia parser for grammar: $grammar_name"
+    end
+    
+    # Run the transformation pipeline
+    parser_result = generate_julia_parser_from_json(raw_ast, grammar_name, options)
+    
+    # Determine module name
+    module_name = if options.module_name !== nothing
+        options.module_name
+    else
+        derive_module_name(grammar_name)
+    end
+    
+    # Output results
+    if options.output_file !== nothing
+        jl_file = endswith(options.output_file, ".jl") ? 
+                  options.output_file : 
+                  "$(options.output_file).jl"
+        
+        julia_code = replace(parser_result, "MODULE_NAME_PLACEHOLDER" => module_name)
+        write(jl_file, julia_code)
+        
+        if !options.quiet
+            @info "✅ Julia parser written to: $jl_file"
+        end
+    else
+        julia_code = replace(parser_result, "MODULE_NAME_PLACEHOLDER" => module_name)
+        print(julia_code)
+    end
+end
+
+function generate_julia_parser_from_json(raw_ast, grammar_name::String, options::Options)
+    if !options.quiet
+        @info "\n=== Running Enhanced 6-Step Transformation Pipeline ==="
+    end
+    
+    # First, group rule definitions by rule name since the raw AST has separate entries for each alternative
+    rule_definitions = Dict{String, Vector{Vector{Token}}}()
+    
+    for rule_array in raw_ast
+        if isempty(rule_array)
+            continue
+        end
+        
+        # First token should be the rule name
+        rule_name = extract_rule_name(rule_array[1])
+        
+        # Rest are the rule definition tokens
+        definition_tokens = [parse_token(token) for token in rule_array[2:end]]
+        
+        # Group by rule name
+        if !haskey(rule_definitions, rule_name)
+            rule_definitions[rule_name] = Vector{Token}[]
+        end
+        push!(rule_definitions[rule_name], definition_tokens)
+    end
+    
+    # Now process each grouped rule through the 5-step transformation pipeline
+    grammar_rules = Dict{String, ASTNode}()
+    
+    for (rule_name, alternatives) in rule_definitions
+        if !options.quiet
+            @info "Processing rule: $rule_name ($(length(alternatives)) alternatives)"
+        end
+        
+        # Combine all alternatives with OR operators to recreate the original token stream format
+        combined_tokens = Token[]
+        for (i, alt_tokens) in enumerate(alternatives)
+            if i > 1
+                push!(combined_tokens, Token("operator", "|"))
+            end
+            append!(combined_tokens, alt_tokens)
+        end
+        
+        transformed_rule = transform_rule(rule_name, combined_tokens, options)
+        grammar_rules[rule_name] = transformed_rule
+    end
+    
+    # Step 6a: Apply left recursion elimination
+    if !options.quiet
+        @info "Step 6a: Applying left recursion elimination..."
+    end
+    grammar_rules = eliminate_left_recursion(grammar_rules, options)
+    
+    # Step 6b: Generate Julia code with return annotations
+    if !options.quiet
+        @info "Step 6b: Generating Julia code with semantic actions..."
+    end
+    
+    return generate_julia_code(grammar_rules, grammar_name)
+end
+
+function parse_token(token_data)
+    if length(token_data) != 2
+        throw(ArgumentError("Token array must have exactly 2 elements: got $(length(token_data))"))
+    end
+    
+    return Token(string(token_data[1]), string(token_data[2]))
+end
+
+function extract_rule_name(token_data)
+    if length(token_data) != 2 || string(token_data[1]) != "rule"
+        throw(ArgumentError("Invalid rule token format: expected [\"rule\", rule_name], got $token_data"))
+    end
+    
+    return string(token_data[2])
+end
+
+function transform_rule(rule_name::String, tokens::Vector{Token}, options::Options)
+    # Extract return annotation if present
+    tokens, annotation = extract_return_annotation(tokens)
+
+    # Step 2: Group by OR operators - following exact docs algorithm
+    if !options.quiet
+        @info "  Step 2: Grouping by OR operators..."
+    end
+    alternatives = step2_group_by_or(tokens)
+    
+    # Step 2.5: Handle parentheses - following exact docs algorithm 
+    if !options.quiet
+        @info "  Step 2.5: Handling parentheses..."
+    end
+    alternatives = step2_5_handle_parentheses(alternatives)
+    
+    # Step 3: Parse sequences - following exact docs algorithm
+    if !options.quiet
+        @info "  Step 3: Parsing sequences..."
+    end
+    alternatives = step3_parse_sequences(alternatives)
+    
+    # Step 4: Handle quantifiers - following exact docs algorithm
+    if !options.quiet
+        @info "  Step 4: Handling quantifiers..."
+    end
+    alternatives = step4_handle_quantifiers(alternatives)
+    
+    # Step 5: Build tree structure - following exact docs algorithm
+    if !options.quiet
+        @info "  Step 5: Building tree structure..."
+    end
+    tree = step5_build_tree_structure(rule_name, alternatives)
+
+    # Attach annotation if present
+    if annotation !== nothing
+        tree = WithAnnotation(tree, annotation)
+    end
+    
+    return tree
+end
+
+# STEP 2: Group by OR operators
+# Follows exact algorithm from docs/ast_transformation_pipeline.md
+function step2_group_by_or(tokens::Vector{Token})
+    alternatives = Vector{Token}[]
+    current_alt = Token[]
+    
+    for token in tokens
+        if token.token_type == "operator" && token.value == "|"
+            if !isempty(current_alt)  # Don't add empty alternatives
+                push!(alternatives, copy(current_alt))
+            end
+            current_alt = Token[]  # Reset for next alternative
+        else
+            push!(current_alt, token)
+        end
+    end
+    
+    # Add final alternative
+    if !isempty(current_alt)
+        push!(alternatives, current_alt)
+    end
+    
+    return alternatives
+end
+
+# STEP 2.5: Handle parentheses  
+# Follows exact algorithm from docs/ast_transformation_pipeline.md
+function step2_5_handle_parentheses(alternatives::Vector{Vector{Token}})
+    result = Vector{Token}[]
+    
+    for alt in alternatives
+        processed = handle_parentheses_in_alternative(alt)
+        push!(result, processed)
+    end
+    
+    return result
+end
+
+function handle_parentheses_in_alternative(tokens::Vector{Token})
+    result = Token[]
+    i = 1
+    
+    while i <= length(tokens)
+        token = tokens[i]
+        
+        if token.token_type == "operator" && token.value == "("
+            # Find matching closing parenthesis
+            group, end_pos = extract_parentheses_group(tokens, i)
+            push!(result, Token("group", group))
+            i = end_pos + 1
+        else
+            push!(result, token)
+            i += 1
+        end
+    end
+    
+    return result
+end
+
+function extract_parentheses_group(tokens::Vector{Token}, start_pos::Int)
+    depth = 0
+    group = Token[]
+    
+    for i in start_pos:length(tokens)
+        token = tokens[i]
+        
+        if token.token_type == "operator" && token.value == "("
+            if depth > 0  # Don't include the opening paren
+                push!(group, token)
+            end
+            depth += 1
+        elseif token.token_type == "operator" && token.value == ")"
+            depth -= 1
+            if depth == 0
+                return (group, i)  # Found matching close
+            else
+                push!(group, token)
+            end
+        else
+            if depth > 0
+                push!(group, token)
+            end
+        end
+    end
+    
+    throw(ArgumentError("Unmatched parentheses starting at position $start_pos"))
+end
+
+# STEP 3: Parse sequences
+# Follows exact algorithm from docs/ast_transformation_pipeline.md
+function step3_parse_sequences(alternatives::Vector{Vector{Token}})
+    result = []
+    
+    for alt in alternatives
+        # Filter out whitespace and comments
+        filtered = filter(t -> t.token_type ∉ ["whitespace", "comment"], alt)
+        
+        if length(filtered) == 0
+            continue  # Skip empty alternatives
+        elseif length(filtered) == 1
+            push!(result, ["single", filtered[1]])
+        else
+            push!(result, ["sequence", filtered])
+        end
+    end
+    
+    return result
+end
+
+# STEP 4: Handle quantifiers  
+# Follows exact algorithm from docs/ast_transformation_pipeline.md
+function step4_handle_quantifiers(alternatives)
+    result = []
+    
+    for alt in alternatives
+        if alt[1] == "sequence"
+            new_sequence = process_quantifiers_in_sequence(alt[2])
+            push!(result, ["sequence", new_sequence])
+        elseif alt[1] == "single"
+            # Check if single item has quantifier
+            quantified = process_single_quantifier(alt[2])
+            push!(result, ["single", quantified])
+        else
+            push!(result, alt)
+        end
+    end
+    
+    return result
+end
+
+function process_quantifiers_in_sequence(sequence::Vector{Token})
+    result = []
+    i = 1
+    
+    while i <= length(sequence)
+        token = sequence[i]
+        
+        # Look ahead for quantifier
+        if i < length(sequence) && sequence[i + 1].token_type == "quantifier"
+            quantifier = sequence[i + 1].value
+            push!(result, ["quantified", token, quantifier])
+            i += 2  # Skip both token and quantifier
+        else
+            push!(result, token)
+            i += 1
+        end
+    end
+    
+    return result
+end
+
+function process_single_quantifier(token)
+    # Single tokens don't have following quantifiers in this context
+    return token
+end
+
+# STEP 5: Build tree structure
+# Follows exact algorithm from docs/ast_transformation_pipeline.md
+function step5_build_tree_structure(rule_name::String, alternatives)
+    if length(alternatives) == 1
+        # Single alternative - no choice needed
+        return build_alternative_tree(alternatives[1])
+    else
+        # Multiple alternatives - create choice node
+        choice_branches = []
+        for alt in alternatives
+            push!(choice_branches, build_alternative_tree(alt))
+        end
+        
+        return Choice(rule_name, choice_branches)
+    end
+end
+
+function build_alternative_tree(alternative)
+    alt_type = alternative[1]
+    
+    if alt_type == "single"
+        return build_symbol_tree(alternative[2])
+    elseif alt_type == "sequence"
+        elements = []
+        for elem in alternative[2]
+            push!(elements, build_symbol_tree(elem))
+        end
+        return Sequence(elements)
+    else
+        throw(ArgumentError("Unknown alternative type: $alt_type"))
+    end
+end
+
+function build_symbol_tree(symbol)
+    if isa(symbol, WithAnnotation)
+        return symbol  # preserve annotation wrapper
+    elseif isa(symbol, Token)
+        if symbol.token_type == "identifier"
+            return NonTerminal(symbol.value)
+        elseif symbol.token_type == "quoted_string"
+            return Terminal(symbol.value)
+        elseif symbol.token_type == "rule_reference"
+            return NonTerminal(symbol.value)
+        elseif symbol.token_type == "regex"
+            return Terminal(symbol.value)
+        elseif symbol.token_type == "group"
+            # Process group recursively - following docs algorithm
+            grouped_alts = step2_group_by_or(symbol.value)
+            return build_tree_structure("group", grouped_alts)
+        elseif symbol.token_type in ["return_scalar", "return_array", "return_object"]
+            # Return annotations - treat as terminals for now, will be processed later
+            return Terminal(symbol.value)
+        elseif symbol.token_type in ["group_open", "group_close"]
+            # Group delimiters - treat as terminals
+            return Terminal(symbol.value)
+        elseif symbol.token_type == "operator"
+            # Operators - treat as terminals (parentheses, etc.)
+            return Terminal(symbol.value)
+        elseif symbol.token_type == "number"
+            # Numbers - treat as terminals
+            return Terminal(symbol.value)
+        elseif symbol.token_type == "quantifier"
+            # Quantifiers - treat as terminals
+            return Terminal(symbol.value)
+        else
+            # For any other token type, treat as terminal
+            # This allows the generator to be more flexible with token types
+            return Terminal(symbol.value)
+        end
+    elseif isa(symbol, Vector) && length(symbol) >= 3 && symbol[1] == "quantified"
+        # Handle quantified symbol: ["quantified", token, quantifier]
+        base_symbol = build_symbol_tree(symbol[2])
+        quantifier = symbol[3]
+        
+        return QuantifiedNode(base_symbol, quantifier)
+    else
+        throw(ArgumentError("Unknown symbol format: $symbol"))
+    end
+end
+
+# Extract return annotation from tokens
+function extract_return_annotation(tokens::Vector{Token})
+    clean = Token[]
+    i = 1
+    while i <= length(tokens)
+        t = tokens[i]
+        if t.token_type == "operator" && t.value == "->"
+            # Remaining tokens form the annotation expression (simple parsing for now)
+            ann_tokens = tokens[(i+1):end]
+            return (clean, parse_return_annotation_tokens(ann_tokens))
+        else
+            push!(clean, t)
+            i += 1
+        end
+    end
+    return (clean, nothing)
+end
+
+function parse_return_annotation_tokens(tokens::Vector{Token})::ReturnAnnotation
+    s = join(getfield.(tokens, :value), " ")
+    m = match(r"^\$(\d+)$", s)
+    if m !== nothing
+        return ScalarRef(parse(Int, m.captures[1]))
+    end
+    if startswith(s, "[") && endswith(s, "]")
+        inner = strip(s[2:end-1])
+        parts = split(inner, ",")
+        contents = ReturnAnnotation[]
+        for p in parts
+            p = strip(p)
+            m = match(r"^\$(\d+)\*?$", p)
+            if m !== nothing
+                idx = parse(Int, m.captures[1])
+                if endswith(p, "*")
+                    push!(contents, QuantifiedAnnotation(ScalarRef(idx)))
+                else
+                    push!(contents, ScalarRef(idx))
+                end
+            else
+                push!(contents, LiteralAnnotation(p))
+            end
+        end
+        return ArrayExpr(contents)
+    end
+    if startswith(s, "{") && endswith(s, "}")
+        inner = strip(s[2:end-1])
+        kpos = findfirst(":", inner)
+        if kpos !== nothing
+            key = strip(inner[1:kpos-1])
+            value = strip(inner[kpos+1:end])
+            m = match(r"^\$(\d+)$", value)
+            if m !== nothing
+                return ObjectExpr([(key, ScalarRef(parse(Int, m.captures[1])))])
+            end
+        end
+    end
+    return LiteralAnnotation(s)
+end
+
+function build_tree_structure(rule_name::String, alternatives)
+    # Helper function for recursive group processing
+    if length(alternatives) == 1
+        return build_alternative_tree(["sequence", alternatives[1]])
+    else
+        choice_branches = []
+        for alt in alternatives
+            push!(choice_branches, build_alternative_tree(["sequence", alt]))
+        end
+        return Choice(rule_name, choice_branches)
+    end
+end
+
+# Left recursion elimination (Aho-Sethi-Ullman algorithm)
+function eliminate_left_recursion(grammar_rules::Dict{String, ASTNode}, options::Options)
+    if !options.quiet
+        @info "  Applying left recursion elimination on $(length(grammar_rules)) rules"
+    end
+    
+    # Convert to production form
+    productions = Dict{String, Vector{Production}}()
+    
+    for (rule_name, ast_node) in grammar_rules
+        productions[rule_name] = convert_ast_to_productions(ast_node)
+    end
+    
+    # Apply elimination algorithm
+    rule_names = sort(collect(keys(productions)))
+    
+    for i in 1:length(rule_names)
+        Ai = rule_names[i]
+        
+        # Eliminate indirect left recursion
+        for j in 1:(i-1)
+            Aj = rule_names[j]
+            new_productions = Production[]
+            
+            for prod in productions[Ai]
+                if !isempty(prod.symbols) && prod.symbols[1] == Aj
+                    # Replace Aj with all its productions
+                    for Aj_prod in productions[Aj]
+                        new_symbols = vcat(Aj_prod.symbols, prod.symbols[2:end])
+                        push!(new_productions, Production(new_symbols, prod.annotation))
+                    end
+                else
+                    push!(new_productions, prod)
+                end
+            end
+            
+            productions[Ai] = new_productions
+        end
+        
+        # Eliminate direct left recursion
+        productions = eliminate_immediate_left_recursion(productions, Ai, options)
+    end
+    
+    # Convert back to AST form
+    result = Dict{String, ASTNode}()
+    for (rule_name, prods) in productions
+        result[rule_name] = convert_productions_to_ast(rule_name, prods)
+    end
+    
+    return result
+end
+
+function convert_ast_to_productions(ast_node::ASTNode)::Vector{Production}
+    if isa(ast_node, WithAnnotation)
+        # Extract annotation and process inner node
+        inner_prods = convert_ast_to_productions(ast_node.node)
+        # Apply annotation to all productions
+        return [Production(prod.symbols, ast_node.annotation) for prod in inner_prods]
+    elseif isa(ast_node, Choice)
+        prods = Production[]
+        for alt in ast_node.alternatives
+            append!(prods, convert_ast_to_productions(alt))
+        end
+        return prods
+    elseif isa(ast_node, Sequence)
+        symbols = String[]
+        for elem in ast_node.elements
+            if isa(elem, Terminal)
+                push!(symbols, "'" * elem.value * "'")
+            elseif isa(elem, NonTerminal)
+                push!(symbols, elem.name)
+            else
+                push!(symbols, "COMPLEX_" * string(typeof(elem)))
+            end
+        end
+        return [Production(symbols, nothing)]
+    elseif isa(ast_node, Terminal)
+        return [Production(["'" * ast_node.value * "'"], nothing)]
+    elseif isa(ast_node, NonTerminal)
+        return [Production([ast_node.name], nothing)]
+    else
+        # For other complex nodes, create a placeholder production
+        return [Production(["COMPLEX_" * string(typeof(ast_node))], nothing)]
+    end
+end
+
+function eliminate_immediate_left_recursion(productions::Dict{String, Vector{Production}}, rule_name::String, options::Options)
+    prods = productions[rule_name]
+    
+    # Separate left-recursive and non-left-recursive productions
+    left_recursive = Production[]
+    non_left_recursive = Production[]
+    
+    for prod in prods
+        if !isempty(prod.symbols) && prod.symbols[1] == rule_name
+            push!(left_recursive, prod)
+        else
+            push!(non_left_recursive, prod)
+        end
+    end
+    
+    if isempty(left_recursive)
+        return productions  # No left recursion to eliminate
+    end
+    
+    if !options.quiet
+        @info "    Eliminating direct left recursion in rule: $rule_name"
+    end
+    
+    # Create new rule name for the auxiliary rule
+    aux_rule = rule_name * "_prime"
+    
+    # Transform productions: A -> Aα becomes A -> βA'
+    new_main_prods = Production[]
+    aux_prods = Production[]
+    
+    # Non-left-recursive productions become A -> βA'
+    for prod in non_left_recursive
+        new_symbols = vcat(prod.symbols, [aux_rule])
+        push!(new_main_prods, Production(new_symbols, prod.annotation))
+    end
+    
+    # Left-recursive productions become A' -> αA' | ε
+    for prod in left_recursive
+        if length(prod.symbols) > 1
+            # A -> Aα becomes A' -> αA'
+            alpha = prod.symbols[2:end]
+            new_symbols = vcat(alpha, [aux_rule])
+            push!(aux_prods, Production(new_symbols, prod.annotation))
+        end
+    end
+    
+    # Add epsilon production for auxiliary rule: A' -> ε
+    push!(aux_prods, Production(String[], nothing))
+    
+    # Update productions
+    productions[rule_name] = new_main_prods
+    productions[aux_rule] = aux_prods
+    
+    return productions
+end
+
+function convert_productions_to_ast(rule_name::String, prods::Vector{Production})::ASTNode
+    if length(prods) == 1
+        # Single production
+        prod = prods[1]
+        if isempty(prod.symbols)
+            # Epsilon production
+            result = Terminal("")
+        elseif length(prod.symbols) == 1
+            # Single symbol
+            symbol = prod.symbols[1]
+            if startswith(symbol, "'")
+                result = Terminal(symbol[2:end-1])  # Remove quotes
+            else
+                result = NonTerminal(symbol)
+            end
+        else
+            # Sequence
+            elements = ASTNode[]
+            for symbol in prod.symbols
+                if startswith(symbol, "'")
+                    push!(elements, Terminal(symbol[2:end-1]))
+                else
+                    push!(elements, NonTerminal(symbol))
+                end
+            end
+            result = Sequence(elements)
+        end
+        
+        # Apply annotation if present
+        if prod.annotation !== nothing
+            result = WithAnnotation(result, prod.annotation)
+        end
+        
+        return result
+    else
+        # Multiple productions - create choice
+        alternatives = ASTNode[]
+        for prod in prods
+            if isempty(prod.symbols)
+                # Epsilon production
+                alt = Terminal("")
+            elseif length(prod.symbols) == 1
+                symbol = prod.symbols[1]
+                if startswith(symbol, "'")
+                    alt = Terminal(symbol[2:end-1])
+                else
+                    alt = NonTerminal(symbol)
+                end
+            else
+                elements = ASTNode[]
+                for symbol in prod.symbols
+                    if startswith(symbol, "'")
+                        push!(elements, Terminal(symbol[2:end-1]))
+                    else
+                        push!(elements, NonTerminal(symbol))
+                    end
+                end
+                alt = Sequence(elements)
+            end
+            
+            # Apply annotation if present
+            if prod.annotation !== nothing
+                alt = WithAnnotation(alt, prod.annotation)
+            end
+            
+            push!(alternatives, alt)
+        end
+        
+        return Choice(rule_name, alternatives)
+    end
+end
+
+function generate_julia_code(grammar::Dict{String, ASTNode}, grammar_name::String)
+    code = """
+    # $(uppercase(grammar_name)) Parser
+    # 
+    # Generated from EBNF grammar using julia_parser_gen
+    # This parser implements a recursive descent parser with comprehensive error handling.
+
+    module MODULE_NAME_PLACEHOLDER
+
+    export parse, ParseError
+
+    # Parse error with position information
+    struct ParseError <: Exception
+        message::String
+        position::Int
+        expected::Vector{String}
+    end
+
+    Base.showerror(io::IO, e::ParseError) = print(io, "Parse error at position \$(e.position): \$(e.message)")
+
+    # Parser state
+    mutable struct Parser
+        input::String
+        position::Int
+        
+        Parser(input::String) = new(input, 1)
+    end
+
+    # Get current position (1-indexed)
+    position(p::Parser) = p.position
+
+    # Check if at end of input
+    is_at_end(p::Parser) = p.position > length(p.input)
+
+    # Peek at current character without consuming
+    function peek(p::Parser)
+        if is_at_end(p)
+            return nothing
+        else
+            return p.input[p.position]
+        end
+    end
+
+    # Advance position and return current character
+    function advance!(p::Parser)
+        if is_at_end(p)
+            return nothing
+        else
+            ch = p.input[p.position]
+            p.position += 1
+            return ch
+        end
+    end
+
+    # Match exact string
+    function match_string!(p::Parser, expected::String)
+        start_pos = p.position
+        
+        for expected_char in expected
+            ch = advance!(p)
+            if ch === nothing
+                p.position = start_pos  # Backtrack
+                throw(ParseError("Unexpected end of input, expected '\$expected'", p.position, [expected]))
+            elseif ch != expected_char
+                p.position = start_pos  # Backtrack
+                throw(ParseError("Expected '\$expected_char', found '\$ch'", p.position, [string(expected_char)]))
+            end
+        end
+        
+        return expected
+    end
+
+    # Skip whitespace
+    function skip_whitespace!(p::Parser)
+        while !is_at_end(p) && isspace(peek(p))
+            advance!(p)
+        end
+    end
+
+    """
+    
+    # Generate parsing functions for each rule
+    for (rule_name, ast_node) in grammar
+        function_code = generate_parse_function(rule_name, ast_node)
+        code *= function_code * "\n"
+    end
+    
+    # Find the appropriate starting rule (prefer grammar name or first rule with alternatives)
+    start_rule = if haskey(grammar, grammar_name)
+        grammar_name
+    elseif haskey(grammar, "json")
+        "json"
+    else
+        first(keys(grammar))
+    end
+    
+    code *= """
+    # Main parse function
+    function parse(input::String)
+        parser = Parser(input)
+        skip_whitespace!(parser)
+        result = parse_$(start_rule)(parser)
+        
+        skip_whitespace!(parser)
+        if !is_at_end(parser)
+            throw(ParseError("Unexpected input after parsing", parser.position, ["end of input"]))
+        end
+        
+        return result
+    end
+
+    end # module
+
+    # Re-export parse function for convenience
+    using .MODULE_NAME_PLACEHOLDER
+    export parse
+    
+    # Example usage (uncomment to test):
+    # result = parse("your input here")
+    # println("Parsed result: ", result)
+    """
+    
+    return code
+end
+
+# Multiple dispatch for generating parse functions based on AST node type
+function generate_parse_function(rule_name::String, ast_node::Terminal)
+    escaped_value = replace(ast_node.value, '"' => "\\\"")
+    
+    return """
+    # Parse $rule_name rule
+    function parse_$(rule_name)(p::Parser)
+        skip_whitespace!(p)
+        return match_string!(p, "$escaped_value")
+    end"""
+end
+
+function generate_parse_function(rule_name::String, ast_node::NonTerminal)
+    return """
+    # Parse $rule_name rule  
+    function parse_$(rule_name)(p::Parser)
+        skip_whitespace!(p)
+        return parse_$(ast_node.name)(p)
+    end"""
+end
+
+function generate_parse_function(rule_name::String, ast_node::Sequence)
+    code = """
+    # Parse $rule_name rule
+    function parse_$(rule_name)(p::Parser)
+        skip_whitespace!(p)
+        result = String[]
+        """
+    
+    for (i, element) in enumerate(ast_node.elements)
+        if isa(element, Terminal)
+            escaped_value = replace(element.value, '"' => "\\\"")
+            code *= """
+        push!(result, match_string!(p, "$escaped_value"))
+        """
+        elseif isa(element, NonTerminal)
+            code *= """
+        push!(result, parse_$(element.name)(p))
+        """
+        elseif isa(element, QuantifiedNode)
+            code *= generate_quantified_code(element, i)
+        else
+            code *= """
+        # TODO: Handle complex element type: $(typeof(element))
+        """
+        end
+    end
+    
+    code *= """
+        return join(result, "")
+    end"""
+    
+    return code
+end
+
+# Handle rules with return annotations
+function generate_parse_function(rule_name::String, ast_node::WithAnnotation)
+    inner_code = generate_parse_function(rule_name * "_inner", ast_node.node)
+    semantic_action = generate_semantic_action(ast_node.annotation)
+    
+    return """
+    # Parse $rule_name rule (with semantic action)
+    function parse_$(rule_name)(p::Parser)
+        skip_whitespace!(p)
+        # Parse inner structure
+        inner_result = parse_$(rule_name)_inner(p)
+        # Apply semantic action
+        return $semantic_action
+    end
+    
+    $inner_code""" 
+end
+
+function generate_parse_function(rule_name::String, ast_node::Choice)
+    code = """
+    # Parse $rule_name rule
+    function parse_$(rule_name)(p::Parser)
+        skip_whitespace!(p)
+        start_pos = p.position
+        errors = ParseError[]
+        
+        # Try alternatives in order"""
+    
+    for (i, alt) in enumerate(ast_node.alternatives)
+        code *= """
+        
+        # Try alternative $i
+        p.position = start_pos
+        try
+            result = "" * $(generate_alternative_code(alt))
+            return result
+        catch e
+            push!(errors, e)
+        end"""
+    end
+    
+    code *= """
+        
+        # All alternatives failed
+        throw(ParseError("No valid alternative found for $rule_name", start_pos, ["valid $rule_name alternative"]))
+    end"""
+    
+    return code
+end
+
+function generate_parse_function(rule_name::String, ast_node::QuantifiedNode)
+    return """
+    # Parse $rule_name rule
+    function parse_$(rule_name)(p::Parser)
+        skip_whitespace!(p)
+        $(generate_quantified_code(ast_node, 0))
+    end"""
+end
+
+function generate_alternative_code(alt::ASTNode)
+    if isa(alt, Terminal)
+        escaped_value = replace(alt.value, '"' => "\\\"")
+        return "match_string!(p, \"$escaped_value\")"
+    elseif isa(alt, NonTerminal)
+        return "parse_$(alt.name)(p)"
+    elseif isa(alt, Sequence)
+        parts = String[]
+        for element in alt.elements
+            push!(parts, generate_alternative_code(element))
+        end
+        return join(parts, " * ")
+    elseif isa(alt, QuantifiedNode)
+        return generate_quantified_code(alt, 0)
+    else
+        return "\"TODO: Handle $(typeof(alt))\""
+    end
+end
+
+function generate_quantified_code(node::QuantifiedNode, indent_level::Int)
+    indent = "    "^(indent_level + 1)
+    
+    if node.quantifier == "*"
+        return """
+$(indent)# Zero or more (*)
+$(indent)parts = String[]
+$(indent)while true
+$(indent)    checkpoint = p.position
+$(indent)    try
+$(indent)        part = $(generate_alternative_code(node.symbol))
+$(indent)        push!(parts, part)
+$(indent)    catch
+$(indent)        p.position = checkpoint
+$(indent)        break
+$(indent)    end
+$(indent)end
+$(indent)return join(parts, "")"""
+    elseif node.quantifier == "+"
+        return """
+$(indent)# One or more (+)
+$(indent)parts = String[]
+$(indent)# First occurrence is required
+$(indent)push!(parts, $(generate_alternative_code(node.symbol)))
+$(indent)# Additional occurrences are optional
+$(indent)while true
+$(indent)    checkpoint = p.position
+$(indent)    try
+$(indent)        part = $(generate_alternative_code(node.symbol))
+$(indent)        push!(parts, part)
+$(indent)    catch
+$(indent)        p.position = checkpoint
+$(indent)        break
+$(indent)    end
+$(indent)end
+$(indent)return join(parts, "")"""
+    elseif node.quantifier == "?"
+        return """
+$(indent)# Optional (?)
+$(indent)checkpoint = p.position
+$(indent)try
+$(indent)    return $(generate_alternative_code(node.symbol))
+$(indent)catch
+$(indent)    p.position = checkpoint
+$(indent)    return ""
+$(indent)end"""
+    else
+        return "$(indent)# Unknown quantifier: $(node.quantifier)"
+    end
+end
+
+function generate_semantic_action(annotation::ReturnAnnotation)
+    if isa(annotation, ScalarRef)
+        return "inner_result[$(annotation.index)]"
+    elseif isa(annotation, ArrayExpr)
+        elements = String[]
+        for content in annotation.contents
+            push!(elements, generate_semantic_action(content))
+        end
+        return "[$(join(elements, ", "))]"
+    elseif isa(annotation, ObjectExpr)
+        pairs = String[]
+        for (key, value) in annotation.contents
+            push!(pairs, "\"$key\" => $(generate_semantic_action(value))")
+        end
+        return "Dict($(join(pairs, ", ")))"
+    elseif isa(annotation, LiteralAnnotation)
+        return "\"$(annotation.value)\""
+    elseif isa(annotation, QuantifiedAnnotation)
+        base_action = generate_semantic_action(annotation.base)
+        return "collect($base_action)"
+    else
+        return "inner_result  # Unsupported annotation: $(typeof(annotation))"
+    end
+end
+
+function derive_module_name(grammar_name::String)
+    # Clean up grammar name to valid Julia module name
+    cleaned = replace(grammar_name, r"[^a-zA-Z0-9_]" => "_")
+    return uppercasefirst(cleaned) * "Parser"
+end
+
+# Run the generator
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
+end

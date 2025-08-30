@@ -1,0 +1,367 @@
+old_default {
+my ($conf) = @_;
+
+ print "($conf->{_program}) -I- Loading SETUP & HOLD info..";
+ my $setup_hold = TcFlow::GetSH($conf->{_consolidated});
+
+ # SETUP info
+ print "($conf->{_program}) -I- Processing SETUP info..\n";
+ $conf->{_filteredata} = HUtils::GenericFilter($conf, $setup_hold->{setup}, "filter_sequence");
+ $conf->{_stanpaths_lof_workdir} = "$conf->{_workdir}/$$conf{STANLOF_WDIR}";
+ system("mkdir -p $conf->{_stanpaths_lof_workdir} $conf->{_workdir}; rm -f $conf->{_stanpaths_lof_workdir}/*");
+ 
+ $conf->{_freqency_detailed}  = 
+ $conf->{_stafrequency}       = 
+ $conf->{_questionable_paths} = 
+ $conf->{_stafrequency_paths} = {};
+
+ HUtils::Recurse($conf->{_filteredata},        [PPlugin->get ('stafrequency'),            $conf]);
+ HUtils::Recurse($conf->{_stafrequency},       [PPlugin->get ('freqency_detailed'),       $conf]);
+ 
+ open(DFREQ, ">$conf->{_workdir}/drive_freqency_detailed.lof") || die "($conf->{_program}) -E- Can't write open '$conf->{_workdir}/drive_freqency_detailed.lof', ";
+ HUtils::Recurse($conf->{_freqency_detailed},  [PPlugin->get ('drive_freqency_detailed'), $conf]);
+ close(DFREQ);
+ HUtils::Recurse($conf->{_stafrequency_paths}, [PPlugin->get ('freqency_detailed_paths'), $conf]);
+ HUtils::WRecurse($conf->{_filteredata},       [PPlugin->get ('portiming'),               $conf]);
+
+ # HOLD info
+ print "($conf->{_program}) -I- Processing HOLD info..\n";
+ my $filteredata_hold = HUtils::GenericFilter($conf, $setup_hold->{hold}, "filter_sequence");
+ HUtils::WRecurse($filteredata_hold,   [PPlugin->get ('portiming'), $conf]);
+ 
+# print "($conf->{_program}) -I- Generating DM DATA..\n";
+# PPlugin::Get('setup_hold_tmax_tmin')->($conf, $conf->{_filteredata}, $filteredata_hold);
+
+# PPlugin::Get('freqency_summary')->($conf);
+# PPlugin::Get('potential_fp')->($conf);
+# PPlugin::Get('questionable_paths')->($conf);
+# PPlugin::Get('drive_nopath_check')->();
+}
+
+portiming {
+my ($info, $a2d, $conf) = @_;
+ 
+ my %ohash;
+ my $sens = (reverse @$info)[0];
+
+ foreach (@{$conf->{portiming}{$sens}}) {
+  my $filter  = ($sens =~ /input/ ? "startpoint" : "endpoint")." =~ /$_/";
+  my $filterd = TableGrep::Filter($filter, $a2d);
+
+  $ohash{$_} = $filterd if $filterd;
+ }
+
+ return \%ohash
+}
+
+dm_measures {
+my ($conf) = @_;
+
+ print "($conf->{_program}) -I- DM Measures..\n";
+ 
+ system("mkdir -p $conf->{_workdir};");
+
+ my $sh        = TcFlow::GetSH($conf->{_consolidated});
+ my $merged_sh = $sh->{setup};
+ push @$merged_sh, @{$sh->{hold}};
+
+ my $filteredata_sh  = HUtils::GenericFilter($conf, $merged_sh, ($conf->{variant} ? "tck_" : "")."filter_sequence");
+
+ my $merged_clock_sh;
+ my $filteredata_clock_sh;
+
+ HUtils::WRecurse($filteredata_sh, sub {my ($info, $a2d) = @_;
+   my ($mode, $tck_iomode, $corner, $tck_timing_segments) = @$info;
+   my ($tseg_prefix) = $tck_timing_segments =~ /(\w+)/;
+   my $right_index   = $conf->{_indexes}{$conf->{'what-to-look'}{$tck_timing_segments}};
+   my @minmax        =  sort {$a <=> $b} map {$$_[$right_index]} @$a2d;
+   my $sorted        = [sort {$b->[$right_index] <=> $a->[$right_index]} @$a2d];
+
+   {paths=>$sorted, min=>shift(@minmax), max=>pop(@minmax)}
+ });
+
+ PPlugin->get ('drive_tckdelays')->($conf, $filteredata_sh);
+}
+
+drive_tckdelays {
+my ($conf, $data) = @_;
+my @print;
+
+ open(my $fo, ">$conf->{_workdir}/stan_tcksegments.lof") || die "($conf->{_program}) -E- Can't write open '$conf->{_workdir}/stan_tcksegments.lof', ";
+ print $fo "=stan_dmeasures=\n";
+ print $fo "+ + + @{$conf->{'corner-order'}}\n";
+ foreach my $cmode (keys %{$conf->{mode}}) {
+  foreach my $tseg (sort {$a cmp $b} keys %{$conf->{tck_timing_segments}}) {
+   foreach my $min_or_max (qw(min max)) {
+    foreach my $ciomode (keys %{$conf->{tck_iomode}}) {
+     push @print, $conf->{dmsegment_name_map}{$tseg}, $min_or_max, $ciomode;
+     my $corner_index = 0;
+     foreach my $ccorner (@{$conf->{'corner-order'}}) {
+      my $toprint = $data->{$cmode}{$ciomode}{$ccorner}{$tseg}{$min_or_max};
+      my ($iomode_index) = $ciomode =~ /(\d+)/;
+      my $sheet  = "$conf->{dmsegment_name_map}{$tseg}_${min_or_max}${iomode_index}$corner_index";
+
+      $corner_index++;
+      push @print, $toprint ? "internal:$sheet!A1@".sprintf("%4.2f", $toprint) : '-';
+
+      if ($toprint) {
+       open(my $s, ">$conf->{_workdir}/$sheet.lof") || die "($conf->{_program}) -E- Can't write open '$conf->{_workdir}/$sheet.lof', ";
+       print $s "=consolidated_ns=\n";
+       print $s "@$_\n" foreach (@{$data->{$cmode}{$ciomode}{$ccorner}{$tseg}{paths}});
+       print $s "=consolidated_ns_end=\n";
+       close($s)
+      }
+     }
+
+     print $fo "@print\n";
+     @print = ();
+    }
+   }
+  }
+ }
+
+ print $fo "=stan_dmeasures_end=\n";
+ close($fo)
+}
+
+potential_fp {
+my ($conf) = @_;
+
+ open(FP, ">$workdir/stan_potential_fp.lof") || die "($conf->{_program}) -E- Can't write open 'stan_potential_fp.lof', ";
+ print FP "=stan_potential_fp=\n";
+ print FP "@$_\n" foreach (@{$conf->{_potential_fp}});
+ print FP "=stan_potential_fp_end=\n";
+ close(FP)
+}
+
+questionable_paths {
+my ($conf) = @_;
+
+ open( QUEST, ">$workdir/stan_questionable_paths.lof") || die "($conf->{_program}) -E- Can't write open 'stan_questionable_paths.lof', ";
+ print QUEST "=stan_questionable_paths=\n";
+ print QUEST "@$_\n" foreach (@{$conf->{_questionable_paths}});
+ print QUEST "=stan_questionable_paths_end=\n";
+ close(QUEST)
+}
+
+freqency_detailed {
+my ($info, $freqs, $conf) = @_;
+
+ my ($pathtype, $direction, $iomode, $corner) = @$info;
+ my ($iomode_idx) = $iomode =~ /iomode(\d+)/;
+
+ my $qmark = grep {!/\d+/} @$freqs;
+
+ my $minfreq = $qmark ? '?' : (sort {$a <=> $b} @$freqs)[0];
+ $conf->{_freqency_detailed}{$pathtype}{$direction}[$iomode_idx]{$corner} = $minfreq;
+}
+
+freqency_detailed_paths {
+my ($info, $paths, $conf) = @_;
+
+ my ($pathtype, $direction, $iomode, $corner) = @$info;
+
+ my ($iomode_idx) = $iomode =~ /iomode(\d+)/;
+ my $filename     = PPlugin->get ('get_freqency_detailed_fname')->($pathtype, $direction, $iomode_idx, $corner);
+ open(PATHD, ">$conf->{_stanpaths_lof_workdir}/$filename.lof") || die "($conf->{_program}) -E- Can't write open '$conf->{_stanpaths_lof_workdir}/$filename.lof', ";
+ print PATHD "=stan_freqency_detailed_paths=\n";
+
+ if (exists $$paths[0]) {print PATHD "@$_\n" foreach (@{$$paths[0]})}
+ if (exists $$paths[1]) {print PATHD "@$_\n" foreach (@{$$paths[1]})}
+
+ print PATHD "=stan_freqency_detailed_paths_end=\n";
+ close(PATHD);
+}
+
+drive_freqency_detailed {
+my ($info, $freqs, $conf) = @_;
+
+ my $label 	     = join("/", @$info);
+ my $corner_count    = keys %{$conf->{frequencies}};
+ my @sorted_corners  = sort {$b <=> $a} keys %{$conf->{frequencies}};
+ 
+ my $pathtype	     = $info->[0];
+ print DFREQ "=stan_frequency_detailed=\n";
+
+ my @official_target_freqs = map {$conf->{'official-target-frequencies'}{$pathtype}{$_}."(Mhz)"} @sorted_corners;
+
+# print "<@official_target_freqs>\n";
+ print DFREQ join("\t", "+", @official_target_freqs)."\n";
+ print DFREQ join("\t", $label, @sorted_corners)."\n";
+ my $idx = 0;
+ foreach my $iomode_ent (@$freqs) {
+  print DFREQ "io_mode$idx";
+  foreach my $ccorner (@sorted_corners) {
+   my $refilename = PPlugin->get ('get_freqency_detailed_fname')->(@$info, $idx, $ccorner);
+   my $cellval = $$iomode_ent{$ccorner} || "-";
+
+   # No internal link for '-'
+   print DFREQ  $cellval eq '-' ? "\t$cellval" : "\tinternal:$refilename!A1\@$cellval"
+  }
+
+  print DFREQ "\n";
+  ++$idx
+ }
+
+ print DFREQ "=stan_frequency_detailed_end=\n";
+}
+
+get_freqency_detailed_fname {
+my ($pathtype, $direction, $idx, $corner) = @_;
+
+ $corner =~ s/\./_/;
+ return (split(//, $direction))[0].'_'.join("", (split(//, $pathtype))[0 .. 2]).'_'.$idx.'_'.$corner
+}
+
+freqency_summary {
+my ($conf) = @_;
+
+ my $corner_count    = keys %{$conf->{frequencies}};
+ my @sorted_corners  = sort {$b <=> $a} keys %{$conf->{frequencies}};
+
+ open(FREQ, ">stan_frequency_summary.lof") || die "($conf->{_program}) -E- Can't write open 'stan_frequency_summary.lof', ";
+ 
+ print FREQ "=stan_frequency_summary=\n";
+ print FREQ join("\t", '+', @sorted_corners)."\n";
+
+ foreach $pathtype (sort {$a cmp $b} keys %{$conf->{paths}}) {
+  print FREQ $pathtype;
+  unless (exists $conf->{_stafrequency}{$pathtype}) {
+   print FREQ "\t-" x $corner_count."\n";
+   next
+  }
+  
+  foreach $corner (@sorted_corners) {
+   my @corner_freqlist = @{$conf->{_stafrequency}{$pathtype}{$corner}};
+   my $qmark = grep {!/\d+/} @corner_freqlist;
+   
+   print FREQ exists $conf->{_stafrequency}{$pathtype}{$corner} ? "\t".($qmark ? '?' : (sort {$a <=> $b} @corner_freqlist)[0]) : "\t-";
+  }
+
+  print FREQ "\n";
+ }
+
+ print FREQ "=stan_frequency_summary_end=\n";
+ close(FREQ);
+}
+
+drive_nopath_check {
+my ($conf) = @_;
+
+ open(CHECK, ">$conf->{_workdir}/stan_nopath_check.lof") || die "($conf->{_program}) -E- Can't write open '$conf->{_workdir}/stan_nopath_check.lof', ";
+ print CHECK "=stan_nopath_check=\n";
+ 
+ HUtils::Recurse($conf->{_filteredata}, [PPlugin->get ('nopath_check'), $conf]);
+
+ print CHECK "=stan_nopath_check_end=\n";
+ close(CHECK);
+}
+
+
+stafrequency {
+my ($info, $a2d_ref, $conf)  = @_;
+ 
+ unless ($a2d_ref) {
+  $conf->{_verbose} > 1 && print "(stafrequency) -W- No DATA for '@$info'\n";
+  return undef;
+ }
+
+ $conf->{_verbose} && print "stafrequency: @$info\n";
+
+ my $corner        = $$info[0];
+ my $iomode        = $$info[2];
+ my $pathinstance  = $$info[3];
+ my $pathsens      = $$info[4];
+
+ 
+# print "(stafrequency) @$info\n";
+ 
+ my $cycle_type	   = $conf->{cycle_type}{$pathinstance}{$pathsens}; # full/half
+ my $sens_edgetype = $conf->{cycle_type}{$pathinstance}{$pathsens.'_'.($pathsens eq 'input' ? 'launch' : 'capture').'_edge'}; # rise/fall
+
+ $conf->{_verbose} > 1 && print "pathinstance<$pathinstance> pathsens<$pathsens> cycle_type<$cycle_type> sens_edgetype<$sens_edgetype>\n";
+ my $o_edgetype    = $cycle_type =~ /full/ ? ($sens_edgetype eq 'rise' ? 'rise' : 'fall') : ($sens_edgetype eq 'rise' ? 'fall' : 'rise'); 
+
+ #print "<$pathsens><$pathinstance><$corner> <$pathsens>\n";
+ my $clock_name    = $pathsens   eq 'input'            ? 'startpoint_clock' : 'endpoint_clock';
+ my $o_clock_name  = $clock_name eq 'startpoint_clock' ? 'endpoint_clock'   : 'startpoint_clock';
+
+ unless (exists $conf->{frequencies}{$corner}) {
+  print "(stafrequency) -W- Corner '$corner' has no associated frequency\n";
+  return
+ }
+
+ # Period in (ns)
+ my $period	   = 1000/$conf->{frequencies}{$corner};
+
+ foreach (@$a2d_ref) {
+  my $actual_edge   = $$_[$conf->{_indexes}{$clock_name}]   =~ /'$/ ? ($sens_edgetype eq 'rise' ? 'fall' : 'rise') : $sens_edgetype;
+  my $o_actual_edge = $$_[$conf->{_indexes}{$o_clock_name}] =~ /'$/ ? ($o_edgetype    eq 'rise' ? 'fall' : 'rise') : $o_edgetype;
+
+  $conf->{_verbose} > 1 && 
+  print "INFO[@$info] cycle_type($cycle_type) sens_edgetype($sens_edgetype) edge1<$actual_edge> o_edgetype($o_edgetype) edge2<$o_actual_edge>\n";
+
+  if ($$_[$conf->{_indexes}{$clock_name.'_edge'}] eq $actual_edge && $$_[$conf->{_indexes}{$o_clock_name.'_edge'}] eq $o_actual_edge) {
+   # Good path
+   $conf->{_verbose} > 1 && 
+   print "-I- *@$info*:\n@$_\n".('#' x 80)."\n";
+
+   my $slack      = $$_[$conf->{_indexes}{slack}];
+   my $newperiod  = $period - $slack * ($cycle_type eq 'full' ? 1 : 2);
+
+   $conf->{_verbose} > 1 && 
+   print "calculation - @$info : edge1<$actual_edge> edge2<$o_actual_edge> slack=$slack period:$period newperiod:$newperiod cycle_type:$cycle_type\n\n";
+
+   if ($newperiod < 0) {
+    $conf->{_verbose} > 1 && print "($conf->{_program}) -W- The New period is **Negative** that's weird so please carefully check this Path.\n\n";
+    push @{$conf->{_questionable_paths}}, $_;
+    push @{$conf->{_stafrequency}{$pathinstance}{$pathsens}{$iomode}{$corner}}, "?"; 
+    push @{$conf->{_stafrequency_paths}{$pathinstance}{$pathsens}{$iomode}{$corner}[1]}, $_; 
+   } else {
+    # Storing the new frequency in (Mhz)
+    push @{$conf->{_stafrequency}{$pathinstance}{$pathsens}{$iomode}{$corner}}, int(1000/$newperiod); 
+    push @{$conf->{_stafrequency_paths}{$pathinstance}{$pathsens}{$iomode}{$corner}[0]}, $_; 
+   }
+
+  } else {
+   $conf->{_verbose} && print "(stafrequency) -W- The following path is a potential 'false path' for *@$info*:\n@$_\n".('#' x 80)."\n\n";
+   push @{$conf->{_potential_fp}}, $_;
+   next
+  }
+ }
+}
+
+nopath_check {
+my ($info, $a2d_ref, $conf)  = @_;
+
+ my ($corner, $mode, $iomode, $pathinst, $pathsens) = @$info;
+ my @interface_ports = @{$conf->{ports}{$pathinst}{$pathsens}};
+
+ unless ($a2d_ref) {
+  foreach (@interface_ports) {
+   $conf->{_verbose} && print "(nopath_check) -W- No $corner $mode $pathsens path on port '$_' was found for $pathinst\n";
+   print CHECK "$_ @$info\n"
+  }
+
+  return
+ }
+
+ my %found;
+ my $start_or_end = $pathsens eq 'input' ? 'startpoint' : 'endpoint';
+
+ foreach my $cpath (@$a2d_ref) {
+  foreach my $cport (@interface_ports) {
+   $found{$cport}++ if $$cpath[$conf->{_indexes}{$start_or_end}] eq $cport
+  }
+ }
+
+ foreach my $cport (@interface_ports) {
+  unless (exists $found{$cport}) {
+   $conf->{_verbose} && print "(nopath_check) -W- No $corner $mode $pathsens path on port '$cport' was found for $pathinst\n";
+
+   print CHECK "$cport @$info\n"
+  }
+ }
+
+}
+

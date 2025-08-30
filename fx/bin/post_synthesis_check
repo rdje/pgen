@@ -1,0 +1,139 @@
+#! /home/qdjeric/install/bin/perl -I/home/qdjeric/project/fsm/afx/fx/perl  -w
+
+$|=1;
+use HUtils;
+use Table2SS;
+use Table;
+use PPlugin;
+
+use Fatal qw/:void open/;
+
+use Getopt::Long;
+use File::Spec;
+
+my $cr = {};
+GetOptions (
+  'conf=s'  => \$$cr{conf},
+  'xls=s'   => \$$cr{xls},
+  'block=s' => \$$cr{block},
+  'help'    => \$$cr{help}
+);
+
+my $p = new PPlugin;
+
+$cr = HUtils::Merge($cr, HUtils::Conf($$cr{conf} || PathSearch->go('postsyn')));
+my $block = $$cr{block} || (File::Spec->splitdir(File::Spec->rel2abs(File::Spec->curdir())))[-3] || $$cr{default_block};
+
+unless ($p->yes_no ("Default block is '$block', Is it the right one ?")) {
+ print "-I- Use --block=BlockName to indicate the blockname.\n";
+ exit;
+}
+
+print "\n";
+
+HUtils::Each($cr, qr/check_re/, sub {$_[1] =~ s/<blockname>/$block/e});
+
+
+HUtils::wrecurse($$cr{re_def}, sub {ref($_[1]) ? [map {!/^:(\S+)/o ? qr/$_/ : $1} @{$_[1]}] : qr/$_[1]/});
+
+foreach my $cfile (grep {m/$$cr{re_def}{file2load_re}/} @ARGV) {
+ print "Processing file '$cfile'\n";
+ open (my $rf, $cfile); local $/; my $rep = <$rf>;
+
+ my $skip; HUtils::recurse($$cr{re_def}{asawhole_cb_map}, sub {$cfile =~ m/$_[1]/ && ++$skip && &{$_[0][-1]}($cr, $rep)}); next if $skip;
+
+ foreach (grep {m/\S/} split /$$cr{re_def}{filesplit_re}/o, $rep) {
+	 HUtils::recurse ($$cr{re_def}{sections}, sub {m/$_[1]/ && &{$$cr{section_callback_map}{$_[0][-1]}}($cr, $cfile, $_, $1 || $_[0][-1])});
+ }
+
+ print "\n";
+}
+
+
+# Inserting Libcell info when needed
+HUtils::recurse($$cr{_data}, sub {&{$$cr{lib_add_cb_map}{$_[0][1]} || 'null_cb'}($cr, $_[1])});
+
+# Inserting the Count field
+HUtils::recurse($$cr{_data}, sub {eval q/$$cr{qq(/. join (q/)}{qq(/, '_data_w_count', @{$_[0]}[0 .. 2], scalar (@{$_[1]}), @{$_[0]}[3 .. $#{$_[0]}]) .q/)} = $_[1]/});
+
+print "\n";
+my $oxls = $$cr{xls} || $$cr{default_workbook};
+
+my $wbid = Table2SS::AddWorkBook($oxls);
+Table2SS::DriveTableTree($oxls, 
+	                 'checks', 
+			 $$cr{_data_w_count}, 
+			 table_per_row => 4, 
+			 table2script=> sub {my %arg = @_; "postsyn_". $arg{key2table}[$arg{table_index}][1]},
+			 link_script => 'postsyn_link'
+		        ); 
+		 
+Table2SS::Close($wbid);
+
+
+sub diagnosis {
+my ($cr, $diag) = @_;
+
+ # wio diag_msg diag_type diag_id
+ my @diag_info  = $diag =~ m/$$cr{re_def}{diagnosis_fields}/o;
+
+ my $diag_cb = do {if (lc ($diag_info[2]) =~ m/$$cr{re_def}{diag_special_type}/o) {
+                        $$cr{_diag_type} = "$diag_info[2]-$diag_info[3]";
+		        "$diag_info[2]_$diag_info[3]"
+	           } else {
+                        $$cr{_diag_type} = $diag_info[2];
+		        $diag_info[2]
+		   }
+	       };
+
+ unshift @diag_info, $cr;
+
+ &{*$diag_cb{CODE} || $$cr{diag_callback_map}{$$cr{_diag_type}} || '__unknown_diag_type'}(@diag_info);
+}
+
+sub __unknown_diag_type           {
+ print "-W- Unsupported Check type * $$cr{_diag_type} *\n" unless $$cr{_unsupported_check_type}{$$cr{_diag_type}};
+ $$cr{_unsupported_check_type}{$$cr{_diag_type}} = 1
+}
+
+
+sub section_cb  {
+my ($cr, $cfile, $sectionv, $sectioname) = @_;
+
+ ($$cr{_check_name}) = $cfile =~ /$$cr{re_def}{check_re}/;
+
+ print "   [$sectioname]\n";
+ diagnosis ($cr, $_) foreach $sectionv =~ /$$cr{re_def}{diagnosis_get}/go
+}
+
+
+sub common_cb {
+my $cr = shift;
+
+ my $diag_te = Table::list2table($cr->{re_def}{diag_msg_analysis}{$$cr{_diag_type}}, 2);
+
+ my    $capt_common = [map {$_[$$_[0]] =~ m/$$_[1]/g} @$diag_te];
+
+ unless ($$cr{diag_no_push}{$$cr{_diag_type}}) {
+  $$cr{_last_subkeys} = [$$cr{_check_name}, $$cr{_diag_type}, $_[0], @{$$cr{diag_description}{$$cr{_diag_type}}}];
+
+  eval q/push @{$$cr{qq(/. join (q/)}{qq(/, '_data', @{$$cr{_last_subkeys}}) .q/)}}, $capt_common/;
+
+  $$cr{_want_no_duplicate}{$$cr{_check_name}}{$$cr{_diag_type}}{$capt_common->[0]} = 1;
+
+ } elsif ($$cr{list2table}{$$cr{_diag_type}}) {
+  my $prev_aref = eval q/$$cr{qq(/. join (q/)}{qq(/, '_data', @{$$cr{_last_subkeys}}) .q/)}/;
+  # Get the # of columns
+  my @template  = ('-') x @{$prev_aref->[0]};
+
+  foreach (@$capt_common) {
+   push @$prev_aref, [$_, @template[1 .. $#template]] unless $$cr{_want_no_duplicate}{$$cr{_last_subkeys}[0]}{$$cr{_last_subkeys}[1]}{$_};
+   $$cr{_want_no_duplicate}{$$cr{_last_subkeys}[0]}{$$cr{_last_subkeys}[1]}{$_} = 1;
+  }
+ }
+
+}
+
+sub nonscan_cells {$_[0]{_noscancell} = {$_[1] =~ m/$_[0]{re_def}{nonscan_re}/g}}
+sub lib_add_cb    {push @$_, $_[0]{_noscancell}{$$_[0]} || '-' foreach @{$_[1]}}
+sub null_cb       {}

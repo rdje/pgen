@@ -1,0 +1,6 @@
+aaa ddd fff
+qqq rr  yy
+aa hh   yy
+Raa ddd fff
+Rqq rr  yy
+Ra  hh   yy

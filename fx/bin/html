@@ -1,0 +1,7 @@
+#! /home/djer/install/bin/perl  -w -I/home/djer/fx/fsm/afx/fx/perl
+
+use LispML;
+
+my $d = LispML->new(PathSearch->go("lispml", "desc"));
+
+print $d->render_html, "\n";

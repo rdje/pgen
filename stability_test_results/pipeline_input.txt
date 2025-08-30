@@ -1,0 +1,33 @@
+INFO: Normalized probabilities to sum 100%
+# Generated with seed: 1754914711
+# Main rule: expr
+# Input 1:
+( (  + (  ) ) + (  +  ) ) + 1
+
+# Input 2:
+( ( 4 ) - (  + (  ) ) ) + ( 4 + 1 )
+
+# Input 3:
+1
+
+# Input 4:
+( 2 ) + ( 4 + 3 )
+
+# Input 5:
+2 - ( 4 - 1 )
+
+# Input 6:
+1 - 4
+
+# Input 7:
+( 1 + (  +  ) ) - 4
+
+# Input 8:
+( 3 - 3 ) - ( 2 - 4 )
+
+# Input 9:
+2 + 4
+
+# Input 10:
+1
+

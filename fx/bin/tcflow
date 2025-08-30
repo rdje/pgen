@@ -1,0 +1,280 @@
+#! /apps/perl/5.8.3/bin/perl -w -I/home/rdje/perl/lib/site_perl/5.8.3 -I/home/rdje/perl/lib/site_perl/5.8.3/sun4-solaris-thread-multi -I/home/rdje/EXPERIMENTAL/perl -Iperl
+
+#===================================================================
+# Timing Closure Flow control interface
+#
+# Copyright (c) 2005-2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+use TcFlow;
+use EasyTk;
+use HDisplay;
+
+
+my $progname     = (reverse split(/\//, $0))[0];
+
+use Getopt::Long;
+GetOptions ("gui=s" => \$gui_file, 'conf=s' => \$confarg);
+
+ $confarg	  ||= PathSearch->go($progname);
+ $conf 	            = HUtils::Link($confarg);
+
+my $interface	    = $conf->{interface}                    || die "($progname) -E- *interface* parameter NOT Defined,";
+my $filter          = $conf->{interface_filter}{$interface} || die "($progname) -E- *$interface* interface's filter NOT Defined,";
+
+my $A2XHS	    = Global->A2XHS;
+my $TCFIX	    = Global->TCFIX;
+my $STAN	    = Global->STAN;
+my $REGRESTATUS	    = Global->REGRESTATUS;
+my $RPT_CONSOLIDATE = Global->RPT_CONSOLIDATE;
+my $BSUB_SOL8       = Global->BSUB_SOL8;
+
+my $slack 	    = TableGrep::IndexOf('slack');
+
+
+%rpt_consolidate    = %{$conf->{default_opt}{rpt_consolidate}};
+%regrestatus 	    = %{$conf->{default_opt}{regrestatus}};
+%tcfix 	    	    = %{$conf->{default_opt}{tcfix}};
+%simple_opt 	    = %{$conf->{simple_opt}};
+$gui_file	    = $gui_file || $conf->{gui_file} || PathSearch->go($progname, 'tk');
+
+$noexecution	    = $conf->{noexecution};
+$uniquify_path	    = $conf->{uniquify_path} || $regrestatus{md5sum};
+$scale_2_qcmax	    = $conf->{scale_2_qcmax};
+$noxls		    = $conf->{noxls};
+$noregrestatus	    = $conf->{noregrestatus};
+$notcfix	    = $conf->{notcfix};
+$nostan   	    = $conf->{nostan};
+
+
+$DM_MEASURES_CONF   = PathSearch->go("stan_dm_measures");
+$STANCONF           = PathSearch->go("stan_old");
+
+EasyTk::Init($gui_file, 'main', winfo=>\%crail);
+#tkinit(my $crail={}, $gui_file, 'panedw');
+#tkinit(my $crail={}, $gui_file, 'tcflow');
+
+
+
+
+sub argslist {
+ my $commandname = shift;
+
+ map {($simple_opt{$commandname}{$_} ? 
+             ($$commandname{$_} == 1 ? "-$_ " : "") : 
+ "-$_".($$commandname{$_} =~ /^\w+$/ ? " $$commandname{$_} " : 
+		                       " '$$commandname{$_}' "))} 
+ grep {length $$commandname{$_}}  keys %$commandname;
+}
+
+
+sub gogo {
+ return unless $regression_directory;
+
+ my $consolidated_setup_hold                = "$rpt_outputdir/consolidated_setup_hold.lof";
+ my $consolidated_setup_hold_w_fixlink      = "$rpt_outputdir/consolidated_setup_hold_wlink.lof";
+ my $consolidated_setup_hold_w_qcmax_slacks = "$rpt_outputdir/consolidated_setup_hold_wscale.lof";
+ 
+ my @rpt_consolidate   = ($BSUB_SOL8, $RPT_CONSOLIDATE, argslist("rpt_consolidate"), $regression_directory, '-outputdir' => $rpt_outputdir);
+ my @regrestatus_scale = ($REGRESTATUS, argslist("regrestatus"), $consolidated_setup_hold_w_qcmax_slacks, '-outputdir' => $rpt_outputdir);
+ my @regrestatus_fix   = ($REGRESTATUS, argslist("regrestatus"), $consolidated_setup_hold_w_fixlink, '-outputdir' => $rpt_outputdir);
+ my @regrestatus       = ($REGRESTATUS, argslist("regrestatus"), $consolidated_setup_hold, '-outputdir' => $rpt_outputdir);
+ my @tcfix             = ($BSUB_SOL8, $TCFIX, argslist("tcfix"), $consolidated_setup_hold, '-output'    => "$rpt_outputdir/summary.lof");
+
+ my $a2xhs_first       = "$A2XHS  $rpt_outputdir/summary.lof $rpt_outputdir/CLK2CLK/* -o $excel_file_name";
+
+ if ($noexecution) {
+  print "\n@rpt_consolidate\n";
+  print "\n@regrestatus\n";
+  print "\n@tcfix\n";
+  print "\n$a2xhs_first\n\n";
+ } else {
+
+  my $bsub = shift @rpt_consolidate;
+  system("$bsub \"@rpt_consolidate\"");
+  if ($rpt_consolidate{'file-filter'} eq 'jtag_measures') {
+   dm_clock_path($regression_directory);
+   system("$STAN -conf $DM_MEASURES_CONF $rpt_outputdir/consolidated_setup_hold.lof -clock $rpt_outputdir/dm_clockpaths.lof -work ${rpt_outputdir}_stan");
+   system("$A2XHS ${rpt_outputdir}_stan/*.lof -o stan_tcksegments.xls");
+   return
+  }
+
+  my $setup_hold = TcFlow::GetSH($consolidated_setup_hold);
+  my $fixlink    = ($uniquify_path || $fixinfo)  ? uniquify_paths($setup_hold, $rpt_outputdir) : undef;
+
+  my $scaled_setup_hold = TcFlow::Scale($setup_hold, $consolidated_setup_hold_w_qcmax_slacks, conf=>$conf) if $scale_2_qcmax;
+  tcflow_insert_fixinfo($scale_2_qcmax ? $scaled_setup_hold : $setup_hold, $fixlink, $consolidated_setup_hold_w_fixlink) if $fixlink;
+
+
+  $noregrestatus || system($fixlink ? "@regrestatus_fix" : ($scale_2_qcmax ? "@regrestatus_scale" : "@regrestatus"));
+  $notcfix       || system("@tcfix");
+
+  system("$STAN -conf $STANCONF $rpt_outputdir/consolidated_setup_hold.lof -work $rpt_outputdir") unless $nostan;
+
+  unless ($noxls) {
+   system($a2xhs_first) if $regrestatus{'merge'} && $tcfix{'reference'};
+   system("$A2XHS -r 8 $rpt_outputdir/drive_freqency_detailed.lof $rpt_outputdir/$$conf{STANLOF_WDIR}/*.lof -o stan_frequencies_details.xls");
+  }
+  
+  if($fixinfo) {
+   system("$BSUB_SOL8 $TCFIX $consolidated_setup_hold -wd $rpt_outputdir -dpfix");
+   system("$A2XHS  $rpt_outputdir/summary.lof $rpt_outputdir/CLK2CLK/* $rpt_outputdir/dpfix_* -o WFIX_LATEST_TEST_XXXXX.xls")
+  }
+ }
+
+}
+
+sub csplit_enable {
+ $rpt_consolidate{'csplit'} = $rpt_consolidate{'file-filter'} =~ /tc_FullClkExp_/;
+ $rpt_consolidate{'nodes-extract'} = $rpt_consolidate{'file-filter'} =~ /jtag_measures/;
+}
+
+sub regression_directory {
+ $regression_directory 	= pop; 
+
+ return unless $regression_directory =~ /$$conf{reportdirectory_regexp}/;
+ my @splitpath =  split(/\//, $regression_directory);
+
+ return unless @splitpath >= 6;
+
+my  $rpt_dirbase   	= join('_', @splitpath[4,5]);
+ $excel_file_name	= "$ENV{HOME}/$rpt_dirbase.xls";
+ $rpt_outputdir 	= "$ENV{HOME}/$rpt_dirbase";
+}
+
+sub quit {exit}
+
+sub inspect {
+ my ($path, $value) = @_;
+
+ print "'@{[join('/', @$path)]}' -> '$value'\n"
+}
+
+sub uniquify_paths {
+my ($setup_hold, $workdir)  = @_;
+
+#print "HERE\n";
+ my %up_o;
+ foreach my $type (qw(setup hold)) {
+#print "-$type-\n";
+  my $uniq     = TcFlow::UniquifyPath($$setup_hold{$type}, $type, $filter, $workdir);
+  $up_o{$type} = $uniq ? $uniq->{'map'} : undef  
+ }
+
+# print "Done.";
+ return {%up_o}
+}
+
+sub tcflow_insert_fixinfo {
+my ($setup_hold, $fixlink, $consolidated_setup_hold_w_fixlink)  = @_;
+
+#return unless $fixlink;
+
+ die "($progname) -E- Argument 'setup_hold' is not defined," unless $setup_hold;
+
+ 
+ open(WLINK, ">$consolidated_setup_hold_w_fixlink") || die "($progname) -E- Can't write open file '$consolidated_setup_hold_w_fixlink', ";
+ foreach my $type (qw(setup hold)) {
+  my $filtpaths    = TableGrep::Filter($filter, $$setup_hold{$type});
+  unless ($filtpaths) {print "($progname) -E- NO '$type' MATCH for filter ** $filter **\n"; next} 
+
+  my @typath	   = @$filtpaths;
+
+  $typath[$_][$slack] = $typath[$_][$slack] < 0 ? "internal:dpfix_${type}_$$fixlink{$type}{$_}!A1\@$typath[$_][$slack]" : $typath[$_][$slack]  foreach (0 .. $#typath);
+
+  print WLINK "=consolidated_${type}=\n";
+  print WLINK "@$_\n" foreach (@typath);
+  print WLINK "=consolidated_${type}_end=\n";
+ }
+
+ close(WLINK);
+}
+
+sub md5sum_cb {$uniquify_path = $regrestatus{md5sum}}
+sub uniquify_path_cb {$regrestatus{md5sum} = 0 unless $uniquify_path}
+
+sub dm_clock_path {
+my ($regress_dir) = @_;
+
+ my %ohash;
+ foreach (qx(find $regress_dir -type f | egrep jtag_measures)) {
+  chomp;
+
+  print "($progname) -I- Processing '$_'..\n";
+  my $spef_top_idx = 0;
+  my @path_parts   = split(/\//);
+  foreach (@path_parts) {
+   last if /spef_(?:top|all)/;
+   ++$spef_top_idx
+  }
+
+  my ($mode, $corner, $iomode, $filename) = @path_parts[($spef_top_idx -1),($spef_top_idx +1),($spef_top_idx +3),$#path_parts];
+
+  my $setup_hold = $filename =~ /_max_\.rpt/ ? 'setup' : 'hold'; 
+
+  unless (-s) {
+   print "($progname) -W- File '$_' is ".(-f $_? "Empty" : "Doesn't exist")."\n";
+   next
+  }
+  
+  foreach my $cpath (@{Reportiming::Read($_, -1, clock_path=>1)}) {
+   my $epclkinfo_a2d = $cpath->{endpoint_clock_nodes};
+   next unless $epclkinfo_a2d;
+
+   my ($startnode, $startnodelay) = @{shift @$epclkinfo_a2d};
+   my ($endnode, $endnodelay)     = @{pop   @$epclkinfo_a2d};
+
+   push @{$ohash{$setup_hold}}, [$mode, $iomode, $corner, $startnode, $endnode, $endnodelay - $startnodelay, $cpath->{reportfile}, $cpath->{path_index}];
+  }
+ }
+
+
+ open(CLKDELAY, ">$rpt_outputdir/dm_clockpaths.lof") || die "($progname) -E- Can't write open '$rpt_outputdir/dm_clockpaths.lof', ";
+ foreach my $type (qw(setup hold)) {
+  print CLKDELAY "=consolidated_$type=\n";
+  print CLKDELAY "@$_\n" foreach (@{$ohash{$type}});
+  print CLKDELAY "=consolidated_${type}_end=\n";
+ }
+ 
+ close(CLKDELAY);
+
+# return \%ohash
+}
+
+sub set_regress_root {
+ $_[1]->widget('.main.pane.p2.tcflow.tcflow.tcflow.root_dir.root_dir.regression_directory.tixdirlist')->chdir($conf->{guivar}{regresss_directory_root}); 
+}
+
+
+sub TESTHLIST {
+
+ my $hlist1 = $_[1]->widget($crail{winfo}{'panedw.sidebyside.sidebyside.myhlist1.myhlist1'}->subwidget("hlist"));
+
+ HDisplay::View($conf, $hlist1, 'tcflow-configuration1');
+
+ $crail{winfo}{'panedw.sidebyside.sidebyside.myhlist1.myhlist1'}->autosetmode();
+}
+
+
+sub regression_directories  {
+ return ['history', [ref($conf->{regression_directory_list}) ? @{$conf->{regression_directory_list}} : $conf->{regression_directory_list}]]
+}
+
+sub get_path {
+ my $widget = $_[1]->GetVar('crail(widget)');
+
+# print "WIDGET ($widget)\n";
+ $widget_path = $widget;
+ 
+}
+
+sub helloworld {
+# print "\n helloworld:  YEEEEEEEEEEEEEES <@_>\n";
+}
+
+sub goodbye {
+# print "\n goodbye:  BYYYYYYYYYYYYYYYE <@_>\n";
+}

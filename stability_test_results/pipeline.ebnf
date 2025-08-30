@@ -1,0 +1,3 @@
+expr := term '+' term @40% | term '-' term @30% | number @30%
+term := number | '(' expr ')'
+number := '1' @25% | '2' @25% | '3' @25% | '4' @25%

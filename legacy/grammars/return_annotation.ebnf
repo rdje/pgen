@@ -1,0 +1,31 @@
+# Return Annotation Language Grammar
+# Self-hosting milestone: Using EBNF to parse our own return annotation syntax!
+
+# Top-level rule
+return_annotation := '->' whitespace* return_expression
+
+# Core expression types
+return_expression := scalar_ref | array_expr | object_expr | literal
+
+# Scalar references: $1, $2.1, $2.1.3, $1*, $2.1*
+scalar_ref := '$' number ('.' number)* quantifier? -> {type: "scalar_ref", path: [$2*], quantified: $3}
+
+# Array expressions: [$1, $2*], [{op: $1, val: $2}*]
+array_expr := '[' whitespace* array_contents? whitespace* ']' quantifier? -> {type: "array", contents: $3, quantified: $6}
+array_contents := return_expression (',' whitespace* return_expression)* -> [$1, $2*]
+
+# Object expressions: {key: $1, items: [$2*]}
+object_expr := '{' whitespace* object_contents? whitespace* '}' quantifier? -> {type: "object", contents: $3, quantified: $6}
+object_contents := object_pair (',' whitespace* object_pair)* -> [$1, $2*]
+object_pair := identifier whitespace* ':' whitespace* return_expression -> {key: $1, value: $5}
+
+# Literals: "string", 123
+literal := quoted_string | number -> {type: "literal", value: $1}
+
+# Basic terminals
+quoted_string := /"[^"]*"/ -> $1
+number := /(\d+)/ -> $1
+identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/ -> $1
+quantifier := '*' -> "quantified"
+whitespace := /\s+/
+

@@ -1,0 +1,24 @@
+quick_dft {
+my ($conf) = @_;
+
+ my $setup_paths = TcFlow::GetAll($conf->{_argv});
+ my $filtered = HUtils::GenericFilter($conf, TcFlow::GetAll($conf->{_argv}), $conf->{_action}."_sequence",  maptable=>'reportiming');
+
+ my @frequencies;
+ HUtils::Recurse($filtered, sub {my ($info, $data) = @_;
+               my $launch_start_time  = $data->[0][$conf->{_indexes}{launch_start_time}];
+               my $capture_start_time = $data->[0][$conf->{_indexes}{capture_start_time}];
+	       my $slack              = $data->[0][$conf->{_indexes}{slack}];
+	       # Expressed in MHz
+               push @frequencies, [@$info[1, 3], sprintf("%4.1f", 1000/($capture_start_time - $launch_start_time - $slack))]
+ });
+
+ 
+  #Table2SS::UConf(PathSearch->go('quick_omap2430c_dft_table2ss'));
+  my $wbid = Table2SS::AddWorkBook($conf->{_excelfile} || "$conf->{_action}.xls");
+
+  # Smallest frequency first
+  Table2SS::DriveSheet($wbid, 'Max_frequencies', Table2SS::RCAllocate(1, 2, 1, [[sort {$a->[2] <=> $b->[2]} @frequencies]], "quick_omap2430c_dft"));
+  Table2SS::DriveSheet($wbid, 'Paths',           Table2SS::RCAllocate(1, 1, 1, [$setup_paths], 'consolidated_rep'));
+  Table2SS::Close($wbid);
+}

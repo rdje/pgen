@@ -1,0 +1,339 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin qw($RealBin);
+use lib "$RealBin/../perl";
+
+use AST::Transform qw(step2_group_by_or step2_5_handle_parentheses step3_parse_sequences step4_handle_quantifiers step5_build_tree_structure generate_parser_from_grammar get_error_context);
+use JSON::PP;
+use Getopt::Long;
+use Pod::Usage;
+
+# 🚀 PERL PARSER GENERATOR - JSON to .pm
+# Reads raw AST JSON and generates Perl parser modules
+
+my %options = (
+    output_file => '',
+    package_name => '',
+    quiet => 0,
+    verbosity => 'normal',
+    bootstrap_mode => 0,
+    help => 0,
+);
+
+GetOptions(
+    'output|o=s'     => \$options{output_file},
+    'package|p=s'    => \$options{package_name},
+    'quiet|q'        => \$options{quiet},
+    'verbosity|v=s'  => \$options{verbosity},
+    'bootstrap-mode' => \$options{bootstrap_mode},
+    'help|h'         => \$options{help},
+) or pod2usage(2);
+
+pod2usage(1) if $options{help};
+
+# 🛡️ ENHANCED ERROR HANDLING
+eval {
+    # Read JSON from STDIN or file
+    my $json_content;
+    if (@ARGV && $ARGV[0] ne '-') {
+        # Read from file
+        my $json_file = $ARGV[0];
+        open my $fh, '<', $json_file or die "Cannot open $json_file: $!";
+        $json_content = do { local $/; <$fh> };
+        close $fh;
+        print STDERR "📄 Reading JSON from: $json_file\n" unless $options{quiet};
+    } else {
+        # Read from STDIN
+        $json_content = do { local $/; <STDIN> };
+        print STDERR "📄 Reading JSON from STDIN\n" unless $options{quiet};
+    }
+    
+    # Parse JSON
+    my $json = JSON::PP->new;
+    my $json_data = $json->decode($json_content);
+    
+    # Validate JSON structure
+    unless ($json_data->{grammar_name} && $json_data->{raw_ast}) {
+        die "Invalid JSON format: missing grammar_name or raw_ast\n";
+    }
+    
+    my $grammar_name = $json_data->{grammar_name};
+    my $raw_ast = $json_data->{raw_ast};
+    
+    print STDERR "🚀 Generating Perl parser for grammar: $grammar_name\n" unless $options{quiet};
+    
+    # Run the 5-step transformation pipeline
+    my $parser_result = generate_perl_parser_from_json($raw_ast, %options);
+    
+    # Determine output filename and package name
+    my $output_file = $options{output_file};
+    my $package_name = $options{package_name};
+    
+    # If no output file provided, derive from JSON filename
+    if (!$output_file && @ARGV && $ARGV[0] ne '-') {
+        my $json_file = $ARGV[0];
+        $json_file =~ s|.*/||;  # Remove directory path
+        $json_file =~ s/\.json$//i;  # Remove .json extension
+        $output_file = $json_file;
+    }
+    
+    # Derive package name from output filename if not explicitly provided
+    if (!$package_name) {
+        if ($output_file) {
+            # Derive from output filename
+            my $base_name = $output_file;
+            $base_name =~ s/\.(pl|pm)$//;  # Remove extension
+            $package_name = derive_package_name_from_filename($base_name);
+        } else {
+            # Fallback to grammar name
+            $package_name = derive_package_name($grammar_name);
+        }
+    }
+    
+    if ($output_file) {
+        # Write to files (either from --output option or derived from JSON filename)
+        write_perl_parser_files($parser_result, $package_name, $output_file, %options);
+    } else {
+        # Write module to STDOUT
+        my $module_content = $parser_result->{module};
+        $module_content =~ s/package PACKAGE_NAME_PLACEHOLDER;/package $package_name;/;
+        print $module_content;
+    }
+};
+
+if ($@) {
+    print STDERR "\n🚨 PERL PARSER GENERATION FAILED!\n";
+    print STDERR $@;
+    
+    # Show error summary
+    my $context = get_error_context();
+    if (@{$context->{errors}}) {
+        print STDERR "\n📊 ERROR SUMMARY:\n";
+        print STDERR "  Total Errors: " . scalar(@{$context->{errors}}) . "\n";
+        print STDERR "  Total Warnings: " . scalar(@{$context->{warnings}}) . "\n";
+        
+        if ($options{verbosity} eq 'full') {
+            print STDERR "\n🔍 DETAILED ERROR LOG:\n";
+            foreach my $error (@{$context->{errors}}) {
+                print STDERR "  • $error->{type}: $error->{message}\n";
+            }
+        }
+    }
+    
+    exit 1;
+}
+
+print STDERR "🎉 Perl parser generated successfully!\n" unless $options{quiet};
+
+# 🔧 CORE GENERATION FUNCTION
+sub generate_perl_parser_from_json {
+    my ($raw_ast, %options) = @_;
+    
+    # Set global options for the modules
+    $AST::Transform::quiet_mode = $options{quiet};
+    $AST::Transform::verbosity = $options{verbosity};
+    $AST::Transform::bootstrap_mode = $options{bootstrap_mode};
+    
+    print STDERR "\n=== Running 5-Step Transformation Pipeline ===\n" unless $options{quiet};
+    
+    # Step 2: Group by OR operators
+    print STDERR "Step 2: Grouping by OR operators...\n" unless $options{quiet};
+    my $step2_result = step2_group_by_or($raw_ast);
+    
+    # Step 2.5: Handle parentheses
+    print STDERR "Step 2.5: Handling parentheses...\n" unless $options{quiet};
+    my $step2_5_result = step2_5_handle_parentheses($step2_result);
+    
+    # Step 3: Parse sequences
+    print STDERR "Step 3: Parsing sequences...\n" unless $options{quiet};
+    my $step3_result = step3_parse_sequences($step2_5_result);
+    
+    # Step 4: Handle quantifiers
+    print STDERR "Step 4: Handling quantifiers...\n" unless $options{quiet};
+    my $step4_result = step4_handle_quantifiers($step3_result);
+    
+    # Step 5: Build tree structure
+    print STDERR "Step 5: Building tree structure...\n" unless $options{quiet};
+    my ($grammar_tree, $rule_order) = step5_build_tree_structure($step4_result);
+    
+    # Generate parser code
+    print STDERR "Step 6: Generating parser code...\n" unless $options{quiet};
+    my $parser_result = generate_parser_from_grammar($grammar_tree, $rule_order, %options);
+    
+    return $parser_result;
+}
+
+# 🔄 PACKAGE NAME DERIVATION
+sub derive_package_name {
+    my ($grammar_name) = @_;
+    
+    # Clean up grammar name to valid Perl package name
+    $grammar_name =~ s/[^a-zA-Z0-9_]/_/g; # Replace non-alphanumeric with underscore
+    $grammar_name = ucfirst($grammar_name); # Capitalize first letter
+    
+    return $grammar_name;
+}
+
+# Derive package name from filename
+sub derive_package_name_from_filename {
+    my ($filename) = @_;
+    
+    # Extract basename and clean it up
+    $filename =~ s|.*/||;  # Remove directory path
+    $filename =~ s/[^a-zA-Z0-9_]/_/g; # Replace non-alphanumeric with underscore
+    # $filename = ucfirst($filename); # Capitalize first letter
+    
+    return $filename;
+}
+
+# 📝 FILE WRITING FUNCTIONS
+sub write_perl_parser_files {
+    my ($parser_result, $package_name, $base_name, %options) = @_;
+    
+    # Remove extension if present
+    $base_name =~ s/\.(pl|pm)$//;
+    
+    my $pm_file = "${base_name}.pm";
+    my $pl_file = "${base_name}.pl";
+    
+    # Update module and wrapper with correct package name
+    my $module_content = $parser_result->{module};
+    my $wrapper_content = $parser_result->{wrapper};
+    
+    $module_content =~ s/package PACKAGE_NAME_PLACEHOLDER;/package $package_name;/;
+    $wrapper_content =~ s/use PACKAGE_NAME_PLACEHOLDER;/use $package_name;/;
+    $wrapper_content =~ s/PACKAGE_NAME_PLACEHOLDER::parse/${package_name}::parse/g;
+    
+    # Write the .pm module file
+    open my $pm_fh, '>', $pm_file or die "Cannot write to $pm_file: $!";
+    print $pm_fh $module_content;
+    close $pm_fh;
+    print STDERR "✅ Parser module written to: $pm_file\n" unless $options{quiet};
+    
+    # Write the .pl wrapper script
+    open my $pl_fh, '>', $pl_file or die "Cannot write to $pl_file: $!";
+    print $pl_fh $wrapper_content;
+    close $pl_fh;
+    chmod 0755, $pl_file; # Make executable
+    print STDERR "✅ Parser script written to: $pl_file\n" unless $options{quiet};
+}
+
+__END__
+
+=head1 NAME
+
+perl_parser_gen.pl - Generate Perl parser modules from JSON raw AST
+
+=head1 SYNOPSIS
+
+    perl_parser_gen.pl [options] [json_file]
+    ebnf_to_json.pl grammar.ebnf | perl_parser_gen.pl [options]
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--output, -o> basename
+
+Write parser files as basename.pm and basename.pl
+
+=item B<--package, -p> name
+
+Set Perl package name (default: derived from grammar name)
+
+=item B<--quiet, -q>
+
+Suppress progress messages
+
+=item B<--verbosity, -v> level
+
+Set verbosity level: normal, full, debug
+
+=item B<--bootstrap-mode>
+
+Enable bootstrap mode - forces legacy parsing instead of using ultimate parser.
+Useful during parser regeneration to avoid self-hosting cycles.
+
+=item B<--help, -h>
+
+Show this help message
+
+=back
+
+=head1 EXAMPLES
+
+    # Generate from JSON file
+    perl_parser_gen.pl json_raw_ast.json -o json_parser
+    
+    # Generate from pipeline
+    ebnf_to_json.pl json.ebnf | perl_parser_gen.pl -o json_parser
+    
+    # Custom package name
+    perl_parser_gen.pl input.json -p MyParser -o my_parser
+    
+    # Module only to STDOUT
+    ebnf_to_json.pl simple.ebnf | perl_parser_gen.pl
+
+=head1 DESCRIPTION
+
+This tool implements the JSON-based parser generation architecture for Perl.
+It reads raw AST JSON (from ebnf_to_json.pl) and generates:
+
+1. A .pm parser module with optimized parsing functions
+2. A .pl wrapper script for command-line usage
+
+The tool runs the complete 5-step transformation pipeline natively in Perl:
+
+    Step 2:   Group by OR operators
+    Step 2.5: Handle parentheses
+    Step 3:   Parse sequences  
+    Step 4:   Handle quantifiers
+    Step 5:   Build tree structure
+    Step 6:   Generate parser code
+
+=head1 JSON INPUT FORMAT
+
+Expects JSON with this structure:
+
+    {
+        "grammar_name": "json",
+        "raw_ast": [
+            // Raw EBNF parser tokens
+        ],
+        "metadata": {
+            "source_file": "json.ebnf"
+        }
+    }
+
+=head1 OUTPUT FILES
+
+=over 4
+
+=item B<basename.pm>
+
+Perl module containing optimized parsing functions, regex patterns,
+and the main parse() entry point.
+
+=item B<basename.pl>  
+
+Executable wrapper script with command-line interface for parsing
+input files using the generated module.
+
+=back
+
+=head1 ARCHITECTURE
+
+This tool is part of the new JSON-based parser generation architecture:
+
+    EBNF → [ebnf_to_json.pl] → Raw AST JSON → [perl_parser_gen.pl] → .pm/.pl
+
+Benefits:
+- Language-independent JSON interchange format
+- Native Perl transformation optimizations  
+- Parallel development with other language generators
+- Backward compatibility with existing workflow
+
+See docs/parser_architecture_evolution.md for full details.
+
+=cut

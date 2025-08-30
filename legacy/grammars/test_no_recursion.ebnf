@@ -1,0 +1,4 @@
+# Complex grammar without left-recursion to test return annotations
+factor := /(\w+)/ -> {type: "identifier", name: $1}
+factor := /(\d+)/ -> {type: "number", value: $1}
+

@@ -1,0 +1,32 @@
+qsdf_hack {
+print "(qsdf_hack) -I- Loading '$_[0]{_argv}[0]'.. ";
+my $sdf = slurp($_[0]{_argv}[0]);
+print "Done.\n";
+
+
+my $oname = (File::Spec->splitpath($ARGV[0]))[2].'.hacked';
+my $pos;
+
+foreach my $meta_reg ($sdf =~ m#\((INSTANCE\s+\S+?/a_sync_reg_meta_reg)\)#go) {
+ print "$meta_reg\n";
+ 
+ my $match = $sdf =~ /$meta_reg/g;
+ foreach (0 .. 1) {
+  $sdf =~ /SETUPHOLD\s+/g; 
+  $pos = pos $sdf;
+
+
+  $sdf =~ s#\G
+            (\((?:pos|neg)edge \s+ D\) \s+ 
+	     \(posedge \s+ CK\) \s+ ) 
+	     \((-?\d+\.\d+) :: (-?\d+\.\d+)\) (\s+) 
+	     \((-?\d+\.\d+) :: (-?\d+\.\d+)\)  #$1(0.00::0.00)$4(0.00::0.00)#xo;
+
+  pos $sdf = $pos;
+ }
+
+}
+
+open (my $o, ">$oname") || die "(qsdf_hack) -E- Can't write open '$oname',";
+print $o $sdf;
+}

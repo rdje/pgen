@@ -1,0 +1,18 @@
+# Bootstrap Return Annotation Grammar (No Quantifiers)
+# Absolute minimal version to break the bootstrap dependency
+
+# Top-level rule - no optional whitespace
+return_annotation := '->' /\s*/ return_expression
+
+# Core expression types (no quantifiers)
+return_expression := scalar_ref | simple_literal
+
+# Simple scalar references: $1 only (no quantifiers)
+scalar_ref := '$' number -> {type: "scalar_ref", index: $2}
+
+# Simple literals only
+simple_literal := quoted_string | number -> {type: "literal", value: $1}
+
+# Basic terminals
+quoted_string := /"([^"]*)"/ -> $1
+number := /(\d+)/ -> $1

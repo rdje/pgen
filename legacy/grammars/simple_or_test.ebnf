@@ -1,0 +1,3 @@
+# Simple OR rule test
+choice := 'a' | 'b' | 'c'
+

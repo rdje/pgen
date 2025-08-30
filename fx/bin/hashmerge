@@ -1,0 +1,46 @@
+#! /apps/perl/5.8.3/bin/perl -w -I/home/rdje/perl/modules
+
+use Hutils;
+use Storable;
+
+my $final = retrieve($ARGV[0]);
+
+print "First File successfully read\n";
+
+merge_file($_) foreach (@ARGV[1 .. $#ARGV]);
+
+store $final, "MERGE-HASH.hash";
+
+print "\nDone.\n";
+
+sub merge_file {
+ print "(hashmerge) -I- Processing file '$_[0]'..\n";
+ HUtils::wecurse(retrieve($_[0]), \&do_merge);
+}
+
+
+sub do_merge {
+my ($info, $scalar) = @_;
+
+ my $exists_final_eval = "exists \$\$final{'".join("'}{'", @$info)."'}"; 
+ print "(do_merge) -I- exists_final_eval($exists_final_eval)\n";
+
+ my $set_final_eval;
+ if (eval $exists_final_eval) {
+
+  my $get_final_eval  = "\$\$final{'".join("'}{'", @$info)."'}"; 
+  my $prev_final      = eval $get_final_eval;
+
+  print "(do_merge) -E- Updating (@$info) using [$scalar]] against previous ($prev_final)\n";
+  $set_final_eval  = "\$\$final{'".join("'}{'", @$info)."'} = ".($prev_final > $scalar ? $scalar : $prev_final); 
+ 
+ } else {
+  print "(do_merge) -E- Setting (@$info) to [$scalar]\n";
+  $set_final_eval  = "\$\$final{'".join("'}{'", @$info)."'} = $scalar"; 
+
+  print "(do_merge) -I- set_final_eval($set_final_eval)\n";
+ }
+
+ eval $set_final_eval;
+}
+

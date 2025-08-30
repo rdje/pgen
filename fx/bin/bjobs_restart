@@ -1,0 +1,57 @@
+#! /apps/perl/5.8.3/bin/perl -w
+
+use Getopt::Long;
+
+my $id	= 1;
+my $go = 0;
+my $custom_report_script = "/cdb/omap2430cInt/modules/F761821A/sta/jtag_custom_report.tcl";
+
+GetOptions ("regex=s" 		=> \@regex,
+	    "autoregress=s" 	=> \$autoregress,
+	    "chdir=s" 		=> \$chdir,
+	    "go" 		=> \$go,
+	    "id=i" 		=> \$id,
+	    "priority"          => \$priority,
+	    "custom-report"     => \$report_script,
+	    "help"              => \$help
+	   );
+
+
+if ($help) {
+ print "usage: ./bjobs_start [--regex=<Linefilter>] [--autoregress=<Initial_Regression_File>]\n";
+ print "                     [--chdir=<Log_Report_Base_directory>] [--id=<Run_ID>]\n";
+ print "                     [--priority] [--custom-report] [--help]\n";
+ exit
+}
+
+my $updatedRE = join('|', @regex);
+my $compre = qr/$updatedRE/o;
+
+my $regressionfile = $autoregress || "run_regression_ocv_all.sh";
+-s $regressionfile || die "Problem opening file $regressionfile, ";
+
+my @rightruns = grep { /$compre/ } qx(cat $regressionfile);
+my ($head) = qx(cat $regressionfile) =~ m{(.+?)\./scripts/EnvToolBox/launcher}s;
+my $auto_regression_jtag = qx(mktemp -q /tmp/auto_regression_jtag_XXXXX);
+$auto_regression_jtag || die "(bjobs_restart) -E- Can't create regression script file, ";
+
+(my $alltogether = "$head@rightruns")  =~ s{/db/omap2430c_es2_sta/(reports|logs)}{defined $chdir ? "$chdir/$1" :  $&}ge;
+    $alltogether                       =~ s/(-q\s+)regress\b/($priority ? "$1priority" : $&)/ge;
+    $alltogether                       =~ s{^\s*./scripts/EnvToolBox/launcher.+?"}{}gm;
+    $alltogether                       =~ s{" & .*$}{}gm;
+    $alltogether                       =~ s{'"'}{"}g;
+#    $alltogether                       =~ s{-rptType}{-customRptScr $report_script $&}g;
+
+if ($report_script) {
+ system("cp $custom_report_script OVERRIDE/main_report.tcl")
+} else {
+ system("rm `find OVERRIDE -user rdje`")
+}
+
+open  REGRESS, ">$auto_regression_jtag";
+print REGRESS "#!/bin/csh\n\n$alltogether";
+close REGRESS;
+
+print "New incremental regression file is\n\n$auto_regression_jtag\n";
+
+$go && system("banner bjobs; csh $auto_regression_jtag $id");

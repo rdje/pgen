@@ -1,0 +1,123 @@
+#! /usr/bin/env perl
+
+#===================================================================
+# Development Framework starter 
+#
+# Copyright (c) 2005-2008 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+# The above somewhat tricky shebang line is to make sure the right 
+# version of Perl is use no matter the initial content of path $PATH 
+# environment variable.
+# /win/ matches for Cygwin
+
+# Same as the -w option
+$^W = 1;
+
+# Enabling ALL 5.10 goodies :)
+use 5.010;
+
+# 'require' and NOT 'use'
+# Because 'use' is a Compile-Time statement while 'require' is a Run-time  statement
+if ($^O =~ /win/i) {
+ require Win32::OLE; 
+ require Win32::OLE::Const; 
+}
+
+use Getopt::Long;
+use Storable;
+use File::Find;
+use File::Path;
+use File::Spec;
+use File::Temp;
+use Digest::MD5;
+use Sys::Hostname;
+use Cwd qw/abs_path chdir/;
+
+# Need to modify @INC right here, at the latest, not After !
+BEGIN {
+ my @split  = File::Spec->splitdir(Cwd::realpath($0));
+ splice @split, -2; 
+ eval 'use lib  \''.File::Spec->catdir(@split, 'perl').'\'';
+}
+
+
+use TcFlow;
+use PPlugin;
+use Table2SS;
+use RTLUtils;
+use Table;
+use LinkedSpec;
+use FSMGen;
+
+
+my $help 	           = 0;
+my $conf                   = {};
+   $conf->{_verbose}       = 0;
+   $conf->{_program}       = (File::Spec->splitdir($0))[-1];
+
+GetOptions('conf=s'	   => \$actionconf,
+	   'excelfile|x=s' => \$conf->{_excelfile},
+	   'notables'      => \$conf->{_notables},
+	   'csv'           => \$conf->{_csv},
+	   'workdir=s'     => \$conf->{_workdir},
+	   'host=s'        => \$conf->{_host},
+	   'port=s'        => \$conf->{_port},
+	   'output=s'      => \$conf->{_output},
+	   'include=s'     => \@{$conf->{_include}},
+	   'exclude=s'     => \@{$conf->{_exclude}},
+	   'verbose+'      => \$conf->{_verbose},
+	   'notail'        => \$conf->{_notail},
+	   'home'          => \$conf->{_home},
+	   'help'	   => \$help
+	  );
+
+ $help && usage();	  
+
+ # The action/plugin name has to be provided as one (the first) mandatory positional argument
+ unless (@ARGV) {
+  say "($conf->{_program}) -E- No plugin specified !\n";
+  usage();
+ }
+
+ $conf->{_action}               = shift @ARGV;
+ $conf->{_argv}                 = [@ARGV] if @ARGV;
+
+ # Loading fxstart's configuration file
+ my $fxstartconf	        = HUtils::Link(PathSearch->go($conf->{_program}));
+
+ # Determining this action's configuration file
+ $actionconf                  ||= PathSearch->go($fxstartconf->{plugin_conf}{$conf->{_action}});
+
+ # Loading the action's configuration file and merging it into $conf
+ HUtils::Merge($conf, HUtils::Link($actionconf));
+
+ $conf->{_workdir}	      ||= "STANDIR";
+ $conf->{_indexes}              = TableGrep::IndexOf('ALL');
+ $conf->{_clockpath_indexes}    = TableGrep::IndexOf('ALL', 'dm_clock_paths');
+ $conf->{_excelfile}          ||= "$conf->{_action}.xls";
+
+ my $include                    = @{$conf->{_include}} ? join ("|", map {split /,/o} @{$conf->{_include}}) : '.';
+ $conf->{_include_regex}        = qr/$include/o;
+
+ my $exclude                    = @{$conf->{_exclude}} ? join ("|", map {split /,/o} @{$conf->{_exclude}}) : undef;
+ $conf->{_exclude_regex}        = $exclude && qr/$exclude/o;
+
+ Global->set('_fx_conf')        = $conf;
+
+ # Firing up the selected *action*
+ PPlugin->exec($conf->{_action}, $conf);
+ 
+ print "($conf->{_program}) -I- Done.\n";
+
+
+sub usage {
+ print "usage: fxstart <PluGiName>\n";
+ print "            [--conf=<ActionConFile>]\n";
+ print "            [--excelfile|-x=<ExcelFile>]\n";
+ print "            [--help] [--verbose]+ <Argument>*\n";
+ exit
+}

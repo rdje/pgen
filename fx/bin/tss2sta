@@ -1,0 +1,826 @@
+#===================================================================
+# Copyright (c) 2006-2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+use Win32::OLE;
+use Getopt::Long;
+use File::Spec;
+
+use HUtils;
+#use Table2SS;
+use Table;
+
+
+GetOptions('output=s'  => \$conf->{output},
+	   'conf=s'    => \@{$conf->{userconf}},
+	   'help'      => \$conf->{help}
+);
+
+$help && usage();
+@ARGV || print "(tss2sta) -E- You need to provide at least one Excel file to proceed.\n" && usage();
+
+HUtils::Merge($conf, HUtils::Link(PathSearch->go('tss2sta')));
+#HUtils::Merge($conf, HUtils::Link($conf->{userconf}))  if $conf->{userconf};
+HUtils::Merge($conf, HUtils::Link($_))  foreach (@{$conf->{userconf}});
+
+# use existing instance if Excel is already running
+eval {$excel = Win32::OLE->GetActiveObject('Excel.Application')};
+die "Excel not installed" if $@;
+$excel = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;}) || die "Oops, cannot start Excel" unless defined $excel;
+
+
+my @books;
+foreach my $tssfile (@ARGV) {
+ unless (-f $tssfile) {
+  print "(tss2sta) -W- File '$tssfile' does not Exist.\n";
+  next
+ }
+
+ my $abspath = File::Spec->rel2abs($tssfile);
+ print "(tss2sta) -I- Processing '$abspath'..\n";
+ my $cbook = $excel->Workbooks->Open($abspath);
+
+ unless (defined $cbook) {
+  print "(tss2sta) -I- Problem opening '$abspath'.\n";
+  next
+ }
+
+ push @books, $cbook;
+}
+
+
+# Extracting TSS info
+my %tss_info;
+my %tss_info_v22;
+foreach my $book  (@books) {
+ unless (defined $conf->{$book->{name}}) {
+  print "(tss2sta) -W- Workbook '$book->{name}' is not registered, skipping.\n";
+  next
+ }
+
+ if (defined $conf->{template_version}{$book->{name}} && $conf->{template_version}{$book->{name}} eq '1.x') {
+  # 1.x TEMPLATEs
+  HUtils::recurse($conf->{$book->{name}}, sub {my ($info, $range) = @_;
+    my ($csheet)      = @$info;
+    #print "(tss2sta) -I- Loading sheet '$csheet' of '$book->{name}' (1.x)\n";
+    my @cleaned_info  = map {s/[^\w:]+/_/go; $_} @$info;
+    my $table         = $book->Sheets($csheet)->Range(@$range)->{Value};
+
+    my $splist        = Table::vsplit($table, $conf->{vsplit_1x});
+    my $leftmost      = shift @$splist;
+    my %localhash;
+    foreach (0 .. $#$splist) {
+     if (scalar @{$splist->[$_][0]}) {
+      # Current splitted table has valid lines, i.e, non-empty 
+      $localhash{"OPP".($_ + 1)} = clock_n_signal($conf, 'map_1x', split_w_header(Table::vmerge($leftmost, $splist->[$_])));
+     }
+    }
+
+    eval q($tss_info{$book->{name}}{").join(q("}{"), @cleaned_info).q|"} = \%localhash|;
+  });
+ } else {
+  # 2.x TEMPLATEs
+  HUtils::recurse($conf->{$book->{name}}, sub {my ($info, $range) = @_;
+          my ($csheet)     = @$info;
+	  #print "(tss2sta) -I- Loading sheet '$csheet'  of '$book->{name}' (2.x)\n";
+          my @cleaned_info = map {s/[^\w:]+/_/go; $_} @$info;
+          my $table        = $book->Sheets($csheet)->Range(@$range)->{Value};
+	  my $swh          = split_w_header($table);
+
+          eval q($tss_info_v22{$book->{name}}{").join(q("}{"), @cleaned_info).q("} = $swh);
+  });
+ }
+}
+
+
+HUtils::recurse(\%tss_info_v22, sub {my ($info, $table) = @_;
+   my @lastwo = splice @$info, -2; 
+   $table = clock_table2hash($conf, $table) if $lastwo[0] eq 'CLOCK';
+   eval q($tss_info{").join(q("}{"), @$info, reverse @lastwo).q("} = $table);
+});
+
+#HUtils::recurse(\%tss_info, sub {print '<'.join('> <', @{$_[0]}).">\n"});
+#Table2SS::DriveTableTree("footest.xls", 'foosheet', \%tss_info, table_per_row=>1) if @books;
+
+# Linking SIGNALs to CLOCKs
+my %ioinfo;
+HUtils::KeyGrep(\%tss_info, qr/anchor:/o,  sub {my ($info, $hashref) = @_;
+  my ($copp)               = grep /OPP\d+/o, @$info;
+      $copp                =~ s/anchor://o;
+
+  my ($clabel)             = grep /label:/o, @$info;
+      $clabel              =~ s/label://o;
+
+  my  $info_wo_anchor      = [map {s/anchor://o; $_} @$info];  
+
+  my  $cmap                = $hashref->{MAP} || $conf->{default_template_map};
+
+  foreach my $sigent (@{$hashref->{SIGNAL}}) {
+   push @{$ioinfo{$sigent->[$conf->{$cmap}{signal}{name}]}}, {(map {
+         	                                                 $_ => $_ ne 'reference_signal' ? $sigent->[$conf->{$cmap}{signal}{$_}]                   :
+						                                                  $hashref->{CLOCK}{$sigent->[$conf->{$cmap}{signal}{$_}]}
+                                                             } keys %{$conf->{$cmap}{signal}}
+						            ),
+
+							    opp   => $copp,
+							    info  => $info_wo_anchor,
+							    label => $clabel
+                                                           };
+ }
+});
+
+# Making 'ioinfo' accessible via $conf
+$conf->{_ioinfo} = \%ioinfo;
+
+
+my %by_clock;
+# Determining the smallest set of clocks to be defined
+foreach my $csig (keys %ioinfo) {
+ foreach my $cconstraint (@{$ioinfo{$csig}}) {
+  if (defined $cconstraint->{reference_signal}) {
+  print "(tss2sta) -E- Signal and Clock 'target_frequency' mismatch for '$cconstraint->{name}' vs '$cconstraint->{reference_signal}{name}'\n".
+       join(' / ', @{$cconstraint->{info}}) unless $cconstraint->{target_frequency} == $cconstraint->{reference_signal}{target_frequency};
+
+  my $ms_or_sl     = $cconstraint->{reference_signal}{direction} eq 'I' ? 'slave' : 'master';
+  my $full_or_half ;
+
+  if ($cconstraint->{direction} eq 'IO') {
+   if (defined $cconstraint->{"input_full_half_cycle"}) {
+    if (defined $cconstraint->{"output_full_half_cycle"}) {
+     unless ($cconstraint->{"input_full_half_cycle"} eq $cconstraint->{"output_full_half_cycle"}) {
+      print "(tss2sta) -W- IO signal '$cconstraint->{name}' has two differents cycle types (full/half),\n";
+      print "(tss2sta) ".join(" / ", @{$cconstraint->{info}})."\n";
+      print "(tss2sta) -I- Using the output's cycle type ($cconstraint->{output_full_half_cycle}).\n\n";
+     } else {
+     }
+
+     $full_or_half = $cconstraint->{"output_full_half_cycle"};
+
+    } else {
+     $full_or_half = $cconstraint->{"input_full_half_cycle"};
+    }
+
+   } else {
+
+    if (defined $cconstraint->{"output_full_half_cycle"}) {
+     $full_or_half = $cconstraint->{"output_full_half_cycle"};
+    } else {
+     # This case should never happen !!
+    }
+   }
+  } else {
+   $full_or_half  = $cconstraint->{($cconstraint->{direction}   eq 'I' ? "in"    : "out")."put_full_half_cycle"};
+  }
+
+  if ($full_or_half) {
+   my $label = $cconstraint->{label} || $conf->{undefined_label};
+   eval q(push @{$by_clock{").join(q("}{"), $cconstraint->{reference_signal}{name},
+                                            $full_or_half,
+         				    $cconstraint->{target_frequency},                     
+         				    $cconstraint->{reference_signal}{$ms_or_sl."_jitter_".($full_or_half eq 'F' ? 'full': 'full')}, # <== HALF cycle paths are to be constrained as FULL cycles, cf. GUIDELINEs
+					    # $cconstraint->{reference_signal}{$ms_or_sl."_jitter_".($full_or_half eq 'F' ? 'full': 'half')},
+                                            $cconstraint->{reference_signal}{pad_name},
+                                            $cconstraint->{reference_signal}{direction},
+                                            $label
+                                  ).q("}}, $cconstraint);
+  } else {
+   print "(tss2sta) -W- Pair '$cconstraint->{name}'/'$cconstraint->{reference_signal}{name}' has no defined cycle type,\n";
+   print "(tss2sta) ".join(' / ', @{$cconstraint->{info}})."\n\n";
+  }
+
+  }
+ }
+}
+
+# Making 'by_clock' accessible via $conf
+$conf->{_by_clock} = \%by_clock;
+
+# Uniqifying CLOCKs and updating signals' HASH accordingly
+my @clock_2_declare;
+my %clkindex;
+HUtils::wrecurse(\%by_clock, sub {my ($clkinfo, $constraint_list) = @_;
+#  print "NAMING CLOCK: <".join("> <", @$clkinfo).">\n";
+  # [5] = direction
+  my $cindex  = ++$clkindex{$clkinfo->[5]};
+
+  # [0] = clock name
+  # [1] = F (full cycle) / H (half cycle)
+  # [2] = target frequency (Mhz)
+  # [3] = jitter in pico-seconds
+  # [4] = pad_name
+  # [6] = label
+  my $tclname = ($clkinfo->[5] eq 'O' ? 'GEN' : 'CRE').uc("$cindex$clkinfo->[1]_".
+	                                                  ($clkinfo->[6] ne $conf->{undefined_label} ? "$clkinfo->[6]_" : "").
+							  "$clkinfo->[0]"
+						         );
+  # Period in pico-seconds
+  my $period  = sprintf('%.1f', 10**6/$clkinfo->[2]);
+
+     $tclname    =~ s/[^\w]+/_/go;
+  my $clock_info = {
+	            name         => $clkinfo->[0]                           , 
+	            tclname      => $tclname                                , 
+		    pad_name     => $clkinfo->[4]                           , 
+	            period       => $period                                 , 
+		    frequency    => $clkinfo->[2]                           , 
+		    jitter       => $clkinfo->[3]                           , 
+		    is_generated => $clkinfo->[5] eq 'O'                    ,
+		    full_half    => $clkinfo->[1] eq 'F' ? 'full' : 'half'
+	           };
+
+  # Attaching the clock information to all of its related signals' constraint(s)
+  $$_{tclock} = $clock_info foreach (@$constraint_list);
+
+  push @clock_2_declare, $clock_info;
+});
+
+# Making 'clock_2_declare' accessible via $conf
+$conf->{_clocks} = \@clock_2_declare;
+
+# Sorting IO constraints by OPP, by mux_mode and by 'signal'
+my %byopp_muxmode;
+foreach my $sig (keys %ioinfo) {
+ foreach my $cc (@{$ioinfo{$sig}}) {
+  push @{$byopp_muxmode{$cc->{opp}}{$cc->{mux_mode}}{$sig}}, $cc
+ }
+}
+
+# Making 'byopp_muxmode' accessible via $conf
+$conf->{_byopp_muxmode} = \%byopp_muxmode;
+
+tss2sta($conf);
+
+$_->Close() foreach (@books);
+
+
+
+sub tss2sta {
+my ($conf) = @_;
+
+ $conf->{output} ||= 'tss2sta.tcl';
+
+ open ($conf->{_o}, "> $conf->{output}") || die "(tss2sta) -E- Can't write open '$conf->{output}',";
+ print "(tss2sta) -I- Creating '$conf->{output}'..\n";
+
+ tss_print($conf, '#'. '=' x 80);
+ tss_print($conf, "# Object : TSS2STA Automatically generated IO Contraints file '$conf->{output}'");
+ tss_print($conf, "# Date   : ". localtime);
+ tss_print($conf, "# Author : $conf->{AUTHOR}");
+ tss_print($conf, '#'. '=' x 80 . "\n\n");
+
+ tss_set_generated($conf);
+ tss_clocks_n_uncertainties($conf);
+ tss_io_pad_conf($conf);
+ tss_io_constraints($conf);
+
+ tss_reports($conf);
+
+ close $conf->{_o};
+ print "(tss2sta) -I- Done.\n";
+}
+
+
+sub tss_reports {
+my ($conf) = @_;
+
+ my $reportfile = $conf->{output};
+
+ $reportfile =~ s/\./_report./o;
+ open (my $report, "> $reportfile") || die "(tss2sta) -E- Can't write open '$reportfile',";
+ print "(tss2sta) -I- Creating '$reportfile'..\n";
+
+ print $report '#'. '=' x 80 . "\n";
+ print $report "# Object : TSS2STA Automatically generated IO report file '$reportfile'\n";
+ print $report "# Date   : ". localtime() . "\n";
+ print $report "# Author : $conf->{AUTHOR}\n";
+ print $report '#'. '=' x 80 . "\n\n";
+
+ print $report "# signal-name / pad-name\n\n";
+
+ HUtils::recurse($conf->{_report}, sub {my ($info, $replist) = @_;
+  print $report "if [regexp ".($info->[0] eq 'max' ? "setup" : "hold")." \$SETUP_HOLD] {\n";
+
+  foreach my $repcmd (@$replist) {
+    print $report " # $repcmd->{port}{name}/$repcmd->{port}{pad_name} w.r.t $repcmd->{clock}{name}/$repcmd->{clock}{pad_name}\n";
+    if($repcmd->{clock}{is_generated}) {
+     print $report " foreach $repcmd->{clock}{tclname} \$GENLIST_$repcmd->{clock}{tclname} {\n";
+    }
+
+    print $report " report_timing  ".
+                  "-$repcmd->{direction}  [get_clock ".($repcmd->{clock}{is_generated} ? " \$" : "")."$repcmd->{clock}{tclname}]  ".
+    		  "-through  [get_port $repcmd->{port}{pad_name}]  ".
+    		  "-delay_type  $info->[0]\n";
+
+    if($repcmd->{clock}{is_generated}) {
+     print $report " }\n\n";
+    }
+  }
+
+  print $report "}\n\n\n";
+ });
+
+ close $report;
+}
+
+sub tss_set_generated {
+my ($conf) = @_;
+
+ # Generated clocks' sources
+ tss_print($conf,  "# Generated clocks' sources assignments");
+ foreach my $cclk (@{$conf->{_clocks}}) {
+  my $clksrc = $cclk->{tclname};
+     $clksrc =~ s/(?:CRE|GEN)/SRC/o;
+  if ($cclk->{is_generated}) {
+   tss_print($conf,  "# $cclk->{frequency}Mhz generated clock on pad '$cclk->{pad_name}' ($cclk->{name})");
+   tss_print($conf,  "set $clksrc\t{}");
+  }
+ }
+
+ tss_print($conf, "\n\n\n");
+
+}
+
+sub tss_clocks_n_uncertainties {
+my ($conf) = @_;
+
+ # clocks' declarations
+ tss_print($conf,  "# Clocks and Uncertainties");
+ foreach my $cclk (@{$conf->{_clocks}}) {
+  my $clksrc = $cclk->{tclname};
+     $clksrc =~ s/(?:CRE|GEN)/SRC/o;
+  tss_print($conf,  "# ".($cclk->{is_generated} ? "Generating" : "Creating")." a $cclk->{frequency}Mhz clock on pad '$cclk->{pad_name}' ($cclk->{name})");
+  tss_print($conf,  "create_".($cclk->{is_generated} ? "generated_" : "")."clock   " .
+                    "-name $cclk->{tclname} -add "                                   .
+ 	            ($cclk->{is_generated} ? "-divide_by 1 "        : "")            .
+ 	            ($cclk->{is_generated} ? "-source \$$clksrc "   : "")            .
+ 	            ($cclk->{is_generated} ? "" : "-period $cclk->{period}")         .
+ 	            " [get_port $cclk->{pad_name}]\n");
+ }
+
+ tss_print($conf, "\n");
+
+ # Setting clocks' uncertainties
+ foreach my $cclk (@{$conf->{_clocks}}) {
+  my $clksrc = $cclk->{tclname};
+     $clksrc =~ s/(?:CRE|GEN)/SRC/o;
+ 
+  tss_print($conf, "# Setting setup/hold uncertainties for clock/pad pair '$cclk->{name}'/'$cclk->{pad_name}'");
+
+  if ($cclk->{jitter}) {
+   tss_print($conf, "set_clock_uncertainty -setup $cclk->{jitter} [get_clock $cclk->{tclname}]");
+  } else {
+   tss_print($conf, '#' . '>' x 6 . " (ERROR) **$cclk->{full_half}-cycle** jitter is **NOT** specified for clock/pad pair '$cclk->{name}'/'$cclk->{pad_name}' " . '<' x 6);
+       print        "(tss2sta) -E- **$cclk->{full_half}-cycle** jitter is **NOT** specified for clock/pad pair '$cclk->{name}'/'$cclk->{pad_name}'\n";
+  }
+
+  tss_print($conf, "set_clock_uncertainty -hold  $conf->{hold_uncertainty}  [get_clock $cclk->{tclname}]\n");
+ }
+}
+
+sub tss_io_pad_conf {
+my ($conf) = @_;
+
+ my %muxmode_2_ioset;
+ my $runnindex = 0;
+ HUtils::KeyGrep($conf->{_byopp_muxmode}, sub {@{$_[0]} == 2} , sub {my ($mminfo) = @_;
+  $muxmode_2_ioset{$mminfo->[$#$mminfo]} = $runnindex++ unless defined $muxmode_2_ioset{$mminfo->[$#$mminfo]};
+ });
+
+ $conf->{_muxmode_2_ioset} = \%muxmode_2_ioset;
+
+ 
+ my %pad_muxmode;
+ my %muxmode_pad;
+ HUtils::recurse($conf->{_byopp_muxmode},  sub {my ($info, $cclist) = @_;
+  foreach (@$cclist) {
+   $pad_muxmode{$$_{pad_name}}{$info->[1]} = 1;
+   $muxmode_pad{$info->[1]}{$$_{pad_name}} = 1;
+  }
+ });
+
+ tss_print($conf, "\n");
+ tss_print($conf, "# Setting IO PAD Configuration");
+ HUtils::KeyGrep(\%muxmode_pad, sub {@{$_[0]} == 1}, sub {my ($info, $lhash) = @_;
+   tss_print($conf, "if [regexp \$TSS_IOSET$muxmode_2_ioset{$info->[0]} \$IO_MODE] {");
+   push_indent($conf); 
+   tss_print($conf, "set_io_pad_conf  $_\t\t".sprintf("%03b", $info->[0])) foreach (keys %$lhash);
+   pop_indent($conf); 
+   tss_print($conf, "}\n");
+ });
+ 
+   tss_print($conf, "\n");
+}
+
+sub tss_io_constraints {
+my ($conf) = @_;
+
+ my $muxmode_2_ioset = $conf->{_muxmode_2_ioset};
+ my $once0 = 0;
+ foreach my $copp (sort {$a cmp $b} keys %{$conf->{_byopp_muxmode}}) {
+  tss_print($conf, "\n") if $once0++;
+
+  tss_print($conf, "# $conf->{OPP_DEF}{$copp}{TEXT} CORNERs");
+  tss_print($conf, "if [regexp {$conf->{OPP_DEF}{$copp}{RE}} \$CORNER] {");
+  push_indent($conf); 
+
+  my $once1 = 0;
+  foreach my $cmuxmode (sort {$a cmp $b} keys %{$conf->{_byopp_muxmode}{$copp}}) {
+   tss_print($conf, "\n") if $once1++;
+   
+   tss_print($conf, "# IOSET$$muxmode_2_ioset{$cmuxmode} => mux mode #$cmuxmode");
+   tss_print($conf, "if [regexp \$TSS_IOSET$$muxmode_2_ioset{$cmuxmode} \$IO_MODE] {");
+   push_indent($conf); 
+
+   my $once2 = 0;
+   foreach my $csig  (sort {$a cmp $b} keys %{$conf->{_byopp_muxmode}{$copp}{$cmuxmode}}) {
+    tss_print($conf, "\n\n") if $once2++;
+
+    my $sigstring = "".' ' x 48 ."signal - $csig -". ' ' x 48;
+    tss_print($conf, "#". '=' x length($sigstring));
+    tss_print($conf, "# $sigstring");
+    tss_print($conf, "#". '=' x length($sigstring));
+
+    my $once3 = 0;
+    foreach my $constr (@{$conf->{_byopp_muxmode}{$copp}{$cmuxmode}{$csig}}) {
+     tss_print($conf, "") if $once3++;
+     tss_print($conf, "##### ".join(" - ", @{$constr->{info}}));
+     unless ($constr->{direction} eq 'IO') {
+      tss_X($conf, $constr);
+     } else {
+      tss_X($conf, $constr, live_direction=>'I'); 
+      tss_X($conf, $constr, live_direction=>'O');
+     }
+    }
+   }
+
+   pop_indent($conf); 
+   tss_print($conf, "}\n");
+  }
+
+  pop_indent($conf); 
+  tss_print($conf, "}\n");
+ }
+
+}
+
+sub tss_X {
+my ($conf, $signal) = @_;
+ my %option = @_[2 .. $#_];
+
+ # signal w/o a reference clock either
+ unless($signal->{tclock}) {
+  # Setting input_transition and/or output load
+  set_transition_n_load(@_);
+
+  return
+ }
+
+ my $max_expression;
+ my $max_expression_str;
+ my $otherside_clock_edge;
+ my $otherside_edge;
+ my $twice            = 0;
+ my $cycle_type;
+
+ my $live_direction   = ($option{live_direction} || $signal->{direction}) eq 'I' ? 'input' : 'output';
+ my $actual_direction =  $signal->{direction}  eq 'I' ? 'input'  : 
+                        ($signal->{direction}  eq 'O' ? 'output' : 
+				                        'inout'  );
+
+ my @tab = %$signal;
+ return unless defined $signal->{$live_direction eq 'input' ? 'pad_capture_edge' : 'pad_generation_edge'};
+
+ my $max_type         = $signal->{$live_direction eq 'input' ? 'setup_time' : 'max_delay_time'};
+ my $max_v            = sprintf("%.3f", $max_type * 1000);
+ my $max_str          = $live_direction eq 'input' ? 'SETUP_TIME' : 'TMAX';
+ my $edge_type        = $live_direction eq 'input' ? 'pad_capture_edge' : 'pad_generation_edge';
+
+ if ($signal->{$live_direction."_full_half_cylce"} eq 'F') {
+  # Full cycle path
+  $cycle_type         = "FULL";
+  $max_expression_str = "(PERIOD) - ($max_str) - (SRC_JITTER)";
+  $max_expression     = "($signal->{tclock}{period}) - ($max_v) - ($signal->{tclock}{jitter})";
+
+  if ($signal->{$edge_type} eq 'R') {
+    # Full cycle w/ capture edge = rise -> Launch edge = rise
+    $otherside_clock_edge = "";
+    $otherside_edge       = "rise";
+  } else {
+    # Full cycle w/ capture edge = fall -> Launch edge = fall
+    $otherside_clock_edge = "-clock_fall";
+    $otherside_edge       = "fall";
+  }
+ } else {
+  # Half cycle path
+  $cycle_type         = "FULL for HALF";
+  $max_expression_str = "(PERIOD) - ($max_str) - (SRC_JITTER)";
+  $max_expression     = "($signal->{tclock}{period}) - ($max_v) - ($signal->{tclock}{jitter})";
+  #$max_expression_str = "(PERIOD/2) - ($max_str) - (SRC_JITTER)";
+  #$max_expression     = "($signal->{tclock}{period}/2) - ($max_v) - ($signal->{tclock}{jitter})";
+
+  if ($signal->{$edge_type} eq 'R') {
+    # Half cycle w/ Capture edge = rise -> Launch edge = fall
+    $otherside_clock_edge = "-clock_fall";
+    $otherside_edge       = "fall";
+  } elsif ($signal->{$edge_type} eq 'F') {
+    # Half cycle w/ Capture edge = fall -> Launch edge = rise
+    $otherside_clock_edge = "";
+    $otherside_edge       = "rise";
+  } elsif ($signal->{$edge_type} =~ /$conf->{edge_RE}{rise_fall}/o || $signal->{$edge_type} =~ /$conf->{edge_RE}{fall_rise}/o) {
+    $twice             = 1;
+    $otherside_clock_edge = "";
+    $otherside_edge       = "rise";
+  } else {
+   print "(tss2sta) -E- Wrong ".($live_direction eq 'input' ? 'capture' : 'generation')." '$signal->{$edge_type}' edge specification for '$actual_direction' port '$signal->{name}'.\n";
+   print "(tss2sta)\n";
+   print "(tss2sta) @{$signal->{info}}\n";
+
+   exit 1;
+  }
+ }
+  
+ # Need to convert it in pico-seconds
+ my $min_type           = $signal->{$live_direction eq 'input' ? 'hold_time' : 'min_delay_time'};
+ my $min_expression     = sprintf("%.3f", $min_type*1000);
+ my $min_expression_str = $live_direction eq 'input' ? 'HOLD_TIME' : 'TMIN';
+ my $min_sign           = $live_direction eq 'input' ? ''          : '-';
+
+ # Setting input_transition and/or output load
+ set_transition_n_load(@_);
+
+ # Max Check
+ if ($max_type && $signal->{tclock}{jitter}) {
+  tss_print($conf, "# $cycle_type CYCLE");
+  tss_print($conf, "# set_${live_direction}_delay max for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t '$signal->{tclock}{tclname}' $otherside_edge-edge");
+  tss_print($conf, "# => ($max_expression_str) = ".sprintf("%.3f", eval $max_expression)."ps");
+
+  tss_print($conf, "foreach $signal->{tclock}{tclname} \$GENLIST_$signal->{tclock}{tclname} {") if $signal->{tclock}{is_generated};
+  tss_print($conf, ($signal->{tclock}{is_generated} ? " " : "").
+	           "set_${live_direction}_delay -clock ".($signal->{tclock}{is_generated} ? " \$" : "").
+		   "$signal->{tclock}{tclname} $otherside_clock_edge -max -add_delay [expr {$max_expression}] [get_port $signal->{pad_name}]");   
+  tss_print($conf, "}") if $signal->{tclock}{is_generated};
+
+  push @{$conf->{_report}{max}}, {direction => $live_direction eq 'input' ? "${otherside_edge}_from" : "${otherside_edge}_to", 
+	                          clock     => $signal->{tclock}, 
+				  port      => $signal
+			         };
+ } else {
+  unless ($max_type) {
+   tss_print($conf, "# (WARNING) ** NO MAX CHECK Defined ** for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge");
+   print   "(tss2sta) -W- **NO MAX CHECK Defined** for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge\n";
+   print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+  }
+
+  unless ($signal->{tclock}{jitter}) {
+   tss_print($conf, "#". '>' x 6 ." (ERROR) ** $cycle_type-cycle ** jitter is *NOT* defined for clock/pad pair '$signal->{reference_signal}{name}'/'$signal->{reference_signal}{pad_name}' ". '<' x 6);
+   print   "(tss2sta) -E- ** $cycle_type-cycle ** jitter is *NOT* defined for clock/pad pair '$signal->{reference_signal}{name}'/'$signal->{reference_signal}{pad_name}'\n";
+   print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+  }
+ }
+
+ # Min Check
+ if (defined $min_type) {
+  tss_print($conf, "# $cycle_type CYCLE");
+  tss_print($conf, "# set_${live_direction}_delay min for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t '$signal->{tclock}{tclname}' $otherside_edge-edge");
+  tss_print($conf, "# => $min_sign($min_expression_str) = ".sprintf("%.3f", eval "$min_sign $min_expression")."ps");
+
+  tss_print($conf, "foreach $signal->{tclock}{tclname} \$GENLIST_$signal->{tclock}{tclname} {") if $signal->{tclock}{is_generated};
+  tss_print($conf, ($signal->{tclock}{is_generated} ? " " : "").
+	           "set_${live_direction}_delay -clock ".($signal->{tclock}{is_generated} ? " \$" : "").
+		   "$signal->{tclock}{tclname} $otherside_clock_edge -min -add_delay [expr {$min_sign($min_expression)}] [get_port $signal->{pad_name}]\n");   
+  tss_print($conf, "}") if $signal->{tclock}{is_generated};
+
+  push @{$conf->{_report}{min}}, {direction => $live_direction eq 'input' ? "${otherside_edge}_from" : "${otherside_edge}_to", 
+	                          clock     => $signal->{tclock}, 
+				  port      => $signal
+			         };
+ } else {
+  tss_print($conf, "# (WARNING) ** NO MIN CHECK Defined ** for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge");
+  print   "(tss2sta) -W- **NO MIN CHECK Defined** for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge\n";
+  print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+ }
+
+ # Twice but with a different $otherside_edge, when needed
+ if ($twice) {
+  $otherside_clock_edge = "-clock_fall";
+  $otherside_edge       = "fall";
+
+  # Max Check
+  if ($max_type && $signal->{tclock}{jitter}) {
+   tss_print($conf, "# $cycle_type CYCLE");
+   tss_print($conf, "# set_${live_direction}_delay max for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge");
+   tss_print($conf, "# => ($max_expression_str) = ".eval($max_expression)."ps");
+
+   tss_print($conf, "foreach $signal->{tclock}{tclname} \$GENLIST_$signal->{tclock}{tclname} {") if $signal->{tclock}{is_generated};
+   tss_print($conf, ($signal->{tclock}{is_generated} ? " " : "").
+	            "set_${live_direction}_delay -clock ".($signal->{tclock}{is_generated} ? " \$" : "").
+		    "$signal->{tclock}{tclname} $otherside_clock_edge -max -add_delay [expr {$max_expression}] [get_port $signal->{pad_name}]");
+   tss_print($conf, "}") if $signal->{tclock}{is_generated};
+
+   push @{$conf->{_report}{max}}, {direction => $live_direction eq 'input' ? "${otherside_edge}_from" : "${otherside_edge}_to", 
+	                           clock     => $signal->{tclock}, 
+				   port      => $signal
+			          };
+  } else {
+   unless ($max_type) {
+    tss_print($conf, "# (WARNING) ** NO MAX CHECK Defined ** for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge");
+    print   "(tss2sta) -W- **NO MAX CHECK Defined** for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge\n";
+    print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+   }
+
+   unless ($signal->{tclock}{jitter}) {
+    tss_print($conf, "#". '>' x 6 ." (ERROR) ** $cycle_type-cycle ** jitter is *NOT* defined for clock/pad pair '$signal->{reference_signal}{name}'/'$signal->{reference_signal}{pad_name}' ". '<' x 6);
+    print   "(tss2sta) -E- ** $cycle_type-cycle ** jitter is *NOT* defined for clock/pad pair '$signal->{reference_signal}{name}'/'$signal->{reference_signal}{pad_name}'\n";
+    print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+   }
+  }
+
+  # Min Check
+  if (defined $min_type) {
+   tss_print($conf, "# $cycle_type CYCLE");
+   tss_print($conf, "# set_${live_direction}_delay min for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge");
+   tss_print($conf, "# => $min_sign($min_expression_str) = ".eval("$min_sign $min_expression")."ps");
+
+   tss_print($conf, "foreach $signal->{tclock}{tclname} \$GENLIST_$signal->{tclock}{tclname} {") if $signal->{tclock}{is_generated};
+   tss_print($conf, ($signal->{tclock}{is_generated} ? " " : "").
+	            "set_${live_direction}_delay -clock ".($signal->{tclock}{is_generated} ? " \$" : "").
+		    "$signal->{tclock}{tclname} $otherside_clock_edge -min -add_delay [expr {$min_sign($min_expression)}] [get_port $signal->{pad_name}]\n"); 
+   tss_print($conf, "}") if $signal->{tclock}{is_generated};
+
+   push @{$conf->{_report}{min}}, {direction => $live_direction eq 'input' ? "${otherside_edge}_from" : "${otherside_edge}_to", 
+	                           clock     => $signal->{tclock}, 
+	                           port      => $signal
+			          };
+  } else {
+   tss_print($conf, "# (WARNING) ** NO MIN CHECK Defined ** for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge");
+   print   "(tss2sta) -W- **NO MIN CHECK Defined** for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name} w.r.t $signal->{tclock}{tclname} $otherside_edge-edge\n";
+   print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+  }
+ }
+}
+
+
+sub set_transition_n_load {
+my ($conf, $signal) = @_;
+
+ my %option           = @_[2 .. $#_];
+ my $live_direction   = ($option{live_direction} || $signal->{direction}) eq 'I' ? 'input' : 'output';
+ my $actual_direction =  $signal->{direction}  eq 'I' ? 'input'  : 
+                        ($signal->{direction}  eq 'O' ? 'output' : 
+				                        'inout'  );
+
+ if ($live_direction eq 'input') {
+  tss_print($conf, "# Setting rise/fall input transition for '$actual_direction' signal/pad pair '$signal->{name}'/'$signal->{pad_name}'");
+  if ($signal->{input_rise_time}) {
+   my $in_pico = $signal->{input_rise_time}*1000;
+   unless ($conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{input_rise_time}{$signal->{pad_name}}) {
+    tss_print($conf, "set_input_transition  $in_pico -rise [get_port $signal->{pad_name}]");
+
+    $conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{input_rise_time}{$signal->{pad_name}}{$in_pico} = 1;
+   } else {
+    if (scalar(keys %{$conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{input_rise_time}{$signal->{pad_name}}}) > 1) {
+     tss_print($conf, "# (WARNING) ** MULTIPLE input rise transition ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}");
+     print   "(tss2sta) -W- ** MULTIPLE INPUT RISE TRANSITION ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}\n";
+     print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+    }
+   }
+  } else {
+   tss_print($conf, "# (WARNING) ** NO INPUT RISE TRANSITION ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}");
+   print   "(tss2sta) -W- ** NO INPUT RISE TRANSITION ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}\n";
+   print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+  }
+
+  if ($signal->{input_fall_time}) {
+   my $in_pico = $signal->{input_fall_time}*1000;
+   unless ($conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{input_fall_time}{$signal->{pad_name}}) {
+    tss_print($conf, "set_input_transition  $in_pico -fall [get_port $signal->{pad_name}]");
+
+    $conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{input_fall_time}{$signal->{pad_name}}{$in_pico} = 1;
+   } else {
+    if (scalar(keys %{$conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{input_fall_time}{$signal->{pad_name}}}) > 1) {
+     tss_print($conf, "# (WARNING) ** MULTIPLE input fall transition ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}");
+     print   "(tss2sta) -W- ** MULTIPLE INPUT FALL TRANSITION ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}\n";
+     print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+    }
+   }
+  } else {
+   tss_print($conf, "# (WARNING) ** NO INPUT FALL TRANSITION ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}");
+   print   "(tss2sta) -W- ** NO INPUT FALL TRANSITION ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}\n";
+   print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+  }
+
+ } else {
+  tss_print($conf, "# Setting output load for '$actual_direction' signal/pad pair '$signal->{name}'/'$signal->{pad_name}'");
+  if ($signal->{capacity_load}) {
+   my $in_femto = $signal->{capacity_load}*1000;
+   unless ($conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{capacity_load}{$signal->{pad_name}}) {
+    tss_print($conf, "set_load  $in_femto  [get_port $signal->{pad_name}]");
+
+    $conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{capacity_load}{$signal->{pad_name}} = 1;
+   } else {
+    if (scalar(keys %{$conf->{set_transition_n_load}{$signal->{opp}}{$signal->{mux_mode}}{capacity_load}{$signal->{pad_name}}}) > 1) {
+    tss_print($conf, "# (WARNING) ** MULTIPLE capacity load ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}");
+    print   "(tss2sta) -W- ** MULTIPLE CAPACITY LOAD ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}\n";
+    print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+    }
+   }
+  } else {
+   tss_print($conf, "# (WARNING) ** NO CAPACITY LOAD ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}");
+   print   "(tss2sta) -W- ** NO CAPACITY LOAD ** defined for '$actual_direction' signal/pad pair $signal->{name}/$signal->{pad_name}\n";
+   print   "(tss2sta) ".join(' / ', @{$signal->{info}})."\n\n";
+  }
+ }
+}
+
+sub tss_print  {my ($conf, $msg) = @_; print {$conf->{_o}} get_indent($conf)."$msg\n"}
+sub get_indent {my ($conf)       = @_; join("", @{$conf->{TCLINDENT}})}
+
+sub push_indent {
+my ($conf, $indent) = @_;
+
+ $indent = defined($indent) ? $indent : 2;
+
+ push @{$conf->{TCLINDENT}}, (' ') x $indent;
+}
+
+sub pop_indent {
+my ($conf, $indent) = @_;
+
+ $indent = defined($indent) ? $indent : 2;
+
+ splice @{$conf->{TCLINDENT}}, -$indent;
+}
+
+
+sub clock_table2hash {
+my ($conf, $table) = @_;
+
+ my %option = @_[2 ..$#_];
+
+ my $cmap = $option{map} || $conf->{default_template_map};
+
+ my %clock_hash;
+ foreach my $clkent (@$table) {
+  $clock_hash{$$clkent[$conf->{$cmap}{clock}{name}]} = {map {$_ => $$clkent[$conf->{$cmap}{clock}{$_}]} keys %{$conf->{$cmap}{clock}}};
+ }
+
+ \%clock_hash
+}
+
+sub clock_n_signal {
+my ($conf, $map, $tabletree) = @_;
+
+ HUtils::wrecurse($tabletree, sub {my ($info, $table) = @_;
+    # Identifying all reference clock name
+    my %reflist  = map {$_ => 1} grep $_, map {$$_[$conf->{map_1x}{signal}{reference_signal}]} @$table;
+    my $reflist  = '(?:'.join('|', map {"\Q$_\E"} keys %reflist).')';
+    my $refre    = qr/$reflist/;
+
+    my @reftable = grep {$$_[$conf->{map_1x}{signal}{name}] =~ $refre} @$table;
+
+    {CLOCK=> jitter_add($conf, clock_table2hash($conf, \@reftable, map=>$map)), SIGNAL=>$table, MAP=>$map}
+ });
+
+ $tabletree
+}
+
+sub jitter_add {
+my ($conf,  $clkinfo) = @_;
+
+ foreach my $clkname (keys %$clkinfo) {
+  my $period  = sprintf('%.1f', 10**6/$clkinfo->{$clkname}{target_frequency});
+  my $jitter  = sprintf('%.1f', $conf->{jitter}{ratio}*$period / 100);
+     # We also need to express it in pico-seconds
+     $jitter  = ($jitter > $conf->{jitter}{ratio}  ? $conf->{jitter}{ratio} : $jitter)*1000;
+
+     # Adding 2.x jitter fields
+     $clkinfo->{$clkname}{$_} = $jitter foreach (grep { /jitter/o} keys %{$conf->{map}{clock}});
+ }
+ 
+ $clkinfo
+}
+
+sub split_w_header {
+my ($table) = @_;
+
+ my %rethash;
+ # [2] = pad_name column, which should be empty for header's line
+ my @headers_lindex = grep {!$table->[$_][2]} (0 .. $#$table);
+ push @headers_lindex, ($#$table + 1);
+ foreach my $cidx (0 .. $#headers_lindex) {
+  my $chindex = $headers_lindex[$cidx];
+  if (defined $table->[$chindex]) {
+   $rethash{"anchor:$table->[$chindex][0]"} = [@$table[$chindex + 1 .. $headers_lindex[$cidx+1]-1]];
+  }
+ }
+
+ \%rethash
+}
+
+sub usage {
+ print "usage: tss2sta  <TSSExcelFile>+ [-conf=<UserConFile>]* [-output=<TCLFile>] [--help]\n";
+ exit
+}

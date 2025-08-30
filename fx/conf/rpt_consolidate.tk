@@ -1,0 +1,80 @@
+#==============================================
+# *rpt_consolidate* GUI description
+#==============================================
+
+main    {
+ tixlabelframe rpt_consolidate (options label:"rpt_consolidate" bg:grey88 labelside:top) (pack side:left anchor:n)
+
+          (.frame bg:grey67) (.label bg:skyblue3)
+          (checkbutton    cb1 (pack anchor:w) (options text:2430c               
+                                                       variable:"\$rpt_consolidate{'2430c'}"            
+                                                       bg:grey67 
+                                                       relief:ridge))
+
+          (checkbutton    cb2 (pack anchor:w) (options text:"with path"         
+                                                       variable:"\$rpt_consolidate{'with-path'}"        
+                                                       bg:grey67 
+                                                       relief:ridge))
+         
+         
+          (frame filetype (pack pady:10 anchor:w) (options bg:grey67)
+            (checkbutton   cb1 (pack anchor:w) (options text:"Violators"        
+                                                        variable:"\$rpt_consolidate{'file-filter'}"     
+                                                        offvalue:"viols_.*_verb\.rpt$" 
+                                                        onvalue:"viols_.*_verb\.rpt$" 
+                                                        bg:grey67 
+                                                        relief:ridge 
+                                                        command:\&csplit_enable))
+         
+            (checkbutton   cb2 (pack anchor:w) (options text:"Jtag Custom"      
+                                                        variable:"\$rpt_consolidate{'file-filter'}"     
+                                                        offvalue:"viols_.*_verb\.rpt$" 
+                                                        onvalue:"jtag_custom" 
+                                                        bg:grey67 
+                                                        relief:ridge 
+                                                        command:\&csplit_enable))
+         
+            (checkbutton   cb3 (pack anchor:w) (options text:"Jtag Measures"    
+                                                        variable:"\$rpt_consolidate{'file-filter'}"     
+                                                        offvalue:"viols_.*_verb\.rpt$" 
+                                                        onvalue:"jtag_measures" 
+                                                        bg:grey67 
+                                                        relief:ridge 
+                                                        command:\&csplit_enable))
+         
+            (checkbutton   cb4 (pack anchor:w) (options text:"FullClock_Exp"    
+                                                        variable:"\$rpt_consolidate{'file-filter'}"     
+                                                        offvalue:"viols_.*_verb\.rpt$"
+                                                        onvalue:"tc_FullClkExp_.*\.rpt$" 
+                                                        bg:grey67 
+                                                        relief:ridge 
+                                                        command:\&csplit_enable))
+                                                                        
+                                                                        
+            (checkbutton   cb5 (pack anchor:w) (options text:"path_based"       
+                                                        variable:"\$rpt_consolidate{'file-filter'}"     
+                                                        offvalue:"viols_.*_verb\.rpt$"
+                                                        onvalue:"ptsi\.path_based\..+\.rpt$" 
+                                                        bg:grey67 
+                                                        relief:ridge 
+                                                        command:\&csplit_enable))
+           )
+         
+         
+          (tixlabelentry  le_path     (pack fill:x expand:1) (options label:"Path RE") 
+                                      (.label bg:lightsteelblue3) 
+                                      (.entry bg:white  
+                                              selectbackground:blue3 
+                                              selectforeground:white 
+                                              width:15 
+                                              textvariable:"\$rpt_consolidate{'path-filter'}"))
+         
+          (tixlabelentry  le_file     (pack fill:x  expand:1) (options label:"File RE") 
+                                      (.label bg:lightsteelblue3) 
+                                      (.entry bg:white  
+                                              selectbackground:blue3 
+                                              selectforeground:white 
+                                              width:15 
+                                              textvariable:"\$rpt_consolidate{'file-filter'}"))
+}
+

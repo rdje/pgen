@@ -1,0 +1,18 @@
+# Step 2: Add quantifiers back carefully
+
+return_annotation := '->' /\s*/ return_expression
+
+return_expression := quantified_array | simple_array | scalar_ref
+
+# Array with required quantifier (not optional)
+quantified_array := '[' /\s*/ scalar_ref /\s*/ ']' quantifier -> {type: "array", element: $3, quantified: $6}
+
+# Array without quantifier  
+simple_array := '[' /\s*/ scalar_ref /\s*/ ']' -> {type: "array", element: $3}
+
+scalar_ref := '$' number -> {type: "scalar_ref", index: $2}
+
+# Simple quantifiers only
+quantifier := /([\*\+\?])/ -> $1
+
+number := /(\d+)/ -> $1

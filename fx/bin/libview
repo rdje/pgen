@@ -1,0 +1,69 @@
+#! /usr/bin/perl -w -I/home/rdje/perl/lib/site_perl/5.8.3 -I/home/rdje/EXPERIMENTAL/perl -I/home/qdjeric/project/fsm/afx/fx/perl
+
+use Storable;
+use Getopt::Long;
+use File::Basename;
+
+require Table2SS;
+
+my $conf = {};
+GetOptions(
+	   'xls=s'=> \$xls,
+	   'help' => \$help
+);
+
+ $conf->{_program} = (reverse split(/\//, $0))[0];
+
+ @ARGV || print "($conf->{_program}) -E- The library file argument is mandatory." && usage();
+
+ -s ($conf->{_libfile} = shift @ARGV) || die "($conf->{_program}) -E- Problem opening file '$conf->{_libfile}',";
+
+# HUtils::Merge($conf, HUtils::Link(PathSearch::Go($conf->{_program})));
+
+ my @libview;
+ my %libview;
+ # Visiting each and every piece of that lib file
+ $conf->{_lib} = retrieve($conf->{_libfile});
+ HUtils::recurse($conf->{_lib}, sub {my ($keyseq, $keydata) = @_;
+  # Leaf nodes are of two types:
+  # - simple attribute, i.e scalar (string/number)
+  # - complex attribute, i.e List of values (array reference)
+   
+  # Convert complex attribute list to table (2D-array)
+  $keydata = do {
+         if ("@$keyseq" =~ /timing:\S+\s+\S*(?:rise|fall)\S*:\S+\s+values$/o) {
+       	  #print "@$keyseq\n";
+          my $index2_data =  eval q($conf->{_lib}{").join(q("}{"), @$keyseq[0 .. ($#$keyseq -1)], 'index_2').q("});
+	  #print "MISSING (index_2) <@$keyseq>\n" unless $index2_data;
+          $index2_data ? Table2SS::List2Table($keydata, scalar @$index2_data) : [$keydata];
+         
+         } else {
+          [$keydata];
+         }
+           
+  }  if ref $keydata;
+
+  eval q($libview{").join(q("}{"), @$keyseq).q("} = $keydata);
+
+  push @libview, [@$keyseq, $keydata]
+ });
+
+
+ my $tta = Table2SS::TableTreeAllocate(\%libview);
+ foreach (@libview) {
+  if (ref $$_[-1]) {
+   pop @$_;
+   my $ta1 = Table2SS::TableTreeA1($tta, $_);
+   @$_ = map {"internal:tables!".$ta1."\@$_"} @$_;
+  }
+ }
+
+ Table2SS::UConf(PathSearch->go($conf->{_program}.'_table2ss'));
+
+ my ($excelfile) = File::Basename::fileparse($conf->{_libfile}, '.qclib');
+ my $wb = Table2SS::AddWorkBook($xls || $excelfile.'.xls');
+
+ #Table2SS::DriveSheet($wb, 'links',   Table2SS::RCAllocate(1, 1, 1, Table2SS::SpliTable(\@libview, 6), 'libview_links'));
+ Table2SS::DriveSheet($wb, 'links',   Table2SS::RCAllocate(1, 1, 1, [[@libview[0 .. 65000]]], 'libview_links'));
+ Table2SS::DriveSheet($wb, 'tables',  $tta);
+ Table2SS::Close($wb);

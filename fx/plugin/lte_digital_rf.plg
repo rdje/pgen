@@ -1,0 +1,44 @@
+
+add_mem_io_assigns {my ($cr, %opt) = @_;
+ my $conf = config_read ($opt{_args}[0]);
+
+ my %assigns;
+ my %align;
+ foreach my $wid_cnt (@{list_2table ($conf->{instance_count}, 2)}) {
+   my ($wid, $cnt) = @$wid_cnt;
+
+   foreach my $cdir (qw/in out/) {
+    foreach (0 .. $cnt-1) {
+     my $wid_mem_io  = $conf->{block}.'_'.$wid.($cnt ~~ 1 ? '' : '_'.$_).'_mem_'.$cdir;
+
+     my $start_const = $conf->{block}.'_'.$wid.'_'.$_.'_mem_'.$cdir.'_start_c';
+     my $end_const   = $conf->{block}.'_'.$wid.'_'.$_.'_mem_'.$cdir.'_end_c';
+
+     push @{$align{$cdir}{lhs}},     $wid_mem_io; # Useful only for IN
+     push @{$align{$cdir}{end_c}},   $end_const;
+     push @{$align{$cdir}{start_c}}, $start_const;
+
+     push @{$assigns{$cdir}}, [$wid_mem_io, "$conf->{block}_mem_".$cdir, $end_const, $start_const, $wid, $_, $cdir];
+    }
+   }
+ }
+
+ say "\n\n";
+
+ # IN
+ $al_i_lhs     = RTLUtils::string_align ($align{in}{lhs});
+ $al_i_end_c   = RTLUtils::string_align ($align{in}{end_c});
+ $al_i_start_c = RTLUtils::string_align ($align{in}{start_c});
+ map {say "-- Wrapper '".uc($$_[4])."' instance #$$_[5]  (".uc($$_[6]).")"; say "$$al_i_lhs{$$_[0]}  <=  $$_[1] ($$al_i_end_c{$$_[2]}  DOWNTO  $$al_i_start_c{$$_[3]});"} @{$assigns{in}};
+
+ say "\n\n";
+
+ # OUT
+ $al_o_end_c   = RTLUtils::string_align ($align{out}{end_c});
+ $al_o_start_c = RTLUtils::string_align ($align{out}{start_c});
+ map {say "-- Wrapper '".uc($$_[4])."' instance #$$_[5]  (".uc($$_[6]).")"; say "$$_[1] ($$al_o_end_c{$$_[2]}  DOWNTO  $$al_o_start_c{$$_[3]})  <=  $$_[0];"} @{$assigns{out}};
+
+ say "\n\n";
+
+}
+

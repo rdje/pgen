@@ -1,0 +1,30 @@
+http {
+ use Sys::Hostname;
+
+ Global->set ('cgi') = HUtils::Conf(PathSearch->go('cgi'));
+
+ set_http_hostport (($_[0]{_host} || hostname).Global->http_hostail, $_[0]{_port});
+
+ print "\n";
+
+ foreach (@{$_[0]{_argv}}) {
+  next unless -f;
+
+  print " ", httplink ($_), "\n";
+ }
+
+ print "\n";
+}
+
+httplink {
+my ($path) = @_;
+
+  my $file_desc = "file=".File::Spec->rel2abs($path);
+  # Think TCL
+  #
+  # 'set VARNAME' w/o a value just returns the current value of VARNAME if any
+  #
+  my $id        = "id=".Digest::MD5::md5_hex($file_desc, Global->set ('cgi', 'sepc'), Global->md5_encode);
+
+  "http://".Global->http_hostport."/cgi-bin/getfile.cgi?$file_desc&$id";
+}

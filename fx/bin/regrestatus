@@ -1,0 +1,207 @@
+#! /apps/perl/5.8.3/bin/perl -w -I/home/rdje/perl/lib/site_perl/5.8.3 -I/home/rdje/EXPERIMENTAL/perl
+
+#====================================================================
+# Generated Inter Clock Domain Paths LOF files
+#
+# Copyright (c) 2005-2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#====================================================================
+
+require TcFlow;
+
+
+my $progname     = (reverse split(/\//, $0))[0];
+my $conf 	= HUtils::Link(PathSearch->go($progname));
+
+my $interface	= $conf->{interface};
+my $outputdir   = $conf->{outputdir};
+my $subdir      = $conf->{subdir};
+
+my $spoint  	= TableGrep::IndexOf('ALL')->{'startpoint'};
+my $epoint  	= TableGrep::IndexOf('ALL')->{'endpoint'};
+my $spclock 	= TableGrep::IndexOf('ALL')->{'startpoint_clock'};
+my $epclock 	= TableGrep::IndexOf('ALL')->{'endpoint_clock'};
+my $slack 	= TableGrep::IndexOf('ALL')->{'slack'};
+
+
+use Getopt::Long;
+GetOptions('interface=s' => \$interface,
+	   'outputdir=s' => \$outputdir,
+	   'merge'       => \$merge,	 
+	   'md5sum'      => \$md5sum,	 
+	   'help'        => \$help
+	  );
+
+
+$help && usage();
+
+$outputdir    || die "($progname) -E- No 'outputdir' specified,";
+$interface    || die "($progname) -E- *interface* parameter NOT Defined,";
+
+my $filter     = $conf->{interface_filter}{$interface}        || die "($progname) -E- *$interface* interface's filter NOT Defined,";
+
+unless (@ARGV) {
+ print "($progname) -E- You should provide at least one input file\n";
+ usage()
+}
+
+my %collect;
+$collect{$_} = getstatus($_) foreach (@ARGV);
+
+my $fullpath = "$outputdir/$subdir";
+system("mkdir -p $fullpath");
+system("rm -rf $fullpath/*");
+my %CLKPAIR;
+foreach my $cfile (keys %collect) {
+ print "\n FILE '$cfile'\n";
+ my $nih = $collect{$cfile}; 
+
+ foreach my $type (keys %$nih) {
+  print "\n TYPE *$type*\n";
+  my $typedir="$fullpath/$type";
+
+  system("mkdir -p $typedir") unless $merge;
+
+  foreach my $clkpair (keys %{$$nih{$type}}) {
+    print "\tClock Pair * $clkpair ($$nih{$type}{$clkpair}{count})*\n";
+
+    next if $clkpair eq ':' || $clkpair eq '-:-';
+
+    my $clkfile = $clkpair;
+
+    $clkfile =~ s/:/_2_/;
+    $clkfile =~ s/'//g;
+
+
+    if ($merge) {
+     push @{$CLKPAIR{$clkfile}{content}}, "=regrestatus_$type=";
+     my $src = $md5sum ? md5sum_sort($$nih{$type}{$clkpair}{'ALL'}) : $$nih{$type}{$clkpair}{'ALL'};
+     push @{$CLKPAIR{$clkfile}{content}}, "@$_" foreach (@$src);
+     push @{$CLKPAIR{$clkfile}{content}}, "=regrestatus_${type}_end=";
+
+    } else {
+     open(CLKPAIR, "> $typedir/$clkfile.lof");
+
+     print CLKPAIR "=regrestatus_$type=\n";
+
+     #print "\t @$_\n" foreach (@{$$nih{$type}{$clkpair}{'ALL'}});
+     print CLKPAIR "@$_\n" foreach (@{$$nih{$type}{$clkpair}{'ALL'}});
+
+     print CLKPAIR "=regrestatus_${type}_end=\n";
+     close(CLKPAIR);
+    }
+  }
+ }
+}
+
+if ($merge) {
+ foreach my $clkfile (keys %CLKPAIR) {
+   open(CURFILE, "> $fullpath/$clkfile.lof");
+   print CURFILE join("\n", @{$CLKPAIR{$clkfile}{content}});
+   close(CURFILE)
+ }
+}
+
+print "\n($progname) -I- Done.\n";
+
+
+sub md5sum_sort {
+my $ms = shift;
+
+ my %ms;
+ my $maxcol = 0;
+
+ foreach my $cpath (@$ms) {
+  my ($md5sum_idx) = $$cpath[$slack] =~ /_(\d+)!/;
+  push @{$ms{$md5sum_idx}}, $cpath;
+
+  $maxcol = $#$cpath;
+ }
+
+ my @sorted;
+ my $once = 0;
+ foreach my $md5idx (sort {$a <=> $b} keys %ms) {
+  if ($once) {
+   push @sorted, [('#') x  ($maxcol+1)]
+  }
+
+  push @sorted, @{simple_intsort($ms{$md5idx}, $slack)};
+
+  ++$once
+ }
+
+ return [@sorted]
+}
+
+sub getstatus {
+my ($ifile) = @_;
+
+ -s $ifile || die "($progname) -E- File '$ifile' doesn't exist, ";
+ print "($progname) -I- Processing file '$ifile'\n";
+
+ my %reth;
+ my $setup_hold = TcFlow::GetSH($ifile);
+ $reth{$_} 	= sec_status($setup_hold, $_) foreach (qw(setup hold));
+
+ return  {%reth}
+}
+
+sub sec_status {
+my ($setup_hold, $sectype) = @_;
+
+ my $ia = TableGrep::Filter($filter, $$setup_hold{$sectype});
+ unless ($ia) {print "($progname) -E- NO '$sectype' MATCH for filter ** $filter **\n"; return undef} 
+
+ my @ia = @$ia;
+
+ # Grouping paths based on their spclock/epclock pairs
+ my %ih;
+ while (my $ref = shift @ia) {push @{$ih{$$ref[$spclock].':'.$$ref[$epclock]}}, $ref}
+
+ my %nih;
+ foreach my $clkpair (keys %ih) {
+  foreach my $ar (@{$ih{$clkpair}}) {
+   push @{$nih{$clkpair}{start}{$$ar[$spoint]}}, $ar; 
+   push @{$nih{$clkpair}{end}{$$ar[$epoint]}}, $ar; 
+   push @{$nih{$clkpair}{pair}{$$ar[$spoint].':'.$$ar[$epoint]}}, $ar;
+   push @{$nih{$clkpair}{ALL}}, $ar;
+
+   $nih{$clkpair}{count}++
+  }
+ }
+
+ 
+ # Freeing memory
+ undef %ih;
+
+ return {%nih}
+}
+
+
+sub simple_intsort {
+my ($aofa, $sortk) = @_;
+
+ my %h;
+ foreach (@$aofa) {
+  my $slk;
+
+  if ($$_[$sortk] =~ /^internal:.+@(.+)/) {
+   $slk = $1
+  } else {
+   $slk = $$_[$sortk]
+  }
+
+
+  push @{$h{$slk}}, $_
+ }
+
+ return [map {@{$h{$_}}} sort {$a <=> $b} keys %h];
+}
+
+
+sub usage {
+ print "usage: regrestatus File+ [--merge] [--md5sum] [--outputdir=<OutPutDirectory>] [--help]\n";
+ exit
+}

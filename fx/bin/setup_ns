@@ -1,0 +1,7 @@
+find '/db/omap2430c_es2_sta/reports/handoff_Jan19_DROUTE_ECO3_netlist/starxt_1/OMAP2430C--SYN-DEC-03-05--RTL-DEC-01-05' -type f | egrep 'node_max_slacks' | egrep -v '\/.*tft.*\/' | egrep '\/(1.4_QC_MAX|QC_MAX)\/' | xargs -l5 egrep -v '#|INFINITY|i_omap2430c_core/(efuse|cam|d2d|obs|l4ss|mem|hsusb|fsusb|l3smx|cmdwt|d2dsmx|ocmcram|sdma|sublvdspmt|ssiss)/' | sort -k3 | uniq > ns_setup_handoff_Jan19_DROUTE_ECO2_netlist.slack
+
+#sort -k3 ns_setup_handoff_Jan19_DROUTE_ECO2_netlist.slack | uniq /home/rdje/NSSETUP_handoff_Jan17_DROUTE_ECO2_netlist_starxt_1.rpt
+
+#find /db/omap2430c_es2_sta/reports/handoff_Jan19_DROUTE_ECO2_netlist/starxt_1/OMAP2430C--SYN-DEC-03-05--RTL-DEC-01-05/ -type f | egrep 'node_min_slacks' | egrep -v '\/.*tft.*\/' | egrep '\/QC_MIN\/' | xargs -l egrep -v '#|INFINITY|i_omap2430c_core/(efuse|cam|d2d|obs|l4ss|mem|hsusb|fsusb|l3smx|cmdwt|d2dsmx|ocmcram|sdma|sublvdspmt|ssiss)/' > ns_hold
+#
+#sort -k3 ns_hold > /home/rdje/NSHOLD_handoff_Jan17_DROUTE_ECO2_netlist_starxt_1.rpt

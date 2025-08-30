@@ -1,0 +1,74 @@
+dsp_subsys_mbist_offset {
+ my $h = _dsp_xyz_constants_2htree ($_[0]{_argv}[0]);
+
+ #HUtils::Print ($h);
+
+ # step 1
+ HUtils::WRecurse ($h, sub {my ($ks, $v) = @_;
+  return $v if $ks->[-1] =~ /(?:start_c|end_c|size_c)/o;
+
+  $v + HUtils::avv_get ($h, @$ks[0 .. 2], 'start_c');
+ });
+
+ # step 2
+ HUtils::WRecurse ($h, sub {my ($ks, $v) = @_;
+  return $v if $ks->[-1] =~ /(?:start_c|end_c|size_c)/o;
+
+  $v + HUtils::avv_get ($h, @$ks[0,1], 'start_c');
+ });
+
+
+ # step 3
+ my $tbl = {};
+ HUtils::Recurse ($h, sub {my ($ks, $v) = @_;
+  return if $ks->[-1] =~ /(?:start_c|end_c|size_c)/o;
+
+   HUtils::avv_get ($tbl, $$ks[-1], "$$ks[0]_$$ks[2]") = "$$ks[1]:[$v]";
+ });
+ 
+ #HUtils::Print ($tbl);
+ my $table = htree_2matrix ($tbl, 1, 1, code=> sub {$_[0]});
+
+ my $wbid     = Table2SS::AddWorkBook($_[0]{_excelfile});
+ Table2SS::DriveSheet($wbid, 'DFT constants', Table2SS::RCAllocate(1, 1, 1, [$table], "wrapgen"));
+ Table2SS::Close     ($wbid);
+}
+
+dsp_ram_mbist_offset {
+ my $h = _dsp_xyz_constants_2htree ($_[0]{_argv}[0]);
+
+ #HUtils::Print ($h);
+
+ # step 1
+ HUtils::WRecurse ($h, sub {my ($ks, $v) = @_;
+  return $v if $ks->[-1] =~ /(?:start_c|end_c|size_c)/o;
+
+  $v + HUtils::avv_get ($h, @$ks[0 .. 2], 'start_c');
+ });
+
+ # step 2
+ my $tbl = {};
+ HUtils::Recurse ($h, sub {my ($ks, $v) = @_;
+  return if $ks->[-1] =~ /(?:start_c|end_c|size_c)/o;
+
+   HUtils::avv_get ($tbl, $$ks[-1], "$$ks[0]_$$ks[2]") = "$$ks[1]:[$v]";
+ });
+ 
+ #HUtils::Print ($tbl);
+ my $table = htree_2matrix ($tbl, 1, 1, code=> sub {$_[0]});
+
+ my $wbid     = Table2SS::AddWorkBook($_[0]{_excelfile});
+ Table2SS::DriveSheet($wbid, 'DFT constants', Table2SS::RCAllocate(1, 1, 1, [$table], "wrapgen"));
+ Table2SS::Close     ($wbid);
+}
+
+
+_dsp_xyz_constants_2htree {
+ my $hc = vhdl_constant_value_eval ($_[0]);
+
+ my $h = {};
+ map {print "$_\n";my @c = grep {defined} m/(w\d)_mem_(out|in)_(?:(xs1102|r(?:a|o)m\d)_(.+)|(start_c|end_c|size_c))/o; HUtils::avv_get($h, @c) = $$hc{$_} if @c} grep {m/w\d/o} keys %$hc;
+ #HUtils::Print ($h);
+
+ $h
+}

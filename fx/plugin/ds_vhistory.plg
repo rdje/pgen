@@ -1,0 +1,88 @@
+ds_vhistory  {
+ my $ps  = _get_parser('ds_vhistory');
+
+ my $p   = defined $_[0]{_argv}[0] ? 
+          do {
+             if (-f $_[0]{_argv}[0] && -T _) {
+
+              print "(ds_vhistory) -I- Loading '$_[0]{_argv}[0]'...\n";
+              my $log = slurp($_[0]{_argv}[0]);
+
+ 
+              print "(ds_vhistory) -I- Parsing '$_[0]{_argv}[0]'...\n";
+
+              my $o = $ps->(\$log);
+
+              print "(ds_vhistory) -I- Writing Parsed Data in '$_[0]{_action}.db'...\n";
+              Storable::store($o, "$_[0]{_action}.db");
+
+              $o
+             } else {
+              print "(ds_vhistory) -I- Loading DB '$_[0]{_argv}[0]'...\n";
+              Storable::retrieve($_[0]{_argv}[0]); 
+             }
+         }  : do {
+	  my $include_re = Global->set('_fx_conf', '_include_regex');
+          print "(ds_vhistory) -I- 'vhistory' automatic extraction..\n\n";
+	  my $s = join "\n\n", map {qx(dssc vhistory -all -report verbose $_)} 
+	                         map {print "                 $_\n"; $_} 
+			           grep {m/Modules/o && m/$include_re/o} qx(dssc listmodules) =~ /\bsync:\/\/\S+/go;
+
+          print "\n(ds_vhistory) -I- Parsing 'vhistory' output..\n";
+          $ps->(\$s)
+	 };
+
+  print "(ds_vhistory) -I- Analyzing parsed data..\n";
+
+  # Tag Version Data
+  my @tvd;
+  # Branch info
+  my $bi = {};
+  foreach my $co (get_anode_list($p, '?object:')) {
+   #print "object ($co->[1])\n";
+
+   foreach my $cbe (get_anode_list($co, '?branch_entry:')) {
+     my $b     = get_anode_list($cbe, '?branch:')->[0][1];
+     my $bt    = get_anode_list($cbe, '?branch_tags:')->[0];
+     my $btags = $bt ? [@$bt[1 .. $#$bt]] : [('-') x 3];
+     #print "B $b (@$btags)\n";
+     avv_set($bi, $co->[1], $b, [@$btags]);
+   }
+
+   #print "\n";
+  }
+
+  foreach my $co (get_anode_list($p, '?object:')) {
+   #print "object ($co->[1])\n";
+
+   foreach my $cve (get_anode_list($co, '?version_entry:')) {
+    my $version   = get_anode_list($cve, '?version:')->[0][1];
+    #print "    version      {$version}\n"; 
+
+    my $vt        = get_anode_list($cve, '?version_tags:')->[0];
+    my $vtags     = $vt ? [map {s/\s+/ /o; $_} do {push @$vt, ('-') x (4 - @$vt) if @$vt != 3; @$vt[1 .. $#$vt]}] : [('-') x 3];
+    #print "    version tags {@$vtags}\n"; 
+
+    my $vd        = get_anode_list($cve, '?date:')->[0][1];
+    my $va        = get_anode_list($cve, '?author:')->[0][1];
+
+    my @s_version = (split /\./o, $version);
+    my $br        = join '.', @s_version[0 .. $#s_version-1];
+    my $bti       = avv_get($bi, $co->[1], $br);
+    my $btagi     = $bti ? $bti : [('-') x 3]; 
+
+    unless ($bti) {
+     print "-I- No Tag defined for Branch '$br'\n";
+    }
+
+    push @tvd, ["dummy:".$co->[1], $br, @$btagi, $version, $vd, $va, @$vtags];
+   }
+
+   #print "\n";
+  }
+
+  my $wbid        = Table2SS::AddWorkBook($_[0]{_excelfile});
+  Table2SS::DriveSheet($wbid, 'ds_tagsinfo', Table2SS::RCAllocate(1, 1, 1, [\@tvd], "ds_vhistory_tag_info"));
+  Table2SS::Close     ($wbid);
+
+}

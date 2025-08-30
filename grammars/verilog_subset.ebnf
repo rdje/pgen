@@ -1,0 +1,147 @@
+// ⚡ Verilog Subset Grammar for Parser Testing  
+// Focus on synthesizable Verilog constructs
+
+verilog_design := module_declaration+ -> [$1*]
+
+// Module Declaration
+module_declaration := 'module' module_name parameter_list? port_list ';' 
+                     module_items 'endmodule' 
+                   -> {type: "module", name: $2, parameters: $3, ports: $4, items: $6}
+
+module_name := identifier -> {type: "module_name", name: $1.name}
+
+parameter_list := '#' '(' parameter_declaration (',' parameter_declaration)* ')' 
+                -> [$2, $3*]
+                | '' -> []
+
+port_list := '(' port_declaration (',' port_declaration)* ')' -> [$2, $3*]
+           | '(' ')' -> []
+
+port_declaration := port_direction range? identifier 
+                 -> {direction: $1, range: $2, name: $3}
+
+port_direction := 'input' -> {type: "port_direction", direction: "input"}
+               | 'output' -> {type: "port_direction", direction: "output"}
+               | 'inout' -> {type: "port_direction", direction: "inout"}
+
+range := '[' expression ':' expression ']' -> {msb: $2, lsb: $4}
+
+// Module Items
+module_items := module_item* -> [$1*]
+
+module_item := wire_declaration -> $1
+             | reg_declaration -> $1
+             | assignment -> $1
+             | always_block -> $1
+             | instantiation -> $1
+
+wire_declaration := 'wire' range? net_list ';' 
+                 -> {type: "wire", range: $2, nets: $3}
+
+reg_declaration := 'reg' range? variable_list ';' 
+                -> {type: "reg", range: $2, variables: $3}
+
+net_list := identifier (',' identifier)* -> [$1, $2*]
+
+variable_list := identifier (',' identifier)* -> [$1, $2*]
+
+// Assignments  
+assignment := 'assign' net_name '=' expression ';' 
+           -> {type: "assign", target: $2, value: $4}
+
+// Always Blocks
+always_block := 'always' '@' '(' sensitivity_list ')' statement 
+             -> {type: "always", sensitivity: $4, statement: $6}
+
+sensitivity_list := sensitivity_element ('or' sensitivity_element)* -> [$1, $2*]
+
+sensitivity_element := 'posedge' identifier | 'negedge' identifier | identifier 
+                    -> $1
+
+// Statements
+statement := blocking_assignment -> $1
+           | non_blocking_assignment -> $1
+           | begin_end_block -> $1
+           | if_statement -> $1
+
+blocking_assignment := variable_name '=' expression ';' 
+                    -> {type: "blocking", target: $1, value: $3}
+
+non_blocking_assignment := variable_name '<=' expression ';' 
+                        -> {type: "non_blocking", target: $1, value: $3}
+
+begin_end_block := 'begin' statement* 'end' -> {type: "block", statements: [$2*]}
+
+if_statement := 'if' '(' expression ')' statement ('else' statement)? 
+             -> {type: "if", condition: $3, then_stmt: $5, else_stmt: $6}
+
+// Module Instantiation
+instantiation := module_name instance_name '(' connection_list ')' ';' 
+              -> {type: "instantiation", module: $1, instance: $2, connections: $4}
+
+instance_name := identifier -> {type: "instance_name", name: $1.name}
+
+connection_list := connection (',' connection)* -> [$1, $2*]
+                 | '' -> []
+
+connection := '.' port_name '(' signal_name ')' -> {port: $2, signal: $4}
+
+// Expressions
+expression := primary -> $1
+            | unary_expression -> $1
+            | binary_expression -> $1
+
+primary := identifier -> $1
+         | number -> $1
+         | '(' expression ')' -> $2
+
+unary_expression := unary_operator primary -> {op: $1, operand: $2}
+
+binary_expression := expression binary_operator expression -> {left: $1, op: $2, right: $3}
+
+unary_operator := '!' -> {type: "unary_op", op: "logical_not"}
+               | '~' -> {type: "unary_op", op: "bitwise_not"}
+               | '&' -> {type: "unary_op", op: "reduction_and"}
+               | '|' -> {type: "unary_op", op: "reduction_or"}
+               | '^' -> {type: "unary_op", op: "reduction_xor"}
+
+binary_operator := '+' -> {type: "binary_op", op: "add"}
+                 | '-' -> {type: "binary_op", op: "subtract"}
+                 | '*' -> {type: "binary_op", op: "multiply"}
+                 | '/' -> {type: "binary_op", op: "divide"}
+                 | '%' -> {type: "binary_op", op: "modulo"}
+                 | '&' -> {type: "binary_op", op: "bitwise_and"}
+                 | '|' -> {type: "binary_op", op: "bitwise_or"}
+                 | '^' -> {type: "binary_op", op: "bitwise_xor"}
+                 | '<<' -> {type: "binary_op", op: "shift_left"}
+                 | '>>' -> {type: "binary_op", op: "shift_right"}
+                 | '==' -> {type: "binary_op", op: "equal"}
+                 | '!=' -> {type: "binary_op", op: "not_equal"}
+                 | '<' -> {type: "binary_op", op: "less_than"}
+                 | '>' -> {type: "binary_op", op: "greater_than"}
+                 | '<=' -> {type: "binary_op", op: "less_equal"}
+                 | '>=' -> {type: "binary_op", op: "greater_equal"}
+                 | '&&' -> {type: "binary_op", op: "logical_and"}
+                 | '||' -> {type: "binary_op", op: "logical_or"}
+
+// Names and Literals
+net_name := identifier -> {type: "net_name", name: $1.name}
+variable_name := identifier -> {type: "variable_name", name: $1.name}
+port_name := identifier -> {type: "port_name", name: $1.name}
+signal_name := identifier -> {type: "signal_name", name: $1.name}
+
+identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/ -> {type: "identifier", name: $1}
+
+number := decimal_number -> $1
+        | hex_number -> $1  
+        | binary_number -> $1
+
+decimal_number := /(\d+'?d\d+)/ -> {type: "number", format: "decimal", value: $1}
+                | /(\d+)/ -> {type: "number", format: "decimal", value: $1}
+hex_number := /(\d+'h[0-9a-fA-F]+)/ -> {type: "number", format: "hexadecimal", value: $1}
+binary_number := /(\d+'b[01]+)/ -> {type: "number", format: "binary", value: $1}
+
+parameter_declaration := 'parameter' identifier '=' expression -> {name: $2, value: $4}
+
+// Whitespace (ignored)
+whitespace := /\s+/ -> " "

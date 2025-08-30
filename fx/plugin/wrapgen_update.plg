@@ -1,0 +1,135 @@
+wrap_upd {
+my ($conf) = @_;
+
+use RTLUtils;
+
+ open (my $wu, PathSearch->go('vhdl', 'spec')); local $/; my $spec = <$wu>;
+ open (my $d,  $$conf{_argv}[0]);               local $/; my $wf   = <$d>;
+
+ my $pf = LinkedSpec::Get(\$spec)->(\$wf);
+
+ print vhdl_drive($pf);
+}
+
+wrape_upd {
+my ($conf) = @_;
+
+ open (my $wu, PathSearch->go('vhdl', 'spec')); local $/; my $spec = <$wu>;
+ open (my $d,  $$conf{_argv}[0]);               local $/; my $wf   = <$d>;
+
+ my $pf = LinkedSpec::Get(\$spec)->(\$wf);
+
+ entity_port_add ($pf, [@{$$conf{_argv}}[1 .. $#{$$conf{_argv}}]]); 
+
+ File::Path::mkpath('Wrappers_upd');
+ open (my $of, ">Wrappers_upd/".(File::Spec->splitpath($$conf{_argv}[0]))[-1]);  my $old = select $of;
+ print vhdl_drive($pf);
+ select $old;
+}
+
+
+entity_port_add {
+my ($d, $new_ports_desc) = @_;
+
+ my ($entity) = grep {$$_[0] eq '?entity_declaration:'} @$d;
+ insert_port ($entity->[2], $new_ports_desc);
+}
+
+insert_port {
+my ($interface_info, $new_port_desc) = @_;
+ 
+ my $rvi = -1;
+ while (abs($rvi) <= @$interface_info) {
+  last if $interface_info->[$rvi][0] eq '?port_decl:';
+  --$rvi;
+ } 
+
+ #my $pre_indent  = $interface_info->[$rvi-1];
+ my $post_indent = $interface_info->[$rvi+1];
+ splice @$interface_info, $rvi + 1, 0, add_space_n_comma (';');
+
+ my @new_data = map {[analyze_desc ($_), add_space_n_comma (';')]} @$new_port_desc;
+ pop @{$new_data[-1]}; @new_data = map {$interface_info->[0], @$_} @new_data;
+ push @$interface_info, @new_data, $post_indent;
+}
+
+analyze_desc {
+my ($desc) = @_;
+
+ my ($name, $direction, $size) = $desc =~ /(\w+)(?:(<|>)(\d+)?)?/oi;  
+
+  $direction   = $direction ? ($direction eq '<' ? 'IN' : 'OUT') : "IN";
+  $size      ||= 1;
+
+  add_port_decl ($name, $direction, $size);
+}
+
+
+add_space_n_comma  {['?space_n_comma:', $_[0]]}
+add_port_decl      {my ($name, $direction, $size) = @_; ['?port_decl:', [$name, $direction, ($size == 1 ? 'STD_LOGIC' : ('STD_LOGIC_VECTOR', $size-1, 0))]]}
+
+wrapa_upd {
+my ($conf) = @_;
+
+
+ open (my $wu, PathSearch->go('vhdl', 'spec')); local $/; my $spec = <$wu>;
+ open (my $d,  $$conf{_argv}[0]);               local $/; my $wf   = <$d>;
+
+ print "Processing  $$conf{_argv}[0]..\n";
+ my $vhdl_parser = LinkedSpec::Get(\$spec);
+
+ architecture_instance_add (my $cf = $vhdl_parser->(\$wf), $vhdl_parser, [@{$$conf{_argv}}[1 .. $#{$$conf{_argv}}]], $$conf{_pargs}{wmod}); 
+
+ File::Path::mkpath('Wrappers_upd');
+ open (my $of, ">Wrappers_upd/".(File::Spec->splitpath($$conf{_argv}[0]))[-1]);  my $old = select $of;
+ print vhdl_drive($cf);
+
+ select $old;
+}
+
+insert_components {
+my ($dest_mod, $components) = @_;
+
+ my ($architecture) = grep {$$_[0] eq '?architecture_body:'} @$dest_mod; 
+ my $arch_decl      = $architecture->[3];
+
+ my $i = 0; while ($arch_decl->[--$i] && $arch_decl->[$i] !~ /^\?component:/io) {}
+
+ splice @$arch_decl, $i+1, 1, ";", "\n\n", map {$_, "\n\n"} @$components;
+}
+
+insert_instances {
+my ($dest_mod, $instances) = @_;
+
+ my ($architecture) = grep {$$_[0] eq '?architecture_body:'} @$dest_mod; 
+ my $arch_statmt    = $architecture->[4];
+
+ push @$arch_statmt,  map {$_, "\n\n"} @$instances;
+}
+
+architecture_instance_add {
+my ($dest_mod, $parser, $directory_list, $module_list) = @_;
+
+ my $module_list_str = join '|', map {m/(\w+):?/o} split /,/o, $module_list;
+ my $module_list_re  = qr/$module_list_str/;
+
+ my @entity_list;
+ foreach (map {$parser->(\do {open (my $f, $_); local $/; <$f>})} rtl_file_list ($directory_list)) {
+  foreach (@$_) {
+   push @entity_list, $_ if $$_[0] eq '?entity_declaration:' && $$_[1] =~ /$module_list_re/o;
+  }
+ }
+
+ 
+ die "No entity found," unless @entity_list;
+
+ my %map_instance_cnt = map {m/(\w+)(?::(\d+))?/o} split /,/o, $module_list;
+ my $components       = [map {vhdl_component ($_)} @entity_list]; 
+ my $instances        = [map {my $e = $_; $map_instance_cnt{$$e[1]} ? map {vhdl_instance ($e, $_)} 0 .. $map_instance_cnt{$$e[1]}-1 : vdhl_instance ($e)} @entity_list]; 
+
+ insert_components ($dest_mod, $components);
+ insert_instances  ($dest_mod, $instances);
+}
+
+
+

@@ -1,0 +1,54 @@
+# Step 5: Full Return Annotation Grammar
+# This supports all the patterns we need including multi-property objects
+
+return_annotation := '->' /\s*/ return_expression
+
+return_expression := multi_object | multi_array | simple_array | simple_object | scalar_ref
+
+# Multi-property objects: {key1: value1, key2: value2, ...}
+multi_object := '{' /\s*/ object_contents /\s*/ '}' -> {type: "object", properties: $3}
+
+# Object contents with multiple properties
+object_contents := first_property rest_properties -> [$1, $2*]
+
+first_property := object_property
+
+rest_properties := comma_property*
+
+comma_property := ',' /\s*/ object_property -> $3
+
+object_property := object_key /\s*/ ':' /\s*/ object_value -> {key: $1, value: $5}
+
+# Multi-element arrays using explicit rules instead of grouping
+multi_array := '[' /\s*/ array_contents /\s*/ ']' -> {type: "array", contents: $3}
+
+# Break down array_contents to avoid grouped repetitions
+array_contents := first_element rest_elements -> [$1, $2*]
+
+first_element := array_element
+
+rest_elements := comma_element*
+
+comma_element := ',' /\s*/ array_element -> $3
+
+array_element := scalar_ref | literal
+
+# Simple arrays (keep working version)
+simple_array := '[' /\s*/ scalar_ref /\s*/ ']' -> {type: "array", element: $3}
+
+# Simple objects (single property for backwards compatibility)
+simple_object := '{' /\s*/ object_key /\s*/ ':' /\s*/ object_value /\s*/ '}' -> {type: "object", key: $3, value: $7}
+
+object_key := identifier | quoted_string
+
+object_value := scalar_ref | literal
+
+# Literals
+literal := quoted_string | number
+
+# Basic elements
+scalar_ref := '$' number -> {type: "scalar_ref", index: $2}
+quoted_string := /"([^"]*)"/ -> $1
+number := /(\d+)/ -> $1
+identifier := /([a-zA-Z_]\w*)/ -> $1
+

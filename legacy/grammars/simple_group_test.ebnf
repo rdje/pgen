@@ -1,0 +1,4 @@
+# Simple test for grouped quantifiers
+list := item (',' item)* -> [$1, $2*]
+item := 'token' -> "value"
+

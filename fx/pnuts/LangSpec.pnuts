@@ -1,0 +1,331 @@
+import java.util.regex.*
+
+function langspec_parse (specfile) {
+ last_dispatch_pos = 0
+ function Dispatch(m, plist) {
+   matchlist = list()
+   idx       = 0
+   project(plist, function (p) { 
+     if(m.usePattern(p).find(last_dispatch_pos)) {
+       push(matchlist, {"pos" => idx, "group" => m.group(), "start" => m.start(), "end" => m.end()}) 
+     }
+ 
+     ++idx
+   })
+ 
+   if (size(matchlist) == 0) return null
+   startmap  = map()
+   min_start = null
+   project(matchlist, function (it) {
+    min_start = min_start == null || min_start > it.start ? it.start : min_start
+    if(startmap[it.start] == null) {
+     startmap[it.start] = list([it])
+    } else {
+     push(startmap[it.start], it)
+    }
+   })
+   
+   max_end = 0 
+   endmap = map()
+   project(startmap[min_start], function (it) {
+    if (it.end > max_end)  max_end = it.end
+    if(endmap[it.end] == null) {
+     endmap[it.end] = list([it])
+    } else {
+     push(endmap[it.end], it)
+    }
+   })
+ 
+   last_dispatch_pos = endmap[max_end][0].end
+   return endmap[max_end][0]
+ }
+ 
+ cbrace_index = 7
+ spec_descr = [
+  {// top
+   "handler" => function (descr, string, gdata) {
+     specentry = list() 
+     specs     = list()
+ 
+     while (1) {
+      minfo = Dispatch(string.m, gdata.startres)
+ 
+      if (minfo == null) {
+        if (size(specentry)) push(specs, specentry) 
+        return specs
+      }
+ 
+      retv = (descr[minfo.pos + 1].handler)(minfo, descr, string, gdata)
+      if (retv == null) return null
+ 
+      if (retv[0] != "COMMENT") {
+       if (match("ELABEL", retv[0])) {
+        println("ELABEL<"+retv[0]+">")
+        if (size(specentry)) {
+         push(specs, specentry)
+         specentry = list([retv])
+        } else {
+         push(specentry, retv)
+        }
+       } else {
+         push(specentry, retv)
+       }
+      }
+     }
+   }
+  },
+ 
+  {// Entry Label
+    "re"      => [regex(`\w+::?`)],
+    "handler" => function (info, descr, string, gdata) {
+       println("Entry Label: <"+info.group+">")
+       info.group = info.group.replaceFirst(":", "")
+       target =  match(":", info.group) ? "_INITIAL" : ""
+       info.group = info.group.replaceFirst(":", "")
+       println("Entry Label -BIS: <"+info.group+">")
+       ["ELABEL"+target, info.group]
+    }
+  },
+ 
+  {// RE pattern
+    "re"      => [regex(`(?<!\\)/.+?(?<!\\)/`)],
+    "handler" => function(info, descr, string, gdata) {
+     info.group = info.group.replaceAll(`^/|/$`, "")
+     println("RE pattern: <"+info.group+">")
+     ["RE", info.group]
+    }
+  },
+ 
+  {// Action code block
+    "re"      => [regex(`->\s*\w+(?:\[\d+\])?\s*\{`), regex(`\}`)],
+    "handler" => function (info, descr, string, gdata) {
+      ipos = string.m.end()
+ 
+      println("Action code block: <"+info.group+">")
+      match(`(\w+)(?:\[(\d+)\])?`, info.group)
+      entry_label = getMatch(1)
+      reidx       = getMatch(2) != null ? getMatch(2) : 0
+ 
+      while (1) {
+       minfo = Dispatch(string.m, gdata.cbrace)
+       if (minfo == null) return null
+ 
+       switch (minfo.pos) {
+        case 1 : return ["ACODE", {"relabel" => entry_label, "reidx" => int(reidx), "code"=>string.v[ipos .. minfo.end-2]}]
+        case 0 : (descr[cbrace_index].handler)(minfo, descr, string, gdata)
+       }
+      }
+      
+    }
+  },
+ 
+  {// Empty Action code block
+    "re"      => [regex(`->\s*\w+(?:\[0\])?`)],
+    "handler" => function (info, descr, string, gdata) {
+         println("Empty Action code block: <"+info.group+">")
+         match(`(\w+)`, info.group)
+         entry_label = getMatch(1)
+         ["ACODE", {"relabel" => entry_label, "reidx" => 0, "code" => "callspec("+entry_label+")"}]
+    }
+  },
+ 
+  {// Non-Action code block
+    "re"      => [regex(`\w+\s*\{`), regex(`\}`)],
+    "handler" => function (info, descr, string, gdata) {
+         ipos = string.m.end()
+         println("Non-Action code block: <"+info.group+">")
+ 
+         match(`(\w+)`, info.group)
+         type  = getMatch(1)
+ 
+         while (1) {
+          minfo = Dispatch(string.m, gdata.cbrace)
+          if (minfo == null) return null
+ 
+          switch (minfo.pos) {
+            case 1 : return [type+"CODE", string.v[ipos .. minfo.end-2]]
+            case 0 : (descr[cbrace_index].handler)(minfo, descr, string, gdata)
+          }
+         }
+    }
+  },
+ 
+  {// Comment
+    "re"      => [regex(`(?:\r\n?)?[ \t]*#.*`)],
+    "handler" => function (info, descr, string, gdata) {println("Comment: <"+info.group+">"); ["COMMENT"]}
+  },
+ 
+  {// Curly Brace
+    "re"      => [regex(`(?<!\\)\{`), regex(`(?<!\\)\}`), regex(`(?<!\\)".*?(?<!\\)"`), regex(`(?<!\\)'.*?(?<!\\)'`)],
+    "handler" => function (info, descr, string, gdata) {
+         println("Curly Brace: <"+info.group+">")
+         while (1) {
+          minfo = Dispatch(string.m, gdata.cbrace)
+          if (minfo == null) return null
+ 
+          switch (minfo.pos) {
+            case 1 : return 1
+            case 0 : (descr[cbrace_index].handler)(minfo, descr, string, gdata)
+          }
+         }
+    }
+  }
+ ]
+ 
+ gdata = {
+      "startres" => list(project(filter(spec_descr, function (it) it.re != null), function (it) it.re[0])),
+      "cbrace"   => list(spec_descr[cbrace_index].re)
+ }
+ 
+ function parse (specfile) {
+  stringv = readText(specfile)
+  (spec_descr[0].handler)(spec_descr, {"v" => stringv, "m" => Pattern.compile(".").matcher(stringv)}, gdata)
+ }
+
+ parse(specfile)
+}
+
+
+function langspec_live (spec) {
+ initial_target = "_main_"
+ info_main      = map()
+
+ specinfo       = project(spec, function (einfo) {
+           info   = map()
+           RES    = list()
+           ACODES = list()
+           GDATA  = list()
+           label  = ""
+           icode  = ""
+           lxcode = ""
+           lscode = ""
+           lecode = ""
+
+           for (ent:einfo) {
+	     switch (ent[0]) {
+	       case "ICODE"  : icode  = ent[1]; break
+	       case "LXCODE" : lxcode = ent[1]; break
+	       case "LSCODE" : lscode = ent[1]; break
+	       case "LECODE" : lecode = ent[1]; break
+	       case "ACODE"  : push(ACODES,  callspec_handler_subst(ent[1].code))
+	                       push(GDATA, {"label"=>ent[1].relabel, "idx"=>ent[1].reidx})
+	                       break
+	       case "RE"     : push(RES, regex(ent[1])); break
+	       default       : // ELABELs 
+	                       if (match("ELABEL", ent[0]))  label = ent[1]
+			       if (match("ELABEL_INITIAL", ent[0])) {
+			        if (initial_target != "_main_") {
+				 error("(LangSpec) -E- Only one initial target may be specified, 1st='"+initial_target+"' 2nd='"+ent[1]+"'")
+				 exit(1)
+				}
+			       }
+	                       
+	     }
+	   }
+
+           // Initial value of the handler code
+           actual_icode  = icode + (icode  ? ";"  : "");
+           handler = 
+           "
+           IMATCH = info.group; 
+           IINDEX = info.pos; 
+           IPOS  = STRING.m.end();
+           
+           "+actual_icode;
+            
+            notvalid_lcodes = regex(`^\s*$`)
+	    if (size(ACODES) || !match(notvalid_lcodes, lxcode) || !match(notvalid_lcodes, lscode) || !match(notvalid_lcodes, lecode)) {
+             codes = ""
+             idx   = 0
+             if (size(ACODES)) {
+	      codes  = "switch (minfo.pos) {\n"
+	      for (mycode:ACODES) {
+	       codes += "case " + (idx++) + " : " + mycode + " ; break\n"
+	      }
+
+	      codes += "}"
+             }
+
+             actual_lxcode = lxcode ? lxcode+";" : " return null"
+             actual_lscode = lscode ? lscode+";" : ""
+             actual_lecode = lecode ? lecode     : ""
+
+             handler += " 
+
+             while (1) {
+              minfo = Dispatch(STRING.m, descr.gdata."+label+")
+              if (minfo == null) {
+              "+actual_lxcode+"
+              }
+
+              LMATCH = minfo.group
+              LINDEX = minfo.pos
+              LSPOS  = STRING.m.end()
+              
+              "+actual_lscode+"
+              
+              "+   codes     +"
+
+              "+actual_lecode+"
+             }"
+            }
+
+            if(size(RES)) {
+             info.re      = RES;
+             //push @{$$info_main{gdata}}, {label=>$label, idx=>0};
+             //push @{$$info_main{acode}}, '&{$$descr{spec}{'.$label.'}{handler}}($descr, $STRING, $minfo)';
+            }
+
+            
+            external_handler = handler;
+            //$external_handler =~ s/&{\$\$descr{spec}{(\w+)}{handler}}/&{\$\$descr{spec}{$1}}/g;
+            //print "\n $label => sub {\n$external_handler\n },\n";
+            println("\n "+label+" => function (descr, STRING, minfo) {\n"+external_handler+"\n },\n")
+
+            info.handler = function (descr, STRING, minfo) eval(handler)
+            info.acode   = ACODES
+            info.gdata   = GDATA
+
+            return [label, info]
+
+ })
+
+ println(spec.class)
+ println(specinfo.class)
+
+ auto_descr_spec       = map(specinfo)
+ final_descr           = {"spec"=>auto_descr_spec, "gdata"=>spec_gdata(auto_descr_spec)};
+ {"initial_target"=>initial_target, "info_main"=>info_main, "auto_descr_spec"=>auto_descr_spec}
+}
+
+function callspec_handler_subst(code) {
+ substitute(regex(`\bcallspec\((\S+?)\)`), function () "(descr.spec["+getMatch(1)+"].handler)(descr, STRING, minfo)", code);
+}
+
+function spec_gdata(auto_spec) {
+ println("\n\n================ spec_gdata ================\n\n")
+ gdata  = map()
+ mapFunction(function (k, v) {
+  lgdata = list()
+  for (gdent:v.gdata) {
+   if (auto_spec[gdent.label].re[gdent.idx] != null) {
+    push(lgdata, auto_spec[gdent.label].re[gdent.idx])
+   } else {
+    error("(LangSpec) -E- Element "+gdent.label+"["+gdent.idx+"] doesn't exists")
+    exit(2)
+   }
+  }
+
+  if(size(lgdata)) {
+   gdata[k] = lgdata
+   println(k+"=>"+gdata[k])
+  }
+ }, auto_spec) 
+
+ gdata
+}
+
+//langspec("specs/lib_reader.spec")
+//println("\n\n\n\n")
+spec = langspec_parse("specs/Lispish.spec")
+langspec_live(spec)

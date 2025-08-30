@@ -1,0 +1,4 @@
+# Simple quantifier test - no left recursion 
+item_list := item+ -> [$1*]
+item := 'token' -> "item_value"
+

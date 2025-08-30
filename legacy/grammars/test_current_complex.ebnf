@@ -1,0 +1,25 @@
+# Complex constructs test with current parser capabilities
+
+# Left-recursive arithmetic expression
+expr := expr /\s*\+\s*/ term -> {left: $1, op: $2, right: $3}
+expr := expr /\s*-\s*/ term -> {left: $1, op: $2, right: $3}
+expr := term -> $1
+
+# Multiplication with higher precedence  
+term := term /\s*\*\s*/ factor -> {left: $1, op: $2, right: $3}
+term := term /\s*\/\s*/ factor -> {left: $1, op: $2, right: $3}
+term := factor -> $1
+
+# Factors with parentheses and identifiers
+factor := /\s*\(\s*/ expr /\s*\)\s*/ -> $2
+factor := /(\w+)\s*/ -> {type: "identifier", name: $1}
+factor := /(\d+)\s*/ -> {type: "number", value: $1}
+
+# Left-recursive list construction
+list := list /\s*,\s*/ item -> {items: [$1, $3]}
+list := item -> {items: [$1]}
+
+# Items can be nested lists or simple values
+item := /\s*\[\s*/ list /\s*\]\s*/ -> {type: "nested_list", content: $2}
+item := /(\w+)\s*/ -> {type: "id", value: $1}
+item := /(\d+)\s*/ -> {type: "num", value: $1}

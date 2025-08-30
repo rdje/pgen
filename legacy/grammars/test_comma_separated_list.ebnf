@@ -1,0 +1,8 @@
+# Test: Comma-separated list with grouped quantifier
+# This should work: inner_property (',' /\s*/ inner_property)*
+
+test_list := item (',' /\s*/ item)* -> {type: "list", items: [$1, $3*]}
+
+item := identifier
+
+identifier := /([a-zA-Z_]\w*)/ -> $1

@@ -1,0 +1,4 @@
+# Test with proper literal syntax
+mode := 'in' -> "input"
+mode := 'out' -> "output"
+

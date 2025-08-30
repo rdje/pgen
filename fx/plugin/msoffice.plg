@@ -1,0 +1,11 @@
+excel_start {
+my $excel;
+
+ # use existing instance if Excel is already running
+ eval {$excel = Win32::OLE->GetActiveObject('Excel.Application')};
+ die "Excel not installed" if $@;
+ $excel = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit}) || die "Oops, cannot start Excel" unless defined $excel;
+
+ return $excel
+}
+

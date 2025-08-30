@@ -1,0 +1,171 @@
+skew {
+my ($conf) = @_;
+
+ PPlugin->get ('stan_backend_start')->($conf); 
+
+ my $filtered           = HUtils::GenericFilter($conf, TcFlow::GetAll($conf->{_argv}), "$conf->{_action}_sequence",  maptable=>'reportiming');
+ my $arrival_time_index = TableGrep::IndexOf("arrival_time");
+
+
+ my $wbname = $conf->{_excelfile} || "$conf->{_action}.xls";
+ my %summary;
+ my @sheet_buffer;
+ foreach my $checkmode (keys %{$conf->{what_to_check}}) {
+   foreach my $pathtype (qw(max min)) {
+     HUtils::KeyGrep(Storable::dclone($filtered), qr/pathtype $pathtype/, sub {my ($info, $lhash) = @_;
+              print "checkmode($checkmode)  pathtype($pathtype) <@$info>\n";
+
+              my @reference_info;
+              my %reference_info;
+              my @reference;
+              my %reference;
+              my %refhash;
+              my $want_reference;
+              my $has_reference;
+              if ($conf->{what_to_check}{$checkmode}{reference_tables}) {
+               # Reference table info is defined --> ALGO#2
+	       $want_reference = 1;
+               HUtils::KeyGrep($lhash, qr/$conf->{what_to_check}{$checkmode}{reference_tables}/, sub {my ($info, $data) = @_;
+                   print "KeyGrep - reference <@$info>\n";
+                   $has_reference  = 1;
+
+                   if (ref($data) eq 'HASH') {
+                    HUtils::Recurse($data, sub {my ($i, $table) = @_;
+                     print "Recurse - reference <@$i>\n";
+                     push @reference_info, $table;
+                     my @lref = sort {$a <=> $b} map {$$_[$arrival_time_index]} @$table;
+                     eval q($reference_info{").join(q("}{"), $checkmode, $pathtype, @$info, @$i, $lref[$#lpath], $lref[0]).q("} = $table);
+
+                     # Flagging this table as a member of the reference tables
+                     $refhash{$table} = 1;
+                    });
+                   } else {
+                    @reference_info = $data;
+                    my @lref = sort {$a <=> $b} map {$$_[$arrival_time_index]} @$data;
+                    eval q($reference_info{").join(q("}{"), $checkmode, $pathtype, @$info, $lref[$#lpath], $lref[0]).q("} = $data);
+
+                    # Flagging this table as a member of the reference tables
+                    $refhash{$data} = 1;
+                   }
+               });
+
+               @reference = sort {$a <=> $b} map {map {$$_[$arrival_time_index]} @$_} @reference_info;
+               %reference = (min=>$reference[0], max=>$reference[$#reference]);
+              }
+
+              if ($want_reference) {
+               print "(stan)(skew) -W- No reference table(s) found for check-mode='$checkmode' / path_type='$pathtype'.\n" unless $has_reference;
+	      }
+
+
+	      # Additional table to be exclude from the path tables
+              my $want_exclude;
+              my $has_exclude;
+              if ($conf->{what_to_check}{$checkmode}{exclude_tables}) {
+	       $want_exclude = 1;
+               HUtils::KeyGrep($lhash, qr/$conf->{what_to_check}{$checkmode}{exclude_tables}/, sub {my ($info, $data) = @_;
+                   print "KeyGrep - exclude <@$info>\n";
+                   $has_exclude  = 1;
+
+                   if (ref($data) eq 'HASH') {
+                    HUtils::Recurse($data, sub {my ($i, $table) = @_;
+                     # Flagging this table as a member of the exclude tables
+                     $refhash{$table} = 1;
+                    });
+                   } else {
+                    # Flagging this table as a member of the exclude tables
+                    $refhash{$data} = 1;
+                   }
+               });
+              }
+
+              if ($want_exclude) {
+               print "(stan)(skew) -W- No Exclude table(s) found for check-mode='$checkmode' / path_type='$pathtype'.\n" unless $has_exclude;
+	      }
+
+
+              my @path_info;
+              my %path_info;
+              HUtils::KeyGrep($lhash, qr/$conf->{what_to_check}{$checkmode}{path_tables}/, sub {my ($info, $data) = @_;
+              my @path_info;
+              my %path_info;
+              HUtils::KeyGrep($lhash, qr/$conf->{what_to_check}{$checkmode}{path_tables}/, sub {my ($info, $data) = @_;
+                  print "KeyGrep - path_tables <@$info>\n";
+
+                  if (ref($data) eq 'HASH') {
+                   HUtils::Recurse($data, sub {my ($i, $table) = @_;
+                     # Reference tables should be filtered out
+                     return if $refhash{$table};
+
+                     print "Recurse - path <@$i>\n";
+                     push @path_info, $table;
+                     my @lpath = sort {$a <=> $b} map {$$_[$arrival_time_index]} @$table;
+                     eval q($path_info{").join(q("}{"), $checkmode, $pathtype, @$info, @$i, $lpath[$#lpath], $lpath[0]).q("} = $table);
+                   });
+                  } else {
+                   # Reference tables should be filtered out
+                   unless ($refhash{$data}) {
+                    @path_info = $data;
+                    my @lpath = sort {$a <=> $b} map {$$_[$arrival_time_index]} @$data;
+                    eval q($path_info{").join(q("}{"), $checkmode, $pathtype, @$info, $lpath[$#lpath], $lpath[0]).q("} = $data);
+                   }
+                  }
+              });
+
+              unless (@path_info) {
+               print "(stan)(skew) -W- No path table(s) found for check-mode='$checkmode' / path_type='$pathtype'.\n";
+	      }
+
+              @path = sort {$a <=> $b} map {map {$$_[$arrival_time_index]} @$_} @path_info;
+              %path = (min=> @path && $path[0], max=> @path && $path[$#path]);
+
+              print "path<@{[%path]}>\n";
+              print "reference<@{[%reference]}>\n" if $has_reference;
+              my %delta = do {
+                 if ($want_reference) {
+                  if ($has_reference) {
+                   (min=> $path{min} - $reference{max}, max=> $path{max} - $reference{min}, pathmax=>$path{max} - $path{min})	 
+	          } else {
+                   (min=> '-', max=> '-', pathmax=>$path{max} - $path{min})	 
+	          }
+                 } else {
+                  (min=> undef, max=> $path{max} - $path{min})	 
+                 };
+
+              };
+
+              print "DELTA<".join(" ", map {$_ || '-'} @{[%delta]}).">\n\n";
+	      push @{$summary{$checkmode}{$pathtype}}, [undef, "Skew min", "Skew max"];
+	      push @{$summary{$checkmode}{$pathtype}}, ["0", (map {$_ || '-'} map {$delta{$_}} qw(min max)), "$conf->{what_to_check}{$checkmode}{max_skew}"];
+
+
+	      my $pushed_ref = 0;
+	      if ($want_reference) {
+		      #Table2SS::DriveTableTree("myreference.xls", "r_${checkmode}_$pathtype", \%reference_info,  script => 'consolidated_rep_skew', table_per_row=>1, keep_opened=>1);
+	       push @sheet_buffer, [$wbname, "r_${checkmode}_$pathtype", \%reference_info, link_script=>"skew_modetype", script => 'consolidated_rep_skew', table_per_row=>1];
+	       unshift @{$summary{$checkmode}{$pathtype}}, [undef, "internal:r_${checkmode}_$pathtype!A1\@REF"];
+	       $pushed_ref = 1;
+              }
+
+	      #Table2SS::DriveTableTree("myreference.xls", "p_${checkmode}_$pathtype", \%path_info,       script => 'consolidated_rep_skew', table_per_row=>1, keep_opened=>1);
+	      push @sheet_buffer, [$wbname, "p_${checkmode}_$pathtype", \%path_info, link_script=>"skew_modetype", script => 'consolidated_rep_skew', table_per_row=>1];
+	      if ($pushed_ref) {
+	       push @{$summary{$checkmode}{$pathtype}[0]}, "internal:p_${checkmode}_$pathtype!A1\@DATA";
+	      } else {
+	       unshift @{$summary{$checkmode}{$pathtype}}, [undef, "internal:p_${checkmode}_$pathtype!A1\@DATA"];
+	      }
+          });
+
+     });
+   }
+ }
+
+ Table2SS::DriveTableTree($wbname, "SUMMARY", \%summary, link_baserow=>6, link_basecol=>5, table_per_row=>2, keep_opened=>1, link_script=> 'skew_summary_link', script=>"skew_summary");
+ my $size = @sheet_buffer;
+ foreach (@sheet_buffer) {
+  Table2SS::DriveTableTree(@$_, keep_opened=> $size != 1);
+  --$size
+ }
+
+}
+

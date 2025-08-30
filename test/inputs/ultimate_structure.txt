@@ -1,0 +1,8 @@
+ultimate {
+    "primary_key": "test_value",
+    "secondary": {
+        "nested_array": [1, 2, 3],
+        "nested_object": {"inner": "value"}
+    },
+    "quantified_items": ["item1", "item2", "item3"]
+}

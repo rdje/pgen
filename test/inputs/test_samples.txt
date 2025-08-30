@@ -1,0 +1,46 @@
+# Test Input Samples for Advanced Return Annotations Grammar
+# These samples demonstrate different features of our enhanced parser
+
+# Test 1: Simple object with basic properties
+{"name": "test", "value": 42}
+
+# Test 2: Array with mixed types
+["hello", 123, true]
+
+# Test 3: Nested object structure
+{"user": {"name": "John", "age": 30}, "active": true}
+
+# Test 4: Function call with parameters  
+processData("file.txt", 100)
+
+# Test 5: Configuration structure
+config {
+    timeout = 5000;
+    retries = 3;
+    endpoints = ["api1", "api2"];
+}
+
+# Test 6: Ultimate structure (most complex)
+ultimate {
+    "primary_key": "test_value",
+    "secondary": {
+        "nested_array": [1, 2, 3],
+        "nested_object": {"inner": "value"}
+    },
+    "quantified_items": ["item1", "item2", "item3"]
+}
+
+# Test 7: Simple boolean values
+true
+false
+
+# Test 8: String literals with special characters
+"Hello \"World\""
+
+# Test 9: Numeric values
+-42.5
+123
+0
+
+# Test 10: Array with function calls
+[getData(), processItem("test"), 42]

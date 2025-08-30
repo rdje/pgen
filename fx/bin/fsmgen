@@ -1,0 +1,35 @@
+#! /home/qdjeric/install/bin/perl -w -I/home/qdjeric/project/fsm/afx/fx/perl
+
+#===================================================================
+# Copyright (c) 2006-2008 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+
+use 5.010;
+
+use Getopt::Long;
+
+use FSMGen;
+
+$|=1;
+
+my $conf  = {};
+
+GetOptions('dp=s'          => \$conf->{_dp}, 
+           'top=s'         => \$conf->{_top},
+           'bp=s'          => \$conf->{block_prefix},
+           'rtldb=s'       => \@{$conf->{rtldb}},
+           'merge'         => \$conf->{merge},
+           'directory=s'   => \$conf->{output_directory},
+           'add-package=s' => \@{$conf->{add_package_list}},
+           'header=s'      => \$conf->{corporate_file_header},
+           'help'          => \$conf->{help}
+          );
+
+
+@ARGV || die 'At least one .FSM file is required !';
+
+FSMGen::start_from_file ([@ARGV], conf=>$conf);

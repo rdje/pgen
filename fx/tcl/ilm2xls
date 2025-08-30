@@ -1,0 +1,309 @@
+#!/apps/perl/5.8.3/bin/perl -w
+
+use Getopt::Long;
+
+#default location
+my $default_ilm_directory="/db/neptune3g_librairies/ILM";
+my $configfile_default="configs/staflow_ilm_config.txt";
+my $top_filter_re="";
+my $mc_filter_re="";
+my $configfile="";
+my $default_scriptdir="scripts";
+my $staflow=1; # The Default is to start StaFlow
+my $bsub=1; # Default is not to use bsub
+my $pt_clockfile="ptchange_apply_clocks.tcl";
+my $xlsconf="configs/ilm_a2xhs.conf";
+my $server="sol8";
+my $starter=0;
+
+#============================================
+# In some environment *perl* does not point
+# to the right version of the Perl command.
+# OK, this ain't a nice work-around.
+# The problem being the following built-in
+# perl variables return empty string value
+# in some environments, and hence, we can't
+# use them as a reliable mean for retrieving.
+# the *current* Perl executable path :(
+#  $^V or $PERL_VERSION
+#  $^X or $EXECUTABLE_NAME
+#============================================
+my $PERL   = "/apps/perl/5.8.3/bin/perl";
+
+GetOptions('ilm-directory=s'=>\@ilm_directories,
+	   'top-filter=s'=>\$top_filter_re,
+	   'mode-corner-filter=s'=>\$mc_filter_re,
+	   'multioccheck!'=>\$multicheck,
+	   'config-file=s'=>\$configfile,
+	   'xlsconf=s'=>\$xlsconf,
+	   'extract!'=>\$extract,
+	   'xcel=s'=>\$excelfile,
+	   'csvfile=s'=>\$csvfile,
+	   'staflow!'=>\$staflow,
+	   'bsub!'=>\$bsub,
+	   'pt-file=s'=>\$ptfile,
+	   'log-file=s'=>\$logfile,
+	   'scripts-directory=s'=>\$scriptsdir,
+	   'server=s'=>\$server,
+	   'ptout=s'=>\$ptout,
+	   'clocks=s'=>\$clocks,
+	   'verbose!'=>\$verbose,
+	   'starter!'=>\$starter,
+	   'debug!'=>\$debug,
+   	   'help!'=>\$help);
+
+
+if($help) {
+ print "usage: ilm2xls [--ilm-directory=<IlmDir>]* [--top-filter=<TopRE>] [--mode-corner-filter=<MCRE>]\n";
+ print "               [--config-file=<ConfigFile>] [--pt-file=<PTFile>] [--csvfile=<CsvFile>] [--ptout=<NewPtFile>] [--xcel=<ExcelFile>]\n";
+ print "               [--nostaflow] [--extract] [--scripts-directory=<ScriptsDir>] [--server=<RemoteServer>] [--nobsub] [--starter]\n";
+ print "               [--log-file=<LogFile>] [--verbose] [--help] [--debug]\n";
+ exit
+}
+
+
+$verbose && print "(ilm2xls) -I- Checking ILM director".(scalar(@ilm_directories) > 1 ? "ies" : "y")."..";
+foreach (@ilm_directories) {-d $_ || die "Directory $_ does not exists !"}
+push @ilm_directories, $default_ilm_directory unless @ilm_directories;
+
+$verbose && print "\n";
+
+if($configfile) {
+ $verbose && print "(ilm2xls) -I- Is the config file exists ? ";
+ if(!-s $configfile) {
+   if($verbose) {
+    print "No\n";
+    print "              Falling back to the default";
+
+    if(-s $configfile_default) {
+     $configfile = $configfile_default;
+    } else {
+     print "(ilm2xls) -E- No Configuration file found";
+     exit 1
+    }
+   }
+ }
+} else {
+ if(-s $configfile_default) {
+  $configfile = $configfile_default;
+ } else {
+  print "(ilm2xls) -E- No Configuration file found\n";
+  exit 1
+ }
+}
+
+unless ($scriptsdir) {
+ $scriptsdir = $default_scriptdir;
+} elsif (!-d $scriptsdir) {
+ print "(ilm2xls) -E- Can't find the scripts directory.";
+ exit 1
+}
+
+my $selected_basename;
+my $selected_sdfpath;
+my %basename_path;
+my $top_re=qr/$top_filter_re/i;
+my $mc_re=qr/$mc_filter_re/i;
+
+# Recursively searching for SDF files, starting at the provided
+# ILM directory(ies).
+foreach (qx(find @ilm_directories -type f | egrep -i '\.sdf\$')) {
+ chop;
+ my ($basename)= /.+\/(.*)\.sdf$/;
+ $basename =~ s/_/ /;
+
+ my ($top, $mode_corner)= split(/ /, $basename);
+
+ # Applying the TOP filter if any
+ if($top_filter_re) {
+  next unless $top =~ $top_re;
+ }
+
+ # Applying the MODE/CORNER filter if any
+ if($mc_filter_re) {
+  $debug && print " mode_corner=[$mode_corner]\n";
+  next unless $mode_corner =~ $mc_re;
+ }
+ 
+ # Associating the SDF file basename, that is w/o
+ # the path and extension with the entire path to the 
+ # file for later retrieval.
+ push @{$basename_path{$top.'_'.$mode_corner}}, $_
+}
+
+# It's a small check for Multiple Occurrence of the same 
+# SDF file at difference places. We may add more check 
+# here also.
+if($multicheck) {
+ print "(ilm2xls) -I- Multiple occurrence check..\n";
+ foreach (keys %basename_path) {
+  if(scalar(@{$basename_path{$_}}) > 1) {
+   print "(ilm2xls) -W- top/mode_corner '$_' is defined more than once."
+  }
+ }
+}
+
+# Based on the resulting number of ILM found (.v + .sdf + .pt) w/ or w/o 
+# applying any filter, the user may be asked to select one, if more than 
+# one have been found. In case only one ILM is found than it will be automatically
+# selected. An error is flagged in case no ILM (i.e, SDF) is found.
+my $basenamecount=scalar(keys %basename_path);
+if(!$basenamecount) {
+ if($top_filter_re || $mc_filter_re) {
+  print "(ilm2xls) -E- Sorry but provided regular expressions failed to match !\n"
+ } else {
+  print "(ilm2xls) -E- No SDF file(s) found !\n";
+ }
+
+ exit
+} elsif ($basenamecount == 1) {
+ ($selected_basename, $selected_sdfpath) = (%basename_path);
+ $selected_sdfpath = shift @$selected_sdfpath;
+
+ if($verbose) {
+  print "(ilm2xls) -I- Found '$selected_basename' located at\n";
+  print "              '$selected_sdfpath'\n";
+ }
+ 
+} else {
+ print "\n There are sereval matches, so please select one :\n";
+ my $index=0;
+ foreach (sort keys %basename_path) {
+  my $bn=$_;
+  s/_/ /;
+  my ($top, $mode_corner)= split; 
+  
+  push @basename_path, {$top."/".$mode_corner=> $basename_path{$bn}[0]};
+  printf " %2d) $top/$mode_corner\n", $index;
+  ++$index
+ }
+
+
+ my $choice;
+ do {
+  print "ilm2xls> "; $choice=<>; $choice =~ s/\s//g;
+  $debug && print "choice=[$choice] index=[$index]\n";
+  exit if $choice =~ /^\.|quit$/i;
+ } until ($choice =~ /^\d+$/ && $choice < $index);
+
+ ($selected_basename, $selected_sdfpath)=(%{$basename_path[$choice]});
+ if($verbose) {
+  print "\n(ilm2xls) -I- Selected '$selected_basename' which is located at\n";
+  print "              '$selected_sdfpath'\n";
+ }
+}
+
+$selected_basename =~ s/[_|\/]/ /;
+my ($staflow_top) = split(/ /, $selected_basename);
+
+# Extracting the Value of the NET_FILE variable defined in the Configfile
+my $netfile=qx(egrep '^\\s*NET_FILE' $configfile | cut -d= -f2);
+$netfile =~ s/\s//g;
+
+# Extracting the Value of the CONS_DIR variable defined in the Configfile
+my $consdir=qx(egrep '^\\s*CONS_DIR' $configfile | cut -d= -f2);
+$consdir =~ s/\s//g;
+
+# Checking for the existence of the .v file associated with the .sdf file
+# As of writingg it should be located in the same directory as that of 
+# the SDF file, but of this may change.
+my $sdf2verilog;
+($sdf2verilog = $selected_sdfpath) =~ s/\.sdf$/\.v/i;
+if(! -s $sdf2verilog) {
+ print "(ilm2xls) -E- ILM netlist file\n";
+ print "              '$sdf2verilog'\n";
+ print "              does not exist\n";
+ exit 1
+}
+
+# Now checking for the existence of the .pt file
+my $sdf2pt;
+if (!$ptfile) {
+ ($sdf2pt = $selected_sdfpath) =~ s/\.sdf$/\.pt/i;
+ if(! -s $sdf2pt) {
+  print "(ilm2xls) -E- ILM constraint file\n";
+  print "              '$sdf2pt'\n";
+  print "              does not exist\n";
+  exit 1
+ }
+} else {
+ if(!-s $ptfile) {
+  print "(ilm2xls) -E- ILM constraint file\n";
+  print "              '$ptfile'\n";
+  print "              does not exist\n";
+  exit 1
+ }
+
+ $verbose && print "(ilm2xls) -I- Using the user-specified constraint file '$ptfile'\n";
+ $sdf2pt = $ptfile;
+}
+
+# Extracting the base_name of $sdf2pt
+my ($sdf2pt_basename)=($sdf2pt =~ /.*\/(.*)$/);
+
+# Thanks to Alex Safinia, it looks like I have a solution
+# to my crashing perl script. It seems that the environment
+# variable USER_STARTER is the culprit.
+my $user_started=$ENV{USER_STARTER};
+# Clearing the value of USER_STARTER env variable
+$ENV{USER_STARTER}="";
+
+$verbose && print "(ilm2xls) -I- On-the-fly Modification of '$sdf2pt' into $consdir/$sdf2pt_basename..\n";
+system(($bsub ? "bsub -Ip -R \"select"."[$server]\"" : "").
+	" $PERL $scriptsdir/ptchange.pl $sdf2pt ".($clocks ? "$clocks " : "$pt_clockfile ").
+						 ($ptout  ? $ptout     : "$consdir/$sdf2pt_basename"));
+
+# Moving the clockfile to the constraint directory
+system("mv $pt_clockfile $consdir") if !$clocks && -s $pt_clockfile;
+
+# Triggering the StaFlow if asked
+if ($staflow) {
+ # Making the NET_FILE points to the ILM verilog File
+ $verbose && print "(ilm2xls) -I- Writing the content of '$netfile' (NET_FILE)\n";
+ system("echo '$sdf2verilog' > $netfile") && die "(ilm2xls) -E- Can't Write to $netfile";
+ 
+ my $default_excelfile = lc($sdf2pt_basename);
+ $default_excelfile =~ s/^\w*?_//;
+ 
+ my @dot_split	   = split(/\./, $default_excelfile);
+ $dot_split[$#dot_split] = "xls";
+ $default_excelfile = join(".", @dot_split);
+
+ # Curently the top name is based on the SDF file basename, but I
+ # can extract it from the SDF file content if needed.
+ my $final_xcelfile = (defined($excelfile) ? $excelfile : $default_excelfile);
+ 
+ my $default_csvfile=$default_excelfile;
+ $default_csvfile =~ s/\.xls/\.csv/;
+ my $finalcsv_file= ($csvfile ? $csvfile:$default_csvfile);
+
+ # Defining some variables to be used in TCL files
+ my $defvar_value="ILM2CSV_SDFFILE:$selected_sdfpath ".
+ 		  "ILM2CSV_VFILE:$sdf2verilog ".
+ 		  "ILM2CSV_PTFILE:$sdf2pt ".
+ 		  "PTCHANGE_APPLY_CLOCKS:".($clocks ? "$clocks " : "$consdir/$pt_clockfile ").
+ 		  "ILM2CSV_SCRIPTDIR:$scriptsdir ".
+ 		  (defined($extract) ? "ILM2CSV_CSVEXTRACT:true" : "")." ".
+ 		  "ILM2CSV_CSVFILE:$finalcsv_file";
+
+ # Defining StaFlow command line
+ my $staflow_commandline=($bsub ? "bsub -Ip -R \"select"."[$server]\" ":"")."StaFlow ".
+ 			  "-config $configfile ".
+ 			  "-top $staflow_top ".
+ 			  "-defVar $defvar_value ".
+ 			  ($logfile ? "| tee $logfile" : "");
+
+
+ $verbose && print "\n(ilm2xls) -I- Starting StaFlow.\n\n\n"; 
+
+ # Re-setting USER_STARTER env variable to its previous value
+ $ENV{USER_STARTER}=$user_started if $starter;
+ system($staflow_commandline) && die "[ilm2xls] -E- Can't continue, Sorry.";
+
+ # Generating The Excel Sheet ONLY when --extract has been specified
+ if (defined($extract)) {
+ $default_excelfile =~ s/\.xls//;
+ $verbose && print "\n(ilm2xls) -I- Generating Excel file '$final_xcelfile'.\n";
+ system("$PERL $scriptsdir/a2xhs -conf $xlsconf $finalcsv_file");
+ }
+}

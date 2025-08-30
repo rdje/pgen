@@ -1,0 +1,30 @@
+sdc2top {
+my ($conf) = @_;
+
+ my  $sdc = do {open (my $f, $$conf{_argv}[0]); local $/; <$f>};
+
+ my $set_mcp =  Table::list2table([map {s/get_port/get_pin/gio; s/-(?:from|to)\b/-through/gio; $_} $sdc =~ /(set_(?:multicycle_path|max_delay)\s+)(.+?)\s*(?<!\\)\n/gis], 2);
+
+ my $str = do {open (my $f, PathSearch->new->go('sdce', 'spec')); local $/; <$f>};
+ my $sdce_p = LinkedSpec::Get(\$str);
+ 
+ my @n_set_mcp;
+ foreach my $mcp (@$set_mcp) {
+   push @n_set_mcp, join "", $$mcp[0], (map {ref $_ ? add_base ($$conf{_argv}[1], $$_[0], @{$$_[1]}) : $_} @{$sdce_p->(\$$mcp[1])});
+ } 
+
+ my $fo = select;
+ if ($$conf{_argv}[2]) {
+  open (my $fh, ">", $$conf{_argv}[2]); select $fh;
+ }
+
+ print join "\n\n", @n_set_mcp, "\n";
+
+ select $fo
+}
+
+add_base {
+my ($base, $get_px, @px_list) = @_;
+
+ join "", "[$get_px", (map {m/\w/o ? (/\[/o ? "{$base/$_}" : "$base/$_") : $_} @px_list),"]";
+}

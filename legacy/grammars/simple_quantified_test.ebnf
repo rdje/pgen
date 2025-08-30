@@ -1,0 +1,8 @@
+# Simple Test: Quantified Arrays Working!
+
+# Basic quantified collection - this should work perfectly
+items := item* -> [$1*]
+
+# Single item for testing
+item := /(\w+)/ -> $1
+

@@ -1,0 +1,21 @@
+avv_set      {HUtils::avv_set(@_)}
+avv_get      {HUtils::avv_get(@_)}
+avv_push     {HUtils::avv_push(@_)}
+hrecurse     {HUtils::Recurse(@_)}
+hwrecurse    {HUtils::WRecurse(@_)}
+hgrep        {HUtils::Grep(@_)}
+hmerge       {HUtils::Merge(@_)}
+keygrep      {HUtils::KeyGrep(@_)}
+get_leaf     {my ($h, $re, %opt) = @_;
+ my @leaf; keygrep ($h, qr/$re/, sub {push @leaf, $_[1] unless @leaf ~~ m/$re/});
+ 
+ if ($opt{verbose}) {
+  unless (@leaf) {
+   say STDERR "(fsmgen) -W- (get_leaf) RE '$re' did not match !";
+  } elsif (@leaf > 1) {
+   say STDERR "(fsmgen) -W- (get_leaf) RE '$re' matched more than once (x".scalar(@leaf)."), kept the last ($leaf[-1]) !";
+  }
+ }
+
+ $leaf[-1]
+}

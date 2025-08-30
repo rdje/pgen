@@ -1,0 +1,29 @@
+# Simplified JSON Grammar using regex syntax
+# Covers basic JSON structure with realistic string and number patterns
+
+json := value
+
+value := object
+value := array  
+value := string
+value := number
+value := /\s*true\s*/
+value := /\s*false\s*/
+value := /\s*null\s*/
+
+object := /\s*\{\s*\}\s*/
+object := /\s*\{\s*/ members /\s*\}\s*/
+
+members := pair /\s*,\s*/ members
+members := pair
+
+pair := string /\s*:\s*/ value
+
+array := /\s*\[\s*\]\s*/
+array := /\s*\[\s*/ elements /\s*\]\s*/
+
+elements := value /\s*,\s*/ elements
+elements := value
+
+string := /\s*"[^"]*"\s*/
+number := /\s*-?[0-9]+(\.[0-9]+)?\s*/

@@ -1,0 +1,271 @@
+#! /home/qdjeric/install/bin/perl -w -I/home/qdjeric/project/fsm/afx/fx/perl
+
+#===================================================================
+# Copyright (c) 2005-2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+use HUtils;
+use EasyTk;
+
+my $guis       = TkGui::Get(PathSearch->go("tcflow", 'tk'));
+my $tkguitk    = PathSearch->go("tkgui", 'tk');
+my $local      = TkGui::Get($tkguitk);
+
+my %tkcommands = %{HUtils::Conf(PathSearch->go("tkcommands"))};
+
+my @listvar = sort {$a cmp  $b} keys %$guis;
+$tkgui{listvar}    = "@listvar";
+
+my %crail;
+#EasyTk::Init('conf/tcflow.tk', 'panedw', winfo=> \%crail);
+#EasyTk::Init($tkguitk, 'test', winfo=> \%crail, startup=>\&startup);
+EasyTk::Init($tkguitk, 'start', winfo=> \%crail);
+#EasyTk::Init('conf/tkgui.tk', 'Gridtest', winfo=> \%crail);
+#EasyTk::Init('conf/tkgui.tk', 'minimalistic', winfo=> \%crail, startup=>\&startup);
+
+my $count = 0;
+sub start_gui {
+ my $lb = Tkx::widget->new($crail{winfo}{'start.nb_tixnotebook.topa.topa.twow.twow.slb'})->subwidget('listbox');
+ my $cursel =  $lb->curselection;
+
+ my @childrens = split /\s+/, Tkx::winfo('children', $crail{winfo}{'start.nb_tixnotebook.topa.topa.toplevel.toplevel'});
+
+ if (@childrens ) {
+	 Tkx::destroy($_) foreach (@childrens);
+ }
+
+ EasyTk::Walk(\%crail, $$guis{$listvar[$cursel]}, $crail{winfo}{'start.nb_tixnotebook.topa.topa.toplevel.toplevel'})
+}
+
+
+sub startup {
+my ($crail) = @_;
+
+#$crail->{tcl}->Eval("$crail->{winfo}{'start.nb_tixnotebook.nb.nb'} raise tcflow2");
+my $default_parent = ".testf.lnb.widget_area.topframe.sw.f2.window.myframe";
+
+Tkx::tixForm('grid', $default_parent,  777, 796);
+}
+
+sub get_path {
+ my $widget = Tkx::eval('set crail(widget)');
+
+ $tkgui{tkshell} = $tkgui{widget_path} = $widget;
+}
+
+
+sub add_widget {
+my $class   = shift;
+my $mwidget = Tkx::eval('set crail(widget)');
+
+my $listnb         = Tkx::widget->new(".testf.lnb");
+my $hlist          = Tkx::widget->new(".testf.lnb.pane.p1.shlist.f1.hlist");
+my $default_parent = Tkx::widget->new(".testf.lnb.widget_area.topframe.sw.f2.window.myframe");
+
+ $parent   = Tkx::widget->new($mwidget =~ /^\Q$default_parent\E.*/ ? $mwidget : $default_parent);
+
+ ++$num;
+
+ my $instance_name  = $class.$num;
+
+ my $widget = qq(($class $instance_name (popup poptkgui))); #
+ my $actualwidget = EasyTk::Walk(\%crail, Lispish::single(\$widget), $parent);
+ print "DEFAULT OPTION-VALUE PAIRS: <".$actualwidget->{obj}->configure.">\n";
+
+ $hlist->add($instance_name, -text=> $instance_name);
+ $listnb->add($instance_name);
+ my $subwidget_path  = $listnb->subwidget($instance_name);
+
+ 
+ my $more_options     = "cursor:arrow font:{Helvetica -12} fg:black";
+ my $standard_options = "";
+ my $opt_idx          = 0;
+ my %uniq             = map {$_ => 1} @{$tkcommands{$class}};
+ foreach  my $option (sort {$a cmp $b} keys %uniq) {
+  $standard_options  .=  qq((tixlabelentry tle$opt_idx (options label:$option) 
+                                                       (pack padx:1 anchor:w)
+                                                       (.label width:22 bg:skyblue $more_options) 
+						       (.entry width:15 
+						               bg:white 
+							       selectbackground:royalblue 
+							       selectforeground:white 
+							       textvariable:{\\\$setting{$class$num}{configure}{$option}})));
+  ++$opt_idx;
+ }
+
+ my  $setting =
+'
+(tixscrolledwindow '."${class}$num".' (pack fill:both  expand:1 side:right) 
+                                      (popup poptkgui) 
+                                      (event FocusIn toplevel_event) 
+				      (event Button-1 toplevel_event)
+				      (event Enter  hyperlink_enter ".*\.tle\d+\.label$")
+				      (event Leave  hyperlink_leave ".*\.tle\d+\.label$")
+ 
+ '.$standard_options.'
+ 
+ (tixlabelentry tle'.$opt_idx++.'  (options  label:side) 
+                                   (.label width:22 bg:gold '.$more_options.')
+				   (pack anchor:w)
+				   (tixballoon bm (conf initwait:1) (.message bg:snow font:"Helvetica -12")(.label bg:snow) (bind balloonmsg:"side: Hello World"))
+				   (.entry width:15 bg:white textvariable:{\$setting{"'."$class$num".'"}{pack}{side}}))
+ (tixlabelentry tle'.$opt_idx++.'  (options  label:anchor) 
+                                   (.label width:22 bg:gold '.$more_options.') 
+				   (pack anchor:w)
+				   (tixballoon bm (conf initwait:1) (.message bg:snow font:"Helvetica -12")(.label bg:snow) (bind balloonmsg:"anchor: Hello World"))
+				   (.entry width:15 bg:white textvariable:{\$setting{"'."$class$num".'"}{pack}{anchor}}))
+ (tixlabelentry tle'.$opt_idx++.'  (options  label:fill) 
+                                   (.label width:22 bg:gold '.$more_options.') 
+				   (pack anchor:w)
+				   (tixballoon bm (conf initwait:1) (.message bg:snow font:"Helvetica -12")(.label bg:snow) (bind balloonmsg:"fill: Hello World"))
+				   (.entry width:15 bg:white textvariable:{\$setting{"'."$class$num".'"}{pack}{fill}}))
+ (tixlabelentry tle'.$opt_idx++.'  (options  label:expand) 
+                                   (.label width:22 bg:gold '.$more_options.') 
+				   (pack anchor:w)
+				   (tixballoon bm (conf initwait:1) (.message bg:snow font:"Helvetica -12") (.label bg:snow) (bind balloonmsg:"expand: Hello World"))
+				   (.entry width:15 bg:white textvariable:{\$setting{"'."$class$num".'"}{pack}{expand}}))
+)
+';
+
+
+ EasyTk::Walk(\%crail, Lispish::single(\$setting), Tkx::widget->new($subwidget_path));
+ $mapping{$class.$num} = $actualwidget->{obj};
+ 
+ $listnb->raise($instance_name);
+}
+
+
+sub apply_setting {HUtils::recurse(\%setting, [\&apply, ".testf.lnb", $crail{tcl}])}
+
+sub delete_widget {
+ 
+ my $listnotebook           = Tkx::widget->new(".testf.lnb");
+ my $listnotebook_hlist     = Tkx::widget->new(".testf.lnb.pane.p1.shlist.f1.hlist");
+
+ my $raised = Tkx::widget->new($listnotebook)->raised();
+ print "RAISED($raised) $mapping{$raised}\n";
+ #$crail{tcl}->Eval("destroy $mapping{$raised}; $listnotebook_hlist delete entry $raised; $listnotebook delete $raised")
+ Tkx::destroy($mapping{$raised});
+ $listnotebook_hlist->delete('entry', $raised);
+ $listnotebook->delete($raised);
+}
+
+sub hlist_browsecmd {
+my $tobe_raised = (reverse @_)[0];
+
+ my $listnotebook           = Tkx::widget->new(".testf.lnb");
+ #$crail{tcl}->Eval("$listnotebook raise $tobe_raised");
+ $listnotebook->raise($tobe_raised);
+
+ $tkgui{tkshell} = $tkgui{widget_path} = $mapping{$tobe_raised};
+}
+
+sub toplevel_event {
+ my ($widgetname) = $_[0] =~ /.+\.(\w+)/;
+
+ if ($move_mode) {
+  return unless $mapping{$widgetname};
+
+  $move_widget = $_[0];
+  return
+ }
+
+
+ my $tkcommand_list = join("|", keys %tkcommands);
+ my $tkcommand_re   =  qr/\.(?:$tkcommand_list)\d+$|\.tle\d+/o;
+ 
+ #return unless $_[0] =~ $tkcommand_re;
+ 
+
+ my $listnotebook           = Tkx::widget->new(".testf.lnb");
+ do {
+    $listnotebook->raise($widgetname); 
+    Tkx::focus($_[0]);
+ } if $mapping{$widgetname};
+
+ $tkgui{tkshell} = $tkgui{widget_path} = $_[0];
+}
+
+
+sub apply {
+my ($info, $value, $listnotebook)= @_;
+
+ my ($classnum, $cmd, $field) = @$info;
+
+ my $raised = Tkx::widget->new($listnotebook)->raised();
+ return unless $classnum eq $raised;
+
+ if ($cmd eq 'pack')      {do {print "APPLY(pack $mapping{$classnum} -$field $value)\n"; Tkx::pack($mapping{$classnum}, "-".$field=>$value)}      if $value}
+ if ($cmd eq 'configure') {do {print "APPLY($mapping{$classnum} configure -$field $value)\n"; Tkx::widget->new($mapping{$classnum})->configure("-".$field=>$value)} if $value}
+}
+
+sub hyperlink_enter {
+	#print "hyperlink_enter: <@_>\n";
+ my $widget = shift;
+ Tkx::widget->new($widget)->configure(-cursor=>hand2, -font=> 'bold', -fg=> "blue2");
+}
+
+sub hyperlink_leave {
+	#print "hyperlink_leave: <@_>\n";
+ my $widget = shift;
+ Tkx::widget->new($widget)->configure(-cursor=> 'arrow', -font=> "Helvetica -12", -fg=> "black");
+}
+
+sub apply_effect_e {
+ $_[0]->configure(-font=>"Arial -15 bold", -text=> "Just Press That F.. Button :)", -bg=> "green3 -fg red3");
+}
+
+sub apply_effect_l {
+ $_[0]->configure(-font=>"Helvetica -12", -fg=> "black", -text=> "Quit");
+}
+
+sub shell_exec {
+ return unless $tkgui{tkshell};
+
+ Tkx::eval($tkgui{tkshell});
+}
+
+sub move      {$move_mode = 1}
+sub stop_move {$move_widget = $move_mode = undef}
+
+sub motion {
+ print "MOTION(@_)\n";
+my $default_parent = Tkx::widget->new(".testf.lnb.widget_area.topframe.sw.f2.window.myframe");
+
+ print "VALUE:     x     : ".Tkx::winfo('x',         $_[0])."\n";
+ print "VALUE:     y     : ".Tkx::winfo('y',         $_[0])."\n";
+ print "VALUE: rootx     : ".Tkx::winfo('rootx',     $_[0])."\n";
+ print "VALUE: rooty     : ".Tkx::winfo('rooty',     $_[0])."\n";
+ print "VALUE: pointerx  : ".Tkx::winfo('pointerx',  $_[0])."\n";
+ print "VALUE: pointery  : ".Tkx::winfo('pointery',  $_[0])."\n";
+ print "VALUE: pointerxy : ".Tkx::winfo('pointerxy', $_[0])."\n";
+ print "VALUE: manager   : ".Tkx::winfo('manager',   $_[0])."\n";
+ print "VALUE: ismapped  : ".Tkx::winfo('ismapped',  $_[0])."\n";
+ print "VALUE: height    : ".Tkx::winfo('height',    $_[0])."\n";
+ print "VALUE: geometry  : ".Tkx::winfo('geometry',  $_[0])."\n";
+
+
+ return unless $move_mode && $move_widget;
+ #return unless $_[0] eq ".testf.lnb.widget_area.topframe.sw.f2.window.myframe";
+ 
+ my ($width, $height) = Tkx::winfo('geometry', $default_parent) =~ /(\d+)x(\d+)/;
+ 
+ my $relx   =  Tkx::winfo('pointerx', $default_parent) - Tkx::winfo('rootx', $default_parent);
+ my $rely   =  Tkx::winfo('pointery', $default_parent) - Tkx::winfo('rooty', $default_parent);
+
+    $relx   = $relx > $width  ? $width  : $relx;
+    $rely   = $rely > $height ? $height : $rely;
+
+ my $ratiox = int($relx);
+ my $ratioy = int($rely);
+
+ Tkx::tixForm('configure', $move_widget, -top => "\%$ratioy 0");
+ Tkx::tixForm('configure', $move_widget, -left=> "\%$ratiox 0");
+ print "MOVED width($width) height($height) relx($relx) rely($rely) ratiox($ratiox) ratioy($ratioy)\n";
+}
+
+sub helloworld {}
+sub goodbye {}

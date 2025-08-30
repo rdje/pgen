@@ -1,0 +1,7 @@
+simple_value := /([a-z]+)/ -> $1
+
+simple_array := simple_value ("," simple_value)* -> [$1, $2*]
+
+simple_object := /([a-z]+)/ ":" simple_value -> {key: $1, value: $2}
+
+main := simple_object

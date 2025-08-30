@@ -1,0 +1,65 @@
+# Step 11: Simple Nested Objects
+# Start with minimal nested structure support
+
+return_annotation := '->' /\s*/ return_expression
+
+return_expression := simple_nested_object | multi_property_object | quantified_array | simple_array | simple_object | scalar_ref
+
+# Simple nested object - just one level deep for now
+simple_nested_object := '{' /\s*/ outer_key /\s*/ ':' /\s*/ inner_object /\s*/ '}' -> {type: "nested_object", key: $3, value: $7}
+
+# Inner object with one property
+inner_object := '{' /\s*/ inner_key /\s*/ ':' /\s*/ inner_value /\s*/ '}' -> {type: "inner_object", key: $3, value: $7}
+
+# Values inside inner objects
+inner_value := quantified_array | simple_array | scalar_ref | literal
+
+# Existing patterns (keep working backwards compatibility)
+multi_property_object := two_property_object | three_property_object
+
+# Two-property object: {key1: value1, key2: value2}
+two_property_object := '{' /\s*/ property ',' /\s*/ property /\s*/ '}' -> {type: "multi_object", prop1: $3, prop2: $6}
+
+# Three-property object: {key1: value1, key2: value2, key3: value3}  
+three_property_object := '{' /\s*/ property ',' /\s*/ property ',' /\s*/ property /\s*/ '}' -> {type: "multi_object", prop1: $3, prop2: $6, prop3: $9}
+
+# Property definition
+property := object_key /\s*/ ':' /\s*/ property_value -> {key: $1, value: $5}
+
+# Property values can be scalars, arrays, or quantified arrays
+property_value := quantified_array | simple_array | scalar_ref | literal
+
+# Quantified arrays - [$1*], [$2+], [$3{2,5}]
+quantified_array := '[' /\s*/ quantified_element /\s*/ ']' -> {type: "quantified_array", element: $3}
+
+quantified_element := scalar_ref quantifier -> {scalar: $1, quantifier: $2}
+
+quantifier := '*' -> "*"
+            | '+' -> "+"
+            | '?' -> "?"
+            | '{' /\s*/ number /\s*/ '}' -> {min: $3, max: $3}
+            | '{' /\s*/ number /\s*/ ',' /\s*/ '}' -> {min: $3, max: "inf"}
+            | '{' /\s*/ number /\s*/ ',' /\s*/ number /\s*/ '}' -> {min: $3, max: $7}
+
+# Simple arrays (keep working version)
+simple_array := '[' /\s*/ scalar_ref /\s*/ ']' -> {type: "array", element: $3}
+
+# Simple objects (single property for backwards compatibility)
+simple_object := '{' /\s*/ object_key /\s*/ ':' /\s*/ object_value /\s*/ '}' -> {type: "object", key: $3, value: $7}
+
+# Object key definitions
+object_key := identifier | quoted_string
+outer_key := identifier | quoted_string
+inner_key := identifier | quoted_string
+
+object_value := scalar_ref | literal
+
+# Literals
+literal := quoted_string | number
+
+# Basic elements
+scalar_ref := '$' number -> {type: "scalar_ref", index: $2}
+quoted_string := /"([^"]*)"/ -> $1
+number := /(\d+)/ -> $1
+identifier := /([a-zA-Z_]\w*)/ -> $1
+

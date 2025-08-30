@@ -1,0 +1,242 @@
+#! /home/qdjeric/install/bin/perl -w -I/home/qdjeric/project/fsm/afx/fx/perl
+
+use HUtils;
+use RTLUtils;
+
+use File::Find;
+use Getopt::Long;
+
+my $conf = HUtils::Link(PathSearch->go("vhdl_template"));
+GetOptions('top=s'  => \$conf->{_top}, 'directory=s' => \@templatop_dirs);
+
+die "No --top TopName provided" unless $conf->{_top};
+
+@templatop_dirs = '.' unless @templatop_dirs;
+
+my @template_list;
+find(sub {push @template_list, $File::Find::name if (-f) && /\.tp$/o}, @templatop_dirs);
+
+die "No template file found, Please check your directory list," unless @template_list;
+
+my $template_data;
+foreach (@template_list) {
+ HUtils::Merge($template_data ||= {}, {map {entity_object($_)} @{Lispish::multi($_)}});
+}
+
+my $component     = create_component($template_data);
+open (my $top, ">$conf->{_top}.vhd") || die "Issue write opening *$conf->{_top}.vhd*";
+select $top;
+
+drive_template($template_data, $conf->{_top});
+
+sub drive_template {
+my ($dt, $top) = @_;
+
+ HUtils::KeyGrep($dt, qr/^$top$/, sub {my ($info, $h) = @_;
+   print STDERR "Processing module '$$info[0]'..\n";
+   
+   print $$conf{context_clause};
+   print "ENTITY  $$info[0]  IS\n";
+   print " PORT (\n" if @{$h->{interface}};
+
+   # Aligning port first
+   my $align = RTLUtils::string_align([map {$$_[0]} @{$h->{interface}}]);
+   my $i = 0;
+   foreach my $iinfo (@{$h->{interface}}) {
+    print "  $align->{$$iinfo[0]}  :  $$iinfo[1] ".($$iinfo[1] =~ /IN/o ? " " : "")."$$iinfo[2]";
+    if (@$iinfo == 5) {
+     # A vector
+     print "($$iinfo[3] DOWNTO $$iinfo[4])";
+    }
+   
+    print ";" unless $i == $#{$h->{interface}};
+    print "\n";
+    $i++
+   }
+   
+   print " );\n" if @{$h->{interface}};
+   print "END ENTITY $$info[0];\n\n";
+   
+   print "ARCHITECTURE  $$info[0]$conf->{architecture_name_suffix}  OF  $$info[0]  IS\n";
+   # components' declaration
+   foreach my $ccomp (@{$h->{instances}}) {
+    if ($component->{declaration}{$$ccomp[0]}) {
+     print "$component->{declaration}{$$ccomp[0]}\n"
+    } else {
+     print "-- !!! CAN'T FIND ENTITY DEFINITION FOR MODULE ** $$ccomp[0] ** !!!\n";
+    }
+   }
+   
+   # signals' declaration, but commented !
+   foreach my $ccomp (@{$h->{instances}}) {
+    if ($component->{instantiation}{$$ccomp[0]}) {
+     my $lastindex = $$ccomp[1]-1;
+     foreach my $instidx (0 .. $lastindex) {
+      my $cindex_str = ($lastindex ? "_$instidx" : "");
+      print "\n-- Instance ".($lastindex ? "#$instidx " : "")."of '$$ccomp[0]' signals' declaration\n";
+      my $align = RTLUtils::string_align([map {$$_[0].$cindex_str} @{$component->{instantiation}{$$ccomp[0]}}]);
+      foreach my $cport (@{$component->{instantiation}{$$ccomp[0]}}) {
+       print "--SIGNAL  ".$$align{$$cport[0].$cindex_str}."  :  ".(@$cport > 1 ? "STD_LOGIC_VECTOR($$cport[1] DOWNTO $$cport[2])" : "STD_LOGIC").";\n";
+      }
+     }
+    }
+   }
+   
+   print "\nBEGIN\n\n";
+   
+   # components' instantiation
+   foreach my $ccomp (@{$h->{instances}}) {
+    if ($component->{instantiation}{$$ccomp[0]}) {
+     my $lastindex = $$ccomp[1]-1;
+     foreach my $instidx (0 .. $lastindex) {
+      my $cindex_str = ($lastindex ? "_$instidx" : "");
+      print "$conf->{instance_label_prefix}$$ccomp[0]$cindex_str  :  $$ccomp[0]\n";
+      print "  PORT MAP (\n";
+      my $idx       = 0;
+      my $last_idx  = $#{$component->{instantiation}{$$ccomp[0]}};
+      my $align = RTLUtils::string_align([map {$$_[0]} @{$component->{instantiation}{$$ccomp[0]}}]);
+      foreach my $cport (@{$component->{instantiation}{$$ccomp[0]}}) {
+       print "    $$align{$$cport[0]}  =>  $$cport[0]$cindex_str".(@$cport > 1 ? "($$cport[1] DOWNTO $$cport[2])" : "");
+   
+       print "," unless $idx == $last_idx;
+       print "\n";
+       $idx++
+      }
+   
+      print "  );\n\n"
+     }
+    } else {
+     print "-- !!! CAN'T FIND PORT INFO DEFINITION FOR MODULE ** $$ccomp[0] ** !!!\n";
+    }
+   }
+   
+   print "END ARCHITECTURE $$info[0]$conf->{architecture_name_suffix};\n\n";
+ }); 
+}
+
+sub create_component {
+my ($cc) = @_;
+
+my @component_lst;
+my @instance_lst;
+HUtils::KeyGrep($cc, qr/interface/o, sub {my ($info, $iflst) = @_;
+  # testbench top, that is w/ no interface ports
+  return unless @$iflst;
+
+  my @component;
+  my @instance_port_lst;
+  push @component, "COMPONENT  $$info[0]  IS\n";
+  push @component, " PORT (\n";
+  
+  my @cinterface;
+  my $i = 0;
+  my $align = RTLUtils::string_align([map {$$_[0]} @$iflst]);
+  foreach my $iinfo (@$iflst) {
+   push @cinterface, "  $$align{$$iinfo[0]}  :  $$iinfo[1] ".($$iinfo[1] =~ /IN/o ? " " : "")."$$iinfo[2]";
+   if (@$iinfo == 5) {
+    # A vector
+    push @cinterface, "($$iinfo[3] DOWNTO $$iinfo[4])";
+    push @instance_port_lst, [@$iinfo[0,3,4]]
+   } else {
+    push @instance_port_lst, [$$iinfo[0]]
+   }
+  
+   push @cinterface, ";" unless $i == $#$iflst;
+   push @component, join("", @cinterface, "\n");
+
+   @cinterface = ();
+   $i++
+  }
+  
+  push @component, " );\n";
+  push @component, "END COMPONENT $$info[0];\n";
+
+  push @component_lst, $$info[0]=>join("", @component);
+  push @instance_lst,  $$info[0]=>[@instance_port_lst]
+}); 
+
+return {declaration=>{@component_lst}, instantiation=>{@instance_lst}};
+}
+
+sub entity_object {
+my ($eo) = @_;
+
+my @interface;
+my @instances;
+
+ foreach (@{$eo->[1]}) {
+  if (ref) {
+   if ($$_[0] =~ /^\./o) {
+    push @instances, instance_object($_)
+   } else {
+    push @interface, interface_object($_)
+   }
+  } else {
+   if (/^\w+(?:[<>]\d*)?$/o) {
+    push @interface, interface_object($_)
+   } elsif (/[\/\.\?\-]\w+(?::\d+)?/o) {
+    push @instances, instance_object($_)
+   }
+  }
+ }
+
+ $conf->{_top} = $eo->[0] unless $conf->{_top};
+ $eo->[0]=> {interface=>\@interface, instances=>\@instances};
+}
+
+sub interface_object {
+my ($io) = @_;
+ 
+ if (ref $io) {
+  my @spec = @{$$io[1]};
+
+  my @interinfo = $$io[0];
+  if (@spec == 1) {
+   if ($spec[0] =~ /^[io<>]$/o) {
+    # 1-bit i/o signal
+    push @interinfo, ($spec[0] =~ /[i<]/o ? "IN" : "OUT"), "STD_LOGIC";
+   } elsif ($spec[0] =~ /^\d+$/o) {
+    # '$spec[0]'-bit input signal
+    if ($spec[0] > 1) {
+     push @interinfo, "IN", "STD_LOGIC_VECTOR", $spec[0]-1, 0;
+    } else {
+     push @interinfo, "IN", "STD_LOGIC";
+    }
+   }
+  } else {
+   # full specification
+    if ($spec[1] > 1) {
+     push @interinfo, $spec[0] =~ /[i<]/o ? "IN" : "OUT", "STD_LOGIC_VECTOR", $spec[1]-1, 0;
+    } else {
+     push @interinfo, $spec[0] =~ /[i<]/o ? "IN" : "OUT", "STD_LOGIC";
+    }
+  }
+
+  \@interinfo
+ } else {
+  my ($port, $direction, $size) = /^(\w+)(?:([<>])(\d+)?)?$/o;
+  my @info = ($port, defined $direction ? ($direction =~ /</o ? 'IN' : 'OUT') : 'IN');
+  if (defined $size && $size > 1) {
+    push @info, 'STD_LOGIC_VECTOR', $size-1, 0;
+  } else {
+    push @info, 'STD_LOGIC';
+  }
+  
+  [@info]
+ }
+}
+
+sub instance_object {
+my ($iso) = @_;
+
+ if (ref $iso) {
+  $$iso[0] =~ s/\.//;
+  [$$iso[0], @{$$iso[1]}]
+ } else {
+  my ($component_name) = $iso =~ /(\w+)/o;
+  my ($count)          = $iso =~ /:(\d+)/o;
+
+  [$component_name, $count || 1]
+ }
+}
+

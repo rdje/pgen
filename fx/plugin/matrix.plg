@@ -1,0 +1,97 @@
+matrix {
+my ($conf) = @_;
+ 
+  my $ps = new PathSearch;
+  HUtils::Merge(HUtils::Merge($conf, HUtils::Link($ps->go('stan_backend'))), HUtils::Link($ps->go('matrix')));
+
+  my $wbid     = Table2SS::AddWorkBook($conf->{_excelfile});
+
+  my $hcol_cnt = @{$$conf{hcol}};
+  my $slacki   = TableGrep::IndexOf('slack');
+  my $capt_cnt = $$conf{capt_cnt};
+
+  my @tablist_raw;
+  my $tablist_raw = 0;
+  my $m = Table::iterate(htree_2matrix (rt_input_load($conf), 2*$hcol_cnt, $capt_cnt + 1, hcol=>[map {2*$_} 0 .. ($hcol_cnt - 1)], vcol=>[0], code=> sub {$_[0]}, vshift=>1), sub {
+           return unless ref $_[0];
+           push @tablist_raw, $_[0];
+
+	   my $wns  = $_[0][0][$slacki];
+	   my $vcnt = @{$_[0]};
+	   $_[0]    = "<".$tablist_raw++.">$wns ($vcnt)";
+	  });
+  
+  
+  foreach  ($capt_cnt .. $#$m) {
+    my @twolist;
+    foreach my $l (map {[m/>(\S+)\s+\((\S+)\)/o]} grep {defined $_ && />/o} @{$$m[$_]}) {
+      push @{$twolist[$_]}, $$l[$_] foreach 0 .. 1;
+    }
+
+    my $wns = (sort {$a <=> $b} @{$twolist[0]})[0];
+    my $cnt = eval join '+',    @{$twolist[1]};
+
+    splice @{$$m[$_]}, $hcol_cnt, 0, $wns, "$wns ($cnt)";
+  }
+
+  splice @$m, $capt_cnt, @$m - $capt_cnt, @{Table2SS::prune_column([sort {$$a[$hcol_cnt] <=> $$b[$hcol_cnt]} @$m[$capt_cnt .. $#$m]], [$hcol_cnt])};
+
+  my $rca = Table2SS::RCAllocate(1, 1, 15, [@tablist_raw], 'consolidated_rep', ypad=>2);
+
+  Table::iterate ($m, sub {
+   return unless defined $_[0] && $_[0] =~ /<(\d+)>(.+)/o;
+   my $a1 = $rca->[$1]{a1};
+
+   $_[0] = "internal:matrix_tables!$a1\@$2"
+  });
+
+  Table2SS::DriveSheet($wbid, 'matrix', Table2SS::RCAllocate(1, 1, 1, [$m], "matrix"));
+  Table2SS::DriveSheet($wbid, 'matrix_tables', $rca);
+  Table2SS::GetSheet  ($wbid, 'matrix')->freeze_panes(Spreadsheet::WriteExcel::Utility::xl_rowcol_to_cell($capt_cnt+1, $hcol_cnt+2));;
+  Table2SS::Close     ($wbid);
+}
+
+
+htree_2matrix {
+my ($h, $row_kc, $column_kc, %option) = @_;
+
+ # kc = key count/depth/number
+
+ my $rows    = {};
+ my $columns = {};
+ HUtils::KeyGrep ($h, sub {@{$_[0]} == $row_kc}, sub {my ($ks, $sh) = @_;
+		  HUtils::KeyGrep  ($sh, sub {@{$_[0]} == $column_kc}, sub {my ($kss, $v) = @_;
+                  HUtils::avv_set  ($columns, $kss, 1);
+                  HUtils::avv_push ($rows,    $ks,  [$kss,  $v]);
+                 }); 
+ });
+
+ my $k2t_rows    = HUtils::Key2Table ($rows);
+ my $k2t_columns = HUtils::Key2Table ($columns);
+
+ my @table_o;
+ my $k2t_rows_width;
+ HUtils::Recurse ($rows, sub {my ($ks, $vl) = @_;
+    my $rowi = HUtils::GetKeyIndex ($k2t_rows, $ks);
+
+    foreach (@$vl) {
+     my ($kss, $v) = @$_;
+
+     my $coli = HUtils::GetKeyIndex ($k2t_columns, $kss);
+     $table_o[$rowi][$coli] = &{$option{code} || '_matrix_default_code'}($v, $ks, $kss, $rowi, $coli);
+    }
+
+    my $row_label   = $option{hcol} ? Table2SS::list_prune_column ($ks, $option{hcol}) : $ks;
+    $k2t_rows_width = @$row_label;
+    unshift @{$table_o[$rowi]}, @$row_label;
+ });
+
+ my $col_table = $option{vcol} ? Table2SS::prune_column ($k2t_columns->{table}, $option{vcol}) : $k2t_columns->{table};
+ unshift @table_o, map {push @$_, (undef) x ($k2t_rows_width + abs($option{vshift} || 0)); [reverse @$_]} @{Table2SS::SwapTable($col_table)};
+
+ return \@table_o;
+}
+
+_matrix_default_code {ref $_[0] eq 'ARRAY' ? @{$_[0]} : "<@{$_[1]}>:<@{$_[2]}>  ??"}
+
+rt_input_load {HUtils::GenericFilter($_[0], TcFlow::GetAll($_[0]{_argv}), "$_[0]{_action}_sequence",  maptable=>'reportiming')}

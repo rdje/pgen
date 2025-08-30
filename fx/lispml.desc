@@ -1,0 +1,67 @@
+(html
+ ;(frameset -col 50%,50% 
+
+   ;(frame  -na frm0
+    (form -action http://ldlxserv53:9000/cgi-bin/html.cgi -na f1
+     
+     "Name0 input " (text -n name0 -si 15 -v E-V) (br)
+     "Name1 input " (text -n name1 -si 15 -v E-V) (br)
+     "Name2 input " (text -n name2 -si 15 -v E-V) (br)
+     "Name3 input " (text -n name3 -si 15 -v E-V) (br)
+     (submit -n foosubmit -v vsubmit)
+     (button -n foobutton -v vbutton)
+     (reset  -n fooreset  -v vreset)
+    ) 
+
+    (form -action http://ldlxserv53:9000/cgi-bin/html.cgi -na f2
+     
+     "Name0 input " (text -n name0 -si 15 -v E-V) (br)
+     "Name3 input " (text -n name3 -si 15 -v E-V) (br)
+     (button -n foobutton -v vbutton)
+    ) 
+   ;)
+
+  ; (frame -na frm1
+     (form -act http://ldlxserv53:9000/cgi-bin/html.cgi -na f3
+   
+      (file   -n namef   -si 17) (br) 
+      (button -n nameb   -si 18 -v foo) 
+      (button -n nameb   -si 18 -v foo12) (br) 
+      (password -n namep -si 19)
+      (submit -name foosubmitx -v vsubmitx)
+      (submit -n xxxx -si 18   -v Send-It)
+      (reset  -n xxxx_reset -si 18 -v Default)
+      (hr) 
+      (button -n b0  -v "my button info aabbbbbbbbbbzzzzzzzzzzzzzzzzzz")
+      (hr) 
+      (button -n b1  -v "my button info eeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+     ) 
+   
+     (form -act http://ldlxserv53:9000/cgi-bin/html.cgi -na f3
+   
+      (file   -n namef   -si 17) (br) 
+      (button -n nameb   -si 18 -v foo) 
+      (button -n nameb   -si 18 -v foo12) (br) 
+      (password -n namep -si 19)
+      (submit -name foosubmitx -v vsubmitx)
+      (submit -n xxxx -si 18   -v Send-It)
+      (reset  -n xxxx_reset -si 18 -v Default)
+      (hr) 
+      (button -n b0  -v "my button info aabbbbbbbbbbzzzzzzzzzzzzzzzzzz")
+      (hr) 
+      (button -n b1  -v "my button info eeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+     )
+
+    ; (htmltable-from-file   table.txt)
+   
+    ; (hr)
+   ;)
+ ;)
+)
+
+
+;(html
+; (body
+;  (htmltable-from-file   table.txt)
+; )
+;)

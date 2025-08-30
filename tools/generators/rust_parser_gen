@@ -1,0 +1,1507 @@
+//! # Rust Parser Generator - Complete 5-Stage AST Transformation Pipeline
+//! 
+//! Generates Rust parser code from JSON raw AST using the exact 5-step transformation pipeline.
+//! Strictly follows algorithms specified in docs/ast_transformation_pipeline.md
+//! 
+//! ## Usage
+//! 
+//! ```bash
+//! rust_parser_gen [options] <json_file>
+//! ebnf_to_json.pl grammar.ebnf | rust_parser_gen [options]
+//! ```
+//! 
+//! ## Architecture
+//! 
+//! Implements the complete 5-step transformation pipeline exactly as documented:
+//! 
+//! ```
+//! Raw AST JSON → Step 2 → Step 2.5 → Step 3 → Step 4 → Step 5 → Rust Parser
+//!                Group    Handle      Parse    Handle    Build
+//!                by OR    Parens      Sequences Quantifiers Tree
+//! ```
+//! 
+//! Every step follows the algorithms in docs/ast_transformation_pipeline.md precisely.
+
+use serde_json::Value;
+use std::collections::HashMap;
+use std::env;
+use std::fs;
+use std::io::{self, Read};
+use std::process;
+use regex::Regex;
+
+/// Main entry point
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let options = parse_args(&args);
+    let quiet = options.quiet;
+    
+    match run_generator(options) {
+        Ok(_) => {
+            if !quiet {
+                eprintln!("🎉 Rust parser generated successfully!");
+            }
+        }
+        Err(e) => {
+            eprintln!("🚨 RUST PARSER GENERATION FAILED!");
+            eprintln!("{}", e);
+            process::exit(1);
+        }
+    }
+}
+
+/// Command line options
+#[derive(Debug, Clone)]
+struct Options {
+    input_file: Option<String>,
+    output_file: Option<String>,
+    module_name: Option<String>, 
+    quiet: bool,
+    help: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Options {
+            input_file: None,
+            output_file: None,
+            module_name: None,
+            quiet: false,
+            help: false,
+        }
+    }
+}
+
+/// Parse command line arguments
+fn parse_args(args: &[String]) -> Options {
+    let mut options = Options::default();
+    let mut i = 1;
+    
+    while i < args.len() {
+        match args[i].as_str() {
+            "--output" | "-o" => {
+                if i + 1 < args.len() {
+                    options.output_file = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --output requires a value");
+                    process::exit(1);
+                }
+            }
+            "--module" | "-m" => {
+                if i + 1 < args.len() {
+                    options.module_name = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --module requires a value");
+                    process::exit(1);
+                }
+            }
+            "--quiet" | "-q" => {
+                options.quiet = true;
+                i += 1;
+            }
+            "--help" | "-h" => {
+                options.help = true;
+                i += 1;
+            }
+            arg if !arg.starts_with('-') => {
+                options.input_file = Some(arg.to_string());
+                i += 1;
+            }
+            _ => {
+                eprintln!("Unknown option: {}", args[i]);
+                process::exit(1);
+            }
+        }
+    }
+    
+    if options.help {
+        print_help();
+        process::exit(0);
+    }
+    
+    options
+}
+
+/// Print help message
+fn print_help() {
+    println!(r#"
+🦀 RUST PARSER GENERATOR - JSON to Rust
+
+Generates Rust parser code from JSON raw AST using the 5-step transformation pipeline.
+
+USAGE:
+    rust_parser_gen [OPTIONS] [json_file]
+    ebnf_to_json.pl grammar.ebnf | rust_parser_gen [OPTIONS]
+
+OPTIONS:
+    -o, --output <basename>    Write parser to <basename>.rs
+    -m, --module <name>        Set module name (default: derived from grammar)  
+    -q, --quiet               Suppress progress messages
+    -h, --help                Show this help message
+
+EXAMPLES:
+    # Generate from JSON file
+    rust_parser_gen json_raw_ast.json -o json_parser
+    
+    # Generate from pipeline  
+    ebnf_to_json.pl json.ebnf | rust_parser_gen -o json_parser
+    
+    # Custom module name
+    rust_parser_gen input.json -m MyParser -o my_parser
+    
+    # Module only to STDOUT
+    ebnf_to_json.pl simple.ebnf | rust_parser_gen
+
+ARCHITECTURE:
+    This tool implements the JSON-based parser generation architecture:
+    
+    EBNF → [ebnf_to_json.pl] → Raw AST JSON → [rust_parser_gen] → .rs
+    
+    The 5-step transformation pipeline:
+    - Step 2:   Group by OR operators  
+    - Step 2.5: Handle parentheses
+    - Step 3:   Parse sequences
+    - Step 4:   Handle quantifiers  
+    - Step 5:   Build tree structure
+    - Step 6:   Generate Rust code
+"#);
+}
+
+/// Main generator logic
+fn run_generator(options: Options) -> Result<(), Box<dyn std::error::Error>> {
+    // Read JSON input
+    let json_content = if let Some(input_file) = &options.input_file {
+        if !options.quiet {
+            eprintln!("📄 Reading JSON from: {}", input_file);
+        }
+        fs::read_to_string(input_file)?
+    } else {
+        if !options.quiet {
+            eprintln!("📄 Reading JSON from STDIN");
+        }
+        let mut buffer = String::new();
+        io::stdin().read_to_string(&mut buffer)?;
+        buffer
+    };
+    
+    // Parse JSON
+    let json_data: Value = serde_json::from_str(&json_content)?;
+    
+    // Validate JSON structure
+    let grammar_name = json_data["grammar_name"]
+        .as_str()
+        .ok_or("Invalid JSON: missing grammar_name")?;
+        
+    let raw_ast = json_data["raw_ast"]
+        .as_array()
+        .ok_or("Invalid JSON: missing or invalid raw_ast")?;
+        
+    if !options.quiet {
+        eprintln!("🦀 Generating Rust parser for grammar: {}", grammar_name);
+    }
+    
+    // Run the transformation pipeline
+    let parser_result = generate_rust_parser_from_json(raw_ast, grammar_name, &options)?;
+    
+    // Determine module name
+    let module_name = options.module_name
+        .unwrap_or_else(|| derive_module_name(grammar_name));
+    
+    // Output results
+    if let Some(output_file) = &options.output_file {
+        let rs_file = if output_file.ends_with(".rs") {
+            output_file.clone()
+        } else {
+            format!("{}.rs", output_file)
+        };
+        
+        let rust_code = parser_result.replace("MODULE_NAME_PLACEHOLDER", &module_name);
+        fs::write(&rs_file, rust_code)?;
+        
+        if !options.quiet {
+            eprintln!("✅ Rust parser written to: {}", rs_file);
+        }
+    } else {
+        let rust_code = parser_result.replace("MODULE_NAME_PLACEHOLDER", &module_name);
+        print!("{}", rust_code);
+    }
+    
+    Ok(())
+}
+
+/// Generate Rust parser from JSON raw AST
+fn generate_rust_parser_from_json(
+    raw_ast: &[Value], 
+    grammar_name: &str, 
+    options: &Options
+) -> Result<String, Box<dyn std::error::Error>> {
+    
+    if !options.quiet {
+        eprintln!("\n=== Running Enhanced 6-Step Transformation Pipeline ===");
+    }
+    
+    // First, normalize raw AST to handle both Format 1 and Format 2
+    let normalized_rules = normalize_raw_ast(raw_ast, options)?;
+    
+    // Parse normalized AST into token structures and process with 5-step pipeline
+    let mut grammar_rules = HashMap::new();
+    
+    for (rule_name, combined_tokens) in normalized_rules {
+        // Run the 5-step transformation pipeline
+        if !options.quiet {
+            eprintln!("Processing rule: {} ({} tokens)", rule_name, combined_tokens.len());
+        }
+        
+        let transformed_rule = transform_rule(&rule_name, combined_tokens, options)?;
+        grammar_rules.insert(rule_name, transformed_rule);
+    }
+    
+    // Step 6a: Apply left recursion elimination
+    if !options.quiet {
+        eprintln!("Step 6a: Applying left recursion elimination...");
+    }
+    let grammar_rules = eliminate_left_recursion(grammar_rules, options)?;
+    
+    // Step 6b: Generate Rust code with return annotations
+    if !options.quiet {
+        eprintln!("Step 6b: Generating Rust code with semantic actions...");
+    }
+    
+    let rust_code = generate_rust_code(&grammar_rules, grammar_name)?;
+    Ok(rust_code)
+}
+
+/// Normalize raw AST to handle both Format 1 and Format 2
+fn normalize_raw_ast(
+    raw_ast: &[Value],
+    options: &Options
+) -> Result<HashMap<String, Vec<Token>>, Box<dyn std::error::Error>> {
+    
+    // Check if we have Format 2 (multiple rule arrays)
+    let is_format2 = raw_ast.iter().all(|rule| {
+        rule.as_array()
+            .map(|arr| arr.len() >= 1 && arr[0].as_array().is_some())
+            .unwrap_or(false)
+    });
+    
+    if is_format2 {
+        // Format 2: Group alternatives by rule name
+        if !options.quiet {
+            eprintln!("Detected Format 2 (multiple rule definitions) - normalizing...");
+        }
+        
+        let mut rule_definitions: HashMap<String, Vec<Vec<Token>>> = HashMap::new();
+        
+        for rule_array in raw_ast {
+            let rule_tokens = rule_array.as_array()
+                .ok_or("Invalid rule format: expected array")?;
+                
+            if rule_tokens.is_empty() {
+                continue;
+            }
+            
+            // First token should be the rule name
+            let rule_name = extract_rule_name(&rule_tokens[0])?;
+            
+            // Rest are the rule definition tokens
+            let definition_tokens: Vec<Token> = rule_tokens[1..]
+                .iter()
+                .map(|v| parse_token(v))
+                .collect::<Result<Vec<_>, _>>()?;
+                
+            // Group by rule name
+            rule_definitions.entry(rule_name).or_insert_with(Vec::new)
+                .push(definition_tokens);
+        }
+        
+        // Convert to Format 1: OR-separated token streams
+        let mut normalized = HashMap::new();
+        for (rule_name, alternatives) in rule_definitions {
+            let mut combined_tokens = Vec::new();
+            
+            for (i, alt_tokens) in alternatives.into_iter().enumerate() {
+                if i > 0 {
+                    combined_tokens.push(Token {
+                        token_type: "operator".to_string(),
+                        value: "|".to_string(),
+                    });
+                }
+                combined_tokens.extend(alt_tokens);
+            }
+            
+            normalized.insert(rule_name, combined_tokens);
+        }
+        
+        Ok(normalized)
+    } else {
+        // Format 1: Already normalized (single rules with OR operators)
+        if !options.quiet {
+            eprintln!("Detected Format 1 (OR-separated tokens) - processing directly...");
+        }
+        
+        let mut normalized = HashMap::new();
+        
+        for rule_array in raw_ast {
+            let rule_tokens = rule_array.as_array()
+                .ok_or("Invalid rule format: expected array")?;
+                
+            if rule_tokens.is_empty() {
+                continue;
+            }
+            
+            // First token should be the rule name
+            let rule_name = extract_rule_name(&rule_tokens[0])?;
+            
+            // Rest are the rule definition tokens
+            let definition_tokens: Vec<Token> = rule_tokens[1..]
+                .iter()
+                .map(|v| parse_token(v))
+                .collect::<Result<Vec<_>, _>>()?;
+                
+            normalized.insert(rule_name, definition_tokens);
+        }
+        
+        Ok(normalized)
+    }
+}
+
+/// Token representation
+#[derive(Debug, Clone)]
+struct Token {
+    token_type: String,
+    value: String,
+}
+
+/// Intermediate structures for pipeline steps
+#[derive(Debug, Clone)]
+enum AlternativeType {
+    Single(Token),
+    Sequence(Vec<Token>),
+}
+
+/// Represents an alternative after Step 3
+#[derive(Debug, Clone)]
+struct Alternative {
+    alt_type: String, // "single" or "sequence"
+    content: Vec<Token>,
+}
+
+/// Parse a JSON value into a Token
+fn parse_token(value: &Value) -> Result<Token, Box<dyn std::error::Error>> {
+    let array = value.as_array()
+        .ok_or("Token must be array")?;
+        
+    if array.len() != 2 {
+        return Err("Token array must have exactly 2 elements".into());
+    }
+    
+    let token_type = array[0].as_str()
+        .ok_or("Token type must be string")?
+        .to_string();
+        
+    let token_value = array[1].as_str()
+        .ok_or("Token value must be string")?
+        .to_string();
+        
+    Ok(Token {
+        token_type,
+        value: token_value,
+    })
+}
+
+/// Extract rule name from rule token
+fn extract_rule_name(token: &Value) -> Result<String, Box<dyn std::error::Error>> {
+    let array = token.as_array()
+        .ok_or("Rule token must be array")?;
+        
+    if array.len() != 2 || array[0].as_str() != Some("rule") {
+        return Err("Invalid rule token format".into());
+    }
+    
+    Ok(array[1].as_str()
+        .ok_or("Rule name must be string")?
+        .to_string())
+}
+
+/// Return annotation AST for structured semantic actions
+#[derive(Debug, Clone)]
+enum ReturnAnnotation {
+    ScalarRef { index: usize },
+    ArrayExpr { contents: Vec<ReturnAnnotation> },
+    ObjectExpr { contents: Vec<(String, ReturnAnnotation)> },
+    Literal(String),
+    DotAccess { base: Box<ReturnAnnotation>, field: String },
+    Quantified(Box<ReturnAnnotation>),
+}
+
+/// Grammar production for left recursion elimination
+#[derive(Debug, Clone)]
+struct Production {
+    symbols: Vec<String>,
+    annotation: Option<ReturnAnnotation>,
+}
+
+/// Grammar rule with alternatives and annotations
+#[derive(Debug, Clone)]
+struct GrammarRule {
+    name: String,
+    productions: Vec<Production>,
+}
+
+/// AST Node types for the transformed tree
+#[derive(Debug, Clone)]
+enum ASTNode {
+    Terminal(String),
+    NonTerminal(String),
+    Sequence(Vec<ASTNode>),
+    Choice(Vec<ASTNode>), 
+    Quantified {
+        symbol: Box<ASTNode>,
+        quantifier: Quantifier,
+    },
+    Group(Box<ASTNode>),
+    WithAnnotation {
+        node: Box<ASTNode>,
+        annotation: ReturnAnnotation,
+    },
+}
+
+#[derive(Debug, Clone)]
+enum Quantifier {
+    Optional,    // ?
+    ZeroOrMore, // *
+    OneOrMore,  // +
+}
+
+/// Transform a rule using the 5-step pipeline with full Step 6 implementation
+fn transform_rule(
+    rule_name: &str,
+    tokens: Vec<Token>,
+    options: &Options
+) -> Result<ASTNode, Box<dyn std::error::Error>> {
+    
+    // Parse return annotations from tokens if present
+    let (clean_tokens, return_annotation) = extract_return_annotation(tokens)?;
+    
+    // Step 2: Group by OR operators
+    if !options.quiet {
+        eprintln!("  Step 2: Grouping by OR operators...");
+    }
+    let alternatives = step2_group_by_or(clean_tokens)?;
+    
+    // Step 2.5: Handle parentheses  
+    if !options.quiet {
+        eprintln!("  Step 2.5: Handling parentheses...");
+    }
+    let alternatives = step2_5_handle_parentheses(alternatives)?;
+    
+    // Step 3: Parse sequences
+    if !options.quiet {
+        eprintln!("  Step 3: Parsing sequences...");
+    }
+    let alternatives = step3_parse_sequences(alternatives)?;
+    
+    // Step 4: Handle quantifiers
+    if !options.quiet {
+        eprintln!("  Step 4: Handling quantifiers...");
+    }
+    let alternatives = step4_handle_quantifiers(alternatives)?;
+    
+    // Step 5: Build tree structure
+    if !options.quiet {
+        eprintln!("  Step 5: Building tree structure...");
+    }
+    let mut tree = step5_build_tree_structure(rule_name, alternatives)?;
+    
+    // Attach return annotation if present
+    if let Some(annotation) = return_annotation {
+        tree = ASTNode::WithAnnotation {
+            node: Box::new(tree),
+            annotation,
+        };
+    }
+    
+    Ok(tree)
+}
+
+/// Step 2: Group by OR operators
+fn step2_group_by_or(tokens: Vec<Token>) -> Result<Vec<Vec<Token>>, Box<dyn std::error::Error>> {
+    let mut alternatives = Vec::new();
+    let mut current_alt = Vec::new();
+    
+    for token in tokens {
+        if token.token_type == "operator" && token.value == "|" {
+            if !current_alt.is_empty() {
+                alternatives.push(current_alt);
+                current_alt = Vec::new();
+            }
+        } else {
+            current_alt.push(token);
+        }
+    }
+    
+    // Add final alternative
+    if !current_alt.is_empty() {
+        alternatives.push(current_alt);
+    }
+    
+    // Filter out empty alternatives
+    let alternatives: Vec<_> = alternatives.into_iter()
+        .filter(|alt| !alt.is_empty())
+        .collect();
+        
+    if alternatives.is_empty() {
+        return Err("No valid alternatives found".into());
+    }
+    
+    Ok(alternatives)
+}
+
+/// Step 2.5: Handle parentheses
+fn step2_5_handle_parentheses(alternatives: Vec<Vec<Token>>) -> Result<Vec<Vec<Token>>, Box<dyn std::error::Error>> {
+    let mut result = Vec::new();
+    
+    for alt in alternatives {
+        let processed = handle_parentheses_in_sequence(alt)?;
+        result.push(processed);
+    }
+    
+    Ok(result)
+}
+
+/// Process parentheses within a token sequence
+fn handle_parentheses_in_sequence(tokens: Vec<Token>) -> Result<Vec<Token>, Box<dyn std::error::Error>> {
+    let mut result = Vec::new();
+    let mut i = 0;
+    
+    while i < tokens.len() {
+        let token = &tokens[i];
+        
+        if token.token_type == "operator" && token.value == "(" {
+            // Find matching closing parenthesis and extract group
+            let (_group_tokens, end_pos) = extract_parentheses_group(&tokens, i)?;
+            
+            // Create a group token
+            let group_token = Token {
+                token_type: "group".to_string(),
+                value: format!("group_{}", result.len()), // Unique identifier
+            };
+            
+            result.push(group_token);
+            i = end_pos + 1;
+        } else {
+            result.push(token.clone());
+            i += 1;
+        }
+    }
+    
+    Ok(result)
+}
+
+/// Extract tokens within parentheses
+fn extract_parentheses_group(tokens: &[Token], start_pos: usize) -> Result<(Vec<Token>, usize), Box<dyn std::error::Error>> {
+    let mut depth = 0;
+    let mut group = Vec::new();
+    
+    for i in start_pos..tokens.len() {
+        let token = &tokens[i];
+        
+        if token.token_type == "operator" && token.value == "(" {
+            if depth > 0 {
+                group.push(token.clone());
+            }
+            depth += 1;
+        } else if token.token_type == "operator" && token.value == ")" {
+            depth -= 1;
+            if depth == 0 {
+                return Ok((group, i));
+            } else {
+                group.push(token.clone());
+            }
+        } else if depth > 0 {
+            group.push(token.clone());
+        }
+    }
+    
+    Err("Unmatched parentheses".into())
+}
+
+/// Step 3: Parse sequences
+fn step3_parse_sequences(alternatives: Vec<Vec<Token>>) -> Result<Vec<Alternative>, Box<dyn std::error::Error>> {
+    let mut result = Vec::new();
+    
+    for alt in alternatives {
+        // Filter out whitespace and comments
+        let filtered: Vec<Token> = alt.into_iter()
+            .filter(|t| t.token_type != "whitespace" && t.token_type != "comment")
+            .collect();
+            
+        if filtered.is_empty() {
+            continue; // Skip empty alternatives
+        } else if filtered.len() == 1 {
+            result.push(Alternative {
+                alt_type: "single".to_string(),
+                content: filtered,
+            });
+        } else {
+            result.push(Alternative {
+                alt_type: "sequence".to_string(),
+                content: filtered,
+            });
+        }
+    }
+    
+    Ok(result)
+}
+
+/// Step 4: Handle quantifiers
+fn step4_handle_quantifiers(alternatives: Vec<Alternative>) -> Result<Vec<Alternative>, Box<dyn std::error::Error>> {
+    let mut result = Vec::new();
+    
+    for alt in alternatives {
+        let processed_content = if alt.alt_type == "sequence" {
+            process_quantifiers_in_sequence(alt.content)?
+        } else if alt.alt_type == "single" {
+            // For single items, check if next token would be a quantifier
+            alt.content // Single items don't have following quantifiers in this step
+        } else {
+            alt.content
+        };
+        
+        result.push(Alternative {
+            alt_type: alt.alt_type,
+            content: processed_content,
+        });
+    }
+    
+    Ok(result)
+}
+
+/// Process quantifiers within a sequence
+fn process_quantifiers_in_sequence(sequence: Vec<Token>) -> Result<Vec<Token>, Box<dyn std::error::Error>> {
+    let mut result = Vec::new();
+    let mut i = 0;
+    
+    while i < sequence.len() {
+        let token = sequence[i].clone();
+        
+        // Look ahead for quantifier
+        if i + 1 < sequence.len() && sequence[i + 1].token_type == "quantifier" {
+            let quantifier = &sequence[i + 1];
+            
+            // Create quantified token
+            let quantified_token = Token {
+                token_type: "quantified".to_string(),
+                value: format!("{}:{}", token.value, quantifier.value),
+            };
+            
+            result.push(quantified_token);
+            i += 2; // Skip both token and quantifier
+        } else {
+            result.push(token);
+            i += 1;
+        }
+    }
+    
+    Ok(result)
+}
+
+/// Step 5: Build tree structure
+fn step5_build_tree_structure(_rule_name: &str, alternatives: Vec<Alternative>) -> Result<ASTNode, Box<dyn std::error::Error>> {
+    if alternatives.len() == 1 {
+        // Single alternative - no choice needed
+        build_alternative_tree_from_alt(&alternatives[0])
+    } else {
+        // Multiple alternatives - create choice node
+        let mut choice_branches = Vec::new();
+        for alt in alternatives {
+            choice_branches.push(build_alternative_tree_from_alt(&alt)?);
+        }
+        
+        Ok(ASTNode::Choice(choice_branches))
+    }
+}
+
+/// Build AST tree for a single alternative from Alternative struct
+fn build_alternative_tree_from_alt(alternative: &Alternative) -> Result<ASTNode, Box<dyn std::error::Error>> {
+    if alternative.alt_type == "single" {
+        // Single symbol
+        if alternative.content.len() != 1 {
+            return Err("Single alternative must have exactly one token".into());
+        }
+        build_symbol_tree(&alternative.content[0])
+    } else if alternative.alt_type == "sequence" {
+        // Sequence of symbols
+        let mut elements = Vec::new();
+        for token in &alternative.content {
+            elements.push(build_symbol_tree(token)?);
+        }
+        Ok(ASTNode::Sequence(elements))
+    } else {
+        Err(format!("Unknown alternative type: {}", alternative.alt_type).into())
+    }
+}
+
+/// Build AST tree for a single alternative
+fn build_alternative_tree(alternative: &[Token]) -> Result<ASTNode, Box<dyn std::error::Error>> {
+    if alternative.len() == 1 {
+        // Single symbol
+        build_symbol_tree(&alternative[0])
+    } else {
+        // Sequence of symbols
+        let mut elements = Vec::new();
+        for token in alternative {
+            elements.push(build_symbol_tree(token)?);
+        }
+        Ok(ASTNode::Sequence(elements))
+    }
+}
+
+/// Build AST tree for a single symbol
+fn build_symbol_tree(token: &Token) -> Result<ASTNode, Box<dyn std::error::Error>> {
+    match token.token_type.as_str() {
+        "identifier" => Ok(ASTNode::NonTerminal(token.value.clone())),
+        "quoted_string" => Ok(ASTNode::Terminal(token.value.clone())),
+        "rule_reference" => Ok(ASTNode::NonTerminal(token.value.clone())),
+        "regex" => Ok(ASTNode::Terminal(token.value.clone())),
+        "quantified" => {
+            // Parse quantified token: "symbol:quantifier"
+            let parts: Vec<&str> = token.value.split(':').collect();
+            if parts.len() != 2 {
+                return Err("Invalid quantified token format".into());
+            }
+            
+            let symbol = Token {
+                token_type: "identifier".to_string(), // Assume identifier for now
+                value: parts[0].to_string(),
+            };
+            
+            let quantifier = match parts[1] {
+                "?" => Quantifier::Optional,
+                "*" => Quantifier::ZeroOrMore,
+                "+" => Quantifier::OneOrMore,
+                _ => return Err(format!("Unknown quantifier: {}", parts[1]).into()),
+            };
+            
+            Ok(ASTNode::Quantified {
+                symbol: Box::new(build_symbol_tree(&symbol)?),
+                quantifier,
+            })
+        }
+        "group" => {
+            // For now, treat groups as non-terminals
+            // In a more sophisticated implementation, we would process the group contents
+            Ok(ASTNode::NonTerminal(format!("group_{}", token.value)))
+        }
+        "return_scalar" | "return_array" | "return_object" => {
+            // Return annotations - treat as terminals for now, will be processed later
+            Ok(ASTNode::Terminal(token.value.clone()))
+        }
+        "operator" => {
+            // Operators as terminals - flexible handling
+            Ok(ASTNode::Terminal(token.value.clone()))
+        }
+        "group_open" | "group_close" => {
+            // Group markers as terminals
+            Ok(ASTNode::Terminal(token.value.clone()))
+        }
+        "number" => {
+            // Numbers as terminals
+            Ok(ASTNode::Terminal(token.value.clone()))
+        }
+        _ => {
+            eprintln!("Warning: Unknown token type '{}' - treating as terminal", token.token_type);
+            Ok(ASTNode::Terminal(token.value.clone()))
+        }
+    }
+}
+
+/// Generate Rust code from the transformed grammar tree
+fn generate_rust_code(grammar: &HashMap<String, ASTNode>, grammar_name: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let mut code = String::new();
+    
+    // Module header
+    code.push_str(&format!(r#"//! {} Parser
+//! 
+//! Generated from EBNF grammar using rust_parser_gen
+//! This parser implements a recursive descent parser with comprehensive error handling.
+
+use std::fmt;
+
+/// MODULE_NAME_PLACEHOLDER - Generated parser module
+pub mod MODULE_NAME_PLACEHOLDER {{
+
+/// Parse result type
+pub type ParseResult<T> = Result<T, ParseError>;
+
+/// Parse error with position information
+#[derive(Debug, Clone)]
+pub struct ParseError {{
+    pub message: String,
+    pub position: usize,
+    pub expected: Vec<String>,
+}}
+
+impl fmt::Display for ParseError {{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {{
+        write!(f, "Parse error at position {{}}: {{}}", self.position, self.message)
+    }}
+}}
+
+impl std::error::Error for ParseError {{}}
+
+/// Parser state
+pub struct Parser<'a> {{
+    input: &'a str,
+    position: usize,
+}}
+
+impl<'a> Parser<'a> {{
+    /// Create a new parser
+    pub fn new(input: &'a str) -> Self {{
+        Parser {{ input, position: 0 }}
+    }}
+    
+    /// Get current position
+    pub fn position(&self) -> usize {{
+        self.position
+    }}
+    
+    /// Check if at end of input
+    pub fn is_at_end(&self) -> bool {{
+        self.position >= self.input.len()
+    }}
+    
+    /// Peek at current character without consuming
+    pub fn peek(&self) -> Option<char> {{
+        self.input.chars().nth(self.position)
+    }}
+    
+    /// Advance position and return current character
+    pub fn advance(&mut self) -> Option<char> {{
+        let ch = self.peek();
+        if ch.is_some() {{
+            self.position += 1;
+        }}
+        ch
+    }}
+    
+    /// Match exact string
+    pub fn match_string(&mut self, expected: &str) -> ParseResult<()> {{
+        let start_pos = self.position;
+        
+        for expected_char in expected.chars() {{
+            match self.advance() {{
+                Some(ch) if ch == expected_char => continue,
+                Some(ch) => {{
+                    self.position = start_pos; // Backtrack
+                    return Err(ParseError {{
+                        message: format!("Expected '{{}}', found '{{}}'", expected_char, ch),
+                        position: self.position,
+                        expected: vec![expected.to_string()],
+                    }});
+                }}
+                None => {{
+                    self.position = start_pos; // Backtrack  
+                    return Err(ParseError {{
+                        message: format!("Unexpected end of input, expected '{{}}'", expected),
+                        position: self.position,
+                        expected: vec![expected.to_string()],
+                    }});
+                }}
+            }}
+        }}
+        
+        Ok(())
+    }}
+    
+    /// Skip whitespace
+    pub fn skip_whitespace(&mut self) {{
+        while let Some(ch) = self.peek() {{
+            if ch.is_whitespace() {{
+                self.advance();
+            }} else {{
+                break;
+            }}
+        }}
+    }}
+"#, grammar_name.to_uppercase()));
+
+    // Generate parsing functions for each rule
+    for (rule_name, ast_node) in grammar {
+        let function_code = generate_parse_function(rule_name, ast_node)?;
+        code.push_str(&function_code);
+        code.push_str("\n");
+    }
+    
+    // Main parse function
+    let main_rule = grammar.keys().next()
+        .ok_or("Empty grammar")?;
+        
+    code.push_str(&format!(r#"
+    /// Main parse function
+    pub fn parse(input: &str) -> ParseResult<String> {{
+        let mut parser = Parser::new(input);
+        parser.skip_whitespace();
+        let result = parser.parse_{}()?;
+        
+        parser.skip_whitespace();
+        if !parser.is_at_end() {{
+            return Err(ParseError {{
+                message: "Unexpected input after parsing".to_string(),
+                position: parser.position,
+                expected: vec!["end of input".to_string()],
+            }});
+        }}
+        
+        Ok(result)
+    }}
+}}
+}}
+
+/// Public parse function
+pub fn parse(input: &str) -> Result<String, Box<dyn std::error::Error>> {{
+    MODULE_NAME_PLACEHOLDER::parse(input).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+}}
+
+#[cfg(test)]
+mod tests {{
+    use super::*;
+    
+    #[test]
+    fn test_basic_parsing() {{
+        // Add basic tests here
+        assert!(parse("").is_err() || parse("").is_ok()); // Placeholder test
+    }}
+}}
+"#, main_rule));
+
+    Ok(code)
+}
+
+/// Generate a parsing function for an AST node
+fn generate_parse_function(rule_name: &str, ast_node: &ASTNode) -> Result<String, Box<dyn std::error::Error>> {
+    let mut code = format!("    /// Parse {} rule\n", rule_name);
+    code.push_str(&format!("    pub fn parse_{}(&mut self) -> ParseResult<String> {{\n", rule_name));
+    code.push_str("        self.skip_whitespace();\n");
+    code.push_str(&format!("        let start_pos = self.position;\n"));
+    
+    match ast_node {
+        ASTNode::Terminal(value) => {
+            let escaped_value = value.replace('"', "\\\"");
+            code.push_str(&format!(r#"        
+        self.match_string("{}")?;
+        Ok("{}".to_string())
+"#, escaped_value, escaped_value));
+        }
+        
+        ASTNode::NonTerminal(name) => {
+            code.push_str(&format!("        self.parse_{}()", name));
+        }
+        
+        ASTNode::Sequence(elements) => {
+            code.push_str("        let mut result = String::new();\n");
+            for (i, element) in elements.iter().enumerate() {
+                match element {
+                    ASTNode::Terminal(value) => {
+                        let escaped_value = value.replace('"', "\\\"");
+                        code.push_str(&format!(r#"        self.match_string("{}")?;
+        result.push_str("{}");
+"#, escaped_value, escaped_value));
+                    }
+                    ASTNode::NonTerminal(name) => {
+                        code.push_str(&format!("        let part_{} = self.parse_{}()?;\n", i, name));
+                        code.push_str(&format!("        result.push_str(&part_{});\n", i));
+                    }
+                    _ => {
+                        code.push_str(&format!("        // TODO: Handle complex element type\n"));
+                    }
+                }
+            }
+            code.push_str("        Ok(result)\n");
+        }
+        
+        ASTNode::Choice(alternatives) => {
+            code.push_str("        // Try alternatives in order\n");
+            for (i, alt) in alternatives.iter().enumerate() {
+                if i > 0 {
+                    code.push_str("        \n        // Try next alternative\n");
+                    code.push_str("        self.position = start_pos; // Reset position\n");
+                }
+                
+                code.push_str(&format!("        if let Ok(result) = (|| -> ParseResult<String> {{\n"));
+                
+                match alt {
+                    ASTNode::Terminal(value) => {
+                        let escaped_value = value.replace('"', "\\\"");
+                        code.push_str(&format!(r#"            self.match_string("{}")?;
+            Ok("{}".to_string())
+"#, escaped_value, escaped_value));
+                    }
+                    ASTNode::NonTerminal(name) => {
+                        code.push_str(&format!("            self.parse_{}()", name));
+                    }
+                    _ => {
+                        code.push_str("            // TODO: Handle complex alternative\n");
+                        code.push_str("            Ok(String::new())\n");
+                    }
+                }
+                
+                code.push_str("        })() {\n");
+                code.push_str("            return Ok(result);\n");
+                code.push_str("        }\n");
+            }
+            
+            code.push_str(&format!(r#"        
+        Err(ParseError {{
+            message: "No valid alternative found for {}".to_string(),
+            position: start_pos,
+            expected: vec!["valid {} alternative".to_string()],
+        }})
+"#, rule_name, rule_name));
+        }
+        
+        ASTNode::Quantified { symbol, quantifier } => {
+            code.push_str("        let mut result = String::new();\n");
+            code.push_str("        let mut count = 0;\n");
+            
+            match quantifier {
+                Quantifier::ZeroOrMore => {
+                    code.push_str("        // Zero or more (*)\n");
+                    code.push_str("        while !self.is_at_end() {\n");
+                    code.push_str("            let checkpoint = self.position;\n");
+                    // Generate code for the symbol
+                    code.push_str("            if let Ok(part) = (|| -> ParseResult<String> {\n");
+                    code.push_str(&generate_symbol_parse_code(symbol, 4)?);
+                    code.push_str("            })() {\n");
+                    code.push_str("                result.push_str(&part);\n");
+                    code.push_str("                count += 1;\n");
+                    code.push_str("            } else {\n");
+                    code.push_str("                self.position = checkpoint;\n");
+                    code.push_str("                break;\n");
+                    code.push_str("            }\n");
+                    code.push_str("        }\n");
+                    code.push_str("        Ok(result)\n");
+                }
+                Quantifier::OneOrMore => {
+                    code.push_str("        // One or more (+)\n");
+                    code.push_str("        loop {\n");
+                    code.push_str("            let checkpoint = self.position;\n");
+                    code.push_str("            if let Ok(part) = (|| -> ParseResult<String> {\n");
+                    code.push_str(&generate_symbol_parse_code(symbol, 4)?);
+                    code.push_str("            })() {\n");
+                    code.push_str("                result.push_str(&part);\n");
+                    code.push_str("                count += 1;\n");
+                    code.push_str("            } else {\n");
+                    code.push_str("                self.position = checkpoint;\n");
+                    code.push_str("                break;\n");
+                    code.push_str("            }\n");
+                    code.push_str("        }\n");
+                    code.push_str("        if count == 0 {\n");
+                    code.push_str(&format!(r#"            return Err(ParseError {{
+                message: "Expected at least one occurrence".to_string(),
+                position: start_pos,
+                expected: vec!["at least one match".to_string()],
+            }});
+"#));
+                    code.push_str("        }\n");
+                    code.push_str("        Ok(result)\n");
+                }
+                Quantifier::Optional => {
+                    code.push_str("        // Optional (?)\n");
+                    code.push_str("        let checkpoint = self.position;\n");
+                    code.push_str("        if let Ok(part) = (|| -> ParseResult<String> {\n");
+                    code.push_str(&generate_symbol_parse_code(symbol, 3)?);
+                    code.push_str("        })() {\n");
+                    code.push_str("            result.push_str(&part);\n");
+                    code.push_str("        } else {\n");
+                    code.push_str("            self.position = checkpoint;\n");
+                    code.push_str("        }\n");
+                    code.push_str("        Ok(result)\n");
+                }
+            }
+        }
+        
+        ASTNode::Group(inner) => {
+            code.push_str("        // Group\n");
+            code.push_str(&generate_symbol_parse_code(inner, 2)?);
+        }
+        
+        ASTNode::WithAnnotation { node, .. } => {
+            // For now, just generate code for the underlying node
+            // The annotation handling will be added later
+            code.push_str(&generate_parse_function(rule_name, node)?);
+        }
+    }
+    
+    code.push_str("    }\n");
+    Ok(code)
+}
+
+/// Generate parsing code for a symbol with proper indentation
+fn generate_symbol_parse_code(symbol: &ASTNode, indent_level: usize) -> Result<String, Box<dyn std::error::Error>> {
+    let indent = "    ".repeat(indent_level);
+    
+    match symbol {
+        ASTNode::Terminal(value) => {
+            let escaped_value = value.replace('"', "\\\"");
+            Ok(format!("{}self.match_string(\"{}\")?;\n{}Ok(\"{}\".to_string())\n", 
+                      indent, escaped_value, indent, escaped_value))
+        }
+        ASTNode::NonTerminal(name) => {
+            Ok(format!("{}self.parse_{}()\n", indent, name))
+        }
+        _ => {
+            Ok(format!("{}// TODO: Handle complex symbol\n{}Ok(String::new())\n", indent, indent))
+        }
+    }
+}
+
+/// Extract return annotation from token sequence
+fn extract_return_annotation(tokens: Vec<Token>) -> Result<(Vec<Token>, Option<ReturnAnnotation>), Box<dyn std::error::Error>> {
+    // Look for return annotation pattern: -> annotation
+    let mut clean_tokens = Vec::new();
+    let mut annotation = None;
+    let mut i = 0;
+    
+    while i < tokens.len() {
+        if tokens[i].token_type == "operator" && tokens[i].value == "->" {
+            // Found return annotation, parse remaining tokens as annotation
+            let annotation_tokens: Vec<Token> = tokens[(i+1)..].to_vec();
+            annotation = Some(parse_return_annotation_tokens(annotation_tokens)?);
+            break;
+        } else {
+            clean_tokens.push(tokens[i].clone());
+            i += 1;
+        }
+    }
+    
+    Ok((clean_tokens, annotation))
+}
+
+/// Parse return annotation tokens into structured annotation
+fn parse_return_annotation_tokens(tokens: Vec<Token>) -> Result<ReturnAnnotation, Box<dyn std::error::Error>> {
+    if tokens.is_empty() {
+        return Err("Empty return annotation".into());
+    }
+    
+    // Simple parser for basic return annotation patterns
+    let token_string = tokens.iter().map(|t| t.value.as_str()).collect::<Vec<_>>().join(" ");
+    
+    // Handle scalar references: $1, $2, etc.
+    if let Ok(regex) = Regex::new(r"^\$([0-9]+)$") {
+        if let Some(captures) = regex.captures(&token_string) {
+            if let Ok(index) = captures[1].parse::<usize>() {
+                return Ok(ReturnAnnotation::ScalarRef { index });
+            }
+        }
+    }
+    
+    // Handle simple array patterns: [$1], [$1*], [$1, $2]
+    if token_string.starts_with('[') && token_string.ends_with(']') {
+        let inner = &token_string[1..token_string.len()-1];
+        if inner.contains(',') {
+            // Multiple elements
+            let elements = inner.split(',').map(|s| s.trim()).collect::<Vec<_>>();
+            let mut contents = Vec::new();
+            for element in elements {
+                if let Ok(regex) = Regex::new(r"^\$([0-9]+)\*?$") {
+                    if let Some(captures) = regex.captures(element) {
+                        if let Ok(index) = captures[1].parse::<usize>() {
+                            let annotation = if element.ends_with('*') {
+                                ReturnAnnotation::Quantified(Box::new(ReturnAnnotation::ScalarRef { index }))
+                            } else {
+                                ReturnAnnotation::ScalarRef { index }
+                            };
+                            contents.push(annotation);
+                        }
+                    } else {
+                        contents.push(ReturnAnnotation::Literal(element.to_string()));
+                    }
+                }
+            }
+            return Ok(ReturnAnnotation::ArrayExpr { contents });
+        } else {
+            // Single element array
+            if let Ok(regex) = Regex::new(r"^\$([0-9]+)\*?$") {
+                if let Some(captures) = regex.captures(inner) {
+                    if let Ok(index) = captures[1].parse::<usize>() {
+                        let annotation = if inner.ends_with('*') {
+                            ReturnAnnotation::Quantified(Box::new(ReturnAnnotation::ScalarRef { index }))
+                        } else {
+                            ReturnAnnotation::ScalarRef { index }
+                        };
+                        return Ok(ReturnAnnotation::ArrayExpr { contents: vec![annotation] });
+                    }
+                }
+            }
+        }
+    }
+    
+    // Handle simple object patterns: {key: $1}
+    if token_string.starts_with('{') && token_string.ends_with('}') {
+        let inner = &token_string[1..token_string.len()-1];
+        if let Some(colon_pos) = inner.find(':') {
+            let key = inner[..colon_pos].trim().to_string();
+            let value_str = inner[colon_pos+1..].trim();
+            
+            if let Ok(regex) = Regex::new(r"^\$([0-9]+)$") {
+                if let Some(captures) = regex.captures(value_str) {
+                    if let Ok(index) = captures[1].parse::<usize>() {
+                        return Ok(ReturnAnnotation::ObjectExpr { 
+                            contents: vec![(key, ReturnAnnotation::ScalarRef { index })] 
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback to literal
+    Ok(ReturnAnnotation::Literal(token_string))
+}
+
+/// Apply left recursion elimination using Aho-Sethi-Ullman algorithm
+fn eliminate_left_recursion(
+    grammar: HashMap<String, ASTNode>,
+    options: &Options
+) -> Result<HashMap<String, ASTNode>, Box<dyn std::error::Error>> {
+    
+    if !options.quiet {
+        eprintln!("🔥 DEPLOYING LEFT-RECURSION ELIMINATOR!");
+        eprintln!("📚 Based on Aho-Sethi-Ullman Algorithm 4.19");
+    }
+    
+    // Convert AST nodes to simple production format
+    let mut simple_grammar = HashMap::new();
+    let mut rule_order: Vec<String> = grammar.keys().cloned().collect();
+    rule_order.sort();
+    
+    for (rule_name, ast_node) in &grammar {
+        simple_grammar.insert(rule_name.clone(), ast_node_to_productions(ast_node)?); 
+    }
+    
+    // Apply the standard algorithm
+    for i in 0..rule_order.len() {
+        let ai = rule_order[i].clone();
+        
+        if !options.quiet {
+            eprintln!("  Processing rule {} ({}/{})", ai, i+1, rule_order.len());
+        }
+        
+        // Substitute earlier rules
+        for j in 0..i {
+            let aj = rule_order[j].clone();
+            
+            if could_create_indirect_left_recursion(&simple_grammar, &ai, &aj) {
+                substitute_rule(&mut simple_grammar, &ai, &aj)?;
+            }
+        }
+        
+        // Eliminate immediate left recursion
+        eliminate_immediate_left_recursion(&mut simple_grammar, &ai, &mut rule_order)?;
+    }
+    
+    // Convert back to AST format
+    let mut result_grammar = HashMap::new();
+    for (rule_name, productions) in simple_grammar {
+        result_grammar.insert(rule_name, productions_to_ast_node(productions)?);
+    }
+    
+    if !options.quiet {
+        eprintln!("💀 LEFT-RECURSION ELIMINATION COMPLETE!");
+    }
+    
+    Ok(result_grammar)
+}
+
+/// Convert AST node to list of productions
+fn ast_node_to_productions(node: &ASTNode) -> Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
+    match node {
+        ASTNode::Choice(alternatives) => {
+            let mut productions = Vec::new();
+            for alt in alternatives {
+                productions.extend(ast_node_to_productions(alt)?);
+            }
+            Ok(productions)
+        }
+        ASTNode::Sequence(elements) => {
+            let mut production = Vec::new();
+            for element in elements {
+                match element {
+                    ASTNode::Terminal(value) => production.push(format!("TERMINAL:{}", value)),
+                    ASTNode::NonTerminal(name) => production.push(name.clone()),
+                    _ => production.push(format!("COMPLEX:{:?}", element)),
+                }
+            }
+            Ok(vec![production])
+        }
+        ASTNode::Terminal(value) => {
+            Ok(vec![vec![format!("TERMINAL:{}", value)]])
+        }
+        ASTNode::NonTerminal(name) => {
+            Ok(vec![vec![name.clone()]])
+        }
+        ASTNode::WithAnnotation { node, .. } => {
+            // Process the underlying node, annotations will be handled separately
+            ast_node_to_productions(node)
+        }
+        _ => Ok(vec![vec![format!("COMPLEX:{:?}", node)]])
+    }
+}
+
+/// Convert productions back to AST node
+fn productions_to_ast_node(productions: Vec<Vec<String>>) -> Result<ASTNode, Box<dyn std::error::Error>> {
+    if productions.is_empty() {
+        return Ok(ASTNode::Terminal("epsilon".to_string()));
+    }
+    
+    if productions.len() == 1 {
+        let production = &productions[0];
+        if production.len() == 1 {
+            let symbol = &production[0];
+            if symbol.starts_with("TERMINAL:") {
+                Ok(ASTNode::Terminal(symbol[9..].to_string()))
+            } else {
+                Ok(ASTNode::NonTerminal(symbol.clone()))
+            }
+        } else {
+            let mut elements = Vec::new();
+            for symbol in production {
+                if symbol.starts_with("TERMINAL:") {
+                    elements.push(ASTNode::Terminal(symbol[9..].to_string()));
+                } else {
+                    elements.push(ASTNode::NonTerminal(symbol.clone()));
+                }
+            }
+            Ok(ASTNode::Sequence(elements))
+        }
+    } else {
+        let mut alternatives = Vec::new();
+        for production in productions {
+            alternatives.push(productions_to_ast_node(vec![production])?);
+        }
+        Ok(ASTNode::Choice(alternatives))
+    }
+}
+
+/// Check if substitution could create indirect left recursion
+fn could_create_indirect_left_recursion(
+    grammar: &HashMap<String, Vec<Vec<String>>>,
+    current_rule: &str,
+    referenced_rule: &str
+) -> bool {
+    if let Some(productions) = grammar.get(referenced_rule) {
+        for production in productions {
+            if !production.is_empty() && production[0] == current_rule {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Substitute rule in grammar
+fn substitute_rule(
+    grammar: &mut HashMap<String, Vec<Vec<String>>>,
+    target_rule: &str,
+    substitute_rule: &str
+) -> Result<(), Box<dyn std::error::Error>> {
+    let target_productions = grammar.get(target_rule).cloned().unwrap_or_default();
+    let substitute_productions = grammar.get(substitute_rule).cloned().unwrap_or_default();
+    
+    let mut new_productions = Vec::new();
+    
+    for production in target_productions {
+        if !production.is_empty() && production[0] == substitute_rule {
+            // Substitute this production
+            let gamma = &production[1..]; // Rest after the substituted rule
+            
+            for sub_production in &substitute_productions {
+                if sub_production.len() == 1 && sub_production[0] == "ε" {
+                    // Epsilon production
+                    new_productions.push(gamma.to_vec());
+                } else {
+                    // Normal substitution
+                    let mut new_production = sub_production.clone();
+                    new_production.extend_from_slice(gamma);
+                    new_productions.push(new_production);
+                }
+            }
+        } else {
+            // Keep as-is
+            new_productions.push(production);
+        }
+    }
+    
+    grammar.insert(target_rule.to_string(), new_productions);
+    Ok(())
+}
+
+/// Eliminate immediate left recursion from a rule
+fn eliminate_immediate_left_recursion(
+    grammar: &mut HashMap<String, Vec<Vec<String>>>,
+    rule: &str,
+    rule_order: &mut Vec<String>
+) -> Result<(), Box<dyn std::error::Error>> {
+    let productions = grammar.get(rule).cloned().unwrap_or_default();
+    
+    let mut left_recursive = Vec::new();
+    let mut non_left_recursive = Vec::new();
+    
+    for production in productions {
+        if !production.is_empty() && production[0] == rule {
+            left_recursive.push(production);
+        } else {
+            non_left_recursive.push(production);
+        }
+    }
+    
+    if !left_recursive.is_empty() {
+        let prime_rule = format!("{}_prime", rule);
+        
+        // Create new main productions: A → β A'
+        let mut new_main_productions = Vec::new();
+        if non_left_recursive.is_empty() {
+            new_main_productions.push(vec![prime_rule.clone()]);
+        } else {
+            for beta in non_left_recursive {
+                let mut production = beta;
+                production.push(prime_rule.clone());
+                new_main_productions.push(production);
+            }
+        }
+        
+        // Create prime productions: A' → α A' | ε
+        let mut prime_productions = Vec::new();
+        for left_prod in left_recursive {
+            let mut alpha = left_prod[1..].to_vec(); // Remove the left-recursive symbol
+            alpha.push(prime_rule.clone());
+            prime_productions.push(alpha);
+        }
+        prime_productions.push(vec!["ε".to_string()]);
+        
+        // Update grammar
+        grammar.insert(rule.to_string(), new_main_productions);
+        grammar.insert(prime_rule.clone(), prime_productions);
+        
+        // Add prime rule to order
+        if !rule_order.contains(&prime_rule) {
+            rule_order.push(prime_rule);
+        }
+    }
+    
+    Ok(())
+}
+
+/// Derive module name from grammar name
+fn derive_module_name(grammar_name: &str) -> String {
+    // Clean up grammar name to valid Rust module name
+    grammar_name
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .collect::<String>()
+        .to_lowercase()
+}

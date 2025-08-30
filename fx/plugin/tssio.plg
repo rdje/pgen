@@ -1,0 +1,110 @@
+tss_setup_hold {
+my ($conf, $path, $type) = @_; 
+
+ ($type eq 'max' ? 1 : -1)*($path->[$$conf{indexes}{capture_start_time}] - $path->[$$conf{indexes}{launch_start_time}] - $path->[$$conf{indexes}{input_external_delay}]) 
+}
+
+
+tss_tmax_tmin {
+my ($conf, $path, $type) = @_; 
+
+ $path->[$$conf{indexes}{capture_start_time}] - $path->[$$conf{indexes}{launch_start_time}] + ($type eq 'max' ? 1 : -1)*$path->[$$conf{indexes}{output_external_delay}]
+}
+
+tssio {
+my ($conf) = @_; 
+
+ system("mkdir -p $conf->{_workdir}; rm -rf $conf->{_workdir}/*");
+
+ print "(stan)(tssio) -I- Processing SETUP/HOLD info..\n";
+
+ my $index	= TableGrep::IndexOf('ALL', 'tssinfo');
+
+ my %lastruct;
+ my %lastructpaths;
+
+ my $counter = 0;
+ HUtils::Recurse(HUtils::WRecurse(TcFlow::GetSH($$conf{_consolidated}), sub {HUtils::GenericFilter($conf, $_[1], 'filter_sequence')}), sub {my ($info, $a2d) = @_;
+  my $deltatime = abs($$a2d[0][$$conf{indexes}{capture_start_time}] - $$a2d[0][$$conf{indexes}{launch_start_time}]);
+
+  # Cycle type Half or Full
+  my $halfull   = $$a2d[0][$$conf{indexes}{startpoint_clock_edge}] ne $$a2d[0][$$conf{indexes}{endpoint_clock_edge}] ? 'H' : 'F';
+     $halfull   = $$a2d[0][$$conf{indexes}{startpoint_clock}] =~ /'/o && $$a2d[0][$$conf{indexes}{endpoint_clock}] =~ /'/o || 
+                  $$a2d[0][$$conf{indexes}{startpoint_clock}] !~ /'/o && $$a2d[0][$$conf{indexes}{endpoint_clock}] !~ /'/o  ? $halfull : ($halfull eq 'H' ? 'F' : 'H');
+
+  # Frequency (Mhz). Computed only for Maxdelay Check
+  my $freq      = $info->[$$index{setup_hold}] eq 'setup' ? sprintf("%4.2f", 1000/($deltatime * ($halfull eq 'H' ? 2 : 1))) : '-';
+     
+  my $tss       = sprintf("%4.2f", PPlugin->get ($info->[$$index{direction}] eq 'input' ? 'tss_setup_hold' : 'tss_tmax_tmin')->($conf, $$a2d[0], $info->[$$index{setup_hold}] eq 'setup' ? 'max' : 'min')); 
+
+  my $dxcy      = "D".(split(//, $info->[$$index{direction}]))[0]."C";
+  # Trying to determine the actual direction of the reference clock (i.e. its associated port direction)
+  my $side      = $info->[$$index{direction}] eq 'input' ? 'launch' : 'capture';
+  my $startnode = $$a2d[0][$$conf{indexes}{"${side}_clock_path_startnode"}];
+  my $endnode   = $$a2d[0][$$conf{indexes}{"${side}_clock_path_endnode"}];
+  my $reference_clock;
+
+  my $ignore    = 0;
+     if ($startnode !~ /\// && $endnode !~ /\//) {
+      # port --> port
+      # $side clock tree startnode and endnode are ports, and hence the reference clock
+      # should be an output clock
+      $dxcy           .= 'o';
+      $reference_clock = $endnode;
+     } elsif ($startnode !~ /\// && $endnode =~ /\//) {
+      # port --> pin
+      # $side clock tree startnode is a port and endnode is a pin, and hence the reference clock
+      # should be an input clock
+      $dxcy           .= 'i';
+      $reference_clock = $startnode;
+     } elsif ($startnode =~ /\// && $endnode !~ /\//) {
+      # pin --> port
+      # $side clock tree startnode is a pin and endnode is a port, and hence the reference clock
+      # should be an output clock
+      $dxcy           .= 'o';
+      $reference_clock = $endnode;
+     } else {
+      print "(stan)(tssio) -E- An IO reference clock for <@$info> can't be an internal pin !!\n";
+      $ignore = 1;
+     }
+
+  my $sta          = $ignore && '-' || sprintf("%4.2f", PPlugin->get ($dxcy)->($conf, $$a2d[0], $info->[$$index{setup_hold}] eq 'setup' ? 'max' : 'min')); 
+
+#  print "###################### <@$info> ($dxcy) <$info->[$$index{setup_hold}]> ######################\n";
+#  print "freq<$freq>\n";
+#  print "halfull<$halfull>\n";
+#  print "tss<$tss>\n";
+#  print "sta<$sta>\n\n";
+  my $pointer_base = 16*$$conf{toindex}{corner}{$info->[$$index{corner}]}       + 
+                      8*$$conf{toindex}{direction}{$info->[$$index{direction}]} + 
+		      4*$$conf{toindex}{maxmin}{$info->[$$index{setup_hold}]}   ;
+
+  $lastruct{$info->[$$index{interface}]}{$info->[$$index{iomode}]}{$info->[$$index{port}]}{$reference_clock}[$pointer_base + $$conf{toindex}{tssta}{freq}]    = $freq;
+  $lastruct{$info->[$$index{interface}]}{$info->[$$index{iomode}]}{$info->[$$index{port}]}{$reference_clock}[$pointer_base + $$conf{toindex}{tssta}{halfull}] = $halfull;
+  $lastruct{$info->[$$index{interface}]}{$info->[$$index{iomode}]}{$info->[$$index{port}]}{$reference_clock}[$pointer_base + $$conf{toindex}{tssta}{tss}]     = $tss;
+  $lastruct{$info->[$$index{interface}]}{$info->[$$index{iomode}]}{$info->[$$index{port}]}{$reference_clock}[$pointer_base + $$conf{toindex}{tssta}{sta}]     = "internal:sta_$counter!A1\@$sta";
+
+  open(my $stapaths, "> $conf->{_workdir}/sta_$counter.lof") || die "(stan)(tssio) -E- Can't write open $conf->{_workdir}/sta_$counter.lof,";
+  print $stapaths "=consolidated_ns=\n";
+  print $stapaths "@$_\n" foreach (@$a2d);
+  print $stapaths "=consolidated_ns_end=\n";
+  close($stapaths);
+
+  ++$counter;
+ });
+
+ open (my $tss, ">$conf->{_workdir}/tssio.lof") || die "(stan)(tssio) -E- Can't write open $conf->{_workdir}/tssio.lof,";
+ print $tss "=tssio=\n";
+ print $tss "@{$$conf{header_1stpart}} ".join(" ", (@{$$conf{header_varpart}}) x 3)."\n";
+ HUtils::Recurse(\%lastruct, sub {my ($info, $tssdata) = @_;
+         my $maxcnt = 3*2*2*4;
+         my @a = ('-') x $maxcnt; 
+	 foreach (0 .. $maxcnt-1) {$a[$_] = $$tssdata[$_] if $$tssdata[$_]}
+
+	 print $tss "@$info @a\n";
+	 });
+
+ print $tss "=tssio_end=\n";
+ close($tss);
+}
+

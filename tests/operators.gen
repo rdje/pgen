@@ -1,0 +1,28 @@
+# Generation rules for operator expressions
+
+expression -> term
+           | expression binary_op term    [weight: 0.7, max_depth: 4]
+
+term -> integer                          [weight: 0.4]
+      | variable                         [weight: 0.4] 
+      | "(" expression ")"               [weight: 0.2]
+
+binary_op -> "+"  [weight: 0.3]
+           | "-"  [weight: 0.3]  
+           | "*"  [weight: 0.25]
+           | "/"  [weight: 0.15]
+
+integer -> "42"   [weight: 0.3]
+         | "123"  [weight: 0.3]
+         | "0"    [weight: 0.2]
+         | "999"  [weight: 0.2]
+
+variable -> "x"      [weight: 0.3]
+          | "y"      [weight: 0.3]
+          | "result" [weight: 0.2]
+          | "data"   [weight: 0.2]
+
+
+
+
+

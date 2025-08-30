@@ -1,0 +1,14 @@
+// Test grammar with both direct and indirect left recursion
+// Based on classic arithmetic expression grammar
+
+expr := expr "+" term -> {left: $1, op: $2, right: $3}
+      | expr "-" term -> {left: $1, op: $2, right: $3}  
+      | term -> $1
+
+term := term "*" factor -> {left: $1, op: $2, right: $3}
+      | term "/" factor -> {left: $1, op: $2, right: $3}
+      | factor -> $1
+
+factor := "(" expr ")" -> $2
+        | /(\d+)/ -> {type: "number", value: $1}
+        | /([a-zA-Z_][a-zA-Z0-9_]*)/ -> {type: "identifier", value: $1}

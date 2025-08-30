@@ -1,0 +1,2229 @@
+#! /home/djer/install/bin/perl -w -I/home/djer/fx/fsm/afx/fx/perl
+
+use Getopt::Long;
+#use File::List;
+use File::Spec;
+use File::Find;
+#use Storable;
+use Pod::Usage;
+
+require rvp;
+
+my $local                 = "local"           ;
+my $local_include         = "include"         ; # default include directory 
+my $makefile              = "Makefile"        ;
+my $src_update            = 0                 ;
+my $macro_suffix          = ".def"            ;
+my $synthesis_default     = "read.lst"        ;
+my $include_default       = "include.lst"     ;
+my $vhdl_default          = "vhdl.lst"        ;
+my $verilog_default       = "verilog.lst"     ;
+my $ambit_include_default = "ambit-include.sh";
+my $select                = "last"            ; # default selection is *Last*
+my $translate_upper_case  = 1                 ; # upper case translation is on by default only for verilog modules
+#my %database                                 ;
+my $help                  = 0                 ; # default is no help
+my $man                   = 0                 ; # default is no man
+my $maketarget            = ""                ; # the design's top is the default target for the build
+my $inifile               = ""                ;
+my $libmapname            = "modelsim.ini"    ; # Default is modelsim.ini
+my $worklib               = 'work'            ; # Default library name
+
+GetOptions('hierarchy=s'          => \@hierarchy           ,
+           'makefile=s'           => \$makefile            ,
+           'top-module=s'         => \$top_module          ,
+           'nomakefile'           => \$nomakefile          ,
+           'local-hierarchy=s'    => \$local_hierarchy     ,
+           'copy=s'               => \$local_copy          ,
+           'override'             => \$override            ,
+           'reference=s'          => \@dbase_references_in ,
+           'verbose'              => \$verbose             ,
+           'select=s'             => \$select              ,
+           '87=s'                 => \@vhdl87              ,
+           '93=s'                 => \@vhdl93              ,
+           'macro=s'              => \%macros              ,
+           'synthesis!'           => \$synthesis           ,
+           'ambit-include!'       => \$ambit_include       ,
+           'inifile=s'            => \$inifile             ,
+           'explicit=s'           => \@vhdlexplicit        ,
+           'include-extension=s'  => \@include_ext         ,
+           'exclude-path=s'       => \@exclude_path        ,
+           'translate-upper-case!'=> \$translate_upper_case,
+           'maketarget=s'         => \$maketarget          ,
+           'libmap!'              => \$libmap              ,
+           'worklib=s'            => \$worklib             ,
+           'debug!'               => \$debug               ,
+           'man!'                 => \$man                 ,
+           'help'                 => \$help) || pod2usage(-verbose=>2);
+
+
+$help && pod2usage(-verbose=>1);
+$man  && pod2usage(-verbose=>2);
+           
+system("banner", "xdep") if qx(env banner 2>&1) !~ /No such file or directory/io;
+print "\n\n";
+
+#------------------------------------------------------
+# Reading the configuration file
+#------------------------------------------------------
+my $inistr;
+if($inifile && -s $inifile) { 
+  $inistr = config_read($inifile);
+} else {
+   if($inifile) {
+    print "xdep: Configuration file '$inifile' does not exist\n";
+    exit 2
+   } else {
+    $inistr = config_read("xdep.ini") if -s "xdep.ini"
+   }
+}
+
+if(defined $inistr) {
+ 
+}
+
+push @hierarchy, @ARGV;
+
+! scalar(@hierarchy) && pod2usage(-verbose=>1);
+
+
+if(defined $local_hierarchy  && length($local_hierarchy) && -d $local_hierarchy && !$override) {
+  die "xdep: Directory '$local_hierarchy' already exists, please change --local-hierarchy value or use  '--override' option !!\n"
+}
+
+if(defined $local_copy  && length($local_copy) && -d $local_copy && !$override) {
+  die "xdep: Directory '$local_copy' already exists, please change --local-hierarchy value or use  '--override' option !!\n"
+}
+
+$local_hierarchy =~s/\/$//o if($local_hierarchy);
+$local_copy =~s/\/$//o if($local_copy);
+
+my $one_err=0;
+my @dbase_references=map {s/\/$//o; $_} @dbase_references_in;
+foreach (@dbase_references) {
+ $src_update=1;
+ if(! -d $_) {
+  print STDERR "xdep: '$_' is not a directory, please check !!";
+  print LOGFILE "xdep: '$_' is not a directory, please check !!";
+  ++$one_err
+ }
+}
+
+die if $one_err;
+
+my @dirlist;
+my @unvalidir;
+print "Checking directories ..\n";
+foreach (@hierarchy) {
+ my @temparray=split(/,/o);
+ my @newlist;
+ foreach (@temparray) {
+  if(! -d $_) {
+   push @unvalidir, $_;
+   next
+  } else {push @newlist, $_}
+ }
+
+ push @dirlist, @newlist
+}
+
+my $unvalid_sz=scalar(@unvalidir);
+if($unvalid_sz) {
+ print "\nxdep: warning : The following director".($unvalid_sz==1 ? "y" : "ies"). ($unvalid_sz==1 ? " is" : " are")." not valid.\n";
+ print   "xdep:           $_\n" foreach (@unvalidir);
+ print "\n";
+ print "Should i continue anyway ? (yes/no) : "; my $answer=<>; chop $answer; 
+ exit 1 unless ("yes" =~ /$answer/i)
+}
+
+###############################
+# Saving The Directory List
+# Into the Database
+###############################
+#$database{hierarchy}={map {$_=>1} @dirlist};
+
+# Hash table use to hold of design unit information
+# Each key correspond to one design unit
+# The value corresponding value is an array-ref. The associated array has two entries:
+# [0] = design unit type
+#       0 = entity
+#       1 = package header
+#       2 = architecture
+#       3 = module
+#       4 = no verilog module
+#
+# [1] = an array-ref pointing to a list of hash-refs, where each hash has only one entry.
+#       The key/value pair of that entry is
+#
+#        key   = path to a file where that design unit is defined
+#        value = an array-ref pointing to a list of package-name(s) and entity name(s) acting as dependancies of the
+#
+#       given design unit
+my %module_instances;
+
+my %verilog_includes;
+my @verilog_resume;
+my @special_includes;
+my %special_includes;
+my %incw_relpath;
+my $postpone_on=0;
+my $postpone_error=0;
+my @postpone_error;
+my @Makefile;
+my @Module_path_list;
+my %Module_path_list;
+my @Module_list;
+my %makefile_sections;
+my @vhdlexplicit_list;
+my @vhdl87_list;
+my @vhdl93_list;
+my $vhdlxx_merge;
+my %vhdlxx;
+my %top_hierarchy;
+my $mapping_alignment_width=35;
+my %module_macros;
+my %vhdlfile_ext;
+my %filter_extension;
+my %is_verilog;
+my %verilog_former_name_case;
+my @mapping;
+my @module_wo_file;
+my %standard_packages=(
+                       vital2000=>1,
+                       ieee=>1,
+                       modelsim_lib=>1,
+                       std=>1,
+                       std_developerskit=>1,
+                       synopsys=>1,
+                       verilog=>1
+                      );
+my %modelsim_ini;
+my @all_architectures;
+
+my @path_list;
+my %path_list;
+
+
+open(LOGFILE, "> xdep.log");
+
+
+module_dependancy(@dirlist);
+check_for_vinclude();
+verilog_more_dependancy();
+
+#-----------------------------
+# Search For Top Module
+#-----------------------------
+my $topmodule=get_top(\%module_instances);
+
+#-----------------------------
+# Makefile Generation
+#-----------------------------
+makefile_generation(\%module_instances, $topmodule) if(!$nomakefile);
+
+#-----------------------------
+# Local Hierarchy Generation
+#-----------------------------
+if($local_hierarchy) {
+ print "Creating local image of '$topmodule' hierarchy in '$local_hierarchy' ..\n" if($verbose);
+ system("mkdir", "-p", $local_hierarchy);
+ local_hierarchy_generation($topmodule, $local_hierarchy)
+}
+
+#-----------------------------
+# Creating '$local' and 
+# '$local_include' directory
+#-----------------------------
+if(! -d $local) {
+ print "Creating directory '$local' ..\n";
+ system("mkdir", "-p", $local)
+}
+
+if(! -d $local_include) {
+ print "Creating directory '$local_include' ..\n";
+ system("mkdir", "-p", $local_include)
+}
+
+#my @actualst;
+#synthesis_bottom_up(\%module_instances, $topmodule, \@actualst);
+if($local_copy && scalar(@path_list)) {
+ print "\nCreating a flat copy of '$topmodule' hierarchy in '$local_copy' directory ..\n";
+ qx(mkdir -p $local_copy);
+ foreach (@path_list) {
+  s/[ \t]+//og;
+  print " Copying file $_ ..\n" unless ! length($_);
+  system("cp", $_, $local_copy) unless ! length($_)
+ }
+
+ print "\n"
+}
+
+
+my $pathlst=$synthesis_default;
+if(defined $synthesis) {
+ qx(rm -f $pathlst $include_default $vhdl_default $verilog_default $ambit_include_default);
+
+ open(SYNTHLST, "> $pathlst") || die "xdep: Write problems with file $pathlst"; 
+ open(INCLUDELST, "> $include_default") || die "xdep: Write problems with file $include_default"; 
+ open(VHDLST, "> $vhdl_default") || die "xdep: Write problems with file $vhdl_default"; 
+ open(VERILOGLST, "> $verilog_default") || die "xdep: Write problems with file $verilog_default"; 
+
+ 
+ if(defined $ambit_include) {
+   foreach (@path_list) {
+    if(/^.*\.vhdl?$/io) {print SYNTHLST "read_vhdl\t$_\n"} 
+    else {print SYNTHLST "read_verilog\t$_\n"}
+   }
+ } else {
+  print SYNTHLST        join("\n", @path_list);
+ }
+
+ my %include_directories;
+ foreach (@{get_include_directories("last")})  {$include_directories{$_}=1}
+ print INCLUDELST       join("\n", sort keys %include_directories);
+
+ print VHDLST           join("\n", @{$filter_extension{vhdl}});
+ print VERILOGLST       join("\n", @{$filter_extension{verilog}});
+
+ if(defined $ambit_include) {xt_verilog_includes(@{$filter_extension{verilog}})}
+
+ print "Creating file $pathlst..\n";
+ print "Creating file $include_default..\n";
+ print "Creating file $vhdl_default..\n";
+ print "Creating file $verilog_default..\n\n";
+
+ close(VHDLST);
+ close(VERILOGLST);
+ close(SYNTHLST);
+ close(INCLUDELST)
+}
+
+modelsim_ini() if $libmap;
+
+#print "Writing to database ..\n";
+#store(\%database, 'xdep.xdb');
+
+# Generation of the mapping part of *xdep.log*
+print LOGFILE join("\n", @mapping), "\n\n";
+
+close(LOGFILE);
+
+sub makefile_generation {
+my ($mg, $top)=@_;
+ 
+
+ print_libpath();
+ print_tools();
+ print_special_rules();
+
+ macro_handler(\%macros, \%module_macros);
+
+ print_dependancies($top, $top);
+ print_main_goal($top);
+
+ #--- Extracting Explicit targeted modules
+ vhdlxx(\@vhdlexplicit, \%top_hierarchy, \@vhdlexplicit_list);
+
+ #--- Extracting 87 targeted modules
+ vhdlxx(\@vhdl87, \%top_hierarchy, \@vhdl87_list);
+
+ #--- Extracting 93 targeted modules
+ vhdlxx(\@vhdl93, \%top_hierarchy, \@vhdl93_list);
+
+ $vhdlxx_merge=vhdlxx_merge();
+
+ print_includes_dependancy();
+ print_Module_libpath($top);
+ print_vpath();
+ print_remainder();
+
+ vpath_sections_alignment();
+ section_alignment();
+
+ ##############################
+ # Modules with no file
+ ##############################
+ if(my $sz=scalar(@module_wo_file)) {
+  print "\nxdep: warning : The following module".($sz==1?" is":"s are")." missing !\n";
+  print "xdep:         $_\n" foreach (@module_wo_file);
+
+  print LOGFILE "\nxdep: warning : The following module".($sz==1?" is":"s are")." missing !\n";
+  print LOGFILE "xdep:         $_\n" foreach (@module_wo_file)
+ }
+
+ print LOGFILE "\n";
+
+ drive_makefile($makefile)
+}
+
+my %dufile_exist;
+sub local_hierarchy_generation {
+my ($cur_du, $basedir)=@_;
+my $type= $module_instances{$cur_du}[0];
+
+ return if($type == 0 || $type == 1); #skip this design unit if it's an entity / package
+
+ my $newdir="$basedir/".$cur_du;
+ if(system("mkdir", "-p", $newdir)) {die "xdep: error : Can't create directory $newdir"}
+ print "Directory '$newdir' created\n" if($verbose);
+
+ my ($du_pathname, $ref)=get_module($cur_du);
+ if(!$du_pathname) {
+   print STDERR "xdep: warning : Module $cur_du does not have any associated module file !!!\n";
+   print LOGFILE "xdep: warning : Module $cur_du does not have any associated module file !!!\n";
+   return
+ }
+
+ if(exists $dufile_exist{$cur_du}) {
+   if(system("mkdir", "-p", $newdir)) {die "Can't Create Directory $newdir"};
+ } else {
+   if(system("cp", $du_pathname, $newdir)) {die "Can't Copy $du_pathname To $newdir"};
+   print "  File $du_pathname copied in $newdir\n" if($verbose);
+
+   $dufile_exist{$cur_du}=1;
+ }
+
+ foreach (@$ref) {
+  local_hierarchy_generation($_, $newdir)
+ }
+}
+
+sub section_alignment {
+ get_maxmacrolen($_) foreach (keys %makefile_sections);
+ align_now($_)       foreach (keys %makefile_sections);
+}
+
+
+my %max_len;
+sub get_maxmacrolen {
+my $section=shift;
+
+ $max_len{len} ||= 0;
+ foreach (@{$makefile_sections{$section}}) {
+   next unless /^(\S+)[ \t]+[a-zA-Z_:=]/o;
+   next if $max_len{len} >= length($1);
+   %max_len=(name=>$1, len=>length($1))
+ }
+}
+
+
+my $first_call=1;
+sub align_now {
+my $section=shift;
+
+ if($first_call) {
+  my $newmax=$max_len{len};
+  my $sc=1;
+  while((length($newmax)+ $sc)%8 != 0) {++$sc}
+  $max_len{len}=$newmax+$sc;
+
+  $first_call=0;
+ }
+
+ my @new_section;
+ foreach (@{$makefile_sections{$section}}) {
+   if(!/^(\S+)[ \t]+([a-zA-Z_:=].*)/o) {
+    push @new_section, $_;
+    next
+   }
+
+   my $macroname=$1;
+   my $remainder=$2;
+   
+   push @new_section, $macroname." " x ($max_len{len} - length($macroname)).$remainder ;
+ }
+
+ # $makefile_sections{$section};
+ $makefile_sections{$section}=[@new_section]
+}
+
+sub print_libpath {
+  add2section("libpath", 'lib_work              = '.$worklib.'$(if $(fs),.sym)',
+                         'primary_du            = $(if $(fs),prim.var,_primary.dat)');
+}
+
+sub print_main_goal {
+my $top=shift;
+my $top_archis="";
+
+#print "\nprint_main_goal: DEBUG : LOOPING on ALL ARCHITECTURES of $top\n";
+#my $re=qr/:$top$/;
+#  foreach (keys %module_instances) {
+#    next unless $_ =~ $re;
+#    #print "print_main_goal: DEBUG : Current ARCHITECTURE is $_\n";
+#    $top_archis .= " \$(".join("_", (split(/:/, $_))).")";
+#  }
+
+  foreach ($top, @all_architectures) {
+   $top_archis .= " \$(".join("_", (split(/:/o, $_))).")";
+  }
+
+  #&add2section("main_goal", "compile-all\t: clean_other_work localdir include_local \$($top) $top_archis");
+  add2section("main_goal", "compile-all\t: clean_other_work localdir include_local $top_archis");
+}
+
+sub print_special_rules {
+  add2section("special_rules", "\.PHONY\t: compile-all clean_all clean clean_other_work localdir include_local \$(del_work_dir)");
+}
+
+sub drive_makefile {
+my $outputfile=shift;
+
+ print "\nCreating Makefile '$outputfile' ..\n";
+ if(-f $outputfile) {qx/mv $outputfile $outputfile.bak/}
+ open(OUTPUT, "> $outputfile");
+ 
+ #libpath section
+ print OUTPUT join("\n", @{$makefile_sections{libpath}}, "\n");
+ #Module_libpath section
+ print OUTPUT join("\n", @{$makefile_sections{Module_libpath}}, "\n");
+ #tools section
+ print OUTPUT join("\n", @{$makefile_sections{tools}}, "\n");
+ #VPATH section
+ print OUTPUT join("\n", @{$makefile_sections{VPATH}}, "\n");
+ #vpath section
+ print OUTPUT join("\n", @{$makefile_sections{vpath}}, "\n") if $makefile_sections{vpath};
+ #misc section
+ print OUTPUT join("\n", @{$makefile_sections{misc}}, "\n", "\n");
+ #special_rules section
+ print OUTPUT join("\n", @{$makefile_sections{special_rules}}, "\n", "\n");
+ #main goal section
+ print OUTPUT join("\n", @{$makefile_sections{main_goal}}); print OUTPUT "\n\n";
+ #dependancies section
+ print OUTPUT join("\n", @{$makefile_sections{dependancies}}); print OUTPUT "\n";
+ #other-dependancies section
+ #print OUTPUT join("\n", @{$makefile_sections{other_dependancies}}, "\n");
+ #special-include-dependancies section
+ print OUTPUT join("\n", @{$makefile_sections{special_includes_dependancies}}, "\n", "\n") if $makefile_sections{special_includes_dependancies};
+ #src-update-dependancies section
+ #print OUTPUT join("\n", @{$makefile_sections{src_update_dependancies}}, "\n", "\n");
+ #remainder section
+ print OUTPUT join("\n", @{$makefile_sections{remainder}});
+
+ close(OUTPUT);
+}
+
+my %section_entries;
+sub add2section {
+my $section=shift;
+
+ foreach (@_) {
+   next if exists $section_entries{$section}{$_} && $_ !~ /^\n$/o && $_ ne "vpath";
+   push @{$makefile_sections{$section}}, $_;
+   $section_entries{$section}{$_}=1
+ }
+}
+
+sub print_vpath {
+my @dirlist=map { /(.*)\//o; $1} @Module_path_list;
+my %dirlist;
+
+  foreach (@dirlist) {$dirlist{$_}=1}
+  my $dirlist=join(" ", sort keys %dirlist);
+
+  add2section("VPATH", "VPATH\t\t= $dirlist");
+
+  foreach (keys %Module_path_list) {add2section("vpath", "vpath\t$_ $Module_path_list{$_}")}
+}
+
+sub print_Module_libpath {
+my %Modulelist;
+
+
+ foreach (@Module_list) {
+  if(! exists $Modulelist{$_}) {
+    my $work_name= (exists $is_verilog{lc($_)} ? ($translate_upper_case ? translate_upper_case($verilog_former_name_case{$_}): $_) : $_);
+    print "$_   : [$work_name]\n" if exists $is_verilog{lc($_)} && $debug;
+    if(/:/o) {
+      # We are dealing with an architecture
+      my ($architecture, $entity)=split(/:/o, $_);
+      add2section("Module_libpath", "$architecture"."_$entity           = \$(lib_work)/$entity/$architecture.dat");
+    } else {
+      add2section("Module_libpath", "$_         = ".'$(lib_work)/'.$work_name.'/$(primary_du)');
+    }
+
+  }
+
+  $Modulelist{$_}=1
+ }
+
+}
+
+sub translate_upper_case {
+my $mname=shift @_;
+my @newname=map { /^[A-Z]$/o ? "\@".lc($_) : $_ } split(//o, $mname);
+
+ return join("", @newname)
+}
+
+sub print_tools {
+ add2section("tools", 'vcom                     = $(if $(fs),vhdlp, vcom -93)');
+ add2section("tools", 'vlog                     = vlog');
+ add2section("tools", 'vdel                     = $(if $(fs),$(RM) -rf,vdel -all)');
+ add2section("tools", 'vlib                     = $(if $(fs),mkdir ,vlib)');
+ add2section("tools", 'filepp                   = filepp');
+}
+
+my %seen_already;
+sub print_dependancies {
+my ($top, $prdep)=@_;
+#print "\nprint_dependancies: DEBUG : 0[$prdep]\n";
+
+# $du_path contains the Path/Filename where $prdep is defined.
+# $listref is an array reference. Each entry of this array corresponds
+# to the component name of the instantiated module, not the instance label (VHDL), 
+# but the name of entity/module that is instantiated.
+print "print_dependancies: entering [$prdep]\n" if $debug;
+my ($du_path, $listref, $path_cnt_maxindex) = get_module($prdep);
+
+print "print_dependancies: ($du_path, $listref, $path_cnt_maxindex)\n" if $debug;
+
+ my $align_name = $prdep;
+ $align_name   .= " " x ($mapping_alignment_width - length($align_name));
+
+ unless ($seen_already{$prdep}) {
+  push @mapping, "[mapping] $align_name = ".($du_path|| "");
+
+  # Module which are not defined in any file, are to be push onto
+  # @module_wo_file, for later processing (c.f, *makefile_generation*)
+  push @module_wo_file, $prdep unless defined $du_path; #length($du_path)
+ }
+
+ $seen_already{$prdep}=1;
+
+ # Return if $prdep is defined nowhere
+ return unless defined $du_path; #length($du_path);
+
+ my ($volume, $pathname, $filename) = File::Spec->splitpath($du_path);
+
+ $filename =~ /^(?:.*)\.(.*)$/o;
+ my $extension             = $1;
+ $vhdlfile_ext{$extension} = 1;
+
+ # Which file to use ?
+ if ($path_cnt_maxindex) {
+  # When instead $prdep in defined in more than one File then We should force
+  # make to use the copy located at $pathname (c.f routine *print_vpath*).
+  $Module_path_list{$filename}= $pathname
+ } else {
+  # When there is only one File defining Module $prdep, then
+  # push it into @Module_path_list. @Module_path_list will be
+  # used to define VPATH (c.f routine *print_vpath*).
+  push @Module_path_list, $du_path
+ }
+
+ # Is $prdep an ENTITY ?
+ if ($module_instances{$prdep}[0] == 0) {
+ # If $prdep is an entity, then check whether or not it was also seen 
+ # defined in a Verilog file, If it is the case then delete it from 
+ # %is_verilog and %verilog_former_name_case hash tables. Otherwise
+ # the routine *print_Module_libpath* get NO up-to-date information.
+  if(exists $is_verilog{$prdep}) {# $prdep is already in lower-case.
+    delete $is_verilog{$prdep};
+    delete $verilog_former_name_case{$prdep}
+  }
+ }
+
+ # When $prdep module has a non-empty $du_path then push its name
+ # into @Module_list so that $prdep will have its name associated with a
+ # path into the $lib_work library. c.f routine *print_Module_libpath*
+ push @Module_list, $prdep;
+
+ # $prdep module will first depends on the file where it is defined.
+ my $dependancy;
+ if ($prdep =~ /:/o) {
+   # $prdep is an architecture
+   $dependancy = "\$(".join("_", (split(/:/o, $prdep))).")\t: $filename"; 
+
+   # Log $prdep has being an architecture.
+   push @all_architectures, $prdep;
+
+  } else {
+   $dependancy = "\$($prdep)\t: $filename"; 
+  }
+
+ $top_hierarchy{$prdep}=1;
+
+ if (scalar(@dbase_references)) {
+  my $db_source_file=get_reference($du_path);
+  add2section("src_update_dependancies", "$filename\t: $db_source_file");
+ }
+
+ #if(! $listref) {
+ # #$dependancy.=" \$(".$prdep."_macros)" if(exists $module_macros{$prdep});
+ # #&add2section("other_dependancies", $dependancy);
+ #}
+
+ # If the Current Design Unit (DU) / Module, i.e, $prdep, has dependancies then ..
+ if ($listref) {
+   # At least one dependancy
+   #
+   # entity/package/module/architecture
+   #
+
+   # In cases where $prdep depends on packages or other entity/module, they will be
+   # added here. The loop is done on all of them.
+   foreach (@$listref) {$dependancy .= " \$($_)"}
+
+   # If $prdep is an architecture, then add its entity name as the rightmost of its
+   # pre-requisites
+   if ($prdep =~ /:/o) {
+    $dependancy .= " \$(".(split(/:/o, $prdep))[1].")";
+   }
+   
+   add2section("dependancies", $dependancy);
+
+   # Then recursively print the dependancy of instantiated entities (via their architecture),
+   # modules and/or packages.
+   foreach (@$listref) {print_dependancies($top, $_)}
+
+   # For paths' lits generation the current $prdep, if not an ENTITY, should have its $du_path appear AFTER that of any of its dependancies
+   #
+   # Because special care must be taken before rendering ENTITYs' $du_path. For that we need to check whether or not the ENTITY and any of its
+   # ARCHITECTURE(s) are defined in the same file. 
+   add_pathlist($du_path) if ($module_instances{$prdep}[0] != 0) 
+
+ } else {
+   # No dependancy
+
+   # ----------- This Part IS NOT FOR ENTITYs -------------
+   #
+   # package/module/architecture
+   #
+   if ($module_instances{$prdep}[0] != 0) {
+    # For paths' lits generation just drive $du_path
+    add_pathlist($du_path);
+
+    # If $prdep has no dependancies and is not an entity, then call *add2section* and return.
+    $debug && print "print_dependancies: LEAVING : [$prdep] w/o Instances\n";
+
+    # If $prdep is an architecture, then add its entity name as the rightmost of its
+    # pre-requisites
+    if ($prdep =~ /:/o) {
+     $dependancy .= " \$(".(split(/:/o, $prdep))[1].")";
+    }
+   
+    add2section("dependancies", $dependancy);
+    return
+   }
+ }
+
+ # ----------- ONLY FOR ENTITYs --------------
+ # In case $prdep is an entity then search for all its architectures, and store their $path
+ # and dependancies into %all_arch Hash table.
+ if ($module_instances{$prdep}[0] == 0) {
+  $debug && print "\nprint_dependancies: DEBUG : LOOPING on ALL ARCHITECTURES of $prdep\n";
+
+  my $re=qr/:$prdep$/;
+  my %all_arch;
+  my %arch_mtimes;
+  foreach (keys %module_instances) {
+    next unless $_ =~ $re;
+    $debug && print "print_dependancies: DEBUG : Current ARCHITECTURE is $_\n";
+
+    # Get the path/filename of that architecture
+    my ($path, $instlst) = get_module($_);
+    $all_arch{$path}{$_} = $instlst;
+    # FIXME: Here I assume that $path is the only one having its mofification time equals (stat($path))[9]
+    # which is not correct
+    $arch_mtimes{(stat($path))[9]}=$path;
+  }
+
+  # Check for the existence of at least one architecture for $prdep
+  # The non-existence, if any, will be logged
+  if (scalar(keys %all_arch) == 0) {
+   print         "xdep: Error : entity '$prdep' has no defined architecture.\n";
+   print LOGFILE "xdep: Error : entity '$prdep' has no defined architecture.\n";
+  }
+
+  # Check for the existence of architecture(s) defined in the same file as that of the current entity
+  $debug && print "print_dependancies: du_path=[$du_path]\n";
+  if(exists $all_arch{$du_path}) {
+    # There exist at least one ARCHITECTURE for that ENTITY in the same file
+    if(scalar(keys %{$all_arch{$du_path}}) == 1) {
+      # There is Only one defined ARCHITECTURE in its file
+      my ($archi, $instlst) = %{$all_arch{$du_path}};
+
+      # The following re-declaration/definition is intentional. The purpose here is to have both
+      # $prdep's dependancy (i.e, file name) and its unique architecture dependancies, if any, 
+      # be on the same line.
+      my $dependancy = "\$($prdep)\t: ".($listref?"":$filename); 
+
+      # Adding the architecture dependancies, if any, to that of its entity
+      if ($instlst) {
+        $debug && print "print_dependancies: info : architecture $archi [@$instlst]\n";
+        $dependancy .= " \$($_)" foreach (@$instlst);
+        add2section("dependancies", $dependancy);
+
+        # Calling *print_dependancies* on all of the architecture's dependancies
+	#
+	# ARCHITECTUREs' dependancies are packages/entities
+        print_dependancies($top, $_) foreach (@$instlst);
+
+      } else {
+        # We have to register the unique dependancy of entity $prdep, i.e, its file name, in case
+        # $prdep is a leaf and depends on no package(s).
+        unless($listref) {
+         $dependancy="\$($prdep)\t: $filename";
+         add2section("dependancies", $dependancy);
+        }
+      }
+
+      # Both the ENTITY and its ARCHITECTURE are in the same file.
+      # The only requirement here is to have their common $du_path appear after any of the ARCHITECTURE dependancy(ies).
+      add_pathlist($du_path);
+
+    } else {
+     # More than one ARCHITECTURE for the same ENTITY in the same file is not a supported feature
+     print "xdep:  Error  : Entity with more than one associated architecture in the same file is not a supported feature\n";
+     print "File          : $du_path\n";
+     print "Entity        : $prdep\n";
+     foreach (sort keys %{$all_arch{$du_path}}) {
+       s/:.*//o;
+       print "Architecture  : $_\n";
+     }
+
+     exit;
+    }
+  } else {
+    # The current ENTITY has no ARCHITECTURE defined in its file.
+    #
+    # ONLY ENTITYs can call 'print_dependancies' on any of their ARCHITECTUREs
+
+    ###################################################
+    #  It is important to remember that when          #
+    #  the entity and its architecture(s) are not in  #
+    #  the same file(s) then the Makefile should be   #
+    #  written in such a way that the entity is       #
+    #  compiled before any of its architecture(s).    #
+    #                                                 #
+    #  A way to accomplish this is to have the entity #
+    #  be a pre-requisite (why not the rightmost ?)   #
+    #  of any of its architecture.                    #
+    #                                                 #
+    # If the $top is an entity separated from its     #
+    # architecture(s) then they all should appear     #
+    # in the *compile-all* target (rightmost).        #
+    #                                                 #
+    # More generally i think all architecture(s)      #
+    # that are separated, i.e, not in the same        #
+    # file, as their respective entity should         #
+    # appear as pre-requisite of the *compile-all*    #
+    # target.                                         #
+    ###################################################
+
+    # For paths' list generation the ENTITY's $du_path should appear before any of its ARCHITECTURE's
+    add_pathlist($du_path);
+          
+    # We have to register the unique dependancy of entity $prdep, i.e, its file name, in case
+    # $prdep has no other explicit dependancies, and if none of its architecture(s) is defined 
+    # in its file.
+    add2section("dependancies", $dependancy) if ! $listref;
+
+    # The next step is to select which architecture(s), if not all, will appear in
+    # the makefile. The default being to insert the necessary rules for compiling all
+    # found architectures.
+    my @sorted_arch=sort {$a <=> $b} keys %arch_mtimes;
+
+    # Multiple architectures are allowed only for the $top module.
+    # entity/module appearing in $top module hierarchy should have at most
+    # one architecture.
+    if($top eq $prdep) {
+      # Each Modified Time (mt) is uniquely associated w/ one path, where each path
+      # may define several architectures of $prdep.
+      # Newest --> Oldest
+      foreach my $mt (reverse @sorted_arch) {
+        my $archpath=$arch_mtimes{$mt};
+        my $archlist=$all_arch{$archpath};
+
+        # Recursively calling *print_dependancies* on all architectures found at $archpath.
+        print_dependancies($top, $_) foreach (keys %$archlist);
+      }
+    } else {
+      # When not the $top, $prdep should not have more than one architecture.
+      if(scalar(@sorted_arch) > 1)  {
+        print           "xdep: Error : Entity '$prdep' has more than one architecture defined in more than one file\n";
+        print LOGFILE   "xdep: Error : Entity '$prdep' has more than one architecture defined in more than one file\n";
+      }
+
+      my $latest=pop @sorted_arch;
+      # How many architectures are defined in file located at
+      # path=$arch_mtimes{$latest}.
+      my $archpath=$arch_mtimes{$latest};
+      my $archlist=$all_arch{$archpath};
+      my $archnum = scalar(keys %$archlist);
+
+      #print "xdep: info : File '$archpath' (newest) has been selected for defining the architecture(s) of entity '$prdep'\n";
+
+      if($archnum == 1) {
+       # Recursively calling *print_dependancies* on that architecture.
+       print_dependancies($top, (keys %$archlist)[0]);
+      } elsif ($archnum > 1) {
+       # More than one architecture in file $archpath
+       die "xdep: Error : Entity other than the TOP should not have more than one defined architectures"
+      } else {
+       die "xdep: Error : THAT's a BUG to be fixed !!"
+      }
+
+    }
+     
+  }
+ }
+
+}
+
+sub add_pathlist {
+my ($du_path) = @_;
+
+ unless ($path_list{$du_path}) {
+  push @path_list, $du_path;
+  push @{$filter_extension{($du_path =~ /^.*\.vhdl?$/oi ? 'vhdl' : 'verilog')}}, $du_path;
+ }
+
+ $path_list{$du_path} = 1;
+}
+
+sub get_reference {
+my $srd=shift; 
+my @splitted_dupath=split("/", $srd);
+my $filen=pop @splitted_dupath;
+my @locationlist;
+
+ foreach (@dbase_references) {
+  print "Searching for '$filen' in $_ directory hierarchy ..\n" if $verbose;
+  open(DBASE, "find $_ -type f -name $filen |");
+  my @filelist=map {chop; $_} <DBASE>;
+  push @locationlist, @filelist;
+  close(DBASE)
+  #my $search= new File::List($_);
+  #my @filelist=@{$search->find("/$filen\$")};
+  #push @locationlist, @filelist;
+ }
+
+ my $loc_size=scalar(@locationlist);
+ if($loc_size == 1) {
+  return shift @locationlist
+ }
+ else {
+   if($loc_size > 1) {
+    print STDERR "xdep: warning : File '$filen' appears in more than one place :\n";
+    print STDERR join("\n", @locationlist), "\n";
+    print LOGFILE "xdep: warning : File '$filen' appears in more than one place :\n";
+    print LOGFILE join("\n", @locationlist), "\n";
+    exit 1
+   } else {
+    print STDERR  "xdep: warning : File '$filen' does not exist in the given locations\n";
+    print LOGFILE "xdep: warning : File '$filen' does not exist in the given locations\n";
+    exit 2
+   }
+ }
+}
+
+my %get_module;
+my %get_module_dmt;
+sub get_module {
+my $gm=shift;
+my $aref=$module_instances{$gm}[1];
+
+ my $max_filepath_index = $#$aref;
+ if(@$aref > 1) {
+   # design unit $gm is defined in more than one file
+
+   # @from_firstolast is an array-of-array-of-hash-ref
+   # Each array-of-hash-ref is associated with one modification time
+   my @from_firstolast=sort_modules($aref);
+   my $from_size=scalar @from_firstolast; 
+
+
+   # ---- This IF statement is for Logging purpose only ----
+   if($from_size > 1 && ! exists $get_module_dmt{$gm}) {
+    # design unit $gm is defined in more than one file having different modification time
+
+    print         "xdep: warning : Module '$gm' is defined in more than one file with different modification time !!\n";
+    print LOGFILE "\nxdep: warning : Module '$gm' is defined in more than one file with different modification time !!\n";
+
+    # Logging the fact that $gm is defined in different files having different modification time
+    $get_module_dmt{$gm}=1;
+
+    # ti stands for TIme
+    my $ti_sz = 0;
+    foreach $ti_list (@from_firstolast) {
+     # Each $ti_list corresponds to one modification time
+
+     # For the current modification time get the first [0] hash-ref which corresponds to a file-path/dep-list-ref pair
+     # Only get the Path (_p) of the single entry Hash Table
+     my ($myfirst_p)=%{$ti_list->[0]};
+
+     # Inserting a BackSlash before SPACE, and Opening/Closing Parenthesis
+     $myfirst_p =~ s/([ \(\)])/\\$1/og;
+     my $mytime=join(" ", (split(/[ \t]+/o, qx(ls -l $myfirst_p)))[5 .. 7]); # <<<<<<<<<<<<<<<<==== PLEASE USE A MORE PORTABLE SOLUTION !!!!! -> localtime()
+     print LOGFILE "xdep:           [$mytime]\n";
+
+     # Loop on all Single entry Hash table, and printing their Key.
+     foreach (@$ti_list) {
+      my ($path, $ref)=%$_;
+      print LOGFILE "xdep:           $path\n"
+     }
+
+     print LOGFILE "xdep:\n" unless $ti_sz == $#$ti_list;
+     $ti_sz++;
+    }
+
+    print LOGFILE "\n"
+   }
+   
+
+
+   # ---- Now let's select the right file-path/dep-list-ref pair ----
+
+   # The FIRST modification time
+   if ("first" =~ /^$select/o) {
+     if(@{$from_firstolast[0]} == 1) {
+       # Only one hash entry (file-path/dep-list-ref) at that MT
+       return (%{$from_firstolast[0][0]}, $max_filepath_index) 
+     } else {
+       # More than one hash entry (file-path/dep-list-ref) at that MT
+       unless ($get_module{$gm}) {
+         print STDERR  "xdep: warning : Module '$gm' is defined in more than one file with the same modification time !!\n";
+         print LOGFILE "\nxdep: warning : Module '$gm' is defined in more than one file with the same modification time !!\n";
+
+	 # Listing all of these hash entries' file-path keys
+         for (@{$from_firstolast[0]}) {
+           my ($fname)=(%$_);
+           print STDERR  "       $fname\n";
+           print LOGFILE "       $fname\n";
+         }
+
+         print STDERR  "xdep: The first has been selected !!\n\n";
+         print LOGFILE "xdep: The first has been selected !!\n\n";
+         $get_module{$gm}=1
+       }
+
+       # The first hash entry (file-path/dep-list-ref) at that MT is selected
+       return (%{$from_firstolast[0][0]}, $max_filepath_index)
+     }
+   }
+
+   # The LAST modification time
+   # 
+   # Normally $from_size == 0 should not happen
+   #my $pos=($from_size - 1) < 0 ? 0 : ($from_size - 1);
+   my $pos = $#from_firstolast;
+   if ("last" =~ /^$select/o) {
+     if(@{$from_firstolast[$pos]} == 1) {
+       # Only one hash entry (file-path/dep-list-ref) at that MT
+       return (%{$from_firstolast[$pos][0]}, $max_filepath_index) 
+     } else {
+       # More than one hash entry (file-path/dep-list-ref) at that MT
+       if(! exists $get_module{$gm}) {
+         print STDERR  "xdep: warning : Module '$gm' is defined in more than one file with the same modification time !!\n";
+         print LOGFILE "\nxdep: warning : Module '$gm' is defined in more than one file with the same modification time !!\n";
+
+	 # Listing all of these hash entries' file-path keys
+         for (@{$from_firstolast[$#from_firstolast]}) {
+           my ($fname)=(%$_);
+           print STDERR  "       $fname\n";
+           print LOGFILE "       $fname\n";
+         }
+
+         print STDERR  "xdep: The first has been selected !!\n\n";
+         print LOGFILE "xdep: The first has been selected !!\n\n";
+
+         $get_module{$gm}=1
+       }
+
+       # The first hash entry (file-path/dep-list-ref) at that MT is selected
+       return (%{$from_firstolast[$pos][0]}, $max_filepath_index)
+     }
+   }
+
+   # the one BEFORE the LAST
+   #$pos=($from_size - 2) < 0 ? 0 : ($from_size - 2);
+   $pos = $#from_firstolast - 1 < 0 ? 0 : $#from_firstolast - 1;
+   if ("previous" =~ /^$select/o) {
+     if(@{$from_firstolast[$pos]} == 1) {
+       # Only one hash entry (file-path/dep-list-ref) at that MT
+       return (%{$from_firstolast[$pos][0]}, $max_filepath_index) 
+     } else {
+       # More than one hash entry (file-path/dep-list-ref) at that MT
+       if(! exists $get_module{$gm}) {
+         print STDERR  "xdep: warning : Module '$gm' is defined in more than one file with the same modification time !!\n";
+         print LOGFILE "\nxdep: warning : Module '$gm' is defined in more than one file with the same modification time !!\n";
+
+	 # Listing all of these hash entries' file-path keys
+         for (@{$from_firstolast[$pos]}) {
+           my ($name)=(%$_);
+           print "       $name\n";
+           print LOGFILE "       $name\n";
+         }
+
+         print STDERR  "xdep: The first has been selected !!\n\n";
+         print LOGFILE "xdep: The first has been selected !!\n\n";
+
+         $get_module{$gm}=1
+       }
+
+       # The first hash entry (file-path/dep-list-ref) at that MT is selected
+       return (%{$from_firstolast[$pos][0]}, $max_filepath_index)
+     }
+   }
+
+ } elsif (@$aref == 1) {
+  # design unit $gm is defined in just one file
+  return (%{$aref->[0]}, $max_filepath_index);
+ } else {
+  # design unit $gm is defined N-O-W-H-E-R-E !
+  # This case may happen when:
+  # - A non-standard package is use by an entity  or architecture and that package is not available as a source code,
+  #   but only as a compiled version a custom library.
+  # 
+  # - A entity/module is instantiated but is source was never find when searching the provided source hierarchies
+  #
+  return (undef, undef)
+ }
+}
+
+#
+# all pairs file-path/dependancy_list-ref are sorted by the file-path modification time
+#
+# The return structure is an array-of-array-of-hash
+#
+# Each hash having only one entry.
+#
+# Each array-of-hash are associated with one modification time
+#
+sub sort_modules {
+my $aref= shift @_;
+my %alltimes;
+
+ foreach (@$aref) {
+  my ($path, $ref)=%$_;
+  my $mtime =(stat($path))[9];
+  push @{$alltimes{$mtime}}, $_
+ }
+
+ my @ascending_sort=sort {$a <=> $b} keys %alltimes;
+ return (map {$alltimes{$_}} @ascending_sort);
+}
+
+
+sub build_vinclist {
+my @vinclst;
+
+my %include_directories;
+foreach (@{get_include_directories("last")})  {$include_directories{$_}=1}
+
+foreach (sort keys %include_directories) {push @vinclst, "+incdir+$_"}
+return join(" ", @vinclst)
+}
+
+sub print_remainder { 
+#&add2section("misc", 'vcom_opt                 = $(if $(fs),,-93)');
+add2section("misc", 'v_include                  = '. build_vinclist()) if scalar(@{get_include_directories('last')});
+
+add2section("misc", 'filepp_opt         = $(pp)');
+add2section("misc", 'del_work_dir               = $(VPATH)');
+add2section("misc", "special_includes           = @special_includes");
+#&add2section("misc", "vhdlexplicit             = @vhdlexplicit_list") if(scalar(@vhdlexplicit_list));
+#&add2section("misc", "vhdl87                   = @vhdl87_list") if(scalar(@vhdl87_list));
+#&add2section("misc", "vhdl93                   = @vhdl93_list") if(scalar(@vhdl93_list));
+
+foreach (keys %module_macros) {
+&add2section("misc", "$_\_macros                = \$(addsuffix $macro_suffix, @{$module_macros{$_}})")
+}
+
+if($src_update) {
+ foreach (keys %vhdlfile_ext) {
+  add2section("remainder", "%.$_        :".'; @cp $<  $@');
+  add2section("remainder", '    echo `date` >> make.log; echo "$< has been updated" >> make.log; echo >> make.log');
+  add2section("remainder", "\n")
+ }
+}
+
+# Adding More Option(s) to *vcom* command line if needed
+foreach (keys %{$vhdlxx_merge}) {
+  add2section("remainder", "$_  \t: vcom_opt = @{$vhdlxx_merge->{$_}}");
+}
+
+add2section("remainder", "\n") if (scalar(keys %$vhdlxx_merge));
+
+#if(scalar(@vhdlexplicit_list)) {
+#  &add2section("remainder", '$(vhdlexplicit)   : vcom_opt = -explicit');
+#  &add2section("remainder", "\n") if(! scalar(@vhdl93_list) && ! scalar(@vhdl87_list));
+#}
+#
+#if(scalar(@vhdl87_list)) {
+#  &add2section("remainder", '$(vhdl87) : vcom_opt += -87');
+#  &add2section("remainder", "\n") if(! scalar(@vhdl93_list));
+#}
+#
+#if(scalar(@vhdl93_list)) {
+#  &add2section("remainder", '$(vhdl93) : vcom_opt = -93');
+#  &add2section("remainder", "\n");
+#}
+
+add2section("remainder", '%'."\t:");
+add2section("remainder",     "\t".'@if [ ! -d $(lib_work) ]; then $(vlib) $(lib_work); fi');
+add2section("remainder",     "\t".'@$(filepp) $(filepp_opt) $<  | perl -p -e \'s/\r//g\' > '.$local.'/$(<F)');
+#&add2section("remainder", '    '$(compiler) $(vcom_opt) '.$local.'/$(<F)');
+add2section("remainder",     "\t".'$(if $(findstring vhd, $(shell echo $(suffix $<) | perl -n -e "print lc")), $(vcom) -work '.$worklib.' $(vcom_opt), $(vlog) -work '.$worklib.' $(v_include))  '.$local.'/$(<F)');
+add2section("remainder", "\n");
+add2section("remainder", 'include_local : $(special_includes)');
+add2section("remainder", 'clean_all     : clean_other_work clean');
+add2section("remainder", 'clean_other_work      : $(del_work_dir)');
+add2section("remainder", '$(del_work_dir)       :; @if [ -d $@/$(lib_work) ]; then banner '.
+                                       'delete $@ $(lib_work); $(vdel) $(if $(fs),,-lib) $@/$(lib_work); fi');
+add2section("remainder", 'clean         :; @if [ -d $(lib_work) ]; then $(vdel) $(if $(fs), $(lib_work)); $(RM) -r '.$local.'; fi');
+add2section("remainder", 'localdir              :; @if [ ! -d '.$local.' ]; then mkdir '.$local.'; fi');
+add2section("remainder", "\n");
+add2section("remainder", '.DELETE_ON_ERROR      :');
+
+
+}
+
+
+sub vhdlxx {
+my ($vhdlxx, $top_hierarchy, $vhdlxx_list)=@_;
+my @vhdlxx;
+my $l;
+
+ foreach (@$vhdlxx) {push @vhdlxx, split(/,/o)}
+
+ foreach (@vhdlxx) {($l=$_) =~ s/:/_/o; push @$vhdlxx_list, "\$($l)" if exists $top_hierarchy->{$_}}
+}       
+
+sub vhdlxx_merge {
+my %merge;
+
+foreach(@vhdl93_list)           {push  @{$merge{$_}}, "-93" unless exists $merge{$_}}
+foreach(@vhdl87_list)           {push  @{$merge{$_}}, "-87" unless exists $merge{$_}}
+foreach(@vhdlexplicit_list)     {push  @{$merge{$_}}, "-explicit"}
+
+return {%merge}
+}
+
+sub macro_handler {
+my ($macros, $module_macros)=@_;
+foreach my $macro_name (keys %$macros) {
+ foreach (split(/,/o, $macros->{$macro_name})) {
+  push @{$module_macros->{$_}}, $macro_name
+ } 
+}
+
+#foreach (keys %$module_macros) {print "$_=[@{$module_macros{$_}}]\n"}
+}
+
+sub get_top {
+my $gt=shift @_;
+my @usertop;
+
+ print "\nSearching for top modules ..\n" if $verbose;
+
+ if($top_module) {
+   foreach (keys %module_instances) {
+    # Skip if current design Unit is an architecture
+    next if /:/o;
+    push @usertop, $_ if /$top_module/i
+   } 
+
+   if(scalar(@usertop) == 0) {
+    print "\nxdep: warning : No Match for top-module '$top_module'.\n\n"
+   }
+   if(scalar(@usertop) == 1) {return shift @usertop}
+ }
+
+ # We reach this point when no $top_module has been provided or no
+ # existing module matchs the provided $top_module or there are more
+ # than one match.
+ my @tops;
+ if(scalar(@usertop) > 1)  {
+  # There are more than one match
+  @tops=@usertop 
+ } else {
+   # No provided tops
+
+   # The @append will contain all module which are instantiated
+   # at least one, that is, those that can't be considered as a top.
+   my @append;
+   # Loop on all entries of %module_instances
+   foreach my $ename (keys %$gt) {
+    # For each entry call get_top1 with the Key (design unit name)
+    # and the Value.
+    push @append, get_top1($ename, $gt->{$ename});
+   }
+   
+   my %notop=(@append);
+   foreach (keys %module_instances) {
+    next if exists $notop{$_};
+    # Modules that does not belong to %notop Hash Table
+    # Are potential top module, That is a module which is not instantied
+    # anywhere.
+
+    # Architecture design unit *should not* be considered.
+    # The way architectures are handled is that their is stored as
+    # *archecture_name:entity_name*
+    next if $_ =~ /:/o;
+
+    push @tops, $_
+   }
+ }
+
+ print "\n\n\n" if @tops == 1;
+
+ my $index=0;
+ if(scalar(@tops) > 1) {
+  print STDERR "\nxdep: warning : More than one top module, please select one.\n";
+  foreach (@tops) {
+   print "[$index]\t$tops[$index]\n";
+   ++$index
+  }
+
+  my $answer; print "\n";
+  do {
+    print "xdep> "; chomp($answer = <STDIN>); $answer =~ s/\s+//go; 
+  } until ($answer =~ /^[[:digit:]]+$/o && ($answer < $index));
+  
+  $index=$answer;
+  print "\n\n"
+ }
+
+ return  $tops[$index];
+}
+
+sub get_top1 {
+my ($du_name, $stref)=@_;
+
+ if(scalar(@{$stref->[1]}) > 1) {
+  # Design Unit $du_name is defined in mode than one File.
+  print         "\nxdep: warning : Module '$du_name' found in several source files\n";
+  print STDERR  "\nxdep: warning : Module '$du_name' found in several source files\n";
+  print LOGFILE "\nxdep: warning : Module '$du_name' found in several source files\n";
+
+  # Only Print all of these Source files' Path
+  foreach (@{$stref->[1]}) {
+   my ($path, $instref)=(%$_);
+   print         "\t$path\n";
+   print STDERR  "\t$path\n";
+   print LOGFILE "\t$path\n";
+  }
+ }
+
+ return () if($stref->[0] == 0 || $stref->[0] == 1);  # It's an entity or  package header
+ 
+ my @append;
+ foreach my $curhash (@{$stref->[1]}) {
+  my ($path, $instlistref)=(%$curhash);
+  push @append, notops($instlistref) if $instlistref;
+ }
+
+ return (@append)
+}
+
+sub notops {
+my ($instlist)=@_;
+my %notop;
+
+ foreach (@$instlist) {$notop{$_}=1}
+ return (%notop)
+}
+
+
+sub include_ext {
+my @include_extensions;
+
+ foreach (@include_ext) {push @include_extensions, split(/,/o)}
+ return (@include_extensions ? "-o ".format_includext(@include_extensions) : "")
+}
+
+sub format_includext {return join(" -o ", map {"-iregex '.*\\.?$_\$'"} @_)}
+
+sub module_dependancy {
+my $more_include_extensions=include_ext();
+print "more_include_extensions=[$more_include_extensions]\n" if $debug;
+
+ my @actual_filter    = qw(vhdl? v);
+ push @actual_filter, map {split(/,/o)} @include_ext if @include_ext;
+ my $actual_filter    = join("|", @actual_filter);
+ my $actual_filter_re = qr/\.(?:$actual_filter)$/io;
+
+ foreach my $directory (@_) {
+  my @allmodules; 
+  print "\nSearching for module in $directory ..\n";
+  #open(MODULEFILES, "find $directory -type f -iregex '.*\\.vhdl?\$' -o -iregex '.*\\.v\$' $more_include_extensions |");
+  # find({wanted=> sub {push @allmodules, $File::Find::name if (-f || -l && -f readlink) && m/$actual_filter_re/}, follow=>1}, $directory);
+  find({wanted=> sub {push @allmodules, $File::Find::name if (-f || -l && -f readlink) && m/$actual_filter_re/}, follow=>1}, $directory);
+
+  unless(@allmodules) {
+   print STDERR "\nxdep: Warning : There is no module files in '$directory' hierarchy\n";
+   print LOGFILE "\nxdep: Warning : There is no module files in '$directory' hierarchy\n";
+   next
+  }
+
+  ###########################
+  # Associating module files
+  # with hierarchy name
+  ###########################
+  #foreach my $curmodule (@allmodules) {$database{trees}{$_}{$curmodule}=1}     
+  modules_parse(@allmodules);
+ }
+}
+
+
+sub modules_parse {
+my @excl_reg = map {qr/$_/i} @exclude_path;
+my $excl_reg = join("|", @excl_reg);
+my $exsize   = scalar @excl_reg;
+
+  #print "[$excl_reg]"; exit;
+ foreach (@_) {
+  # Skipping all files whose location and/or name
+  # matches the provided pattern.
+  # This facility has been provided for handling cases where
+  # the listed Hierarchies are not clean, that is contain RTL files
+  # that should not be used.
+  next if $exsize && /$excl_reg/;
+
+  # It is safe not to assume that the file is readable
+  if(! -r $_) {
+   # Since the current file is not readable
+   # We just skip this iteration
+   print STDERR "\nxdep: Warning : File '$_' is not Readable !\n";
+   print LOGFILE "\nxdep: Warning : File '$_' is not Readable !\n";
+   next
+  } 
+
+  my ($type, $design_unit_name, $instances_ref)=&{"get_".(/^.*\.vhdl?$/oi ? "vhdl" : "verilog")."_instances"}($_);
+
+  next unless $design_unit_name; #To filter File with no Design Unit / Module
+
+  if($type != 99) {
+   # Just one Design Unit / Module definition
+
+   #-----------------------------------------------------------------------------
+   #                            !!! FIXME !!!
+   #-----------------------------------------------------------------------------
+   # This is a potential bug, because in cases where two design units w/ the same
+   # name but different *type*, the lastest will override the first.
+   # That means that the statement should not be kept as is.
+   #-----------------------------------------------------------------------------
+   ${$module_instances{lc($design_unit_name)}}[0]=$type;
+
+   push @{${$module_instances{lc($design_unit_name)}}[1]}, {@$instances_ref}
+  } else {
+    # More Than One Module Definition
+    #if($debug) {print "modules_parse: pause : Press any Key to continue."; <>;}
+    foreach (@$instances_ref) {
+      # Here each entry corresponds to a design unit, that is, an Array reference to
+      # an array giving all needed information about the current design unit
+      #
+      # - type
+      # - name
+      # - dependancy list via a array-ref
+      #
+      my ($type_i, $design_unit_name_i, $instances_ref_i)=@$_;
+      $debug && print "modules_parse: In loop : $type_i, $design_unit_name_i, **@{$instances_ref_i->[1]}**\n";
+      #print "module_dependancy: ($type_i, $design_unit_name_i, $instances_ref_i)\n";
+      ${$module_instances{lc($design_unit_name_i)}}[0]=$type_i;
+      push @{${$module_instances{lc($design_unit_name_i)}}[1]}, {@$instances_ref_i}
+    }
+  }
+ }
+}
+
+sub check_for_vinclude {
+my @notfound;
+my @copy_in_incloc;
+
+ foreach (keys %incw_relpath) {
+   if(exists $verilog_includes{$_}) {push @copy_in_incloc, $_} else {push @notfound, $_}
+ } 
+
+ if(scalar(@notfound)) {
+  print "\nxdep: ERROR : No way to find the following include file(s) (see xdep.log)\n";
+  print "      @notfound\n\n";
+  exit 1
+ }
+
+ foreach (@copy_in_incloc) {
+  my $source=get_include_path('last', $verilog_includes{$_})."$_";
+  my $destination_dir="$local_include/".$incw_relpath{$_}[0]."/";
+  my $destination=$destination_dir."$_";
+
+  $special_includes{$destination}=$source;
+
+  print "\nCreating directory $destination_dir ..\n" if $verbose;
+  system("mkdir", "-p", $destination_dir);
+
+  print "Copying include file $source to $destination ..\n" if $verbose;
+  system("cp", $source, $destination);
+ }
+
+ @special_includes=sort keys %special_includes;
+}
+
+
+sub print_includes_dependancy {
+ foreach (keys %special_includes) {
+  add2section("special_includes_dependancies", "$_\t: ".$special_includes{$_}." ; \@cp -v \$< \$@")
+ }
+}
+
+sub verilog_more_dependancy {
+ return unless scalar(@verilog_resume);
+
+ print "\nResuming processing of some verilog files ..\n";
+ $postpone_on=1;
+ modules_parse(@verilog_resume);# if(scalar(@verilog_resume));
+ if($postpone_error) {
+   print "\nxdep: ERROR : Can't find the following include file(s) !!\n";
+   print join("\n", map {s/warning://oi; $_} @postpone_error);
+   print "\n\nTry to use '--include-extension' and/or '--hierarchy' option(s) to fix this issue !!\n";
+   exit 2
+ }
+}
+
+sub get_include_directories {
+my ($whichone)=@_;
+
+my %incdir=();
+
+ foreach (keys %verilog_includes) {$incdir{get_include_path($whichone, $verilog_includes{$_})}=1}
+
+ return [sort keys %incdir, $local_include]
+}
+
+sub get_include_path {
+my ($whichone, $incpathref)=@_;
+my @from_f_to_l= sort {$a <=> $b} keys %$incpathref;
+
+
+ if($whichone =~ /last/o) {
+  my $lastest_include_pathlist=$incpathref->{$from_f_to_l[$#from_f_to_l]};
+  if(scalar(@$lastest_include_pathlist) > 1) {
+   print "File has several version with the same modification time, the first has been selected\n" if $debug;
+  }
+
+  my ($volume,$pathname,$filename) = File::Spec->splitpath($lastest_include_pathlist->[0]);
+  return $pathname
+ }
+}
+
+sub parse_verilog_problems {
+my @incwarning;
+ foreach (@_) {
+  if(/^warning.*include[ \t]+file/oi) {push @incwarning, (split(/[ \t]+/o))[3]}
+ }
+
+ return @incwarning
+}
+
+sub get_verilog_instances {
+print "Analyzing file @_ ..\n";
+
+ #----------------------------------------
+ # returned design types are:
+ # - 3  -> Only one module definition
+ # - 4  -> no modules definition found
+ # - 99 -> more than one module definition
+ #----------------------------------------
+ my $verilog_db = rvp::read_verilog(\@_, [], {}, 1, get_include_directories("last"), [], []);
+ 
+ my @verilog_problems=rvp::get_problems($verilog_db);
+ print LOGFILE join("\n", @verilog_problems), "\n" if scalar(@verilog_problems) && $debug;
+ 
+ my %verilog_problems_filter;
+ foreach (@verilog_problems) {$verilog_problems_filter{$_}=1 if /^warning.*include[ \t]+file/oi}
+ 
+ print         join("\n", sort keys %verilog_problems_filter), "\n" if scalar(keys %verilog_problems_filter) && ($postpone_on || $debug);
+ if(scalar(keys %verilog_problems_filter) && $postpone_on) {
+  $postpone_error++;
+  push @postpone_error, keys %verilog_problems_filter;
+ }
+ 
+ 
+ # Check For Include Files
+ my @all_includes=parse_verilog_problems(@verilog_problems);
+ print "Debug:get_verilog_instances: Include-list=[@all_includes]\n" if $debug;
+ print LOGFILE "Debug:get_verilog_instances: Include-list=[@all_includes]\n" if $debug;
+ my $postpone=0;
+ foreach (@all_includes) {
+  if(! exists $verilog_includes{$_}) {$postpone++}
+  if(/\//o) {
+    my @path_comp=split(/\//o);
+    my $incfilename=pop @path_comp;
+    my $relative_path=join("/", @path_comp);
+    push @{$incw_relpath{$incfilename}}, $relative_path; 
+    print "Debug:get_verilog_instances:  Include File with relative path found= [$_]\n" if $debug;
+    print LOGFILE "Debug:get_verilog_instances:  Include File with relative path found= [$_]\n" if $debug;
+  }
+ }
+ 
+ if($postpone) {
+  print "  Postponing processing of file '$_[0]' (lack of include file)\n" if $verbose;
+  push @verilog_resume, $_[0];
+  return (4, "", undef)
+ }
+ 
+ my  @all_modules = rvp::get_modules($verilog_db);
+ 
+ #return (4, "", undef) if scalar(@all_modules) == 0;
+ my ($volume,$pathname,$filename) = File::Spec->splitpath($_[0]);
+ if(scalar(@all_modules) == 0) {
+  push @{$verilog_includes{$filename}{(stat($_[0]))[9]}}, $_[0];
+  print "File '$_[0]' Contains no module definition (may be used as include)\n" if $verbose && ! $postpone_on;
+  print LOGFILE "File '$_[0]' Contains no module definition (may be used as include)\n" if $verbose && ! $postpone_on;
+  return (4, "", undef)
+ }
+ 
+ 
+ print STDERR  "xdep: warning : More than one verilog module defined in file @_ !!\n" if $verbose && (scalar(@all_modules) > 1);
+ print LOGFILE "xdep: warning : More than one verilog module defined in file @_ !!\n" if (scalar(@all_modules) > 1);
+
+ my @modules_list;
+ foreach my $cmodule (@all_modules) {
+  $is_verilog{lc($cmodule)}=1;
+  $verilog_former_name_case{lc($cmodule)}=$cmodule;
+
+  my  ($im,$f,$i,$l) = rvp::get_first_instantiation($verilog_db,$cmodule);
+  my  %instance_list;
+  #print "get_verilog_instances[$cmodule]: im=[$im] f=[$f] i=[$i] l=[$l]\n";
+  $instance_list{$im}=1 if defined $im;
+  for(($im,$f,$i,$l) = rvp::get_next_instantiation($verilog_db); defined($im) ; ($im,$f,$i,$l) = rvp::get_next_instantiation($verilog_db)) {
+          #print "get_verilog_instances[$cmodule]: im=[$im] f=[$f] i=[$i] l=[$l]\n";
+   $instance_list{$im}=1
+  }
+
+  push @modules_list, [3, lc($cmodule), [$_[0], (scalar(keys %instance_list) ? [map {lc} sort keys %instance_list] : undef)]]   
+ }
+
+ return (scalar(@modules_list)> 1 ? (99, "dummy_name",[@modules_list]) : @{$modules_list[0]})
+}
+
+sub get_vhdl_instances {
+ my $primary_du_path=shift @_;
+
+ print "Analyzing file $primary_du_path ..\n";
+
+ open(VHDFILE, $primary_du_path) || die "can't open $!";
+ my @vhdfile_tmp=map {
+         s/[\r\n]+//og; # Remove all '\r' and '\n', if any
+         s/[ \t]*--.*$/ /o; # Remove comments
+         lc($_)} <VHDFILE>; # skip commented lines 
+
+ close(VHDFILE);
+
+ my @vhdfile=split(/[ \t]+/o, join(" ", @vhdfile_tmp));
+ my $tokeni=-1;
+
+ # This variable contains the list of pre-requisite(s) of a particular Design Unit
+ # 
+ # - Non-standard package name referenced via a context clause USE statement should be flagged
+ #   as a pre-requisite.
+ # - Instantiated components should also be flagged as pre-requisites.
+ #
+ # This pre-requisite list should systematically be cleared
+ #  - when leaving an architecture.
+ #     Pre-requisites for those type of units  
+ #     + are non-standard packaged referenced via USE clauses and
+ #     + Instantiated components
+ #
+ #  - after seeing a primary design unit (entity/package header).
+ #     Pre-requisites for those type of units are  
+ #     + non-standard packaged referenced via USE clauses
+ #
+ my @instances_list=();
+ my $du_name="";
+ my $entity_name="";
+ #---------------------------------------------
+ # 0=entity     1=package       2=architecture
+ #---------------------------------------------
+ my $du_type;
+ # Uses to hold the list of design units defined in the current file
+ my @du_list;
+ my $architecture_active=0;
+
+ foreach (@vhdfile) {
+  ++$tokeni; # print "<$_>\n";
+
+  # context clause: USE
+  # Should not consider VHDL construct like 'use entity ...'
+  if(/^use$/o && $vhdfile[$tokeni+1] !~ /^entity$/o) {
+   if($architecture_active) {
+    $debug && print "xdep: Debug info : USE :  *$du_name* with instances @instances_list\n\n";
+    add_du(\@du_list, $du_type, $du_name, \@instances_list, $primary_du_path, $entity_name);
+
+    $du_name             = "";
+    $entity_name         = "";
+    @instances_list      = ();
+    $architecture_active = 0;
+   }
+
+   next unless $vhdfile[$tokeni+1] =~ /\./o;
+
+   # Only one package per use clause is supported
+   use_clause_check($tokeni, \@vhdfile, $primary_du_path);
+
+   my $pname=get_packagename($vhdfile[$tokeni+1]);
+   push @instances_list, $pname if $pname;
+   next
+  }
+
+  # context clause: LIBRARY
+  if(/^library$/o) {
+   if($architecture_active) {
+    $debug && print "xdep: Debug info : LIBRARY :  *$du_name* with instances @instances_list\n\n";
+    add_du(\@du_list, $du_type, $du_name, \@instances_list, $primary_du_path, $entity_name);
+
+    $du_name             = "";
+    $entity_name         = "";
+    @instances_list      = ();
+    $architecture_active = 0;
+
+    $debug && print "xdep: Debug info: [library] architecture_active='$architecture_active'\n\n";
+   }
+
+   my $pt=1; $pt++ while($vhdfile[$tokeni+$pt] !~ /;/o);
+   my $liblist=join("", @vhdfile[($tokeni+1) .. ($tokeni+$pt)]);
+   my @liblist=split(/[,; \t]+/o, $liblist);
+
+   foreach(@liblist) {
+    $modelsim_ini{$_}=1 unless exists $standard_packages{$_};
+   }
+
+   next
+  }
+
+  # Primary Design Unit: PACKAGE HEADER
+  if(/^package$/o){
+   if($vhdfile[$tokeni+2] && $vhdfile[$tokeni+2] =~ /^is$/o) {
+     if($architecture_active) {
+      $debug && print "xdep: Debug info : PACKAGE :  *$du_name* with instances @instances_list\n\n";
+      add_du(\@du_list, $du_type, $du_name, \@instances_list, $primary_du_path, $entity_name);
+
+      $du_name             = "";
+      $entity_name         = "";
+      @instances_list      = ();
+      $architecture_active = 0;
+
+      $debug && print "xdep: Debug info: [package] architecture_active='$architecture_active'\n\n";
+     }
+
+     $du_name = $vhdfile[$tokeni+1];
+     $du_type = 1;
+     
+     add_du(\@du_list, $du_type, $du_name, \@instances_list, $primary_du_path);
+     $debug && print "xdep: Debug info : Found package '$du_name'\n\n";
+
+     $du_name        = "";
+     @instances_list = ();
+     next;
+   }
+  }
+
+  # Primary Design Unit: ENTITY
+  if(/^entity$/o){
+   if($vhdfile[$tokeni+2] && $vhdfile[$tokeni+2] =~ /^is$/o) {
+    if($architecture_active) {
+     $debug && print "xdep: Debug info : ENTITY :  *$du_name* with instances @instances_list\n\n";
+     add_du(\@du_list, $du_type, $du_name, \@instances_list, $primary_du_path, $entity_name);
+     $debug && print "xdep: Debug info: [entity] architecture_active='$architecture_active'\n\n";
+
+     $du_name             = "";
+     $entity_name         = "";
+     @instances_list      = ();
+     $architecture_active = 0;
+    }
+
+    $du_name=$vhdfile[$tokeni+1]; 
+    $du_type = 0;
+    add_du(\@du_list, $du_type, $du_name, \@instances_list, $primary_du_path);
+    $debug && print "xdep: Debug info : Found entity '$du_name'\n\n";
+
+    $du_name        = "";
+    @instances_list = ();
+
+    next
+   }
+  }
+
+  # Secondary Design Unit: ARCHITECTURE
+  #
+  # The keywork 'architecture' may be followed by the 'is' keyword only when appearing in an ATTRIBUTE definition
+  if($vhdfile[$tokeni-1] ne "end" && /^architecture$/o && $vhdfile[$tokeni+1] ne "is") {
+    if($architecture_active) {
+     $debug && print "xdep: Debug info : ARCHITECTURE :  *$du_name* with instances @instances_list\n\n";
+     add_du(\@du_list, $du_type, $du_name, \@instances_list, $primary_du_path, $entity_name);
+
+     @instances_list=();
+     $debug && print "xdep: Debug info: [architecture] architecture_active='$architecture_active'\n";
+    }
+
+    #print "ARCHITECTURE: DEBUG : architecture $vhdfile[$tokeni+1] of $vhdfile[$tokeni+3] is\n";
+    
+    $du_name             = $vhdfile[$tokeni+1]; 
+    $entity_name         = $vhdfile[$tokeni+3];
+    $du_type             = 2;
+    $architecture_active = 1;
+
+    next
+  }
+
+  # PORT MAPs
+  if(/^port$/o) {
+   next unless $vhdfile[$tokeni+1] =~ /^map/o;
+   my $iname=get_instancename(\@vhdfile, $tokeni);
+   push @instances_list, $iname if($iname);
+
+   $debug && print "xdep: Debug info : Found instance '$iname' in architecture '$du_name'\n";
+   next
+  }
+
+ }
+
+ $debug && print "xdep: Debug info: architecture_active='$architecture_active'\n";
+ if($architecture_active) {
+  add_du(\@du_list, $du_type, $du_name, \@instances_list, $primary_du_path, $entity_name);
+  $debug && print "xdep: Debug info : Last architecture  *$du_name* with instances @instances_list\n\n"
+ }
+
+ $debug && print "xdep:[1] Debug info : Last entity $du_name with instances @instances_list\n";
+
+ # du_type = 99, means that there is more than one design unit in the current file 
+ return (scalar(@du_list)> 1 ? (99, "dummy_name", [@du_list]) : @{$du_list[0]})
+}
+
+sub add_du {
+my ($du_list, $du_type, $du_name, $instances_listref,$primary_du_path, $entity_name)=@_;
+ 
+ # The 'entity_name' argument is useful only when dealing with ARCHITECTUREs
+
+ # Uniquifying the list of components/pre-requisites
+ my %new_instances_list;
+ $new_instances_list{$_} = 1 foreach (@$instances_listref);
+
+ my $new_instances_list  = [sort {$a cmp $b} keys %new_instances_list];
+
+ # For ARCHITECTUREs the design unit name $du_name is concatenated with  its associated ENTITY name
+ # Because a given architecture only have one ENTITY, but a given ENTITY may be having several ARCHITECTUREs.
+ #
+ # It is important to note that the third field, that is, the array comprise of the 
+ # - $primary_du_path
+ # - $new_instances_list or undef
+ #
+ # Will later on be used as an hash table with only one entry
+ # The key being the $primary_du_path and the value the reference the list of pre-requisite(s), if any.
+ #
+ push @$du_list, [$du_type, $du_name.($entity_name?":$entity_name":""), 
+                          [$primary_du_path, (scalar @$instances_listref ? $new_instances_list : undef)]]
+}
+
+
+sub get_packagename {
+ my @libpack=split(/[;.]/o, shift @_);
+
+ # Exit in case we are dealing with a standard package.
+ # - vital2000
+ # - ieee
+ # - modelsim_lib
+ # - std
+ # - std_developerskit
+ # - synopsys
+ # - verilog
+ return 0  if exists $standard_packages{$libpack[0]};
+
+ ## To ignore things like 'use work.all;'
+ return 0  unless scalar(@libpack) > 2;
+
+ print "Local package found '$libpack[1]'\n" if($verbose);
+ return $libpack[1]
+}
+
+sub use_clause_check {
+my $pt=shift @_;
+
+ my $curw;
+ while(($curw=$_[0][$pt++]) !~ /;/o && $curw !~ /,/o) {}
+ if($curw =~ /,/o) {
+   print "xdep: error : File '$_[1]' contains an use clause with at least 2 package declaration\n";
+   print "xdep:         Sorry but this feature is not supported yet, please declare only one \n";
+   print "xdep:         Package per use clause\n";
+   exit 1
+ } 
+}
+
+sub get_instancename {
+my ($arrayref, $tokenpt)=@_;
+
+  #----------------------------------------------------------
+  # Should not match Windows style paths , p.e, X:\a\b\c.txt
+  # 
+  # This types of string appear something in generic maps
+  #
+  #----------------------------------------------------------
+  do {
+    while($arrayref->[--$tokenpt] !~ /:/o) {}
+  } until ($arrayref->[$tokenpt] !~ /[\\\/]/o);
+
+  my @colon_split      = split(/:/o, $arrayref->[$tokenpt]);
+  my $colon_split_size = @colon_split;
+
+  if($colon_split_size == 0) {
+   my $next_token=$arrayref->[$tokenpt+1];
+   if($next_token =~ /^component$/o)     {return $arrayref->[$tokenpt+2]}
+   if($next_token =~ /^entity$/o)        {return get_entity_part($arrayref->[$tokenpt+2])}
+   if($next_token =~ /^configuration$/o) {die "get_instancename: Error : Configuration is not supported !!"}
+
+   return $next_token
+  }
+  
+  if($colon_split_size == 1) {
+   if($arrayref->[$tokenpt] =~ /^:/o) {
+     my $next_token=shift @colon_split;
+     if($next_token =~ /^component$/o)     {return $arrayref->[$tokenpt+1]}
+     if($next_token =~ /^entity$/o)        {return get_entity_part($arrayref->[$tokenpt+1])}
+     if($next_token =~ /^configuration$/o) {die "get_instancename: Error : Configuration is not supported !!"}
+
+     return $next_token
+   } else {
+     my $next_token=$arrayref->[$tokenpt+1];
+     if($next_token =~ /^component$/o)     {return $arrayref->[$tokenpt+2]}
+     if($next_token =~ /^entity$/o)        {return get_entity_part($arrayref->[$tokenpt+2])}
+     if($next_token =~ /^configuration$/o) {die "get_instancename: Error : Configuration is not supported !!"}
+
+     return $next_token
+   }
+  }
+  
+  if($colon_split_size == 2) {
+   my $next_token=pop @colon_split;
+   if($next_token =~ /^component$/o)     {return $arrayref->[$tokenpt+1]}
+   if($next_token =~ /^entity$/o)        {return get_entity_part($arrayref->[$tokenpt+1])}
+   if($next_token =~ /^configuration$/o) {die "get_instancename: error : Configuration is not supported !!"}
+
+   return $next_token
+  }
+}
+
+sub get_entity_part {
+my $str=shift @_;
+
+ # str = libname.entityname(architecturename)
+ # or
+ # str = libname.entityname
+ # or
+ # str = entityname, libname defaults to 'work'
+ my $loc_v=(split(/\(/o, $str))[0];
+ my @loc_a=split(/\./o, $loc_v);
+ return pop @loc_a;
+}
+
+sub vpath_sections_alignment {
+ return unless $makefile_sections{vpath};
+
+ foreach (@{$makefile_sections{vpath}}) {vpath_get_maxlen($_)}
+ $makefile_sections{vpath}=vpath_align_now()
+}
+
+
+my %vapth_max_len=(filen=>"", len=>0);
+sub vpath_get_maxlen {
+my $line=shift;
+
+  $line =~ /^vpath[ \t]+([a-zA-Z0-9_.]+[ \t]+)/o;
+  return if $vapth_max_len{len} >= length($1);
+  %vapth_max_len=(filen=>$1, len=>length($1))
+}
+
+
+sub vpath_align_now {
+ my $newmax=$vapth_max_len{len};
+ my $sc=1;
+ while((length($newmax)+ $sc)%8 != 0) {++$sc}
+ $vapth_max_len{len}=$newmax+$sc;
+
+ my @new_vpathlines;
+ foreach (@{$makefile_sections{vpath}}) {
+   /^(vpath[ \t]+)([a-zA-Z0-9_.]+)[ \t]+(.*)$/o;
+   my $firstpart=$1;
+   my $filenamev=$2;
+   my $remainder=$3;
+   
+   $filenamev .= " " x ($vapth_max_len{len} - length($filenamev));
+   push @new_vpathlines, $firstpart.$filenamev.$remainder
+ }
+
+ return [@new_vpathlines]
+}
+
+my %sbu_already_seen;
+my %filepath_already_seen;
+sub synthesis_bottom_up {
+my ($minst, $cm, $ostr) = @_;
+
+ my ($filepath, $instlist)=get_module($cm);
+ foreach (@$instlist) {synthesis_bottom_up($minst, $_, $ostr) if ! exists $sbu_already_seen{$_}}
+ $sbu_already_seen{$cm}=1;
+
+ #push @$ostr, $filepath if ! exists $filepath_already_seen{$filepath};
+ if(! exists $filepath_already_seen{$filepath}) {
+  push @$ostr, $filepath;
+
+  push @{$filter_extension{($filepath =~ /^.*\.vhdl?$/oi ? 'vhdl' : 'verilog')}}, $filepath;
+ }
+
+ $filepath_already_seen{$filepath}=1
+}
+
+sub xt_verilog_includes {
+my @verilog_files = @_;
+
+return unless scalar(@verilog_files);
+
+print "\nExtracting verilog include files ..\n";
+
+my @verilog_files_wo_blancks;
+foreach (@verilog_files) {push @verilog_files_wo_blancks, $_ if length($_)} 
+
+
+my $verilog_db = rvp::read_verilog(\@verilog_files_wo_blancks, [], {}, 1, [], [], []);
+
+my @include_w_path_lst;
+my %exact_inc_list;
+ foreach (parse_verilog_problems(rvp::get_problems($verilog_db))) {
+         print LOGFILE "xt_verilog_includes: include list from parse_verilog_problems [$_]\n" if $debug;
+  my $path=get_include_path('last', $verilog_includes{$_});
+  if(length($path) == 0) {
+    print  "warning : File $_ is used as an include but also defined at least in one module\n";
+    print  "          You may be obliged to hack on 'read.lst', 'ambit-include.sh', 'include.lst' and 'verilog.lst'\n";
+    print  "          There will be a solution to this in a futur release if Needed\n";
+    print  LOGFILE "warning : File $_ is used as an include but also defined at least in one module\n";
+    print  LOGFILE "          You may be obliged to hack on 'read.lst', 'ambit-include.sh', 'include.lst' and 'verilog.lst'\n";
+    print  LOGFILE "          There will be a solution to this in a futur release if needed\n"
+  }
+
+  push @include_w_path_lst, $path."$_" if ! $exact_inc_list{$_};
+  $exact_inc_list{$_}=1
+ }
+
+my @script_file;
+# LINKs Part
+ foreach (@include_w_path_lst) {
+  my ($volume,$pathname,$filename) = File::Spec->splitpath($_);
+
+  push @script_file, "ln -s\t$_\t$filename"
+ }
+
+  push @script_file, "\n";
+
+# RMs Part
+ foreach (@include_w_path_lst) {
+  my ($volume,$pathname,$filename) = File::Spec->splitpath($_);
+
+  push @script_file, "rm -f\t$filename"
+ }
+
+ 
+
+ open(AMBITINCLUDELST, "> $ambit_include_default") || die "xdep: Write problems with file $ambit_include_default"; 
+ print AMBITINCLUDELST join("\n", @script_file);
+ print "\nCreating file $ambit_include_default..\n";
+ close(AMBITINCLUDELST)
+}
+
+sub modelsim_ini {
+ 
+ print "\nCreating '$libmapname'..\n";
+
+ if(-s $libmapname) {
+   my $rsp;
+   do {
+    print "xdep: info : $libmapname already exists, should i overwrite it ? [y/n] : ";
+    $rsp=<>;
+    chop $rsp;
+    } while($rsp !~ /^[yn]$/oi);
+   
+   return if $rsp eq 'n';
+ }
+
+ open(MODELSIMINI, "> $libmapname") || die "xdep: error : Can't write to file '$libmapname'";
+ 
+ print MODELSIMINI "[library]\n\n";
+ foreach(kw_align(2, (sort {$a cmp $b} keys %modelsim_ini), "others")) {
+   print MODELSIMINI "\n" if $_ =~ /^others/o;
+   print MODELSIMINI "$_ = ".($_ =~ /^others/o ? "\$MODEL_TECH/../$libmapname\n": "$worklib\n") 
+ }
+
+ print MODELSIMINI "\n[vsim]\n";
+ print MODELSIMINI "TranscriptFile = transcript\n";
+ print MODELSIMINI ";IgnoreWarning = 1\n";
+
+ close(MODELSIMINI)
+}
+
+sub kw_align    {
+my $spacecnt=shift @_;
+
+ my $max=0;
+ foreach (@_) {$max=length($_) unless $max > length($_)}
+
+ my @newarray;
+ foreach (@_) {
+  push @newarray, $_.' ' x ($max - length($_) + $spacecnt)
+ }
+
+ return @newarray;
+}
+
+sub config_read {
+print "Reading '$_[0]' ..\n";
+}
+
+
+=head1 NAME
+
+xdep - eB<X>tract B<DEP>endancies and generate a Makefile from RTL files
+
+=head1 SYNOPSIS
+
+B<xdep> [I<options>]
+
+=head1 DESCRIPTION
+
+The goal of B<xdep> is to facilitate the management of RTL files for compilation and synthesis. It is able to extract the hierarchy of
+an entire project. What i meant by RTL is that mix designs, that is, composed of  both VHDL and VERILOG models are correctly handled.
+
+Starting from the paths provided by means of B<--hierarchy> options, B<xdep> will recursively search for RTL files.
+
+
+=head1 OPTIONS
+
+=over
+
+=item  B<--hierarchy>=I<hierarchylist> 
+
+Indicates a comma-separated list of hierarchy, i.e path, where RTL sources are located. There are may more than one of such option.
+
+=item  B<--metamodule>=I<metamodule> 
+
+Gives the name of the I<metamodule> to be checked-out from cvs.
+
+=item  B<--release>=I<release>
+
+Gives the release tag  of the I<metamodule> to be checked-out from cvs.
+
+=item  B<--section>=I<section>
+
+Gives the section name  of the I<metamodule> to be checked-out from cvs.
+
+=item  B<--top-module>=I<topname> 
+
+Gives the name of the top of the hierarchy to extract.
+
+=item  B<--maketarget>=I<targetname> 
+
+Gives the name of the main target for the Makefile. Default being the top module.
+
+=item  B<--libmap>
+
+Allows the generation of a libray map file aka modelsim.ini with modeltech.
+
+=item  B<--worklib>=I<libraryname>
+
+Indicates the name of the compilation directory
+
+=item  B<--87>=I<modulenamelist> 
+
+Use this option for indicating VHDL design units that need to be compiled using vhdl'87.
+
+=item  B<--93>=I<modulenamelist> 
+
+Use this option for indicating VHDL design units that need to be compiled using vhdl'93.
+
+=item  B<--explicit>=I<modulenamelist> 
+
+Use this option for indicating VHDL design units that need to be compiled using vcom I<-explicit> option.
+
+=item  B<--include-extension>=I<extensionlist>
+
+Allows more verilog include files' suffixes to be provided.
+
+=item  B<--synthesis>
+
+This option will instruct the tool to generate an ASCII file containing all the 
+paths to all HDL files belonging to the hierarchy of the top module you selected while runnning
+the tool. These paths are listed from bottom to top, that is, suitable for some synthesis tools.
+The default list file name is 'read.lst'.
+
+=item  B<--ambit-include>
+
+=item  B<--inifile>=I<inifile>
+
+Point to a specific initialization file.
+
+=item  B<--notranslate-upper-case>
+
+Disables upper-case handling needed for Modelsim compiler/simulator environment.
+
+=item  B<--select>=I<selectitem>
+
+In cases where a module X is defined in more than one HDL files then by means of this option
+you have the possibility to select three of such files. To choose the initial version use I<first>, 
+while I<last> enables you to access the last modified, finally I<previous> selects the one before the last. Default 
+being B<last>.
+
+=item  B<--copy>=I<dirname>
+
+=item  B<--macro> I<macroname>=I<modulenamelist>
+
+=item  B<--local-hierarchy>=I<localdirname>
+
+=item  B<--reference>=I<referencename>
+
+=item  B<--makefile>=I<makefilename>
+
+Specify an alternative for the generated makefile
+
+=item  B<--nomakefile>
+
+Disable the makefile generation
+
+=item  B<--override>
+
+=item  B<--debug>
+
+=item  B<--verbose>
+
+=item  B<--man>
+
+Print B<xdep> entire man page.
+
+=item  B<--help>
+
+Print this message.
+
+=back
+
+=head1 BUGS
+
+=head1 REQUIREMENTS
+
+B<xdep> depends on I<Costas Calamvokis> rough verilog parser, B<rvp>, when it comes to analyze VERILOG files. It can be downloaded 
+from I<E<lt>http://www.burbleland.com/v2html/E<gt>>.
+
+
+=head1 VERSION
+
+xdep 1.6
+
+=head1 AUTHOR
+
+Richard Dje E<lt>djensam@gmail.comE<gt> 
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2002-2008 by Richard Dje E<lt>djensam@gmail.comE<gt>
+
+This program is free software; you may redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut

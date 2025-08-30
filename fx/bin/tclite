@@ -1,0 +1,699 @@
+#! /usr/bin/perl -I/home/Richard/perl -w  -I/home/rdje/EXPERIMENTAL/perl
+
+#===================================================================
+# Small TCL interpreter
+#
+# Copyright (c) 2005-2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+require linkedRE;
+
+my $verbose=0;
+
+my $tclfile;
+if (@ARGV) {
+ $tclfile = qx(cat $ARGV[0])
+} else {
+ print "Reading from standard input...\n";
+ $tclfile=join("", <STDIN>)
+}
+
+# Removing comments
+$tclfile =~ s/^\s*#.*//mg; 
+$tclfile =~ s/\\\n[ \t]*/ /g; 
+#
+# 
+
+my @allops  =  map { /\w/ ? qr/$_/ : qr/\Q$_\E/} ('||', '|', '&&', '&', '^', '\beq\b', '\bne\b', '\bni\b', '\bin\b', 
+	       '==', '!=', '<<', '>>', '<=', '>=', '<', '>', '**', '*', '/', '%', 
+	       '+', '-', '~', '!');
+
+my $allops  = join('|',   @allops);
+
+sub tclscript {
+  my ($mdescr, $mfile, $gdata, $arg) = @_;
+  
+  my @script_list;
+  my @cmd_list;
+  my @word_list;
+
+ $verbose && print "(tclscript) -I- Start.\n";
+  while (1) {
+   my $minfo = linkedRE::or($mfile, $arg ? $$gdata{cmd} : $$gdata{startREs});
+
+   if(! defined $minfo || ($arg && $$minfo{index} == (@$mdescr - 1))) {
+    if(@word_list) {push @cmd_list, [@word_list]}
+    if(@cmd_list)  {push @script_list, [@cmd_list]}
+    return @script_list ? [@script_list] : undef
+   }
+
+   my $retv= &{$$mdescr[$$minfo{index}+1]{handler}}($minfo, $mdescr, $mfile, $gdata);
+   return undef unless $retv;
+
+   if($$retv[0] !~ /SPACE|SEPARATOR/) {
+    push @word_list, $retv
+   } else {
+    # For both SPACEs & SEPARATORs
+    if(@word_list)          		 {push @cmd_list,    [@word_list]; @word_list=()}
+    # For SEPARATORs only
+    if($$retv[0] eq 'SEPARATOR' && @cmd_list) {push @script_list, [@cmd_list];  @cmd_list=()}
+   }
+  }
+}
+
+sub tclist {
+  my ($mdescr, $tcldata, $gdata) = @_;
+  
+  my @cmd_list;
+  my @word_list;
+
+ $verbose && print "(tclist) -I- Start.\n";
+  while (1) {
+   my $minfo = linkedRE::or($tcldata, $$gdata{startREs});
+
+   unless(defined $minfo) {
+    push @cmd_list, [@word_list] if @word_list;
+    return @cmd_list ? [@cmd_list] : undef
+   }
+
+   my $retv= &{$$mdescr[$$minfo{index}+1]{handler}}($minfo, $mdescr, $tcldata, $gdata);
+   return undef unless $retv;
+
+   if($$retv[0] !~ /SPACE/) {
+    push @word_list, $retv
+   } else {
+    if(@word_list)  {push @cmd_list,    [@word_list]; @word_list=()}
+   }
+  }
+}
+
+sub tclword {
+my ($mdescr, $tcldata, $gdata) = @_;
+  
+ my @word_list;
+
+$verbose && print "(tclword) -I- Start.\n";
+ while (1) {
+  my $minfo = linkedRE::or($tcldata, $$gdata{startREs});
+
+  return [@word_list] unless defined $minfo;
+
+  my $retv= &{$$mdescr[$$minfo{index}+1]{handler}}($minfo, $mdescr, $tcldata, $gdata);
+  return undef unless $retv;
+
+  push @word_list, $retv
+ }
+}
+
+my $tcl_descr = [
+{# tclscript				== 0 ==
+ handler=> \&tclscript 
+},
+
+{# Curly brace word			== 1 ==
+ re=> [qr/\{/o, qr/\}/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+  
+  my $posi = pos $$mfile;
+  $verbose && print "(brace-word) -I- Found Opening '{'\n";
+
+  my @brace_list;
+  while(1) {
+   my $minfo = linkedRE::or($mfile, $$gdata{cbw});
+   return undef unless defined $minfo;
+   if($$minfo{index}) {
+    my $chnum	= pos($$mfile) - $posi -1;
+    $verbose && print "(brace-word) -I- Found Closing '}'\n";
+    return ['BRACE', $chnum ? substr($$mfile, $posi, $chnum) : ""]
+   }
+
+   # Here we go for recursion !
+   $verbose && print "(brace-word) -I- Brace Recursion\n";   
+   return undef unless &{$$mdescr[1]{handler}}($minfo, $mdescr, $mfile, $gdata);
+   $verbose && print "(brace-word) -I- Back From Recursion\n";   
+  }
+ }
+},
+
+{# Double-quoted word 			== 2 ==
+ re=> [qr/"/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+
+  my $posi = pos($$mfile);
+  my @dq_buffer;
+  while(1) {
+   my $minfo = linkedRE::or($mfile, $$gdata{dqw});
+   return undef unless defined $minfo;
+   if($$minfo{index}) {
+    my $chnum	= pos($$mfile) - $posi -1;
+    push @dq_buffer, substr($$mfile, $posi, $chnum) if $chnum > 0; 
+    $verbose && print "(double-quoted) -I- Here we go for recursion on Bracket\n";
+    my $retv = &{$$mdescr[4]{handler}}($minfo, $mdescr, $mfile, $gdata);
+    return undef unless $retv;
+
+    push @dq_buffer, $retv;
+    $posi = pos($$mfile);
+   } else {
+    my $chnum	= pos($$mfile) - $posi -1;
+    push @dq_buffer, substr($$mfile, $posi, $chnum) if $chnum > 0; 
+    $verbose && print "(double-quoted) -I- Found Matching '\"'\n";
+
+    return ['DQUOTE', [@dq_buffer]]
+   }
+
+  }
+ }
+},
+
+{# Variable reference 			== 3 ==
+ re=> [qr/\$\w+\(.+?\)|\$\{.+?\}|\$\w+/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+
+  $verbose && print "(variable-reference) -I- Found Variable ref '$$info{match}'\n";
+
+  return ['VAREF', $$info{match}]
+ }
+},
+
+{# Command 				== 4 ==
+ re=> [qr/\[/o, qr/\]/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+
+  $verbose && print "(command) -I- Found an Opening square-bracket, Recursively calling 'tclscript'\n";
+  my $retv = tclscript($mdescr, $mfile, $gdata, 'rec');
+  return undef unless $retv;
+
+  $verbose && print "(command) -I- Found an Closing square-bracket\n";
+  return ['SBRACKET', $retv]
+ }
+},
+
+{# separator 				== 5 ==
+ re=> [qr/[;\n]+/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+
+  $verbose && print "(command-separator) -I- Found SEPARATORs\n";
+
+  return ['SEPARATOR', $$info{match}]
+ }
+},
+
+{# bar word 				== 6 ==
+ re=> [qr/[^\]\[\s\$"]+/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+
+  $verbose && print "(bar-word) -I- Found bar word '$$info{match}'\n";
+  return ['BAREWORD', $$info{match}]
+ }
+},
+
+{# SPACE 				== 7 ==
+ re=> [qr/[ \t]+/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+
+  $verbose && print "(word-separator) -I- Found SPACEs\n";
+  return ['SPACE', $$info{match}]
+ }
+}
+
+];
+
+my $expr_descr = [
+{# NUMBERs === 0 ===
+ re=> [qr/\d+(?:\.\d+)?/o],
+ handler=> sub {
+  my ($info) = @_;
+  print "(NUMBER) {$$info{match}}\n";
+  return ['NUMBER', $$info{match}]
+ }
+},
+
+{# grouping === 1 ===
+ re=> [qr/\(/o, qr/\)/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+
+  print "(GROUP) Opening parenthesis\n";
+  my @group_buf;
+  while (1) {
+   my $minfo = linkedRE::or($mfile, $$gdata{group});
+
+   return undef unless $minfo;
+
+   unless ($$minfo{index}) {
+    print "(GROUP) Closing parenthesis\n";
+    # Found the matching left parenthesis
+    return ['GROUP', [@group_buf]]
+   } else {
+    print " (GROUP)(Recursion)\n";
+    # Here we go for recursion 
+    my $retv = &{$$mdescr[$$minfo{index} - 1]{handler}}($minfo, $mdescr, $mfile, $gdata);
+    return undef unless $retv;
+
+    print " (GROUP)(Back from Recursion)\n";
+    push @group_buf, $retv
+   }
+  }
+ }
+},
+
+{# Operators
+ re=> [qr/$allops/o],
+ handler=> sub {
+  my ($info, $mdescr, $mfile, $gdata) = @_;
+
+  my $minfo = linkedRE::or(\$$info{match}, $$gdata{allops});
+  print "(OPERATOR) #$$minfo{index} -$$minfo{match}-\n";
+  return ['OPERATOR', $$minfo{index}, $$minfo{match}]
+ }
+},
+
+{# Double-quoted string
+ re=> [qr/".*?"/o],
+ handler=> sub {
+  my ($info) = @_;
+
+  print "(DQUOTE) {$$info{match}}\n";
+  return ['DQUOTE', $$info{match}]
+ }
+},
+
+];
+
+sub expr_analyze {
+my ($mdescr, $mfile, $gdata, $arg) = @_;
+}
+
+my $gdata={
+# All start REs
+  startREs => linkedRE::oredRE(map {$$_{re}[0]} grep {exists $$_{re}} @$tcl_descr),
+# Curly Brace word
+  cbw      => linkedRE::oredRE(@{$$tcl_descr[1]{re}}),
+# Double-quoted word
+  dqw      => linkedRE::oredRE($$tcl_descr[2]{re}[0], $$tcl_descr[4]{re}[0]),
+# Command
+  cmd      => linkedRE::oredRE((map {$$_{re}[0]} grep {exists $$_{re}} @$tcl_descr), $$tcl_descr[4]{re}[1])
+};
+
+my $expr_gdata={
+# All start REs
+  startREs => linkedRE::oredRE(map {$$_{re}[0]}  @$expr_descr),
+# group
+  group    => linkedRE::oredRE($$expr_descr[1]{re}[1], map {$$_{re}[0]}  @$expr_descr),
+# allops
+  allops   => linkedRE::oredRE(@allops)
+};
+
+
+#script_exec(tclscript($tcl_descr, \$tclfile, $gdata), my $namespace = {});
+linkedRE::get($expr_descr, \$tclfile, $expr_gdata);
+
+print "\nBye.\n";
+
+sub script_exec  {
+my ($se, $ns) = @_;
+
+ return unless $se; 
+ my $scriptv;
+ do {$scriptv = command_exec($_, $ns)} foreach (@$se);
+
+ return $scriptv
+}
+ 
+sub command_exec {
+my ($ce, $ns) = @_;
+
+ $verbose && print "\nBEGIN_COMMAND"; 
+ 
+ my @words;
+ push @words, word_exec($_, $ns) foreach (@$ce);
+
+ $verbose && print "END_COMMAND\n\n";
+
+ my $cmdv;
+ if (*{$words[0]}{CODE}) {
+  print "(tclite) -X-## ".list($ns, @words)." ##\n";
+  $cmdv = &{$words[0]}($ns, @words[1 .. $#words])
+ } else {
+  print "(tclite) -W- Undefined command '$words[0]'\n";
+  $cmdv = '__UNDEFINED__'
+ }
+
+ return $cmdv
+}
+ 
+sub word_exec    {
+my ($we, $ns) = @_;
+
+ $verbose && print "\n BEGIN_WORD\n";
+
+ my @wordlist;
+ foreach (@$we) {
+  unless (*{$$_[0]}{CODE}) {
+   print "------ UNDEFINED($$_[0]) -------\n"
+  } else {
+   push @wordlist, &{$$_[0]}($_, $ns)
+  }
+ }
+
+ $verbose && print " END_WORD\n";
+
+ return join("", @wordlist)
+}
+
+sub SPACE       {
+my ($s, $ns) = @_;
+
+ $verbose && print "  SPACE  : <$$s[1]>\n";
+ return $$s[1]
+}
+
+sub BAREWORD    {
+my ($bw, $ns) = @_;
+
+ $verbose && print "  BAREWORD: $$bw[1]\n"; 
+ return $$bw[1]
+}
+
+sub VAREF       {
+my ($v, $ns) = @_;
+
+ my $varef = $$v[1];
+ $verbose && print "  VAREF  : $varef\n";
+
+ $varef =~ s/^\$\{?|\}$//g;
+ 
+ if($varef !~ /\(/) {
+  # Scalar variable
+  unless (exists $$ns{SCALAR}{$varef}) {
+   print "(tclite) -E- Undefined variable '$varef'\n";
+   return "__UNDEFINED_SCALAR( $varef )__";
+  } else {
+   return $$ns{SCALAR}{$varef}
+  }
+ } else {
+  my ($varname, $raw_index) = $varef =~ /(\w+)\((.+)\)/;
+  # The array index is subject to command and variable substitution
+  my $index = word_exec(tclword($tcl_descr, \$raw_index, $gdata), $ns);
+
+  unless (exists $$ns{HASH}{$varname}{$index}) {
+   print "(tclite) -E- Undefined entry '$index' of array '$varname'\n";
+   return "__UNDEFINED_ARRAY_ENTRY( \$$varname($index) )__";
+  } else {
+   return $$ns{HASH}{$varname}{$index}
+  }
+ }
+
+}
+
+sub SBRACKET    {
+my ($sb, $ns) = @_;
+
+ $verbose && print "  BEGIN_SBRACKET\n"; 
+ my $retv = script_exec($$sb[1], $ns); 
+ $verbose && print "  END_SBRACKET\n";
+
+ return $retv
+}
+
+sub BRACE       {
+my ($b, $ns) = @_;
+
+ return $$b[1]
+}
+
+sub DQUOTE      {
+my ($dq, $ns) = @_;
+
+  return join('', map {ref($_) ? SBRACKET($_, $ns) : word_exec(tclword($tcl_descr, \$_, $gdata), $ns)} @{$$dq[1]});
+}
+
+
+# TCL build-in commands
+sub set {
+my $ns	= shift;
+
+@_ <= 2 || die "(tclite)(set) -E- Syntax Error: set varname ?varvalue?, ";
+
+my ($varname, $varvalue) = @_;
+
+my $arrayn_re = qr/^(\w+)\((.+)\)$/o;
+
+ unless (defined $varvalue) {
+  if ($varname =~ $arrayn_re) {
+   unless (exists $$ns{HASH}{$1}{$2}) {
+    print "(tclite) -E- Undefined entry '$2' of array '$1'\n";
+    return "__UNDEFINED__";
+   } else {
+    return $$ns{HASH}{$1}{$2}
+   }
+  } else {
+   unless (exists $$ns{SCALAR}{$varname}) {
+    print "(tclite) -E- Undefined variable '$varname'\n";
+    return "__UNDEFINED__";
+   } else {
+    return $$ns{SCALAR}{$varname}
+   }
+  }
+ } else {
+  if ($varname =~ $arrayn_re) {
+   print "<<<<<<<<< ARRAY SET $varname \"$varvalue\">>>>>>>>>>>>>\n";
+   $$ns{HASH}{$1}{$2} = $varvalue;
+  } else {
+   print "<<<<<<<<< SET $varname \"$varvalue\">>>>>>>>>>>>>\n";
+   $$ns{SCALAR}{$varname} = $varvalue;
+   return $varvalue
+  }
+ }
+}
+
+sub echo {
+my ($ns, $earg) = @_;
+ 
+ print "(tclite) -M- $earg\n";
+}
+
+sub puts {
+my ($ns, $earg) = @_;
+ 
+ print "(tclite) -M- $earg\n";
+}
+
+sub source {
+my $ns   = shift;
+
+ my ($sfile) = grep {!/^-/} @_;
+
+ my $retv = "__UNDEFINED__";
+ unless (-e $sfile) {
+  print "(tclite)(source) -E- File '$sfile' doesn't exist !\n";
+ } elsif (-z $sfile) {
+  print "(tclite)(source) -E- File '$sfile' is empty !\n";
+ } else {
+  my $sfcontent = qx(cat $sfile);
+  # Removing comments
+  $sfcontent =~ s/^\s*#.*//mg; 
+  $sfcontent =~ s/\\\n[ \t]*/ /g; 
+  print "\n<<<<<<<<<<<<<<<<< SOURCING '$sfile' >>>>>>>>>>>>>>>>>>>>>>>\n";
+  $retv = script_exec(tclscript($tcl_descr, \$sfcontent, $gdata), $ns);
+  print "<<<<<<<<<<<<<<<<< END SOURCING '$sfile' >>>>>>>>>>>>>>>>>>>>>>>\n\n";
+ }
+
+ return $retv
+}
+
+sub if {
+my $ns = shift;
+my @if_args = @_;
+
+ if_core($ns, 0, \@if_args)
+}
+
+sub if_core {
+my ($ns, $pt, $args) = @_;
+
+ my $eval_expr = word_exec(tclword($tcl_descr, \$$args[$pt], $gdata), $ns);
+
+ if(eval($eval_expr)) {
+  my $code = $$args[$pt+1] eq 'then' ? $$args[$pt+=2] : $$args[++$pt];
+  script_exec(tclscript($tcl_descr, \$code, $gdata), $ns);
+ } else {
+  $pt = do {if($$args[$pt+1] eq 'then') {$pt+3} else {$pt+2}};
+
+  if (exists $$args[$pt]) {
+   if($$args[$pt] eq 'elseif') {
+    if_core($ns, $pt+1, $args)
+   } elsif ($$args[$pt] eq 'else') {
+    script_exec(tclscript($tcl_descr, \$$args[$pt+1], $gdata), $ns);
+   } else {
+    print "(tclite) -E- Syntax error, missing 'elseif' or 'else' in command \n";
+    my $lc=list($ns, 'if', @$args);
+    print "==========================================\n".
+          word_exec(tclword($tcl_descr, \$lc, $gdata), $ns)."\n".
+	  "==========================================\n";
+    exit 1
+   }
+  }
+ }
+}
+
+sub while {
+my ($ns, $expr, $body) = @_;
+
+ my $whilev;
+ my $parsed_expr  = tclword($tcl_descr, \$expr, $gdata);
+ my $parsed_body  = tclscript($tcl_descr, \$body, $gdata);
+ while (eval(word_exec($parsed_expr, $ns))) {
+  $whilev = script_exec($parsed_body, $ns);
+ }
+
+ return $whilev
+}
+
+sub foreach {
+my ($ns, $varname, $list, $body) = @_;
+
+ my $foreachv;
+ my $words	  = word_exec(tclword($tcl_descr, \$list, $gdata), $ns);
+ my $tclist 	  = tclist($tcl_descr, \$words, $gdata);
+ my $parsed_body  = tclscript($tcl_descr, \$body, $gdata);
+ foreach (@$tclist) {
+  set($ns, $varname, word_exec($_, $ns));
+  $foreachv = script_exec($parsed_body, $ns);
+ }
+
+ return $foreachv
+}
+
+sub list {
+my $ns    = shift;
+
+ my @lv    = map { /\s/ ? "{$_}" : (/^$/ ? "{}" : $_)} @_; 
+ return    @lv > 1 ? '{'.join(' ', @lv).'}' : (@lv ? $lv[0] : "{}")
+}
+
+sub concat {
+my $ns    = shift;
+ return  '{'.join(' ', @_).'}'; 
+}
+
+sub split {
+my ($ns, $splitstr, $splitchars) = @_;
+
+ my $spchars_pre = $splitchars ? join('|', split(//, $splitchars)) : '\s';
+ return list($ns, split(qr/$spchars_pre/, $splitstr))
+}
+
+
+sub date {
+ my $date = `date`;
+
+ chomp $date;
+ return $date
+}
+
+sub incr {
+my ($ns, $varname) = @_;
+
+ my $cval = set($ns, $varname);
+
+
+ return set($ns, $varname, eval(++$cval) || die "(tclite) -E- *eval* in 'incr' failed, ")
+}
+
+sub expr {
+my $ns = shift;
+my $args = "@_";
+
+ my $evalexp = word_exec(tclword($tcl_descr, \$args, $gdata), $ns);
+ return eval($evalexp) || die "(tclite) -E- *eval* in 'expr' failed due to argument '$evalexp', "
+}
+
+
+sub regexp {
+my $ns = shift;
+
+# Options are not yet supported
+# The expression can't ignore the *index* argument of the '-start' option
+# But this ain't critical
+my @args = grep {!/^-/} @_;
+
+my ($exp, $string) = @args;
+
+ $string =~ /$exp/ ? 1 : 0
+}
+
+sub file {
+my $ns = shift;
+
+ my $targetcmd = 'file_'.(my $subcmd = shift);
+
+ if (*$targetcmd{CODE}) {&$targetcmd(@_)} 
+ else {
+  print "(tclite)(file) -E- Unknown sub-command *$subcmd*\n";
+  return 0
+ }
+}
+
+sub file_exists      {-e shift}
+sub file_isfile      {-f shift}
+sub file_isdirectory {-d shift}
+
+
+sub info {
+my $ns = shift;
+
+ my $targetcmd = 'info_'.(my $subcmd = shift);
+
+ if (*$targetcmd{CODE}) {&$targetcmd($ns, @_)} 
+ else {
+  print "(tclite)(info) -E- Unknown sub-command *$subcmd*\n";
+  return 0
+ }
+}
+
+sub info_exists {
+my ($ns, $varname) = @_;
+
+ my ($name, $index) = $varname =~ /^(\w+)(?:\((.+)\))?$/;
+
+ $index ? exists $$ns{HASH}{$name}{$index} : exists $$ns{SCALAR}{$name}
+}
+
+
+# Currently just a place holder
+sub format {
+}
+
+# Custom commands
+sub set_case_analysis 	     {}
+sub set_false_path 	     {}
+sub set_multicycle_path      {}
+sub set_input_delay 	     {}
+sub set_output_delay 	     {}
+sub set_clock_uncertainty    {}
+sub set_clock_latency        {}
+sub set_clock_group          {}
+sub set_max_delay            {}
+sub set_min_delay            {}
+sub set_input_transition     {}
+sub set_max_transition       {}
+sub set_load                 {}
+sub remove_clock_group       {}
+sub set_disable_timing       {}
+sub create_clock             {}
+sub create_generated_clock   {}
+sub set_propagated_clock     {}
+
+sub suppress_message         {}
+sub unsuppress_message       {}

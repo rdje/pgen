@@ -1,0 +1,20 @@
+# Test Enhanced Return Annotations
+# This tests our self-hosting parser integration
+
+# Simple scalar
+simple_rule := 'token' -> $1
+
+# Simple array  
+array_rule := item item -> [$1, $2]
+
+# Simple object
+object_rule := name value -> {name: $1, value: $2}
+
+# Multi-element array (our breakthrough!)
+multi_array_rule := item item item -> [$1, $2, $3]
+
+# Basic terminals
+item := /(\w+)/ -> $1
+name := /([a-zA-Z]+)/ -> $1  
+value := /(\d+)/ -> $1
+

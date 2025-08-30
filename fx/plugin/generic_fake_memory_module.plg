@@ -1,0 +1,68 @@
+fake_memmodule {my ($rtldblist, $cellmodtree) = @_;
+$|=1;
+ my $c = config_read ('fake_memmodule');
+ 
+ my $modinfo = {};
+ my @mm_suffix;
+ foreach my $cspec (@{list_2table ($c->{buffer_info}, 3)}) {
+  my ($nbi, $nbw, $nbb) = @$cspec;
+
+  my $quotient = int $nbi / $c->{max_buffer_per_memory_module};
+  my $reminder =     $nbi % $c->{max_buffer_per_memory_module};
+
+  # say "@$cspec: <$quotient-$reminder>";
+  my $q_sx = $nbw.':'.$nbb.':'.$c->{max_buffer_per_memory_module};
+  my $r_sx = $nbw.':'.$nbb.':'.$reminder;
+  
+  push @mm_suffix, $q_sx if $quotient && ! (@mm_suffix ~~ $q_sx);
+  push @mm_suffix, $r_sx if $reminder && ! (@mm_suffix ~~ $r_sx);
+ }
+ 
+ my @fake_list;
+ foreach my $cmm (map {[split /:/o]} @mm_suffix) {
+  my ($height, $width, $multi) = @$cmm;
+  my $fakename                 = 'fake_dpreg_'.$height.'x'.$width.($multi > 1 ? '_x'.$multi : '');
+   
+  push @fake_list, $fakename;
+  foreach my $cp (grep ref, @{$c->{pin}}) {
+   my ($name, $direction, $size, $type, $cmulti) = map {get_leaf($cp, $_.'$')} qw/name direction size type multi/;
+
+   if ($size) {
+    if ($cmulti) {
+     avv_push ($modinfo, $fakename, qw/port list default/, [$name.($multi > 1 ? '_'.$_ : ''), $direction, 'STD_LOGIC']) foreach 1 .. $multi;
+    } else {
+     avv_push ($modinfo, $fakename, qw/port list default/, [$name, $direction, 'STD_LOGIC'])
+    }
+   } elsif ($cmulti) {
+    if ($type ~~ 'D') {
+     avv_push ($modinfo, $fakename, qw/port list default/, [$name.($multi > 1 ? '_'.$_ : ''), $direction, 'STD_LOGIC_VECTOR', $width-1, 0]) foreach 1 .. $multi;
+    } else {
+     avv_push ($modinfo, $fakename, qw/port list default/, [$name.($multi > 1 ? '_'.$_ : ''), $direction, 'STD_LOGIC_VECTOR', get_log2($height)-1, 0]) foreach 1 .. $multi;
+    }
+   }
+  }
+
+  avv_set ($modinfo, $fakename, qw/port hash/, portlist_2hash (avv_get($modinfo, $fakename, qw/port list default/)));
+ }
+ 
+ my $rtldb = rtldb_2portinfo ($rtldblist);
+
+ say STDOUT '';
+ mkdir 'FAKE';
+
+ map {open (my $nw, ">FAKE/".$_."_e.vhd");     my $od = select $nw; say STDOUT "-I- Generating '$_'"; RTLUtils::drive_entity({}, $modinfo, $_); select $od} @fake_list; 
+ map {my $cfake = $_; open (my $nw, ">FAKE/".$_."_rtl_a.vhd"); my $od = select $nw; 
+
+ say ''.string_substitute ("\n<context>\nARCHITECTURE rtl OF <entity> IS\n\n<components>\nBEGIN\nEND ARCHITECTURE rtl;\n", 
+                           context    => Global->set(qw/rtl std_context_clause/),
+        		   entity     => $_,
+        		   components => RTLUtils::drive_component({}, $rtldb, 'lte_dif_gsim_tpram_word', in_memory=>1)
+        		  );
+
+  select $od
+ } @fake_list; 
+ 
+ HUtils::Merge ($cellmodtree, $modinfo);
+}
+
+get_log2 {my $log2 = log($_[0])/log(2); int($log2) + ($log2 ~~ /\./o ? 1 : 0)}

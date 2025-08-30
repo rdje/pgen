@@ -1,0 +1,287 @@
+#! /home/qdjeric/install/bin/perl -w -I/home/qdjeric/project/fsm/afx/fx/perl
+
+#===================================================================
+# Copyright (c) 2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#===================================================================
+
+use HUtils;
+use RTLUtils;
+use Table;
+use Table2SS;
+
+use Storable;
+use File::Basename;
+use Cwd 'abs_path';
+use Fatal qw(:void open);
+use File::Find;
+use File::Path;
+use Getopt::Long;
+
+my $conf = HUtils::Link(PathSearch->new->go("xif"));
+
+GetOptions(
+  'regex|m=s'     => \@{$$conf{regex_lst}},
+  'exclude|x=s'   => \@{$$conf{exclude_lst}},
+  'include|i=s'   => \@{$$conf{include_lst}},
+  'debug'         => \$$conf{debug},
+  'each'          => \$$conf{each},
+  'show'          => \$$conf{show},
+  'sort'          => \$$conf{sort},
+  'change'        => \$$conf{change},
+  'arch'          => \$$conf{arch},
+  'top=s'         => \$$conf{top},
+  'connect=s'     => \@{$$conf{connect}},
+  'unconnect=s'   => \@{$$conf{unconnect}},
+  'block=s'       => \$$conf{block},
+  'store=s'       => \$$conf{store},
+  'load=s'        => \$$conf{load},
+  'xcel=s'        => \$$conf{xcel},
+  'interface'     => \$$conf{interface},
+  'help'          => \$$conf{help}
+) || die;
+
+
+unless ($$conf{load}) {
+
+ my @validirectory_list = grep {-d} @ARGV;
+ 
+ die "($$conf{_prog}) -E- No valid directory provided," unless @validirectory_list;
+ 
+ # === Exclude ===
+ push @{$$conf{exclude}}, map {split /,/} @{$$conf{exclude_lst}};
+ # Removing the dummy first entry
+ shift @{$$conf{exclude}};
+ shift @{$$conf{exclude}} if @{$$conf{exclude_lst}};
+ 
+ my $exclude_re_str = join("|", @{$$conf{exclude}});
+ my $exclude_re     = qr/$exclude_re_str/o;
+ 
+ 
+ # === Include ===
+ push @{$$conf{include}}, map {split /,/} @{$$conf{include_lst}};
+ # Removing the dummy first entry
+ shift @{$$conf{include}};
+ shift @{$$conf{include}} if @{$$conf{include_lst}};
+ 
+ my $include_re_str = join("|", @{$$conf{include}});
+ my $include_re     = qr/$include_re_str/o;
+ 
+ 
+ $$conf{each} = 1 if @{$$conf{regex_lst}};
+ 
+ # Building the Module REGEX
+ push @{$$conf{regex}}, map {split /,/} @{$$conf{regex_lst}};
+ # Removing the dummy first entry
+ shift @{$$conf{regex}};
+ 
+ # Removing the default RE if the user provide a new RE
+ shift @{$$conf{regex}} if @{$$conf{regex_lst}};
+ 
+ my $regex_str   = join("|", @{$$conf{regex}});
+   $$conf{_regex} = $regex_str;
+ 
+  
+ # Firing the whole thing
+ find({wanted=>sub { /\.vhdl?$/o ? vhdl($conf, $File::Find::name) : 
+ 		                  RTLUtils::verilog_parse($conf, $File::Find::name) if /\.(?:vhdl?|v)$/o && $File::Find::name !~ $exclude_re && $File::Find::name =~ $include_re},
+       no_chdir => 1
+      }, @validirectory_list);
+ 
+ 
+ if ($$conf{_verilog_info_}{missing_includes}) {
+  print "($$conf{_prog}) -I- Trying to find all missing include files ..\n";
+  # There are missing include files
+  
+  # Retrieving all of the missing include files' names
+  my %ainc; HUtils::Recurse($$conf{_verilog_info_}{missing_includes}, sub {$ainc{$_[0][$#{$_[0]}]} = 1});
+  my @ainc = keys %ainc;
+ 
+  my @wo_slash = grep {!/\//o} @ainc;
+  my @w_slash  = grep { /\//o} @ainc;
+ 
+  # w/o no_chdir
+  my %wo; my %w;
+  find(sub {
+        if (-f) {
+         # W/O Slash
+         foreach my $incf (@wo_slash) {
+          # file path / ctime
+          push @{$wo{$_}{stat $_}}, (fileparse($File::Find::name))[1] if $_ eq $incf;
+         }
+ 
+         # W/ Slash = Relative Paths
+         foreach my $incf (@w_slash) {
+          # file path reminder / ctime
+          push @{$w{$incf}{stat $_}}, $` if $File::Find::name =~ /$incf$/;
+         }
+        }
+       }, @validirectory_list);
+ 
+   # Checking that all missing include files have been found and bailed out if at least one is still missing
+   my @still_missing = (grep {!$wo{$_}} @wo_slash), grep {!$w{$_}} @w_slash;
+ 
+   if (@still_missing) {
+    print "\n";
+    print "($$conf{_prog}) -E- Still can't locate the following include file(s) based on the provided directory list:\n";
+    print " " x (length($$conf{_prog}) + 7), "$_\n" foreach (@still_missing);
+    print "\n";
+    exit 1;
+   }
+ 
+   # Building  filepp -I option list
+   my $filepp_i = join " ", map {"-I$_"} keys %{{map {$_ => 1} keys %{{map {$wo{$_}{(sort {$a <=> $b} keys %{$wo{$_}})[0]}[0] => 1} @wo_slash}}, 
+                                                               keys %{{map {$w{$_}{( sort {$a <=> $b} keys %{$w{$_}})[0]}[0]  => 1} @w_slash }}}};
+ 
+  $$conf{_verilog_info_}{includirectories} = $filepp_i;
+  RTLUtils::verilog_parse($conf, $_, resume=>1) foreach (keys %{$$conf{_verilog_info_}{files_in_trouble}}); 
+ }
+
+ $$conf{store} && store $conf, $$conf{store};
+
+} else {
+ my $retrieve = retrieve $$conf{load};
+
+ HUtils::Merge($retrieve, $conf);
+ $conf = $retrieve;
+}
+
+HUtils::Recurse($conf->{module}, sub {print "<@{$_[0]}> <$_[1]>\n"})  if $$conf{debug};
+#exit;
+#print "\n";
+#
+#exit;
+if ($$conf{each}) {
+ foreach (keys %{$conf->{module}}) {
+  if (/$$conf{_regex}/o) {
+   print "($$conf{_prog}) -I- Generating the entity of *$_*.\n";
+   RTLUtils::drive_entity($conf, $conf->{module}, $_, sort=>$$conf{sort}, each=>$$conf{each}, debug=>$$conf{debug});
+
+   if ($$conf{arch}) {
+    print "($$conf{_prog}) -I- Generating the architecture of *$_*.\n";
+    RTLUtils::drive_architecture($conf, $conf->{module}, $_, sort=>$$conf{sort}, debug=>$$conf{debug}, connect=> qr/./o);
+    RTLUtils::drive_macroblock($conf,   $conf->{module}, $_, macroname => $$conf{block} || $_."_connect_w",
+	                                                     unconnect => $_ eq $$conf{top} && @{$$conf{unconnect}} ? do {my $r = join '|', map {split /,/o} @{$$conf{unconnect}}; qr/$r/o} : undef,
+	                                                     connect   => do {my $r = join '|', map {split /,/o} @{$$conf{connect}}; qr/$r/o}) if $_ eq $$conf{top} && @{$$conf{connect}};
+   }
+  }
+ }
+}
+
+
+if ($$conf{change}) {
+ my $wbid = Table2SS::AddWorkBook($$conf{xcel} || "interface_change.xls");
+ 
+ my $interfaces = {}; HUtils::Grep($$conf{module}, qr/interface/o, sub {return if "@{$_[0]}"  =~ /_(?:assign|always)_/o; eval q/$interfaces->{qq(/.join(q/)}{qq(/, @{$_[0]}).q/)} = $_[1]/});
+ HUtils::WRecurse($interfaces, sub {my ($info, $portlist) = @_; HUtils::GenericFilter($conf, $portlist, "mif_sort")});
+ my %releaset;
+ my $subcols    = {}; HUtils::Recurse($interfaces,  sub {eval q/$subcols->{qq(/.join(q/)}{qq(/, @{$_[0]}[0,4,6,8,10,12]).q/)} = $_[1]/; $releaset{$_[0][12]} = 1});
+ my @releaset   = sort {$a cmp $b} keys %releaset;
+ my $releasecnt =  @releaset;
+
+ my %nfh;
+ HUtils::KeyGrep($subcols, sub {@{$_[0]} == 2}, sub {my ($info, $sh) = @_;
+  my $k2t = HUtils::Key2Table($sh);
+
+  my %direction = map {$_->[0] => 1} @{$k2t->{table}};
+  my @dlist     = keys %direction;
+  my $dlist     = @dlist;
+
+  my $relindex   = -1;
+  # Mapping release to index in the table
+  my %cureleases = map {++$relindex; $_->[3] => $relindex} @{$k2t->{table}};
+
+  my @row  = ('-') x $releasecnt;
+  my $i    = -1;
+  foreach (@releaset) {
+   ++$i; next unless defined $cureleases{$_};
+
+   my $ri   = $cureleases{$_};
+   my $msi  = $k2t->{table}[$ri][1];
+   #print "$info->[$#$info]<@{$k2t->{table}[$ri]}><$i><$ri>\n";
+   if ($dlist == 1) {
+    $row[$i] = $msi ? ($msi -  $k2t->{table}[$ri][2] + 1)." [$msi:$k2t->{table}[$ri][2]]" : 1;
+   } else {
+    $row[$i] = "$k2t->{table}[$ri][0] / ".($msi ? ($msi -  $k2t->{table}[$ri][2] + 1)." [$msi:$k2t->{table}[$ri][2]]" : 1);
+   }
+  }
+
+  my @notin_all        = grep {$_ eq '-'} @row;
+  my %notall_identical = map  {$_ => 1} grep {$_ ne '-'} @row;
+  my @notall_identical = keys %notall_identical;
+  if (@notall_identical != 1) {
+   @row = map {$_ ne '-' ? "DIFFERENT:$_" : $_} @row;
+  }
+
+  eval q/$nfh{qq(/.join(q/)}{qq(/, @$info[0 .. $#_-1], ($dlist == 1 ? $$conf{direction_map}{lc($dlist[0])}.(@notin_all ? "_WARNING" : "") : "UNKNOWN").':'.$info->[$#$info]).q/)} = [@row]/;
+ });
+
+
+ # Building tables
+ my %fh; HUtils::Recurse(\%nfh, sub {my ($info, $st) = @_; unshift @$st, $info->[1]; push @{$fh{$info->[0]}}, $st});
+
+ # Sorting signals
+ HUtils::WRecurse(\%fh, sub {my ($info, $table) = @_;
+  my $i = -1;
+  my %map    = map {++$i; $$_[0]  =~ /^\w+:(.+)/o; $1 => $i} @$table;
+  my @sortk  = sort {$a cmp $b} keys %map;
+  [[$info->[0], @releaset], map {$$table[$map{$_}]} @sortk]
+ });
+
+ Table2SS::DriveTableTree($$conf{xcel} || "interface_change.xls", 
+               'module_list', 
+               \%fh,
+               table_sheet    => 'modules_interfaces',
+               table_per_row  => 4,
+               xpad           => 5,
+               ypad           => 5,
+     	       script         => "module_if_change",
+	       link_script    => "module_link"
+          );
+
+ Table2SS::Close($wbid);
+}
+
+if ($$conf{interface}) {
+ my $wbid       = Table2SS::AddWorkBook($$conf{xcel} || "interface.xls");
+ 
+ my $interfaces = {}; HUtils::Grep($$conf{module}, qr/\S*$$conf{_regex}\S*\sport\slist/o, sub {return if "@{$_[0]}"  =~ /_(?:assign|always)_/o; eval q/$interfaces->{qq(/.join(q/)}{qq(/, @{$_[0]}).q/)} = $_[1]/});
+
+ Table2SS::DriveTableTree($$conf{xcel} || "interface.xls", 
+               'module_list', 
+               $interfaces,
+               table_per_row  => 4,
+               xpad           => 5,
+               ypad           => 5,
+	       script         => "module_if",
+	       link_script    => "module_link"
+          );
+
+ Table2SS::Close($wbid);
+}
+
+
+sub vhdl {
+my ($conf, $sf) = @_;
+
+ print "($$conf{_prog}) -I- Processing $sf ..\n";
+
+ open (my $cf, $sf); local $/; (my $vhd = <$cf>) =~ s/--.*//go;
+
+ foreach ($vhd =~ /\bentity\b.+?\bend\b.*?;/gsio) {
+  # entity name
+  my ($entity_name) = /entity\s+(\S+)/io;
+  # Get the port list
+  my ($port_data) = /\bport\s*\((.+)\s*\);/sio;
+  next unless $port_data;
+
+  print "($$conf{_prog})        ENTITY $entity_name\n" if $$conf{show};
+
+  $conf->{module}{$entity_name}{port}{list}{default} = [map {
+	                                                 [$$_[0], (map {defined $_ ? $_ : 0} $$_[1] =~ /(\w+)\s+(\w+)(?:\((\d+)\s*(?i:downto|to)\s*(\d+)\))?/o), abs_path($sf)]
+                                                       } @{Table::list2table([$port_data =~ /(\S+)\s*:\s*(.+?)\s*(?:;|$)/gso], 2)}];
+ }
+}
+

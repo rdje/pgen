@@ -1,0 +1,25 @@
+config_read       {HUtils::Conf(PathSearch->go($_[0], 'conf', @_[1..$#_]))}
+config_link       {HUtils::Link(PathSearch->go($_[0], 'conf', @_[1..$#_]))}
+digest_file_hex   {Digest::file::digest_file_hex(@_)}
+digest_md5_hex    {Digest::MD5::md5_hex(@_)}
+private_state     {Global->set(digest_md5_hex(@_)) //= {}}
+abs_path          {Cwd::abs_path(@_)}
+realpath          {$^O ~~ 'cygwin' ? do {chomp (my $f = qx/cygpath -a -w $_[0]/); $f =~ s/\\/\\\\/go; $f} : Cwd::realpath($_[0])}
+getcwd            {Cwd::getcwd()}
+rel2abs           {File::Spec->rel2abs(@_)}
+abs2rel           {File::Spec->abs2rel(@_)}
+splitdir          {File::Spec->splitdir(@_)}
+catdir            {File::Spec->catdir(@_)}
+catfile           {File::Spec->catfile(@_)}
+curdir            {File::Spec->curdir(@_)}
+devnull           {File::Spec->devnull()}
+splitpath         {File::Spec->splitpath(@_)}
+filename          {(File::Spec->splitpath(@_))[-1]}
+dirname           {(File::Spec->splitpath(@_))[-2]}
+rmtree            {File::Path::rmtree(@_)}
+mkpath            {File::Path::mkpath(@_)}
+#dclone            {Storable::dclone(@_)}
+store             {Storable::store(@_)}
+retrieve          {Storable::retrieve(@_)}
+
+first_match_index {my ($re, $aref) = @_; foreach (0 .. $#$aref) {return $_ if $$aref[$_] ~~ $re} return}

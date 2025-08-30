@@ -1,0 +1,159 @@
+#! /home/djer/install/bin/perl -w -I/home/djer/fx/fsm/afx/fx/perl
+
+#====================================================================
+# AnyTool report timing front-end command. It generates a consolidated
+# LOF file for both SETUP and HOLD timing paths
+#
+# Copyright (c) 2005-2007 Richard DJE. All rights reserved.
+#
+# This Perl program is free software, you may redistribute it and/or 
+# modify it under the same terms as Perl itself.
+#====================================================================
+
+use File::Spec::Functions ':ALL';
+use File::Path;
+use File::Glob ':glob';
+use File::Find;
+
+use PTiming;
+use MagmaTiming;
+use AmbiTiming;
+use EncounTiming;
+
+my $progname     = (reverse split(/\//, $0))[0];
+
+my $outputdir = "CONSOLIDATE";
+my $split     = 1;  # Enabled by default
+
+use Getopt::Long;
+GetOptions('help'          => \$help,
+	   'outputdir=s'   => \$outputdir,
+	   'path-filter=s' => \@path,
+	   'exclude=s'     => \@exclude_paths,
+	   'csplit'        => \$csplit,
+	   'split!'        => \$split,
+	   'threshold=i'   => \$threshold,
+	   'magma'         => \$magma,
+	   'ambit'         => \$ambit,
+	   'encounter'     => \$encounter,
+	   'file-filter=s' => \@file
+          );
+
+$help && &usage;
+
+unless ($ARGV[0]) {
+ print "($progname) -E- Please provide the Path to the <TOPLevel_reportDir> argument\n";
+ &usage
+}
+
+my @rptpath=  map {rel2abs ($_)} @ARGV;
+
+my @timeinfo  = localtime;
+my $timestamp = sprintf "%04d%02d%02d_%02d%02d_%02d", 1900 + $timeinfo[5], 1 + $timeinfo[4], $timeinfo[3], @timeinfo[2,1,0];
+
+mkpath(($outputdir ||= '.') .= "/$timestamp");
+
+unlink <catfile ($outputdir, '*.lof*')>;
+
+my ($su_consolidated, $h_consolidated) =  map {catfile ($outputdir, "consolidated_$_.lof")} qw/setup hold/;
+unlink $su_consolidated, $h_consolidated;
+
+open(SU_CATSORT, ">> $su_consolidated") || die "($progname) -E- Can't create file '$su_consolidated',";
+open(H_CATSORT,  ">> $h_consolidated")  || die "($progname) -E- Can't append to file '$h_consolidated',";
+
+my $pathegrepre   = @path          ? join('|', map {split /,/o} @path) : ".*";
+my $filegrepre    = @file          ? join('|', map {split /,/o} @file) : "#!-#-!-#-!-#-!-#-!-#-!-#-!";
+my $exclude_paths = @exclude_paths ? join('|', map {split /,/o} @exclude_paths) : "#!-#-!-#-!-#-!-#-!-#-!-#-!";
+
+my $count         = 0;
+
+# Which Parser to use ?
+my $parser        = !($magma || $ambit || $encounter) ? PTiming->new     : 
+                   (!(          $ambit || $encounter) ? MagmaTiming->new : 
+			       ($ambit                ? AmbiTiming->new  : 
+				                        EncounTiming->new));
+
+foreach my $rptpath (@rptpath) {
+ print "($progname) -I- Processing  '$rptpath'.\n";
+ 
+ find ({wanted => sub {push @findo, $_ if -f $_ && -s _ && m/$pathegrepre/o && m/$filegrepre/o && !/$exclude_paths/o}, follow=>1, no_chdir=>1}, $rptpath);
+ 
+ foreach my $violation (map {chomp; $_} @findo) {
+  my @path_parts        = map {splitdir ($_)} (splitpath ($violation))[1,2];
+  my ($setup_hold) 	= $path_parts[-1] =~ /(max|min|setup|hold)\b/o;
+  # SETUP/MAX timing paths is assuming by default
+  $setup_hold		= $setup_hold ? ($setup_hold =~  /max|setup/o ? "setup" : "hold") : "setup";
+ 
+  my $ofilename		= catfile ($outputdir, "${setup_hold}_${count}.lof");
+ 
+  # ========================================================================= #
+   $parser->read ($violation, csplit    => $csplit, 
+ 	                      workdir   => $csplit ? catdir ($outputdir, 'CSPLIT') : undef, 
+ 			      output    => $ofilename,
+ 			      split     => $split,
+ 		 	      threshold => $threshold);
+ 
+  ++$count
+ }
+}
+
+unless ($count) {
+ print "($progname) -E- No report file found, please check your path filter(s).\n";
+ exit
+}
+
+my @lssetup = bsd_glob (catfile ($outputdir, "setup_*.lof"));
+my @lshold  = bsd_glob (catfile ($outputdir, "hold_*.lof"));
+
+if (@lssetup) {
+ print "($progname) -I- Generating SETUP section.\n";
+
+ my $su_catsort = qx(cat @lssetup | sort -k7n,7n -r | uniq);
+
+ chomp $su_catsort;
+
+ # Sometimes empty lines are inserted, dunno why.
+ $su_catsort =~ s/^\s+//mg;
+
+ print SU_CATSORT $su_catsort;
+
+} else {
+ unlink $su_consolidated;
+ print "($progname) -W- No SETUP violation found.\n";
+}
+
+if (@lshold) {
+ print "($progname) -I- Generating HOLD section.\n";
+
+ my $h_catsort = qx(cat @lshold | sort -k7n,7n -r | uniq);
+
+ chomp $h_catsort;
+
+ # Sometimes empty lines are inserted, dunno why.
+ $h_catsort =~ s/^\s+//mg;
+
+ print H_CATSORT $h_catsort;
+
+} else {
+ unlink $h_consolidated;
+ print "($progname) -W- No HOLD violation found.\n";
+}
+
+print "($progname) -I- ($count) report files have been processed to *$outputdir*.\n";
+print "($progname) -I- Done.\n";
+
+sub usage {
+ print "usage: $progname <options>* <TOPLevel_reportDir>\n\n";
+ print "Options are :\n\n";
+ print "       [--magma]\n";
+ print "       [--ambit]\n";
+ print "       [--encounter]\n";
+ print "       [--file-filter=<FFilterRE>[,<FFilterRE>]*]\n";
+ print "       [--path-filter=<PFilterRE>[,<PFilterRE>]*]\n";
+ print "       [--exclude=<XRE>[,<XRE>]*]\n";
+ print "       [--split [--threshold=<SplitThreshold>]]\n";
+ print "       [--output=OutputDir]\n";
+ print "       [--csplit]\n";
+ print "       [--help]\n";
+ exit
+}

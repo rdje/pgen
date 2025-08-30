@@ -1,0 +1,101 @@
+Now let me take the time to explain you how DT's WENs/ENs are actually used for.
+
+Each WEN/EN is a 1-bit signal whose value is either 0 or 1.
+
+View an implemented DT logic a blob or glue logic that takes in
+1. A 1-bit enable condition
+  Which to be permanently tied to logical 1/HIGH, if the DT needs to be always active, enabled.
+  Or it can be connected to a 1-bit signal like state_en(k) of a FSM. state_en(k) would decode statek, meaning when the FSM is in state K for a clock cycle, state_en(k) == 1.
+  Or it can even be the output of a OR-gate with at least 2 1-bit input signals and one of could be a state_en(k) for example.
+
+2. input signals used by the DT to compute the values of its output WENs/ENs
+
+  Those input signals may come for from the FSM main inputs or internal combinational signals or internal flopped signals (Q outputs of flops)
+
+3. output WENs/ENs
+
+  These are the sole type of outputs of a DT.
+
+  They are not encoded.
+  
+  These are individual 1-bit signals which when 1/HIGH tell us which value is to be muxed out to drive a combinational signal (N-bit output or internal).
+
+
+
+
+DTs control essentially control P-to-1 muxes
+
+P=2, 3, 4, ...
+
+Say with a combitional N-bit signal called COMB that is the output of 5-to-1 mux.
+
+COMB being an N-bit signal, each of its 5 potential values is also a N-bit signal.
+
+The mux to control which value is reflected on COMB for a particular clock cycle will have P=5 ENABLEs (ENs) or WENABLEs (WENs).
+
+Try to picture thing.
+
+A mux has basically 2 layers of logic.
+
+The layer that is closest to the output is OR-gate with P=5 input of N-bit each.
+The output of that OR-gate is connected to the COMB signal.
+
+Each of the P=5 N-bit input of the OR-gate is the output of an AND-gate.
+Such AND-gate has 2 inputs
+a. 1 N-bit signal
+b. 1 1-bit enable signal which is connected to one of the ENs/WENs bits used to control the P-to-1 mux, each AND-gate used one and only one of the P ENs bit different from that of the others P=5 AND-gates.
+
+The output of the each AND-gate is all 0s whenever the AND-gate 1-bit enable input is 0.
+The output of the each AND-gate allows its N-bit input signal to flow to its N-bit output whenever the AND-gate 1-bit enable input is 1.
+
+
+
+That's the behavior for a N-bit P-to-1 mux driving a combinational signal.
+N is the number of bits of the P inputs and the 1 output.
+
+
+Now how all this applies to N-bit registers or flops.
+
+Well, if an N-bit flop may be synchronously assigned P different values and also keep its values for some cycles, we will need a (P+1)-to-1 mux.
+The input of the N-bit flops, say F_d, will be N-bit combinational output of the (P+1)-to-1 output the mux.
+
+Entry 1 to P of the mux will be each connected to each Fvalue_1, Fvalue_2, ..., Fvalue_P.
+The mux will have P 1-bit ENABLES (Ens)/WENABLES (WENs), that FEN1, FEN2, ..., FENp.
+
+Entry #0 of the mux will connected to the ouput of N-bit flop, that is F_q.
+
+N-bit F_d signal is the output of a (P+1) input OR-gate.
+
+Entry #0 of that OR-gate is connected to the output of the 2-input AND-gate that takes in F_q as 1 input and at the other NOT(FEN1 AND FEN2 AND ... AND FENp).
+That is F_q will be routed to F_q when all the FENk=0 for all k=1, 2, ..., p.
+
+That's how an N-bit flops which can keep its value is controlled.
+
+If that N-bit flop is not keeping its value, then F_d is just driven by a P-to-1 mux, as there is not feeback from F_q to F_d in that case.
+
+
+Now.
+
+
+Regardless of whether the P-to-1 mux feeds the D input of flop or not, with or without feeback in the case of a flop, the mux (multiplexer) control will be similar.
+
+The Mux will be controlled using, say P ENs.
+
+EN1, EN2, EN3, ..., ENp.
+
+Each of these ENk will be the output of a OR-gate.
+The number of 1-bit inputs of those OR-gate will depend on the number of Decision trees, or states that need to control the value selections for that particular mux.
+
+1 DT might need to control all P ENABLES.
+another DT, might just need to just Q ENABLES < P ENABLES.
+
+Not all DTs will need to control all muxes and if they do, those DT won't necessarily need to control of P Enables, as this will depend on the functionality of that DT.
+
+
+
+
+
+As I wrote above each P-to-1 mux has P ENs signas, named EN1, EN2, ..., ENP.
+We need to detect the case where more than 1 of these ENk ENABLEs are 1 at the same time, because this would suggested that at least 2 FSMs are trying to select different input values during that particular clock cycle.
+
+

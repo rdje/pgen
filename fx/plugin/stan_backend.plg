@@ -1,0 +1,276 @@
+
+clockmatrix {
+my ($conf) = @_;
+
+ stan_backend_start($conf); 
+
+ my $filtered        = HUtils::GenericFilter($conf, TcFlow::GetAll($conf->{_argv}), "$conf->{_action}_sequence",  maptable=>'reportiming');
+
+ my %mod;
+ my %verticals;
+ HUtils::KeyGrep($filtered, sub {@{$_[0]} == 2}, 
+	                    sub {my ($info, $shash) = @_;
+                  my $inforef = q/$mod{qq(/.join(q/)}{qq(/, @$info).q/)}/;
+                  HUtils::KeyGrep($shash, sub {@{$_[0]} == 2}, sub {my ($sinfo, $sshash) = @_;
+                     eval q/$verticals{qq(/.join(q/)}{qq(/, @$sinfo).q/)} = 1/;
+                     eval q/push @{/.$inforef.q/}, [$sinfo, $sshash]/;
+	          });
+ });
+
+ my $wbid  = Table2SS::AddWorkBook($conf->{_excelfile} || "$conf->{_action}.xls");
+ my $vert  = HUtils::Key2Table(\%verticals);
+ my $horiz = HUtils::Key2Table(\%mod);
+
+ # Building the core of the table together with the SP clock column
+ my @table_out;
+    HUtils::Recurse(\%mod, sub {my ($info, $modata) = @_;
+                my $row = HUtils::GetKeyIndex($horiz, $info);
+                foreach my $cmodentry (@$modata) {
+		 my ($sinfo, $sshash)   = @$cmodentry;
+                 my $col                = HUtils::GetKeyIndex($vert, $sinfo);
+		 $table_out[$row][$col] = minmax_clockmx_cellcode ($conf, $wbid, $row, $col, $sshash);
+		}
+
+		# The very first column is the StartPoint Clock name
+		unshift @{$table_out[$row]}, @$info[1];
+    });
+
+ # Aligning all table_out line width
+ foreach (@table_out) {
+  my $diff = $vert->{count} - @$_;
+
+  # The + 1 is necessary because I *unshifted* @$info[1] already
+  push @$_, ('-') x ($diff + 1) if $diff;
+ }
+
+ # After swapping, we need to reverse each entry of the resulting table, so that
+ # the GetKeyIndex generated index still match the same thing !!
+ unshift @table_out, map {push @$_, undef; [reverse @$_]} @{Table2SS::SwapTable(Table2SS::PruneDummyColumn($vert->{table}))};
+
+ Table2SS::DriveSheet($wbid, 'summary', Table2SS::RCAllocate(1, 1, 1, [\@table_out], "clock_margin"));
+ my $summary = Table2SS::GetSheet($wbid, 'summary');
+
+ $summary->activate();
+ $summary->freeze_panes('c3');
+
+ Table2SS::Close($wbid);
+}
+
+minmax_clockmx_cellcode {
+my ($conf, $wb, $row, $col, $hh) = @_;
+
+ HUtils::WRecurse($hh, sub {
+		   my @num_slack   = grep {$$_[$conf->{_indexes}{slack}] ne '-'} @{$_[1]}; 
+		   my @undef_slack = grep {$$_[$conf->{_indexes}{slack}] eq '-'} @{$_[1]}; 
+		   [(sort {$a->[$conf->{_indexes}{slack}] <=> $b->[$conf->{_indexes}{slack}]} @num_slack), @undef_slack];
+ });
+
+ my $outstr_min = $hh->{pathtype}{min} ? $hh->{pathtype}{min}[0][$conf->{_indexes}{slack}]." (".@{$hh->{pathtype}{min}}.")" : "-";
+ my $outstr_max = $hh->{pathtype}{max} ? $hh->{pathtype}{max}[0][$conf->{_indexes}{slack}]." (".@{$hh->{pathtype}{max}}.")" : "-";
+
+ my @localpaths;
+
+ push @localpaths, [grep {defined} @{$hh->{pathtype}{min}}[0 .. 99]] if $hh->{pathtype}{min};
+ push @localpaths, [grep {defined} @{$hh->{pathtype}{max}}[0 .. 99]] if $hh->{pathtype}{max};
+
+ Table2SS::DriveSheet($wb, "first100_r${row}c$col", Table2SS::RCAllocate(1, 1, 2, [@localpaths], "consolidated_rep"));
+
+ "internal:first100_r${row}c$col!A1\@$outstr_min / $outstr_max"
+}
+
+
+
+filterout {
+my ($conf) = @_;
+
+ stan_backend_start($conf); 
+ my $field_cnt = ref $conf->{"$conf->{_action}_sequence"} ? @{$conf->{"$conf->{_action}_sequence"}} : 1;
+
+ Table2SS::DriveTableTree($conf->{_excelfile} || "$conf->{_action}.xls", 
+	                  'links', 
+			  HUtils::GenericFilter($conf, TcFlow::GetAll($conf->{_argv}), "$conf->{_action}_sequence",  maptable=>'reportiming'),
+			  table_sheet    => 'tables',
+		          script         => 'filterout_ts',
+			  table_per_row  => 10,
+			  xpad           => 2,
+			  ypad           => 2, 
+			  link_script    => $conf->{_action}."_link_script",
+			  link_code      => sub {my ($info, $table) = @_;
+			      my $wns              = $table->[1][10]{value};
+			      my $vcnt             = grep {$$_[10]{value} < 0} @$table[1 .. $#$table];
+			      my $wns_capture_edge = $table->[1][9]{value};
+			      my $wns_launch_edge  = $table->[1][6]{value};
+			      my $wns_period       = $table->[1][12] ne '-' && $table->[1][11] ne '-' ? ($table->[1][12] - $table->[1][11]) : undef;
+			      my $clock_skew       = $table->[1][13] ne '-' && $table->[1][14] ne '-' ? ($table->[1][14] - $table->[1][13]) : undef;
+
+			      my $freq_period      = $wns_period ? sprintf("%4.1f", 10**6/$wns_period)." ($wns_period)" : '?';
+
+			      [@$info[map {2*$_+1} 0 .. ($field_cnt-1)], $wns_launch_edge, $wns_capture_edge, 
+			                                                 $table->[1][13], $table->[1][14], $clock_skew || '-',
+									 $info->[1] eq 'max' ? $freq_period : '-', 
+									 $wns, $vcnt] 
+			  }
+		  );
+}
+
+eponsout {
+my ($conf) = @_;
+
+ my %mode_corner_iomode;
+ my %eponsout_i;
+ my @eponsout;
+ my %eponsout;
+
+ stan_backend_start($conf); 
+ HUtils::KeyGrep(HUtils::GenericFilter($conf, TcFlow::GetAll($conf->{_argv}), "$conf->{_action}_sequence",  maptable=>'reportiming'),
+	         qr/mode:/o,
+		 sub {my ($info, $subtree) = @_;
+                   my @cvertival = @$info[@{$conf->{"_$conf->{_action}_global"}{vertical}}];
+
+	           HUtils::Recurse($subtree, sub {my ($sinfo, $table) = @_;
+			 my $concatriplet = join('/', @$sinfo[@{$conf->{"_$conf->{_action}_global"}{horizontal}}]);
+			 $mode_corner_iomode{$concatriplet} = 1;
+
+	                 eval q($eponsout_i{").join(q("}{"), @cvertival, $concatriplet).q("} = $table);
+	           });
+ });
+
+ my $index = 0;
+ my %index_map;
+ my @mode_corner_iomode = sort {$a cmp $b} keys %mode_corner_iomode;
+ $index_map{$_} = $index++ foreach (@mode_corner_iomode);
+
+ print "($conf->{_program})($conf->{_action}) -I- Allocating Timing Path's tables...\n";
+ my $tta = Table2SS::TableTreeAllocate(\%eponsout_i, 
+	                               table_per_row=> 5, 
+				       script       => 'consolidated_rep', 
+				       xpad         => $conf->{"_$conf->{_action}_global"}{xpad}, 
+				       ypad         => $conf->{"_$conf->{_action}_global"}{ypad}
+			              );
+
+ print "($conf->{_program})($conf->{_action}) -I- Building the *summary* information internal structure..\n";
+ HUtils::Recurse(\%eponsout_i, sub {my ($info) = @_;
+		 my $ctriplet = pop @$info;
+                 my $table    = Table2SS::TableTreeLeaf($tta, [@$info, $ctriplet]);;
+		 my $wns      = $table->[1][$#{$table->[1]}]{value};
+		 my $vcnt     = grep {$$_[$#$_]{value} < 0} @$table[1 .. $#$table];
+		 my $fstring  = "internal:tables!".Table2SS::TableTreeA1($tta, [@$info, $ctriplet])."\@$wns ($vcnt)";
+
+                 eval q($eponsout{").join(q("}{"), @$info).q("}[$index_map{$ctriplet}] = $fstring);
+ });
+
+ $index = 1;
+ # Building the *summary table*
+ print "($conf->{_program})($conf->{_action}) -I- Building the *summary* sheet..\n";
+ push @eponsout, [@{$conf->{"_$conf->{_action}_global"}{header}}, @mode_corner_iomode];
+ HUtils::Recurse(\%eponsout, sub {my ($info, $entable) = @_;
+   my $wns  = (sort {$a <=> $b} map { /\@(\S+)/o;   $1} grep {defined} @$entable)[0];
+   my $vcnt = eval join('+',    map { /\((\S+)\)/o; $1} grep {defined} @$entable);
+   push @eponsout, [$index++, @$info, $wns < 0 ? "$wns ($vcnt)" : $wns, map {defined $entable->[$_] ? $entable->[$_] : '-'} (0 .. $#mode_corner_iomode)];
+ });
+
+ unless ($conf->{_csv}) {
+  print "($conf->{_program})($conf->{_action}) -I- The *summary* sheet has *".--$index."* lines..\n";
+
+  my $wbid = Table2SS::AddWorkBook($conf->{_excelfile} || "$conf->{_action}.xls");
+
+  Table2SS::DriveSheet($wbid, 'summary', Table2SS::RCAllocate(1, 1, 1, [[@eponsout]], "$conf->{_action}_link_script"));
+  Table2SS::DriveSheet($wbid, 'tables',  $tta) unless $conf->{_notables};
+  Table2SS::Close($wbid);
+ } else {
+  print "($conf->{_program})($conf->{_action}) -I- Generating *$conf->{_action}.csv* (".--$index." lines) ..\n";
+
+  open(my $csv, "> $conf->{_action}.csv") || die "($conf->{_program})($conf->{_action}) -E- Can't write open '$conf->{_action}.csv,'";
+  print $csv join(',', map {s/.*@//o; $_} @$_)."\n" foreach (@eponsout);
+  close($csv)
+ }
+}
+
+stan_backend_start {
+my ($conf) = @_;
+ 
+ print "($conf->{_program})($conf->{_action}) -I- Launching '$conf->{_action}' processing..\n"; 
+ set_http_hostport ($conf->{_host}, $conf->{_port});
+ Table2SS::UConf(PathSearch->go('stan_backend_table2ss'));
+}
+
+syncts {filterout(@_)}
+
+defaultout {
+my ($conf) = @_;
+
+ stan_backend_start($conf); 
+
+ my $wbid = Table2SS::AddWorkBook($conf->{_excelfile} || "$conf->{_action}.xls");
+
+ my $tta  = HUtils::Recurse(HUtils::GenericFilter($conf, TcFlow::GetAll($conf->{_argv}), "$conf->{_action}_sequence",  maptable=>'reportiming'), 
+	                    sub {my ($info, $table) = @_;
+                              Table2SS::DriveSheet($wbid, $info->[-1], Table2SS::RCAllocate(1, 1, 1, [$table], 'consolidated_rep'));
+	    });
+
+  Table2SS::Close($wbid);
+}
+
+treeout {
+my ($conf) = @_;
+
+ stan_backend_start($conf); 
+
+ Table2SS::DriveTableTree($conf->{_excelfile} || "$conf->{_action}.xls", 
+	                  'links', 
+			  HUtils::GenericFilter($conf, TcFlow::GetAll($conf->{_argv}), "$conf->{_action}_sequence",  maptable=>'reportiming'),
+			  table_sheet    => 'tables',
+		          script         => 'consolidated_rep',
+			  table_per_row  => 10,
+			  xpad           => 2,
+			  ypad           => 2
+		  );
+}
+
+interface {
+my ($conf) = @_;
+
+ stan_backend_start($conf); 
+
+ my $workbookname = $conf->{_excelfile} || "$conf->{_action}.xls";
+ my $byinterface = HUtils::GenericFilter($conf, TcFlow::GetAll($conf->{_argv}), "$conf->{_action}_1_sequence",  maptable=>'reportiming'); 
+
+ my @summary_sheets;
+ HUtils::KeyGrep($byinterface, sub {@{$_[0]} == 2}, sub {my ($info) = @_; push @summary_sheets, $info->[1]});
+
+ my $field_cnt = ref $conf->{"$conf->{_action}_2_sequence"} ? @{$conf->{"$conf->{_action}_2_sequence"}} : 1;
+ my $wbid = Table2SS::AddWorkBook($workbookname);
+ Table2SS::DriveSheet($wbid, 'LINKS', Table2SS::RCAllocate(1, 5, 1, [[map {["internal:$_!A1\@$_"]} @summary_sheets]], "_default_script_"));
+
+ HUtils::Recurse($byinterface, sub {my ($info, $table) = @_;
+        	 Table2SS::DriveTableTree($workbookname, 
+                                  $info->[1], 
+                       		  HUtils::GenericFilter($conf, $table, "$conf->{_action}_2_sequence",  maptable=>'reportiming'),
+        			  keep_opened    => 1,
+                       		  table_sheet    => "$info->[1]_tables",
+                       	          script         => 'filterout_ts',
+                       		  table_per_row  => 10,
+                       		  xpad           => 2,
+                       		  ypad           => 2, 
+                       		  link_script    => "interface_link_script",
+                       		  link_code      => sub {my ($info, $table) = @_;
+                       		      my $wns              = $table->[1][10]{value};
+                       		      my $vcnt             = grep {$$_[10]{value} < 0} @$table[1 .. $#$table];
+                       		      my $wns_capture_edge = $table->[1][9]{value};
+                       		      my $wns_launch_edge  = $table->[1][6]{value};
+                       		      my $wns_period       = $table->[1][12] ne '-' && $table->[1][11] ne '-' ? ($table->[1][12] - $table->[1][11]) : undef;
+                 
+                       		      my $freq_period      = $wns_period ? sprintf("%4.1f", 10**6/$wns_period)." ($wns_period)" : '?';
+                 
+                       		      [@$info[map {2*$_+1} 0 .. ($field_cnt-1)], $wns_launch_edge, 
+                       		                                                 $wns_capture_edge, 
+                       								 $info->[1] eq 'max' ? $freq_period : '-', 
+                       								 $wns, $vcnt] 
+                       		  }
+                       	  
+                 )
+ });
+
+ Table2SS::Close($wbid)
+}
+

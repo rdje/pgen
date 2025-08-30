@@ -1,0 +1,34 @@
+lstype_long {
+my ($conf) = @_;
+
+ my $wbid              = Table2SS::AddWorkBook($conf->{_excelfile} || "$conf->{_action}.xls");
+ my $lstype_conf       = config_read ('lstype_long');
+
+ my @info = map {
+  my ($label)                     = /"(\w+)"/o; 
+  my ($day, $month, $year, $time) = /(\w+)-(\w+)-(\w+)\.(\S+)\s+by\s/io;
+  my ($vob_name, $vob_path)       = /master\s+replica\s*:\s+(\S+)@(\S+)/io;
+  my ($owner)                     = /owner\s*:\s+(\S+)/io;
+  my ($group)                     = /group\s*:\s+(\S+)/io;
+
+                           $month = $lstype_conf->{month}{lc $month};
+
+                                    /\bby\s+(?:(?<user>.+)\s+\()?(?<login>\w+)\.\w+@(?<host>\w+)(?(<user>)\))/o;
+  $year += 2000;
+  [$month || $day ? sprintf("%4d-%02d-%02d", $year, $month, $day) : '-', 
+   'dummy:'.($time || '-'), 
+   $+{user}, 
+   $+{login}, 
+   $group, 
+   $+{host}, 
+   $vob_name, 
+   $vob_path, 
+   $label]
+ } qx/cleartool lstype -l -kind lbtype/ =~ /label\s+type\s.+?(?=(?:label\s+type|$))/isg;
+
+ unshift @info, [qw/Year-Month-Day Time User Login Group Host/, 'VOB Name', 'VOB Path', 'Label'];
+
+ my $raw_hl  = Table2SS::RCAllocate(1, 1, 1, [[@info]], 'lstype_long_i2chs');
+ Table2SS::DriveSheet($wbid, 'labels', $raw_hl);
+ Table2SS::Close($wbid);
+}

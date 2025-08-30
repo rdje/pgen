@@ -1,0 +1,15 @@
+# Test specifically for $1.0 pattern
+
+test_expression := dot_notation_ref | scalar_ref
+
+dot_notation_ref := scalar_ref dot_path -> {type: "dot_notation_ref", base: $1, path: $2}
+
+dot_path := dot_accessor+ -> [$1*]
+
+dot_accessor := '.' array_index -> {type: "index", value: $2}
+
+array_index := number
+
+scalar_ref := '$' number -> {type: "scalar_ref", index: $2}
+
+number := /(\d+)/ -> $1

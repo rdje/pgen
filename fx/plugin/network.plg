@@ -1,0 +1,286 @@
+network {
+my ($conf) = @_;
+
+use Expect;
+use Cwd qw/chdir/;
+
+my $wbid     = Table2SS::AddWorkBook($conf->{_excelfile} || "$conf->{_action}.xls");
+
+ my %netw_info;
+ foreach my $cnetw (@{$$conf{_argv}}) {
+  my $sheetname = join "", grep {defined} (split //, (File::Spec->splitpath($cnetw))[-1])[0 .. 29];
+
+    $netw_info{$sheetname} = tfo_init ($conf, rpt_transitive_table_from_file ($cnetw));
+  }
+
+
+ my @sheets   = sort {$a cmp $b} grep {!/__/} keys %netw_info;
+ my $comm_str = "1" x @sheets;
+
+ if ($$conf{show_common_nodes}) {
+   # Identifying common cells' nodes
+   foreach my $ctn (keys %{$netw_info{__all_to_nodes}}) {
+    $$conf{__common}{$ctn} = 1 if @sheets > 1 && $comm_str eq join ("", map {$netw_info{__to_nodes}{$_}{$ctn} ? 1 : 0} @sheets);
+   }
+ }
+
+ foreach my $csheet (@sheets) {
+  print "Propagating into '$netw_info{$csheet}{initial_node}' network..\n";
+  netw_tfo_propagate ($conf, $netw_info{$csheet}, $netw_info{$csheet}{initial_node});
+ }
+
+
+
+ if ($$conf{cg_ids_enable}) {
+   print "Spawning dc_load_netlist..\n";
+   chdir $$conf{run_dir};
+   #my $x = Expect->new($$conf{dc_load_cmd});
+   my $x = Expect->new("dc_load_netlist -netlist /vobs/z1s1dev/common/design/camisp/model/gate/asic/camisp.ddc -format ddc");
+
+   $x->log_stdout (0);
+   $x->expect(undef, 'dc_shell-xg-t> ');
+
+   print "\n";
+   my $seed = 1;
+   foreach my $csheet (@sheets) {
+    my @cg_info;
+    $seed = HUtils::Each($netw_info{$csheet}{tfo_tree}, qr/$$conf{cg_id_patterns}/o, sub {my ($k, $v, $id) = @_;
+
+             my $keyc = keys %$v;
+             my $drv  = ($k =~ /->\s+(\S+)/o)[0];
+
+             my $net = $drv;
+             while (1) {
+              $x->send (qq/get_nets -o $net\n/);
+              $x->expect (undef, 'dc_shell-xg-t> ');
+              my $nnet = $x->before;
+
+              last if $nnet =~ /^warning:/mio;
+              $nnet =~ /\n/o; ($net) = $' =~ /\{(\S+?)\}/;
+             }
+
+             print "($k)   ($v) [".(keys %$v)."]   ($id)\n";
+
+
+             push @cg_info, [$id, $keyc, $net, $drv],
+            }, $seed);
+
+    Table2SS::DriveSheet($wbid, $csheet, Table2SS::RCAllocate(1, 1, 1, [[@cg_info]], 'raw'));
+    print "\n";
+   }
+ } else {
+	 #Table2SS::DriveSheet($wbid, $_, Table2SS::RCAllocate(1, 1, 1, [HUtils::Key2Table($netw_info{$_}{tfo_tree})->{table}], 'network')) foreach (@sheets);
+   Table2SS::DriveSheet($wbid, $_, Table2SS::RCAllocate(1, 1, 1, [HUtils::itable($netw_info{$_}{tfo_tree})], 'network')) foreach @sheets;
+ }
+
+
+ Table2SS::Close($wbid);
+}
+
+
+reset_analyze {
+my ($conf) = @_;
+
+use Expect;
+use Cwd qw/chdir abs_path/;
+
+ $$conf{_argv}[0] = abs_path $$conf{_argv}[0];
+
+ print "Spawning dc_load_netlist..";
+ chdir $$conf{run_dir};
+ my $x = Expect->new($$conf{dc_load_cmd});
+
+ $x->log_stdout (0);
+ $x->expect(undef, 'dc_shell-xg-t> ');
+ print " Done.\n";
+
+ $conf->{DC} = $x;
+
+ my $ret = tfo_recurse($conf, tfo_init ($conf, rpt_transitive_table_from_file ($$conf{_argv}[0])), qr/\/(?:RN|SN)$/);
+
+ open (my $tfout, "> ../fout_ep.txt");
+ print $tfout '#' x 80, "\n", join "\n", @{$ret->{ep}}, "\n\n\n";
+ print $tfout '#' x 80, "\n", join "\n", @{$ret->{no_tfo}}, "\n\n\n";
+ print $tfout '#' x 80, "\n", join "\n", @{$ret->{match}}, "\n\n\n";
+}
+
+tfo_recurse {
+my ($conf, $tfostart, $filter_re) = @_;
+
+ tfo_propagate ($conf, $tfostart);
+
+ my @no_match; 
+ my @match; 
+ HUtils::Recurse ($tfostart->{tfo_tree}, sub {
+	 if ($_[0][-1] =~ /$filter_re/) {
+	  push @match, $_[0][-1];
+	 } else {
+	  push @no_match, $_[0][-1];
+	 }
+ });
+
+ my @ep;
+ my @no_tfo;
+ foreach (@no_match) {
+  next if $$conf{tfo_recurse}{seen}{$_};
+
+  # Is this pin's cell combinational ?
+  $$conf{DC}->send (qq/get_attribute -quiet [get_cells -o $_] is_combinational\n/);
+  $$conf{DC}->expect(undef, 'dc_shell-xg-t> ');
+  my $is_combi = $$conf{DC}->before =~ /\btrue\b/io;
+
+  if ($is_combi) {
+   print "Retrieving TFO of '$_'.. ";
+   $$conf{DC}->send (qq/report_transitive_fanout -nosplit -from $_\n/);
+   $$conf{DC}->expect(undef, 'dc_shell-xg-t> ');
+   print "Analyzing it..\n";
+
+
+   my $init = tfo_init ($conf, rpt_transitive_table_from_string ($$conf{DC}->before));
+
+   push @no_tfo, $_                        unless $init->{initial_node};
+
+   if ($init->{initial_node}) {
+    my $o = tfo_recurse($conf,  $init, $filter_re);
+
+    push @ep,     map {m/^=/o ? $_ : "= $_"} @{$o->{ep}};
+    push @no_tfo, map {m/^=/o ? $_ : "= $_"} @{$o->{no_tfo}};
+    push @match,  @{$o->{match}};
+   }
+   
+  } else {
+   print "Pushing '$_'\n";
+   push @ep, $_;
+  }
+
+  $$conf{tfo_recurse}{seen}{$_} = 1;
+ }
+
+ {ep=>\@ep, no_tfo=>\@no_tfo, match=>\@match};
+}
+
+tfo_init {
+my ($conf, $tfo_initial_table) = @_;
+
+  my %tfo_h;
+  foreach (@{$tfo_h{ALL_TABLE} = $tfo_initial_table})  {
+   # tarc = Timing ARC - From/To pin
+   my ($tarc_from, $tarc_to, $tarc_type, $tarc_sense) = @$_;
+
+   $tfo_h{isa_from}{$tarc_from} = 1;
+   $tfo_h{isa_to}{$tarc_to}     = 1;
+   $tfo_h{has_type}{$tarc_to}   = $tarc_type unless $tarc_type =~ /net\s+arc/o;
+
+   $tfo_h{__to_nodes}{$tarc_to} = 1 if $$conf{show_common_nodes};
+
+   push @{$tfo_h{fromto_table}{$tarc_from}}, {to=>$tarc_to, type=>$tarc_type, sense=>$tarc_sense};
+  }
+
+  $tfo_h{initial_node} = $$tfo_initial_table[0][0];
+
+  \%tfo_h;
+}
+
+
+rpt_transitive_table_from_string {$_[0] =~ /as\s+follows:/io; [map {map {[grep {defined} split /\s+\((.+?)\)\s+|\s+/o]} split /\n/o} 
+				                                        grep {m/\//o} 
+				       	                                   split /(?i)\s+(?:driver|load)\s+pin(?s:.+?)-+\s+|\n\s*?\n\s*/o, $']}
+
+rpt_transitive_table_from_file   {rpt_transitive_table_from_string (do {open (my $f, $_[0]); local $/; <$f>})}
+
+netw_tfo_propagate {
+my ($conf, $netw, $node, $from_key_list, $last_from) = @_;
+
+ my @keylist = $from_key_list ? @$from_key_list : (); 
+
+ if ($$netw{isa_from}{$node}) {
+  my $table_sz = @{$$netw{fromto_table}{$node}}; 
+  foreach my $cto (@{$$netw{fromto_table}{$node}}) {
+   my @lkeys = @keylist;
+
+   my $next_last_from;
+   if ($cto->{type} =~ /net\s+arc/o) {
+    push @lkeys, ($$netw{has_type}{$node} && $$conf{__common}{$node} ? "common:" : "").
+                 ($$netw{has_type}{$node} ? " $last_from ->  " : "").
+                 $node.
+		 ($$netw{has_type}{$node} ? "  ($$netw{has_type}{$node})": ""). sprintf("  [ %-5i]", $table_sz);
+
+   } else {
+    $next_last_from = (split /\//o, $node)[-1];
+   }
+   
+#   print "-> [@lkeys] --> '$cto->{to}'\n";
+    netw_tfo_propagate ($conf, $netw, $cto->{to}, \@lkeys, $next_last_from);
+  }
+
+ } else {
+#	 print "\t - LEAF=($node) [@keylist]\n";
+  eval q/$$netw{tfo_tree}{qq(/.join(q/)}{qq(/, @keylist, ($$conf{__common}{$node} ? "common:" : "").$node).q/)} = 1/;
+
+ }
+}
+
+tfo_propagate {
+my ($conf, $netw, $node, $from_key_list, $last_from) = @_;
+
+ $node      ||= $netw->{initial_node};
+
+ # This may happen when the report_transitive_fanout/in is empty, that is, the pi/port has NO Fanout/in logic
+ return unless $node;
+
+ my @keylist = $from_key_list ? @$from_key_list : (); 
+
+ if ($$netw{isa_from}{$node}) {
+  my $table_sz = @{$$netw{fromto_table}{$node}}; 
+  foreach my $cto (@{$$netw{fromto_table}{$node}}) {
+   my @lkeys = @keylist;
+
+   my $next_last_from;
+   if ($cto->{type} =~ /net\s+arc/o) {
+    push @lkeys, ($$netw{has_type}{$node} ? " $last_from ->  " : "").
+                 $node.
+		 ($$netw{has_type}{$node} ? "  ($$netw{has_type}{$node})": ""). sprintf("  [ %-5i]", $table_sz);
+
+   } else {
+    $next_last_from = (split /\//o, $node)[-1];
+   }
+   
+   tfo_propagate ($conf, $netw, $cto->{to}, \@lkeys, $next_last_from);
+  }
+
+ } else {
+  eval q/$$netw{tfo_tree}{qq(/.join(q/)}{qq(/, @keylist, $node).q/)} = 1/;
+ }
+}
+
+
+netw_tfi {
+my ($conf) = @_;
+
+use Expect;
+use Cwd qw/chdir abs_path/;
+
+ $$conf{_argv}[0] = abs_path $$conf{_argv}[0];
+
+ print "Spawning dc_load_netlist..";
+ chdir $$conf{run_dir};
+ my $x = Expect->new($$conf{dc_load_cmd});
+
+ $x->log_stdout (0);
+ $x->expect(undef, 'dc_shell-xg-t> ');
+ print " Done.\n";
+
+ my @reset_sp;
+ foreach (grep {m/\/(?:RN|SN)$/o} map {$$_[1]} @{rpt_transitive_table_from_file ($$conf{_argv}[0])}) {
+  print "Processing '$_'..\n";
+
+  $x->send (qq/report_transitive_fanin -nosplit -to $_\n/);
+  $x->expect (undef, 'dc_shell-xg-t> ');
+
+  push @reset_sp, grep {m/\/(?:CP|CK|CLK)$/o || !/\//o} map {$$_[0]} @{rpt_transitive_table_from_string ($x->before)};
+ }
+
+ my %reset_sp = map {$_ => 1} @reset_sp;
+
+ print "\n\n\n<", join(">\n<",  sort {$a cmp $b} keys %reset_sp), ">\n";
+}

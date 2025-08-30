@@ -1,0 +1,6 @@
+list_2table {Table::list2table (@_)}
+table_2ss   {my ($tablist, %opt) = @_;
+ my $wbid = Table2SS::AddWorkBook($opt{workbook} // 'table_2ss.xls');
+ Table2SS::DriveSheet($wbid, $opt{sheet} // 'Sheet1', Table2SS::RCAllocate(1, 1, 1, $tablist, 'raw'));
+ Table2SS::Close($wbid);
+}

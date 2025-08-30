@@ -1,0 +1,4 @@
+expr := term op term
+term := '(' expr ')' | 'num'
+op := '+' | '*'
+

@@ -1,0 +1,1 @@
+plugin {PPlugin->get($_[-1]) // sub {}}

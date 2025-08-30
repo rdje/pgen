@@ -1,0 +1,64 @@
+tcl4interconn {
+my ($qconf, $groups, $port, $tcl4interconn) = @_;
+ 
+  return if $$groups{ios}{ion}{$port}[0][$qconf->{indexes}{direction}] =~ /$qconf->{vssvdd_re}/;
+
+  my $direction = $groups->{ios}{ion}{$port}[0][$qconf->{indexes}{direction}] =~ /in/io ? "IN" : "OUT";
+  my $get_fxy   = 'get_'.($direction eq 'IN' ? "fir" : "for");
+
+  push @$tcl4interconn, <<TCL4INTERCONN ;
+   set ${port}_list {}
+   foreach_in_collection myep [$get_fxy -thrulatch -unknown \$MODULE_PATH/$port] {
+    append ${port}_list " [get_attribute \$myep full_name]"
+   }
+
+   if {\$${port}_list != {}} {
+    echo "\$MODULE_PATH/$port $direction \$${port}_list"
+   } else {
+    echo "\$MODULE_PATH/$port $direction"
+   }
+TCL4INTERCONN
+}
+
+
+tcl4fanx {
+my ($qconf) = @_;
+
+ -s $qconf->{fanx} || die "($qconf->{progname}) -E- FANX file '$qconf->{fanx}' is either empty or doesn't exist,";
+
+
+ my $fanxo = {map {
+       my @fanx = split(/\s+/o, $_);
+       $fanx[0] =~ s/.+\///o;
+       $fanx[0] => (@fanx == 2 ? undef : (@fanx == 3 ? $fanx[2] : Table2SS::List2Table([@fanx[2 .. $#fanx]], 1)))
+      } grep !/^(?:\(|\[)/o, split(/\n/o, do {local(@ARGV, $/) = $qconf->{fanx}, <>})
+ };
+
+
+ # loop over entried associated w/ a table
+ my %withtable;
+ HUtils::KeyGrep($fanxo, sub {ref $_[1]}, sub {my ($info, $table) = @_;
+  $withtable{pop @$info} = $table;
+ });
+
+ $qconf->{_fanxtree} = Table2SS::TableTreeAllocate(\%withtable);
+ return $fanxo
+}
+
+
+get_fanxinfo {
+my ($qconf, $port) = @_;
+
+ my $fanx_info  = do {
+        # zero or just one connection
+        unless (ref $qconf->{_fanx}{$port}) {
+         # Just one fanx node
+         $qconf->{_fanx}{$port}
+        } else {
+         "internal:fanx!".Table2SS::TableTreeA1($qconf->{_fanxtree}, [$port])."\@".$qconf->{_fanx}{$port}[0][0]."  (".scalar(@{$qconf->{_fanx}{$port}}).")"
+        }
+        
+ } if $qconf->{_fanx};
+
+ return $fanx_info || '-'
+}

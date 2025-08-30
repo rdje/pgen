@@ -1,0 +1,7 @@
+# Test basic return annotation types (avoiding complex quantifiers for now)
+test_scalar := word -> $1
+test_array := word /\s+/ number -> [$1, $3]  
+test_object := word /\s+/ number -> {text: $1, value: $3}
+
+word := /([a-zA-Z]+)/ -> $1
+number := /(\d+)/ -> $1

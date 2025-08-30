@@ -1,0 +1,8 @@
+# Partial: some alternatives have probabilities, others don't
+expr := "a" @30% | "b" | "c" @20%
+# Should auto-assign 50% to "b"
+
+
+
+
+

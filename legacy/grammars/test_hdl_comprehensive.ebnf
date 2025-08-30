@@ -1,0 +1,48 @@
+# Comprehensive HDL-style grammar test
+# Testing identifiers, operators, expressions, and return annotations
+
+# Basic identifiers (VHDL/Verilog style)
+identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/ -> $1
+
+# Numbers (decimal, hex, binary)
+decimal_number := /(\d+)/ -> {type: "decimal", value: $1}
+hex_number := /(0x[0-9a-fA-F]+)/ -> {type: "hex", value: $1}
+binary_number := /(0b[01]+)/ -> {type: "binary", value: $1}
+
+number := decimal_number -> $1
+number := hex_number -> $1  
+number := binary_number -> $1
+
+# Basic operators
+logical_op := 'and' -> "logical_and"
+logical_op := 'or' -> "logical_or"
+logical_op := 'not' -> "logical_not"
+logical_op := 'xor' -> "logical_xor"
+
+arithmetic_op := '+' -> "add"
+arithmetic_op := '-' -> "subtract"
+arithmetic_op := '*' -> "multiply"
+arithmetic_op := '/' -> "divide"
+
+# Simple expressions with return annotations
+primary := identifier -> {type: "identifier", name: $1}
+primary := number -> {type: "number", data: $1}
+primary := '(' /\s*/ expression /\s*/ ')' -> {type: "grouped", expr: $3}
+
+# Binary expressions (left-associative)
+expression := primary -> $1
+expression := expression /\s+/ arithmetic_op /\s+/ primary -> {type: "binary", left: $1, op: $3, right: $5}
+expression := expression /\s+/ logical_op /\s+/ primary -> {type: "logical", left: $1, op: $3, right: $5}
+
+# Port directions (VHDL style)  
+port_direction := 'in' -> "input"
+port_direction := 'out' -> "output"
+port_direction := 'inout' -> "bidirectional"
+
+# Signal declaration
+signal_decl := identifier /\s*:\s*/ port_direction /\s+/ identifier -> {signal: $1, direction: $3, type: $5}
+
+# Top-level construct
+hdl_construct := expression -> {construct: "expression", data: $1}
+hdl_construct := signal_decl -> {construct: "signal", data: $1}
+

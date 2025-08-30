@@ -1,0 +1,84 @@
+e_unit {
+my ($conf) = @_;
+
+ $p = new RTLUtils;
+
+ #my $mlist = [map {print "(e_unit) -I- Loading '$_'.\n"; $p->vhdl_file($_)} rtl_file_list (@{$$conf{_argv}})];
+
+ my $mlist  = retrieve_vhdlcompile_db ($$conf{_argv}); #Storable::retrieve($$conf{_argv}[0]);
+ my $h = {};
+
+ # Retrieves all entities' declaration
+ my @entity_list  =  get_anode_list($mlist, '?entity_declaration:');
+
+ foreach my $arch (get_anode_list($mlist, '?architecture_body:')) {
+  #print "\tA $arch->[1] : $arch->[2]\n"; 
+
+  my $sig_id = 0;
+  foreach my $csig (get_anode_list($arch, '?signal_declaration:')) {
+   #print "\t  S $$csig[1]\n";
+   HUtils::avv_get($h, 'architecture', "$arch->[1]:$arch->[2]", 'signal', "$sig_id:$$csig[1]") = $$csig[2]; # [1]= name [2]= type info
+   $sig_id++
+  }
+
+ }
+
+ # For each such entities retriving only the ports' declaration (comments+spaces are ignored)
+ my %e2ports = map {$$_[1], [get_anode_list($_, '?port_decl:')]} @entity_list;
+ 
+ #print "\n";
+
+ mkdir 'eUNITs';
+ foreach (keys %e2ports) {
+  open (my $uo, "> eUNITs/$_.e") || die "can't write open eUNITs/$_.e,";
+  print STDOUT "(e_unit) -I- Creating eUNIT for '$_'\n";
+
+  my $old = select $uo;
+
+  my @ports_decl     = @{$e2ports{$_}};
+  my $align          = RTLUtils::string_align ([map {$$_[1][0]}       @ports_decl]);
+  my $dir_align      = RTLUtils::string_align ([map {lc $$_[1][1]}    @ports_decl]);
+  my $sz_align       = RTLUtils::string_align ([map {defined $$_[1][3] ? (scalar(grep {m/[a-z_]/oi} map {defined $_ ? $_ : '_'} @{$$_[1]}[3,4]) ? "#" : "uint(bits:".($$_[1][3] - $$_[1][4] +1).")") : "bit"} @ports_decl]);
+  my $hdl_path_align = RTLUtils::string_align ([map {qq/"$$_[1][0]"/} @ports_decl]);
+
+  #  foo_port        : inout simple_port of uint(bits:5) is instance; keep foo_port       .hdl_path() == "foo_port"       ;  
+  my @eports_decl = map {
+	             my @d = @{$$_[1]};
+		     my $szinfo;
+		     $szinfo = defined $d[3] ? (scalar(grep {m/[a-z_]/oi} map {defined $_ ? $_ : '_'} @d[3,4]) ? "" : "uint(bits:".($d[3] - $d[4] +1).")") : "bit";
+
+		     $d[2] =~ /std_logic|bit/io && $szinfo ?  
+                     "  $$align{$d[0]} : ".$$dir_align{lc $d[1]} ." simple_port of $$sz_align{$szinfo} is instance; keep $$align{$d[0]} .hdl_path() == ".$$hdl_path_align{qq/"$d[0]"/}.";"  : 
+		     "// $d[0] : $d[1] $d[2]".($d[3] ? " [$d[3]:".(defined $d[4] ? $d[4] : '-')."]" : "")
+                    } @ports_decl;
+
+
+  # - signals part -
+  my %eports_decl_4signals; 
+  HUtils::KeyGrep($h, qr/\s.+:$_\b/, sub {my ($ks, $v) = @_;
+   my ($a_name) = $$ks[-1] =~ /(.+):/o;
+
+    my @siglist; HUtils::Recurse($v, sub {my ($kss, $t) = @_;
+      $siglist[($$kss[-1] =~ /(.+):/o)[0]] = [($$kss[-1] =~ /:(.+)/o)[0], grep {defined} $t =~ /(?is)(\w+)\s*(?:\(\s*(.+?)\s+(?:downto|to)\s+(.+?)\s*\))?/o];
+    });
+
+    my $align          = RTLUtils::string_align ([map {$$_[0]}       @siglist]);
+    my $sz_align       = RTLUtils::string_align ([map {defined $$_[2] ? (scalar(grep {m/[a-z_]/oi} map {defined $_ ? $_ : '_'} @$_[2,3]) ? "#" : "uint(bits:".eval ("$$_[2] - $$_[3] +1").")") : "bit"} @siglist]);
+    my $hdl_path_align = RTLUtils::string_align ([map {qq/"$$_[0]"/} @siglist]);
+    #print STDOUT "Processing Architecture *$a_name*\n";
+    $eports_decl_4signals{$a_name} = [map {
+	                               #print STDOUT "\tProcessing signal -$$_[0]-\n";
+		                       my $szinfo = defined $$_[2] ? (scalar(grep {m/[a-z_]/oi} map {defined $_ ? $_ : '_'} @$_[2,3]) ? "" : "uint(bits:".eval("$$_[2] - $$_[3] +1").")") : "bit";
+
+		                       $$_[1] =~ /std_logic|bit/io && $szinfo ?  
+                                       "  $$align{$$_[0]} : simple_port of $$sz_align{$szinfo} is instance; keep $$align{$$_[0]} .hdl_path() == ". $$hdl_path_align{qq/"$$_[0]"/}.";" : "// @$_"
+                                     } @siglist] if @siglist;  
+  });
+
+  print join "\n", "unit $_ {", @eports_decl, "\n", (map {+"\n", "// Architecture -$_- signals", @{$eports_decl_4signals{$_}}} keys %eports_decl_4signals), "};";
+
+  select $old;
+ } 
+}
+
+

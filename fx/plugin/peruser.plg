@@ -1,0 +1,47 @@
+peruser_default {
+my ($conf) = @_;
+
+  my $ps = new PathSearch;
+  HUtils::Merge(HUtils::Merge($conf, HUtils::Link($ps->go('stan_backend'))), HUtils::Link($ps->go('peruser')));
+
+  my $peruser_files = [grep {m/$$conf{peruser_files_re}/o} @{$conf->{_argv}}];
+  my $default_files = [grep {!/$$conf{peruser_files_re}/o} @{$conf->{_argv}}];
+
+  my $peruser_data  = TcFlow::GetAll($peruser_files);
+  my $default_data  = TcFlow::GetAll($default_files) if @$default_files;
+
+  my $peruser_filtered = HUtils::GenericFilter($conf, $peruser_data, "$conf->{_action}_sequence",  maptable=>'reportiming');
+  my $default_filtered = HUtils::GenericFilter($conf, $default_data, "defaultout_sequence",        maptable=>'reportiming') if $default_data;
+
+
+  my %peruser;
+  HUtils::KeyGrep($peruser_filtered, sub {@{$_[0]} == 2}, sub {my ($ks, $sh) = @_;
+     my @tlist;
+     HUtils::KeyGrep ($sh, sub {@{$_[0]} == 2}, sub {my ($sks, $t) = @_;
+      unshift @$t, [$$sks[-1]];
+      push @tlist, $t; 
+     }); 
+
+    $peruser{$$ks[-1]} = Table2SS::RCAllocate(1, 1, 2, [@tlist], 'path_type_labeled_consolidated_rep');
+  });
+
+
+  my $default_rca;
+  if ($default_filtered) {
+    my @tlist;
+    HUtils::Recurse($default_filtered, sub {my ($ks, $t) = @_;
+         unshift @$t, [$$ks[-1]];
+         push @tlist, $t; 
+            
+    });
+
+   $default_rca = Table2SS::RCAllocate(1, 1, 5, [@tlist], 'path_type_labeled_consolidated_rep');
+  }
+
+  my $wbid           = Table2SS::AddWorkBook($conf->{_excelfile});
+  Table2SS::DriveSheet($wbid, $_,  $peruser{$_}) foreach sort {$a cmp $b} keys %peruser;
+  Table2SS::DriveSheet($wbid, 'FULL',  $default_rca) if $default_rca;
+  Table2SS::Close     ($wbid);
+}
+
+
