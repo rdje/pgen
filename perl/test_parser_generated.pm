@@ -4,9 +4,9 @@ use warnings;
 
 # Compiled regex patterns for speed
 our %REGEXES = (
-    'identifier' => qr/([a-zA-Z_]\w*)/o,
-    'word' => qr/([a-zA-Z]+)/o,
-    'number' => qr/(\d+)/o
+    'identifier' => qr/[a-zA-Z_]\w*/o,
+    'word' => qr/[a-zA-Z]+/o,
+    'number' => qr/\d+/o
 );
 
 # Runtime helper functions
@@ -85,15 +85,38 @@ sub collect_quantified_results {
     }
 }
 
-sub parse_expression_list {
+sub parse_word_sequence {
     my ($input) = @_;
     my $start_pos = pos($$input);
     my @results = ();
     
     # Parse sequence elements in order
     # Universal quantified sequence: parse all elements in order
-    # Rule call: expression
-    my $atom_result_1 = parse_expression($input);
+    # Rule call: word
+    my $atom_result_1 = parse_word($input);
+    unless (defined $atom_result_1) {
+        pos($$input) = $start_pos;
+        return undef;
+    }
+    push @results, $atom_result_1;
+
+    # FIXED: Enhanced fallback for element type 
+
+
+    
+    return \@results;
+}
+
+
+sub parse_number_list {
+    my ($input) = @_;
+    my $start_pos = pos($$input);
+    my @results = ();
+    
+    # Parse sequence elements in order
+    # Universal quantified sequence: parse all elements in order
+    # Rule call: number
+    my $atom_result_1 = parse_number($input);
     unless (defined $atom_result_1) {
         pos($$input) = $start_pos;
         return undef;
@@ -115,29 +138,6 @@ sub parse_identifier {
         return 1;
     }
     return undef;
-}
-
-
-sub parse_word_sequence {
-    my ($input) = @_;
-    my $start_pos = pos($$input);
-    my @results = ();
-    
-    # Parse sequence elements in order
-    # Universal quantified sequence: parse all elements in order
-    # Rule call: word
-    my $atom_result_1 = parse_word($input);
-    unless (defined $atom_result_1) {
-        pos($$input) = $start_pos;
-        return undef;
-    }
-    push @results, $atom_result_1;
-
-    # FIXED: Enhanced fallback for element type 
-
-
-    
-    return \@results;
 }
 
 
@@ -164,15 +164,15 @@ sub parse_expression {
     return undef;
 }
 
-sub parse_number_list {
+sub parse_expression_list {
     my ($input) = @_;
     my $start_pos = pos($$input);
     my @results = ();
     
     # Parse sequence elements in order
     # Universal quantified sequence: parse all elements in order
-    # Rule call: number
-    my $atom_result_1 = parse_number($input);
+    # Rule call: expression
+    my $atom_result_1 = parse_expression($input);
     unless (defined $atom_result_1) {
         pos($$input) = $start_pos;
         return undef;
@@ -201,7 +201,7 @@ sub parse_number {
 sub parse {
     my ($input) = @_;
     pos($$input) = 0;
-    return parse_expression_list($input);
+    return parse_identifier($input);
 }
 
 1;

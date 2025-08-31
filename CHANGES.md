@@ -288,3 +288,127 @@ This fix enables the parser generator to handle a wide range of real-world gramm
 - Checked regex warning fixes
 
 This represents a major enhancement to the parser generation system's capability to handle real-world grammar patterns.
+
+---
+
+## 2025-08-31: Critical Fix - Parentheses Detection for Grouped Quantifiers
+
+### Root Cause Discovery
+
+After extensive debugging of the grouped quantifier system, we discovered the actual root cause was in the **parentheses detection logic** in step 2.5 of the transformation pipeline.
+
+### Problem Analysis
+
+The `is_group_open()` and `is_group_close()` functions in `AST::Transform.pm` were only checking for two-element arrays:
+- `['operator', '(']` or `['group_open', '(']`
+- `['operator', ')']` or `['group_close', ')']`
+
+But the actual tokens from the EBNF parser were single-element arrays:
+- `['(']` 
+- `[')']`
+
+This caused parentheses to never be detected, so grouped content was never properly structured.
+
+### The Fix
+
+**File:** `perl/AST/Transform.pm` (MODIFIED)
+
+Updated both detection functions to handle single-element array format:
+
+```perl
+sub is_group_open {
+    my ($token) = @_;
+    return ref($token) eq 'ARRAY' && (
+        ($token->[0] eq 'operator' && $token->[1] eq '(') ||
+        ($token->[0] eq 'group_open' && $token->[1] eq '(') ||
+        ($token->[0] eq '(')  # Handle single-element array format
+    );
+}
+
+sub is_group_close {
+    my ($token) = @_;
+    return ref($token) eq 'ARRAY' && (
+        ($token->[0] eq 'operator' && $token->[1] eq ')') ||
+        ($token->[0] eq 'group_close' && $token->[1] eq ')') ||
+        ($token->[0] eq ')')  # Handle single-element array format
+    );
+}
+```
+
+### Result Validation
+
+After the fix, the transformation pipeline works correctly:
+
+**Step 2.5 Before Fix:**
+```
+Input: ['rule', 'expression'], ['('], ['quoted_string', ','], ['rule', 'expression'], [')'], ['operator', '*']
+Output: Same as input (parentheses not detected)
+```
+
+**Step 2.5 After Fix:**
+```
+Input: ['rule', 'expression'], ['('], ['quoted_string', ','], ['rule', 'expression'], [')'], ['operator', '*']
+Output: ['rule', 'expression'], ['GROUPED', [['quoted_string', ','], ['rule', 'expression']]], ['operator', '*']
+```
+
+**Step 4 Processing:**
+Creates proper quantified structure:
+```perl
+{
+    'type' => 'quantified',
+    'element' => {
+        'type' => 'sequence',
+        'elements' => [
+            ['quoted_string', ','],
+            ['rule', 'expression']
+        ]
+    },
+    'quantifier' => '*'
+}
+```
+
+### LeftRecursionEliminator Issue Identified
+
+While debugging, we discovered that the **LeftRecursionEliminator** is causing hash reference stringification:
+
+```
+WARNING: Unhandled quantified element in generate_universal_quantified_step:
+  element_value type: 
+  element_value: $VAR1 = 'HASH(0x1531d6f90)';
+```
+
+The eliminator converts complex quantified structures to simple strings like `"QUANTIFIED:element_name:*"` during processing, then fails to reconstruct the full hash structure when converting back.
+
+**Location:** `perl/LeftRecursionIntegrator.pm` lines 95, 383-389
+
+**Impact:** This prevents grouped quantifier code generation in the final parser, even though the detection logic works perfectly before left-recursion elimination.
+
+### Current Status
+
+✅ **FIXED:** Parentheses detection and grouped quantifier recognition
+✅ **WORKING:** Complete transformation pipeline through step 5 
+✅ **WORKING:** BacktrackingParserIntegration detection functions
+✅ **WORKING:** Generate_universal_quantified_step function
+
+🔄 **REMAINING:** LeftRecursionEliminator hash structure preservation
+
+### Files Modified
+
+- **MODIFIED:** `perl/AST/Transform.pm` - Fixed `is_group_open()` and `is_group_close()`
+- **TESTED:** Multiple debug scripts created to isolate and verify the fix
+
+### Test Cases Validated
+
+- `expression_list := expression ( "," expression )*`
+- `number_list := number ( "," number )*`  
+- `word_sequence := word ( word )*`
+
+All test cases now properly detect and structure grouped quantifiers through step 5 of the transformation pipeline.
+
+### Next Steps
+
+1. **Fix LeftRecursionEliminator:** Modify the serialization/deserialization logic to preserve complex quantified element structures
+2. **Integration Testing:** Verify end-to-end parser generation with grouped quantifiers
+3. **Performance Testing:** Ensure the fixes don't impact processing speed
+
+This fix represents the breakthrough that enables proper grouped quantifier support in the parser generation system.

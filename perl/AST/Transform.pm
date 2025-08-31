@@ -514,7 +514,8 @@ sub is_group_open {
     my ($token) = @_;
     return ref($token) eq 'ARRAY' && (
         ($token->[0] eq 'operator' && $token->[1] eq '(') ||
-        ($token->[0] eq 'group_open' && $token->[1] eq '(')
+        ($token->[0] eq 'group_open' && $token->[1] eq '(') ||
+        ($token->[0] eq '(')  # Handle single-element array format
     );
 }
 
@@ -522,7 +523,8 @@ sub is_group_close {
     my ($token) = @_;
     return ref($token) eq 'ARRAY' && (
         ($token->[0] eq 'operator' && $token->[1] eq ')') ||
-        ($token->[0] eq 'group_close' && $token->[1] eq ')')
+        ($token->[0] eq 'group_close' && $token->[1] eq ')') ||
+        ($token->[0] eq ')')  # Handle single-element array format
     );
 }
 
