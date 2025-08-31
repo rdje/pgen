@@ -4,8 +4,8 @@ use warnings;
 
 # Compiled regex patterns for speed
 our %REGEXES = (
-    'identifier' => qr/[a-zA-Z_]\w*/o,
     'word' => qr/[a-zA-Z]+/o,
+    'identifier' => qr/[a-zA-Z_]\w*/o,
     'number' => qr/\d+/o
 );
 
@@ -85,6 +85,62 @@ sub collect_quantified_results {
     }
 }
 
+sub parse_word {
+    my ($input) = @_;
+    if ($$input =~ /\G$REGEXES{'word'}/gc) {
+        my @results = ($1);  # Capture regex result
+        return 1;
+    }
+    return undef;
+}
+
+
+sub parse_expression_list {
+    my ($input) = @_;
+    my $start_pos = pos($$input);
+    my @results = ();
+    
+    # Parse sequence elements in order
+    # Universal quantified sequence: parse all elements in order
+    # Rule call: expression
+    my $atom_result_1 = parse_expression($input);
+    unless (defined $atom_result_1) {
+        pos($$input) = $start_pos;
+        return undef;
+    }
+    push @results, $atom_result_1;
+
+    # FIXED: Enhanced fallback for element type 
+
+
+    
+    return \@results;
+}
+
+
+sub parse_expression {
+    my ($input) = @_;
+    my $start_pos = pos($$input);
+    
+    # Try alternatives in order (fast backtracking)
+    if (defined(my $alt_result = parse_identifier($input))) { return $alt_result; }
+    if (defined(my $alt_result = parse_number($input))) { return $alt_result; }
+    
+    # No match - restore position
+    pos($$input) = $start_pos;
+    return undef;
+}
+
+sub parse_identifier {
+    my ($input) = @_;
+    if ($$input =~ /\G$REGEXES{'identifier'}/gc) {
+        my @results = ($1);  # Capture regex result
+        return 1;
+    }
+    return undef;
+}
+
+
 sub parse_word_sequence {
     my ($input) = @_;
     my $start_pos = pos($$input);
@@ -105,6 +161,16 @@ sub parse_word_sequence {
 
     
     return \@results;
+}
+
+
+sub parse_number {
+    my ($input) = @_;
+    if ($$input =~ /\G$REGEXES{'number'}/gc) {
+        my @results = ($1);  # Capture regex result
+        return 1;
+    }
+    return undef;
 }
 
 
@@ -131,77 +197,11 @@ sub parse_number_list {
 }
 
 
-sub parse_identifier {
-    my ($input) = @_;
-    if ($$input =~ /\G$REGEXES{'identifier'}/gc) {
-        my @results = ($1);  # Capture regex result
-        return 1;
-    }
-    return undef;
-}
-
-
-sub parse_word {
-    my ($input) = @_;
-    if ($$input =~ /\G$REGEXES{'word'}/gc) {
-        my @results = ($1);  # Capture regex result
-        return 1;
-    }
-    return undef;
-}
-
-
-sub parse_expression {
-    my ($input) = @_;
-    my $start_pos = pos($$input);
-    
-    # Try alternatives in order (fast backtracking)
-    if (defined(my $alt_result = parse_identifier($input))) { return $alt_result; }
-    if (defined(my $alt_result = parse_number($input))) { return $alt_result; }
-    
-    # No match - restore position
-    pos($$input) = $start_pos;
-    return undef;
-}
-
-sub parse_expression_list {
-    my ($input) = @_;
-    my $start_pos = pos($$input);
-    my @results = ();
-    
-    # Parse sequence elements in order
-    # Universal quantified sequence: parse all elements in order
-    # Rule call: expression
-    my $atom_result_1 = parse_expression($input);
-    unless (defined $atom_result_1) {
-        pos($$input) = $start_pos;
-        return undef;
-    }
-    push @results, $atom_result_1;
-
-    # FIXED: Enhanced fallback for element type 
-
-
-    
-    return \@results;
-}
-
-
-sub parse_number {
-    my ($input) = @_;
-    if ($$input =~ /\G$REGEXES{'number'}/gc) {
-        my @results = ($1);  # Capture regex result
-        return 1;
-    }
-    return undef;
-}
-
-
 # Main entry point
 sub parse {
     my ($input) = @_;
     pos($$input) = 0;
-    return parse_identifier($input);
+    return parse_number_list($input);
 }
 
 1;

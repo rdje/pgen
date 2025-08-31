@@ -177,50 +177,106 @@ sub extract_sequence_symbols {
             # Quantified element -> preserve structure with special marker
             my $inner_element = $element->{element};
             
-            if (ref($inner_element) eq 'ARRAY' && $inner_element->[0] eq 'GROUPED') {
-                # Handle grouped quantified elements: (a | b)*
-                # Convert GROUPED content to a synthetic rule reference
-                my $grouped_content = $inner_element->[1];  # Extract the grouped array
+            # FIXED: Check for sequence hash structure (grouped quantifiers)
+            # Handle both direct sequences and atom-wrapped sequences
+            my $sequence_elements;
+            if (ref($inner_element) eq 'HASH' && $inner_element->{type} eq 'sequence') {
+                # Direct sequence structure
+                $sequence_elements = $inner_element->{elements};
+            } elsif (ref($inner_element) eq 'HASH' && $inner_element->{type} eq 'atom' && 
+                     ref($inner_element->{value}) eq 'HASH' && $inner_element->{value}->{type} eq 'sequence') {
+                # Atom-wrapped sequence structure (from step 5)
+                $sequence_elements = $inner_element->{value}->{elements};
+            }
+            
+            if ($sequence_elements) {
+                # Handle grouped quantified elements: (element1 element2)*
+                # Serialize the entire sequence structure
                 my @group_symbols = ();
                 
-                # Process the grouped content recursively
+                # Process each element in the sequence
+                foreach my $seq_elem (@$sequence_elements) {
+                    if (ref($seq_elem) eq 'ARRAY') {
+                        # Array format: ['quoted_string', ','] or ['rule_reference', 'expression']
+                        if ($seq_elem->[0] eq 'quoted_string') {
+                            push @group_symbols, "TERMINAL:" . $seq_elem->[1];
+                        } elsif ($seq_elem->[0] eq 'rule_reference' || $seq_elem->[0] eq 'rule') {
+                            push @group_symbols, $seq_elem->[1];  # Rule name
+                        } elsif ($seq_elem->[0] eq 'regex') {
+                            push @group_symbols, "REGEX:" . $seq_elem->[1];
+                        } elsif ($seq_elem->[0] eq 'operator') {
+                            push @group_symbols, "OPERATOR:" . $seq_elem->[1];
+                        } else {
+                            push @group_symbols, join(":", @$seq_elem);
+                        }
+                    } elsif (ref($seq_elem) eq 'HASH') {
+                        # Hash format: {type => 'atom', value => [...]}
+                        if ($seq_elem->{type} eq 'atom' && ref($seq_elem->{value}) eq 'ARRAY') {
+                            my $value = $seq_elem->{value};
+                            if ($value->[0] eq 'quoted_string') {
+                                push @group_symbols, "TERMINAL:" . $value->[1];
+                            } elsif ($value->[0] eq 'rule_reference' || $value->[0] eq 'rule') {
+                                push @group_symbols, $value->[1];  # Rule name
+                            } elsif ($value->[0] eq 'regex') {
+                                push @group_symbols, "REGEX:" . $value->[1];
+                            } elsif ($value->[0] eq 'operator') {
+                                push @group_symbols, "OPERATOR:" . $value->[1];
+                            } else {
+                                push @group_symbols, join(":", @$value);
+                            }
+                        } else {
+                            # Other hash structures - try to extract meaningful name
+                            push @group_symbols, "UNKNOWN:" . ($seq_elem->{name} || 'element');
+                        }
+                    } else {
+                        # Simple string - assume rule name
+                        push @group_symbols, $seq_elem;
+                    }
+                }
+                
+                # Create a compound symbol for grouped quantified sequence
+                # Use | as separator for sequence elements (different from ~ for safety)
+                my $group_content = join("||", @group_symbols);
+                push @symbols, "QUANTIFIED:SEQUENCE~$group_content~" . $element->{quantifier};
+            } elsif (ref($inner_element) eq 'ARRAY' && $inner_element->[0] eq 'GROUPED') {
+                # Legacy GROUPED array format (fallback for older structures)
+                my $grouped_content = $inner_element->[1];
+                my @group_symbols = ();
+                
                 foreach my $group_item (@$grouped_content) {
                     if (ref($group_item) eq 'ARRAY') {
-                        if ($group_item->[0] eq 'terminal') {
+                        if ($group_item->[0] eq 'quoted_string') {
                             push @group_symbols, "TERMINAL:" . $group_item->[1];
-                        } elsif ($group_item->[0] eq 'operator') {
-                            push @group_symbols, "OPERATOR:" . $group_item->[1];
+                        } elsif ($group_item->[0] eq 'rule_reference' || $group_item->[0] eq 'rule') {
+                            push @group_symbols, $group_item->[1];
                         } elsif ($group_item->[0] eq 'regex') {
                             push @group_symbols, "REGEX:" . $group_item->[1];
+                        } elsif ($group_item->[0] eq 'operator') {
+                            push @group_symbols, "OPERATOR:" . $group_item->[1];
                         } else {
                             push @group_symbols, join(":", @$group_item);
                         }
                     } else {
-                        push @group_symbols, $group_item;  # Rule reference
+                        push @group_symbols, $group_item;
                     }
                 }
                 
-                # Create a compound symbol representing the grouped quantified element
-                # Use a safe encoding that won't be split incorrectly later
-                my $group_content = join("~", @group_symbols);  # Use ~ as safe separator
+                my $group_content = join("||", @group_symbols);
                 push @symbols, "QUANTIFIED:GROUP~$group_content~" . $element->{quantifier};
             } else {
                 # Simple quantified element: item+
-                # Extract token value properly from different structures
                 my $element_name;
                 if (ref($inner_element) eq 'HASH' && $inner_element->{type} eq 'atom') {
-                    # Handle hash structure from Step 5: {type => 'atom', value => ['rule_reference', 'accessor']}
+                    # Handle hash structure from Step 5
                     my $value = $inner_element->{value};
                     if (ref($value) eq 'ARRAY' && @$value == 2) {
-                        $element_name = $value->[1];  # Extract rule name
+                        $element_name = $value->[1];
                     } else {
                         $element_name = $value;
                     }
                 } elsif (ref($inner_element) eq 'ARRAY' && @$inner_element == 2) {
-                    # Handle array structure: ['type', 'value']
                     $element_name = $inner_element->[1];
                 } else {
-                    # Use as-is if not structured
                     $element_name = $inner_element;
                 }
                 push @symbols, "QUANTIFIED:" . $element_name . ":" . $element->{quantifier};
@@ -338,22 +394,72 @@ sub convert_production_to_ast {
         # Single element - check if it's a quantified element
         my $ast_value = convert_symbol_to_ast_value($production->[0]);
         
-        if (ref($ast_value) eq 'ARRAY' && $ast_value->[0] eq 'quantified_element') {
-            # Single quantified element - convert to proper quantified structure
-            my ($type, $element_name, $quantifier) = @$ast_value;
+        if (ref($ast_value) eq 'ARRAY' && ($ast_value->[0] eq 'quantified_element' || $ast_value->[0] eq 'quantified_sequence' || $ast_value->[0] eq 'quantified_group')) {
+            # Quantified element - convert to proper quantified structure
+            my ($type, $content, $quantifier) = @$ast_value;
+            
+            my $element_structure;
+            if ($type eq 'quantified_sequence') {
+                # FIXED: Reconstruct sequence structure from serialized content
+                my @seq_symbols = split(/\|\|/, $content);
+                my @sequence_elements = ();
+                
+                foreach my $symbol (@seq_symbols) {
+                    if ($symbol =~ /^TERMINAL:(.+)$/) {
+                        push @sequence_elements, ['quoted_string', $1];
+                    } elsif ($symbol =~ /^REGEX:(.+)$/) {
+                        push @sequence_elements, ['regex', $1];
+                    } elsif ($symbol =~ /^OPERATOR:(.+)$/) {
+                        push @sequence_elements, ['operator', $1];
+                    } else {
+                        # Rule reference
+                        push @sequence_elements, ['rule_reference', $symbol];
+                    }
+                }
+                
+                $element_structure = {
+                    type => 'sequence',
+                    elements => \@sequence_elements
+                };
+            } elsif ($type eq 'quantified_group') {
+                # Legacy grouped format - reconstruct sequence
+                my @group_symbols = split(/\|\|/, $content);
+                my @sequence_elements = ();
+                
+                foreach my $symbol (@group_symbols) {
+                    if ($symbol =~ /^TERMINAL:(.+)$/) {
+                        push @sequence_elements, ['quoted_string', $1];
+                    } elsif ($symbol =~ /^REGEX:(.+)$/) {
+                        push @sequence_elements, ['regex', $1];
+                    } elsif ($symbol =~ /^OPERATOR:(.+)$/) {
+                        push @sequence_elements, ['operator', $1];
+                    } else {
+                        push @sequence_elements, ['rule_reference', $symbol];
+                    }
+                }
+                
+                $element_structure = {
+                    type => 'sequence',
+                    elements => \@sequence_elements
+                };
+            } else {
+                # Simple quantified element
+                $element_structure = $content;
+            }
+            
             if ($has_return_annotation) {
                 return {
                     type => 'sequence', 
                     elements => [{
                         type => 'quantified',
-                        element => $element_name,
+                        element => $element_structure,
                         quantifier => $quantifier
                     }]
                 };
             } else {
                 return {
                     type => 'quantified',
-                    element => $element_name,
+                    element => $element_structure,
                     quantifier => $quantifier
                 };
             }
@@ -380,11 +486,61 @@ sub convert_production_to_ast {
             my $ast_value = convert_symbol_to_ast_value($symbol);
             
             # Check if this is a quantified element within a sequence
-            if (ref($ast_value) eq 'ARRAY' && $ast_value->[0] eq 'quantified_element') {
-                my ($type, $element_name, $quantifier) = @$ast_value;
+            if (ref($ast_value) eq 'ARRAY' && ($ast_value->[0] eq 'quantified_element' || $ast_value->[0] eq 'quantified_sequence' || $ast_value->[0] eq 'quantified_group')) {
+                my ($type, $content, $quantifier) = @$ast_value;
+                
+                my $element_structure;
+                if ($type eq 'quantified_sequence') {
+                    # Reconstruct sequence structure from serialized content
+                    my @seq_symbols = split(/\|\|/, $content);
+                    my @sequence_elements = ();
+                    
+                    foreach my $symbol (@seq_symbols) {
+                        if ($symbol =~ /^TERMINAL:(.+)$/) {
+                            push @sequence_elements, ['quoted_string', $1];
+                        } elsif ($symbol =~ /^REGEX:(.+)$/) {
+                            push @sequence_elements, ['regex', $1];
+                        } elsif ($symbol =~ /^OPERATOR:(.+)$/) {
+                            push @sequence_elements, ['operator', $1];
+                        } else {
+                            # Rule reference
+                            push @sequence_elements, ['rule_reference', $symbol];
+                        }
+                    }
+                    
+                    $element_structure = {
+                        type => 'sequence',
+                        elements => \@sequence_elements
+                    };
+                } elsif ($type eq 'quantified_group') {
+                    # Legacy grouped format - reconstruct sequence
+                    my @group_symbols = split(/\|\|/, $content);
+                    my @sequence_elements = ();
+                    
+                    foreach my $symbol (@group_symbols) {
+                        if ($symbol =~ /^TERMINAL:(.+)$/) {
+                            push @sequence_elements, ['quoted_string', $1];
+                        } elsif ($symbol =~ /^REGEX:(.+)$/) {
+                            push @sequence_elements, ['regex', $1];
+                        } elsif ($symbol =~ /^OPERATOR:(.+)$/) {
+                            push @sequence_elements, ['operator', $1];
+                        } else {
+                            push @sequence_elements, ['rule_reference', $symbol];
+                        }
+                    }
+                    
+                    $element_structure = {
+                        type => 'sequence',
+                        elements => \@sequence_elements
+                    };
+                } else {
+                    # Simple quantified element
+                    $element_structure = $content;
+                }
+                
                 push @elements, {
                     type => 'quantified',
-                    element => $element_name,
+                    element => $element_structure,
                     quantifier => $quantifier
                 };
             } else {
@@ -410,8 +566,12 @@ sub convert_symbol_to_ast_value {
         return ['operator', $1];
     } elsif ($symbol =~ /^REGEX:(.+)$/) {
         return ['regex', $1];
+    } elsif ($symbol =~ /^QUANTIFIED:SEQUENCE~(.+)~(.+)$/) {
+        # FIXED: Reconstruct grouped sequence quantified element structure
+        my ($group_content, $quantifier) = ($1, $2);
+        return ['quantified_sequence', $group_content, $quantifier];
     } elsif ($symbol =~ /^QUANTIFIED:GROUP~(.+)~(.+)$/) {
-        # Reconstruct grouped quantified element structure  
+        # Reconstruct legacy grouped quantified element structure  
         my ($group_content, $quantifier) = ($1, $2);
         return ['quantified_group', $group_content, $quantifier];
     } elsif ($symbol =~ /^QUANTIFIED:([^:]+):(.+)$/) {
