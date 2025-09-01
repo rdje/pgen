@@ -1,0 +1,8 @@
+# Common terminal rules
+# This file will be included by main.ebnf
+
+number := /\d+/
+identifier := /[a-zA-Z_]\w*/
+whitespace := /\s+/
+
+term := number | identifier

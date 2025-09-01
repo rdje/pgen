@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2025-09-01 - Semantic Annotation Support in AST Transformation Pipeline
+
+### Added
+
+- **Semantic Annotation System**: Complete support for semantic annotations throughout the AST transformation pipeline
+  - `is_semantic_annotation()` function recognizes semantic annotations in both direct array format `['semantic_annotation', ...]` and structured atom format `{type => 'atom', value => ['semantic_annotation', ...]}`
+  - `extract_semantic_annotations()` function filters and extracts semantic annotations from grammar elements
+  - Semantic annotations are preserved as metadata on AST nodes using the `semantic_annotations` field
+
+### Enhanced
+
+- **AST Transformation Functions**: Updated core transformation functions to handle semantic annotations
+  - `build_sequence_elements()` now filters return and semantic annotations in sequence
+  - `process_single_element()` handles semantic annotations in grouped content
+  - Semantic annotations are excluded from grammar elements to prevent conversion to memory addresses during parser generation
+  - Semantic annotations are preserved alongside return annotations on final AST nodes
+
+### Technical Details
+
+- **Unified Annotation Pipeline**: Semantic annotations follow the same extraction and preservation pattern as return annotations
+- **Metadata Preservation**: Annotations are stored as metadata alongside return annotations, making them available for analysis and tooling
+- **Pipeline Integration**: Annotation filtering is integrated at all appropriate points in the transformation pipeline (OR alternatives, sequence elements, grouped content)
+- **Format Support**: Supports both direct array format and structured atom format for maximum compatibility
+- **Non-Interference**: Semantic annotations are properly filtered out during parser generation to prevent interference with parser code generation
+
+### Use Cases
+
+- **Input Generation**: Guide automatic test input generation by providing semantic context about grammar elements
+- **Grammar Analysis**: Enable tools to analyze grammar structure and meaning using preserved semantic metadata
+- **Documentation**: Serve as inline documentation for grammar rules
+- **Code Generation**: Support custom code generators that use semantic annotations to generate domain-specific parsers
+
+### Files Modified
+
+- **ENHANCED:** `perl/AST/Transform.pm` - Added `is_semantic_annotation()`, `extract_semantic_annotations()`, and updated all relevant transformation functions to handle semantic annotations
+
+### Testing
+
+- ✅ **Annotation Recognition**: Properly identifies semantic annotations in both supported formats
+- ✅ **Filtering Integration**: Correctly filters semantic annotations from grammar elements during transformation
+- ✅ **Metadata Preservation**: Semantic annotations are preserved as metadata on final AST nodes
+- ✅ **Parser Generation**: Semantic annotations do not interfere with parser code generation
+- ✅ **Coexistence**: Semantic annotations can coexist with other annotation types on the same grammar rules
+
+This enhancement enables advanced grammar analysis and tooling while maintaining full compatibility with existing parser generation functionality.
+
+---
+
 ## 2024-08-31 - Include System Enhancement
 
 ### Fixed

@@ -980,15 +980,19 @@ sub build_sequence_elements {
         foreach my $alternative (@{$rule->{alternatives}}) {
             my $alt_node = build_sequence_elements($alternative, $all_rules, $referenced_rules);
             
-            # Check for return annotations and logging annotations in the elements
+            # Check for return annotations, logging annotations, and semantic annotations in the elements
             my ($return_annotation, $elements_after_return) = extract_return_annotation($alternative->{elements});
-            my ($logging_annotations, $filtered_elements) = extract_logging_annotations($elements_after_return);
+            my ($logging_annotations, $elements_after_logging) = extract_logging_annotations($elements_after_return);
+            my ($semantic_annotations, $filtered_elements) = extract_semantic_annotations($elements_after_logging);
             
             if ($return_annotation) {
                 $alt_node->{return_annotation} = $return_annotation;
             }
             if (@$logging_annotations) {
                 $alt_node->{logging_annotations} = $logging_annotations;
+            }
+            if (@$semantic_annotations) {
+                $alt_node->{semantic_annotations} = $semantic_annotations;
             }
             if ($alt_node->{type} eq 'sequence') {
                 $alt_node->{elements} = $filtered_elements;
@@ -1004,7 +1008,8 @@ sub build_sequence_elements {
     } elsif ($rule->{type} eq 'sequence') {
         # Sequence rule - process elements
         my ($return_annotation, $elements_after_return) = extract_return_annotation($rule->{elements});
-        my ($logging_annotations, $filtered_elements) = extract_logging_annotations($elements_after_return);
+        my ($logging_annotations, $elements_after_logging) = extract_logging_annotations($elements_after_return);
+        my ($semantic_annotations, $filtered_elements) = extract_semantic_annotations($elements_after_logging);
         
         # Use the rule's own return_annotation if it exists, otherwise use extracted one
         if ($rule->{return_annotation}) {
@@ -1026,9 +1031,12 @@ sub build_sequence_elements {
             if ($return_annotation) {
                 $atom_node->{return_annotation} = $return_annotation;
             }
-            # Also preserve logging annotations if present
+            # Also preserve logging and semantic annotations if present
             if (@$logging_annotations) {
                 $atom_node->{logging_annotations} = $logging_annotations;
+            }
+            if (@$semantic_annotations) {
+                $atom_node->{semantic_annotations} = $semantic_annotations;
             }
             return $atom_node;
         } else {
@@ -1045,6 +1053,7 @@ sub build_sequence_elements {
             };
             $seq_node->{return_annotation} = $return_annotation if $return_annotation;
             $seq_node->{logging_annotations} = $logging_annotations if @$logging_annotations;
+            $seq_node->{semantic_annotations} = $semantic_annotations if @$semantic_annotations;
             return $seq_node;
         }
     } else {
@@ -1099,6 +1108,29 @@ sub extract_logging_annotations {
     return (\@logging_annotations, \@filtered_elements);
 }
 
+sub extract_semantic_annotations {
+    my ($elements) = @_;
+    my @filtered_elements = ();
+    my @semantic_annotations = ();
+    
+    # Handle case where elements might not be an array reference
+    if (!defined $elements || ref($elements) ne 'ARRAY') {
+        return ([], []);
+    }
+    
+    foreach my $element (@$elements) {
+        if (is_semantic_annotation($element)) {
+            # This is a semantic annotation
+            push @semantic_annotations, $element;
+        } else {
+            # Regular element
+            push @filtered_elements, $element;
+        }
+    }
+    
+    return (\@semantic_annotations, \@filtered_elements);
+}
+
 sub process_single_element {
     my ($element, $all_rules, $referenced_rules) = @_;
     
@@ -1129,12 +1161,16 @@ sub process_single_element {
             };
         } else {
             # Regular grouped content - process as sequence
-            my ($return_annotation, $filtered_elements) = extract_return_annotation($group_content);
+            my ($return_annotation, $elements_after_return) = extract_return_annotation($group_content);
+            my ($logging_annotations, $elements_after_logging) = extract_logging_annotations($elements_after_return);
+            my ($semantic_annotations, $filtered_elements) = extract_semantic_annotations($elements_after_logging);
             
             if (@$filtered_elements == 1) {
                 # Single element in group
                 my $inner = process_single_element($filtered_elements->[0], $all_rules, $referenced_rules);
                 $inner->{return_annotation} = $return_annotation if $return_annotation;
+                $inner->{logging_annotations} = $logging_annotations if @$logging_annotations;
+                $inner->{semantic_annotations} = $semantic_annotations if @$semantic_annotations;
                 return $inner;
             } else {
                 # Multi-element group
@@ -1148,6 +1184,8 @@ sub process_single_element {
                     elements => \@processed_elements
                 };
                 $group_node->{return_annotation} = $return_annotation if $return_annotation;
+                $group_node->{logging_annotations} = $logging_annotations if @$logging_annotations;
+                $group_node->{semantic_annotations} = $semantic_annotations if @$semantic_annotations;
                 return $group_node;
             }
         }
@@ -1183,6 +1221,24 @@ sub is_logging_annotation {
     # Handle structured atom format: {type => 'atom', value => ['logging_annotation', ...]}
     if (ref($value) eq 'HASH' && $value->{type} eq 'atom' && 
         ref($value->{value}) eq 'ARRAY' && $value->{value}->[0] eq 'logging_annotation') {
+        return 1;
+    }
+    
+    return 0;
+}
+
+sub is_semantic_annotation {
+    my ($value) = @_;
+    # Check if value is a semantic annotation (rule metadata, not grammar symbol)
+    
+    # Handle direct array format: ['semantic_annotation', ...]
+    if (ref($value) eq 'ARRAY' && $value->[0] eq 'semantic_annotation') {
+        return 1;
+    }
+    
+    # Handle structured atom format: {type => 'atom', value => ['semantic_annotation', ...]}
+    if (ref($value) eq 'HASH' && $value->{type} eq 'atom' && 
+        ref($value->{value}) eq 'ARRAY' && $value->{value}->[0] eq 'semantic_annotation') {
         return 1;
     }
     

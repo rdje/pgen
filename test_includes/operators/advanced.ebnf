@@ -1,0 +1,5 @@
+# Advanced arithmetic operators
+
+times_op := "*"
+divide_op := "/"
+power_op := "^"

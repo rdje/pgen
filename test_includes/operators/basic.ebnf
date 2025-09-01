@@ -1,0 +1,6 @@
+# Basic arithmetic operators
+
+operator := plus_op | minus_op | times_op | divide_op
+
+plus_op := "+"
+minus_op := "-"

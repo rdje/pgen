@@ -1,0 +1,13 @@
+# Main EBNF grammar with includes
+# Demonstrates include_file() and include_dir() functionality
+
+# Include a specific file
+include_file("common_rules.ebnf")
+
+# Include all .ebnf files from a directory
+include_dir("operators", "*.ebnf")
+
+# Main grammar rules
+main := expression
+
+expression := term (operator term)*
