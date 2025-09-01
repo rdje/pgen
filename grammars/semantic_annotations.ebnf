@@ -1,0 +1,577 @@
+# semantic_annotations.ebnf
+#
+# Comprehensive Semantic Annotation Grammar for EBNF
+# Defines the structure and validation for @annotation: value patterns
+#
+# Usage: include(semantic_annotations) in your language grammars
+#
+# Version: 2.0
+# Author: EBNF Parser Generator System
+
+# =============================================================================
+# SEMANTIC ANNOTATION ENTRY POINTS
+# =============================================================================
+
+# Main semantic annotation rule - can appear before any grammar rule
+semantic_annotation := "@" annotation_name ":" annotation_value
+    -> {type: "semantic_annotation", name: $2, value: $4}
+
+# Compact form (same as above, for backward compatibility)
+annotation := "@" annotation_name ":" annotation_value  
+    -> {type: "semantic_annotation", name: $2, value: $4}
+
+# =============================================================================
+# ANNOTATION NAMES AND TYPES
+# =============================================================================
+
+annotation_name := (predefined_annotation | custom_annotation) -> $1
+
+# Standard predefined annotation types with semantic meaning
+predefined_annotation := 
+    # Type system annotations
+    "type" | "category" | "kind" | "class" | "interface" |
+    
+    # Behavioral annotations  
+    "effect" | "pure" | "side_effect" | "idempotent" | "deterministic" |
+    "throws" | "catches" | "handles" | "propagates" |
+    "precondition" | "postcondition" | "invariant" | "constraint" | "contract" |
+    
+    # Precedence and parsing annotations
+    "precedence" | "associativity" | "binding" | "priority" | "weight" |
+    "left_assoc" | "right_assoc" | "non_assoc" |
+    
+    # Scope and visibility annotations
+    "scope" | "visibility" | "access" | "binding_time" | "lifetime" |
+    "mutability" | "immutable" | "mutable" | "readonly" | "constant" |
+    "public" | "private" | "protected" | "internal" | "export" |
+    
+    # Performance annotations
+    "performance" | "complexity" | "time_complexity" | "space_complexity" |
+    "memory" | "memory_usage" | "cache_behavior" | "optimization" |
+    "inline" | "tail_recursive" | "lazy" | "eager" | "memoized" |
+    
+    # Quality and testing annotations  
+    "deprecated" | "experimental" | "stable" | "beta" | "alpha" |
+    "tested" | "verified" | "proved" | "coverage" | "quality" |
+    "thread_safe" | "reentrant" | "async" | "sync" | "blocking" |
+    
+    # Documentation annotations
+    "description" | "summary" | "example" | "usage" | "note" | "warning" |
+    "see_also" | "since" | "version" | "author" | "copyright" | "license" |
+    "todo" | "fixme" | "bug" | "issue" | "feature" |
+    
+    # Language and platform annotations
+    "language" | "dialect" | "target" | "platform" | "architecture" |
+    "runtime" | "framework" | "library" | "dependency" | "requires" |
+    "extension" | "feature" | "capability" | "standard" | "specification" |
+    
+    # Code generation annotations
+    "generate" | "emit" | "output" | "format" | "template" | "transform" |
+    "optimize" | "debug" | "trace" | "log" | "profile" | "benchmark" |
+    
+    # Semantic role annotations
+    "role" | "purpose" | "intent" | "pattern" | "strategy" | "principle" |
+    "abstraction" | "implementation" | "interface" | "contract" | "protocol"
+    -> $1
+
+# User-defined custom annotation names
+custom_annotation := /([a-zA-Z_][a-zA-Z0-9_]*)/
+    -> {type: "custom_annotation", name: $1}
+
+# =============================================================================
+# ANNOTATION VALUE TYPES  
+# =============================================================================
+
+annotation_value := (
+    primitive_value |
+    structured_value |
+    expression_value |
+    reference_value
+) -> $1
+
+# Primitive value types
+primitive_value := (
+    string_literal |
+    numeric_literal |
+    boolean_literal |
+    null_literal |
+    identifier_literal
+) -> $1
+
+# Structured value types
+structured_value := (
+    array_value |
+    object_value |
+    tuple_value |
+    set_value |
+    map_value
+) -> $1
+
+# Expression value types
+expression_value := (
+    arithmetic_expression |
+    logical_expression |
+    comparison_expression |
+    conditional_expression |
+    function_call |
+    lambda_expression
+) -> $1
+
+# Reference value types  
+reference_value := (
+    type_reference |
+    rule_reference |
+    symbol_reference |
+    path_reference |
+    url_reference
+) -> $1
+
+# =============================================================================
+# PRIMITIVE VALUES
+# =============================================================================
+
+# String literals with various quote styles
+string_literal := (
+    double_quoted_string |
+    single_quoted_string |
+    raw_string |
+    multiline_string |
+    template_string
+) -> $1
+
+double_quoted_string := /"([^"\\]|\\.)*"/
+    -> {type: "string", value: $1, quote_style: "double"}
+
+single_quoted_string := /'([^'\\]|\\.)*/
+    -> {type: "string", value: $1, quote_style: "single"}
+
+raw_string := /r"([^"]*)"/  
+    -> {type: "raw_string", value: $1}
+
+multiline_string := /"""([^"]*(?:"(?!"")[^"]*)*?)"""/
+    -> {type: "multiline_string", value: $1}
+
+template_string := /`([^`\\]|\\.)*`/
+    -> {type: "template_string", value: $1}
+
+# Numeric literals with full range support
+numeric_literal := (
+    integer_literal |
+    decimal_literal | 
+    scientific_literal |
+    hexadecimal_literal |
+    binary_literal |
+    octal_literal
+) -> $1
+
+integer_literal := /([+-]?\d+)/
+    -> {type: "integer", value: $1, base: 10}
+
+decimal_literal := /([+-]?\d*\.\d+)/  
+    -> {type: "decimal", value: $1}
+
+scientific_literal := /([+-]?\d+(?:\.\d+)?[eE][+-]?\d+)/
+    -> {type: "scientific", value: $1}
+
+hexadecimal_literal := /(0[xX][0-9a-fA-F]+)/
+    -> {type: "integer", value: $1, base: 16}
+
+binary_literal := /(0[bB][01]+)/
+    -> {type: "integer", value: $1, base: 2}
+
+octal_literal := /(0[oO][0-7]+)/
+    -> {type: "integer", value: $1, base: 8}
+
+# Boolean and null literals
+boolean_literal := (
+    "true" | "false" | "yes" | "no" | "on" | "off" | 
+    "enabled" | "disabled" | "active" | "inactive"
+) -> {type: "boolean", value: $1}
+
+null_literal := ("null" | "nil" | "none" | "undefined" | "void")
+    -> {type: "null", value: $1}
+
+# Identifier literals (unquoted names)
+identifier_literal := /([a-zA-Z_][a-zA-Z0-9_]*)/
+    -> {type: "identifier", name: $1}
+
+# =============================================================================
+# STRUCTURED VALUES
+# =============================================================================
+
+# Array/List values: [item1, item2, item3]
+array_value := "[" (array_element ("," array_element)*)? "]"
+    -> {type: "array", elements: [$2, $3*]}
+
+array_element := annotation_value | spread_element
+    -> $1
+
+spread_element := "..." annotation_value
+    -> {type: "spread", value: $2}
+
+# Object/Map values: {key1: value1, key2: value2}  
+object_value := "{" (object_property ("," object_property)*)? "}"
+    -> {type: "object", properties: [$2, $3*]}
+
+object_property := 
+    property_key ":" annotation_value |
+    computed_property |
+    shorthand_property |
+    spread_property
+    -> $1
+
+property_key := 
+    string_literal |
+    identifier_literal |
+    computed_key
+    -> $1
+
+computed_key := "[" annotation_value "]"
+    -> {type: "computed_key", expression: $2}
+
+computed_property := "[" annotation_value "]" ":" annotation_value
+    -> {type: "computed_property", key: $2, value: $5}
+
+shorthand_property := identifier_literal
+    -> {type: "shorthand_property", name: $1}
+
+spread_property := "..." annotation_value  
+    -> {type: "spread_property", value: $2}
+
+# Tuple values: (item1, item2, item3)
+tuple_value := "(" (tuple_element ("," tuple_element)*)? ")"
+    -> {type: "tuple", elements: [$2, $3*]}
+
+tuple_element := annotation_value | named_tuple_element
+    -> $1
+
+named_tuple_element := identifier_literal ":" annotation_value
+    -> {type: "named_element", name: $1, value: $3}
+
+# Set values: {item1, item2, item3} (distinguished from objects by context)
+set_value := "#{" (set_element ("," set_element)*)? "}"
+    -> {type: "set", elements: [$2, $3*]}
+
+set_element := annotation_value
+    -> $1
+
+# Map values: {key1 => value1, key2 => value2}
+map_value := "{" (map_entry ("," map_entry)*)? "}"
+    -> {type: "map", entries: [$2, $3*]}
+
+map_entry := annotation_value "=>" annotation_value
+    -> {type: "map_entry", key: $1, value: $3}
+
+# =============================================================================
+# EXPRESSION VALUES
+# =============================================================================
+
+# Arithmetic expressions
+arithmetic_expression := multiplicative_expr (additive_op multiplicative_expr)*
+    -> {type: "arithmetic", left: $1, operations: [$2*]}
+
+multiplicative_expr := power_expr (multiplicative_op power_expr)*
+    -> {type: "multiplicative", left: $1, operations: [$2*]}
+
+power_expr := unary_expr ("**" unary_expr)?
+    -> {type: "power", base: $1, exponent: $3}
+
+unary_expr := unary_op? primary_expr
+    -> {type: "unary", operator: $1, operand: $2}
+
+additive_op := "+" | "-"
+    -> $1
+
+multiplicative_op := "*" | "/" | "%" | "//"
+    -> $1
+
+unary_op := "+" | "-" | "!" | "~"  
+    -> $1
+
+primary_expr := 
+    numeric_literal |
+    identifier_literal |
+    "(" arithmetic_expression ")" |
+    function_call
+    -> $1
+
+# Logical expressions
+logical_expression := logical_or_expr
+    -> $1
+
+logical_or_expr := logical_and_expr ("||" logical_and_expr)*
+    -> {type: "logical_or", operands: [$1, $2*]}
+
+logical_and_expr := logical_not_expr ("&&" logical_not_expr)*
+    -> {type: "logical_and", operands: [$1, $2*]}
+
+logical_not_expr := "!"? comparison_expression
+    -> {type: "logical_not", negated: $1, operand: $2}
+
+# Comparison expressions
+comparison_expression := additive_comparison_expr (comparison_op additive_comparison_expr)?
+    -> {type: "comparison", left: $1, operator: $2, right: $3}
+
+additive_comparison_expr := multiplicative_expr (additive_op multiplicative_expr)*
+    -> {type: "arithmetic", left: $1, operations: [$2*]}
+
+comparison_op := 
+    "==" | "!=" | "<" | ">" | "<=" | ">=" | 
+    "===" | "!==" | "<=>" | "~=" | "=~" | "!~"
+    -> $1
+
+# Conditional expressions (ternary operator)
+conditional_expression := logical_expression "?" annotation_value ":" annotation_value
+    -> {type: "conditional", condition: $1, true_value: $3, false_value: $5}
+
+# Function calls
+function_call := function_name "(" (function_argument ("," function_argument)*)? ")"
+    -> {type: "function_call", name: $1, arguments: [$3, $4*]}
+
+function_name := identifier_literal | qualified_name
+    -> $1
+
+qualified_name := identifier_literal ("." identifier_literal)+
+    -> {type: "qualified_name", parts: [$1, $2*]}
+
+function_argument := 
+    positional_argument |
+    named_argument |
+    spread_argument
+    -> $1
+
+positional_argument := annotation_value
+    -> {type: "positional", value: $1}
+
+named_argument := identifier_literal ":" annotation_value
+    -> {type: "named", name: $1, value: $3}
+
+spread_argument := "..." annotation_value
+    -> {type: "spread", value: $2}
+
+# Lambda expressions
+lambda_expression := 
+    "(" (lambda_parameter ("," lambda_parameter)*)? ")" "=>" annotation_value |
+    lambda_parameter "=>" annotation_value
+    -> {type: "lambda", parameters: [$2, $3*], body: $6}
+
+lambda_parameter := identifier_literal | destructuring_parameter
+    -> $1
+
+destructuring_parameter := 
+    "[" (identifier_literal ("," identifier_literal)*)? "]" |
+    "{" (identifier_literal ("," identifier_literal)*)? "}"
+    -> {type: "destructuring", pattern: $1}
+
+# =============================================================================
+# REFERENCE VALUES
+# =============================================================================
+
+# Type references for type system annotations
+type_reference := 
+    primitive_type |
+    generic_type |
+    union_type |
+    intersection_type |
+    function_type |
+    array_type |
+    optional_type
+    -> $1
+
+primitive_type := /([A-Z][a-zA-Z0-9_]*)/
+    -> {type: "primitive_type", name: $1}
+
+generic_type := primitive_type "<" (type_reference ("," type_reference)*)? ">"
+    -> {type: "generic_type", base: $1, parameters: [$3, $4*]}
+
+union_type := type_reference ("|" type_reference)+
+    -> {type: "union_type", types: [$1, $2*]}
+
+intersection_type := type_reference ("&" type_reference)+
+    -> {type: "intersection_type", types: [$1, $2*]}
+
+function_type := "(" (type_reference ("," type_reference)*)? ")" "=>" type_reference
+    -> {type: "function_type", parameters: [$2, $3*], return_type: $6}
+
+array_type := type_reference "[" "]"
+    -> {type: "array_type", element_type: $1}
+
+optional_type := type_reference "?"
+    -> {type: "optional_type", base_type: $1}
+
+# Rule references (references to other grammar rules)
+rule_reference := "$" identifier_literal
+    -> {type: "rule_reference", name: $2}
+
+# Symbol references (references to tokens/symbols)
+symbol_reference := "%" identifier_literal  
+    -> {type: "symbol_reference", name: $2}
+
+# Path references (file system paths)
+path_reference := 
+    absolute_path |
+    relative_path |
+    home_path
+    -> $1
+
+absolute_path := /\/[^\s]*/
+    -> {type: "absolute_path", path: $1}
+
+relative_path := /\.\.?\/[^\s]*/
+    -> {type: "relative_path", path: $1}  
+
+home_path := /~\/[^\s]*/
+    -> {type: "home_path", path: $1}
+
+# URL references
+url_reference := /(https?|ftp|file):\/\/[^\s]+/
+    -> {type: "url_reference", url: $1}
+
+# =============================================================================
+# SEMANTIC PATTERNS AND SPECIALIZED VALUES
+# =============================================================================
+
+# Precedence specifications (common pattern)
+precedence_value := precedence_level precedence_associativity?
+    -> {type: "precedence", level: $1, associativity: $2}
+
+precedence_level := integer_literal
+    -> $1
+
+precedence_associativity := "left" | "right" | "none" | "nonassoc"
+    -> $1
+
+# Constraint specifications
+constraint_value := constraint_type constraint_expression
+    -> {type: "constraint", constraint_type: $1, expression: $2}
+
+constraint_type := "requires" | "ensures" | "invariant" | "assert" | "assume"
+    -> $1
+
+constraint_expression := logical_expression | string_literal
+    -> $1
+
+# Performance specifications
+performance_value := complexity_spec | memory_spec | timing_spec
+    -> $1
+
+complexity_spec := "O(" complexity_expr ")"
+    -> {type: "complexity", expression: $2}
+
+complexity_expr := /([^)]+)/
+    -> $1
+
+memory_spec := memory_amount memory_unit?
+    -> {type: "memory", amount: $1, unit: $2}
+
+memory_amount := numeric_literal
+    -> $1
+
+memory_unit := "B" | "KB" | "MB" | "GB" | "TB" | "bytes" | "words" | "pages"
+    -> $1
+
+timing_spec := time_amount time_unit?
+    -> {type: "timing", amount: $1, unit: $2}
+
+time_amount := numeric_literal
+    -> $1
+
+time_unit := "ns" | "μs" | "ms" | "s" | "m" | "h" | "nanoseconds" | "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours"
+    -> $1
+
+# Version specifications
+version_value := semantic_version | version_range
+    -> $1
+
+semantic_version := /(\d+)\.(\d+)\.(\d+)(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?/
+    -> {type: "semantic_version", major: $1, minor: $2, patch: $3, prerelease: $4, build: $5}
+
+version_range := 
+    ">=" semantic_version |
+    "<=" semantic_version |
+    ">" semantic_version |
+    "<" semantic_version |
+    "^" semantic_version |
+    "~" semantic_version |
+    semantic_version ".." semantic_version
+    -> {type: "version_range", operator: $1, version: $2}
+
+# Exception specifications
+exception_spec := "[" (exception_type ("," exception_type)*)? "]"
+    -> {type: "exception_spec", exceptions: [$2, $3*]}
+
+exception_type := type_reference | string_literal
+    -> $1
+
+# Platform specifications
+platform_spec := "[" (platform_name ("," platform_name)*)? "]"
+    -> {type: "platform_spec", platforms: [$2, $3*]}
+
+platform_name := string_literal | identifier_literal
+    -> $1
+
+# =============================================================================
+# WHITESPACE AND COMMENTS
+# =============================================================================
+
+# Whitespace (ignored)
+whitespace := /\s+/
+
+# Line comments
+line_comment := "//" /[^\r\n]*/
+
+# Block comments  
+block_comment := "/*" /(?:[^*]|\*(?!\/))*/ "*/"
+
+# Documentation comments
+doc_comment := "///" /[^\r\n]*/
+
+# =============================================================================
+# SEMANTIC ANNOTATION EXAMPLES (Documentation)
+# =============================================================================
+
+# This grammar supports rich semantic annotations like:
+#
+# Simple annotations:
+# @type: Expression
+# @effect: pure
+# @deprecated: true
+#
+# Complex structured annotations:
+# @precedence: {level: 5, associativity: "left"}
+# @throws: [IOException, ParseException, RuntimeException]
+# @constraint: {type: "requires", expression: "x > 0"}
+# @performance: {complexity: "O(n)", memory: "O(1)"}
+# @platform: ["web", "mobile", "desktop"]
+#
+# Advanced expressions:
+# @condition: (enabled && (debug || test)) 
+# @value: calculate(base * 2 + offset)
+# @range: {min: 0, max: limit || 100}
+# @mapping: {input => output, default => null}
+#
+# Type system annotations:
+# @type: Map<String, List<Integer>>
+# @signature: (String, Integer) => Boolean
+# @generic: <T extends Comparable<T>>
+#
+# Documentation annotations:
+# @description: "Parses arithmetic expressions with proper precedence"
+# @example: "2 + 3 * 4 // evaluates to 14"
+# @see_also: [expression_parser, precedence_rules]
+# @version: "2.1.0"
+# @since: "1.0.0"
+# @author: "John Doe <john@example.com>"
+#
+# Complex constraint annotations:
+# @precondition: (input != null) && (input.length > 0)
+# @postcondition: (result != null) && (result.isValid())
+# @invariant: (size >= 0) && (capacity >= size)
+#
+# Performance annotations:  
+# @complexity: {time: "O(n log n)", space: "O(n)"}
+# @memory: {stack: "O(log n)", heap: "O(n)"}
+# @cache: {behavior: "read-heavy", ttl: "5m"}
+#
+# This grammar provides comprehensive support for expressing complex
+# semantic information about grammar rules and language constructs.

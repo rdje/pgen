@@ -461,6 +461,7 @@ my $spec_descr = [
 
   my ($entry_label, $reidx, $method, $args) = @{$$info{match_hash}}{qw/ENTRY_LABEL INDEX METHOD ARGS/}; 
   # say "(Method code block) ($entry_label:".($reidx // 0).":$method:".($args // '').")";
+  $args =~ s/^\(|\)$//go;
   return ['ACODE', {relabel=>$entry_label, reidx=> $reidx // 0, code=>"$method($entry_label".($args ? ",$args" : '').")"}]
  }
 },
@@ -542,10 +543,10 @@ my $spec_descr = [
 },
 
 {# Split-Like Code
- re=> [qr/\-\?\s*push\b/o],
+ re=> [qr/@\s*move_pos\b/o],
  handler=> sub {
   # say '(Split-Like Code)';
-  return ['PUSH_OTHERS']
+  return ['MOVE_POS']
  }
 },
 
@@ -839,9 +840,9 @@ my $einfo = shift;
      $BCODEs{$$centry[1]{call}} = call_spec_handler_subst($label, $$centry[1]{code});
      ++$ab_count{BCODE};
    }
-   elsif ($entry_type eq 'PUSH_OTHERS') {
+   elsif ($entry_type eq 'MOVE_POS') {
      # This is of course a temporary solution
-     push @lscode, 'push @'.$label.', [\'?'.$label.'_others:\', substr $$STRING, $IPOS, $LSPOS - $IPOS - length $LMATCH]';
+     #push @lscode, 'push @'.$label.', [\'?'.$label.'_others:\', substr $$STRING, $IPOS, $LSPOS - $IPOS - length $LMATCH]';
      push @lecode, '$IPOS = pos $$STRING';
    }
  }
@@ -1208,12 +1209,21 @@ sub call_spec_handler_subst {
 my ($label, $code) = @_;
 
 #say "call_spec_handler_subst: BEFORE <$label><$code>";
- $code =~ s/\bcall\((\S+?)\)/&{\$\$descr{spec}{$1}{handler}}(\$descr, \$STRING, \$minfo)/g;
- $code =~ s/\bpush\((\S+?)\)/push \@$label, &{\$\$descr{spec}{$1}{handler}}(\$descr, \$STRING, \$minfo)/g;
+ $code =~ s/\bcall\((\w+)\)/&{\$\$descr{spec}{$1}{handler}}(\$descr, \$STRING, \$minfo)/g;
+ $code =~ s/\bpush\((\w+)\)/push \@$label, &{\$\$descr{spec}{$1}{handler}}(\$descr, \$STRING, \$minfo)/g;
+ $code =~ s/\bpush\((\w+)\s*,\s*(\w+)\)/push \@$2, &{\$\$descr{spec}{$1}{handler}}(\$descr, \$STRING, \$minfo)/g;
  $code =~ s/\breturn_a\($label(?:,(?<arg>\s*(?:[^\(\)]++|(?<par>\((?:[^\(\)]++|(?&par))+\)))+))?\)/return ['?$label:', @{[$+{arg} ? "($+{arg}), " : '']}\\\@$label]/g;
  $code =~ s/\breturn\($label,(?<arg>\s*(?:[^\(\)]++|(?<par>\((?:[^\(\)]++|(?&par))+\)))+)\)/return ['?$label:', $+{arg}]/g;
  $code =~ s/\breturn_ma\($label\)/return ['?$label:', \@IMATCH_LIST, \\\@$label]/g;
  $code =~ s/\breturn_m\($label\)/return ['?$label:', \@IMATCH_LIST]/g;
+ $code =~ s/\$CAPTURE\b/substr(\$\$STRING, \$IPOS, \$LSPOS - \$IPOS - length \$LMATCH)/g;
+ $code =~ s/\bcapture\(\w+\)/push \@$label, substr(\$\$STRING, \$IPOS, \$LSPOS - \$IPOS - length \$LMATCH)/g;
+ $code =~ s{\bcapture_if\(\w+\)}{my \$capt = substr(\$\$STRING, \$IPOS, \$LSPOS - \$IPOS - length \$LMATCH); \$capt =~ s/^\\s*|\\s*\$//go; push \@$label, \$capt if \$capt}g;
+ $code =~ s{\bCAPTURE_IF\(\)}{my \$capt = substr(\$\$STRING, \$IPOS, \$LSPOS - \$IPOS - length \$LMATCH); \$capt =~ s/^\\s*|\\s*\$//go; push \@$label, \$capt if \$capt}g;
+ $code =~ s/\bIBACKTRACK\(\)/pos(\$\$STRING) = \$IPOS  - length \$IMATCH/g;
+ $code =~ s/\bBACKTRACK\(\)/pos(\$\$STRING)  = \$LSPOS - length \$LMATCH/g;
+ $code =~ s/\bibacktrack\(\w+\)/pos(\$\$STRING) = \$IPOS  - length \$IMATCH/g;
+ $code =~ s/\bbacktrack\(\w+\)/pos(\$\$STRING)  = \$LSPOS - length \$LMATCH/g;
 
 # say "call_spec_handler_subst: AFTER <$label><$code>";
  return $code

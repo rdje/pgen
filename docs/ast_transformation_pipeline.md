@@ -1,3 +1,44 @@
+## Handling Logging Annotations in the AST Transformation Pipeline
+
+### Background
+
+During parser generation, **logging annotations** provide metadata to allow insertion of logging hooks or debugging aids in the generated parser code. Proper handling of these annotations is crucial to prevent them from being mistakenly interpreted as grammar elements, which can break the parser generation process.
+
+### Recognition of Logging Annotations
+
+Logging annotations can appear in two common forms within the raw AST and intermediate representations:
+
+- **Direct array format**:  
+  ```perl
+  ['logging_annotation', ...]
+  ```
+
+- **Structured atom format**:  
+  ```perl
+  {
+    type => 'atom',
+    value => ['logging_annotation', ...]
+  }
+  ```
+
+Failure to recognize both formats resulted in logging annotations leaking into grammar element processing, causing invalid parser function calls like `parse_ARRAY(0x...)` and invalid regex patterns.
+
+### Solution
+
+- The pipeline's `is_logging_annotation` function was updated to detect both forms, ensuring logging annotations are **filtered out** from grammar elements early in the `build_sequence_elements` and related transformation steps.
+
+- Logging annotations are **preserved as metadata** attached to AST nodes, allowing future transformation steps or code generation phases to emit logging calls based on this metadata.
+
+### Impact
+
+- Eliminates invalid grammar tokens containing memory references from logging annotations.
+
+- Prevents the generation of incorrect parse function calls and regex patterns.
+
+- Establishes a **clean separation** between grammar elements and logging metadata in AST representations.
+
+- Sets the foundation for future implementation of logging code generation that will leverage these annotations.
+
 # AST Transformation Pipeline Documentation
 
 🎯 **For Language Implementers** - Complete guide to implementing the AST transformation pipeline in your target language.
@@ -62,8 +103,7 @@ The `ebnf_to_json.pl` tool outputs JSON containing the raw AST exactly as return
 ### Token Structure
 
 Each token in the raw AST is a 2-element array: `[token_type, token_value]`
-
-**Token Types:**
+### Token Types:**
 - `"rule"` - Rule name definition  
 - `"quoted_string"` - Terminal in quotes
 - `"rule_reference"` - Non-terminal reference (identifier that refers to another rule)
@@ -72,6 +112,9 @@ Each token in the raw AST is a 2-element array: `[token_type, token_value]`
 - `"operator"` - `|`, `(`, `)`, `[`, `]`, `{`, `}`
 - `"quantifier"` - `?`, `*`, `+`
 - `"comment"` - Comment text
+- `"whitespace"` - Spaces, newlines (usually filtered)
+- `"return_scalar"`, `"return_array"`, `"return_object"` - Return annotations
+- `"logging_annotation"` - Logging annotations (e.g., `@log_entry`, `@debug_trace`)
 - `"whitespace"` - Spaces, newlines (usually filtered)
 
 ### Rule Structure

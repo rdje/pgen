@@ -16,31 +16,57 @@ use AST::PerlReturnCodeGenerator;
 use AST::BacktrackingParserIntegration qw(is_grouped_quantifier extract_grouped_elements detect_grouped_quantifier_in_element parse_quantifier_bounds);
 use lib '.';  # Add current directory to include path
 
+# Global variables for configuration
+our $quiet_mode = 0;
+our $verbosity = 'normal';
+our $bootstrap_mode = 0;
+our $ERROR_CONTEXT = {
+    verbosity => 'normal',
+    errors => []
+};
+
 # Helper function to parse annotations into universal AST
 sub parse_annotation_to_universal_ast {
     my ($annotation) = @_;
     
+    print STDERR "DEBUG: parse_annotation_to_universal_ast called with: '$annotation'\n" unless $quiet_mode;
+    
     # Try to parse with EBNF first
     my $annotation_string = "$annotation";
     if ($annotation_string =~ /^->/) {
+        print STDERR "DEBUG: Attempting EBNF parse of full annotation: '$annotation_string'\n" unless $quiet_mode;
         # Full annotation with arrow
         my $parsed_ast = parse_return_annotation_with_ebnf($annotation_string);
         if ($parsed_ast) {
+            print STDERR "DEBUG: EBNF parse succeeded, converting to universal AST\n" unless $quiet_mode;
             # Convert EBNF parser result to universal AST
             return convert_ebnf_ast_to_universal($parsed_ast);
+        } else {
+            print STDERR "DEBUG: EBNF parse failed for full annotation\n" unless $quiet_mode;
         }
     } else {
+        print STDERR "DEBUG: Attempting EBNF parse with added arrow: '-> $annotation_string'\n" unless $quiet_mode;
         # Just the expression part, add arrow
         my $full_annotation = "-> $annotation_string";
         my $parsed_ast = parse_return_annotation_with_ebnf($full_annotation);
         if ($parsed_ast) {
+            print STDERR "DEBUG: EBNF parse succeeded with added arrow, converting to universal AST\n" unless $quiet_mode;
             # Convert EBNF parser result to universal AST
             return convert_ebnf_ast_to_universal($parsed_ast);
+        } else {
+            print STDERR "DEBUG: EBNF parse failed with added arrow\n" unless $quiet_mode;
         }
     }
     
     # Fallback: try to parse common patterns directly
-    return parse_common_annotation_patterns($annotation);
+    print STDERR "DEBUG: EBNF parsing failed, falling back to direct pattern parsing\n" unless $quiet_mode;
+    my $result = parse_common_annotation_patterns($annotation);
+    if ($result) {
+        print STDERR "DEBUG: Direct pattern parsing succeeded\n" unless $quiet_mode;
+    } else {
+        print STDERR "DEBUG: Direct pattern parsing also failed\n" unless $quiet_mode;
+    }
+    return $result;
 }
 
 # Helper to convert EBNF parser AST to universal AST
@@ -264,21 +290,13 @@ sub parse_common_annotation_patterns {
     return undef;
 }
 
-# Global variables for configuration
-our $quiet_mode = 0;
-our $verbosity = 'normal';
-our $bootstrap_mode = 0;
-our $ERROR_CONTEXT = {
-    verbosity => 'normal',
-    errors => []
-};
-
 # Export main functions
 use Exporter 'import';
 our @EXPORT_OK = qw(
     generate_parser_from_file
     generate_parser_from_grammar
     process_transformation_phases
+    process_to_final_ast
     load_ebnf_spec
     load_ebnf_spec_from_content
     step2_group_by_or
@@ -290,6 +308,7 @@ our @EXPORT_OK = qw(
     validate_grammar
     ebnf_to_universal_ast
     parse_annotation_to_universal_ast
+    extract_token_value
 );
 
 # Helper function to extract values from structured tokens
@@ -486,6 +505,12 @@ sub step2_5_handle_parentheses {
         my @processed_or_groups = ();
         
         foreach my $or_group (@{$rule->{or_groups}}) {
+            # DEBUG: Check what type of data we're getting
+            if (!$quiet_mode && $verbosity eq 'debug') {
+                print STDERR "DEBUG: Processing or_group in rule '$rule_name': " . ref($or_group) . "\n";
+                print STDERR "DEBUG: or_group content: " . Dumper($or_group) . "\n";
+            }
+            
             my $processed_group = process_parentheses_in_sequence($or_group);
             push @processed_or_groups, $processed_group;
         }
@@ -530,6 +555,14 @@ sub is_group_close {
 
 sub process_parentheses_in_sequence {
     my ($tokens) = @_;
+    
+    # Safety check: ensure $tokens is an array reference
+    unless (ref($tokens) eq 'ARRAY') {
+        print STDERR "WARNING: process_parentheses_in_sequence received non-array: " . (ref($tokens) || 'SCALAR') . "\n" unless $quiet_mode;
+        print STDERR "  Content: " . Dumper($tokens) . "\n" if !$quiet_mode && $verbosity eq 'debug';
+        return [];
+    }
+    
     my @result = ();
     my @group_stack = ();
     my $group_depth = 0;
@@ -947,11 +980,18 @@ sub build_sequence_elements {
         foreach my $alternative (@{$rule->{alternatives}}) {
             my $alt_node = build_sequence_elements($alternative, $all_rules, $referenced_rules);
             
-            # Check for return annotations in the elements
-            my ($return_annotation, $filtered_elements) = extract_return_annotation($alternative->{elements});
+            # Check for return annotations and logging annotations in the elements
+            my ($return_annotation, $elements_after_return) = extract_return_annotation($alternative->{elements});
+            my ($logging_annotations, $filtered_elements) = extract_logging_annotations($elements_after_return);
+            
             if ($return_annotation) {
                 $alt_node->{return_annotation} = $return_annotation;
-                $alt_node->{elements} = $filtered_elements if $alt_node->{type} eq 'sequence';
+            }
+            if (@$logging_annotations) {
+                $alt_node->{logging_annotations} = $logging_annotations;
+            }
+            if ($alt_node->{type} eq 'sequence') {
+                $alt_node->{elements} = $filtered_elements;
             }
             
             push @alternatives, $alt_node;
@@ -963,7 +1003,8 @@ sub build_sequence_elements {
         };
     } elsif ($rule->{type} eq 'sequence') {
         # Sequence rule - process elements
-        my ($return_annotation, $filtered_elements) = extract_return_annotation($rule->{elements});
+        my ($return_annotation, $elements_after_return) = extract_return_annotation($rule->{elements});
+        my ($logging_annotations, $filtered_elements) = extract_logging_annotations($elements_after_return);
         
         # Use the rule's own return_annotation if it exists, otherwise use extracted one
         if ($rule->{return_annotation}) {
@@ -985,6 +1026,10 @@ sub build_sequence_elements {
             if ($return_annotation) {
                 $atom_node->{return_annotation} = $return_annotation;
             }
+            # Also preserve logging annotations if present
+            if (@$logging_annotations) {
+                $atom_node->{logging_annotations} = $logging_annotations;
+            }
             return $atom_node;
         } else {
             # Multi-element sequence OR referenced by other rules - keep as sequence
@@ -999,6 +1044,7 @@ sub build_sequence_elements {
                 elements => \@processed_elements
             };
             $seq_node->{return_annotation} = $return_annotation if $return_annotation;
+            $seq_node->{logging_annotations} = $logging_annotations if @$logging_annotations;
             return $seq_node;
         }
     } else {
@@ -1028,6 +1074,29 @@ sub extract_return_annotation {
     }
     
     return ($return_annotation, \@filtered_elements);
+}
+
+sub extract_logging_annotations {
+    my ($elements) = @_;
+    my @filtered_elements = ();
+    my @logging_annotations = ();
+    
+    # Handle case where elements might not be an array reference
+    if (!defined $elements || ref($elements) ne 'ARRAY') {
+        return ([], []);
+    }
+    
+    foreach my $element (@$elements) {
+        if (is_logging_annotation($element)) {
+            # This is a logging annotation
+            push @logging_annotations, $element;
+        } else {
+            # Regular element
+            push @filtered_elements, $element;
+        }
+    }
+    
+    return (\@logging_annotations, \@filtered_elements);
 }
 
 sub process_single_element {
@@ -1100,6 +1169,24 @@ sub is_return_annotation {
     my ($value) = @_;
     # Check if value is a return annotation (rule metadata, not grammar symbol)
     return ref($value) eq 'ARRAY' && ($value->[0] eq 'return_scalar' || $value->[0] eq 'return_array' || $value->[0] eq 'return_object');
+}
+
+sub is_logging_annotation {
+    my ($value) = @_;
+    # Check if value is a logging annotation (rule metadata, not grammar symbol)
+    
+    # Handle direct array format: ['logging_annotation', ...]
+    if (ref($value) eq 'ARRAY' && $value->[0] eq 'logging_annotation') {
+        return 1;
+    }
+    
+    # Handle structured atom format: {type => 'atom', value => ['logging_annotation', ...]}
+    if (ref($value) eq 'HASH' && $value->{type} eq 'atom' && 
+        ref($value->{value}) eq 'ARRAY' && $value->{value}->[0] eq 'logging_annotation') {
+        return 1;
+    }
+    
+    return 0;
 }
 
 sub is_return_annotation_string {
@@ -1288,12 +1375,22 @@ pod2usage(1) if \$options{help};
 
 # Get input file from positional argument or --input option
 my \$input_file = \$options{input_file} || \$ARGV[0];
-pod2usage("Error: No input file specified") unless \$input_file;
 
-# Read input file
-open my \$fh, '<', \$input_file or die "Cannot open \$input_file: \$!";
-my \$content = do { local \$/; <\$fh> };
-close \$fh;
+# Read input - from file or stdin
+my \$content;
+if (\$input_file) {
+    open my \$fh, '<', \$input_file or die "Cannot open \$input_file: \$!";
+    \$content = do { local \$/; <\$fh> };
+    close \$fh;
+    print STDERR "📄 Input from file: \$input_file\\n";
+} else {
+    # Read from stdin
+    \$content = do { local \$/; <STDIN> };
+    print STDERR "📄 Input from stdin\\n";
+}
+
+# Show input content
+print STDERR "📝 Input data: '\$content'\\n";
 
 # Parse the content
 my \$result = PACKAGE_NAME_PLACEHOLDER::parse(\\\$content); # Placeholder, will be replaced by tools/ast_transform.pl
@@ -2597,6 +2694,12 @@ sub generate_quantified_sequence_code {
     foreach my $seq_element (@{$sequence->{elements}}) {
         $seq_step_num++;
         
+        # Safety check: ensure $seq_element is a hash reference
+        unless (ref($seq_element) eq 'HASH' && exists $seq_element->{type}) {
+            print STDERR "WARNING: seq_element is not a proper hash in generate_quantified_sequence_code: " . Dumper($seq_element) . "\n" if !$quiet_mode && $verbosity eq 'debug';
+            next;  # Skip this element
+        }
+        
         if ($seq_element->{type} eq 'atom' && is_terminal($seq_element->{value})) {
             my $element_value = $seq_element->{value};
             
@@ -2639,7 +2742,7 @@ sub generate_quantified_sequence_code {
     }
     
     # Join sequence conditions
-    my $sequence_condition = join(' && ', @seq_conditions);
+    my $sequence_condition = @seq_conditions ? join(' && ', @seq_conditions) : '1';  # Default to success if no conditions
     
     # Generate quantified matching code
     my $quantified_code = <<"EOF";
@@ -2812,10 +2915,10 @@ sub generate_return_code_legacy {
         } else {
             # Mixed array: [$1, $3, $2*] - handle both regular and quantified elements
             my $perl_array = $array_content;
-            # Handle quantified elements: $N* -> collect_quantified_results(N, \@results)
+            # Handle quantified elements FIRST: $N* -> collect_quantified_results(N, \@results)
             $perl_array =~ s/\$(\d+)\*/collect_quantified_results($1, \\\@results)/g;
-            # Handle regular elements: $N -> $results[N-1]  
-            $perl_array =~ s/\$(\d+)/\$results[$1-1]/g;
+            # Handle regular elements AFTER: $N -> $results[N-1]  
+            $perl_array =~ s/\$(\d+)/(\$results[$1-1] \/\/ undef)/g;
             return "return [$perl_array];";
         }
     } elsif ($type eq 'return_object') {
@@ -2830,10 +2933,13 @@ sub generate_return_code_legacy {
         # Handle collection patterns like [$1*] within object values
         $perl_hash =~ s/\[\s*\$(\d+)\*\s*\]/collect_quantified_results($1, \\\@results)/g;
         
+        # Handle quantified elements FIRST: $N* -> collect_quantified_results(N, \@results)
+        $perl_hash =~ s/\$(\d+)\*/collect_quantified_results($1, \\\@results)/g;
+        
         # Handle object property access: $1.name -> ($results[0] // {})->{name}
         $perl_hash =~ s/\$(\d+)\.(\w+)/(\$results[$1-1] \/\/ {})->{$2}/g;
         
-        # Handle regular $N references with bounds checking
+        # Handle regular $N references AFTER quantified ones
         $perl_hash =~ s/\$(\d+)/(\$results[$1-1] \/\/ undef)/g;
         
         return "return {$perl_hash};";
@@ -3066,10 +3172,250 @@ sub load_ebnf_spec {
     return load_ebnf_spec_from_content($input_content);
 }
 
-sub load_ebnf_spec_from_content {
-    my ($input_content) = @_;
+# Process includes from AST with support for multiple include directories and environment variables
+sub process_ast_includes {
+    my ($raw_ast, $base_dir, $include_dirs) = @_;
     
-    # Load the EBNF parser specification - try different paths
+    # Build comprehensive include directory list
+    my @all_include_dirs = ();
+    
+    # Add base directory (directory of the main file) - this is where relative includes are resolved from
+    if ($base_dir) {
+        push @all_include_dirs, $base_dir;
+    }
+    
+    # Add provided include directories
+    if ($include_dirs && @$include_dirs) {
+        push @all_include_dirs, @$include_dirs;
+    }
+    
+    # Add environment variable include directories
+    # Support both EBNF_INCLUDES and EBNFLIB for flexibility
+    for my $env_var ('EBNF_INCLUDES', 'EBNFLIB') {
+        if (my $env_dirs = $ENV{$env_var}) {
+            # Split on colon (Unix) or semicolon (Windows)
+            my $separator = ($^O eq 'MSWin32') ? ';' : ':';
+            my @env_paths = split /$separator/, $env_dirs;
+            push @all_include_dirs, @env_paths;
+            print STDERR "📚 Added $env_var paths: " . join(', ', @env_paths) . "\n" unless $quiet_mode;
+        }
+    }
+    
+    # Always include current directory as fallback
+    push @all_include_dirs, '.';
+    
+    # Remove duplicates while preserving order
+    my @final_include_dirs = ();
+    my %seen = ();
+    for my $dir (@all_include_dirs) {
+        next if $seen{$dir}++;
+        push @final_include_dirs, $dir;
+    }
+    
+    print STDERR "🔍 Include search paths: " . join(', ', @final_include_dirs) . "\n" unless $quiet_mode;
+    
+    # Separate includes from rules in the AST
+    my ($includes_ref, $rules_ref) = extract_includes_and_rules($raw_ast);
+    my @includes = @$includes_ref;
+    my @rules = @$rules_ref;
+    
+    # Process includes and collect additional rules
+    my @all_rules = @rules;  # Start with main file rules
+    
+    for my $include (@includes) {
+        next unless ref($include) eq 'ARRAY' && @$include >= 2;
+        
+        my ($include_type, @paths) = @$include;
+        
+        if ($include_type eq 'include_file') {
+            # Process include_file: file1, file2, file3, ...
+            for my $file_spec (@paths) {
+                # Remove quotes if present
+                $file_spec =~ s/^["']|["']$//g;
+                
+                my @found_files = resolve_include_files($file_spec, \@final_include_dirs);
+                
+                for my $file_path (@found_files) {
+                    my $included_rules = load_and_process_included_file($file_path, \@final_include_dirs);
+                    push @all_rules, @$included_rules;
+                    print STDERR "📁 Included file: $file_path\n" unless $quiet_mode;
+                }
+            }
+        } elsif ($include_type eq 'include_dir') {
+            # Process include_dir: path1, path2, path3, ...
+            # Each path is a directory to search for .ebnf files
+            for my $dir_spec (@paths) {
+                # Remove quotes if present
+                $dir_spec =~ s/^["']|["']$//g;
+                
+                # Use default pattern *.ebnf for directory includes
+                my @found_files = resolve_include_directory($dir_spec, '*.ebnf', \@final_include_dirs);
+                
+                for my $file_path (@found_files) {
+                    my $included_rules = load_and_process_included_file($file_path, \@final_include_dirs);
+                    push @all_rules, @$included_rules;
+                    print STDERR "📁 Included from directory: $file_path\n" unless $quiet_mode;
+                }
+            }
+        }
+    }
+    
+    return \@all_rules;
+}
+
+# Helper functions for AST-based include processing
+sub extract_includes_and_rules {
+    my ($raw_ast) = @_;
+    
+    my (@includes, @rules);
+    
+    # Handle the AST structure from ebnf.spec: [@includes, @rules]
+    # The LX function returns a FLATTENED array: [@includes, @rules] 
+    # This puts all includes first, then all rules in a single flat array
+    # NOT a 2-element array with array references!
+    
+    if (ref($raw_ast) eq 'ARRAY') {
+        # Process each element in the flattened array
+        for my $item (@$raw_ast) {
+            if (ref($item) eq 'ARRAY' && @$item >= 2) {
+                # Check if the first element is an array containing the type
+                my $first_element = $item->[0];
+                my $type = undef;
+                
+                if (ref($first_element) eq 'ARRAY' && @$first_element >= 2) {
+                    # Format: [['include_dir', ...], data, ...] or [['rule', 'name'], ...]
+                    $type = $first_element->[0];
+                } elsif (!ref($first_element)) {
+                    # Format: ['include_dir', data, ...] (direct string type)
+                    $type = $first_element;
+                }
+                
+                if (defined $type && ($type eq 'include_dir' || $type eq 'include_file')) {
+                    # Include directive: ["include_dir", ["path1", "path2", "path3", ...]]
+                    # or: ["include_file", ["file1", "file2", "file3", ...]]
+                    my $data = $item->[1];
+                    if (ref($data) eq 'ARRAY') {
+                        push @includes, [$type, @$data];  # Flatten the data array
+                    } else {
+                        push @includes, [$type, $data];   # Single path
+                    }
+                } else {
+                    # Grammar rule: all other array structures are complete rules
+                    # (including any embedded semantic annotations)
+                    push @rules, $item;
+                }
+            } else {
+                # Non-array or malformed items - treat as rules for safety
+                push @rules, $item;
+            }
+        }
+        
+        print STDERR "📋 Extracted " . scalar(@includes) . " includes and " . scalar(@rules) . " rules from flattened array\n" unless $quiet_mode;
+        
+    } else {
+        # Non-array input - unexpected
+        print STDERR "⚠️  Warning: Expected array but got " . ref($raw_ast) . "\n" unless $quiet_mode;
+    }
+    
+    return (\@includes, \@rules);
+}
+
+sub resolve_include_files {
+    my ($file_spec, $include_dirs) = @_;
+    
+    my @found_files;
+    
+    # Add .ebnf extension if not present
+    my $file_path = $file_spec;
+    $file_path .= '.ebnf' unless $file_path =~ /\.ebnf$/;
+    
+    # If absolute path, use as-is
+    if ($file_path =~ m{^/}) {
+        push @found_files, $file_path if -f $file_path;
+    } else {
+        # Search in include directories
+        for my $dir (@$include_dirs) {
+            my $full_path = "$dir/$file_path";
+            if (-f $full_path) {
+                push @found_files, $full_path;
+                last; # Only include the first match
+            }
+        }
+    }
+    
+    return @found_files;
+}
+
+sub resolve_include_directory {
+    my ($dir_spec, $pattern, $include_dirs) = @_;
+    
+    my @found_files;
+    
+    # Helper to find directory in include paths
+    my $find_dir = sub {
+        my ($search_dir) = @_;
+        
+        # If absolute path, use as-is
+        return $search_dir if $search_dir =~ m{^/} && -d $search_dir;
+        
+        # Search in include directories
+        for my $base_dir (@$include_dirs) {
+            my $full_dir = "$base_dir/$search_dir";
+            return $full_dir if -d $full_dir;
+        }
+        
+        return undef; # Not found
+    };
+    
+    my $full_dir = $find_dir->($dir_spec);
+    if ($full_dir) {
+        # Convert glob pattern to regex
+        my $regex_pattern = $pattern;
+        $regex_pattern =~ s/\./\\./g;  # Escape dots
+        $regex_pattern =~ s/\*/.*?/g;  # Convert * to .*?
+        $regex_pattern =~ s/\?/./g;    # Convert ? to .
+        $regex_pattern = "^${regex_pattern}\$";
+        
+        # Find matching files in directory
+        if (opendir my $dh, $full_dir) {
+            my @files = grep { /$regex_pattern/ && -f "$full_dir/$_" } readdir($dh);
+            closedir $dh;
+            
+            # Sort files for consistent ordering
+            @files = sort @files;
+            
+            for my $file (@files) {
+                push @found_files, "$full_dir/$file";
+            }
+        }
+    }
+    
+    return @found_files;
+}
+
+sub load_and_process_included_file {
+    my ($file_path, $include_dirs) = @_;
+    
+    # Read the included file
+    open my $fh, '<', $file_path or die "Cannot open included file $file_path: $!";
+    my $content = do { local $/; <$fh> };
+    close $fh;
+    
+    # Get the directory of the included file for recursive includes
+    my $file_dir = $file_path;
+    $file_dir =~ s{/[^/]*$}{}; # Remove filename, keep directory
+    my @nested_include_dirs = ($file_dir, @$include_dirs);
+    
+    # Process includes recursively
+    my $processed_ast = process_ast_includes_from_content($content, \@nested_include_dirs);
+    
+    return $processed_ast;
+}
+
+sub process_ast_includes_from_content {
+    my ($content, $include_dirs) = @_;
+    
+    # Parse the EBNF content to get raw AST
     my $spec_file;
     for my $path ("fx/specs/ebnf.spec", "../fx/specs/ebnf.spec", "../../fx/specs/ebnf.spec") {
         if (-f $path) {
@@ -3087,19 +3433,143 @@ sub load_ebnf_spec_from_content {
     # Create parser from the spec
     my $parser = LinkedSpec::Get(\$spec_content);
     unless ($parser) {
-        die "Failed to create EBNF parser from fx/specs/ebnf.spec";
+        die "Failed to create EBNF parser from $spec_file";
     }
     
-    # Parse the EBNF content
+    # Parse the content to get raw AST
+    my $raw_ast = $parser->(\$content);
+    unless ($raw_ast) {
+        die "Failed to parse included EBNF content";
+    }
+    
+    # Process any nested includes
+    my $processed_rules = process_ast_includes($raw_ast, undef, $include_dirs);
+    
+    return $processed_rules;
+}
+
+sub load_ebnf_spec_from_content {
+    my ($input_content, $include_dirs) = @_;
+    
+    # Parse the EBNF content to get raw AST first
+    my $spec_file;
+    for my $path ("fx/specs/ebnf.spec", "../fx/specs/ebnf.spec", "../../fx/specs/ebnf.spec") {
+        if (-f $path) {
+            $spec_file = $path;
+            last;
+        }
+    }
+    
+    die "Cannot find ebnf.spec file" unless $spec_file;
+    
+    open my $fh, "<", $spec_file or die "Cannot open $spec_file: $!";
+    my $spec_content = do { local $/; <$fh> };
+    close $fh;
+    
+    # Create parser from the spec
+    my $parser = LinkedSpec::Get(\$spec_content);
+    unless ($parser) {
+        die "Failed to create EBNF parser from $spec_file";
+    }
+    
+    # Parse the main EBNF content to get raw AST
     my $raw_ast = $parser->(\$input_content);
     unless ($raw_ast) {
         die "Failed to parse EBNF content";
     }
     
-    return $raw_ast;
+    # Process includes using AST-based approach
+    print STDERR "🔄 Processing AST-based includes...\n" unless $quiet_mode;
+    my $base_dir = undef;  # Will be set by the calling function if needed
+    my $final_rules = process_ast_includes($raw_ast, $base_dir, $include_dirs);
+    
+    return $final_rules;
+}
+
+# NEW: Core pipeline extraction - process to final AST (reusable)
+sub process_to_final_ast {
+    my ($input, %options) = @_;
+    
+    # Set global options
+    $quiet_mode = $options{quiet} // 0;
+    $verbosity = $options{verbosity} // 'normal';
+    $ERROR_CONTEXT->{verbosity} = $verbosity;
+    
+    # Handle both string content and pre-parsed AST
+    my $raw_ast;
+    if (ref($input) eq 'ARRAY') {
+        # Already parsed AST
+        $raw_ast = $input;
+    } else {
+        # String content - need to parse first
+        $raw_ast = load_ebnf_spec_from_content($input);
+        unless ($raw_ast) {
+            die "Failed to parse EBNF content";
+        }
+    }
+    
+    # Execute transformation pipeline (steps 2-5)
+    print STDERR "\n=== Processing to Final AST ===\n" unless $quiet_mode;
+    
+    print STDERR "\n=== Step 2: Group by OR ===\n" unless $quiet_mode;
+    my $step2_result = step2_group_by_or($raw_ast);
+    print STDERR "STEP 2 RESULT (OR groups):\n" . Dumper($step2_result) if !$quiet_mode && $verbosity eq 'debug';
+
+    print STDERR "\n=== Step 2.5: Handle parentheses ===\n" unless $quiet_mode;
+    my $step2_5_result = step2_5_handle_parentheses($step2_result);
+    print STDERR "STEP 2.5 RESULT (Parentheses handled):\n" . Dumper($step2_5_result) if !$quiet_mode && $verbosity eq 'debug';
+
+    print STDERR "\n=== Step 3: Parse sequences ===\n" unless $quiet_mode;
+    my $step3_result = step3_parse_sequences($step2_5_result);
+    print STDERR "STEP 3 RESULT (Sequences parsed):\n" . Dumper($step3_result) if !$quiet_mode && $verbosity eq 'debug';
+
+    print STDERR "\n=== Step 4: Handle quantifiers ===\n" unless $quiet_mode;
+    my $step4_result = step4_handle_quantifiers($step3_result);
+    print STDERR "STEP 4 RESULT (Quantifiers handled):\n" . Dumper($step4_result) if !$quiet_mode && $verbosity eq 'debug';
+
+    print STDERR "\n=== Step 5: Build tree structure ===\n" unless $quiet_mode;
+    my ($final_ast, $rule_order) = step5_build_tree_structure($step4_result);
+    print STDERR "STEP 5 RESULT (Tree structure):\n" . Dumper($final_ast) if !$quiet_mode && $verbosity eq 'debug';
+    
+    print STDERR "✅ Final AST ready with " . scalar(keys %$final_ast) . " rules\n" unless $quiet_mode;
+    
+    # Optional JSON serialization (future feature)
+    if ($options{output_json}) {
+        serialize_final_ast_to_json($final_ast, $rule_order, $options{output_json}, %options);
+        print STDERR "💾 Final AST serialized to: $options{output_json}\n" unless $quiet_mode;
+    }
+    
+    # Always return Perl structures for direct consumption
+    return ($final_ast, $rule_order);
+}
+
+# JSON serialization helper (placeholder for future implementation)
+sub serialize_final_ast_to_json {
+    my ($final_ast, $rule_order, $output_file, %options) = @_;
+    
+    # TODO: Implement JSON serialization
+    print STDERR "📝 JSON serialization not yet implemented\n";
 }
 
 sub process_transformation_phases {
+    my ($input, %options) = @_;
+    
+    # Use new core pipeline function
+    my ($final_ast, $rule_order) = process_to_final_ast($input, %options);
+    
+    # Continue with step 6 (existing code generation)
+    print STDERR "\n=== Step 6: Generate parser code ===\n" unless $options{quiet};
+    
+    # DEBUG: Final check on what's being passed to parser generation
+    print STDERR "DEBUG: Keys in final_ast before step6: " . join(", ", sort keys %$final_ast) . "\n" if !$options{quiet} && ($options{verbosity} // '') eq 'debug';
+    
+    my $step6_result = step6_generate_parser_code($final_ast, $rule_order);
+    
+    return $step6_result;
+}
+
+# LEGACY: Keep for backward compatibility - will be removed eventually  
+sub process_transformation_phases_legacy {
     my ($input, %options) = @_;
     
     # Set global options

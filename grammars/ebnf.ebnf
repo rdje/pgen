@@ -1,0 +1,629 @@
+# ebnf.ebnf
+#
+# Comprehensive Extended Backus-Naur Form Grammar Specification
+# Self-hosting EBNF grammar that can parse itself and other EBNF grammars
+#
+# This grammar includes support for:
+# - Semantic annotations (@annotation: value)
+# - Include directives (include, include_file, include_dir)
+# - Return annotations (-> expression)
+# - All EBNF constructs (rules, alternatives, sequences, quantifiers, grouping)
+# - Comments and whitespace handling
+# - Advanced features (regex patterns, probability annotations, etc.)
+#
+# Version: 2.0
+# Author: EBNF Parser Generator System
+
+# Include semantic annotation support
+include(semantic_annotations)
+
+# =============================================================================
+# GRAMMAR FILE STRUCTURE
+# =============================================================================
+
+# Root rule - a complete EBNF grammar file
+grammar_file := (include_directive | semantic_annotation | grammar_rule | comment | whitespace)*
+    -> {type: "grammar_file", elements: [$1*]}
+
+# =============================================================================
+# INCLUDE DIRECTIVES
+# =============================================================================
+
+# Include directives for modular grammar composition
+include_directive := (
+    include_files |
+    include_directories |
+    include_short_form
+) -> $1
+
+# Include specific files: include_file("file1", "file2", "file3")
+include_files := "include_file" "(" string_list ")"
+    -> {type: "include_file", files: $3}
+
+# Include all files from directories: include_dir("dir1", "dir2")  
+include_directories := "include_dir" "(" string_list ")"
+    -> {type: "include_dir", directories: $3}
+
+# Short form: include("file1", "file2") or dir("dir1", "dir2")
+include_short_form := (
+    "include" "(" string_list ")" |
+    "file" "(" string_list ")" |
+    "dir" "(" string_list ")"
+) -> {type: "include", form: $1, items: $3}
+
+# Comma-separated list of quoted strings
+string_list := quoted_string ("," quoted_string)*
+    -> [$1, $2*]
+
+# =============================================================================
+# GRAMMAR RULES
+# =============================================================================
+
+# Grammar rule with optional semantic annotations and return annotation
+grammar_rule := annotation_list? rule_definition
+    -> {type: "grammar_rule", annotations: $1, rule: $2}
+
+# List of semantic annotations that can precede a rule
+annotation_list := semantic_annotation+
+    -> $1
+
+# Core rule definition: name := expression -> return_annotation
+rule_definition := rule_name rule_operator rule_expression return_annotation?
+    -> {type: "rule_definition", name: $1, operator: $2, expression: $3, return_annotation: $4}
+
+# Rule name (identifier)
+rule_name := /([a-zA-Z_][a-zA-Z0-9_]*)/
+    -> {type: "rule_name", name: $1}
+
+# Rule operators
+rule_operator := (
+    ":=" |     # Standard EBNF assignment
+    "::=" |    # Alternative assignment 
+    "=" |      # Simple assignment
+    ":-"       # Prolog-style assignment
+) -> {type: "rule_operator", symbol: $1}
+
+# =============================================================================
+# RULE EXPRESSIONS
+# =============================================================================
+
+# Rule expression - alternation (OR) has lowest precedence
+rule_expression := alternation
+    -> $1
+
+# Alternation: expr1 | expr2 | expr3
+alternation := sequence ("|" sequence)*
+    -> {type: "alternation", alternatives: [$1, $2*]}
+
+# Sequence: expr1 expr2 expr3
+sequence := sequence_element+
+    -> {type: "sequence", elements: [$1*]}
+
+# Elements that can appear in a sequence
+sequence_element := (quantified_element | primary_element)
+    -> $1
+
+# Quantified elements: element?, element*, element+, element{n,m}
+quantified_element := primary_element quantifier
+    -> {type: "quantified", element: $1, quantifier: $2}
+
+# Primary elements (atomic or grouped)
+primary_element := (
+    terminal |
+    non_terminal |
+    grouped_expression |
+    optional_element |
+    epsilon
+) -> $1
+
+# =============================================================================
+# QUANTIFIERS
+# =============================================================================
+
+# Quantifier patterns
+quantifier := (
+    simple_quantifier |
+    bounded_quantifier |
+    probability_quantifier
+) -> $1
+
+# Simple quantifiers: ?, *, +
+simple_quantifier := (
+    "?" |     # Zero or one (optional)
+    "*" |     # Zero or more
+    "+"       # One or more  
+) -> {type: "simple_quantifier", symbol: $1}
+
+# Bounded quantifiers: {n}, {n,}, {,m}, {n,m}
+bounded_quantifier := "{" quantifier_bounds "}"
+    -> {type: "bounded_quantifier", bounds: $2}
+
+quantifier_bounds := (
+    exact_count |           # {5} 
+    min_count |            # {3,}
+    max_count |            # {,10}
+    range_count            # {2,8}
+) -> $1
+
+exact_count := /(\d+)/
+    -> {type: "exact", count: $1}
+
+min_count := /(\d+)/ ","
+    -> {type: "minimum", count: $1}
+
+max_count := "," /(\d+)/
+    -> {type: "maximum", count: $2}
+
+range_count := /(\d+)/ "," /(\d+)/
+    -> {type: "range", min: $1, max: $3}
+
+# Probability quantifiers: @75% (extension)
+probability_quantifier := "@" /(\d+)/ "%"?
+    -> {type: "probability", percentage: $2}
+
+# =============================================================================
+# TERMINALS AND NON-TERMINALS
+# =============================================================================
+
+# Terminal elements (quoted strings, regex patterns, character classes)
+terminal := (
+    quoted_string |
+    regex_pattern |
+    character_class |
+    character_range |
+    special_character
+) -> $1
+
+# Quoted strings: "literal", 'literal'
+quoted_string := (
+    double_quoted_string |
+    single_quoted_string |
+    raw_quoted_string
+) -> $1
+
+double_quoted_string := /"([^"\\]|\\.)*"/
+    -> {type: "quoted_string", value: $1, quote_style: "double"}
+
+single_quoted_string := /'([^'\\]|\\.)*/
+    -> {type: "quoted_string", value: $1, quote_style: "single"}
+
+# Raw strings (no escape processing): r"literal"
+raw_quoted_string := /r"([^"]*)"/
+    -> {type: "raw_string", value: $1}
+
+# Regular expression patterns: /pattern/flags
+regex_pattern := "/" regex_content "/" regex_flags?
+    -> {type: "regex", pattern: $2, flags: $3}
+
+regex_content := /([^\/\\]|\\.)*/
+    -> $1
+
+regex_flags := /([gimsuyx]*)/
+    -> $1
+
+# Character classes: [abc], [^abc], [a-z]
+character_class := "[" character_class_negation? character_class_content "]"
+    -> {type: "character_class", negated: $2, content: $3}
+
+character_class_negation := "^"
+    -> true
+
+character_class_content := character_class_item+
+    -> $1
+
+character_class_item := (
+    character_range_item |
+    escaped_character |
+    normal_character
+) -> $1
+
+character_range_item := normal_character "-" normal_character
+    -> {type: "character_range", start: $1, end: $3}
+
+# Character ranges: a-z, A-Z, 0-9
+character_range := /([a-zA-Z0-9])-([a-zA-Z0-9])/
+    -> {type: "character_range", start: $1, end: $2}
+
+# Special characters and escapes
+special_character := (
+    escaped_character |
+    unicode_character |
+    named_character
+) -> $1
+
+escaped_character := /\\(.)/
+    -> {type: "escaped_character", character: $1}
+
+unicode_character := /\\u([0-9a-fA-F]{4})|\\U([0-9a-fA-F]{8})/
+    -> {type: "unicode_character", codepoint: $1}
+
+named_character := (
+    "\\n" | "\\t" | "\\r" | "\\s" | "\\d" | "\\w" |
+    "\\N" | "\\T" | "\\R" | "\\S" | "\\D" | "\\W"
+) -> {type: "named_character", name: $1}
+
+normal_character := /([^\[\]\\^-])/
+    -> {type: "character", value: $1}
+
+# Non-terminal references (rule names)
+non_terminal := rule_name
+    -> {type: "non_terminal", name: $1}
+
+# =============================================================================
+# GROUPING AND PRECEDENCE  
+# =============================================================================
+
+# Grouped expressions: (expr)
+grouped_expression := "(" rule_expression ")"
+    -> {type: "grouped", expression: $2}
+
+# Optional elements: [expr] (alternative syntax for expr?)
+optional_element := "[" rule_expression "]"  
+    -> {type: "optional", expression: $2}
+
+# Epsilon (empty production)
+epsilon := (
+    "ε" |      # Greek epsilon
+    "epsilon" | # English word
+    "empty" |   # Alternative
+    "λ"         # Lambda (sometimes used)
+) -> {type: "epsilon"}
+
+# =============================================================================
+# RETURN ANNOTATIONS
+# =============================================================================
+
+# Return annotations: -> expression
+return_annotation := "->" return_expression
+    -> {type: "return_annotation", expression: $2}
+
+# Return expressions (comprehensive)
+return_expression := (
+    scalar_return |
+    array_return |
+    object_return |
+    expression_return |
+    string_return
+) -> $1
+
+# Scalar returns: $1, $2, $name
+scalar_return := (
+    positional_reference |
+    named_reference |
+    literal_return
+) -> $1
+
+positional_reference := "$" /(\d+)/
+    -> {type: "positional_reference", index: $2}
+
+named_reference := "$" rule_name
+    -> {type: "named_reference", name: $2}
+
+literal_return := (quoted_string | numeric_literal | boolean_literal)
+    -> {type: "literal_return", value: $1}
+
+# Array returns: [$1, $2], [$1*], [expr, ...]
+array_return := "[" (array_element_return ("," array_element_return)*)? "]"
+    -> {type: "array_return", elements: [$2, $3*]}
+
+array_element_return := (
+    quantified_reference |
+    scalar_return |
+    spread_reference
+) -> $1
+
+quantified_reference := positional_reference quantified_marker
+    -> {type: "quantified_reference", reference: $1, quantifier: $2}
+
+quantified_marker := ("*" | "+" | "?")
+    -> $1
+
+spread_reference := "..." scalar_return
+    -> {type: "spread_reference", reference: $2}
+
+# Object returns: {key: $1, value: $2}
+object_return := "{" (object_property_return ("," object_property_return)*)? "}"
+    -> {type: "object_return", properties: [$2, $3*]}
+
+object_property_return := (
+    simple_property |
+    computed_property_return |
+    spread_property_return
+) -> $1
+
+simple_property := property_name ":" return_expression
+    -> {type: "property", key: $1, value: $3}
+
+computed_property_return := "[" return_expression "]" ":" return_expression
+    -> {type: "computed_property", key: $2, value: $5}
+
+spread_property_return := "..." return_expression
+    -> {type: "spread_property", expression: $2}
+
+property_name := (
+    identifier_literal |
+    quoted_string
+) -> $1
+
+# Expression returns (complex expressions in return annotations)
+expression_return := (
+    arithmetic_return |
+    conditional_return |
+    function_call_return |
+    member_access_return
+) -> $1
+
+arithmetic_return := return_expression arithmetic_operator return_expression
+    -> {type: "arithmetic_expression", left: $1, operator: $2, right: $3}
+
+arithmetic_operator := ("+" | "-" | "*" | "/" | "%" | "**")
+    -> $1
+
+conditional_return := return_expression "?" return_expression ":" return_expression
+    -> {type: "conditional_expression", condition: $1, true_value: $3, false_value: $5}
+
+function_call_return := function_name_return "(" (return_expression ("," return_expression)*)? ")"
+    -> {type: "function_call", name: $1, arguments: [$3, $4*]}
+
+function_name_return := identifier_literal
+    -> $1
+
+member_access_return := return_expression "." identifier_literal
+    -> {type: "member_access", object: $1, property: $3}
+
+string_return := quoted_string
+    -> {type: "string_return", value: $1}
+
+# =============================================================================
+# LITERALS AND BASIC TYPES
+# =============================================================================
+
+# Numeric literals
+numeric_literal := (
+    integer_literal |
+    decimal_literal |
+    scientific_literal |
+    hexadecimal_literal |
+    binary_literal |
+    octal_literal
+) -> $1
+
+integer_literal := /([+-]?\d+)/
+    -> {type: "integer", value: $1}
+
+decimal_literal := /([+-]?\d*\.\d+)/
+    -> {type: "decimal", value: $1}
+
+scientific_literal := /([+-]?\d+(?:\.\d+)?[eE][+-]?\d+)/
+    -> {type: "scientific", value: $1}
+
+hexadecimal_literal := /(0[xX][0-9a-fA-F]+)/
+    -> {type: "hexadecimal", value: $1}
+
+binary_literal := /(0[bB][01]+)/
+    -> {type: "binary", value: $1}
+
+octal_literal := /(0[oO][0-7]+)/
+    -> {type: "octal", value: $1}
+
+# Boolean literals
+boolean_literal := ("true" | "false")
+    -> {type: "boolean", value: $1}
+
+# Identifier literal
+identifier_literal := /([a-zA-Z_][a-zA-Z0-9_]*)/
+    -> {type: "identifier", name: $1}
+
+# =============================================================================
+# EXTENDED EBNF FEATURES
+# =============================================================================
+
+# Exception handling (extension): rule except exception_list
+exception_rule := rule_expression "except" exception_list
+    -> {type: "exception_rule", expression: $1, exceptions: $3}
+
+exception_list := "(" rule_expression ("," rule_expression)* ")"
+    -> [$2, $3*]
+
+# Lookahead assertions (extension): &expr, !expr  
+lookahead_assertion := lookahead_operator primary_element
+    -> {type: "lookahead", operator: $1, expression: $2}
+
+lookahead_operator := (
+    "&" |     # Positive lookahead
+    "!"       # Negative lookahead
+) -> $1
+
+# Case sensitivity control (extension): ~"CaseSensitive", ~i"CaseInsensitive"
+case_control := case_modifier quoted_string
+    -> {type: "case_control", modifier: $1, string: $2}
+
+case_modifier := (
+    "~" |     # Case sensitive
+    "~i"      # Case insensitive  
+) -> $1
+
+# Named captures (extension): name:pattern
+named_capture := identifier_literal ":" primary_element
+    -> {type: "named_capture", name: $1, pattern: $3}
+
+# Rule modifiers (extension): @inline, @memoize, @left_recursive
+rule_modifier := "@" identifier_literal
+    -> {type: "rule_modifier", name: $2}
+
+# =============================================================================
+# COMMENTS AND WHITESPACE
+# =============================================================================
+
+# Comments
+comment := (
+    line_comment |
+    block_comment |
+    documentation_comment
+) -> $1
+
+# Line comments: # comment, // comment
+line_comment := (
+    ("#" | "//") comment_content
+) -> {type: "line_comment", content: $2}
+
+comment_content := /([^\r\n]*)/
+    -> $1
+
+# Block comments: /* comment */
+block_comment := "/*" block_comment_content "*/"
+    -> {type: "block_comment", content: $2}
+
+block_comment_content := /((?:[^*]|\*(?!\/))*)/
+    -> $1
+
+# Documentation comments: /** comment */, /// comment
+documentation_comment := (
+    "/**" block_comment_content "*/" |
+    "///" comment_content
+) -> {type: "documentation_comment", content: $2}
+
+# Whitespace (spaces, tabs, newlines)
+whitespace := /(\s+)/
+    -> {type: "whitespace", content: $1}
+
+# =============================================================================
+# ADVANCED FEATURES AND EXTENSIONS
+# =============================================================================
+
+# Semantic predicates (extension): {? condition ?}
+semantic_predicate := "{?" predicate_content "?}"
+    -> {type: "semantic_predicate", condition: $2}
+
+predicate_content := /([^?}]*(?:\?(?!})[^?}]*)*)/
+    -> $1
+
+# Action blocks (extension): { action_code }
+action_block := "{" action_content "}"
+    -> {type: "action_block", code: $2}
+
+action_content := /([^}]*(?:}(?![^{]*$)[^}]*)*)/
+    -> $1
+
+# Parametric rules (extension): rule[param1, param2]
+parametric_rule := rule_name "[" parameter_list "]"
+    -> {type: "parametric_rule", name: $1, parameters: $3}
+
+parameter_list := identifier_literal ("," identifier_literal)*
+    -> [$1, $2*]
+
+# Template instantiation (extension): rule<Type1, Type2>
+template_instantiation := rule_name "<" type_argument_list ">"
+    -> {type: "template_instantiation", name: $1, arguments: $3}
+
+type_argument_list := type_argument ("," type_argument)*
+    -> [$1, $2*]
+
+type_argument := (
+    rule_name |
+    quoted_string |
+    numeric_literal
+) -> $1
+
+# Lexer modes (extension): mode lexer_name { rules }
+lexer_mode := "mode" identifier_literal "{" grammar_rule* "}"
+    -> {type: "lexer_mode", name: $2, rules: $4}
+
+# Grammar inheritance (extension): grammar extends parent_grammar  
+grammar_inheritance := "grammar" identifier_literal "extends" identifier_literal
+    -> {type: "grammar_inheritance", name: $2, parent: $4}
+
+# Import statements (extension): import "grammar.ebnf" as namespace
+import_statement := "import" quoted_string ("as" identifier_literal)?
+    -> {type: "import", path: $2, alias: $4}
+
+# =============================================================================
+# OPTIMIZATION HINTS AND DIRECTIVES
+# =============================================================================
+
+# Optimization hints for parser generators
+optimization_hint := optimization_directive "(" optimization_parameters? ")"
+    -> {type: "optimization_hint", directive: $1, parameters: $3}
+
+optimization_directive := (
+    "memoize" |      # Enable memoization  
+    "inline" |       # Inline this rule
+    "fragment" |     # Lexer fragment
+    "skip" |         # Skip whitespace
+    "channel" |      # Send to channel
+    "pushMode" |     # Push lexer mode
+    "popMode" |      # Pop lexer mode
+    "more" |         # Continue tokenizing
+    "type"           # Set token type
+) -> $1
+
+optimization_parameters := optimization_parameter ("," optimization_parameter)*
+    -> [$1, $2*]
+
+optimization_parameter := (
+    identifier_literal |
+    quoted_string |
+    numeric_literal
+) -> $1
+
+# =============================================================================
+# ERROR HANDLING AND RECOVERY
+# =============================================================================
+
+# Error productions for parser recovery
+error_production := "error" error_recovery_action?
+    -> {type: "error_production", action: $2}
+
+error_recovery_action := ":" (sync_to | skip_to | panic_mode)
+    -> $1
+
+sync_to := "sync" rule_expression
+    -> {type: "sync_to", target: $2}
+
+skip_to := "skip" rule_expression  
+    -> {type: "skip_to", target: $2}
+
+panic_mode := "panic"
+    -> {type: "panic_mode"}
+
+# =============================================================================
+# COMPLETE EBNF GRAMMAR EXAMPLES (Documentation)
+# =============================================================================
+
+# This comprehensive EBNF grammar supports:
+#
+# Basic EBNF:
+# rule := "literal" | other_rule
+# list := item ("," item)*
+# optional := element?
+# 
+# Advanced features:
+# @type: Expression
+# @precedence: {level: 5, associativity: "left"}
+# expression := term (("+" | "-") term)* -> {type: "binary_op", left: $1, ops: [$2*]}
+#
+# Includes:
+# include("common_rules", "operators")
+# include_dir("shared", "extensions")
+#
+# Complex returns:
+# function_def := "function" name "(" params ")" body 
+#              -> {type: "function", name: $2, params: $4, body: $6}
+#
+# Regex patterns:
+# identifier := /[a-zA-Z_][a-zA-Z0-9_]*/ -> $1
+# number := /\d+(\.\d+)?/ -> {type: "number", value: $1}
+#
+# Character classes:
+# letter := [a-zA-Z]
+# digit := [0-9] 
+# special := [!@#$%^&*()]
+#
+# Quantifiers:
+# exactly_three := element{3}
+# two_to_five := element{2,5}
+# at_least_two := element{2,}
+# up_to_ten := element{,10}
+#
+# This grammar is self-hosting and can parse itself as well as
+# other EBNF grammars with full semantic annotation support.

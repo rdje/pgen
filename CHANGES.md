@@ -1,5 +1,32 @@
 # CHANGES.md
 
+## 2024-08-31 - Include System Enhancement
+
+### Fixed
+- **Include Directory Processing**: Corrected `include_dir()` handling to process multiple directory paths correctly
+  - Previously expected alternating directory-pattern pairs
+  - Now correctly handles comma-separated directory list with default `*.ebnf` pattern
+  - Each directory in `include_dir("dir1", "dir2", "dir3")` is searched for `.ebnf` files
+
+### Enhanced
+- **File Extension Handling**: `include("filename")` and `include("filename.ebnf")` are now equivalent
+  - System automatically adds `.ebnf` extension if not present
+  - Maintains backward compatibility with explicit extensions
+
+### Documented
+- **Comprehensive Include System Documentation**: 
+  - Added detailed include system section to `docs/EBNF_PARSER_GENERATOR_GUIDE.md`
+  - Created technical reference `docs/EBNF_INCLUDE_SYSTEM.md`
+  - Documented all include directive forms, environment variables, and best practices
+  - Added troubleshooting guide and performance considerations
+
+### Technical Details
+- **Environment Variables**: Full support for `$EBNF_INCLUDES` and `$EBNFLIB` with colon/semicolon path separation
+- **Search Path Priority**: Base directory → Include directories → Environment paths → Current directory
+- **Recursive Processing**: Included files can contain their own include directives
+- **Cross-Platform Support**: Automatic platform detection for path separators (`:` vs `;`)
+- **Error Handling**: Detailed error reporting with search path information
+
 ## 2025-08-30: Major Fix - Grouped Quantifier Support in Parser Generation
 
 ### Problem Statement

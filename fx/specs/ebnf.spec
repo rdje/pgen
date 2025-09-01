@@ -5,6 +5,8 @@ grammar_file:: I {
   my @rules;
   my @rule;
   my $rule;
+  my @includes;
+  my @semantic_annotations;
   my $on;
 }
 
@@ -13,14 +15,19 @@ LX {
     push @rules, [$rule, @rule];
   }
 
-  return [@rules]
+  return [@includes, @rules]
 }
+
+-> include_dir.push(includes)
+-> include_file.push(includes)
 
 -> grammar_rule   {
   if ($rule) {
     push @rules, [$rule, @rule];
-    @rule=()
   }
+
+  @rule=(@semantic_annotations);
+  @semantic_annotations=();
 
   $rule = call(grammar_rule);
   $on=1
@@ -161,11 +168,21 @@ LX {
   }
 }
 
+-> semantic_annotation.push(semantic_annotations)
+-> logging_annotation  {
+  if ($on) { 
+    push @rule, call(logging_annotation)
+  } else {
+    say "Error: Logging annotation occurrence with no container rule context";
+    return undef
+  }
+}
+
 -> whitespace
 -> comment
 
 grammar_rule: /[[:alpha:]_]\w*\s*:=/  I {return ["rule", ($IMATCH =~ /([[:alpha:]_]\w*)/o)[0]]}
-rule_name: /[[:alpha:]_]\w*/        I {return ["rule_reference", $IMATCH]}
+rule_name: /[[:alpha:]_]\w*/          I {return ["rule_reference", $IMATCH]}
 
 quoted_string: /"[^"]*"|'[^']*'/    I {$IMATCH =~ s/'|"//g; return ["quoted_string", $IMATCH]}
 number: /\d+/                       I {return ["number", $IMATCH]}
@@ -175,11 +192,31 @@ plus_operator: /\+/                 I {return ["operator", $IMATCH]}
 star_operator: /\*/                 I {return ["operator", $IMATCH]}
 question_operator: /\?/             I {return ["operator", $IMATCH]}
 return_scalar: /->\s*\K(?:\$\d+|"[^"]*"|'[^']*')/       I {return ["return_scalar", $IMATCH]}
-return_array: /->\s*\K(?&array_structure)(?(DEFINE)(?<array_structure>\[(?&content)\])(?<object_structure>\{(?&content)\})(?<content>(?:[^{}\[\]]*|(?&array_structure)|(?&object_structure))*))/   I {return ["return_array", $IMATCH]}
+return_array: /->\s*\K(?&array_structure)(?(DEFINE)(?<array_structure>\[(?&content)\])(?<object_structure>\{(?&content)\})(?<content>(?:[^{}\[\]]*|(?&array_structure)|(?&object_structure))*))/     I {return ["return_array", $IMATCH]}
 return_object: /->\s*\K(?&object_structure)(?(DEFINE)(?<array_structure>\[(?&content)\])(?<object_structure>\{(?&content)\})(?<content>(?:[^{}\[\]]*|(?&array_structure)|(?&object_structure))*))/   I {return ["return_object", $IMATCH]}
 open_paren: /\(/                    I {return ["group_open", $IMATCH]}
 close_paren: /\)/                   I {return ["group_close", $IMATCH]}
-probability: /@\d+%/                I {$IMATCH =~ s/@|%//g; return ["probability", $IMATCH]}
+probability: /@\d+%?/               I {$IMATCH =~ s/@|%//g; return ["probability", $IMATCH]}
 regex: /(?<!\\)\/.+?(?<!\\)\//      I {$IMATCH =~ s/^\/|\/$//g; return ["regex", $IMATCH]}
 whitespace: /\s+/
 comment: /#.*/
+include_dir: /\b(include_)?dir\(\K[^)]+(?=\))/ 		     I {return ["include_dir",  [split /\s*,\s*/, $IMATCH]]}
+include_file: /\b((include_)?file|include)\(\K[^)]+(?=\))/   I {return ["include_file", [split /\s*,\s*/, $IMATCH]]}
+
+semantic_annotation: /@(\w+)\s*:\s*/
+-> semantic_annotation 	{BACKTRACK(); return ['semantic_annotation', [$IMATCH_LIST[0], $CAPTURE]]}
+-> grammar_rule		{BACKTRACK(); return ['semantic_annotation', [$IMATCH_LIST[0], $CAPTURE]]}
+
+logging_annotation: /@((?:log|debug|trace|benchmark|profile|timing)_\w+)\s*\(\s*/ /\s*\)/ 	@move_pos
+I {$IMATCH =~ s/@|\s*\(//go}
+
+-> quoted_string {
+  push @logging_annotation, call(quoted_string)->[1]
+}
+-> comma.capture_if
+-> logging_annotation[1] {
+  CAPTURE_IF();
+  return ['logging_annotation', [$IMATCH, [@logging_annotation]]]
+}
+
+comma: /\s*,\s*/

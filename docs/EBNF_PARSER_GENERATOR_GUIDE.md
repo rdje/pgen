@@ -54,6 +54,143 @@ The tool generates two files:
 rule_name := definition -> return_annotation
 ```
 
+### Include System
+
+The EBNF parser generator supports a powerful include system that allows you to split large grammars across multiple files and reuse common grammar components.
+
+#### Include Directives
+
+You can include other EBNF files using several directive forms:
+
+```ebnf
+# Include specific files
+include_file("common_rules.ebnf", "operators.ebnf")
+include("tokens.ebnf")  # Short form
+file("literals")       # Will auto-add .ebnf extension
+
+# Include all .ebnf files from directories
+include_dir("../shared", "./components")
+dir("common")  # Short form
+```
+
+#### File Extension Handling
+
+File includes are flexible with extensions:
+- `include("grammar")` → searches for `grammar.ebnf`
+- `include("grammar.ebnf")` → searches for `grammar.ebnf`
+- Both forms are equivalent
+
+#### Directory Search Path
+
+The system searches for included files in the following order:
+
+1. **Base directory** (directory containing the main grammar file)
+2. **Explicit directories** (from `include_dir()` directives)
+3. **Environment directories**:
+   - `$EBNF_INCLUDES` (colon-separated paths)
+   - `$EBNFLIB` (colon-separated paths)
+4. **Current directory** (fallback)
+
+#### Environment Variables
+
+Set up library paths using environment variables:
+
+```bash
+# Unix/Linux/macOS
+export EBNF_INCLUDES="/usr/local/lib/ebnf:/opt/grammars"
+export EBNFLIB="$HOME/.ebnf/lib:/shared/grammars"
+
+# Windows
+set EBNF_INCLUDES="C:\grammars\lib;D:\shared\ebnf"
+set EBNFLIB="%USERPROFILE%\.ebnf\lib"
+```
+
+#### Recursive Includes
+
+Included files can themselves contain include directives, creating a tree of grammar components:
+
+```ebnf
+# main.ebnf
+include("tokens", "expressions", "statements")
+
+program := statement* -> {type: "program", body: [$1*]}
+```
+
+```ebnf
+# tokens.ebnf
+include("common/whitespace")
+
+identifier := /([a-zA-Z_]\w*)/ -> $1
+number := /(\d+)/ -> $1
+```
+
+```ebnf
+# expressions.ebnf
+include("tokens")  # Can reference already included files
+
+expression := term (("+" | "-") term)*
+term := factor (("*" | "/") factor)*
+factor := number | identifier | "(" expression ")"
+```
+
+#### Best Practices for Includes
+
+1. **Organize by functionality**:
+   ```
+   grammars/
+   ├── main.ebnf           # Top-level grammar
+   ├── tokens/
+   │   ├── identifiers.ebnf
+   │   ├── literals.ebnf
+   │   └── operators.ebnf
+   ├── expressions/
+   │   ├── arithmetic.ebnf
+   │   └── boolean.ebnf
+   └── statements/
+       ├── control.ebnf
+       └── declarations.ebnf
+   ```
+
+2. **Use environment variables for shared libraries**:
+   ```bash
+   export EBNFLIB="/usr/local/share/ebnf:/opt/parsers/common"
+   ```
+
+3. **Document include dependencies**:
+   ```ebnf
+   # arithmetic.ebnf
+   # Requires: tokens/numbers.ebnf, tokens/operators.ebnf
+   include("numbers", "operators")
+   
+   expression := term (additive_op term)*
+   ```
+
+4. **Avoid circular includes** - the system handles them gracefully but they indicate design issues
+
+#### Example: Modular Language Grammar
+
+```ebnf
+# language.ebnf - Main grammar file
+include_dir("tokens", "expressions", "statements")
+include("whitespace")  # From EBNFLIB
+
+program := statement* -> {type: "program", statements: [$1*]}
+```
+
+```ebnf
+# tokens/identifiers.ebnf
+identifier := /([a-zA-Z_]\w*)/ -> {type: "identifier", name: $1}
+keyword := "if" | "while" | "function" | "return"
+```
+
+```ebnf
+# expressions/arithmetic.ebnf
+include("../tokens/identifiers", "../tokens/numbers")
+
+expression := term (("+" | "-") term)*
+          -> {type: "expression", left: $1, operations: [$2*]}
+```
+
 ### Terminal Elements
 
 #### String Literals
