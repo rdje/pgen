@@ -1,9 +1,0 @@
-# Classic left-recursive grammar - the parser killer
-# This should either:
-# 1. Detect and reject left recursion, OR  
-# 2. Handle it gracefully with some transformation, OR
-# 3. Crash spectacularly (which tells us what we need to fix)
-
-expr := expr '+' term
-expr := term  
-term := 'number'

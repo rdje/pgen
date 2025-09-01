@@ -1,9 +1,0 @@
-# Simple multi-level parse tree (no quantifiers)
-statement := assignment | expression
-assignment := identifier '=' expression -> {type: "assignment", var: $1, value: $3}
-expression := term '+' term -> {type: "addition", left: $1, right: $3}
-term := factor '*' factor -> {type: "multiplication", left: $1, right: $3}
-factor := number | identifier
-number := /\d+/ -> {type: "number", value: $1}
-identifier := /[a-zA-Z]\w*/ -> {type: "identifier", name: $1}
-

@@ -1,7 +1,0 @@
-# Test mutual left-recursion: A -> B, B -> A  
-expr := term '+' factor -> {type: "add", left: $1, right: $3}
-expr := factor -> $1
-term := expr '*' /\d+/ -> {type: "mul", left: $1, right: $3}
-term := /\d+/ -> {type: "number", value: $1}
-factor := /\d+/ -> {type: "number", value: $1}
-

@@ -1,3 +1,0 @@
-# Simple test case for grouped quantifier issue
-list := item (',' item)*
-item := /[a-z]+/

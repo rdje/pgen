@@ -1,5 +1,0 @@
-# Test indirect left-recursion: A -> B -> A
-expr := term
-term := expr '+' /\d+/ -> {type: "add", left: $1, right: $3}
-term := /\d+/ -> {type: "number", value: $1}
-

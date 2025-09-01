@@ -1,4 +1,0 @@
-# Test basic quantifier collection syntax
-list := item+ -> [$1*]
-item := /\w+/ -> $1
-

@@ -1,5 +1,0 @@
-# Test invalid return annotation syntax
-bad_array := item+ -> [$1 garbage*]
-bad_object := key value -> {broken syntax}
-good_array := item+ -> [$1*]
-

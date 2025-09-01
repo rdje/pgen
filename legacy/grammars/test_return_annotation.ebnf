@@ -1,1 +1,0 @@
-test_rule := string ":" value -> {key: $1, value: $3}

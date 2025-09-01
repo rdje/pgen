@@ -1,7 +1,0 @@
-# Invalid: probabilities sum to 120%
-expr := "a" @50% | "b" @40% | "c" @30%
-
-
-
-
-

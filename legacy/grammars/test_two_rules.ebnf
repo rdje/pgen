@@ -1,7 +1,0 @@
-# Two Rules with Choice
-token := word -> $1
-token := number -> $1
-
-word := /(\w+)/ -> {type: "word", value: $1}
-number := /(\d+)/ -> {type: "number", value: $1}
-

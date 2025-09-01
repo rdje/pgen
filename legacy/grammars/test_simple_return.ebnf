@@ -1,3 +1,0 @@
-# Simple test for return annotation preservation
-expr := /(\w+)/ -> {name: $1}
-

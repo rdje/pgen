@@ -1,8 +1,0 @@
-number := "0" | "1" | "2"
-keyword := "if" | "then" | "else"
-symbol := "+" | "-" | "*"
-
-
-
-
-

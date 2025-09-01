@@ -1,4 +1,0 @@
-# Test entry point selection - zebra should be main, not alpha
-zebra := 'stripe'
-alpha := 'first'
-beta := 'second'

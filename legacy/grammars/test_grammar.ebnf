@@ -1,8 +1,0 @@
-expr := term '+' term | number{1,3} | "literal"
-term := identifier | number
-identifier := letter{1,} digit{0,3}
-
-
-
-
-

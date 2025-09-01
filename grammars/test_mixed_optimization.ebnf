@@ -1,9 +1,0 @@
-# Test optimization with mixed patterns
-simple := 'hello'
-sequence := 'start' 'end' 
-alternatives := 'option1'
-alternatives := 'option2'
-alternatives := 'option3'
-mixed := 'literal'
-mixed := simple
-rule_ref := 'defined'

@@ -1,4 +1,0 @@
-# Simple test for OR return annotations
-mode := /in/ -> "input"
-mode := /out/ -> "output"
-

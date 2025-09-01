@@ -1,5 +1,0 @@
-# Test return annotations
-scalar_test := 'hello' -> $1
-array_test := 'start' 'middle' 'end' -> [$1, $2, $3]  
-object_test := 'key' ':' 'value' -> {key: $1, value: $3}
-

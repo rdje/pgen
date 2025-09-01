@@ -1,7 +1,0 @@
-# Simple test for grouped quantifiers without return annotations
-
-test_list := item (',' item)*
-
-item := identifier
-
-identifier := /([a-zA-Z_]\w*)/ -> $1
