@@ -1,0 +1,31 @@
+[package]
+name = "ebnf-pipeline"
+version = "1.0.0"
+edition = "2021"
+authors = ["EBNF Parser Generator Project"]
+description = "Rust implementation of EBNF AST transformation pipeline"
+license = "MIT"
+
+[[bin]]
+name = "ast_pipeline"
+path = "src/main.rs"
+
+[[bin]]
+name = "data_generator"
+path = "src/data_generator.rs"
+
+[[bin]]
+name = "code_generator"
+path = "src/code_generator.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+clap = { version = "4.0", features = ["derive"] }
+rand = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.7"
+
+[dev-dependencies]
+tempfile = "3.3"
