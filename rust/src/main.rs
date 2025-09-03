@@ -12,24 +12,37 @@ use anyhow::Result;
 #[command(name = "ast_pipeline")]
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
+#[command(long_about = "Transform AST JSON files or generate high-performance Rust parsers.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Parser generation: ast_pipeline INPUT.json --generate-parser [--output PARSER.rs]")]
 struct Args {
     /// Raw AST JSON input file
     input_json: String,
 
-    /// Transformed AST JSON output file (optional)
+    /// Transformed AST JSON output file (optional, ignored when --generate-parser is used)
     output_json: Option<String>,
 
+    /// Output file path for generated parser (when --generate-parser is used)
+    #[arg(short, long)]
+    output: Option<String>,
+
     /// Enable debug output
-    #[arg(long, short)]
+    #[arg(long, short = 'd')]
     debug: bool,
 
     /// Show transformation statistics
-    #[arg(long, short)]
+    #[arg(short, long)]
     stats: bool,
 
     /// Disable input validation
     #[arg(long)]
     no_validate: bool,
+
+    /// Generate high-performance Rust parser instead of JSON output
+    #[arg(long)]
+    generate_parser: bool,
+
+    /// Enable trace mode in generated parser (detailed debug logging)
+    #[arg(long)]
+    trace: bool,
 }
 
 fn main() -> Result<()> {
@@ -45,7 +58,15 @@ fn main() -> Result<()> {
 
     let mut pipeline = RustASTPipeline::new(config);
 
-    let result = if let Some(output_file) = args.output_json {
+    let result = if args.generate_parser {
+        // Generate high-performance Rust parser
+        let output_rust = args.output.unwrap_or_else(|| {
+            args.input_json.replace(".json", "_parser.rs")
+        });
+        pipeline.generate_high_performance_parser(&args.input_json, &output_rust, args.trace, args.debug)?;
+        println!("SOTA regex parser generated: {}", output_rust);
+        (0, Vec::new())
+    } else if let Some(output_file) = args.output_json {
         // Cross-language mode: JSON → JSON
         pipeline.transform_to_json(&args.input_json, &output_file)?;
         println!("Transformed AST saved to: {}", output_file);

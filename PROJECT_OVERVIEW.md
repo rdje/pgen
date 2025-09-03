@@ -155,7 +155,7 @@ number := /(\d+)/
 | Language | AST Pipeline | Build System | Tests | Status |
 |----------|-------------|-------------|-------|---------|
 | Perl     | ✅ Complete  | ✅ Complete  | ✅ Complete | Production |
-| Rust     | ✅ Complete  | ✅ Complete  | ✅ Complete | Production |
+| Rust     | ✅ Complete + Semantic Annotations | ✅ Complete  | ✅ Complete + Annotation Testing | Production |
 | Julia    | ✅ Complete  | ✅ Complete  | ✅ Complete | Production |
 | Go       | ✅ Complete  | ✅ Complete  | ✅ Complete | Production |
 | Python   | ✅ Complete  | ✅ Complete  | ✅ Complete | Production |
@@ -305,7 +305,7 @@ cd zig && zig build run -- input.json output.json
 
 ### Runtime Dependencies
 - **Perl**: 5.20+, JSON module, Data::Dumper
-- **Rust**: 1.70+, serde, anyhow, chrono
+- **Rust**: 1.70+, serde, anyhow, chrono, TokenValue enum system
 - **Julia**: 1.8+, JSON3, Dates
 - **Go**: 1.19+, standard library only
 - **Python**: 3.8+, standard library only

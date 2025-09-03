@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2025-09-03 - Semantic Annotation Parsing in Rust AST Pipeline
+
+### Added
+
+- **TokenValue Enum Support**: Added support for mixed String and Array content in raw AST tokens
+  - `TokenValue::String` - Handles regular string token values
+  - `TokenValue::Array` - Supports array-structured annotation values
+  - Added trait implementations for `Display`, `PartialEq<&str>`, with helper methods `as_str()` and `is_empty()`
+
+- **Enhanced Annotation Parsing**: Updated extraction logic in Rust AST pipeline
+  - `extract_annotations()` now correctly parses semantic annotations in format `["semantic_annotation", ["name", "value"]]`
+  - Semantic annotations properly preserved in transformed AST metadata
+  - Debug output shows parsed annotation details with statistics
+
+### Fixed
+
+- **AST Pipeline Stages**: Updated all pipeline stages to handle the new TokenValue enum
+  - `group_by_or_operators()` - Updated token comparisons for proper rule organization
+  - `process_parentheses_in_sequence()` - Fixed token handling in group detection
+  - `parse_single_element()` - Updated string access with proper option handling
+  - `apply_quantifiers_to_node()` - Fixed quantifier token handling
+
+- **Backward Compatibility**: Added fallback paths for parsing legacy annotation formats
+
+### Technical Details
+
+- **Token Structure Support**: Handles both raw string tokens and complex array structures
+- **Annotation Extraction**: Preserves array structure with nested annotation name and value
+- **Metadata Preservation**: Annotations stored in TransformMetadata structure
+- **Error Handling**: Added detailed debug messages for malformed annotation data
+- **Pipeline Integration**: TokenValue changes compatible with all 5 transformation stages
+
+### Files Modified
+
+- **ENHANCED:** `rust/src/ast_pipeline.rs` - Added TokenValue enum and updated extraction logic
+- **MODIFIED:** `rust/src/ast_pipeline/high_performance_generator.rs` - Updated token handling
+
+### Testing
+
+- ✅ **Annotation Parsing**: Successfully extracts `["type", "context_sensitive_construct"]` format
+- ✅ **Annotation Preservation**: Semantic annotations correctly stored in output metadata
+- ✅ **Complex Tokens**: Handles mixed string and array content in raw AST
+- ✅ **Integration**: Full pipeline processes annotations without errors
+
+This enhancement enables the Rust AST pipeline to work with the semantic annotation system, preserving critical context-sensitive parsing metadata through the transformation pipeline as described in the SEMANTIC_ANNOTATIONS_ANALYSIS.md document.
+
+---
+
 ## 2025-09-01 - Semantic Annotation Support in AST Transformation Pipeline
 
 ### Added

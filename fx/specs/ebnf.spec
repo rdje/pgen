@@ -181,7 +181,7 @@ LX {
 -> whitespace
 -> comment
 
-grammar_rule: /[[:alpha:]_]\w*\s*:=/  I {return ["rule", ($IMATCH =~ /([[:alpha:]_]\w*)/o)[0]]}
+grammar_rule: /[[:alpha:]_]\w*\s*:{,2}=/  I {return ["rule", ($IMATCH =~ /([[:alpha:]_]\w*)/o)[0]]}
 rule_name: /[[:alpha:]_]\w*/          I {return ["rule_reference", $IMATCH]}
 
 quoted_string: /"[^"]*"|'[^']*'/    I {$IMATCH =~ s/'|"//g; return ["quoted_string", $IMATCH]}
@@ -204,8 +204,8 @@ include_dir: /\b(include_)?dir\(\K[^)]+(?=\))/ 		     I {return ["include_dir", 
 include_file: /\b((include_)?file|include)\(\K[^)]+(?=\))/   I {return ["include_file", [split /\s*,\s*/, $IMATCH]]}
 
 semantic_annotation: /@(\w+)\s*:\s*/
--> semantic_annotation 	{BACKTRACK(); return ['semantic_annotation', [$IMATCH_LIST[0], $CAPTURE]]}
--> grammar_rule		{BACKTRACK(); return ['semantic_annotation', [$IMATCH_LIST[0], $CAPTURE]]}
+-> semantic_annotation 	{BACKTRACK(); my $c = $CAPTURE; $c =~ s/\s*$//o; $c =~ s/^"|"$//go; return ['semantic_annotation', [$IMATCH_LIST[0], $c]]}
+-> grammar_rule		{BACKTRACK(); my $c = $CAPTURE; $c =~ s/\s*$//o; $c =~ s/^"|"$//go; return ['semantic_annotation', [$IMATCH_LIST[0], $c]]}
 
 logging_annotation: /@((?:log|debug|trace|benchmark|profile|timing)_\w+)\s*\(\s*/ /\s*\)/ 	@move_pos
 I {$IMATCH =~ s/@|\s*\(//go}

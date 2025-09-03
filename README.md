@@ -23,11 +23,10 @@ cd ../python && python ast_pipeline.py ../raw_ast.json transformed.json
 ## 📋 Project Status
 
 ### Implementation Status
-
-| Language | AST Pipeline | Build System | Testing Level | Status |
+|| Language | AST Pipeline | Build System | Testing Level | Status |
 |----------|-------------|-------------|---------------|---------|
 | **Perl**     | ✅ Complete | ✅ Complete | ✅ Better Tested | **Most Reliable** |
-| **Rust**     | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
+| **Rust**     | ✅ Complete + Annotations | ✅ Complete | ✅ Annotation Testing | **Semantic Annotation Ready** |
 | **Julia**    | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
 | **Go**       | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
 | **Python**   | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
@@ -256,6 +255,8 @@ number := /(\d+)/
 - **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)**: Complete technical architecture
 - **[IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md)**: Developer guide with implementation details  
 - **[CURRENT_STATUS.md](CURRENT_STATUS.md)**: Accurate project status and testing gaps
+- **[docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md](docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md)**: Semantic annotation system analysis
+- **[docs/RUST_AST_SEMANTIC_ANNOTATIONS.md](docs/RUST_AST_SEMANTIC_ANNOTATIONS.md)**: Rust semantic annotation implementation
 - **[docs/](docs/)**: Additional technical documentation
 
 ## ⚠️ Important Notes

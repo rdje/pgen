@@ -9,9 +9,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::io::{self, Write};
-use std::path::Path;
 use anyhow::{Context, Result};
+
+mod high_performance_generator;
+use high_performance_generator::HighPerformanceRustGenerator;
 
 /// Configuration for AST transformation pipeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,8 +36,51 @@ impl Default for PipelineConfig {
     }
 }
 
-/// Raw AST token representation
-pub type Token = Vec<String>;
+/// Raw AST token representation - supports mixed String and Array content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TokenValue {
+    String(String),
+    Array(Vec<String>),
+}
+
+impl TokenValue {
+    /// Get as string reference if this is a String variant
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            TokenValue::String(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+    
+    /// Check if this is an empty string
+    pub fn is_empty(&self) -> bool {
+        match self {
+            TokenValue::String(s) => s.is_empty(),
+            TokenValue::Array(v) => v.is_empty(),
+        }
+    }
+}
+
+impl std::fmt::Display for TokenValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TokenValue::String(s) => write!(f, "{}", s),
+            TokenValue::Array(v) => write!(f, "{:?}", v),
+        }
+    }
+}
+
+impl PartialEq<&str> for TokenValue {
+    fn eq(&self, other: &&str) -> bool {
+        match self {
+            TokenValue::String(s) => s == *other,
+            _ => false,
+        }
+    }
+}
+
+pub type Token = Vec<TokenValue>;
 pub type TokenSequence = Vec<Token>;
 pub type RawAST = Vec<TokenSequence>;
 
@@ -208,66 +252,67 @@ impl RustASTPipeline {
                     continue;
                 }
 
-                let token_type = &token[0];
-                let token_value = &token[1];
-
+                // Extract token type and value from the new TokenValue enum
+                let token_type = match &token[0] {
+                    TokenValue::String(s) => s,
+                    _ => continue, // Skip malformed tokens
+                };
+                
                 match token_type.as_str() {
                     "rule" => {
-                        rule_name = Some(token_value.clone());
-                        cleaned_rule.push(token.clone());
+                        if let TokenValue::String(name) = &token[1] {
+                            rule_name = Some(name.clone());
+                            cleaned_rule.push(token.clone());
+                        }
                     }
                     "semantic_annotation" | "logging_annotation" => {
                         if let Some(ref name) = rule_name {
                             if self.config.preserve_annotations {
-                                // Parse annotation format: ["annotation_type", [name, value]] for semantic
-                                // or ["annotation_type", [name, [args...]]] for logging
-                                if let Ok(parsed_value) = serde_json::from_str::<serde_json::Value>(token_value) {
-                                    if let Some(annotation_array) = parsed_value.as_array() {
-                                        if annotation_array.len() >= 2 {
-                                            let annotation_name = annotation_array[0].as_str().unwrap_or("unknown");
-                                            
-                                            match token_type.as_str() {
-                                                "semantic_annotation" => {
-                                                    let annotation_value = annotation_array[1].as_str().unwrap_or("");
-                                                    let formatted_annotation = format!("{}:{}", annotation_name, annotation_value);
-                                                    self.annotations.semantic_annotations
-                                                        .entry(name.clone())
-                                                        .or_insert_with(Vec::new)
-                                                        .push(formatted_annotation);
-                                                }
-                                                "logging_annotation" => {
-                                                    let args = if let Some(args_array) = annotation_array[1].as_array() {
-                                                        args_array.iter()
-                                                            .filter_map(|v| v.as_str())
-                                                            .collect::<Vec<_>>()
-                                                            .join(",")
-                                                    } else {
-                                                        annotation_array[1].as_str().unwrap_or("").to_string()
-                                                    };
-                                                    let formatted_annotation = format!("{}({})", annotation_name, args);
-                                                    self.annotations.logging_annotations
-                                                        .entry(name.clone())
-                                                        .or_insert_with(Vec::new)
-                                                        .push(formatted_annotation);
-                                                }
-                                                _ => unreachable!(),
+                                // New format: token[1] is the annotation array [name, value]
+                                if let TokenValue::Array(annotation_data) = &token[1] {
+                                    if annotation_data.len() >= 2 {
+                                        let annotation_name = &annotation_data[0];
+                                        let annotation_value = &annotation_data[1];
+                                        
+                                        match token_type.as_str() {
+                                            "semantic_annotation" => {
+                                                let formatted_annotation = format!("{}:{}", annotation_name, annotation_value);
+                                                self.annotations.semantic_annotations
+                                                    .entry(name.clone())
+                                                    .or_insert_with(Vec::new)
+                                                    .push(formatted_annotation);
                                             }
+                                            "logging_annotation" => {
+                                                let formatted_annotation = format!("{}({})", annotation_name, annotation_value);
+                                                self.annotations.logging_annotations
+                                                    .entry(name.clone())
+                                                    .or_insert_with(Vec::new)
+                                                    .push(formatted_annotation);
+                                            }
+                                            _ => unreachable!(),
+                                        }
+                                        
+                                        if self.config.debug {
+                                            println!("Parsed {} annotation: {} = {}", token_type, annotation_name, annotation_value);
                                         }
                                     }
                                 } else {
-                                    // Fallback for malformed annotation data
+                                    // Fallback for old string format or malformed data
+                                    if self.config.debug {
+                                        println!("Warning: Unexpected annotation format for {}: {:?}", token_type, token[1]);
+                                    }
                                     match token_type.as_str() {
                                         "semantic_annotation" => {
                                             self.annotations.semantic_annotations
                                                 .entry(name.clone())
                                                 .or_insert_with(Vec::new)
-                                                .push(format!("raw:{}", token_value));
+                                                .push(format!("raw:{:?}", token[1]));
                                         }
                                         "logging_annotation" => {
                                             self.annotations.logging_annotations
                                                 .entry(name.clone())
                                                 .or_insert_with(Vec::new)
-                                                .push(format!("raw:{}", token_value));
+                                                .push(format!("raw:{:?}", token[1]));
                                         }
                                         _ => unreachable!(),
                                     }
@@ -319,9 +364,13 @@ impl RustASTPipeline {
 
             let mut rule_name: Option<String> = None;
             for token in rule_def {
-                if token.len() == 2 && token[0] == "rule" {
-                    rule_name = Some(token[1].clone());
-                    break;
+                if token.len() == 2 {
+                    if let (TokenValue::String(type_str), TokenValue::String(name_str)) = (&token[0], &token[1]) {
+                        if type_str == "rule" {
+                            rule_name = Some(name_str.clone());
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -331,14 +380,18 @@ impl RustASTPipeline {
 
                 // Skip rule definition token
                 for token in rule_def.iter().skip(1) {
-                    if token.len() == 2 && token[0] == "operator" && token[1] == "|" {
-                        if !current_alt.is_empty() {
-                            alternatives.push(current_alt);
-                            current_alt = TokenSequence::new();
+                    if token.len() == 2 {
+                        if let (TokenValue::String(type_str), TokenValue::String(value_str)) = (&token[0], &token[1]) {
+                            if type_str == "operator" && value_str == "|" {
+                                if !current_alt.is_empty() {
+                                    alternatives.push(current_alt);
+                                    current_alt = TokenSequence::new();
+                                }
+                                continue;
+                            }
                         }
-                    } else {
-                        current_alt.push(token.clone());
                     }
+                    current_alt.push(token.clone());
                 }
 
                 if !current_alt.is_empty() {
@@ -390,10 +443,12 @@ impl RustASTPipeline {
 
                 while j < sequence.len() && paren_count > 0 {
                     if sequence[j].len() == 2 {
-                        match sequence[j][0].as_str() {
-                            "group_open" => paren_count += 1,
-                            "group_close" => paren_count -= 1,
-                            _ => {}
+                        if let Some(token_str) = sequence[j][0].as_str() {
+                            match token_str {
+                                "group_open" => paren_count += 1,
+                                "group_close" => paren_count -= 1,
+                                _ => {}
+                            }
                         }
                     }
 
@@ -407,7 +462,7 @@ impl RustASTPipeline {
                     // Create group token - serialize content as JSON for now
                     let content_json = serde_json::to_string(&group_content)
                         .context("Failed to serialize group content")?;
-                    result.push(vec!["group".to_string(), content_json]);
+                    result.push(vec![TokenValue::String("group".to_string()), TokenValue::String(content_json)]);
                 }
 
                 i = j;
@@ -460,19 +515,23 @@ impl RustASTPipeline {
         let token_value = &element[1];
 
         match token_type.as_str() {
-            "group" => {
+            Some("group") => {
                 // Deserialize group content
-                let group_content: TokenSequence = serde_json::from_str(token_value)
-                    .context("Failed to deserialize group content")?;
+                if let TokenValue::String(json_str) = token_value {
+                    let group_content: TokenSequence = serde_json::from_str(json_str)
+                        .context("Failed to deserialize group content")?;
 
-                if group_content.len() == 1 {
-                    self.parse_single_element(&group_content[0])
+                    if group_content.len() == 1 {
+                        self.parse_single_element(&group_content[0])
+                    } else {
+                        let elements: Result<Vec<ASTNode>> = group_content
+                            .iter()
+                            .map(|elem| self.parse_single_element(elem))
+                            .collect();
+                        Ok(ASTNode::Sequence { elements: elements? })
+                    }
                 } else {
-                    let elements: Result<Vec<ASTNode>> = group_content
-                        .iter()
-                        .map(|elem| self.parse_single_element(elem))
-                        .collect();
-                    Ok(ASTNode::Sequence { elements: elements? })
+                    Ok(ASTNode::Atom { value: ASTValue::Token(element.clone()) })
                 }
             }
             _ => Ok(ASTNode::Atom { value: ASTValue::Token(element.clone()) })
@@ -514,16 +573,18 @@ impl RustASTPipeline {
                     // Check if next element is a quantifier
                     if i + 1 < elements.len() {
                         if let ASTNode::Atom { value: ASTValue::Token(token) } = &elements[i + 1] {
-                            if token.len() == 2 && token[0] == "operator" && 
-                               ["*", "+", "?"].contains(&token[1].as_str()) {
-                                let quantifier = token[1].clone();
-                                let quantified_node = ASTNode::Quantified {
-                                    element: Box::new(element.clone()),
-                                    quantifier,
-                                };
-                                new_elements.push(quantified_node);
-                                i += 2; // Skip quantifier token
-                                continue;
+                            if token.len() == 2 && token[0] == "operator" {
+                                if let Some(op_str) = token[1].as_str() {
+                                    if ["*", "+", "?"].contains(&op_str) {
+                                        let quantified_node = ASTNode::Quantified {
+                                            element: Box::new(element.clone()),
+                                            quantifier: op_str.to_string(),
+                                        };
+                                        new_elements.push(quantified_node);
+                                        i += 2; // Skip quantifier token
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }
@@ -627,6 +688,49 @@ impl RustASTPipeline {
         self.save_transformed_ast(&grammar_tree, &rule_order, &raw_data.grammar_name, output_json_file)?;
         Ok(())
     }
+
+    /// Generate high-performance Rust parser code directly from transformed AST
+    /// Produces SOTA parser suitable for embedding in rgx regex engine
+    pub fn generate_high_performance_parser(
+        &mut self,
+        raw_ast_json_file: &str,
+        output_rust_file: &str,
+        enable_trace: bool,
+        enable_backtrack_debug: bool,
+    ) -> Result<()> {
+        let (grammar_tree, rule_order) = self.transform_from_file(raw_ast_json_file, None)?;
+        let raw_data = self.load_raw_ast(raw_ast_json_file)?;
+        
+        let code_generator = if enable_trace && enable_backtrack_debug {
+            HighPerformanceRustGenerator::with_full_debug(&raw_data.grammar_name)
+        } else if enable_trace {
+            HighPerformanceRustGenerator::with_trace(&raw_data.grammar_name, true)
+        } else {
+            let mut gen = HighPerformanceRustGenerator::new(&raw_data.grammar_name);
+            if enable_backtrack_debug {
+                gen.enable_backtrack_debug = true;
+            }
+            gen
+        };
+        
+        let rust_code = code_generator.generate_lightning_fast_parser(&grammar_tree, &rule_order)?;
+        
+        fs::write(output_rust_file, rust_code)
+            .with_context(|| format!("Failed to write high-performance Rust parser to: {}", output_rust_file))?;
+        
+        if self.config.debug {
+            println!("Generated SOTA regex parser: {}", output_rust_file);
+            if enable_trace {
+                println!("  - Trace logging enabled");
+            }
+            if enable_backtrack_debug {
+                println!("  - Backtrack debugging enabled");
+            }
+        }
+        
+        Ok(())
+    }
+
 }
 
 #[cfg(test)]
@@ -651,7 +755,7 @@ mod tests {
             ]
         ];
 
-        let cleaned = pipeline.extract_annotations(&raw_ast).unwrap();
+        let _cleaned = pipeline.extract_annotations(&raw_ast).unwrap();
         assert_eq!(pipeline.stats.annotations_preserved, 1);
         assert!(pipeline.annotations.semantic_annotations.contains_key("test"));
     }

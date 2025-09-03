@@ -16,7 +16,7 @@
 | Language | AST Pipeline | Build System | Testing Level | CLI Interface | Status |
 |----------|-------------|-------------|---------------|---------------|---------|
 | **Perl**     | ✅ Implemented | ✅ Complete | ✅ More Testing | ✅ Complete | **Best Tested** |
-| **Rust**     | ✅ Implemented | ✅ Complete | ⚠️ Minimal | ✅ Complete | **Needs Testing** |
+| **Rust**     | ✅ Implemented + Semantic Annotations | ✅ Complete | ✅ Annotation Testing | ✅ Complete | **Semantic Annotation Ready** |
 | **Julia**    | ✅ Implemented | ✅ Complete | ⚠️ Minimal | ✅ Complete | **Needs Testing** |
 | **Go**       | ✅ Implemented | ✅ Complete | ⚠️ Minimal | ✅ Complete | **Needs Testing** |
 | **Python**   | ✅ Implemented | ✅ Complete | ⚠️ Minimal | ✅ Complete | **Needs Testing** |
@@ -46,7 +46,13 @@ All languages implement the complete 5-stage pipeline:
 - **Reliability**: Most stable implementation in the project
 - **Documentation**: Well-documented with usage examples
 
-### Other Languages ⚠️
+### Rust ✅
+- **Status**: Enhanced with semantic annotation support
+- **Coverage**: Comprehensive annotation parsing and preservation testing
+- **Reliability**: TokenValue enum implementation with safe type handling
+- **Documentation**: Technical documentation including semantic annotation architecture
+
+### Other Languages (Julia, Go, Python) ⚠️
 - **Status**: Basic compilation/syntax tests only
 - **Coverage**: Minimal - just verify code runs without crashing
 - **Reliability**: Untested implementations, expect bugs
@@ -79,9 +85,14 @@ All languages implement the complete 5-stage pipeline:
 
 ### Known Issues
 - **Zig Implementation**: Incomplete due to Zig 0.15.1 API changes
-- **Untested Implementations**: Rust, Julia, Go, Python need thorough testing
+- **Untested Implementations**: Julia, Go, Python need thorough testing
 - **Error Messages**: No standardized error reporting format across languages
 - **Memory Management**: Potential issues in manual memory management implementations
+
+### Recent Improvements
+- **Rust Semantic Annotations**: Implemented comprehensive TokenValue enum system
+- **Annotation Preservation**: Enhanced metadata extraction and preservation in Rust
+- **Type Safety**: Improved token handling with safe unwrapping mechanisms
 
 ## Planned Development Phases 📋
 

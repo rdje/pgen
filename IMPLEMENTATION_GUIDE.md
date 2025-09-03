@@ -147,6 +147,9 @@ formatted = f"{parsed[0]}({args})" # → "name(arg1,arg2)"
 - Implement `enum ASTNode` for type safety
 - Use `Result<T, E>` for error handling
 - Memory management via ownership system
+- **TokenValue enum**: Handles heterogeneous token data (strings or arrays)
+- **Semantic Annotations**: Enhanced parsing and preservation with comprehensive testing
+- **Type Safety**: Safe unwrapping with `as_str()` and validation methods
 
 ### Julia Implementation  
 - Use `JSON3.jl` for JSON handling
@@ -192,6 +195,8 @@ struct Config {
 2. **Integration tests**: Full pipeline with real grammar files  
 3. **Edge case tests**: Empty grammars, malformed JSON, complex nesting
 4. **Cross-language tests**: Same input produces equivalent output
+5. **Annotation tests**: Semantic annotation parsing and preservation validation
+6. **Type safety tests**: TokenValue enum handling and safe unwrapping
 
 ## Extension Guidelines
 

@@ -4,19 +4,17 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Repository Overview
 
-This repository contains a **production-ready EBNF Parser Generator** system that evolved from a consulting framework created in 2008. The original `fx/` (Frameworks) directory contains tools built around `LinkedSpec.pm`, a Perl package for parsing Lisp-like and other text formats using `.spec` files. The system has been significantly enhanced with AI assistance (Gemini, then Cursor/Sonnet 4, now Warp), extending from the original `.spec` format to support modern `.ebnf` format with advanced features.
+This repository contains a **Multi-Language EBNF Parser Generator** with comprehensive AST transformation pipeline. The system converts EBNF grammar specifications into executable parsers across multiple programming languages while preserving semantic and logging annotations.
 
-**Current Development Status**: Production-ready parser generator with comprehensive capabilities and excellent performance (29K+ parses/sec).
+**Current Development Status**: Multi-language implementation with Perl being the most tested and reliable. Other implementations (Rust, Julia, Go, Python, Zig) are complete but need comprehensive testing.
 
-**Core System Achievements**:
+**Core System Architecture**:
+- **Three-Phase Pipeline**: EBNF → Raw AST JSON → Transformed AST JSON → Parser Code
+- **Multi-Language Support**: 6 language implementations of AST transformation pipeline
+- **JSON Interchange Format**: Universal data exchange between phases and languages
+- **Annotation System**: Semantic, logging, and return annotations preserved through pipeline
 - **Self-hosting capability**: Parser generator parses its own EBNF grammar specifications
-- **Ultimate dot notation**: Comprehensive nested data access with array slicing (Python & Perl5 style)
-- **Grouped quantifiers**: Full support for `(element1 element2)*` patterns
-- **Professional error reporting**: Context tracking, FATAL/WARNING/INFO types, stack traces
-- **HDL grammar validation**: Successfully validated VHDL and Verilog parsing capabilities
-- **Performance optimization**: Achieved 29,665+ parses/sec with comprehensive optimization
-- **Return annotation parser**: Self-hosting return annotation DSL using EBNF
-- **Left recursion elimination**: Handles direct, indirect, and mutual recursion
+- **Performance optimization**: Baseline 26K-29K parses/sec for production use
 
 ## Key Architecture Components
 
@@ -56,10 +54,13 @@ The `fx/` directory contains the original 2008 consulting framework components, 
 
 ## Setup and Dependencies
 
-### Prerequisites
-- **Perl 5**: Modern Perl 5 version (5.24+ recommended)
-- **Data::Dumper**: Standard Perl module for debugging output
-- **No external build tools required**: Pure Perl implementation
+### Multi-Language Prerequisites
+- **Perl**: 5.20+, JSON::PP module (Most reliable implementation)
+- **Rust**: 1.70+, cargo
+- **Julia**: 1.8+, JSON3 package (add if using Julia)
+- **Go**: 1.19+ (uses standard library only)
+- **Python**: 3.8+ (uses standard library only) 
+- **Zig**: 0.15.1+ (⚠️ build system needs fixing)
 
 ### Quick Start
 ```bash
@@ -126,6 +127,72 @@ perl generate_test_input.pl specs/valid/basic.spec
 # Generated parsers achieve 29K+ parses/second baseline performance
 # No additional performance setup required - optimization is automatic
 ```
+
+### Multi-Language Build and Test Commands
+
+#### Rust
+```bash
+# Build Rust implementation
+cd rust
+cargo build
+
+# Run tests
+cargo test
+
+# Process raw AST JSON to transformed AST
+cargo run input.json output.json
+```
+
+#### Julia
+```bash
+# Set up environment (if needed)
+cd julia
+julia -e "using Pkg; Pkg.activate(.); Pkg.instantiate()"
+
+# Run Julia implementation
+julia ast_pipeline.jl input.json output.json
+```
+
+#### Go
+```bash
+# Build Go implementation
+cd go
+go build ast_pipeline.go
+
+# Run tests
+go test
+
+# Run implementation
+./ast_pipeline input.json output.json
+```
+
+#### Python
+```bash
+# Run Python implementation
+cd python
+python ast_pipeline.py input.json output.json
+```
+
+#### Zig
+```bash
+# Build Zig implementation (currently has build issues)
+cd zig
+zig build
+
+# Run implementation (when fixed)
+zig build run -- input.json output.json
+```
+
+### Multi-Language Implementation Status
+
+| Language | AST Pipeline | Build System | Tests | Status |
+|----------|-------------|-------------|-------|--------|
+| **Perl**     | ✅ Complete  | ✅ Complete | ✅ Better tested | **Most Reliable** |
+| **Rust**     | ✅ Complete  | ✅ Complete | ⚠️ Minimal | **Needs Testing** |
+| **Julia**    | ✅ Complete  | ✅ Complete | ⚠️ Minimal | **Needs Testing** |
+| **Go**       | ✅ Complete  | ✅ Complete | ⚠️ Minimal | **Needs Testing** |
+| **Python**   | ✅ Complete  | ✅ Complete | ⚠️ Minimal | **Needs Testing** |
+| **Zig**      | ⚠️ Partial  | ❌ Build issues | ⚠️ Minimal | **In Development** |
 
 ### JSON-Based Architecture Commands (New)
 
@@ -216,6 +283,49 @@ Supports sophisticated parse-tree structure access:
 - Automatic optimizations: quantifier loops, regex caching, memory pooling
 - Handles 100+ rule grammars, 50+ alternative branches
 - Deep recursion support with memory management
+
+## Testing Status and Development Priorities
+
+### Critical Testing Gaps ⚠️
+
+**What Works Well:**
+- **Perl Implementation**: Better tested and most reliable implementation
+- **Code Architecture**: All implementations follow correct design patterns
+- **JSON Format**: Interchange format is well-defined and documented
+
+**What Needs Work:**
+- **Non-Perl Testing**: Rust, Julia, Go, Python implementations need comprehensive testing
+- **Cross-Language Validation**: No systematic compatibility testing between languages
+- **Integration Testing**: End-to-end pipeline validation needed
+- **Zig Implementation**: Incomplete due to Zig 0.15.1 build system issues
+- **Error Handling**: Inconsistent behavior across implementations
+
+### Immediate Development Priorities
+
+1. **Complete Zig Implementation** (1-2 weeks)
+   - Fix build system issues with Zig 0.15.1
+   - Complete partial implementation
+
+2. **Create Comprehensive Test Suites** (2-3 weeks per language)
+   - Bring non-Perl languages up to Perl's testing level
+   - Unit tests for each pipeline step
+   - Integration tests with real grammar files
+
+3. **Cross-Language Validation** (2-4 weeks)
+   - Ensure all languages produce equivalent JSON output
+   - Systematic compatibility testing
+   - Bug discovery and fixing process
+
+4. **Bug Discovery and Fixing** (1-2 weeks per language after testing)
+   - Address issues found during systematic testing
+   - Stabilize implementations
+
+### Realistic Timeline
+- **Testing Phase**: 8-12 weeks total
+- **Stabilization**: 4-6 weeks
+- **Production Ready**: 12-18 weeks for all languages
+
+**Note**: Only use Perl implementation for production work currently. Other implementations are coded but largely untested.
 
 ## Development Workflow
 

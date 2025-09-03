@@ -1,6 +1,6 @@
 # =============================================================================
 # Multi-Language Parser Generator Project .gitignore
-# Languages: Perl, Rust, Julia + General Development
+# Languages: Perl, Rust, Julia, Zig, Go, Python + General Development
 # =============================================================================
 
 # =============================================================================
@@ -21,6 +21,19 @@ release/
 
 # MSVC Windows builds of rustc may generate these, which store debugging information
 *.pdb
+
+# Rust backup files and development artifacts
+*.rs.bak
+*.rs.bak2
+*.rs.orig
+
+# Rust test artifacts
+test_*.json
+regex_test.json
+test_grammar.json
+
+# Generated test binaries
+test_minimal_parser
 
 # =============================================================================
 # JULIA  
@@ -48,6 +61,102 @@ deps/deps.jl
 # Julia documentation build
 docs/build/
 docs/site/
+
+# =============================================================================
+# ZIG
+# =============================================================================
+# Zig build artifacts
+.zig-cache/
+zig-out/
+zig-cache/
+
+# Zig compiled binaries
+*.exe
+*.obj
+*.o
+*.lib
+*.a
+*.so
+*.dylib
+*.dll
+
+# Zig build files (keep build.zig)
+build.zig.zon
+
+# Zig test outputs
+test_*.zig
+!*_test.zig
+
+# =============================================================================
+# GO
+# =============================================================================
+# Go compiled binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test binary, built with `go test -c`
+*.test
+
+# Go coverage files
+*.out
+*.prof
+
+# Go vendor directory
+vendor/
+
+# Go module cache
+go.sum
+
+# =============================================================================
+# PYTHON
+# =============================================================================
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# Python virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Python IDEs
+.spyderproject
+.spyproject
+.rope_project
 
 # =============================================================================
 # PERL

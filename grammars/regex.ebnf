@@ -1,0 +1,230 @@
+# PCRE2-compatible regex grammar (corrected) for rgx
+# Supports embedded code blocks via (?{...}) constructs (intended for Lua/JS hooks)
+# Properly handles balanced braces and string literals in code blocks
+
+# Entry point
+regex          = pattern
+
+# Alternation and concatenation
+pattern        = alternation
+alternation    = concatenation ("|" concatenation)*
+concatenation  = piece+
+
+piece          = atom quantifier?
+
+# Quantifiers (with lazy and possessive variants)
+quantifier     = quant_base quant_suffix?
+quant_base     = "*" | "+" | "?" | counted_quantifier
+counted_quantifier = "{" ws? digits ws? ("," ws? digits?)? ws? "}"
+quant_suffix   = "?"     # lazy (non-greedy)
+               | "+"     # possessive
+
+# Atoms
+atom           = literal
+               | dot
+               | anchor
+               | escape
+               | backreference
+               | char_class
+               | group
+               | atomic_group
+               | lookaround
+               | inline_modifiers
+               | scoped_inline_modifiers
+               | conditional
+               | code_block
+
+# Literals and escapes
+literal        = literal_char+
+literal_char   = /[^|()*+?.{}^$\\\[\]]/
+
+# Dot
+dot            = "."
+
+# Anchors (subset; extend as needed)
+anchor         = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G"
+
+# Backreferences
+backreference  = "\\" digits
+               | "\\k" name_ref
+name_ref       = "<" name ">" | "'" name "'"
+name           = name_start name_continue*
+name_start     = /[A-Za-z_]/
+name_continue  = /[A-Za-z0-9_]/
+
+# Character classes with context-sensitive parsing
+@type: "context_sensitive_construct"
+@description: "Character class with proper bracket handling"
+@constraint: "must properly handle ']' as literal vs terminator"
+char_class     = "[" class_body "]"
+
+@type: "context_sensitive_sequence"
+@description: "Parses class content while tracking bracket context"
+@effect: "maintains_bracket_nesting_context"
+class_body     = class_item*
+
+@type: "context_aware_choice"
+@description: "Class item that respects bracket nesting"
+@precedence: {level: 5, context: "within_char_class"}
+class_item     = class_range
+               | class_escape
+               | posix_class
+               | class_literal
+               | class_start_end_bracket   # treat leading ']' literally if first
+
+@constraint: "']' only matches if at first position after '[' or '[^'"
+@context: "first_char_in_class"
+@description: "Allows ']' as literal character at start of character class"
+class_start_end_bracket = "]"
+
+@constraint: "must not consume terminating ']' of parent character class"
+@type: "context_sensitive_literal"
+@description: "Matches any character except unescaped ']' that would close the class"
+class_literal  = /[^\\\]]/
+
+@type: "context_forwarding"
+@description: "Forwards escape sequence parsing with class context"
+class_escape   = escape
+
+@constraint: "'-' only creates range if not at start/end of class and between valid atoms"
+@type: "context_sensitive_range"
+@precedence: {level: 8, associativity: "none"}
+@description: "Character range with context-aware hyphen interpretation"
+class_range    = class_atom "-" class_atom
+
+@type: "class_content_atom"
+@description: "Atomic element within character class"
+class_atom     = class_escape | class_literal
+
+@type: "posix_character_class"
+@description: "POSIX character class like [:alpha:]"
+@constraint: "must be complete [:name:] form"
+posix_class    = "[:" posix_name ":]"
+
+@type: "posix_class_name"
+@description: "Valid POSIX character class names"
+posix_name     = "alnum" | "alpha" | "ascii" | "blank" | "cntrl" | "digit" | "graph"
+               | "lower" | "print" | "punct" | "space" | "upper" | "word" | "xdigit"
+
+# Escapes (common PCRE forms) with context-aware interpretation
+@type: "context_sensitive_escape_sequence"
+@description: "Escape sequence that interprets differently based on context"
+@effect: "produces_literal_character"
+@precedence: {level: 10, context: "any"}
+escape         = "\\" escape_unit
+
+@type: "escape_variant_choice"
+@description: "Specific type of escape sequence"
+@constraint: "must produce valid character value"
+escape_unit    = simple_escape
+               | hex_escape
+               | unicode_escape
+               | octal_escape
+               | control_escape
+               | property_escape
+
+@type: "literal_escape"
+@description: "Simple character escape like \n, \t, \\, etc."
+@effect: "maps_to_literal_character"
+@constraint: "interpretation depends on escaped character"
+simple_escape  = /./                  # any char after backslash
+
+@type: "hexadecimal_escape"
+@description: "Hex escape sequences \xFF or \x{FFFF}"
+@constraint: "must be valid hexadecimal digits"
+@precedence: {level: 9}
+hex_escape     = "x" /[0-9A-Fa-f]/ /[0-9A-Fa-f]/ | "x{" /[0-9A-Fa-f]+/ "}"
+
+@type: "unicode_escape"
+@description: "Unicode escape sequence \u{FFFF}"
+@constraint: "must be valid Unicode code point"
+@precedence: {level: 9}
+unicode_escape = "u{" /[0-9A-Fa-f]+/ "}"
+
+@type: "octal_escape"
+@description: "Octal escape sequence \777"
+@constraint: "must be valid octal digits 0-7"
+@precedence: {level: 9}
+octal_escape   = /[0-7]/ /[0-7]?/ /[0-7]?/
+
+@type: "control_escape"
+@description: "Control character escape \cA"
+@constraint: "produces control character"
+control_escape = "c" /./
+
+@type: "property_escape"
+@description: "Unicode property escape \p{Property} or \P{Property}"
+@constraint: "property name must be valid Unicode property"
+property_escape= "p{" prop_name "}" | "P{" prop_name "}"
+
+@type: "property_name"
+@description: "Unicode property name"
+prop_name      = /[A-Za-z0-9_:-]+/
+
+# Groups
+group          = capturing_group | noncapturing_group | named_group
+
+capturing_group      = "(" pattern ")"
+noncapturing_group   = "(?:" pattern ")"
+named_group          = "(?<" name ">" pattern ")"
+                     | "(?'" name "'" pattern ")"
+
+atomic_group         = "(?>" pattern ")"
+
+lookaround           = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg
+lookahead_pos        = "(?=" pattern ")"
+lookahead_neg        = "(?!" pattern ")"
+lookbehind_pos       = "(?<=" pattern ")"
+lookbehind_neg       = "(?<!" pattern ")"
+
+# Inline modifier changes: global and scoped
+inline_modifiers           = "(?(" modifier_seq ")"                  # e.g., (?i-mx)
+scoped_inline_modifiers    = "(?(" modifier_seq ":" pattern ")"      # e.g., (?x: ...)
+modifier_seq               = modifier_group ("-" modifier_group)?
+modifier_group             = modifier_char+
+modifier_char              = "i" | "m" | "s" | "x" | "U" | "J" | "u" | "a" | "d" | "S" | "A" | "X" | "R" | "n"
+
+# Conditionals: (?(cond)yes|no)
+conditional       = "(" "?(" condition ")" yes_branch ("|" no_branch)? ")"
+yes_branch        = pattern
+no_branch         = pattern
+condition         = lookaround | name_ref | digits
+
+# Embedded code blocks for rgx hooks (Lua/JS)
+# Properly handles balanced braces and string literals
+code_block     = code_block_plain | code_block_lang
+code_block_plain = "(?{" code_content "})"
+code_block_lang  = "(?{" code_lang ":" ws? code_content "})"
+code_lang      = "lua" | "js"
+
+# Code content with proper brace balancing and string handling
+code_content   = code_element*
+code_element   = code_string_double
+               | code_string_single  
+               | code_balanced_braces
+               | code_escaped_char
+               | code_regular_char
+
+# Double-quoted strings: "..." (can contain unbalanced braces)
+code_string_double = '"' code_string_double_char* '"'
+code_string_double_char = code_string_escape | /[^"\\]/
+
+# Single-quoted strings: '...' (can contain unbalanced braces)
+code_string_single = "'" code_string_single_char* "'"
+code_string_single_char = code_string_escape | /[^'\\]/
+
+# String escape sequences
+code_string_escape = "\\" /./
+
+# Balanced braces: { ... }
+code_balanced_braces = "{" code_content "}"
+
+# Escaped characters (don't participate in balancing)
+code_escaped_char = "\\" /./
+
+# Regular characters (anything except special chars)
+code_regular_char = /[^{}'\"\\]/
+
+# Lexical helpers
+digits   = /[0-9]+/
+ws       = /\s+/
