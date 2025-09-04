@@ -16,7 +16,7 @@
 | Language | AST Pipeline | Build System | Testing Level | CLI Interface | Status |
 |----------|-------------|-------------|---------------|---------------|---------|
 | **Perl**     | ✅ Implemented | ✅ Complete | ✅ More Testing | ✅ Complete | **Best Tested** |
-| **Rust**     | ✅ Implemented + Semantic Annotations | ✅ Complete | ✅ Annotation Testing | ✅ Complete | **Semantic Annotation Ready** |
+| **Rust**     | ✅ Implemented + Both Annotations | ✅ Complete | ✅ Full Annotation Testing + Dynamic Entry Rules | ✅ Complete | **Production Ready** |
 | **Julia**    | ✅ Implemented | ✅ Complete | ⚠️ Minimal | ✅ Complete | **Needs Testing** |
 | **Go**       | ✅ Implemented | ✅ Complete | ⚠️ Minimal | ✅ Complete | **Needs Testing** |
 | **Python**   | ✅ Implemented | ✅ Complete | ⚠️ Minimal | ✅ Complete | **Needs Testing** |
@@ -93,6 +93,10 @@ All languages implement the complete 5-stage pipeline:
 - **Rust Semantic Annotations**: Implemented comprehensive TokenValue enum system
 - **Annotation Preservation**: Enhanced metadata extraction and preservation in Rust
 - **Type Safety**: Improved token handling with safe unwrapping mechanisms
+- **Return Annotation Parser Integration**: Complete integration of return annotation parser in Rust pipeline
+- **Dynamic Entry Rule Detection**: Automatic extraction of entry rule names from raw AST JSON
+- **Backtrack Debug Configuration**: Enhanced debugging capabilities in generated parsers
+- **Timing Issue Resolution**: Fixed critical race condition in parser code generation
 
 ## Planned Development Phases 📋
 

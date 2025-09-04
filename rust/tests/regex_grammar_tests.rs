@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use ebnf_pipeline::{RustASTPipeline, PipelineConfig, ASTNode};
 
 /// Test that the regex grammar transforms successfully and contains expected productions

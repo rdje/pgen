@@ -11,6 +11,18 @@ use std::collections::HashMap;
 use std::fs;
 use anyhow::{Context, Result};
 
+// Import the generated semantic annotation parser
+mod semantic_annotation_parser {
+    include!("../../semantic_annotation_parser.rs");
+}
+use semantic_annotation_parser::Semantic_annotationsParser;
+
+// Import the generated return annotation parser
+mod return_annotation_parser {
+    include!("../../generated/return_annotation_parser.rs");
+}
+use return_annotation_parser::Merged_ultimate_return_annotationParser;
+
 mod high_performance_generator;
 use high_performance_generator::HighPerformanceRustGenerator;
 
@@ -151,6 +163,7 @@ pub struct RustASTPipeline {
     config: PipelineConfig,
     stats: TransformStats,
     annotations: Annotations,
+    entry_rule: Option<String>,
 }
 
 impl RustASTPipeline {
@@ -160,7 +173,34 @@ impl RustASTPipeline {
             config,
             stats: TransformStats::default(),
             annotations: Annotations::default(),
+            entry_rule: None,
         }
+    }
+    
+    /// Extract the entry rule name from raw AST JSON
+    fn extract_entry_rule(&mut self, raw_ast: &RawAST) -> Result<String> {
+        if raw_ast.is_empty() {
+            anyhow::bail!("Raw AST is empty - cannot determine entry rule");
+        }
+        
+        let first_rule = &raw_ast[0];
+        if first_rule.is_empty() {
+            anyhow::bail!("First rule in raw AST is empty");
+        }
+        
+        // Look for the first rule token to get the entry rule name
+        for token in first_rule {
+            if token.len() == 2 {
+                if let (TokenValue::String(token_type), TokenValue::String(rule_name)) = (&token[0], &token[1]) {
+                    if token_type == "rule" {
+                        self.entry_rule = Some(rule_name.clone());
+                        return Ok(rule_name.clone());
+                    }
+                }
+            }
+        }
+        
+        anyhow::bail!("Could not find entry rule name in first rule of raw AST")
     }
 
     /// Load raw AST JSON from file
@@ -206,6 +246,12 @@ impl RustASTPipeline {
         if self.config.debug {
             println!("=== Rust AST Transformation Pipeline ===");
         }
+        
+        // Extract the entry rule name for dynamic parser instantiation
+        let entry_rule = self.extract_entry_rule(raw_ast)?;
+        if self.config.debug {
+            println!("Detected entry rule: {}", entry_rule);
+        }
 
         // Stage 1: Extract annotations
         let cleaned_ast = self.extract_annotations(raw_ast)?;
@@ -229,6 +275,114 @@ impl RustASTPipeline {
         self.stats.transformations_applied = 5;
 
         Ok((grammar_tree, rule_order))
+    }
+
+    /// Parse semantic annotation using the semantic annotation parser
+    fn parse_semantic_annotation(&self, annotation_value: &str) -> Result<String> {
+        // Use the generated semantic annotation parser to parse the value
+        let mut parser = Semantic_annotationsParser::new(annotation_value);
+        
+        // Parse the annotation value into an AST
+        match parser.parse() {
+            Ok(parsed_ast) => {
+                // For now, convert the AST to a simplified JSON representation for storage
+                // In the future, this will be used by the code generator directly
+                let simplified = self.simplify_semantic_parse_node(&parsed_ast);
+                serde_json::to_string(&simplified)
+                    .context("Failed to serialize parsed semantic annotation AST")
+            }
+            Err(_) => {
+                // If parsing fails, store as raw value for backward compatibility
+                if self.config.debug {
+                    println!("Warning: Failed to parse semantic annotation, storing as raw: {}", annotation_value);
+                }
+                Ok(format!("raw:{}", annotation_value))
+            }
+        }
+    }
+    
+    /// Parse return annotation using the return annotation parser
+    fn parse_return_annotation(&self, annotation_value: &str) -> Result<String> {
+        // Use the generated return annotation parser to parse the value
+        let mut parser = Merged_ultimate_return_annotationParser::new(annotation_value);
+        
+        // Parse the annotation value into an AST
+        match parser.parse() {
+            Ok(parsed_ast) => {
+                // Convert the AST to a simplified JSON representation for storage
+                // This will be used by the code generator to execute return annotation operations
+                let simplified = self.simplify_return_parse_node(&parsed_ast);
+                serde_json::to_string(&simplified)
+                    .context("Failed to serialize parsed return annotation AST")
+            }
+            Err(_) => {
+                // If parsing fails, store as raw value for backward compatibility
+                if self.config.debug {
+                    println!("Warning: Failed to parse return annotation, storing as raw: {}", annotation_value);
+                }
+                Ok(format!("raw:{}", annotation_value))
+            }
+        }
+    }
+    
+    /// Convert semantic annotation ParseNode to a serializable simplified representation
+    fn simplify_semantic_parse_node(&self, node: &semantic_annotation_parser::ParseNode) -> serde_json::Value {
+        use serde_json::{json, Map, Value};
+        use semantic_annotation_parser::ParseContent;
+        
+        let mut obj = Map::new();
+        obj.insert("rule_name".to_string(), json!(node.rule_name));
+        obj.insert("span".to_string(), json!({"start": node.span.start, "end": node.span.end}));
+        
+        let content = match &node.content {
+            ParseContent::Terminal(s) => json!({"type": "terminal", "value": s}),
+            ParseContent::Sequence(nodes) => json!({
+                "type": "sequence",
+                "elements": nodes.iter().map(|n| self.simplify_semantic_parse_node(n)).collect::<Vec<_>>()
+            }),
+            ParseContent::Alternative(node) => json!({
+                "type": "alternative",
+                "element": self.simplify_semantic_parse_node(node)
+            }),
+            ParseContent::Quantified(nodes, quantifier) => json!({
+                "type": "quantified",
+                "quantifier": quantifier,
+                "elements": nodes.iter().map(|n| self.simplify_semantic_parse_node(n)).collect::<Vec<_>>()
+            }),
+        };
+        
+        obj.insert("content".to_string(), content);
+        Value::Object(obj)
+    }
+    
+    /// Convert return annotation ParseNode to a serializable simplified representation
+    fn simplify_return_parse_node(&self, node: &return_annotation_parser::ParseNode) -> serde_json::Value {
+        use serde_json::{json, Map, Value};
+        use return_annotation_parser::ParseContent;
+        
+        let mut obj = Map::new();
+        obj.insert("rule_name".to_string(), json!(node.rule_name));
+        obj.insert("span".to_string(), json!({"start": node.span.start, "end": node.span.end}));
+        
+        let content = match &node.content {
+            ParseContent::Terminal(s) => json!({"type": "terminal", "value": s}),
+            ParseContent::Sequence(nodes) => json!({
+                "type": "sequence",
+                "elements": nodes.iter().map(|n| self.simplify_return_parse_node(n)).collect::<Vec<_>>()
+            }),
+            ParseContent::Alternative(node) => json!({
+                "type": "alternative",
+                "element": self.simplify_return_parse_node(node)
+            }),
+            ParseContent::Quantified(nodes, quantifier) => json!({
+                "type": "quantified",
+                "quantifier": quantifier,
+                "elements": nodes.iter().map(|n| self.simplify_return_parse_node(n)).collect::<Vec<_>>()
+            }),
+        };
+        
+        obj.insert("content".to_string(), content);
+        Value::Object(obj)
     }
 
     /// Stage 1: Extract and preserve annotations
@@ -276,7 +430,10 @@ impl RustASTPipeline {
                                         
                                         match token_type.as_str() {
                                             "semantic_annotation" => {
-                                                let formatted_annotation = format!("{}:{}", annotation_name, annotation_value);
+                                                // Use the semantic annotation parser for semantic annotations
+                                                let parsed_value = self.parse_semantic_annotation(annotation_value)
+                                                    .unwrap_or_else(|_| format!("raw:{}", annotation_value));
+                                                let formatted_annotation = format!("{}:{}", annotation_name, parsed_value);
                                                 self.annotations.semantic_annotations
                                                     .entry(name.clone())
                                                     .or_insert_with(Vec::new)
@@ -303,10 +460,20 @@ impl RustASTPipeline {
                                     }
                                     match token_type.as_str() {
                                         "semantic_annotation" => {
-                                            self.annotations.semantic_annotations
-                                                .entry(name.clone())
-                                                .or_insert_with(Vec::new)
-                                                .push(format!("raw:{:?}", token[1]));
+                                            // Still try to parse string format semantic annotations
+                                            if let TokenValue::String(value_str) = &token[1] {
+                                                let parsed_value = self.parse_semantic_annotation(value_str)
+                                                    .unwrap_or_else(|_| format!("raw:{}", value_str));
+                                                self.annotations.semantic_annotations
+                                                    .entry(name.clone())
+                                                    .or_insert_with(Vec::new)
+                                                    .push(parsed_value);
+                                            } else {
+                                                self.annotations.semantic_annotations
+                                                    .entry(name.clone())
+                                                    .or_insert_with(Vec::new)
+                                                    .push(format!("raw:{:?}", token[1]));
+                                            }
                                         }
                                         "logging_annotation" => {
                                             self.annotations.logging_annotations
@@ -701,7 +868,15 @@ impl RustASTPipeline {
         let (grammar_tree, rule_order) = self.transform_from_file(raw_ast_json_file, None)?;
         let raw_data = self.load_raw_ast(raw_ast_json_file)?;
         
-        let code_generator = if enable_trace && enable_backtrack_debug {
+        // Extract the entry rule name BEFORE creating the generator
+        let entry_rule = self.entry_rule.as_ref()
+            .map(|s| s.clone())
+            .unwrap_or_else(|| {
+                // Fallback to first rule in rule_order if available
+                rule_order.first().cloned().unwrap_or_else(|| raw_data.grammar_name.clone())
+            });
+        
+        let mut code_generator = if enable_trace && enable_backtrack_debug {
             HighPerformanceRustGenerator::with_full_debug(&raw_data.grammar_name)
         } else if enable_trace {
             HighPerformanceRustGenerator::with_trace(&raw_data.grammar_name, true)
@@ -712,6 +887,9 @@ impl RustASTPipeline {
             }
             gen
         };
+        
+        // Set the entry rule immediately after generator creation
+        code_generator.set_entry_rule(&entry_rule);
         
         let rust_code = code_generator.generate_lightning_fast_parser(&grammar_tree, &rule_order)?;
         
@@ -749,9 +927,9 @@ mod tests {
         let mut pipeline = RustASTPipeline::new(PipelineConfig::default());
         let raw_ast = vec![
             vec![
-                vec!["rule".to_string(), "test".to_string()],
-                vec!["semantic_annotation".to_string(), "@type:test".to_string()],
-                vec!["quoted_string".to_string(), "literal".to_string()],
+                vec![TokenValue::String("rule".to_string()), TokenValue::String("test".to_string())],
+                vec![TokenValue::String("semantic_annotation".to_string()), TokenValue::String("[\"type\", \"TestRule\"]".to_string())],
+                vec![TokenValue::String("identifier".to_string()), TokenValue::String("value".to_string())],
             ]
         ];
 

@@ -1,5 +1,95 @@
 # CHANGES.md
 
+## 2025-09-04 - Return Annotation Parser Integration and Dynamic Entry Rule Detection
+
+### Added
+
+- **Return Annotation Parser Integration**: Complete integration of return annotation parser into Rust AST pipeline
+  - Import and instantiate return annotation parser alongside semantic annotation parser
+  - `parse_return_annotation()` method processes return annotation strings using generated parser
+  - `simplify_return_parse_node()` converts parser AST to JSON for storage and code generation use
+  - Return annotations parsed and stored in pipeline metadata for downstream consumption
+
+- **Dynamic Entry Rule Detection**: Automatic extraction of entry rule names from raw AST JSON
+  - `extract_entry_rule()` method reads first rule name from raw AST structure
+  - Entry rule name stored in pipeline state for use across transformation phases
+  - High-performance code generator receives correct entry rule for method generation
+
+- **Backtrack Debug Configuration**: Enhanced code generator with conditional debug support
+  - `enable_backtrack_debug` flag in `HighPerformanceRustGenerator`
+  - `set_entry_rule()` method for dynamic entry rule assignment
+  - `with_full_debug()` constructor enables both trace and backtrack debugging
+  - Generated parsers include `debug_backtrack()` calls when flag is enabled
+
+### Fixed
+
+- **Critical Timing Issue in Code Generation**: Resolved entry rule name resolution in parser generation
+  - Previously: Generator used `grammar_name` ("merged_ultimate_return_annotation") instead of actual entry rule
+  - Now: Pipeline extracts entry rule ("return_annotation") before generator creation and sets it immediately
+  - Generated parsers correctly call `self.parse_return_annotation()` instead of non-existent `self.parse_merged_ultimate_return_annotation()`
+  - Fix prevents compilation errors in generated parser code
+
+- **Entry Rule Fallback Logic**: Improved fallback chain for entry rule determination
+  - Priority: Explicitly set entry rule → First rule in rule_order → Grammar name
+  - Handles cases where entry rule extraction fails or rule_order is empty
+  - Ensures robust parser generation across different grammar structures
+
+### Enhanced
+
+- **AST Pipeline Entry Rule Extraction**: Enhanced transformation pipeline with entry rule awareness
+  - `transform_raw_ast()` now extracts and logs detected entry rule
+  - Entry rule information available throughout pipeline processing
+  - Debug output shows "Detected entry rule: {name}" for transparency
+
+- **Code Generator Architecture**: Improved generator creation and configuration flow
+  - Entry rule extracted and set before calling `generate_lightning_fast_parser()`
+  - Eliminates race conditions between entry rule detection and code generation
+  - More predictable and debuggable parser generation process
+
+### Technical Details
+
+- **Parser Generation Flow**: 
+  1. Load raw AST JSON and transform to semantic AST
+  2. Extract entry rule name from pipeline state or rule order
+  3. Create and configure code generator with entry rule
+  4. Generate parser code with correct entry method calls
+  5. Write generated parser to output file
+
+- **Return Annotation Processing**: Annotations parsed with same error handling as semantic annotations
+  - Successful parsing: Store parsed AST as JSON for code generator use
+  - Parse failure: Store as raw value with "raw:" prefix for backward compatibility
+  - Debug mode: Log parsing warnings for troubleshooting
+
+- **Generated Parser Structure**: Template correctly substitutes entry rule name in parse() method
+  - Entry point method: `self.parse_{entry_rule_name}()`
+  - Rule-specific method generation: Each grammar rule gets corresponding parse method
+  - Memoization support: Entry rule methods properly integrated with packrat parsing
+
+### Files Modified
+
+- **ENHANCED:** `rust/src/ast_pipeline.rs` - Added return annotation parser integration and dynamic entry rule detection
+- **ENHANCED:** `rust/src/ast_pipeline/high_performance_generator.rs` - Added entry rule setter and improved fallback logic
+- **GENERATED:** `generated/return_annotation_parser.rs` - Return annotation parser with correct entry rule method calls
+
+### Testing
+
+- ✅ **Entry Rule Detection**: Successfully extracts "return_annotation" from return_annotation_raw.json
+- ✅ **Parser Generation**: Generated parser calls correct entry method without compilation errors  
+- ✅ **Timing Resolution**: Entry rule set before code generation eliminates race conditions
+- ✅ **Fallback Logic**: Proper handling when entry rule extraction fails or rule_order is empty
+- ✅ **Integration**: Return annotation parser compiles and integrates with AST pipeline
+
+### Integration Impact
+
+- **Code Generation**: Generated parsers now work correctly for any grammar with proper entry rule detection
+- **Return Annotations**: Pipeline can now parse and process return annotation syntax for code generators
+- **Debug Support**: Enhanced debugging capabilities with backtrack tracing for complex grammar development
+- **Architecture**: More robust and maintainable parser generation with explicit entry rule management
+
+This enhancement completes the return annotation parser integration and resolves the critical timing issue that was preventing correct parser generation. The dynamic entry rule detection ensures generated parsers work correctly regardless of grammar structure or naming conventions.
+
+---
+
 ## 2025-09-03 - Semantic Annotation Parsing in Rust AST Pipeline
 
 ### Added

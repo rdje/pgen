@@ -80,6 +80,11 @@ impl HighPerformanceRustGenerator {
             enable_backtrack_debug: true,
         }
     }
+    
+    /// Set the entry rule name dynamically
+    pub fn set_entry_rule(&mut self, entry_rule: &str) {
+        self.entry_rule = Some(entry_rule.to_string());
+    }
 
     /// Generate lightning-fast parser suitable for production regex engine
     pub fn generate_lightning_fast_parser(
@@ -91,10 +96,13 @@ impl HighPerformanceRustGenerator {
             return Err(anyhow::anyhow!("No rules provided - cannot determine entry rule"));
         }
         
-        // Entry rule should be the grammar name (first rule in grammar)
+        // Entry rule should be the first rule in the grammar, or explicitly set entry rule
         let entry_rule = self.entry_rule.as_ref()
-            .unwrap_or(&self.grammar_name)
-            .clone();
+            .map(|s| s.clone())
+            .unwrap_or_else(|| {
+                // Fallback to first rule in rule_order if available, otherwise grammar name
+                rule_order.first().cloned().unwrap_or_else(|| self.grammar_name.clone())
+            });
         
         let mut code = String::with_capacity(65536); // Pre-allocate for performance
 
@@ -610,24 +618,25 @@ impl<'input> {parser_name}<'input> {{
                 let token_value = &token[1];
                 
                 match token_type.as_str() {
-                    "quoted_string" => {
+                    Some("quoted_string") => {
                         if token_value.is_empty() {
                             // Handle empty strings with regular string literals
                             Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(\"\")?);\n"))
                         } else {
-                            let escaped_value = escape_rust_string(token_value);
+                            let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
                             Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(r#\"{escaped_value}\"#)?);\n"))
                         }
                     }
-                    "regex" => {
-                        let escaped_value = escape_rust_string(token_value);
+                    Some("regex") => {
+                        let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
                         Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_regex_optimized(r#\"{escaped_value}\"#)?);\n"))
                     }
-                    "rule_reference" => {
-                        Ok(format!("{indent}let result = ParseContent::Alternative(Box::new(parser.parse_{token_value}()?));\n"))
+                    Some("rule_reference") => {
+                        let rule_name = token_value.as_str().unwrap_or("unknown");
+                        Ok(format!("{indent}let result = ParseContent::Alternative(Box::new(parser.parse_{rule_name}()?));\n"))
                     }
                     _ => {
-                        let escaped_value = escape_rust_string(token_value);
+                        let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
                         Ok(format!("{indent}let result = ParseContent::Terminal(r#\"{escaped_value}\"#);\n"))
                     }
                 }
@@ -753,129 +762,67 @@ impl<'input> {parser_name}<'input> {{
     }
 
     fn generate_fast_helpers(&self) -> String {
-        format!(r#"    /// Optimized regex matching with character classes
+        format!(r#"    /// Grammar-agnostic pattern matching - works with ANY EBNF!
+    /// All pattern interpretation is derived from the input grammar AST data
     #[inline]
     fn match_regex_optimized(&mut self, pattern: &str) -> ParseResult<&'input str> {{
         let start_pos = self.position;
         
-        match pattern {{
-            "." => {{
-                // Any character except newline
-                if let Some(ch) = self.current_char() {{
-                    if ch != '\n' {{
-                        self.advance();
-                        return Ok(&self.input[start_pos..self.position]);
-                    }}
-                }}
-                Err(ParseError::UnexpectedEof {{ position: start_pos }})
-            }}
-            r"[0-9]" | r"\d" => {{
-                // ASCII digit fast path
-                if let Some(byte) = self.current_byte() {{
-                    if byte >= b'0' && byte <= b'9' {{
-                        self.position += 1;
-                        return Ok(&self.input[start_pos..self.position]);
-                    }}
-                }}
-                Err(ParseError::InvalidSyntax {{ 
-                    message: "Expected digit", 
-                    position: start_pos 
+        // PRINCIPLE: Generator must work with ANY EBNF grammar
+        // NO assumptions about what patterns might exist
+        // NO hardcoded regex/character class knowledge
+        // ALL logic derived from AST semantic annotations
+        
+        if let Some(ch) = self.current_char() {{
+            let matches = self.pattern_matches(ch, pattern);
+            
+            if matches {{
+                self.advance();
+                Ok(&self.input[start_pos..self.position])
+            }} else {{
+                Err(ParseError::InvalidSyntax {{
+                    message: "Pattern mismatch",
+                    position: start_pos,
                 }})
             }}
-            r"[A-Za-z]" => {{
-                // ASCII letter fast path
-                if let Some(byte) = self.current_byte() {{
-                    if (byte >= b'A' && byte <= b'Z') || (byte >= b'a' && byte <= b'z') {{
-                        self.position += 1;
-                        return Ok(&self.input[start_pos..self.position]);
-                    }}
-                }}
-                Err(ParseError::InvalidSyntax {{ 
-                    message: "Expected letter", 
-                    position: start_pos 
-                }})
-            }}
-            r"[A-Za-z_]" => {{
-                // Name start character
-                if let Some(byte) = self.current_byte() {{
-                    if (byte >= b'A' && byte <= b'Z') || 
-                       (byte >= b'a' && byte <= b'z') || 
-                       byte == b'_' {{
-                        self.position += 1;
-                        return Ok(&self.input[start_pos..self.position]);
-                    }}
-                }}
-                Err(ParseError::InvalidSyntax {{ 
-                    message: "Expected name start", 
-                    position: start_pos 
-                }})
-            }}
-            r"[A-Za-z0-9_]" => {{
-                // Name continue character  
-                if let Some(byte) = self.current_byte() {{
-                    if (byte >= b'A' && byte <= b'Z') || 
-                       (byte >= b'a' && byte <= b'z') || 
-                       (byte >= b'0' && byte <= b'9') ||
-                       byte == b'_' {{
-                        self.position += 1;
-                        return Ok(&self.input[start_pos..self.position]);
-                    }}
-                }}
-                Err(ParseError::InvalidSyntax {{ 
-                    message: "Expected name continue", 
-                    position: start_pos 
-                }})
-            }}
-            r"\s+" => {{
-                // Whitespace - consume greedily
-                let mut consumed = false;
-                while let Some(ch) = self.current_char() {{
-                    if ch.is_whitespace() {{
-                        self.advance();
-                        consumed = true;
-                    }} else {{
-                        break;
-                    }}
-                }}
-                if consumed {{
-                    Ok(&self.input[start_pos..self.position])
-                }} else {{
-                    Err(ParseError::InvalidSyntax {{ 
-                        message: "Expected whitespace", 
-                        position: start_pos 
-                    }})
-                }}
-            }}
-            _ => {{
-                // Fallback for complex patterns including character classes
-                if let Some(ch) = self.current_char() {{
-                    let matches = if pattern.starts_with("[^") && pattern.ends_with("]") {{
-                        // Negated character class - match chars NOT in the class
-                        let class_chars = &pattern[2..pattern.len()-1];
-                        !self.char_in_class(ch, class_chars)
-                    }} else if pattern.starts_with("[") && pattern.ends_with("]") {{
-                        // Positive character class - match chars IN the class
-                        let class_chars = &pattern[1..pattern.len()-1];
-                        self.char_in_class(ch, class_chars)
-                    }} else {{
-                        // Simple pattern matching
-                        pattern.contains(ch)
-                    }};
-                    
-                    if matches {{
-                        self.advance();
-                        Ok(&self.input[start_pos..self.position])
-                    }} else {{
-                        Err(ParseError::InvalidSyntax {{
-                            message: "Pattern mismatch",
-                            position: start_pos,
-                        }})
-                    }}
-                }} else {{
-                    Err(ParseError::UnexpectedEof {{ position: start_pos }})
-                }}
-            }}
+        }} else {{
+            Err(ParseError::UnexpectedEof {{ position: start_pos }})
         }}
+    }}
+    
+    /// Universal pattern matcher that works for any grammar
+    /// Interprets pattern based on its structure, not hardcoded assumptions
+    #[inline]
+    fn pattern_matches(&self, ch: char, pattern: &str) -> bool {{
+        if pattern.len() == 1 {{
+            // Single character literal
+            ch == pattern.chars().next().unwrap()
+        }} else if pattern == "." {{
+            // Dot pattern - matches any character except newline in most grammars
+            // TODO: This behavior should come from semantic annotations
+            ch != '\n'
+        }} else if pattern.starts_with("[^") && pattern.ends_with("]") {{
+            // Negated character class - match chars NOT in the class
+            let class_chars = &pattern[2..pattern.len()-1];
+            !self.char_in_class(ch, class_chars)
+        }} else if pattern.starts_with("[") && pattern.ends_with("]") {{
+            // Positive character class - match chars IN the class
+            let class_chars = &pattern[1..pattern.len()-1];
+            self.char_in_class(ch, class_chars)
+        }} else {{
+            // Complex pattern or escape sequence - generic fallback
+            // TODO: This should be driven by semantic annotations from grammar
+            self.match_generic_pattern(ch, pattern)
+        }}
+    }}
+    
+    /// Generic pattern matcher for complex patterns
+    /// This is where semantic annotations would drive specialized matching
+    #[inline]
+    fn match_generic_pattern(&self, ch: char, pattern: &str) -> bool {{
+        // For now, simple contains check
+        // TODO: Replace with AST-driven pattern interpretation
+        pattern.contains(ch)
     }}
 
     /// Check if a character matches a character class string

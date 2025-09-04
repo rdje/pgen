@@ -52,57 +52,74 @@ name           = name_start name_continue*
 name_start     = /[A-Za-z_]/
 name_continue  = /[A-Za-z0-9_]/
 
-# Character classes with context-sensitive parsing
-@type: "context_sensitive_construct"
-@description: "Character class with proper bracket handling"
-@constraint: "must properly handle ']' as literal vs terminator"
-char_class     = "[" class_body "]"
+# Character classes with actionable code generation
+@generate: generate_char_class_matcher(has_negation($2), collect_class_items($2))
+@optimize: count(flatten($2)) > 8 ? "lookup_table" : "linear_checks"
+@validate: all(extract_ranges($2), r => valid_range(r.start, r.end))
+char_class     = "[" negation? class_body "]"
 
-@type: "context_sensitive_sequence"
-@description: "Parses class content while tracking bracket context"
-@effect: "maintains_bracket_nesting_context"
+@generate: "^" if $1 else ""
+@semantic_value: $1 != null
+negation       = "^"
+
+@generate: build_class_items_list($1)
+@semantic_value: flatten($1)
+@validate: all($1, item => is_valid_class_item(item))
 class_body     = class_item*
 
-@type: "context_aware_choice"
-@description: "Class item that respects bracket nesting"
-@precedence: {level: 5, context: "within_char_class"}
+@dispatch: {
+    "range": generate_range_check($1.start, $1.end),
+    "literal": generate_literal_check($1.char),
+    "escape": generate_escape_check($1.pattern),
+    "posix": generate_posix_check($1.name)
+}
 class_item     = class_range
+               | class_literal
                | class_escape
                | posix_class
-               | class_literal
-               | class_start_end_bracket   # treat leading ']' literally if first
 
-@constraint: "']' only matches if at first position after '[' or '[^'"
-@context: "first_char_in_class"
-@description: "Allows ']' as literal character at start of character class"
-class_start_end_bracket = "]"
-
-@constraint: "must not consume terminating ']' of parent character class"
-@type: "context_sensitive_literal"
-@description: "Matches any character except unescaped ']' that would close the class"
-class_literal  = /[^\\\]]/
-
-@type: "context_forwarding"
-@description: "Forwards escape sequence parsing with class context"
-class_escape   = escape
-
-@constraint: "'-' only creates range if not at start/end of class and between valid atoms"
-@type: "context_sensitive_range"
-@precedence: {level: 8, associativity: "none"}
-@description: "Character range with context-aware hyphen interpretation"
+@generate: "ch >= '" + escape_char($1) + "' && ch <= '" + escape_char($3) + "'"
+@semantic_value: {type: "range", start: $1, end: $3}
+@validate: ord($1) <= ord($3)
 class_range    = class_atom "-" class_atom
 
-@type: "class_content_atom"
-@description: "Atomic element within character class"
-class_atom     = class_escape | class_literal
+@generate: "ch == '" + escape_char($1) + "'"
+@semantic_value: {type: "literal", char: $1}
+@optimize: group_literals_for_switch($1)
+class_literal  = /[^\\\]]/
 
-@type: "posix_character_class"
-@description: "POSIX character class like [:alpha:]"
-@constraint: "must be complete [:name:] form"
+@generate: resolve_escape_pattern($1)
+@semantic_value: {type: "escape", pattern: $1}
+@dispatch_table: {
+    "\\d": "ch.is_ascii_digit()",
+    "\\w": "ch.is_alphanumeric() || ch == '_'",
+    "\\s": "ch.is_whitespace()",
+    "\\n": "ch == '\\n'",
+    "\\t": "ch == '\\t'",
+    "\\r": "ch == '\\r'"
+}
+class_escape   = escape
+
+@generate: generate_posix_class_check($2)
+@semantic_value: {type: "posix", name: $2}
 posix_class    = "[:" posix_name ":]"
 
-@type: "posix_class_name"
-@description: "Valid POSIX character class names"
+@generate: extract_char_value($1)
+@semantic_value: {type: "atom", value: $1}
+class_atom     = class_escape | class_literal
+
+@generate: resolve_posix_class_name($1)
+@semantic_value: $1
+@dispatch_table: {
+    "alnum": "ch.is_alphanumeric()",
+    "alpha": "ch.is_alphabetic()",
+    "digit": "ch.is_ascii_digit()",
+    "lower": "ch.is_lowercase()",
+    "upper": "ch.is_uppercase()",
+    "space": "ch.is_whitespace()",
+    "word": "ch.is_alphanumeric() || ch == '_'",
+    "xdigit": "ch.is_ascii_hexdigit()"
+}
 posix_name     = "alnum" | "alpha" | "ascii" | "blank" | "cntrl" | "digit" | "graph"
                | "lower" | "print" | "punct" | "space" | "upper" | "word" | "xdigit"
 

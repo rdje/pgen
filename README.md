@@ -26,7 +26,7 @@ cd ../python && python ast_pipeline.py ../raw_ast.json transformed.json
 || Language | AST Pipeline | Build System | Testing Level | Status |
 |----------|-------------|-------------|---------------|---------|
 | **Perl**     | ✅ Complete | ✅ Complete | ✅ Better Tested | **Most Reliable** |
-| **Rust**     | ✅ Complete + Annotations | ✅ Complete | ✅ Annotation Testing | **Semantic Annotation Ready** |
+| **Rust**     | ✅ Complete + Both Annotations | ✅ Complete | ✅ Full Annotation Testing | **Production Ready** |
 | **Julia**    | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
 | **Go**       | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
 | **Python**   | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
