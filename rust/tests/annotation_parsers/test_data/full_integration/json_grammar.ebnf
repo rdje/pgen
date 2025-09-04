@@ -1,0 +1,52 @@
+# JSON Grammar with semantic annotations
+# Test case for full integration testing
+
+@type: "JSONGrammar"
+@version: "1.0"
+@description: "Complete JSON grammar with semantic annotations"
+
+# Entry rule for JSON parsing
+@entry_rule
+@precedence: 1
+json := value -> $1
+
+@description: "JSON value types"
+@category: "core"
+value := object -> $1
+value := array -> $1
+value := string -> $1
+value := number -> $1
+value := /\s*true\s*/ -> "true"
+value := /\s*false\s*/ -> "false"
+value := /\s*null\s*/ -> "null"
+
+@skip_whitespace
+@structure: "container"
+object := /\s*\{\s*\}/ -> {}
+object := /\s*\{\s*/ members /\s*\}\s*/ -> {type: "object", members: $2}
+
+@inline
+@optimization: "flatten"
+members := pair /\s*,\s*/ members -> [$1, $3*]
+members := pair -> [$1]
+
+@relationship: "key_value"
+pair := string /\s*:\s*/ value -> {key: $1, value: $3}
+
+@skip_whitespace
+@structure: "container"
+array := /\s*\[\s*\]\s*/ -> []
+array := /\s*\[\s*/ elements /\s*\]\s*/ -> {type: "array", elements: $2}
+
+@inline
+@optimization: "flatten"
+elements := value /\s*,\s*/ elements -> [$1, $3*]
+elements := value -> [$1]
+
+@terminal
+@regex: "\"[^\"]*\""
+string := /\s*"[^"]*"\s*/ -> $1
+
+@terminal  
+@regex: "-?[0-9]+(\.[0-9]+)?"
+number := /\s*-?[0-9]+(\.[0-9]+)?\s*/ -> $1

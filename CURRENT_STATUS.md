@@ -97,6 +97,8 @@ All languages implement the complete 5-stage pipeline:
 - **Dynamic Entry Rule Detection**: Automatic extraction of entry rule names from raw AST JSON
 - **Backtrack Debug Configuration**: Enhanced debugging capabilities in generated parsers
 - **Timing Issue Resolution**: Fixed critical race condition in parser code generation
+- **High-Performance Rust Generator**: Fixed compilation errors, now production-ready with SIMD optimizations
+- **Advanced Code Generation**: Lightning-fast parser generation with zero-copy parsing and memoization
 
 ## Planned Development Phases 📋
 

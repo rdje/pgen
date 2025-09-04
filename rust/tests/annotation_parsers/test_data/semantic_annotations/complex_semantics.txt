@@ -1,0 +1,21 @@
+# Complex semantic annotations - testing structured values
+
+# Object values
+@cache: {ttl: 300, size: 1000}
+@retry: {max_attempts: 3, backoff: "exponential"}
+@timeout: {duration: "30s"}
+@parallel: {workers: 4, chunk_size: 100}
+@serialize: {format: "json", pretty: true}
+@deprecated: {since: "1.2.0", note: "Use new_method instead"}
+
+# Array values
+@validate: ["check_bounds", "ensure_positive"]
+@see_also: ["expression_parser", "precedence_rules"]
+@throws: ["IOException", "ParseException", "RuntimeException"]
+@platform: ["web", "mobile", "desktop"]
+@requires: ["feature1", "feature2"]
+
+# Mixed complex structures
+@constraint: {type: "requires", expression: "x > 0"}
+@performance: {complexity: "O(n)", memory: "O(1)"}
+@version: {major: 2, minor: 1, patch: 0}

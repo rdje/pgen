@@ -1,0 +1,26 @@
+# Complex return annotations - testing advanced parser capabilities
+# These use the full feature set of merged_ultimate_return_annotation.ebnf
+
+# Nested arrays and objects
+-> {expr: {type: "binary", left: $1, op: $2, right: $3}, meta: {line: $4}}
+-> [{name: $1, value: $2}, {name: $3, value: $4}]
+-> {items: [$1, $2, $3], count: 3, status: "complete"}
+
+# Ultimate dot notation  
+-> $1.value
+-> $2.items[0]
+-> $3.data[*]
+-> $1.nested.property
+-> $2[1..3]
+-> $3[:5]
+
+# Quantified elements
+-> [$1*]
+-> [$2+]
+-> [$3?]
+-> [$1{2,5}]
+-> [$2{,10}]
+
+# Mixed complex structures
+-> {results: [$1.data*, $2.errors?], meta: $3.info}
+-> [{id: $1, items: [$2*]}, {summary: $3.count}]

@@ -1,0 +1,24 @@
+# Simple return annotations - complete with -> prefix
+# These test the basic capabilities of merged_ultimate_return_annotation.ebnf
+
+# Basic scalar references
+-> $1
+-> $2
+-> $10
+
+# Literal values  
+-> "function"
+-> 42
+-> "success"
+
+# Simple arrays
+-> [$1]
+-> [$1, $2]
+-> [$1, $2, $3]
+-> [$1*]
+-> [$2+]
+
+# Simple objects
+-> {name: $1}
+-> {name: $1, value: $2}
+-> {key: "literal", value: $1}

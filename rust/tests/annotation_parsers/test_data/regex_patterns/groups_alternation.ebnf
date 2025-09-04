@@ -1,0 +1,24 @@
+# Group and Alternation Patterns
+a|b
+cat|dog
+red|blue|green
+(abc)
+(def)
+(a|b)
+(cat|dog)
+(?:abc)
+(?:def)
+(?:a|b)
+(?<name>abc)
+(?'name'def)
+(?>abc)
+(?=abc)
+(?!abc)
+(?<=abc)
+(?<!abc)
+(abc)*
+(abc)+
+(abc)?
+(a|b)*
+(a|b)+
+(a|b)?

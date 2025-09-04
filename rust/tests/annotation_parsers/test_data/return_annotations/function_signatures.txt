@@ -1,0 +1,24 @@
+# Edge cases and special return annotations
+# Testing parser robustness and error handling
+
+# Valid cases
+-> $1
+-> "literal"
+-> [$1, $2]
+-> {key: $1}
+
+# Whitespace handling
+->$1
+->  $2
+-> 	$3
+->   "spaced"
+
+# Empty structures
+-> []
+-> {}
+
+# Malformed cases (should fail)
+# -> 
+# -> $
+# -> [$1
+# -> {key: $1

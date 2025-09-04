@@ -1,0 +1,29 @@
+# Simple arithmetic expression grammar
+# Test case for expression parsing with precedence
+
+@type: "ArithmeticGrammar"
+@language: "mathematics"
+
+@entry_rule
+@precedence: 0
+expression := term -> $1
+
+@left_associative
+@precedence: 1
+term := term /\s*\+\s*/ factor -> {op: "+", left: $1, right: $3}
+term := term /\s*-\s*/ factor -> {op: "-", left: $1, right: $3}
+term := factor -> $1
+
+@left_associative  
+@precedence: 2
+factor := factor /\s*\*\s*/ primary -> {op: "*", left: $1, right: $3}
+factor := factor /\s*\/\s*/ primary -> {op: "/", left: $1, right: $3}
+factor := primary -> $1
+
+@precedence: 3
+primary := /\s*\(\s*/ expression /\s*\)\s*/ -> $2
+primary := number -> $1
+
+@terminal
+@regex: "\d+"
+number := /(\d+)/ -> $1

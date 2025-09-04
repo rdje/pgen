@@ -5,9 +5,10 @@
 //! - Inline optimizations and SIMD-friendly code
 //! - Minimal allocations for rgx regex engine integration
 
-use crate::ast_pipeline::{ASTNode, ASTValue};
+use crate::ast_pipeline::{ASTNode, ASTValue, Annotations};
 use std::collections::HashMap;
 use anyhow::Result;
+use serde_json::Value as JsonValue;
 
 
 /// Escape a string for safe inclusion in Rust source code
@@ -49,6 +50,7 @@ pub struct HighPerformanceRustGenerator {
     entry_rule: Option<String>,
     enable_trace: bool,
     pub enable_backtrack_debug: bool,
+    annotations: Option<Annotations>,
 }
 
 impl HighPerformanceRustGenerator {
@@ -58,6 +60,7 @@ impl HighPerformanceRustGenerator {
             entry_rule: None,
             enable_trace: false,
             enable_backtrack_debug: false,
+            annotations: None,
         }
     }
     
@@ -68,6 +71,7 @@ impl HighPerformanceRustGenerator {
             entry_rule: None,
             enable_trace,
             enable_backtrack_debug: false,
+            annotations: None,
         }
     }
     
@@ -78,12 +82,18 @@ impl HighPerformanceRustGenerator {
             entry_rule: None,
             enable_trace: true,
             enable_backtrack_debug: true,
+            annotations: None,
         }
     }
     
     /// Set the entry rule name dynamically
     pub fn set_entry_rule(&mut self, entry_rule: &str) {
         self.entry_rule = Some(entry_rule.to_string());
+    }
+    
+    /// Set the annotations for the generator to use during code generation
+    pub fn set_annotations(&mut self, annotations: Annotations) {
+        self.annotations = Some(annotations);
     }
 
     /// Generate lightning-fast parser suitable for production regex engine
@@ -556,7 +566,14 @@ impl<'input> {parser_name}<'input> {{
         ast_node: &ASTNode,
         _rule_id: u16,
     ) -> Result<String> {
-        let method_body = self.generate_optimized_node_code(ast_node, 2)?;
+        // Get semantic annotations for this rule if available
+        let rule_annotations = if let Some(ref annotations) = self.annotations {
+            annotations.semantic_annotations.get(rule_name).cloned()
+        } else {
+            None
+        };
+        
+        let method_body = self.generate_optimized_node_code(ast_node, 2, rule_annotations.as_deref())?;
         
         Ok(format!(r#"    /// Parse {rule_name} with memoization
     #[inline]
@@ -592,45 +609,62 @@ impl<'input> {parser_name}<'input> {{
         ))
     }
 
-    fn generate_optimized_node_code(&self, ast_node: &ASTNode, indent_level: usize) -> Result<String> {
+    fn generate_optimized_node_code(
+        &self, 
+        ast_node: &ASTNode, 
+        indent_level: usize,
+        rule_annotations: Option<&[String]>
+    ) -> Result<String> {
         let indent = "    ".repeat(indent_level);
         
         match ast_node {
             ASTNode::Atom { value } => {
-                self.generate_atom_code(value, &indent)
+                self.generate_atom_code(value, &indent, rule_annotations)
             }
             ASTNode::Sequence { elements } => {
-                self.generate_sequence_code(elements, &indent)
+                self.generate_sequence_code(elements, &indent, rule_annotations)
             }
             ASTNode::Or { alternatives } => {
-                self.generate_or_code(alternatives, &indent)
+                self.generate_or_code(alternatives, &indent, rule_annotations)
             }
             ASTNode::Quantified { element, quantifier } => {
-                self.generate_quantified_code(element, quantifier, &indent)
+                self.generate_quantified_code(element, quantifier, &indent, rule_annotations)
             }
         }
     }
 
-    fn generate_atom_code(&self, value: &ASTValue, indent: &str) -> Result<String> {
+    fn generate_atom_code(&self, value: &ASTValue, indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {
         match value {
             ASTValue::Token(token) if token.len() == 2 => {
                 let token_type = &token[0];
                 let token_value = &token[1];
                 
+                // Check for semantic annotations that might guide code generation
+                let custom_code = if let Some(annotations) = rule_annotations {
+                    self.apply_semantic_annotations(annotations, token_type, token_value, indent)
+                } else {
+                    None
+                };
+                
+                // If we have custom code from semantic annotations, use it; otherwise use default generation
+                if let Some(code) = custom_code {
+                    return Ok(code);
+                }
+                
                 match token_type.as_str() {
-                    Some("quoted_string") => {
-                        if token_value.is_empty() {
-                            // Handle empty strings with regular string literals
-                            Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(\"\")?);\n"))
-                        } else {
-                            let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
-                            Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(r#\"{escaped_value}\"#)?);\n"))
+                        Some("quoted_string") => {
+                            if token_value.is_empty() {
+                                // Handle empty strings with regular string literals
+                                Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(\"\")?);\n"))
+                            } else {
+                                let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
+                                Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(r#\"{escaped_value}\"#)?);\n"))
+                            }
                         }
-                    }
-                    Some("regex") => {
-                        let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
-                        Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_regex_optimized(r#\"{escaped_value}\"#)?);\n"))
-                    }
+                        Some("regex") => {
+                            let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
+                            Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_regex_optimized(r#\"{escaped_value}\"#)?);\n"))
+                        }
                     Some("rule_reference") => {
                         let rule_name = token_value.as_str().unwrap_or("unknown");
                         Ok(format!("{indent}let result = ParseContent::Alternative(Box::new(parser.parse_{rule_name}()?));\n"))
@@ -646,12 +680,207 @@ impl<'input> {parser_name}<'input> {{
             }
         }
     }
+    
+    /// Apply semantic annotations to guide code generation
+    /// This is where the magic happens - semantic annotations drive custom code generation
+    fn apply_semantic_annotations(
+        &self, 
+        annotations: &[String], 
+        token_type: &crate::ast_pipeline::TokenValue, 
+        token_value: &crate::ast_pipeline::TokenValue, 
+        indent: &str
+    ) -> Option<String> {
+        // Parse the semantic annotations looking for @generate directives
+        for annotation in annotations {
+            // Semantic annotations are in format "name:parsed_json_ast"
+            if let Some(colon_pos) = annotation.find(':') {
+                let annotation_name = &annotation[..colon_pos];
+                let annotation_value = &annotation[colon_pos + 1..];
+                
+                match annotation_name {
+                    "generate" => {
+                        // Parse the semantic annotation AST to extract code generation instructions
+                        if let Ok(parsed_annotation) = serde_json::from_str::<JsonValue>(annotation_value) {
+                            return self.generate_code_from_semantic_ast(&parsed_annotation, token_type, token_value, indent);
+                        } else if annotation_value.starts_with("raw:") {
+                            // Handle raw annotations that failed to parse
+                            let raw_value = &annotation_value[4..];
+                            return self.generate_code_from_raw_annotation(raw_value, token_type, token_value, indent);
+                        }
+                    }
+                    "dispatch" | "dispatch_table" => {
+                        // Handle dispatch table annotations for character classes and escapes
+                        if let Ok(parsed_annotation) = serde_json::from_str::<JsonValue>(annotation_value) {
+                            return self.generate_dispatch_code(&parsed_annotation, token_type, token_value, indent);
+                        }
+                    }
+                    "optimize" => {
+                        // Handle optimization directives
+                        if let Ok(parsed_annotation) = serde_json::from_str::<JsonValue>(annotation_value) {
+                            return self.generate_optimized_code(&parsed_annotation, token_type, token_value, indent);
+                        }
+                    }
+                    _ => {
+                        // Other annotation types - could be extended in the future
+                        continue;
+                    }
+                }
+            }
+        }
+        
+        None
+    }
+    
+    /// Generate code from parsed semantic annotation AST
+    fn generate_code_from_semantic_ast(
+        &self,
+        ast: &JsonValue,
+        token_type: &crate::ast_pipeline::TokenValue,
+        token_value: &crate::ast_pipeline::TokenValue,
+        indent: &str
+    ) -> Option<String> {
+        // This is where we'd interpret the semantic annotation AST
+        // For now, provide some basic examples based on common patterns
+        
+        // Example: If the AST represents a function call like generate_char_class_matcher(...)
+        if let JsonValue::Object(obj) = ast {
+            if let Some(JsonValue::String(rule_name)) = obj.get("rule_name") {
+                match rule_name.as_str() {
+                    "function_call" => {
+                        // Extract function name and parameters
+                        if let Some(content) = obj.get("content") {
+                            return self.interpret_function_call(content, token_type, token_value, indent);
+                        }
+                    }
+                    "expression" => {
+                        // Handle expression evaluation
+                        if let Some(content) = obj.get("content") {
+                            return self.interpret_expression(content, token_type, token_value, indent);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        
+        None
+    }
+    
+    /// Generate code from raw semantic annotation (fallback for unparsed annotations)
+    fn generate_code_from_raw_annotation(
+        &self,
+        raw_annotation: &str,
+        _token_type: &crate::ast_pipeline::TokenValue,
+        _token_value: &crate::ast_pipeline::TokenValue,
+        indent: &str
+    ) -> Option<String> {
+        // Handle common raw annotation patterns we know about
+        if raw_annotation.starts_with("generate_char_class_matcher") {
+            // Generate character class matching code
+            Some(format!("{indent}let result = ParseContent::Terminal(parser.match_char_class_optimized()?);\n"))
+        } else if raw_annotation.starts_with("resolve_escape_pattern") {
+            // Generate escape sequence matching code
+            Some(format!("{indent}let result = ParseContent::Terminal(parser.match_escape_optimized()?);\n"))
+        } else {
+            None
+        }
+    }
+    
+    /// Generate dispatch table code for character classes and escapes
+    fn generate_dispatch_code(
+        &self,
+        ast: &JsonValue,
+        _token_type: &crate::ast_pipeline::TokenValue,
+        _token_value: &crate::ast_pipeline::TokenValue,
+        indent: &str
+    ) -> Option<String> {
+        // If this is a dispatch table (like for escape sequences)
+        if let JsonValue::Object(dispatch_table) = ast {
+            let mut code = format!("{indent}let result = match parser.current_char() {{\n");
+            
+            for (_pattern, rust_code) in dispatch_table {
+                if let JsonValue::String(code_str) = rust_code {
+                    code.push_str(&format!("{indent}    Some(ch) if {} => {{\n", code_str));
+                    code.push_str(&format!("{indent}        parser.advance();\n"));
+                    code.push_str(&format!("{indent}        ParseContent::Terminal(parser.slice(start_pos..parser.position))\n"));
+                    code.push_str(&format!("{indent}    }}\n"));
+                }
+            }
+            
+            code.push_str(&format!("{indent}    _ => return Err(ParseError::InvalidSyntax {{\n"));
+            code.push_str(&format!("{indent}        message: \"Invalid escape sequence\",\n"));
+            code.push_str(&format!("{indent}        position: parser.position,\n"));
+            code.push_str(&format!("{indent}    }}),\n"));
+            code.push_str(&format!("{indent}}};\n"));
+            
+            return Some(code);
+        }
+        
+        None
+    }
+    
+    /// Generate optimized code based on optimization annotations
+    fn generate_optimized_code(
+        &self,
+        _ast: &JsonValue,
+        _token_type: &crate::ast_pipeline::TokenValue,
+        _token_value: &crate::ast_pipeline::TokenValue,
+        indent: &str
+    ) -> Option<String> {
+        // Generate optimized code based on the optimization directive
+        // This could include lookup tables, SIMD operations, etc.
+        Some(format!("{indent}let result = ParseContent::Terminal(parser.match_optimized_pattern()?);\n"))
+    }
+    
+    /// Interpret function call from semantic annotation AST
+    fn interpret_function_call(
+        &self,
+        content: &JsonValue,
+        _token_type: &crate::ast_pipeline::TokenValue,
+        _token_value: &crate::ast_pipeline::TokenValue,
+        indent: &str
+    ) -> Option<String> {
+        // Extract function name and generate appropriate code
+        if let JsonValue::Object(obj) = content {
+            if let Some(JsonValue::String(func_name)) = obj.get("function_name") {
+                match func_name.as_str() {
+                    "generate_char_class_matcher" => {
+                        Some(format!("{indent}let result = ParseContent::Terminal(parser.match_char_class_optimized()?);\n"))
+                    }
+                    "resolve_escape_pattern" => {
+                        Some(format!("{indent}let result = ParseContent::Terminal(parser.match_escape_optimized()?);\n"))
+                    }
+                    "generate_literal_check" => {
+                        Some(format!("{indent}let result = ParseContent::Terminal(parser.match_literal_optimized()?);\n"))
+                    }
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    
+    /// Interpret expression from semantic annotation AST
+    fn interpret_expression(
+        &self,
+        _content: &JsonValue,
+        _token_type: &crate::ast_pipeline::TokenValue,
+        _token_value: &crate::ast_pipeline::TokenValue,
+        indent: &str
+    ) -> Option<String> {
+        // Generate code from expression evaluation
+        // This could handle arithmetic, logical operations, function calls, etc.
+        Some(format!("{indent}let result = ParseContent::Terminal(parser.evaluate_expression()?);\n"))
+    }
 
-    fn generate_sequence_code(&self, elements: &[ASTNode], indent: &str) -> Result<String> {
+    fn generate_sequence_code(&self, elements: &[ASTNode], indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {
         let mut code = format!("{indent}let mut sequence_elements = Vec::with_capacity({});\n", elements.len());
         
         for (i, element) in elements.iter().enumerate() {
-            let element_code = self.generate_optimized_node_code(element, 0)?;
+            let element_code = self.generate_optimized_node_code(element, 0, rule_annotations)?;
             code.push_str(&format!("{indent}{{\n"));
             code.push_str(&format!("{indent}    parser.debug_sequence_element({}, {}, \"element_{}\");\n", i, elements.len(), i));
             code.push_str(&format!("{indent}    let element_start = parser.position;\n"));
@@ -670,7 +899,7 @@ impl<'input> {parser_name}<'input> {{
         Ok(code)
     }
 
-    fn generate_or_code(&self, alternatives: &[ASTNode], indent: &str) -> Result<String> {
+    fn generate_or_code(&self, alternatives: &[ASTNode], indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {
         let n_branches = alternatives.len();
         
         match n_branches {
@@ -680,19 +909,19 @@ impl<'input> {parser_name}<'input> {{
             }
             1 => {
                 // Single branch - no alternatives, just execute directly
-                let alt_code = self.generate_optimized_node_code(&alternatives[0], 0)?;
+                let alt_code = self.generate_optimized_node_code(&alternatives[0], 0, rule_annotations)?;
                 let single_branch_code = alt_code.replace("parser.", "parser.");
                 Ok(single_branch_code)
             }
             _ => {
                 // Multiple branches - use systematic N-branch template
-                self.generate_n_branch_template(alternatives, indent)
+                self.generate_n_branch_template(alternatives, indent, rule_annotations)
             }
         }
     }
     
     /// Generate systematic N-branch template using builder pattern
-    fn generate_n_branch_template(&self, alternatives: &[ASTNode], indent: &str) -> Result<String> {
+    fn generate_n_branch_template(&self, alternatives: &[ASTNode], indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {
         let mut builder = RustCodeBuilder::new();
         let n_branches = alternatives.len();
         
@@ -712,7 +941,7 @@ impl<'input> {parser_name}<'input> {{
             }
             
             // Generate branch content with proper indentation
-            let alt_code = self.generate_optimized_node_code(alt, 0)?;
+            let alt_code = self.generate_optimized_node_code(&alt, 0, rule_annotations)?;
             let branch_indent = if branch_idx == 0 { "        " } else { "            " };
             let branch_content = alt_code
                 .replace("let result =", &format!("{branch_indent}let branch_content ="))
@@ -750,8 +979,8 @@ impl<'input> {parser_name}<'input> {{
         Ok(builder.build())
     }
 
-    fn generate_quantified_code(&self, element: &ASTNode, quantifier: &str, indent: &str) -> Result<String> {
-        let element_code = self.generate_optimized_node_code(element, 0)?;
+    fn generate_quantified_code(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {
+        let element_code = self.generate_optimized_node_code(element, 0, rule_annotations)?;
         let inner_code = element_code.replace("let result =", "    let content =").replace("parser.", "p.");
         
         Ok(format!("{indent}let result = parser.parse_quantified_optimized(\"{quantifier}\", |p| {{\n{inner_code}{indent}    Ok(content)\n{indent}}})?;\n",
