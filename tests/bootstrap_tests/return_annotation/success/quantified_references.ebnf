@@ -1,0 +1,6 @@
+# Test: Quantified references should parse successfully in bootstrap mode
+test_rule = "item"+ "count"?
+  -> {
+    "items": $1,
+    "count_opt": $2
+  }

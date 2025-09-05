@@ -342,46 +342,22 @@ impl RustASTPipeline {
     }
     
     /// Built-in bootstrap semantic annotation parser
-    /// Supports basic name:value pairs and simple function calls with ≤4 arguments
-    /// As defined in BOOTSTRAP_MODE_SPECIFICATION.md
+    /// Simple name:value parsing - handles function calls naturally without artificial limits
     fn parse_semantic_annotation_bootstrap(&self, annotation_value: &str) -> Result<String> {
         let trimmed = annotation_value.trim();
         
-        // Pattern 1: Simple name:value pair (e.g., "codegen: "escape_literal_handling"")
+        // Simple pattern: name:value (handles function calls naturally)
         if let Some(captures) = regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*):?\s*(.+)$")
             .unwrap()
             .captures(trimmed) {
             let name = captures.get(1).unwrap().as_str();
             let value = captures.get(2).unwrap().as_str().trim();
             
-            // Check if value looks like a function call
-            if let Some(func_captures) = regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)$")
-                .unwrap()
-                .captures(value) {
-                let func_name = func_captures.get(1).unwrap().as_str();
-                let args_str = func_captures.get(2).unwrap().as_str().trim();
-                
-                // Parse function arguments (limited to 4 in bootstrap mode)
-                let args = self.parse_function_args_bootstrap(args_str)?;
-                if args.len() > 4 {
-                    if self.config.debug {
-                        println!("WARNING: Function with {} arguments exceeds bootstrap limit (max: 4)", args.len());
-                        println!("  Pattern: {}:{}", name, value);
-                        println!("  Stored as raw string - use full parser mode for complete support");
-                    }
-                    return Ok(format!("raw:{}", annotation_value));
-                }
-                
-                // Format as function call annotation
-                let args_formatted = args.join(", ");
-                return Ok(format!("{}:{}({})", name, func_name, args_formatted));
-            } else {
-                // Simple name:value pair
-                return Ok(format!("{}:{}", name, value.trim_matches('"')));
-            }
+            // Simple storage - no complex parsing or artificial limits
+            return Ok(format!("{}:{}", name, value.trim_matches('"')));
         }
         
-        // Fallback: store as raw if pattern doesn't match
+        // Fallback: store as raw if pattern doesn't match basic name:value
         if self.config.debug {
             println!("WARNING: Semantic annotation pattern not recognized in bootstrap mode");
             println!("  Pattern: {}", annotation_value);
@@ -390,19 +366,6 @@ impl RustASTPipeline {
         Ok(format!("raw:{}", annotation_value))
     }
     
-    /// Parse function arguments for bootstrap mode (≤4 simple arguments)
-    fn parse_function_args_bootstrap(&self, args_str: &str) -> Result<Vec<String>> {
-        if args_str.trim().is_empty() {
-            return Ok(vec![]);
-        }
-        
-        let args: Vec<String> = args_str
-            .split(',')
-            .map(|arg| arg.trim().to_string())
-            .collect();
-        
-        Ok(args)
-    }
     
     /// Parse return annotation using the return annotation parser
     fn parse_return_annotation(&self, annotation_value: &str) -> Result<String> {
@@ -597,15 +560,7 @@ impl RustASTPipeline {
                 .collect();
                 
             if let Ok(properties) = properties {
-                // Check 3-key limit for bootstrap mode
-                if properties.len() > 3 {
-                    if self.config.debug {
-                        println!("WARNING: Object with {} properties exceeds bootstrap limit (max: 3)", properties.len());
-                        println!("  Pattern: {}", annotation_value);
-                        println!("  Stored as raw string - use full parser mode for complete support");
-                    }
-                    return Ok(format!("raw:{}", annotation_value));
-                }
+                // Bootstrap mode supports any number of flat key/value pairs
                 
                 let result = serde_json::json!({
                     "type": "object",

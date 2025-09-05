@@ -694,10 +694,11 @@ impl<'input> {parser_name}<'input> {{
                 
                 // Check for semantic annotations that might guide code generation
                 let custom_code = if let Some(annotations) = rule_annotations {
-                    println!("[HighPerformanceRustGenerator][generate_atom_code]   🏷️  Applying semantic annotations: {:?}", annotations);
+                    println!("[HighPerformanceRustGenerator][generate_atom_code]   🏷️  Checking rule-level semantic annotations for atom customization");
                     self.apply_semantic_annotations(annotations, token_type, token_value, indent)
                 } else {
-                    println!("[HighPerformanceRustGenerator][generate_atom_code]   ❌ No semantic annotations available");
+                    // Note: This is normal - most atoms use default generation
+                    // Semantic annotations are rule-level, not atom-level
                     None
                 };
                 

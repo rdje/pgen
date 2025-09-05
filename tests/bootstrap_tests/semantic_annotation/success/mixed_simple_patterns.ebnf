@@ -1,0 +1,6 @@
+# Test: Mixed simple patterns should parse successfully in bootstrap mode
+@codegen: escape_literal_handling
+@optimize: lookup_table
+@validate: range_check($1, $2)
+@semantic_value: extract_value($1)
+test_rule = "start" "end"

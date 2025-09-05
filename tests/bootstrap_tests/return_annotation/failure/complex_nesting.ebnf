@@ -1,0 +1,10 @@
+# Test: Complex nesting should be rejected by bootstrap mode
+test_rule = "data"
+  -> {
+    "result": {
+      "items": [$1],
+      "metadata": {
+        "count": 1
+      }
+    }
+  }

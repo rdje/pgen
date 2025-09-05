@@ -1,0 +1,6 @@
+# Test: Object in array should be rejected by bootstrap mode
+test_rule = "name1" "value1" "name2" "value2"
+  -> [
+    {"name": $1, "value": $2},
+    {"name": $3, "value": $4}
+  ]

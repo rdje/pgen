@@ -1,0 +1,6 @@
+# Test: Function calls with 1-4 arguments should parse successfully in bootstrap mode
+@generate: process($1)
+@validate: check($1, $2)  
+@transform: convert($1, $2, $3)
+@analyze: inspect($1, $2, $3, $4)
+test_rule = "a" "b" "c" "d"

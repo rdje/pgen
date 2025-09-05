@@ -1,0 +1,5 @@
+# Test: Complex expressions should fall back to raw string in bootstrap mode
+@generate: $1 != null
+@validate: count(flatten($2)) > 8 ? "lookup_table" : "linear_checks"
+@optimize: all(extract_ranges($2), r => valid_range(r.start, r.end))
+test_rule = "data"

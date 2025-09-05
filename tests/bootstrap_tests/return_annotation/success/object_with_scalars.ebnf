@@ -1,0 +1,7 @@
+# Test: Object with scalar references should parse successfully in bootstrap mode
+test_rule = "first" "second" "third"
+  -> {
+    "first": $1,
+    "second": $2,
+    "third": $3
+  }

@@ -1,0 +1,6 @@
+# Test: Simple name:value pairs should parse successfully in bootstrap mode
+@type: literal_escape
+@description: Simple character escape
+@effect: maps_to_literal_character  
+@constraint: interpretation depends on escaped character
+test_rule = "\\n" | "\\t" | "\\r"

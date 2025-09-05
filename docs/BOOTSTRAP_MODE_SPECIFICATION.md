@@ -1,321 +1,154 @@
-# Bootstrap Mode Annotation Support Specification
+# Bootstrap Mode Specification
 
 ## Overview
+Bootstrap mode provides built-in annotation parsing for the Rust AST pipeline to break circular dependencies during initial system builds.
 
-Bootstrap mode enables the Rust AST pipeline to build itself without requiring external semantic and return annotation parsers. This breaks the circular dependency where the pipeline needs annotation parsers to build, but the annotation parsers need the pipeline to be generated.
+## Purpose
+- Enable clean builds from scratch without requiring external annotation parsers
+- Provide essential annotation parsing capabilities during bootstrap phase
+- Graceful fallback when full parsers are unavailable
 
-## Bootstrap Mode Activation
+## Semantic Annotation Bootstrap Parser
 
-**Command Line:**
+### ✅ Supported Patterns
+- **Simple name:value pairs**: `generate: some_function()`
+- **Simple identifiers**: `type: escape_literal_handling`
+- **Function calls**: `validate(args...)` with up to 4 arguments
+  - `process($1)`
+  - `check($1, $2)`  
+  - `transform($1, $2, $3)`
+  - `analyze($1, $2, $3, $4)` (maximum)
+
+### ❌ Unsupported Patterns (Fall Back to Raw)
+- **Functions with >4 arguments**: `complex($1, $2, $3, $4, $5)`
+- **Nested function calls**: `outer(inner($1))`
+- **Complex expressions**: Method calls, chained operations, etc.
+
+## Return Annotation Bootstrap Parser
+
+### ✅ Supported Patterns - FLAT STRUCTURES ONLY
+
+#### Scalars
+- `$1`, `$2`, `$3`, etc. (any number)
+
+#### Arrays  
+- **Simple arrays**: `[$1, $2, $3, $4, ...]` (unlimited elements)
+- **Quantified arrays**: `[$1*]`, `[$2+]`
+- **Mixed arrays**: `[$1, $2*]`
+
+#### Objects
+- **Simple objects**: `{key1: $1, key2: $2, key3: $3, ...}` (unlimited keys)
+- **Keys must be simple identifiers**: `name`, `type`, `value`, etc.
+- **Values must be scalars or simple quantified references**: `$1`, `$2*`
+
+### ❌ Unsupported Patterns (Fall Back to Raw)
+
+#### Nesting (Strictly Forbidden)
+- **Nested objects**: `{outer: {inner: $1}}` ❌
+- **Objects in arrays**: `[{name: $1}, {name: $2}]` ❌  
+- **Arrays in objects**: `{items: [$1, $2]}` ❌
+- **Complex nesting**: `{data: {list: [$1*]}}` ❌
+
+#### Complex Values
+- **Dot notation**: `[$1.name, $2.value]` ❌
+- **Dynamic keys**: `{$1: $2}` ❌
+- **Function calls in values**: `{result: func($1)}` ❌
+
+## Key Design Principles
+
+### 1. **Flat Structures Only**
+Bootstrap mode supports unlimited elements in arrays and objects but **ZERO nesting**. This keeps the parser simple while being practical for most annotation needs.
+
+### 2. **Graceful Degradation**
+When patterns exceed bootstrap capabilities, they are stored as raw strings with clear warning messages. The system continues functioning.
+
+### 3. **Clear Boundaries**
+Bootstrap mode has well-defined limits. Complex annotation parsing should use the full generated parsers.
+
+### 4. **Practical Utility**
+Despite limitations, bootstrap mode handles the majority of common annotation patterns used in real grammars.
+
+## Implementation Notes
+
+### Bootstrap Mode Activation - Automatic Fallback
+
+**Important**: Bootstrap mode is **NOT** activated via command-line flags. It operates as an **automatic fallback mechanism**:
+
+1. **Primary Attempt**: AST pipeline first tries to use external annotation parsers
+2. **Automatic Fallback**: When external parsers fail/unavailable, bootstrap mode activates automatically
+3. **No User Intervention**: This happens transparently - no special flags needed
+4. **Logged Behavior**: You'll see messages like:
+   ```
+   Warning: External return parser failed, falling back to bootstrap mode: {...}
+   ```
+
+### Bootstrap Detection
+```rust
+fn should_use_bootstrap_mode(&self) -> bool {
+    self.config.bootstrap_mode || !self.external_parsers_available()
+}
+```
+
+### How It Actually Works in Practice
+
 ```bash
-ast_pipeline input.json --bootstrap-mode --generate-parser -o output_parser.rs
+# This is all you need - bootstrap happens automatically as fallback:
+./ast_pipeline --generate-parser input.json -o parser.rs
+
+# The AST pipeline will:
+# 1. Try external parsers first
+# 2. Fall back to bootstrap mode if external parsers fail  
+# 3. Log the fallback with clear warning messages
+# 4. Continue processing successfully
 ```
 
-**Rust API:**
+### Fallback Strategy
 ```rust
-let config = PipelineConfig {
-    bootstrap_mode: true,
-    // ... other options
-};
-```
-
-## Built-in Annotation Support Level
-
-### Semantic Annotations (Built-in Support)
-
-The bootstrap mode provides **BASIC** built-in parsing for common semantic annotations:
-
-#### ✅ Supported Patterns:
-1. **Simple name-value pairs**: `@codegen: "escape_literal_handling"`
-2. **Type annotations**: `@type: "context_sensitive_construct"`
-3. **Debug annotations**: `@debug: "trace_parsing"`
-4. **Simple flags**: `@flag: "terminal_handling"`
-5. **Function calls with simple arguments**: 
-   - Single arg: `@transform: uppercase($1)`
-   - Multiple args: `@format: concat($1, "_", $2)`
-   - Mixed args: `@validate: check_range($1, "min", $2)`
-
-#### ✅ Supported Function Call Patterns:
-```
-@transform: uppercase($1)                    // Single argument
-@format: concat($1, "_suffix")              // Two arguments  
-@validate: check_range($1, "0", "100")      // Three arguments
-@generate: make_class($1, $2, "default")   // Mixed argument types
-@convert: to_type($1, $2, $3, $4)          // Up to 4 arguments (bootstrap limit)
-```
-
-#### ✅ Supported Function Argument Types:
-- **Scalar references**: `$1`, `$2`, `$3`
-- **String literals**: `"constant_string"`, `"_suffix"`
-- **Simple identifiers**: `default`, `min`, `max` (no quotes)
-- **Numbers**: `0`, `100`, `42`
-
-#### ✅ Supported Format:
-- **Input**: `["semantic_annotation", ["name", "value"]]` from JSON AST
-- **Output**: Stored as `"name:value"` in semantic_annotations HashMap
-- **Example**: `@transform: uppercase($1)` → `"transform:uppercase($1)"`
-
-#### ❌ NOT Supported in Bootstrap Mode:
-- **Complex nested structures**: `@config: {parser: {mode: "strict", options: [...]}}`
-- **Array values**: `@include: ["module1", "module2", "module3"]`
-- **Conditional expressions**: `@when: ($target == "rust")`
-- **Mathematical expressions**: `@priority: (base_priority + 10)`
-- **Nested function calls**: `@transform: uppercase(concat($1, $2))`
-- **Functions with >4 arguments**: `@complex: func($1, $2, $3, $4, $5)` (exceeds bootstrap limit)
-
-### Return Annotations (Built-in Support)
-
-The bootstrap mode provides **MINIMAL** built-in parsing for essential return annotations with **STRICT NESTING LIMITS**:
-
-#### ✅ Supported Patterns (FLAT STRUCTURES ONLY):
-1. **Simple scalar refs**: `$1`, `$2`, `$3`
-2. **Basic arrays**: `[$1, $2]`, `[$1*]`
-3. **Simple objects (1-3 keys)**: 
-   - Single key: `{key: $1}`
-   - Two keys: `{name: $1, value: $2}`
-   - Three keys: `{type: $1, name: $2, value: $3}`
-4. **Quantified arrays**: `[$1*]`, `[$2+]` (treated as `[$N*]`)
-
-#### ✅ Supported Object Patterns (FLAT ONLY):
-```
-{key: $1}                           // Single property
-{name: $1, value: $2}               // Two properties  
-{type: $1, name: $2, value: $3}     // Three properties (bootstrap limit)
-{id: $1, items: [$2*]}              // Property with quantified array (FLAT)
-{result: $1, data: [$2, $3]}        // Property with simple array (FLAT)
-```
-
-#### ❌ STRICT NESTING BOUNDARY - NOT Supported:
-```
-// NO nested objects
-{outer: {inner: $1}}                // REJECTED - nested object
-{data: {items: [$1*]}}              // REJECTED - object inside object
-
-// NO nested arrays  
-[[$1, $2], [$3, $4]]               // REJECTED - array of arrays
-{items: [[$1*], [$2*]]}            // REJECTED - array of arrays in object
-
-// NO mixed complex nesting
-{groups: [{id: $1, items: [$2*]}]} // REJECTED - object in array in object
-[{items: [$1*]}, {data: [$2*]}]    // REJECTED - objects with arrays in array
-
-// Objects with >3 keys
-{a: $1, b: $2, c: $3, d: $4}       // REJECTED - exceeds 3-key limit
-```
-
-#### ✅ Supported Format:
-- **Input**: `["return_scalar", "content"]`, `["return_array", "content"]`, `["return_object", "content"]`
-- **Output**: Stored as parsed JSON structure for code generator use
-- **Example**: `return_object: "{name: $1, value: $2}"` → `{"type": "object", "properties": [{"key": "name", "value": {"type": "scalar_ref", "index": 1}}, {"key": "value", "value": {"type": "scalar_ref", "index": 2}}]}`
-
-## Bootstrap vs Full Parser Comparison
-
-| Feature | Bootstrap Mode | Full Parser Mode |
-|---------|---------------|------------------|
-| **Semantic Annotations** | name:value + simple functions (≤4 args) | Full EBNF grammar support |
-| **Semantic Functions** | Simple calls, no nesting | Nested calls, complex expressions |
-| **Return Objects** | 1-3 keys, FLAT only | Unlimited keys, deep nesting |
-| **Return Arrays** | Basic $N, [$N*], NO nesting | Complex slicing, nested structures |
-| **Return Scalars** | Simple $N references | Mathematical expressions, conditionals |
-| **Nesting Level** | **ZERO** (strictly flat) | Unlimited depth |
-| **Dependency** | Self-contained | Requires external parsers |
-| **Use Case** | Initial build, simple grammars | Production parsing |
-| **Completeness** | ~30% of full grammar | 100% of grammar |
-
-## Implementation Strategy
-
-### Bootstrap Mode Detection
-
-```rust
-impl RustASTPipeline {
-    fn should_use_bootstrap_mode(&self) -> bool {
-        self.config.bootstrap_mode || 
-        !self.external_parsers_available()
-    }
-    
-    fn external_parsers_available(&self) -> bool {
-        // Check if generated parser files exist
-        std::path::Path::new("../../generated/semantic_annotation_parser.rs").exists() &&
-        std::path::Path::new("../../generated/return_annotation_parser.rs").exists()
-    }
+// When pattern not recognized:
+if self.config.debug {
+    println!("WARNING: Pattern not recognized in bootstrap mode");
+    println!("  Pattern: {}", annotation_value);
+    println!("  Bootstrap mode supports FLAT structures only");
+    println!("  Stored as raw string - use full parser mode for complete support");
 }
+Ok(format!("raw:{}", annotation_value))
 ```
 
-### Built-in Parsing Functions
+### Error Handling
+Bootstrap mode never fails - it either parses successfully or falls back to raw storage, ensuring the build process can always continue.
 
-```rust
-impl RustASTPipeline {
-    /// Bootstrap-only semantic annotation parser
-    /// Supports simple name:value and function calls with ≤4 simple arguments
-    fn parse_semantic_annotation_bootstrap(&self, annotation_value: &str) -> Result<String> {
-        // Parse "name: value" and "function_name(arg1, arg2, ...)" patterns
-        // Maximum 4 arguments per function call
-        // Return format: "name:value" or "name:function_name(args...)" for storage
-    }
-    
-    /// Bootstrap-only return annotation parser  
-    /// STRICTLY FLAT - no nesting allowed
-    fn parse_return_annotation_bootstrap(&self, annotation_value: &str) -> Result<String> {
-        // Parse ONLY flat structures: $N, [$N], {key1: $N, key2: $M, key3: $P}
-        // REJECT any nested [] or {} patterns
-        // Maximum 3 properties per object
-        // Return JSON representation for code generator
-    }
-}
+## Usage Example
+
+### Build Process
+```makefile
+# Create placeholders first
+$(BOOTSTRAP_PARSER_PLACEHOLDERS): 
+    # Create minimal placeholder parsers
+
+# Build AST pipeline with placeholders  
+$(RUST_AST_PIPELINE): $(BOOTSTRAP_PARSER_PLACEHOLDERS)
+    cd rust && cargo build
+
+# Generate parsers using bootstrap mode
+$(PARSERS): $(JSON_FILES) $(RUST_AST_PIPELINE)
+    rust/target/debug/ast_pipeline --generate-parser --bootstrap-mode input.json -o parser.rs
 ```
 
-## Bootstrap Function Call Parsing Rules
+### Command Line
+```bash
+# Use bootstrap mode explicitly
+./ast_pipeline --bootstrap-mode --generate-parser input.json -o parser.rs
 
-### Argument Limits
-- **Maximum 4 arguments** per function call in bootstrap mode
-- Functions with >4 arguments will be stored as raw strings with warning
-- Arguments must be simple types (no nested function calls)
-
-### Supported Argument Types
-- **Scalar references**: `$1`, `$2`, `$3`
-- **String literals**: `"constant"`, `"_suffix"` (quoted)
-- **Simple identifiers**: `default`, `min`, `max` (unquoted)
-- **Numbers**: `0`, `100`, `42`, `-5`
-
-### Function Call Examples
-
-```rust
-// Bootstrap mode can handle:
-"@transform: uppercase($1)"              → Simple function, 1 arg
-"@format: concat($1, \"_\", $2)"        → Function with 3 args
-"@validate: range_check($1, 0, 100)"    → Mixed argument types
-"@generate: make_obj($1, $2, $3, \"d\")" → 4 arguments (bootstrap limit)
-
-// Bootstrap mode CANNOT handle:
-"@complex: func($1, $2, $3, $4, $5)"    → >4 arguments (stored as raw)
-"@nested: outer(inner($1))"             → Nested calls (stored as raw)
-"@expr: calc($1 + $2)"                  → Expression in args (stored as raw)
+# Bootstrap mode activates automatically if external parsers unavailable
+./ast_pipeline --generate-parser input.json -o parser.rs
 ```
 
-## Bootstrap Return Annotation Nesting Rules
+## Benefits
 
-### ZERO NESTING POLICY
-- **Objects**: Can contain scalars, simple arrays, or quantified arrays ONLY
-- **Arrays**: Can contain scalars ONLY (no objects or nested arrays)
-- **No Exceptions**: Any nesting beyond one level is REJECTED
+1. **Eliminates Circular Dependencies**: System can build from completely clean state
+2. **Practical Coverage**: Handles majority of real-world annotation patterns  
+3. **Reliable Fallback**: Never blocks the build process
+4. **Clear Boundaries**: Well-defined limits prevent complexity creep
+5. **Unlimited Flat Elements**: Arrays and objects can have any number of top-level elements
 
-### Nesting Examples
-
-```rust
-// ✅ ALLOWED (flat structures):
-"$1"                           → Scalar
-"[$1, $2, $3]"                → Simple array
-"{name: $1, items: [$2*]}"    → Object with quantified array property
-"{id: $1, data: [$2, $3]}"    → Object with simple array property
-
-// ❌ REJECTED (nesting detected):
-"{outer: {inner: $1}}"        → Object nesting
-"[{id: $1}, {id: $2}]"       → Array of objects  
-"[[1, 2], [3, 4]]"          → Array nesting
-"{items: [{id: $1}]}"        → Object in array in object
-```
-
-## Error Handling
-
-### Bootstrap Mode Warnings
-
-When bootstrap mode is active:
-
-```
-WARNING: Bootstrap mode active - limited annotation parsing
-  - Semantic annotations: name:value + simple functions (≤4 args)
-  - Return annotations: FLAT structures only (≤3 object keys, NO nesting)
-  - Complex patterns will be stored as raw strings
-```
-
-### Function Argument Limit Warnings
-
-```
-WARNING: Function with 5 arguments exceeds bootstrap limit (max: 4)
-  - Pattern: @complex: func($1, $2, $3, $4, $5)
-  - Stored as raw string - use full parser mode for complete support
-```
-
-### Nesting Detection Warnings
-
-```
-WARNING: Nested structure detected - exceeds bootstrap flat-only policy
-  - Pattern: {outer: {inner: $1}}
-  - Bootstrap mode supports FLAT structures only
-  - Stored as raw string - use full parser mode for nesting support
-```
-
-## Usage Guidelines
-
-### When to Use Bootstrap Mode
-
-1. **Initial system build**: Building the AST pipeline for the first time
-2. **Clean builds**: After `make clean-all` when generated parsers don't exist
-3. **Simple grammars**: Using only flat annotations and simple functions
-4. **Emergency recovery**: When external parsers are corrupted
-
-### When NOT to Use Bootstrap Mode
-
-1. **Complex grammars**: Any use of nested objects/arrays
-2. **Advanced functions**: Functions with >4 arguments or nesting
-3. **Production parsing**: Always prefer full parser mode
-4. **Development/testing**: Full parser mode provides complete functionality
-
-## Testing Strategy
-
-### Test Cases
-
-```rust
-#[test]
-fn test_bootstrap_semantic_function_call() {
-    let pipeline = RustASTPipeline::new(PipelineConfig { bootstrap_mode: true, ..Default::default() });
-    let result = pipeline.parse_semantic_annotation_bootstrap("transform: uppercase($1)").unwrap();
-    assert_eq!(result, "transform:uppercase($1)");
-}
-
-#[test]
-fn test_bootstrap_function_four_args() {
-    let pipeline = RustASTPipeline::new(PipelineConfig { bootstrap_mode: true, ..Default::default() });
-    let result = pipeline.parse_semantic_annotation_bootstrap("generate: make_obj($1, $2, $3, \"default\")").unwrap();
-    assert!(result.contains("make_obj"));
-}
-
-#[test]
-fn test_bootstrap_function_exceeds_limit() {
-    let pipeline = RustASTPipeline::new(PipelineConfig { bootstrap_mode: true, ..Default::default() });
-    let result = pipeline.parse_semantic_annotation_bootstrap("complex: func($1, $2, $3, $4, $5)").unwrap();
-    assert!(result.starts_with("raw:"));
-}
-
-#[test]
-fn test_bootstrap_return_flat_object() {
-    let pipeline = RustASTPipeline::new(PipelineConfig { bootstrap_mode: true, ..Default::default() });
-    let result = pipeline.parse_return_annotation_bootstrap("{name: $1, items: [$2*]}").unwrap();
-    assert!(result.contains("\"properties\""));
-}
-
-#[test]
-fn test_bootstrap_return_rejects_nesting() {
-    let pipeline = RustASTPipeline::new(PipelineConfig { bootstrap_mode: true, ..Default::default() });
-    let result = pipeline.parse_return_annotation_bootstrap("{outer: {inner: $1}}").unwrap();
-    assert!(result.starts_with("raw:"));
-}
-```
-
-## Clear Boundaries Summary
-
-### Semantic Annotations Bootstrap Support:
-- ✅ Simple name:value pairs
-- ✅ Function calls with ≤4 simple arguments  
-- ❌ Nested function calls
-- ❌ Complex expressions
-- ❌ Array/object values
-
-### Return Annotations Bootstrap Support:
-- ✅ Scalars: `$1`, `$2`
-- ✅ Simple arrays: `[$1, $2]`, `[$1*]`
-- ✅ Flat objects: `{key: $1}` (≤3 keys)
-- ❌ **ZERO NESTING**: No `{a: {b: $1}}` or `[[...]]`
-- ❌ **ZERO MULTI-LEVEL**: Strictly one level deep maximum
-
-This specification draws clear, enforceable boundaries that make bootstrap mode implementation straightforward while covering the majority of real-world use cases.
+This specification ensures bootstrap mode remains simple, reliable, and practical for real-world usage.

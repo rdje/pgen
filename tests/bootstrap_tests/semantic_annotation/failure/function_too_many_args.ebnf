@@ -1,0 +1,3 @@
+# Test: Function with >4 arguments should fall back to raw string in bootstrap mode
+@complex: analyze_complex($1, $2, $3, $4, $5)
+test_rule = "a" "b" "c" "d" "e"

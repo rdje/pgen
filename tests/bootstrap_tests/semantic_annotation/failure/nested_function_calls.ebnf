@@ -1,0 +1,3 @@
+# Test: Nested function calls should fall back to raw string in bootstrap mode
+@generate: outer_function(inner_function($1))
+test_rule = "value"
