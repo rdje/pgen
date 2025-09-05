@@ -13,7 +13,7 @@ use anyhow::{Context, Result};
 
 // Import the generated semantic annotation parser
 mod semantic_annotation_parser {
-    include!("../../semantic_annotation_parser.rs");
+    include!("../../generated/semantic_annotation_parser.rs");
 }
 use semantic_annotation_parser::Semantic_annotationsParser;
 
@@ -21,7 +21,7 @@ use semantic_annotation_parser::Semantic_annotationsParser;
 mod return_annotation_parser {
     include!("../../generated/return_annotation_parser.rs");
 }
-use return_annotation_parser::Merged_ultimate_return_annotationParser;
+use return_annotation_parser::Return_annotationParser;
 
 mod high_performance_generator;
 use high_performance_generator::HighPerformanceRustGenerator;
@@ -30,20 +30,24 @@ use high_performance_generator::HighPerformanceRustGenerator;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipelineConfig {
     pub debug: bool,
+    pub trace: bool,
     pub preserve_annotations: bool,
     pub validate_input: bool,
     pub validate_output: bool,
     pub max_recursion_depth: usize,
+    pub bootstrap_mode: bool,
 }
 
 impl Default for PipelineConfig {
     fn default() -> Self {
         Self {
             debug: false,
+            trace: false,
             preserve_annotations: true,
             validate_input: true,
             validate_output: true,
             max_recursion_depth: 100,
+            bootstrap_mode: false,
         }
     }
 }
@@ -122,12 +126,19 @@ pub enum ASTValue {
     Node(Box<ASTNode>),
 }
 
+/// Return annotation information for code generation  
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReturnAnnotation {
+    pub annotation_type: String, // "return_scalar", "return_array", "return_object"
+    pub annotation_content: String, // The original annotation content - we parse this on demand in the generator
+}
+
 /// Preserved annotations from raw AST
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Annotations {
     pub semantic_annotations: HashMap<String, Vec<String>>,
     pub logging_annotations: HashMap<String, Vec<String>>,
-    pub return_annotations: HashMap<String, String>,
+    pub return_annotations: HashMap<String, ReturnAnnotation>,
 }
 
 /// Transformation statistics
@@ -154,7 +165,8 @@ pub struct TransformMetadata {
     pub transformed_at: String,
     pub transformer: String,
     pub pipeline_stage: String,
-    pub annotations: Annotations,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<Annotations>,
     pub stats: TransformStats,
 }
 
@@ -277,10 +289,38 @@ impl RustASTPipeline {
         Ok((grammar_tree, rule_order))
     }
 
+    /// Check if bootstrap mode should be used for annotation parsing
+    fn should_use_bootstrap_mode(&self) -> bool {
+        self.config.bootstrap_mode ||
+        !self.external_parsers_available()
+    }
+    
+    /// Check if external generated parsers are available
+    fn external_parsers_available(&self) -> bool {
+        // In a more sophisticated implementation, we could check file existence
+        // For now, assume they're available unless explicitly in bootstrap mode
+        !self.config.bootstrap_mode
+    }
+    
     /// Parse semantic annotation using the semantic annotation parser
     fn parse_semantic_annotation(&self, annotation_value: &str) -> Result<String> {
+        if self.should_use_bootstrap_mode() {
+            if self.config.debug {
+                println!("[AST Pipeline] Using bootstrap mode for semantic annotation: '{}'", annotation_value);
+            }
+            return self.parse_semantic_annotation_bootstrap(annotation_value);
+        }
+        
         // Use the generated semantic annotation parser to parse the value
-        let mut parser = Semantic_annotationsParser::new(annotation_value);
+        let mut parser = if self.config.debug || self.config.trace {
+            Semantic_annotationsParser::with_debug(annotation_value)
+        } else {
+            Semantic_annotationsParser::new(annotation_value)
+        };
+        
+        if self.config.debug {
+            println!("[AST Pipeline] Parsing semantic annotation with value: '{}'", annotation_value);
+        }
         
         // Parse the annotation value into an AST
         match parser.parse() {
@@ -292,19 +332,89 @@ impl RustASTPipeline {
                     .context("Failed to serialize parsed semantic annotation AST")
             }
             Err(_) => {
-                // If parsing fails, store as raw value for backward compatibility
+                // If parsing fails, fallback to bootstrap mode
                 if self.config.debug {
-                    println!("Warning: Failed to parse semantic annotation, storing as raw: {}", annotation_value);
+                    println!("Warning: External parser failed, falling back to bootstrap mode: {}", annotation_value);
                 }
-                Ok(format!("raw:{}", annotation_value))
+                self.parse_semantic_annotation_bootstrap(annotation_value)
             }
         }
     }
     
+    /// Built-in bootstrap semantic annotation parser
+    /// Supports basic name:value pairs and simple function calls with ≤4 arguments
+    /// As defined in BOOTSTRAP_MODE_SPECIFICATION.md
+    fn parse_semantic_annotation_bootstrap(&self, annotation_value: &str) -> Result<String> {
+        let trimmed = annotation_value.trim();
+        
+        // Pattern 1: Simple name:value pair (e.g., "codegen: "escape_literal_handling"")
+        if let Some(captures) = regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*):?\s*(.+)$")
+            .unwrap()
+            .captures(trimmed) {
+            let name = captures.get(1).unwrap().as_str();
+            let value = captures.get(2).unwrap().as_str().trim();
+            
+            // Check if value looks like a function call
+            if let Some(func_captures) = regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)$")
+                .unwrap()
+                .captures(value) {
+                let func_name = func_captures.get(1).unwrap().as_str();
+                let args_str = func_captures.get(2).unwrap().as_str().trim();
+                
+                // Parse function arguments (limited to 4 in bootstrap mode)
+                let args = self.parse_function_args_bootstrap(args_str)?;
+                if args.len() > 4 {
+                    if self.config.debug {
+                        println!("WARNING: Function with {} arguments exceeds bootstrap limit (max: 4)", args.len());
+                        println!("  Pattern: {}:{}", name, value);
+                        println!("  Stored as raw string - use full parser mode for complete support");
+                    }
+                    return Ok(format!("raw:{}", annotation_value));
+                }
+                
+                // Format as function call annotation
+                let args_formatted = args.join(", ");
+                return Ok(format!("{}:{}({})", name, func_name, args_formatted));
+            } else {
+                // Simple name:value pair
+                return Ok(format!("{}:{}", name, value.trim_matches('"')));
+            }
+        }
+        
+        // Fallback: store as raw if pattern doesn't match
+        if self.config.debug {
+            println!("WARNING: Semantic annotation pattern not recognized in bootstrap mode");
+            println!("  Pattern: {}", annotation_value);
+            println!("  Stored as raw string - use full parser mode for complete support");
+        }
+        Ok(format!("raw:{}", annotation_value))
+    }
+    
+    /// Parse function arguments for bootstrap mode (≤4 simple arguments)
+    fn parse_function_args_bootstrap(&self, args_str: &str) -> Result<Vec<String>> {
+        if args_str.trim().is_empty() {
+            return Ok(vec![]);
+        }
+        
+        let args: Vec<String> = args_str
+            .split(',')
+            .map(|arg| arg.trim().to_string())
+            .collect();
+        
+        Ok(args)
+    }
+    
     /// Parse return annotation using the return annotation parser
     fn parse_return_annotation(&self, annotation_value: &str) -> Result<String> {
+        if self.should_use_bootstrap_mode() {
+            if self.config.debug {
+                println!("[AST Pipeline] Using bootstrap mode for return annotation: '{}'", annotation_value);
+            }
+            return self.parse_return_annotation_bootstrap(annotation_value);
+        }
+        
         // Use the generated return annotation parser to parse the value
-        let mut parser = Merged_ultimate_return_annotationParser::new(annotation_value);
+        let mut parser = Return_annotationParser::new(annotation_value);
         
         // Parse the annotation value into an AST
         match parser.parse() {
@@ -316,13 +426,203 @@ impl RustASTPipeline {
                     .context("Failed to serialize parsed return annotation AST")
             }
             Err(_) => {
-                // If parsing fails, store as raw value for backward compatibility
+                // If parsing fails, fallback to bootstrap mode
                 if self.config.debug {
-                    println!("Warning: Failed to parse return annotation, storing as raw: {}", annotation_value);
+                    println!("Warning: External return parser failed, falling back to bootstrap mode: {}", annotation_value);
                 }
-                Ok(format!("raw:{}", annotation_value))
+                self.parse_return_annotation_bootstrap(annotation_value)
             }
         }
+    }
+    
+    /// Built-in bootstrap return annotation parser
+    /// Supports FLAT structures ONLY: scalars, simple arrays, objects with ≤3 keys, ZERO nesting
+    /// As defined in BOOTSTRAP_MODE_SPECIFICATION.md
+    fn parse_return_annotation_bootstrap(&self, annotation_value: &str) -> Result<String> {
+        let trimmed = annotation_value.trim();
+        
+        // Pattern 1: Simple scalar reference ($1, $2, etc.)
+        if let Some(captures) = regex::Regex::new(r"^\$([0-9]+)$")
+            .unwrap()
+            .captures(trimmed) {
+            let index: usize = captures.get(1).unwrap().as_str().parse().unwrap_or(1);
+            let result = serde_json::json!({
+                "type": "scalar_ref",
+                "index": index
+            });
+            return Ok(serde_json::to_string(&result)?);
+        }
+        
+        // Pattern 2: Simple array ([$1, $2] or [$1*])
+        if let Some(captures) = regex::Regex::new(r"^\[([^\[\]{}]+)\]$")
+            .unwrap()
+            .captures(trimmed) {
+            let content = captures.get(1).unwrap().as_str().trim();
+            
+            // Check for quantified array ([$1*], [$2+])
+            if let Some(quant_captures) = regex::Regex::new(r"^\$([0-9]+)[*+]$")
+                .unwrap()
+                .captures(content) {
+                let index: usize = quant_captures.get(1).unwrap().as_str().parse().unwrap_or(1);
+                let result = serde_json::json!({
+                    "type": "quantified_array",
+                    "element": {
+                        "type": "scalar_ref",
+                        "index": index
+                    }
+                });
+                return Ok(serde_json::to_string(&result)?);
+            }
+            
+            // Check for simple array elements ([$1, $2, $3])
+            let elements: Result<Vec<_>, _> = content
+                .split(',')
+                .map(|elem| {
+                    let elem_trimmed = elem.trim();
+                    if let Some(scalar_captures) = regex::Regex::new(r"^\$([0-9]+)$")
+                        .unwrap()
+                        .captures(elem_trimmed) {
+                        let index: usize = scalar_captures.get(1).unwrap().as_str().parse().unwrap_or(1);
+                        Ok(serde_json::json!({
+                            "type": "scalar_ref",
+                            "index": index
+                        }))
+                    } else {
+                        Err(anyhow::anyhow!("Invalid array element: {}", elem_trimmed))
+                    }
+                })
+                .collect();
+                
+            if let Ok(elements) = elements {
+                let result = serde_json::json!({
+                    "type": "array",
+                    "elements": elements
+                });
+                return Ok(serde_json::to_string(&result)?);
+            }
+        }
+        
+        // Pattern 3: Simple object ({key: $1} up to 3 keys, FLAT only)
+        if let Some(captures) = regex::Regex::new(r"^\{([^\[\]{}]+)\}$")
+            .unwrap()
+            .captures(trimmed) {
+            let content = captures.get(1).unwrap().as_str().trim();
+            
+            // Check for nesting - REJECT if found
+            if content.contains('{') || content.contains('[') {
+                if self.config.debug {
+                    println!("WARNING: Nested structure detected - exceeds bootstrap flat-only policy");
+                    println!("  Pattern: {}", annotation_value);
+                    println!("  Bootstrap mode supports FLAT structures only");
+                    println!("  Stored as raw string - use full parser mode for nesting support");
+                }
+                return Ok(format!("raw:{}", annotation_value));
+            }
+            
+            // Parse object properties (key: value pairs)
+            let properties: Result<Vec<_>, _> = content
+                .split(',')
+                .map(|prop| {
+                    let prop_trimmed = prop.trim();
+                    if let Some(prop_captures) = regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.+)$")
+                        .unwrap()
+                        .captures(prop_trimmed) {
+                        let key = prop_captures.get(1).unwrap().as_str();
+                        let value_str = prop_captures.get(2).unwrap().as_str().trim();
+                        
+                        // Parse the value (must be simple - no nesting)
+                        let value = if let Some(scalar_captures) = regex::Regex::new(r"^\$([0-9]+)$")
+                            .unwrap()
+                            .captures(value_str) {
+                            let index: usize = scalar_captures.get(1).unwrap().as_str().parse().unwrap_or(1);
+                            serde_json::json!({
+                                "type": "scalar_ref",
+                                "index": index
+                            })
+                        } else if let Some(array_captures) = regex::Regex::new(r"^\[\$([0-9]+)[*+]\]$")
+                            .unwrap()
+                            .captures(value_str) {
+                            // Simple quantified array in object property (FLAT)
+                            let index: usize = array_captures.get(1).unwrap().as_str().parse().unwrap_or(1);
+                            serde_json::json!({
+                                "type": "quantified_array",
+                                "element": {
+                                    "type": "scalar_ref",
+                                    "index": index
+                                }
+                            })
+                        } else if let Some(simple_array_captures) = regex::Regex::new(r"^\[([^\[\]{}]+)\]$")
+                            .unwrap()
+                            .captures(value_str) {
+                            // Simple array in object property (FLAT) - parse elements
+                            let array_content = simple_array_captures.get(1).unwrap().as_str().trim();
+                            let array_elements: Result<Vec<_>, _> = array_content
+                                .split(',')
+                                .map(|elem| {
+                                    let elem_trimmed = elem.trim();
+                                    if let Some(scalar_captures) = regex::Regex::new(r"^\$([0-9]+)$")
+                                        .unwrap()
+                                        .captures(elem_trimmed) {
+                                        let index: usize = scalar_captures.get(1).unwrap().as_str().parse().unwrap_or(1);
+                                        Ok(serde_json::json!({
+                                            "type": "scalar_ref",
+                                            "index": index
+                                        }))
+                                    } else {
+                                        Err(anyhow::anyhow!("Invalid array element in object: {}", elem_trimmed))
+                                    }
+                                })
+                                .collect();
+                            
+                            if let Ok(elements) = array_elements {
+                                serde_json::json!({
+                                    "type": "array",
+                                    "elements": elements
+                                })
+                            } else {
+                                return Err(anyhow::anyhow!("Failed to parse array in object property: {}", value_str));
+                            }
+                        } else {
+                            return Err(anyhow::anyhow!("Unsupported value type in bootstrap mode: {}", value_str));
+                        };
+                        
+                        Ok(serde_json::json!({
+                            "key": key,
+                            "value": value
+                        }))
+                    } else {
+                        Err(anyhow::anyhow!("Invalid property format: {}", prop_trimmed))
+                    }
+                })
+                .collect();
+                
+            if let Ok(properties) = properties {
+                // Check 3-key limit for bootstrap mode
+                if properties.len() > 3 {
+                    if self.config.debug {
+                        println!("WARNING: Object with {} properties exceeds bootstrap limit (max: 3)", properties.len());
+                        println!("  Pattern: {}", annotation_value);
+                        println!("  Stored as raw string - use full parser mode for complete support");
+                    }
+                    return Ok(format!("raw:{}", annotation_value));
+                }
+                
+                let result = serde_json::json!({
+                    "type": "object",
+                    "properties": properties
+                });
+                return Ok(serde_json::to_string(&result)?);
+            }
+        }
+        
+        // Fallback: store as raw if pattern doesn't match
+        if self.config.debug {
+            println!("WARNING: Return annotation pattern not recognized in bootstrap mode");
+            println!("  Pattern: {}", annotation_value);
+            println!("  Bootstrap mode supports FLAT structures only");
+            println!("  Stored as raw string - use full parser mode for complete support");
+        }
+        Ok(format!("raw:{}", annotation_value))
     }
     
     /// Convert semantic annotation ParseNode to a serializable simplified representation
@@ -492,8 +792,37 @@ impl RustASTPipeline {
                     "return_scalar" | "return_array" | "return_object" => {
                         if let Some(ref name) = rule_name {
                             if self.config.preserve_annotations {
-                                self.annotations.return_annotations
-                                    .insert(name.clone(), token_type.clone());
+                                // Extract return annotation content (same as before)
+                                let annotation_content = match &token[1] {
+                                    TokenValue::String(content) => content.as_str(),
+                                    TokenValue::Array(arr) if !arr.is_empty() => &arr[0],
+                                    _ => "",
+                                };
+                                
+                                if !annotation_content.is_empty() {
+                                    // Parse the return annotation NOW (consistent with semantic annotations)
+                                    let parsed_content = self.parse_return_annotation(annotation_content)
+                                        .unwrap_or_else(|_| format!("raw:{}", annotation_content));
+                                    
+                                    let return_annotation = ReturnAnnotation {
+                                        annotation_type: token_type.clone(),
+                                        annotation_content: parsed_content, // Store parsed JSON instead of raw string
+                                    };
+                                    self.annotations.return_annotations
+                                        .insert(name.clone(), return_annotation);
+                                    
+                                    if self.config.debug {
+                                        println!("Parsed return annotation for {}: {} (type: {})", name, annotation_content, token_type);
+                                    }
+                                } else {
+                                    // Fallback: create a basic return annotation with just the type for empty content
+                                    // This shouldn't happen with valid grammar, but we need a fallback
+                                    if self.config.debug {
+                                        println!("Warning: Empty return annotation content for {}, skipping", name);
+                                    }
+                                }
+                                
+                                self.stats.annotations_preserved += 1;
                             }
                         }
                         // Don't add to cleaned rule
@@ -808,7 +1137,7 @@ impl RustASTPipeline {
             transformed_at: chrono::Utc::now().to_rfc3339(),
             transformer: "Rust AST Pipeline v1.0".to_string(),
             pipeline_stage: "transformation".to_string(),
-            annotations: self.annotations.clone(),
+            annotations: Some(self.annotations.clone()),
             stats: self.stats.clone(),
         };
 
@@ -856,6 +1185,26 @@ impl RustASTPipeline {
         Ok(())
     }
 
+    /// Get return annotations for a specific rule
+    pub fn get_return_annotation(&self, rule_name: &str) -> Option<&ReturnAnnotation> {
+        self.annotations.return_annotations.get(rule_name)
+    }
+    
+    /// Get all return annotations
+    pub fn get_all_return_annotations(&self) -> &HashMap<String, ReturnAnnotation> {
+        &self.annotations.return_annotations
+    }
+    
+    /// Get semantic annotations for a specific rule
+    pub fn get_semantic_annotations(&self, rule_name: &str) -> Option<&Vec<String>> {
+        self.annotations.semantic_annotations.get(rule_name)
+    }
+    
+    /// Get logging annotations for a specific rule  
+    pub fn get_logging_annotations(&self, rule_name: &str) -> Option<&Vec<String>> {
+        self.annotations.logging_annotations.get(rule_name)
+    }
+
     /// Generate high-performance Rust parser code directly from transformed AST
     /// Produces SOTA parser suitable for embedding in rgx regex engine
     pub fn generate_high_performance_parser(
@@ -890,6 +1239,9 @@ impl RustASTPipeline {
         
         // Set the entry rule immediately after generator creation
         code_generator.set_entry_rule(&entry_rule);
+        
+        // Pass the return annotations to the code generator
+        code_generator.set_return_annotations(&self.annotations.return_annotations);
         
         let rust_code = code_generator.generate_lightning_fast_parser(&grammar_tree, &rule_order)?;
         

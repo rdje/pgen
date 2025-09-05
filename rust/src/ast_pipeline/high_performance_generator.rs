@@ -5,20 +5,18 @@
 //! - Inline optimizations and SIMD-friendly code
 //! - Minimal allocations for rgx regex engine integration
 
-use crate::ast_pipeline::{ASTNode, ASTValue, Annotations};
+use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, ReturnAnnotation};
 use std::collections::HashMap;
 use anyhow::Result;
 use serde_json::Value as JsonValue;
 
 
-/// Escape a string for safe inclusion in Rust source code
+/// Escape a string for safe inclusion in Rust raw string literals
 fn escape_rust_string(s: &str) -> String {
-    s.replace('\\', "\\\\")
-     .replace('"', "\\\"")
-     .replace('\n', "\\n")
-     .replace('\r', "\\r")
-     .replace('\t', "\\t")
-     .replace('\0', "\\0")
+    // For raw strings r#"..."#, we need minimal escaping
+    // The main issue is handling strings that contain the raw string delimiter
+    // For now, just return the string as-is since raw strings handle most cases
+    s.to_string()
 }
 
 /// Builder for systematic Rust code generation
@@ -51,6 +49,7 @@ pub struct HighPerformanceRustGenerator {
     enable_trace: bool,
     pub enable_backtrack_debug: bool,
     annotations: Option<Annotations>,
+    return_annotations: HashMap<String, ReturnAnnotation>,
 }
 
 impl HighPerformanceRustGenerator {
@@ -61,6 +60,7 @@ impl HighPerformanceRustGenerator {
             enable_trace: false,
             enable_backtrack_debug: false,
             annotations: None,
+            return_annotations: HashMap::new(),
         }
     }
     
@@ -72,6 +72,7 @@ impl HighPerformanceRustGenerator {
             enable_trace,
             enable_backtrack_debug: false,
             annotations: None,
+            return_annotations: HashMap::new(),
         }
     }
     
@@ -83,6 +84,7 @@ impl HighPerformanceRustGenerator {
             enable_trace: true,
             enable_backtrack_debug: true,
             annotations: None,
+            return_annotations: HashMap::new(),
         }
     }
     
@@ -94,6 +96,11 @@ impl HighPerformanceRustGenerator {
     /// Set the annotations for the generator to use during code generation
     pub fn set_annotations(&mut self, annotations: Annotations) {
         self.annotations = Some(annotations);
+    }
+    
+    /// Set return annotations for code generation
+    pub fn set_return_annotations(&mut self, return_annotations: &HashMap<String, ReturnAnnotation>) {
+        self.return_annotations = return_annotations.clone();
     }
 
     /// Generate lightning-fast parser suitable for production regex engine
@@ -541,6 +548,14 @@ impl<'input> {parser_name}<'input> {{
     ) -> Result<String> {
         let mut code = String::new();
         
+        println!("[HighPerformanceRustGenerator] Starting rule method generation");
+        println!("[HighPerformanceRustGenerator] Total rules in rule_order: {}", rule_order.len());
+        println!("[HighPerformanceRustGenerator] Total rules in grammar_tree: {}", grammar_tree.len());
+        
+        // Debug: List all rules
+        println!("[HighPerformanceRustGenerator] Rules in rule_order: {:?}", rule_order);
+        println!("[HighPerformanceRustGenerator] Rules in grammar_tree: {:?}", grammar_tree.keys().collect::<Vec<_>>());
+        
         // Generate rule ID constants
         code.push_str("    // Rule IDs for memoization\n");
         for (i, rule_name) in rule_order.iter().enumerate() {
@@ -550,11 +565,28 @@ impl<'input> {parser_name}<'input> {{
         code.push_str("\n");
 
         // Generate rule methods
+        let mut methods_generated = 0;
+        let mut methods_skipped = 0;
+        
         for (i, rule_name) in rule_order.iter().enumerate() {
             if let Some(ast_node) = grammar_tree.get(rule_name) {
+                println!("[HighPerformanceRustGenerator] ✓ Generating method for rule: {} (index {})", rule_name, i);
                 let method_code = self.generate_optimized_rule_method(rule_name, ast_node, i as u16)?;
                 code.push_str(&method_code);
+                methods_generated += 1;
+            } else {
+                println!("[HighPerformanceRustGenerator] ✗ SKIPPING rule: {} (not found in grammar_tree)", rule_name);
+                methods_skipped += 1;
             }
+        }
+        
+        println!("[HighPerformanceRustGenerator] Summary:");
+        println!("[HighPerformanceRustGenerator]   ✓ Methods generated: {}", methods_generated);
+        println!("[HighPerformanceRustGenerator]   ✗ Methods skipped: {}", methods_skipped);
+        println!("[HighPerformanceRustGenerator]   📊 Total rules processed: {}", rule_order.len());
+        
+        if methods_skipped > 0 {
+            println!("[HighPerformanceRustGenerator] ⚠️  WARNING: {} rules were skipped - this will cause compilation errors!", methods_skipped);
         }
 
         Ok(code)
@@ -564,8 +596,11 @@ impl<'input> {parser_name}<'input> {{
         &self,
         rule_name: &str,
         ast_node: &ASTNode,
-        _rule_id: u16,
+        rule_id: u16,
     ) -> Result<String> {
+        println!("[HighPerformanceRustGenerator][generate_optimized_rule_method] 🔧 Processing rule: '{}' (ID: {})", rule_name, rule_id);
+        println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   📋 Rule AST: {:?}", ast_node);
+        
         // Get semantic annotations for this rule if available
         let rule_annotations = if let Some(ref annotations) = self.annotations {
             annotations.semantic_annotations.get(rule_name).cloned()
@@ -573,7 +608,20 @@ impl<'input> {parser_name}<'input> {{
             None
         };
         
+        if let Some(ref annotations) = rule_annotations {
+            println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   🏷️  Found {} semantic annotations for '{}'", annotations.len(), rule_name);
+            for (i, annotation) in annotations.iter().enumerate() {
+                println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]     {}. {}", i + 1, annotation);
+            }
+        } else {
+            println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   ❌ No semantic annotations found for '{}'", rule_name);
+        }
+        
+        println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   🏗️  Generating method body for '{}'", rule_name);
         let method_body = self.generate_optimized_node_code(ast_node, 2, rule_annotations.as_deref())?;
+        
+        let method_name = format!("parse_{}", rule_name);
+        println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   ✅ Generated method: '{}()' for rule '{}'\n", method_name, rule_name);
         
         Ok(format!(r#"    /// Parse {rule_name} with memoization
     #[inline]
@@ -634,25 +682,35 @@ impl<'input> {parser_name}<'input> {{
     }
 
     fn generate_atom_code(&self, value: &ASTValue, indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {
+        println!("[HighPerformanceRustGenerator][generate_atom_code] ⚛️  Processing atom: {:?}", value);
+        
         match value {
             ASTValue::Token(token) if token.len() == 2 => {
                 let token_type = &token[0];
                 let token_value = &token[1];
                 
+                println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token type: {:?}", token_type);
+                println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token value: {:?}", token_value);
+                
                 // Check for semantic annotations that might guide code generation
                 let custom_code = if let Some(annotations) = rule_annotations {
+                    println!("[HighPerformanceRustGenerator][generate_atom_code]   🏷️  Applying semantic annotations: {:?}", annotations);
                     self.apply_semantic_annotations(annotations, token_type, token_value, indent)
                 } else {
+                    println!("[HighPerformanceRustGenerator][generate_atom_code]   ❌ No semantic annotations available");
                     None
                 };
                 
                 // If we have custom code from semantic annotations, use it; otherwise use default generation
                 if let Some(code) = custom_code {
+                    println!("[HighPerformanceRustGenerator][generate_atom_code]   🎯 Using custom code from semantic annotations");
                     return Ok(code);
                 }
                 
+                println!("[HighPerformanceRustGenerator][generate_atom_code]   🔧 Using default code generation for token_type: {:?}", token_type.as_str());
                 match token_type.as_str() {
                         Some("quoted_string") => {
+                            println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating quoted_string code");
                             if token_value.is_empty() {
                                 // Handle empty strings with regular string literals
                                 Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(\"\")?);\n"))
@@ -662,20 +720,25 @@ impl<'input> {parser_name}<'input> {{
                             }
                         }
                         Some("regex") => {
+                            println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating regex code");
                             let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
                             Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_regex_optimized(r#\"{escaped_value}\"#)?);\n"))
                         }
                     Some("rule_reference") => {
                         let rule_name = token_value.as_str().unwrap_or("unknown");
+                        println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating rule_reference code for rule: '{}'", rule_name);
+                        println!("[HighPerformanceRustGenerator][generate_atom_code]       🔗 Will call method: parse_{}()", rule_name);
                         Ok(format!("{indent}let result = ParseContent::Alternative(Box::new(parser.parse_{rule_name}()?));\n"))
                     }
                     _ => {
+                        println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating default terminal code for unknown token type: {:?}", token_type.as_str());
                         let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
                         Ok(format!("{indent}let result = ParseContent::Terminal(r#\"{escaped_value}\"#);\n"))
                     }
                 }
             }
             _ => {
+                println!("[HighPerformanceRustGenerator][generate_atom_code]   ⚠️  Non-token AST value: {:?}", value);
                 Ok(format!("{indent}let result = ParseContent::Terminal(\"unknown\");\n"))
             }
         }
@@ -690,37 +753,79 @@ impl<'input> {parser_name}<'input> {{
         token_value: &crate::ast_pipeline::TokenValue, 
         indent: &str
     ) -> Option<String> {
+        println!("[HighPerformanceRustGenerator][apply_semantic_annotations] 📝 Processing {} annotations for token_type: {:?}, token_value: {:?}", annotations.len(), token_type, token_value);
+        
+        if annotations.is_empty() {
+            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]   ❌ No annotations to process");
+            return None;
+        }
+        
         // Parse the semantic annotations looking for @generate directives
         for annotation in annotations {
+            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]   🔍 Processing annotation: {}", annotation);
+            
             // Semantic annotations are in format "name:parsed_json_ast"
             if let Some(colon_pos) = annotation.find(':') {
                 let annotation_name = &annotation[..colon_pos];
                 let annotation_value = &annotation[colon_pos + 1..];
                 
+                println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     📋 Annotation name: '{}'", annotation_name);
+                println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     📋 Annotation value: '{}'", annotation_value);
+                
                 match annotation_name {
+                    "codegen" => {
+                        println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     🎯 Found codegen annotation!");
+                        // Handle special code generation directives
+                        let directive = annotation_value.trim_matches('"');
+                        println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     🎯 Codegen directive: '{}'", directive);
+                        
+                        match directive {
+                            "escape_literal_handling" => {
+                                println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ✅ Found escape_literal_handling directive! Calling generate_escape_literal_code");
+                                return self.generate_escape_literal_code(token_type, token_value, indent);
+                            }
+                            _ => {
+                                println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ❌ Unknown codegen directive: {}", directive);
+                            }
+                        }
+                    }
                     "generate" => {
+                        println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     🎯 Found generate annotation!");
                         // Parse the semantic annotation AST to extract code generation instructions
                         if let Ok(parsed_annotation) = serde_json::from_str::<JsonValue>(annotation_value) {
+                            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ✅ Successfully parsed generate annotation JSON");
                             return self.generate_code_from_semantic_ast(&parsed_annotation, token_type, token_value, indent);
                         } else if annotation_value.starts_with("raw:") {
+                            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     🔧 Found raw generate annotation");
                             // Handle raw annotations that failed to parse
                             let raw_value = &annotation_value[4..];
                             return self.generate_code_from_raw_annotation(raw_value, token_type, token_value, indent);
+                        } else {
+                            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ❌ Failed to parse generate annotation: {}", annotation_value);
                         }
                     }
                     "dispatch" | "dispatch_table" => {
+                        println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     🎯 Found dispatch annotation!");
                         // Handle dispatch table annotations for character classes and escapes
                         if let Ok(parsed_annotation) = serde_json::from_str::<JsonValue>(annotation_value) {
+                            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ✅ Successfully parsed dispatch annotation JSON");
                             return self.generate_dispatch_code(&parsed_annotation, token_type, token_value, indent);
+                        } else {
+                            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ❌ Failed to parse dispatch annotation: {}", annotation_value);
                         }
                     }
                     "optimize" => {
+                        println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     🎯 Found optimize annotation!");
                         // Handle optimization directives
                         if let Ok(parsed_annotation) = serde_json::from_str::<JsonValue>(annotation_value) {
+                            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ✅ Successfully parsed optimize annotation JSON");
                             return self.generate_optimized_code(&parsed_annotation, token_type, token_value, indent);
+                        } else {
+                            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ❌ Failed to parse optimize annotation: {}", annotation_value);
                         }
                     }
                     _ => {
+                        println!("[HighPerformanceRustGenerator][apply_semantic_annotations]     ⚠️  Unknown annotation type: '{}'", annotation_name);
                         // Other annotation types - could be extended in the future
                         continue;
                     }
@@ -874,6 +979,46 @@ impl<'input> {parser_name}<'input> {{
         // Generate code from expression evaluation
         // This could handle arithmetic, logical operations, function calls, etc.
         Some(format!("{indent}let result = ParseContent::Terminal(parser.evaluate_expression()?);\n"))
+    }
+    
+    /// Generate escape literal handling code
+    /// This method specifically handles escape sequences with proper single backslash representation
+    fn generate_escape_literal_code(
+        &self,
+        token_type: &crate::ast_pipeline::TokenValue,
+        token_value: &crate::ast_pipeline::TokenValue,
+        indent: &str
+    ) -> Option<String> {
+        println!("[HighPerformanceRustGenerator][generate_escape_literal_code] 🔧 Handling escape sequence");
+        println!("[HighPerformanceRustGenerator][generate_escape_literal_code]   📝 Token type: {:?}", token_type);
+        println!("[HighPerformanceRustGenerator][generate_escape_literal_code]   📝 Token value: {:?}", token_value);
+        
+        match token_type.as_str() {
+            Some("quoted_string") => {
+                // This is a quoted string that represents escape sequences
+                if let Some(string_value) = token_value.as_str() {
+                    // For escape sequences, we need to ensure single backslash representation in raw strings
+                    // The key insight: JSON "\\\\" should become Rust r#"\"# (single backslash)
+                    let corrected_value = if string_value == "\\\\" {
+                        // Double backslash in JSON becomes single backslash in raw string
+                        "\\".to_string()
+                    } else {
+                        // Keep other values as-is since escape_rust_string now handles them correctly
+                        string_value.to_string()
+                    };
+                    
+                    println!("[HighPerformanceRustGenerator][generate_escape_literal_code]   ✅ Corrected escape: '{}' -> '{}'", string_value, corrected_value);
+                    Some(format!("{indent}let result = ParseContent::Terminal(parser.match_string(r#\"{}\"#)?);\n", corrected_value))
+                } else {
+                    println!("[HighPerformanceRustGenerator][generate_escape_literal_code]   ❌ Token value is not a string");
+                    None
+                }
+            }
+            _ => {
+                println!("[HighPerformanceRustGenerator][generate_escape_literal_code]   ❌ Not a quoted string token");
+                None
+            }
+        }
     }
 
     fn generate_sequence_code(&self, elements: &[ASTNode], indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {

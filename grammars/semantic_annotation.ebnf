@@ -13,7 +13,8 @@
 # =============================================================================
 
 # Main semantic annotation rule - can appear before any grammar rule
-semantic_annotation := "@" annotation_name ":" annotation_value
+# semantic_annotation := "@" annotation_name ":" annotation_value
+semantic_annotation := annotation_value
     -> {type: "semantic_annotation", name: $2, value: $4}
 
 # Compact form (same as above, for backward compatibility)

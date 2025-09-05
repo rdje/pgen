@@ -128,6 +128,7 @@ posix_name     = "alnum" | "alpha" | "ascii" | "blank" | "cntrl" | "digit" | "gr
 @description: "Escape sequence that interprets differently based on context"
 @effect: "produces_literal_character"
 @precedence: {level: 10, context: "any"}
+@codegen: "escape_literal_handling"
 escape         = "\\" escape_unit
 
 @type: "escape_variant_choice"

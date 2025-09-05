@@ -181,7 +181,7 @@ LX {
 -> whitespace
 -> comment
 
-grammar_rule: /[[:alpha:]_]\w*\s*:{,2}=/  I {return ["rule", ($IMATCH =~ /([[:alpha:]_]\w*)/o)[0]]}
+grammar_rule: /(?m)^\s*[[:alpha:]_]\w*\s*:{,2}=/  I {return ["rule", ($IMATCH =~ /([[:alpha:]_]\w*)/o)[0]]}
 rule_name: /[[:alpha:]_]\w*/          I {return ["rule_reference", $IMATCH]}
 
 quoted_string: /"[^"]*"|'[^']*'/    I {$IMATCH =~ s/'|"//g; return ["quoted_string", $IMATCH]}

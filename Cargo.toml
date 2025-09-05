@@ -3,6 +3,14 @@ name = "test"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "regex_stress_test"
+path = "regex_stress_test.rs"
+
+[[bin]]
+name = "debug_escape"
+path = "debug_escape.rs"
+
 [dependencies]
 regex = "1.0"
 lazy_static = "1.4"

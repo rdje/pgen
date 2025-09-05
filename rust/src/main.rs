@@ -43,6 +43,10 @@ struct Args {
     /// Enable trace mode in generated parser (detailed debug logging)
     #[arg(long)]
     trace: bool,
+
+    /// Enable bootstrap mode - uses built-in annotation parsing instead of external parsers
+    #[arg(long)]
+    bootstrap_mode: bool,
 }
 
 fn main() -> Result<()> {
@@ -50,10 +54,12 @@ fn main() -> Result<()> {
 
     let config = PipelineConfig {
         debug: args.debug,
+        trace: args.trace,
         validate_input: !args.no_validate,
         preserve_annotations: true,
         validate_output: true,
         max_recursion_depth: 100,
+        bootstrap_mode: args.bootstrap_mode,
     };
 
     let mut pipeline = RustASTPipeline::new(config);
