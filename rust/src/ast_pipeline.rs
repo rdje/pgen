@@ -15,7 +15,7 @@ use anyhow::{Context, Result};
 mod semantic_annotation_parser {
     include!("../../generated/semantic_annotation_parser.rs");
 }
-use semantic_annotation_parser::Semantic_annotationsParser;
+use semantic_annotation_parser::Semantic_annotationParser;
 
 // Import the generated return annotation parser
 mod return_annotation_parser {
@@ -313,9 +313,9 @@ impl RustASTPipeline {
         
         // Use the generated semantic annotation parser to parse the value
         let mut parser = if self.config.debug || self.config.trace {
-            Semantic_annotationsParser::with_debug(annotation_value)
+            Semantic_annotationParser::with_debug(annotation_value)
         } else {
-            Semantic_annotationsParser::new(annotation_value)
+            Semantic_annotationParser::new(annotation_value)
         };
         
         if self.config.debug {
