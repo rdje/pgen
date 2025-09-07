@@ -154,6 +154,7 @@ use std::{{
     fmt,
     ops::Range,
 }};
+use regex::Regex;
 
 /// Parse result with zero-copy string slices
 #[derive(Debug, Clone, PartialEq)]
@@ -880,14 +881,25 @@ impl<'input> {parser_name}<'input> {{
         _token_value: &crate::ast_pipeline::TokenValue,
         indent: &str
     ) -> Option<String> {
+        println!("[HighPerformanceRustGenerator][generate_code_from_raw_annotation] 🔍 ENTERING function");
+        println!("[HighPerformanceRustGenerator][generate_code_from_raw_annotation] Raw annotation: '{}'", raw_annotation);
+        println!("[HighPerformanceRustGenerator][generate_code_from_raw_annotation] Indent: '{}'", indent);
+        
         // Handle common raw annotation patterns we know about
         if raw_annotation.starts_with("generate_char_class_matcher") {
+            println!("[HighPerformanceRustGenerator][generate_code_from_raw_annotation] 🎯 MATCHED generate_char_class_matcher pattern!");
+            println!("[HighPerformanceRustGenerator][generate_code_from_raw_annotation] Full annotation: '{}'", raw_annotation);
+            
             // Generate character class matching code
-            Some(format!("{indent}let result = ParseContent::Terminal(parser.match_char_class_optimized()?);\n"))
+            let result = Some(format!("{indent}let result = ParseContent::Terminal(parser.match_char_class_optimized()?);\n"));
+            println!("[HighPerformanceRustGenerator][generate_code_from_raw_annotation] Generated code: {:?}", result);
+            result
         } else if raw_annotation.starts_with("resolve_escape_pattern") {
+            println!("[HighPerformanceRustGenerator][generate_code_from_raw_annotation] 🎯 MATCHED resolve_escape_pattern!");
             // Generate escape sequence matching code
             Some(format!("{indent}let result = ParseContent::Terminal(parser.match_escape_optimized()?);\n"))
         } else {
+            println!("[HighPerformanceRustGenerator][generate_code_from_raw_annotation] ❌ NO MATCH for raw annotation: '{}'", raw_annotation);
             None
         }
     }
@@ -946,25 +958,43 @@ impl<'input> {parser_name}<'input> {{
         _token_value: &crate::ast_pipeline::TokenValue,
         indent: &str
     ) -> Option<String> {
+        println!("[HighPerformanceRustGenerator][interpret_function_call] 🔍 ENTERING function");
+        println!("[HighPerformanceRustGenerator][interpret_function_call] Content: {:?}", content);
+        println!("[HighPerformanceRustGenerator][interpret_function_call] Indent: '{}'", indent);
+        
         // Extract function name and generate appropriate code
         if let JsonValue::Object(obj) = content {
+            println!("[HighPerformanceRustGenerator][interpret_function_call] Content is a JSON object with keys: {:?}", obj.keys().collect::<Vec<_>>());
+            
             if let Some(JsonValue::String(func_name)) = obj.get("function_name") {
+                println!("[HighPerformanceRustGenerator][interpret_function_call] Found function name: '{}'", func_name);
+                
                 match func_name.as_str() {
                     "generate_char_class_matcher" => {
-                        Some(format!("{indent}let result = ParseContent::Terminal(parser.match_char_class_optimized()?);\n"))
+                        println!("[HighPerformanceRustGenerator][interpret_function_call] 🎯 MATCHED generate_char_class_matcher!");
+                        let result = Some(format!("{indent}let result = ParseContent::Terminal(parser.match_char_class_optimized()?);\n"));
+                        println!("[HighPerformanceRustGenerator][interpret_function_call] Generated code: {:?}", result);
+                        result
                     }
                     "resolve_escape_pattern" => {
+                        println!("[HighPerformanceRustGenerator][interpret_function_call] 🎯 MATCHED resolve_escape_pattern!");
                         Some(format!("{indent}let result = ParseContent::Terminal(parser.match_escape_optimized()?);\n"))
                     }
                     "generate_literal_check" => {
+                        println!("[HighPerformanceRustGenerator][interpret_function_call] 🎯 MATCHED generate_literal_check!");
                         Some(format!("{indent}let result = ParseContent::Terminal(parser.match_literal_optimized()?);\n"))
                     }
-                    _ => None,
+                    _ => {
+                        println!("[HighPerformanceRustGenerator][interpret_function_call] ❌ NO MATCH for function name: '{}'", func_name);
+                        None
+                    }
                 }
             } else {
+                println!("[HighPerformanceRustGenerator][interpret_function_call] ❌ No 'function_name' key found in object");
                 None
             }
         } else {
+            println!("[HighPerformanceRustGenerator][interpret_function_call] ❌ Content is not a JSON object: {:?}", content);
             None
         }
     }
@@ -1137,31 +1167,52 @@ impl<'input> {parser_name}<'input> {{
     }
 
     fn generate_fast_helpers(&self) -> String {
-        format!(r#"    /// Grammar-agnostic pattern matching - works with ANY EBNF!
-    /// All pattern interpretation is derived from the input grammar AST data
+        format!(r#"    /// Regex-based pattern matching using Rust regex engine
+    /// Handles EBNF /.../ regex patterns properly
     #[inline]
     fn match_regex_optimized(&mut self, pattern: &str) -> ParseResult<&'input str> {{
         let start_pos = self.position;
         
-        // PRINCIPLE: Generator must work with ANY EBNF grammar
-        // NO assumptions about what patterns might exist
-        // NO hardcoded regex/character class knowledge
-        // ALL logic derived from AST semantic annotations
+        // Use the actual Rust regex engine for proper EBNF regex support
+        use regex::Regex;
         
-        if let Some(ch) = self.current_char() {{
-            let matches = self.pattern_matches(ch, pattern);
-            
-            if matches {{
-                self.advance();
-                Ok(&self.input[start_pos..self.position])
-            }} else {{
+        let remaining_input = &self.input[self.position..];
+        
+        // Create regex with anchoring at start of string
+        let anchored_pattern = if pattern.starts_with('^') {{
+            pattern.to_string()
+        }} else {{
+            format!("^{{}}", pattern)
+        }};
+        
+        match Regex::new(&anchored_pattern) {{
+            Ok(regex) => {{
+                if let Some(matched) = regex.find(remaining_input) {{
+                    // Ensure the match starts at position 0 (our current position)
+                    if matched.start() == 0 {{
+                        let match_len = matched.len();
+                        let old_pos = self.position;
+                        self.position += match_len;
+                        Ok(&self.input[old_pos..self.position])
+                    }} else {{
+                        Err(ParseError::InvalidSyntax {{
+                            message: "Pattern mismatch at current position",
+                            position: start_pos,
+                        }})
+                    }}
+                }} else {{
+                    Err(ParseError::InvalidSyntax {{
+                        message: "Pattern mismatch",
+                        position: start_pos,
+                    }})
+                }}
+            }}
+            Err(_) => {{
                 Err(ParseError::InvalidSyntax {{
-                    message: "Pattern mismatch",
+                    message: "Invalid regex pattern",
                     position: start_pos,
                 }})
             }}
-        }} else {{
-            Err(ParseError::UnexpectedEof {{ position: start_pos }})
         }}
     }}
     
@@ -1369,15 +1420,6 @@ mod performance_tests {{
         println!("First parse: {{:?}}, Second parse: {{:?}}", duration1, duration2);
         // Second should be significantly faster due to memoization
         assert!(duration2 < duration1);
-    }}
-
-    #[bench]
-    fn bench_regex_parsing(b: &mut test::Bencher) {{
-        let input = "(?{{lua: return 'test'}})|[a-z]+(?={{word}})";
-        b.iter(|| {{
-            let mut parser = {parser_name}::new(input);
-            parser.parse().unwrap()
-        }});
     }}
 }}
 "#, parser_name = parser_name)

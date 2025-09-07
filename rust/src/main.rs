@@ -47,6 +47,10 @@ struct Args {
     /// Enable bootstrap mode - uses built-in annotation parsing instead of external parsers
     #[arg(long)]
     bootstrap_mode: bool,
+
+    /// Enable left recursion elimination (helps resolve stack overflow issues)
+    #[arg(long)]
+    eliminate_left_recursion: bool,
 }
 
 fn main() -> Result<()> {
@@ -60,6 +64,7 @@ fn main() -> Result<()> {
         validate_output: true,
         max_recursion_depth: 100,
         bootstrap_mode: args.bootstrap_mode,
+        eliminate_left_recursion: args.eliminate_left_recursion,
     };
 
     let mut pipeline = RustASTPipeline::new(config);

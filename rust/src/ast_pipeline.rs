@@ -12,13 +12,13 @@ use std::fs;
 use anyhow::{Context, Result};
 
 // Import the generated semantic annotation parser
-mod semantic_annotation_parser {
+pub mod semantic_annotation_parser {
     include!("../../generated/semantic_annotation_parser.rs");
 }
 use semantic_annotation_parser::Semantic_annotationParser;
 
 // Import the generated return annotation parser
-mod return_annotation_parser {
+pub mod return_annotation_parser {
     include!("../../generated/return_annotation_parser.rs");
 }
 use return_annotation_parser::Return_annotationParser;
@@ -36,6 +36,7 @@ pub struct PipelineConfig {
     pub validate_output: bool,
     pub max_recursion_depth: usize,
     pub bootstrap_mode: bool,
+    pub eliminate_left_recursion: bool,
 }
 
 impl Default for PipelineConfig {
@@ -48,6 +49,7 @@ impl Default for PipelineConfig {
             validate_output: true,
             max_recursion_depth: 100,
             bootstrap_mode: false,
+            eliminate_left_recursion: true, // Enable by default to fix stack overflow
         }
     }
 }
@@ -189,6 +191,34 @@ impl RustASTPipeline {
         }
     }
     
+    /// Create new pipeline with left recursion elimination enabled
+    /// This will help resolve stack overflow issues caused by left-recursive grammars
+    pub fn with_left_recursion_elimination() -> Self {
+        let mut config = PipelineConfig::default();
+        config.eliminate_left_recursion = true;
+        Self {
+            config,
+            stats: TransformStats::default(),
+            annotations: Annotations::default(),
+            entry_rule: None,
+        }
+    }
+    
+    /// Enable left recursion elimination on this pipeline
+    pub fn enable_left_recursion_elimination(&mut self) {
+        self.config.eliminate_left_recursion = true;
+    }
+    
+    /// Disable left recursion elimination on this pipeline
+    pub fn disable_left_recursion_elimination(&mut self) {
+        self.config.eliminate_left_recursion = false;
+    }
+    
+    /// Check if left recursion elimination is enabled
+    pub fn is_left_recursion_elimination_enabled(&self) -> bool {
+        self.config.eliminate_left_recursion
+    }
+    
     /// Extract the entry rule name from raw AST JSON
     fn extract_entry_rule(&mut self, raw_ast: &RawAST) -> Result<String> {
         if raw_ast.is_empty() {
@@ -281,10 +311,20 @@ impl RustASTPipeline {
         let quantified_rules = self.handle_quantifiers(&sequenced_rules)?;
 
         // Stage 5: Build tree structure
-        let (grammar_tree, rule_order) = self.build_tree_structure(&quantified_rules)?;
+        let (mut grammar_tree, mut rule_order) = self.build_tree_structure(&quantified_rules)?;
+
+        // Stage 6 (Optional): Left recursion elimination
+        if self.config.eliminate_left_recursion {
+            if self.config.debug {
+                println!("Stage 6: Applying left recursion elimination...");
+            }
+            (grammar_tree, rule_order) = self.eliminate_left_recursion(grammar_tree, rule_order)?;
+            self.stats.transformations_applied = 6;
+        } else {
+            self.stats.transformations_applied = 5;
+        }
 
         self.stats.rules_processed = grammar_tree.len();
-        self.stats.transformations_applied = 5;
 
         Ok((grammar_tree, rule_order))
     }
@@ -304,39 +344,78 @@ impl RustASTPipeline {
     
     /// Parse semantic annotation using the semantic annotation parser
     fn parse_semantic_annotation(&self, annotation_value: &str) -> Result<String> {
+        if self.config.debug {
+            println!("[SEMANTIC_PARSE] ===== ENTERING parse_semantic_annotation =====");
+            println!("[SEMANTIC_PARSE] Input annotation_value: '{}'", annotation_value);
+            println!("[SEMANTIC_PARSE] Input length: {} characters", annotation_value.len());
+        }
+        
         if self.should_use_bootstrap_mode() {
             if self.config.debug {
-                println!("[AST Pipeline] Using bootstrap mode for semantic annotation: '{}'", annotation_value);
+                println!("[SEMANTIC_PARSE] Using BOOTSTRAP mode for semantic annotation: '{}'", annotation_value);
             }
-            return self.parse_semantic_annotation_bootstrap(annotation_value);
+            let result = self.parse_semantic_annotation_bootstrap(annotation_value);
+            if self.config.debug {
+                println!("[SEMANTIC_PARSE] ===== EXITING parse_semantic_annotation (BOOTSTRAP) =====");
+            }
+            return result;
+        }
+        
+        if self.config.debug {
+            println!("[SEMANTIC_PARSE] Creating external parser for annotation: '{}'", annotation_value);
         }
         
         // Use the generated semantic annotation parser to parse the value
         let mut parser = if self.config.debug || self.config.trace {
+            if self.config.debug {
+                println!("[SEMANTIC_PARSE] Creating semantic parser with DEBUG enabled");
+            }
             Semantic_annotationParser::with_debug(annotation_value)
         } else {
+            if self.config.debug {
+                println!("[SEMANTIC_PARSE] Creating semantic parser without debug");
+            }
             Semantic_annotationParser::new(annotation_value)
         };
         
         if self.config.debug {
-            println!("[AST Pipeline] Parsing semantic annotation with value: '{}'", annotation_value);
+            println!("[SEMANTIC_PARSE] About to call parser.parse() for annotation: '{}'", annotation_value);
+            println!("[SEMANTIC_PARSE] This is where stack overflow might occur...");
         }
         
         // Parse the annotation value into an AST
         match parser.parse() {
             Ok(parsed_ast) => {
+                if self.config.debug {
+                    println!("[SEMANTIC_PARSE] ✅ SUCCESS: External parser succeeded for: '{}'", annotation_value);
+                    println!("[SEMANTIC_PARSE] About to simplify AST...");
+                }
                 // For now, convert the AST to a simplified JSON representation for storage
                 // In the future, this will be used by the code generator directly
                 let simplified = self.simplify_semantic_parse_node(&parsed_ast);
-                serde_json::to_string(&simplified)
-                    .context("Failed to serialize parsed semantic annotation AST")
+                if self.config.debug {
+                    println!("[SEMANTIC_PARSE] ✅ SUCCESS: AST simplified");
+                    println!("[SEMANTIC_PARSE] About to serialize to JSON...");
+                }
+                let result = serde_json::to_string(&simplified)
+                    .context("Failed to serialize parsed semantic annotation AST");
+                if self.config.debug {
+                    println!("[SEMANTIC_PARSE] ✅ SUCCESS: JSON serialization complete");
+                    println!("[SEMANTIC_PARSE] ===== EXITING parse_semantic_annotation (SUCCESS) =====");
+                }
+                result
             }
-            Err(_) => {
+            Err(err) => {
                 // If parsing fails, fallback to bootstrap mode
                 if self.config.debug {
-                    println!("Warning: External parser failed, falling back to bootstrap mode: {}", annotation_value);
+                    println!("[SEMANTIC_PARSE] ❌ FAILURE: External parser failed with error: {:?}", err);
+                    println!("[SEMANTIC_PARSE] Falling back to bootstrap mode for: '{}'", annotation_value);
                 }
-                self.parse_semantic_annotation_bootstrap(annotation_value)
+                let result = self.parse_semantic_annotation_bootstrap(annotation_value);
+                if self.config.debug {
+                    println!("[SEMANTIC_PARSE] ===== EXITING parse_semantic_annotation (FALLBACK) =====");
+                }
+                result
             }
         }
     }
@@ -377,7 +456,15 @@ impl RustASTPipeline {
         }
         
         // Use the generated return annotation parser to parse the value
-        let mut parser = Return_annotationParser::new(annotation_value);
+        let mut parser = if self.config.debug || self.config.trace {
+            Return_annotationParser::with_debug(annotation_value)
+        } else {
+            Return_annotationParser::new(annotation_value)
+        };
+        
+        if self.config.debug {
+            println!("[AST Pipeline] Parsing return annotation with value: '{}'", annotation_value);
+        }
         
         // Parse the annotation value into an AST
         match parser.parse() {
@@ -1210,6 +1297,299 @@ impl RustASTPipeline {
             }
             if enable_backtrack_debug {
                 println!("  - Backtrack debugging enabled");
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Apply left recursion elimination using Aho-Sethi-Ullman algorithm
+    /// Based on the implementation from rust_parser_gen
+    fn eliminate_left_recursion(
+        &self,
+        grammar_tree: HashMap<String, ASTNode>,
+        rule_order: Vec<String>,
+    ) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
+        
+        if self.config.debug {
+            println!("🔥 DEPLOYING LEFT-RECURSION ELIMINATOR!");
+            println!("📚 Based on Aho-Sethi-Ullman Algorithm 4.19");
+        }
+        
+        // Convert AST nodes to simple production format
+        let mut simple_grammar = HashMap::new();
+        let mut ordered_rules = rule_order.clone();
+        ordered_rules.sort();
+        
+        for (rule_name, ast_node) in &grammar_tree {
+            simple_grammar.insert(rule_name.clone(), self.ast_node_to_productions(ast_node)?); 
+        }
+        
+        // Apply the standard algorithm
+        for i in 0..ordered_rules.len() {
+            let ai = ordered_rules[i].clone();
+            
+            if self.config.debug {
+                println!("  Processing rule {} ({}/{})", ai, i+1, ordered_rules.len());
+            }
+            
+            // Substitute earlier rules
+            for j in 0..i {
+                let aj = ordered_rules[j].clone();
+                
+                if self.could_create_indirect_left_recursion(&simple_grammar, &ai, &aj) {
+                    self.substitute_rule(&mut simple_grammar, &ai, &aj)?;
+                }
+            }
+            
+            // Eliminate immediate left recursion
+            self.eliminate_immediate_left_recursion(&mut simple_grammar, &ai, &mut ordered_rules)?;
+        }
+        
+        // Convert back to AST format
+        let mut result_grammar = HashMap::new();
+        for (rule_name, productions) in simple_grammar {
+            result_grammar.insert(rule_name, self.productions_to_ast_node(productions)?);
+        }
+        
+        if self.config.debug {
+            println!("💀 LEFT-RECURSION ELIMINATION COMPLETE!");
+        }
+        
+        Ok((result_grammar, ordered_rules))
+    }
+    
+    /// Convert AST node to list of productions
+    fn ast_node_to_productions(&self, node: &ASTNode) -> Result<Vec<Vec<String>>> {
+        match node {
+            ASTNode::Or { alternatives } => {
+                let mut productions = Vec::new();
+                for alt in alternatives {
+                    productions.extend(self.ast_node_to_productions(alt)?);
+                }
+                Ok(productions)
+            }
+            ASTNode::Sequence { elements } => {
+                let mut production = Vec::new();
+                for element in elements {
+                    match element {
+                        ASTNode::Atom { value: ASTValue::Token(token) } => {
+                            if token.len() == 2 {
+                                match token[0].as_str() {
+                                    Some("quoted_string") => {
+                                        if let Some(value) = token[1].as_str() {
+                                            production.push(format!("TERMINAL:{}", value));
+                                        }
+                                    }
+                                    Some("rule_reference") => {
+                                        if let Some(name) = token[1].as_str() {
+                                            production.push(name.to_string());
+                                        }
+                                    }
+                                    _ => production.push(format!("COMPLEX:{:?}", element)),
+                                }
+                            } else {
+                                production.push(format!("COMPLEX:{:?}", element));
+                            }
+                        }
+                        _ => production.push(format!("COMPLEX:{:?}", element)),
+                    }
+                }
+                Ok(vec![production])
+            }
+            ASTNode::Atom { value: ASTValue::Token(token) } => {
+                if token.len() == 2 {
+                    match token[0].as_str() {
+                        Some("quoted_string") => {
+                            if let Some(value) = token[1].as_str() {
+                                Ok(vec![vec![format!("TERMINAL:{}", value)]])
+                            } else {
+                                Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
+                            }
+                        }
+                        Some("rule_reference") => {
+                            if let Some(name) = token[1].as_str() {
+                                Ok(vec![vec![name.to_string()]])
+                            } else {
+                                Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
+                            }
+                        }
+                        _ => Ok(vec![vec![format!("COMPLEX:{:?}", token)]]),
+                    }
+                } else {
+                    Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
+                }
+            }
+            _ => Ok(vec![vec![format!("COMPLEX:{:?}", node)]])
+        }
+    }
+    
+    /// Convert productions back to AST node
+    fn productions_to_ast_node(&self, productions: Vec<Vec<String>>) -> Result<ASTNode> {
+        if productions.is_empty() {
+            return Ok(ASTNode::Atom { 
+                value: ASTValue::Token(vec![
+                    TokenValue::String("quoted_string".to_string()), 
+                    TokenValue::String("epsilon".to_string())
+                ]) 
+            });
+        }
+        
+        if productions.len() == 1 {
+            let production = &productions[0];
+            if production.len() == 1 {
+                let symbol = &production[0];
+                if symbol.starts_with("TERMINAL:") {
+                    Ok(ASTNode::Atom { 
+                        value: ASTValue::Token(vec![
+                            TokenValue::String("quoted_string".to_string()), 
+                            TokenValue::String(symbol[9..].to_string())
+                        ]) 
+                    })
+                } else {
+                    Ok(ASTNode::Atom { 
+                        value: ASTValue::Token(vec![
+                            TokenValue::String("rule_reference".to_string()), 
+                            TokenValue::String(symbol.clone())
+                        ]) 
+                    })
+                }
+            } else {
+                let mut elements = Vec::new();
+                for symbol in production {
+                    if symbol.starts_with("TERMINAL:") {
+                        elements.push(ASTNode::Atom { 
+                            value: ASTValue::Token(vec![
+                                TokenValue::String("quoted_string".to_string()), 
+                                TokenValue::String(symbol[9..].to_string())
+                            ]) 
+                        });
+                    } else {
+                        elements.push(ASTNode::Atom { 
+                            value: ASTValue::Token(vec![
+                                TokenValue::String("rule_reference".to_string()), 
+                                TokenValue::String(symbol.clone())
+                            ]) 
+                        });
+                    }
+                }
+                Ok(ASTNode::Sequence { elements })
+            }
+        } else {
+            let mut alternatives = Vec::new();
+            for production in productions {
+                alternatives.push(self.productions_to_ast_node(vec![production])?);
+            }
+            Ok(ASTNode::Or { alternatives })
+        }
+    }
+    
+    /// Check if substitution could create indirect left recursion
+    fn could_create_indirect_left_recursion(
+        &self,
+        grammar: &HashMap<String, Vec<Vec<String>>>,
+        current_rule: &str,
+        referenced_rule: &str
+    ) -> bool {
+        if let Some(productions) = grammar.get(referenced_rule) {
+            for production in productions {
+                if !production.is_empty() && production[0] == current_rule {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+    
+    /// Substitute rule in grammar
+    fn substitute_rule(
+        &self,
+        grammar: &mut HashMap<String, Vec<Vec<String>>>,
+        target_rule: &str,
+        substitute_rule: &str
+    ) -> Result<()> {
+        let target_productions = grammar.get(target_rule).cloned().unwrap_or_default();
+        let substitute_productions = grammar.get(substitute_rule).cloned().unwrap_or_default();
+        
+        let mut new_productions = Vec::new();
+        
+        for production in target_productions {
+            if !production.is_empty() && production[0] == substitute_rule {
+                // Substitute this production
+                let gamma = &production[1..]; // Rest after the substituted rule
+                
+                for sub_production in &substitute_productions {
+                    if sub_production.len() == 1 && sub_production[0] == "ε" {
+                        // Epsilon production
+                        new_productions.push(gamma.to_vec());
+                    } else {
+                        // Normal substitution
+                        let mut new_production = sub_production.clone();
+                        new_production.extend_from_slice(gamma);
+                        new_productions.push(new_production);
+                    }
+                }
+            } else {
+                // Keep as-is
+                new_productions.push(production);
+            }
+        }
+        
+        grammar.insert(target_rule.to_string(), new_productions);
+        Ok(())
+    }
+    
+    /// Eliminate immediate left recursion from a rule
+    fn eliminate_immediate_left_recursion(
+        &self,
+        grammar: &mut HashMap<String, Vec<Vec<String>>>,
+        rule: &str,
+        rule_order: &mut Vec<String>
+    ) -> Result<()> {
+        let productions = grammar.get(rule).cloned().unwrap_or_default();
+        
+        let mut left_recursive = Vec::new();
+        let mut non_left_recursive = Vec::new();
+        
+        for production in productions {
+            if !production.is_empty() && production[0] == rule {
+                left_recursive.push(production);
+            } else {
+                non_left_recursive.push(production);
+            }
+        }
+        
+        if !left_recursive.is_empty() {
+            let prime_rule = format!("{}_prime", rule);
+            
+            // Create new main productions: A → β A'
+            let mut new_main_productions = Vec::new();
+            if non_left_recursive.is_empty() {
+                new_main_productions.push(vec![prime_rule.clone()]);
+            } else {
+                for beta in non_left_recursive {
+                    let mut production = beta;
+                    production.push(prime_rule.clone());
+                    new_main_productions.push(production);
+                }
+            }
+            
+            // Create prime productions: A' → α A' | ε
+            let mut prime_productions = Vec::new();
+            for left_prod in left_recursive {
+                let mut alpha = left_prod[1..].to_vec(); // Remove the left-recursive symbol
+                alpha.push(prime_rule.clone());
+                prime_productions.push(alpha);
+            }
+            prime_productions.push(vec!["ε".to_string()]);
+            
+            // Update grammar
+            grammar.insert(rule.to_string(), new_main_productions);
+            grammar.insert(prime_rule.clone(), prime_productions);
+            
+            // Add prime rule to order
+            if !rule_order.contains(&prime_rule) {
+                rule_order.push(prime_rule);
             }
         }
         

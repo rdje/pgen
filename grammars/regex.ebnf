@@ -36,7 +36,11 @@ atom           = literal
 
 # Literals and escapes
 literal        = literal_char+
-literal_char   = /[^|()*+?.{}^$\\\[\]]/
+literal_char   = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
+               | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+               | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+               | ' ' | '!' | '#' | '%' | '&' | ',' | '-' | ';' | '<' | '=' | '>' | '@' | '_' | '`' | '~'
+               | '\t' | '\n' | '\r'  # Allow tabs, newlines, and carriage returns as literals
 
 # Dot
 dot            = "."
@@ -49,8 +53,8 @@ backreference  = "\\" digits
                | "\\k" name_ref
 name_ref       = "<" name ">" | "'" name "'"
 name           = name_start name_continue*
-name_start     = /[A-Za-z_]/
-name_continue  = /[A-Za-z0-9_]/
+name_start     = letter | '_'
+name_continue  = name_start | digit
 
 # Character classes with actionable code generation
 @generate: generate_char_class_matcher(has_negation($2), collect_class_items($2))
@@ -86,7 +90,9 @@ class_range    = class_atom "-" class_atom
 @generate: "ch == '" + escape_char($1) + "'"
 @semantic_value: {type: "literal", char: $1}
 @optimize: group_literals_for_switch($1)
-class_literal  = /[^\\\]]/
+class_literal  = letter | digit | whitespace | class_safe_special
+
+class_safe_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
 @generate: resolve_escape_pattern($1)
 @semantic_value: {type: "escape", pattern: $1}
@@ -145,30 +151,30 @@ escape_unit    = simple_escape
 @description: "Simple character escape like \n, \t, \\, etc."
 @effect: "maps_to_literal_character"
 @constraint: "interpretation depends on escaped character"
-simple_escape  = /./                  # any char after backslash
+simple_escape  = any_char             # any char after backslash
 
 @type: "hexadecimal_escape"
 @description: "Hex escape sequences \xFF or \x{FFFF}"
 @constraint: "must be valid hexadecimal digits"
 @precedence: {level: 9}
-hex_escape     = "x" /[0-9A-Fa-f]/ /[0-9A-Fa-f]/ | "x{" /[0-9A-Fa-f]+/ "}"
+hex_escape     = "x" hex_digit hex_digit | "x{" hex_digits "}"
 
 @type: "unicode_escape"
 @description: "Unicode escape sequence \u{FFFF}"
 @constraint: "must be valid Unicode code point"
 @precedence: {level: 9}
-unicode_escape = "u{" /[0-9A-Fa-f]+/ "}"
+unicode_escape = "u{" hex_digits "}"
 
 @type: "octal_escape"
 @description: "Octal escape sequence \777"
 @constraint: "must be valid octal digits 0-7"
 @precedence: {level: 9}
-octal_escape   = /[0-7]/ /[0-7]?/ /[0-7]?/
+octal_escape   = octal_digit octal_digit? octal_digit?
 
 @type: "control_escape"
 @description: "Control character escape \cA"
 @constraint: "produces control character"
-control_escape = "c" /./
+control_escape = "c" any_char
 
 @type: "property_escape"
 @description: "Unicode property escape \p{Property} or \P{Property}"
@@ -177,7 +183,9 @@ property_escape= "p{" prop_name "}" | "P{" prop_name "}"
 
 @type: "property_name"
 @description: "Unicode property name"
-prop_name      = /[A-Za-z0-9_:-]+/
+prop_name      = prop_name_chars+
+
+prop_name_chars = letter | digit | '_' | ':' | '-'
 
 # Groups
 group          = capturing_group | noncapturing_group | named_group
@@ -225,24 +233,47 @@ code_element   = code_string_double
 
 # Double-quoted strings: "..." (can contain unbalanced braces)
 code_string_double = '"' code_string_double_char* '"'
-code_string_double_char = code_string_escape | /[^"\\]/
+code_string_double_char = code_string_escape | code_not_quote_or_backslash
 
 # Single-quoted strings: '...' (can contain unbalanced braces)
 code_string_single = "'" code_string_single_char* "'"
-code_string_single_char = code_string_escape | /[^'\\]/
+code_string_single_char = code_string_escape | code_not_squote_or_backslash
 
 # String escape sequences
-code_string_escape = "\\" /./
+code_string_escape = "\\" any_char
 
 # Balanced braces: { ... }
 code_balanced_braces = "{" code_content "}"
 
 # Escaped characters (don't participate in balancing)
-code_escaped_char = "\\" /./
+code_escaped_char = "\\" any_char
 
 # Regular characters (anything except special chars)
-code_regular_char = /[^{}'\"\\]/
+code_regular_char = letter | digit | whitespace | code_safe_special
+
+# Characters safe to use in code blocks (excluding braces, quotes, and backslash)
+code_not_quote_or_backslash = letter | digit | whitespace | code_safe_special | '\'' | '{' | '}'
+code_not_squote_or_backslash = letter | digit | whitespace | code_safe_special | '"' | '{' | '}'
+code_safe_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '[' | ']' | '|' | ':' | ';' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
+
+# Basic character building blocks
+letter         = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+               | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
+
+digit          = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+
+hex_digit      = digit | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f'
+
+octal_digit    = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
+
+whitespace     = ' ' | '\t' | '\n' | '\r' | '\f' | '\v'
+
+any_char       = letter | digit | whitespace | special_char
+
+special_char   = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~'
 
 # Lexical helpers
-digits   = /[0-9]+/
-ws       = /\s+/
+digits         = digit+
+hex_digits     = hex_digit+
+octal_digits   = octal_digit+
+ws             = whitespace+

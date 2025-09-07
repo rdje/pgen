@@ -57,8 +57,8 @@ $(GENERATED_DIR)/semantic_annotation_parser.rs.placeholder:
 	@echo "pub struct Span { pub start: usize, pub end: usize }" > $(SEMANTIC_ANNOTATION_PARSER)
 	@echo "pub struct ParseNode { pub rule_name: String, pub span: Span, pub content: ParseContent }" >> $(SEMANTIC_ANNOTATION_PARSER)
 	@echo "pub enum ParseContent { Terminal(String), Sequence(Vec<ParseNode>), Alternative(Box<ParseNode>), Quantified(Vec<ParseNode>, String) }" >> $(SEMANTIC_ANNOTATION_PARSER)
-	@echo "pub struct Semantic_annotationsParser;" >> $(SEMANTIC_ANNOTATION_PARSER)
-	@echo "impl Semantic_annotationsParser {" >> $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "pub struct Semantic_annotationParser;" >> $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "impl Semantic_annotationParser {" >> $(SEMANTIC_ANNOTATION_PARSER)
 	@echo "    pub fn new(_: &str) -> Self { Self }" >> $(SEMANTIC_ANNOTATION_PARSER)
 	@echo "    pub fn with_debug(_: &str) -> Self { Self }" >> $(SEMANTIC_ANNOTATION_PARSER)
 	@echo "    pub fn parse(&mut self) -> Result<ParseNode, ()> { Err(()) }" >> $(SEMANTIC_ANNOTATION_PARSER)
@@ -74,6 +74,7 @@ $(GENERATED_DIR)/return_annotation_parser.rs.placeholder:
 	@echo "pub struct Return_annotationParser;" >> $(RETURN_ANNOTATION_PARSER)
 	@echo "impl Return_annotationParser {" >> $(RETURN_ANNOTATION_PARSER)
 	@echo "    pub fn new(_: &str) -> Self { Self }" >> $(RETURN_ANNOTATION_PARSER)
+	@echo "    pub fn with_debug(_: &str) -> Self { Self }" >> $(RETURN_ANNOTATION_PARSER)
 	@echo "    pub fn parse(&mut self) -> Result<ParseNode, ()> { Err(()) }" >> $(RETURN_ANNOTATION_PARSER)
 	@echo "}" >> $(RETURN_ANNOTATION_PARSER)
 	@touch $@
@@ -145,23 +146,41 @@ rebuild: clean all
 help:
 	@echo "pgen Build Pipeline Makefile"
 	@echo ""
-	@echo "Main targets:"
+	@echo "🎯 Parser-Specific Comprehensive Flows (EBNF → JSON → PARSER.RS → STRESS_TESTS):"
+	@echo "  return_annotation_parser    - Complete flow for return annotation parser + tests"
+	@echo "  semantic_annotation_parser  - Complete flow for semantic annotation parser + tests"
+	@echo "  regex_parser               - Complete flow for regex parser + tests"
+	@echo ""
+	@echo "🔗 Convenience Aliases:"
+	@echo "  return_parser              - Alias for return_annotation_parser"
+	@echo "  semantic_parser            - Alias for semantic_annotation_parser"
+	@echo "  regex_tests                - Alias for regex_parser"
+	@echo "  all_parser_tests           - Run comprehensive flows for all parsers"
+	@echo ""
+	@echo "📚 Main targets:"
 	@echo "  all          - Build complete pipeline (default)"
 	@echo "  debug-json   - Generate regex JSON with debug output"
 	@echo "  test-parser  - Test the generated parser"
 	@echo "  rebuild      - Clean and rebuild everything"
 	@echo ""
-	@echo "Utility targets:"
+	@echo "🛠️  Utility targets:"
 	@echo "  clean        - Remove generated files"
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  help         - Show this help"
+	@echo "  status       - Show current build status"
 	@echo ""
-	@echo "Build order:"
+	@echo "🔧 Build order:"
 	@echo "  1. Generate JSON files from EBNF grammars"
 	@echo "  2. Build Rust AST pipeline (cargo build)"
 	@echo "  3. Generate Rust parsers from JSON files"
 	@echo "  4. Generate regex.json from regex.ebnf (with debug output)"
 	@echo "  5. Generate final regex_parser.rs from regex.json"
+	@echo ""
+	@echo "💡 Quick Start Examples:"
+	@echo "  make return_parser         - Test return annotation parser end-to-end"
+	@echo "  make semantic_parser       - Test semantic annotation parser end-to-end"
+	@echo "  make regex_tests          - Test regex parser end-to-end"
+	@echo "  make all_parser_tests      - Test all parsers end-to-end"
 
 # Debug targets for individual steps
 .PHONY: step1
@@ -216,6 +235,63 @@ debug-semantic-annotations: $(SEMANTIC_ANNOTATION_EXE) $(RETURN_ANNOTATION_EXE)
 	@echo "\n\nTesting return annotation parser with sample input:" | tee $(GENERATED_DIR)/semantic_debug.log
 	@echo '{type: "escape", pattern: $$1}' | $(RETURN_ANNOTATION_EXE) --debug 2>&1 | tee $(GENERATED_DIR)/semantic_debug.log
 	@echo "\nDebug output saved to $(GENERATED_DIR)/semantic_debug.log"
+
+# Parser-specific comprehensive flow targets
+# These create complete EBNF -> JSON -> PARSER.RS -> STRESS_TESTS flows
+
+# Return annotation parser complete flow
+.PHONY: return_annotation_parser
+return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+	@echo "🚀 Starting complete flow for return annotation parser..."
+	@echo "📄 Step 1: EBNF -> JSON (already done: $(RETURN_ANNOTATION_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER)
+	@echo "✅ Generated: $(RETURN_ANNOTATION_PARSER)"
+	@echo "🧪 Step 3: Running comprehensive stress tests"
+	cd $(RUST_DIR) && cargo test comprehensive_stress_tests --release -- --nocapture return_annotation
+	@echo "🎉 Return annotation parser comprehensive flow completed!"
+
+# Semantic annotation parser complete flow
+.PHONY: semantic_annotation_parser
+semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+	@echo "🚀 Starting complete flow for semantic annotation parser..."
+	@echo "📄 Step 1: EBNF -> JSON (already done: $(SEMANTIC_ANNOTATION_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "✅ Generated: $(SEMANTIC_ANNOTATION_PARSER)"
+	@echo "🧪 Step 3: Running comprehensive stress tests"
+	cd $(RUST_DIR) && cargo test comprehensive_stress_tests --release -- --nocapture semantic_annotation
+	@echo "🎉 Semantic annotation parser comprehensive flow completed!"
+
+# Regex parser complete flow
+.PHONY: regex_parser
+regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
+	@echo "🚀 Starting complete flow for regex parser..."
+	@echo "📄 Step 1: EBNF -> JSON (already done: $(REGEX_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
+	@echo "✅ Generated: $(REGEX_PARSER)"
+	@echo "🧪 Step 3: Running comprehensive stress tests"
+	cd $(RUST_DIR) && cargo test comprehensive_stress_tests --release -- --nocapture regex
+	@echo "🎉 Regex parser comprehensive flow completed!"
+
+# Convenience aliases for easier typing
+.PHONY: return_parser
+return_parser: return_annotation_parser
+
+.PHONY: semantic_parser
+semantic_parser: semantic_annotation_parser
+
+.PHONY: regex_tests
+regex_tests: regex_parser
+
+# Run comprehensive stress tests for all parsers
+.PHONY: all_parser_tests
+all_parser_tests: return_annotation_parser semantic_annotation_parser regex_parser
+	@echo "🎉 All parser comprehensive flows completed!"
 
 # Bootstrap mode targets
 .PHONY: bootstrap-test
