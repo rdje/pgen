@@ -7,6 +7,15 @@ pub mod ast_pipeline;
 pub mod comprehensive_stress_test;
 pub mod return_parser_stress_test;
 pub mod individual_tests;
+pub mod test_target_mapper;
+pub mod test_reproduction_demo;
+
+// New automation modules
+pub mod test_registry;
+pub mod test_discovery;
+pub mod makefile_generator;
+pub mod individual_tests_generator;
+pub mod test_automation;
 
 // Re-export commonly used types for convenience
 pub use ast_pipeline::{

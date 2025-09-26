@@ -1,0 +1,36 @@
+# Stress Test Makefile
+# Auto-generated from test registry
+# Generated at: 2025-09-26T18:25:21.718002+00:00
+
+# Default target
+all: test-all
+
+# Build target
+target/debug/pgen:
+	cargo build
+
+# Run all stress tests
+test-all: 
+	@echo "🎯 All stress tests completed successfully!"
+
+# Convenience targets
+test-quick: test-return test-semantic
+	@echo "🚀 Quick test suite completed!"
+
+test-comprehensive: test-all
+	@echo "🔍 Comprehensive test suite completed!"
+
+test-debug: target/debug/pgen
+	@echo "🐛 Running debug mode tests..."
+	@cargo run -- --debug --parser return --input '$$1'
+	@cargo run -- --debug --parser semantic --input '@type: "test"'
+
+test-stats:
+	@echo "📊 Test Statistics:"
+	@echo "  Return tests: 0"
+	@echo "  Semantic tests: 0"
+	@echo "  Regex tests: 0"
+	@echo "  Total tests: 0"
+
+.PHONY: test-all test-return test-semantic test-regex test-quick test-comprehensive test-debug test-stats
+

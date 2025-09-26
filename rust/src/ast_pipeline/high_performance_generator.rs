@@ -274,11 +274,53 @@ impl<'input> {parser_name}<'input> {{
         self.debug_depth = 0;
     }}
 
-    /// Parse entry point - returns AST or error
+    /// Parse entry point - returns AST or error with beautiful debug output
     pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {{
         self.position = 0;
         self.memo.clear();
-        self.parse_{entry_rule}() // Dynamic entry rule
+        
+        if self.debug_mode {{
+            let input_preview = if self.input.len() > 40 {{
+                format!("\"{{}}\"", self.format_debug_string(&self.input[..40]))
+            }} else {{
+                format!("\"{{}}\"", self.format_debug_string(self.input))
+            }};
+            self.debug_output.push(format!("🔍 PARSING: {{}}", input_preview));
+            self.debug_output.push("".to_string());
+        }}
+        
+        let result = self.parse_{entry_rule}(); // Dynamic entry rule
+        
+        if self.debug_mode {{
+            match &result {{
+                Ok(ast) => {{
+                    self.debug_output.push("".to_string());
+                    self.debug_output.push("✅ PARSE COMPLETE: {entry_rule}".to_string());
+                    self.debug_output.push(format!("📊 Total consumed: {{}}/{{}}} characters", 
+                        self.position, self.input.len()));
+                    self.debug_output.push(format!("🎯 Result: {{:?}}", ast));
+                }}
+                Err(err) => {{
+                    self.debug_output.push("".to_string());
+                    self.debug_output.push("❌ PARSE FAILED: {entry_rule}".to_string());
+                    self.debug_output.push(format!("📍 Failed at: Position {{}}", self.position));
+                    self.debug_output.push(format!("🎯 Reason: {{}}", err));
+                    
+                    // Add helpful suggestion based on error type
+                    match err {{
+                        ParseError::UnexpectedEof {{ .. }} => {{
+                            self.debug_output.push("💡 Fix: Input appears to be incomplete".to_string());
+                        }}
+                        ParseError::UnexpectedToken {{ expected, .. }} => {{
+                            self.debug_output.push(format!("💡 Fix: Try using '{{}}' at the error position", expected));
+                        }}
+                        _ => {{}}
+                    }}
+                }}
+            }}
+        }}
+        
+        result
     }}
 
     /// Fast character access with bounds checking
@@ -428,93 +470,147 @@ impl<'input> {parser_name}<'input> {{
         }}
     }}
     
-    /// Debug: Log entry into a parsing rule
+    /// Debug: Log entry into a parsing rule with top-notch formatting
     #[inline]
     fn debug_enter_rule(&mut self, rule_name: &str) {{
         if self.debug_mode {{
-            let indent = "  ".repeat(self.debug_depth);
-            let context = if self.position < self.input.len() {{
-                let end_pos = (self.position + 10).min(self.input.len());
-                let context_str = self.format_debug_string(&self.input[self.position..end_pos]);
-                format!(" at '{{}}'", context_str)
+            // Add empty line before non-top rules for visual separation
+            if self.debug_depth > 0 {{
+                self.debug_output.push("".to_string());
+            }}
+            
+            let rule_hierarchy = if self.debug_depth == 0 {{
+                rule_name.to_string()
             }} else {{
-                " at EOF".to_string()
+                // Build hierarchical path: parent → ... → current_rule
+                format!("{} → {}", self.get_rule_hierarchy(), rule_name)
             }};
-            let msg = format!("{{}}→ ENTER {{}}: pos={{}}{{}}", indent, rule_name, self.position, context);
+            
+            let context = if self.position < self.input.len() {{
+                let end_pos = (self.position + 20).min(self.input.len());
+                let context_str = self.format_debug_string(&self.input[self.position..end_pos]);
+                format!("\"{{}}...\"", context_str)
+            }} else {{
+                "<EOF>".to_string()
+            }};
+            
+            let msg = format!("   {{}}: {{}}", self.debug_output.len() + 1, rule_hierarchy);
             self.debug_output.push(msg);
+            
+            let detail_msg = format!("      🔍 Attempting to parse {{}} ", rule_name);
+            self.debug_output.push(detail_msg);
+            
+            let position_msg = format!("      📍 Position: {{}}, Looking at: {{}}", self.position, context);
+            self.debug_output.push(position_msg);
+            
             self.debug_depth += 1;
         }}
     }}
     
-    /// Debug: Log successful exit from a parsing rule
+    /// Debug: Log successful exit from a parsing rule with beautiful formatting
     #[inline]
     fn debug_exit_success(&mut self, rule_name: &str, start_pos: usize) {{
         if self.debug_mode {{
             self.debug_depth = self.debug_depth.saturating_sub(1);
-            let indent = "  ".repeat(self.debug_depth);
+            
             let consumed = if self.position > start_pos {{
                 let consumed_str = self.format_debug_string(&self.input[start_pos..self.position]);
-                format!(" consumed '{{}}'", consumed_str)
+                format!("'{{}}'", consumed_str)
             }} else {{
-                " (no input consumed)".to_string()
+                "(no input)".to_string()
             }};
-            let msg = format!("{{}}← SUCCESS {{}}: {{}}->{{}}{{}}", 
-                indent, rule_name, start_pos, self.position, consumed);
-            self.debug_output.push(msg);
+            
+            let chars_consumed = if self.position > start_pos {{
+                self.position - start_pos
+            }} else {{
+                0
+            }};
+            
+            let success_msg = format!("      ✅ SUCCESS: Found {{}}", consumed);
+            self.debug_output.push(success_msg);
+            
+            let stats_msg = format!("      📊 Consumed: {{}} characters (pos {{}} → {{}})", 
+                chars_consumed, start_pos, self.position);
+            self.debug_output.push(stats_msg);
         }}
     }}
     
-    /// Debug: Log failed exit from a parsing rule
+    /// Debug: Log failed exit from a parsing rule with beautiful formatting
     #[inline]
     fn debug_exit_fail(&mut self, rule_name: &str, error: &ParseError) {{
         if self.debug_mode {{
             self.debug_depth = self.debug_depth.saturating_sub(1);
-            let indent = "  ".repeat(self.debug_depth);
-            let msg = format!("{{}}← FAIL {{}}: {{}}", indent, rule_name, error);
-            self.debug_output.push(msg);
+            
+            let error_reason = match error {{
+                ParseError::UnexpectedEof {{ position }} => 
+                    format!("Found end of input, expected more content"),
+                ParseError::UnexpectedToken {{ expected, found, position }} => 
+                    format!("Found '{{}}', expected '{{}}'", found, expected),
+                ParseError::InvalidSyntax {{ message, position }} => 
+                    format!("{{}}", message),
+                ParseError::Backtrack {{ position }} => 
+                    format!("Backtracked to position {{}}", position),
+            }};
+            
+            let suggestion = match error {{
+                ParseError::UnexpectedToken {{ expected, .. }} => 
+                    format!(" 💡 Suggestion: Try using '{{}}' instead", expected),
+                _ => "".to_string(),
+            }};
+            
+            let fail_msg = format!("      ❌ FAILURE: {{}}", error_reason);
+            self.debug_output.push(fail_msg);
+            
+            if !suggestion.is_empty() {{
+                self.debug_output.push(format!("     {{}}", suggestion));
+            }}
         }}
     }}
     
-    /// Debug: Log backtracking
+    /// Debug: Log backtracking with beautiful formatting
     #[inline]
     fn debug_backtrack(&mut self, from_pos: usize, to_pos: usize, reason: &str) {{
         if self.debug_mode {{
-            let indent = "  ".repeat(self.debug_depth);
-            let msg = format!("{{}}⟲ BACKTRACK: {{}}->{{}} ({{}})", indent, from_pos, to_pos, reason);
-            self.debug_output.push(msg);
+            let backtrack_msg = format!("      ⟲ BACKTRACK: Position {{}} → {{}} ({{}})", from_pos, to_pos, reason);
+            self.debug_output.push(backtrack_msg);
         }}
     }}
     
-    /// Debug: Log alternative attempt
+    /// Debug: Log alternative attempt with beautiful formatting
     #[inline]
     fn debug_try_alternative(&mut self, alt_index: usize, total: usize) {{
         if self.debug_mode {{
-            let indent = "  ".repeat(self.debug_depth);
-            let msg = format!("{{}}? TRY ALT {{}}/{{}}: pos={{}}", indent, alt_index + 1, total, self.position);
-            self.debug_output.push(msg);
+            let alt_msg = format!("      🔄 Trying alternative {{}}/{{}} at position {{}}", 
+                alt_index + 1, total, self.position);
+            self.debug_output.push(alt_msg);
         }}
     }}
     
-    /// Debug: Log sequence element attempt
+    /// Debug: Log sequence element attempt with beautiful formatting
     #[inline]
     fn debug_sequence_element(&mut self, elem_index: usize, total: usize, elem_name: &str) {{
         if self.debug_mode {{
-            let indent = "  ".repeat(self.debug_depth);
-            let msg = format!("{{}}▶ SEQ {{}}/{{}}: {{}} at pos={{}}", 
-                indent, elem_index + 1, total, elem_name, self.position);
-            self.debug_output.push(msg);
+            let seq_msg = format!("      🔗 Sequence element {{}}/{{}}: {{}} at position {{}}", 
+                elem_index + 1, total, elem_name, self.position);
+            self.debug_output.push(seq_msg);
         }}
     }}
     
-    /// Debug: Log quantifier iteration
+    /// Debug: Log quantifier iteration with beautiful formatting
     #[inline]
     fn debug_quantifier_iteration(&mut self, iteration: usize, quantifier: &str) {{
         if self.debug_mode {{
-            let indent = "  ".repeat(self.debug_depth);
-            let msg = format!("{{}}* QUANT '{{}}' iteration {{}}: pos={{}}", 
-                indent, quantifier, iteration, self.position);
-            self.debug_output.push(msg);
+            let quant_msg = format!("      🔁 Quantifier '{{}}' iteration {{}} at position {{}}", 
+                quantifier, iteration, self.position);
+            self.debug_output.push(quant_msg);
         }}
+    }}
+    
+    /// Helper function to get current rule hierarchy path
+    #[inline]
+    fn get_rule_hierarchy(&self) -> String {{
+        // For now, return placeholder - in full implementation this would track the rule stack
+        "rule_top".to_string()
     }}
     
     /// Helper function to format strings safely for debug output

@@ -35,6 +35,18 @@ test_grammar.json
 # Generated test binaries
 test_minimal_parser
 
+# Rust stress test artifacts
+*_stress_test_*.log
+comprehensive_stress_test_*.log
+parser_stress_test_*.log
+
+# Test automation system files
+test_registry.json
+*.auto-sync
+Makefile.auto-sync.timestamp
+.sync_*
+sync_status_*
+
 # =============================================================================
 # JULIA  
 # =============================================================================
@@ -228,6 +240,11 @@ debug.log
 error.log
 parser.log
 
+# Parser debug and trace logs
+parser_debug_*.log
+trace_output_*.log
+stress_test_results_*.log
+
 # Temporary files
 tmp/
 temp/
@@ -258,6 +275,13 @@ benchmark_results/
 *.benchmark
 coverage/
 
+# Test automation and synchronization
+test_sync_status/
+auto_sync_logs/
+sync_tests_output/
+test_automation_*.log
+individual_tests_*.rs
+
 # Performance profiling
 *.prof
 *.profile
@@ -274,6 +298,12 @@ docs/_build/
 *.html
 !README.html
 !docs/**/*.html
+
+# Documentation processing artifacts
+docs/.buildinfo
+docs/.doctrees/
+*.md.backup
+*.md.tmp
 
 # =============================================================================
 # SYSTEM & OS
@@ -324,3 +354,12 @@ Desktop.ini
 !build.sh
 !install.sh
 !run_tests.sh
+
+# Keep stress test source files (these are part of the codebase)
+!*_stress_test.rs
+!stress_test_*.rs
+
+# Keep test automation system source files
+!sync_tests.rs
+!test_automation_demo.rs
+!Makefile.auto-sync

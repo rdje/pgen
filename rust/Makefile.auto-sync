@@ -1,0 +1,149 @@
+# Automatic Test Synchronization Makefile  
+# This file provides automatic sync whenever stress test files change
+
+# Configuration
+STRESS_TEST_FILES = src/comprehensive_stress_test.rs src/semantic_annotation_stress_test.rs
+SYNC_TOOL = cargo run --bin sync_tests --quiet --
+REGISTRY_FILE = test_registry.json
+SYNC_TIMESTAMP = .last_sync_timestamp
+
+# macOS-specific file watching (using fswatch if available)
+FSWATCH_CMD = fswatch --event Created --event Updated --event Renamed --one-per-batch $(STRESS_TEST_FILES)
+
+# Check if sync is needed by comparing file timestamps
+.PHONY: check-sync-needed
+check-sync-needed:
+	@if [ ! -f $(SYNC_TIMESTAMP) ]; then \
+		echo "🔄 No sync timestamp found, performing initial sync..."; \
+		$(MAKE) -s auto-sync; \
+	elif [ -n "$$(find $(STRESS_TEST_FILES) -newer $(SYNC_TIMESTAMP) 2>/dev/null)" ]; then \
+		echo "🔄 Stress test files modified since last sync, auto-syncing..."; \
+		$(MAKE) -s auto-sync; \
+	else \
+		echo "✅ Tests are synchronized"; \
+	fi
+
+# Perform automatic sync
+.PHONY: auto-sync
+auto-sync:
+	@echo "⚡ Auto-synchronizing tests..."
+	@$(SYNC_TOOL) sync > /dev/null 2>&1 || { \
+		echo "❌ Sync failed, trying force sync..."; \
+		$(SYNC_TOOL) sync; \
+	}
+	@touch $(SYNC_TIMESTAMP)
+	@echo "✅ Auto-sync completed"
+
+# Watch stress test files for changes (requires fswatch on macOS)  
+.PHONY: watch-sync
+watch-sync:
+	@if command -v fswatch >/dev/null 2>&1; then \
+		echo "👀 Watching stress test files for changes..."; \
+		echo "   Files: $(STRESS_TEST_FILES)"; \
+		echo "   Press Ctrl+C to stop"; \
+		$(FSWATCH_CMD) | while read file; do \
+			echo "📝 Change detected in: $$file"; \
+			$(MAKE) -s auto-sync; \
+		done; \
+	elif command -v inotifywait >/dev/null 2>&1; then \
+		echo "👀 Watching with inotifywait..."; \
+		while inotifywait -e modify $(STRESS_TEST_FILES); do \
+			$(MAKE) -s auto-sync; \
+		done; \
+	else \
+		echo "❌ No file watching tool found"; \
+		echo "   Install fswatch: brew install fswatch"; \
+		echo "   Or use: make poll-sync"; \
+		exit 1; \
+	fi
+
+# Polling-based watching (fallback when fswatch not available)
+.PHONY: poll-sync  
+poll-sync:
+	@echo "👀 Polling stress test files every 2 seconds..."
+	@echo "   Files: $(STRESS_TEST_FILES)"
+	@echo "   Press Ctrl+C to stop"
+	@while true; do \
+		$(MAKE) -s check-sync-needed; \
+		sleep 2; \
+	done
+
+# Clean sync state
+.PHONY: clean-sync
+clean-sync:
+	@rm -f $(SYNC_TIMESTAMP)
+	@rm -f $(REGISTRY_FILE)
+	@echo "🧹 Sync state cleaned"
+
+# Force sync regardless of timestamps
+.PHONY: force-sync  
+force-sync:
+	@echo "🔄 Force syncing tests..."
+	@$(SYNC_TOOL) sync
+	@touch $(SYNC_TIMESTAMP)
+	@echo "✅ Force sync completed"
+
+# Show detailed sync status
+.PHONY: sync-status
+sync-status:
+	@echo "📊 Test Synchronization Status"
+	@echo "═════════════════════════════"
+	@if [ -f $(SYNC_TIMESTAMP) ]; then \
+		echo "   Last sync: $$(date -r $(SYNC_TIMESTAMP) '+%Y-%m-%d %H:%M:%S')"; \
+		modified_files="$$(find $(STRESS_TEST_FILES) -newer $(SYNC_TIMESTAMP) 2>/dev/null)"; \
+		if [ -n "$$modified_files" ]; then \
+			echo "   Status: 🔄 Sync needed"; \
+			echo "   Modified files:"; \
+			for file in $$modified_files; do \
+				echo "     • $$file ($$(date -r $$file '+%H:%M:%S'))"; \
+			done; \
+		else \
+			echo "   Status: ✅ Up to date"; \
+		fi; \
+	else \
+		echo "   Status: 🔄 Never synced"; \
+	fi
+	@echo ""
+	@if [ -f $(REGISTRY_FILE) ]; then \
+		echo "   Registry: ✅ Exists ($(REGISTRY_FILE))"; \
+		if command -v $(SYNC_TOOL) sync stats >/dev/null 2>&1; then \
+			$(SYNC_TOOL) stats 2>/dev/null | grep -E "(tests:|Total:)" | sed 's/^/     /' || true; \
+		fi; \
+	else \
+		echo "   Registry: ❌ Missing - run 'make force-sync'"; \
+	fi
+	@echo ""
+	@echo "🛠️  Available commands:"
+	@echo "   make check-sync-needed  # Check and auto-sync if needed"
+	@echo "   make force-sync         # Force synchronization"
+	@echo "   make watch-sync         # Watch files and auto-sync"
+	@echo "   make poll-sync          # Poll files and auto-sync"
+
+# Quiet version for integration into other targets
+.PHONY: check-sync-quiet
+check-sync-quiet:
+	@if [ ! -f $(SYNC_TIMESTAMP) ] || [ -n "$$(find $(STRESS_TEST_FILES) -newer $(SYNC_TIMESTAMP) 2>/dev/null)" ]; then \
+		$(SYNC_TOOL) sync >/dev/null 2>&1; \
+		touch $(SYNC_TIMESTAMP); \
+	fi
+
+# Emergency sync recovery (if sync tool is broken)
+.PHONY: emergency-sync
+emergency-sync:
+	@echo "🆘 Emergency sync recovery..."
+	@if command -v cargo >/dev/null 2>&1; then \
+		echo "   Building sync tool..."; \
+		cargo build --bin sync_tests --quiet; \
+		echo "   Running sync..."; \
+		cargo run --bin sync_tests sync; \
+		touch $(SYNC_TIMESTAMP); \
+		echo "✅ Emergency sync completed"; \
+	else \
+		echo "❌ Cargo not available for emergency sync"; \
+		exit 1; \
+	fi
+
+# Development integration target
+.PHONY: dev-auto-sync
+dev-auto-sync: check-sync-needed
+	@echo "🛠️  Development environment ready with auto-sync"

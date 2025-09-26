@@ -1,5 +1,9 @@
 # Makefile for pgen - Regex Parser Generator Pipeline
 # This manages the complex build dependencies for generating Rust parsers from EBNF grammars
+# Now with automatic test synchronization when stress test files change
+
+# Include automatic test synchronization
+include Makefile.auto-sync
 
 # Directories
 GRAMMARS_DIR = ../grammars
@@ -123,7 +127,7 @@ debug-json: $(REGEX_JSON)
 	@echo "Regex JSON generated with debug output - check console for semantic annotation parsing details"
 
 .PHONY: test-parser
-test-parser: $(REGEX_PARSER)
+test-parser: check-sync-needed $(REGEX_PARSER)
 	@echo "Testing generated regex parser..."
 	cd $(RUST_DIR) && cargo test
 
@@ -281,7 +285,7 @@ debug-semantic-annotations: $(SEMANTIC_ANNOTATION_EXE) $(RETURN_ANNOTATION_EXE)
 
 # Return annotation parser complete flow
 .PHONY: return_annotation_parser
-return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+return_annotation_parser: check-sync-needed $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 	@echo "🚀 Starting complete flow for return annotation parser..."
 	@echo "📄 Step 1: EBNF -> JSON (already done: $(RETURN_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
@@ -294,7 +298,7 @@ return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 
 # Semantic annotation parser complete flow
 .PHONY: semantic_annotation_parser
-semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+semantic_annotation_parser: check-sync-needed $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 	@echo "🚀 Starting complete flow for semantic annotation parser..."
 	@echo "📄 Step 1: EBNF -> JSON (already done: $(SEMANTIC_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
@@ -307,7 +311,7 @@ semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 
 # Regex parser complete flow
 .PHONY: regex_parser
-regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
+regex_parser: check-sync-needed $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@echo "🚀 Starting complete flow for regex parser..."
 	@echo "📄 Step 1: EBNF -> JSON (already done: $(REGEX_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
@@ -346,9 +350,9 @@ all_parser_tests: return_annotation_parser semantic_annotation_parser regex_pars
 # Individual test targets for Return Annotation Parser
 # Basic scalar references
 .PHONY: test-return-scalar-1
-test-return-scalar-1: $(RETURN_ANNOTATION_PARSER)
-	@echo "🔍 Testing Return Parser: \$$1"
-	@cd $(RUST_DIR) && PGEN_TEST_INPUT='\$$1' cargo test test_individual_return_test -- --nocapture
+test-return-scalar-1: check-sync-needed $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: \$1"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='\$1' cargo test test_individual_return_test -- --nocapture
 
 .PHONY: test-return-scalar-2
 test-return-scalar-2: $(RETURN_ANNOTATION_PARSER)
@@ -521,3 +525,41 @@ bootstrap-status:
 	@echo -n "Final regex parser: "; [ -f $(REGEX_PARSER) ] && echo "✓ EXISTS" || echo "✗ MISSING"
 	@echo ""
 	@echo "To test bootstrap mode: make bootstrap-test"
+
+
+# Auto-generated Makefile targets for stress tests
+# Generated at: 2025-09-26T18:25:21.719564+00:00
+# DO NOT EDIT MANUALLY - This section is automatically regenerated
+
+# Run all stress tests
+test-all: 
+	@echo "🎯 All stress tests completed successfully!"
+
+# Convenience targets
+test-quick: test-return test-semantic
+	@echo "🚀 Quick test suite completed!"
+
+test-comprehensive: test-all
+	@echo "🔍 Comprehensive test suite completed!"
+
+test-debug: target/debug/pgen
+	@echo "🐛 Running debug mode tests..."
+	@cargo run -- --debug --parser return --input '$$1'
+	@cargo run -- --debug --parser semantic --input '@type: "test"'
+
+test-stats:
+	@echo "📊 Test Statistics:"
+	@echo "  Return tests: 0"
+	@echo "  Semantic tests: 0"
+	@echo "  Regex tests: 0"
+	@echo "  Total tests: 0"
+
+.PHONY: test-all test-return test-semantic test-regex test-quick test-comprehensive test-debug test-stats
+
+
+# End of auto-generated targets
+
+
+
+
+

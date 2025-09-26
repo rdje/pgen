@@ -183,10 +183,106 @@ According to project rules, regularly update these files:
 - **`DEVELOPMENT_NOTES.md`** - Architecture insights and design principles  
 - **`git_message_brief.txt`** - Clean commit messages for git commit -F
 
+### Git Version Control Best Practices
+- **Moving files**: Use `git mv old_name new_name` instead of `mv` for Git-tracked files
+- **Deleting files**: Use `git rm file_name` instead of `rm` for Git-tracked files  
+- **Rationale**: Preserves file history and ensures Git properly tracks changes
+- **New files**: Use normal `git add new_file` workflow
+
 ### Debug Practices  
 - Add debug messages with file/function context: `[filename.pm][function_name]`
 - Use `--debug` or `--quiet` flags in tools
 - Comprehensive logging for all decision points and function calls
+
+### Parser Debug Output Formatting Requirements (Universal Standard)
+**Applies to ALL parser debug output**: stress tests, individual tests, Makefile targets, `--debug` option
+
+#### **Core Principle: HUMAN-READABLE FIRST**
+Debug output must be instantly understandable by humans, not technical blobs of text.
+
+#### **Hierarchical Rule Processing**
+- **Format**: For non-top rules, display as `rule-top → ... → RULE`
+- **Unicode Arrow**: Use proper `→` (U+2192) symbol instead of ` > `
+- **Visual Separation**: Empty line before each non-top rule
+- **Top Rules**: `semantic_annotation →`, `return_annotation →`, `regex →`
+
+#### **Rule Success/Failure Clarity**
+- **Success Indicators**: Use clear ✅ symbols and descriptive text
+- **Failure Indicators**: Use clear ❌ symbols with reason
+- **Visual Impact**: Each outcome must be immediately obvious
+- **Context Preservation**: Show what was being parsed when success/failure occurred
+
+#### **Spacing and Visual Structure**
+- **No Text Blobs**: Generous whitespace between logical sections
+- **Consistent Indentation**: Clear visual hierarchy
+- **Logical Grouping**: Related information grouped with spacing
+- **Scannable Format**: Easy to skim and find specific information
+
+#### **Example Top-Notch Debug Format**:
+```
+🔍 PARSING: "@type: \"Expression\""
+
+   1: semantic_annotation
+      ✅ Starting semantic annotation parse
+      📍 Position: 0, Input: "@type: \"Expression\""
+
+   2: semantic_annotation → annotation_name  
+      🔍 Attempting to parse annotation name
+      📍 Position: 1, Looking for: identifier after '@'
+      ✅ SUCCESS: Found 'type'
+      📊 Consumed: 4 characters
+
+   3: semantic_annotation → colon
+      🔍 Expecting ':' separator
+      📍 Position: 5
+      ✅ SUCCESS: Found ':'
+      📊 Consumed: 1 character
+
+   4: semantic_annotation → annotation_value → string_literal
+      🔍 Parsing string literal value
+      📍 Position: 7, Looking for: quoted string
+      ✅ SUCCESS: Found '\"Expression\"'
+      📊 Consumed: 12 characters
+
+✅ PARSE COMPLETE: semantic_annotation
+📊 Total consumed: 18/18 characters
+🎯 Result: SemanticAnnotation { name: "type", value: "Expression" }
+```
+
+#### **Failure Example Format**:
+```
+🔍 PARSING: "@invalid_syntax"
+
+   1: semantic_annotation
+      ✅ Starting semantic annotation parse
+      📍 Position: 0, Input: "@invalid_syntax"
+
+   2: semantic_annotation → annotation_name
+      🔍 Attempting to parse annotation name  
+      📍 Position: 1, Looking for: identifier after '@'
+      ✅ SUCCESS: Found 'invalid_syntax'
+      📊 Consumed: 14 characters
+
+   3: semantic_annotation → colon
+      🔍 Expecting ':' separator
+      📍 Position: 15
+      ❌ FAILURE: Found end of input, expected ':'
+      💡 Suggestion: Add ':' and value after annotation name
+
+❌ PARSE FAILED: semantic_annotation
+📍 Failed at: Position 15
+🎯 Reason: Missing required ':' separator
+💡 Fix: Use format "@name: value"
+```
+
+#### **Universal Application**
+This format applies to:
+- Stress test debug output
+- Individual parser test runs  
+- `make test-*` targets
+- Generated parser `with_debug()` output
+- CLI `--debug` and `--trace` modes
+- Any parser debugging context
 
 ### Grammar Testing
 1. Start with simple patterns, add complexity incrementally

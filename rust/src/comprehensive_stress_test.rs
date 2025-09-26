@@ -3,6 +3,7 @@
 
 use crate::ast_pipeline::semantic_annotation_parser::Semantic_annotationParser;
 use crate::ast_pipeline::return_annotation_parser::Return_annotationParser;
+use crate::test_target_mapper::TestTargetMapper;
 use std::time::Instant;
 
 #[derive(Debug, Default)]
@@ -11,7 +12,7 @@ struct StressTestResults {
     semantic_passed: u32,
     return_tests: u32, 
     return_passed: u32,
-    errors: Vec<String>,
+    errors: Vec<(String, String)>, // (error_message, reproduction_command)
 }
 
 impl StressTestResults {
@@ -56,9 +57,11 @@ impl StressTestResults {
         
         if !self.errors.is_empty() {
             println!("\n❌ ERRORS ENCOUNTERED:");
-            for error in &self.errors {
-                println!("   - {}", error);
+            for (i, (error, reproduction_cmd)) in self.errors.iter().enumerate() {
+                println!("   {}. {}", i + 1, error);
+                println!("      🔧 To reproduce: {}", reproduction_cmd);
             }
+            println!("\n💡 TIP: Copy and paste any 'make' command above to reproduce specific failures");
         }
         
         println!("\n{}", "=".repeat(80));
@@ -165,15 +168,17 @@ mod comprehensive_stress_tests {
         println!("🧠 SEMANTIC ANNOTATION PARSER STRESS TEST");
         println!("{}", "=".repeat(60));
         
-        // Start with a single simple test case to isolate stack overflow
-        let test_cases = vec![
-            // Only the most basic case first
-            "@type: \"Expression\"",
-        ];
+        let mapper = TestTargetMapper::new();
+        let test_cases = mapper.get_semantic_test_cases();
+        
+        println!("📋 Running {} comprehensive semantic parser tests", test_cases.len());
+        println!("🎯 Each failing test shows the exact 'make' command to reproduce it");
 
         for (i, test_input) in test_cases.iter().enumerate() {
             results.semantic_tests += 1;
             println!("\n🔍 Semantic Test {}/{}: {}", i + 1, test_cases.len(), test_input);
+            
+            let reproduction_cmd = mapper.get_reproduction_command("semantic", test_input);
             
             let mut parser = Semantic_annotationParser::with_debug(test_input);
             let start = Instant::now();
@@ -203,9 +208,10 @@ mod comprehensive_stress_tests {
                 Err(e) => {
                     let parse_time = start.elapsed();
                     let error_msg = format!("Semantic parser failed on '{}': {}", test_input, e);
-                    results.errors.push(error_msg.clone());
+                    results.errors.push((error_msg.clone(), reproduction_cmd.clone()));
                     
                     println!("  ❌ PARSE FAILED in {:.3}ms: {}", parse_time.as_secs_f64() * 1000.0, e);
+                    println!("  🔧 REPRODUCE THIS FAILURE: {}", reproduction_cmd);
                     
                     // Still print debug output for analysis
                     let debug_output = parser.debug_output(); 
@@ -233,15 +239,17 @@ mod comprehensive_stress_tests {
         println!("🔄 RETURN ANNOTATION PARSER STRESS TEST");
         println!("{}", "=".repeat(60));
         
-        // Start with a single simple test case to isolate stack overflow
-        let test_cases = vec![
-            // Only the most basic case first
-            "$1",
-        ];
+        let mapper = TestTargetMapper::new();
+        let test_cases = mapper.get_return_test_cases();
+        
+        println!("📋 Running {} comprehensive return parser tests", test_cases.len());
+        println!("🎯 Each failing test shows the exact 'make' command to reproduce it");
 
         for (i, test_input) in test_cases.iter().enumerate() {
             results.return_tests += 1;
             println!("\n🔍 Return Test {}/{}: {}", i + 1, test_cases.len(), test_input);
+            
+            let reproduction_cmd = mapper.get_reproduction_command("return", test_input);
             
             let mut parser = Return_annotationParser::with_debug(test_input);
             let start = Instant::now();
@@ -271,9 +279,10 @@ mod comprehensive_stress_tests {
                 Err(e) => {
                     let parse_time = start.elapsed();
                     let error_msg = format!("Return parser failed on '{}': {}", test_input, e);
-                    results.errors.push(error_msg.clone());
+                    results.errors.push((error_msg.clone(), reproduction_cmd.clone()));
                     
                     println!("  ❌ PARSE FAILED in {:.3}ms: {}", parse_time.as_secs_f64() * 1000.0, e);
+                    println!("  🔧 REPRODUCE THIS FAILURE: {}", reproduction_cmd);
                     
                     // Still print debug output for analysis
                     let debug_output = parser.debug_output();

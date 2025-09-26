@@ -115,7 +115,14 @@ mod return_parser_stress_tests {
                     if !debug_output.is_empty() {
                         log_and_print!("\n🔍 COMPLETE DEBUG TRACE ({} steps):", debug_output.len());
                         log_and_print!("   This provides UNDISPUTABLE PROOF of parsing behavior:");
+                        log_and_print!("   Format: Hierarchical rule processing with clear nesting");
+                        log_and_print!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
+                        log_and_print!("");
                         for (step, msg) in debug_output.iter().enumerate() {
+                            // Format hierarchical debug messages with proper spacing
+                            if msg.contains(" → ") && !msg.starts_with("return_annotation →") {
+                                log_and_print!(""); // Empty line before non-top rule processing
+                            }
                             log_and_print!("   {:4}: {}", step + 1, msg);
                         }
                     }
@@ -133,7 +140,14 @@ mod return_parser_stress_tests {
                     if !debug_output.is_empty() {
                         log_and_print!("\n🔍 FAILURE DEBUG TRACE ({} steps):", debug_output.len());
                         log_and_print!("   This shows exactly where parsing failed:");
+                        log_and_print!("   Format: Hierarchical rule processing with clear nesting");
+                        log_and_print!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
+                        log_and_print!("");
                         for (step, msg) in debug_output.iter().enumerate() {
+                            // Format hierarchical debug messages with proper spacing
+                            if msg.contains(" → ") && !msg.starts_with("return_annotation →") {
+                                log_and_print!(""); // Empty line before non-top rule processing
+                            }
                             log_and_print!("   {:4}: {}", step + 1, msg);
                         }
                     }

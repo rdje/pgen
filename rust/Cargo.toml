@@ -1,5 +1,5 @@
 [package]
-name = "ebnf-pipeline"
+name = "pgen"
 version = "1.0.0"
 edition = "2021"
 authors = ["EBNF Parser Generator Project"]
@@ -7,12 +7,20 @@ description = "Rust implementation of EBNF AST transformation pipeline"
 license = "MIT"
 
 [lib]
-name = "ebnf_pipeline"
+name = "pgen"
 path = "src/lib.rs"
 
 [[bin]]
 name = "ast_pipeline"
 path = "src/main.rs"
+
+[[bin]]
+name = "sync_tests"
+path = "src/bin/sync_tests.rs"
+
+[[bin]]
+name = "test_automation_demo"
+path = "src/bin/test_automation_demo.rs"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
