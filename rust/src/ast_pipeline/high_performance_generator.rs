@@ -151,6 +151,8 @@ use std::{{
     collections::HashMap,
     fmt,
     ops::Range,
+    fs::File,
+    io::{{Write, BufWriter}},
 }};
 use regex::Regex;
 
@@ -232,6 +234,7 @@ pub struct {parser_name}<'input> {{
     debug_mode: bool,
     debug_depth: usize,
     debug_output: Vec<String>,
+    debug_log_file: Option<String>, // Log file path for debug output
 }}
 
 impl<'input> {parser_name}<'input> {{
@@ -246,6 +249,7 @@ impl<'input> {parser_name}<'input> {{
             debug_mode: {enable_trace},
             debug_depth: 0,
             debug_output: Vec::new(),
+            debug_log_file: None,
         }}
     }}
     
@@ -260,7 +264,16 @@ impl<'input> {parser_name}<'input> {{
             debug_mode: true,
             debug_depth: 0,
             debug_output: Vec::new(),
+            debug_log_file: None,
         }}
+    }}
+    
+    /// Create new parser with debug mode and automatic log file creation
+    #[inline]
+    pub fn with_debug_log(input: &'input str, test_name: &str) -> Self {{
+        let mut parser = Self::with_debug(input);
+        parser.setup_debug_logging(test_name);
+        parser
     }}
     
     /// Get debug output for analysis
@@ -272,6 +285,44 @@ impl<'input> {parser_name}<'input> {{
     pub fn clear_debug(&mut self) {{
         self.debug_output.clear();
         self.debug_depth = 0;
+    }}
+    
+    /// Setup debug logging with automatic log file creation
+    pub fn setup_debug_logging(&mut self, test_name: &str) {{
+        let parser_name = "{parser_name}".to_lowercase().replace("parser", "");
+        let log_filename = format!("{{}}_{{}}_{{}}.log", 
+            parser_name, 
+            test_name, 
+            chrono::Utc::now().format("%Y%m%d_%H%M%S"));
+        self.debug_log_file = Some(log_filename);
+    }}
+    
+    /// Write debug output to log file
+    pub fn write_debug_log(&self) -> Result<(), std::io::Error> {{
+        if let Some(ref log_file_path) = self.debug_log_file {{
+            use std::fs::File;
+            use std::io::{{Write, BufWriter}};
+            
+            let file = File::create(log_file_path)?;
+            let mut writer = BufWriter::new(file);
+            
+            // Write header
+            writeln!(writer, "# Debug Log for {{}} Parser", "{parser_name}")?;
+            writeln!(writer, "# Generated: {{}}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"))?;
+            writeln!(writer, "# Input Length: {{}} characters", self.input.len())?;
+            writeln!(writer, "# Log File: {{}}", log_file_path)?;
+            writeln!(writer, "# {{}}", "=".repeat(80))?;
+            writeln!(writer)?;
+            
+            // Write all debug output
+            for line in &self.debug_output {{
+                writeln!(writer, "{{}}", line)?;
+            }}
+            
+            writer.flush()?;
+            println!("📁 Debug log written to: {{}}", log_file_path);
+        }}
+        Ok(())
     }}
 
     /// Parse entry point - returns AST or error with beautiful debug output
@@ -317,6 +368,11 @@ impl<'input> {parser_name}<'input> {{
                         _ => {{}}
                     }}
                 }}
+            }}
+            
+            // Automatically write debug log file if configured
+            if let Err(e) = self.write_debug_log() {{
+                eprintln!("Warning: Failed to write debug log file: {{}}", e);
             }}
         }}
         

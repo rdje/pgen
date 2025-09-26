@@ -40,6 +40,13 @@ test_minimal_parser
 comprehensive_stress_test_*.log
 parser_stress_test_*.log
 
+# Generated debug log files from --debug option
+*_test_*.log
+*_stress_test_*.log
+semantic_annotation_*.log
+return_annotation_*.log
+regex_*.log
+
 # Test automation system files
 test_registry.json
 *.auto-sync

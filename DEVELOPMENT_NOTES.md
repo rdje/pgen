@@ -105,6 +105,13 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - **Consistent Format**: Same structured output across all parser debugging contexts
 - **Developer Experience**: Immediate understanding of parser behavior from debug output
 
+#### **Automatic Log File System**
+- **File Generation**: `with_debug_log()` constructor automatically creates timestamped log files
+- **Naming Convention**: `<parser>_<test>_<timestamp>.log` format for organized debug output
+- **Professional Headers**: Log files include metadata (timestamp, input length, file path)
+- **Seamless Integration**: Debug output written to both console and file automatically
+- **Error Resilience**: Graceful handling of file system errors during log writing
+
 ## Critical Issues Identified
 
 ### 🚨 Stack Overflow in Generated Parsers (2025-09-26)

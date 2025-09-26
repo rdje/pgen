@@ -275,12 +275,28 @@ Debug output must be instantly understandable by humans, not technical blobs of 
 💡 Fix: Use format "@name: value"
 ```
 
+#### **Automatic Log File Creation**
+- **File Naming**: `<parser>_<test>_<timestamp>.log` (e.g., `semantic_annotation_stress_test_1_20250926_143022.log`)
+- **Auto-Generation**: Created automatically when using `with_debug_log()` constructor
+- **Content**: Full debug trace with professional formatting and metadata header
+- **Location**: Current working directory (ignored by .gitignore)
+
+#### **Usage Examples**
+```rust
+// Automatic log file creation
+let mut parser = SemanticAnnotationParser::with_debug_log(input, "basic_test");
+let result = parser.parse(); // Automatically writes: semantic_annotation_basic_test_20250926_143022.log
+
+// Traditional debug (console only)
+let mut parser = SemanticAnnotationParser::with_debug(input);
+```
+
 #### **Universal Application**
 This format applies to:
 - Stress test debug output
 - Individual parser test runs  
 - `make test-*` targets
-- Generated parser `with_debug()` output
+- Generated parser `with_debug()` and `with_debug_log()` output
 - CLI `--debug` and `--trace` modes
 - Any parser debugging context
 

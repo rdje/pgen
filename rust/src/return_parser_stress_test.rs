@@ -97,7 +97,8 @@ mod return_parser_stress_tests {
             log_and_print!("🔍 Return Parser Stress Test {}/{}: '{}'", i + 1, test_cases.len(), test_input);
             log_and_print!("{}", "=".repeat(80));
             
-            let mut parser = Return_annotationParser::with_debug(test_input);
+            let test_name = format!("stress_test_{}", i + 1);
+            let mut parser = Return_annotationParser::with_debug_log(test_input, &test_name);
             let parse_start = Instant::now();
             
             match parser.parse() {

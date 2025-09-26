@@ -35,6 +35,14 @@
 - `debug_backtrack()`: Beautiful backtrack formatting with position changes
 - `parse()`: Comprehensive session overview with input preview and final results
 
+**Automatic Debug Log File System:**
+- **New Constructor**: `with_debug_log(input, test_name)` for automatic file logging
+- **File Naming Convention**: `<parser>_<test>_<timestamp>.log` format
+- **Professional Headers**: Metadata including timestamp, input length, file path
+- **Auto-Write**: Debug output automatically written to file on parse completion
+- **Error Handling**: Graceful fallback if file writing fails
+- **Git Integration**: Updated .gitignore patterns for generated log files
+
 ### Achievement: Complete Parser Test Infrastructure
 
 ### Achievement: Complete Parser Stress Test Coverage

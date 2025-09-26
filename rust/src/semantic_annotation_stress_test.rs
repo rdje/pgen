@@ -110,7 +110,8 @@ mod semantic_annotation_stress_tests {
             
             // TODO: Uncomment when actual parser is available
             /*
-            let mut parser = Semantic_annotationParser::with_debug(test_input);
+            let test_name = format!("stress_test_{}", i + 1);
+            let mut parser = Semantic_annotationParser::with_debug_log(test_input, &test_name);
             let parse_start = Instant::now();
             
             match parser.parse() {
