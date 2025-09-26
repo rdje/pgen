@@ -6,6 +6,7 @@
 pub mod ast_pipeline;
 pub mod comprehensive_stress_test;
 pub mod return_parser_stress_test;
+pub mod individual_tests;
 
 // Re-export commonly used types for convenience
 pub use ast_pipeline::{

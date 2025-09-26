@@ -116,10 +116,8 @@ impl HighPerformanceRustGenerator {
         // Entry rule should be the first rule in the grammar, or explicitly set entry rule
         let entry_rule = self.entry_rule.as_ref()
             .map(|s| s.clone())
-            .unwrap_or_else(|| {
-                // Fallback to first rule in rule_order if available, otherwise grammar name
-                rule_order.first().cloned().unwrap_or_else(|| self.grammar_name.clone())
-            });
+            .or_else(|| rule_order.first().cloned())
+            .ok_or_else(|| anyhow::anyhow!("No rules provided in rule_order - cannot determine entry rule"))?;
         
         let mut code = String::with_capacity(65536); // Pre-allocate for performance
 

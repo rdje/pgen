@@ -2,10 +2,10 @@
 # This manages the complex build dependencies for generating Rust parsers from EBNF grammars
 
 # Directories
-GRAMMARS_DIR = grammars
-GENERATED_DIR = generated
-TOOLS_DIR = tools
-RUST_DIR = rust
+GRAMMARS_DIR = ../grammars
+GENERATED_DIR = ../generated
+TOOLS_DIR = ../tools
+RUST_DIR = .
 
 # Input EBNF files
 SEMANTIC_ANNOTATION_EBNF = $(GRAMMARS_DIR)/semantic_annotation.ebnf
@@ -169,6 +169,24 @@ help:
 	@echo "  help         - Show this help"
 	@echo "  status       - Show current build status"
 	@echo ""
+	@echo "🔍 Debug & Logging Targets:"
+	@echo "  return-annotation-parser-with-log   - Generate return parser with full debug logging"
+	@echo "  semantic-annotation-parser-with-log - Generate semantic parser with full debug logging"
+	@echo "  regex-parser-with-log               - Generate regex parser with full debug logging"
+	@echo "  return-parser-with-log              - Alias for return-annotation-parser-with-log"
+	@echo "  semantic-parser-with-log            - Alias for semantic-annotation-parser-with-log"
+	@echo ""
+	@echo "🤖 Individual Test Targets (Examples):"
+	@echo "  test-return-scalar-1          - Test return parser with '\$$1'"
+	@echo "  test-return-literal-hello     - Test return parser with '\"hello\"'"
+	@echo "  test-return-array-simple      - Test return parser with '[\$$1]'"
+	@echo "  test-return-object-simple     - Test return parser with '{key: \$$1}'"
+	@echo "  test-semantic-type            - Test semantic parser with '@type: \"Expression\"'"
+	@echo "  test-semantic-precedence      - Test semantic parser with '@precedence: 5'"
+	@echo "  test-regex-hello              - Test regex parser with 'hello'"
+	@echo "  test-regex-dot                - Test regex parser with '.'"
+	@echo "  📋 Run 'make -n test-return-scalar-1' to see all available individual tests"
+	@echo ""
 	@echo "🔧 Build order:"
 	@echo "  1. Generate JSON files from EBNF grammars"
 	@echo "  2. Build Rust AST pipeline (cargo build)"
@@ -225,6 +243,28 @@ regex-parser-with-log:
 	@echo "\nStep 2: Generate regex parser from JSON..." | tee $(GENERATED_DIR)/regex_parser.log
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER) 2>&1 | tee $(GENERATED_DIR)/regex_parser.log
 	@echo "\nRegex parser generation complete! Check $(GENERATED_DIR)/regex_parser.log for details"
+
+.PHONY: return-annotation-parser-with-log
+return-annotation-parser-with-log:
+	@echo "Generating return annotation parser with full debug logging..."
+	@mkdir -p $(GENERATED_DIR)
+	@rm -f $(RETURN_ANNOTATION_JSON) $(RETURN_ANNOTATION_PARSER)
+	@echo "Step 1: Generate return annotation JSON..." | tee $(GENERATED_DIR)/return_annotation_parser.log
+	$(EBNF_TO_JSON) --verbosity debug --pretty $(RETURN_ANNOTATION_EBNF) -o $(RETURN_ANNOTATION_JSON) 2>&1 | tee $(GENERATED_DIR)/return_annotation_parser.log
+	@echo "\nStep 2: Generate return annotation parser from JSON..." | tee -a $(GENERATED_DIR)/return_annotation_parser.log
+	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER) 2>&1 | tee -a $(GENERATED_DIR)/return_annotation_parser.log
+	@echo "\nReturn annotation parser generation complete! Check $(GENERATED_DIR)/return_annotation_parser.log for details"
+
+.PHONY: semantic-annotation-parser-with-log
+semantic-annotation-parser-with-log:
+	@echo "Generating semantic annotation parser with full debug logging..."
+	@mkdir -p $(GENERATED_DIR)
+	@rm -f $(SEMANTIC_ANNOTATION_JSON) $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "Step 1: Generate semantic annotation JSON..." | tee $(GENERATED_DIR)/semantic_annotation_parser.log
+	$(EBNF_TO_JSON) --verbosity debug --pretty $(SEMANTIC_ANNOTATION_EBNF) -o $(SEMANTIC_ANNOTATION_JSON) 2>&1 | tee $(GENERATED_DIR)/semantic_annotation_parser.log
+	@echo "\nStep 2: Generate semantic annotation parser from JSON..." | tee -a $(GENERATED_DIR)/semantic_annotation_parser.log
+	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER) 2>&1 | tee -a $(GENERATED_DIR)/semantic_annotation_parser.log
+	@echo "\nSemantic annotation parser generation complete! Check $(GENERATED_DIR)/semantic_annotation_parser.log for details"
 
 .PHONY: debug-semantic-annotations
 debug-semantic-annotations: $(SEMANTIC_ANNOTATION_EXE) $(RETURN_ANNOTATION_EXE)
@@ -288,10 +328,171 @@ semantic_parser: semantic_annotation_parser
 .PHONY: regex_tests
 regex_tests: regex_parser
 
+# Convenience aliases for *-with-log targets
+.PHONY: return-parser-with-log
+return-parser-with-log: return-annotation-parser-with-log
+
+.PHONY: semantic-parser-with-log
+semantic-parser-with-log: semantic-annotation-parser-with-log
+
+.PHONY: regex-parser-with-log-alias
+regex-parser-with-log-alias: regex-parser-with-log
+
 # Run comprehensive stress tests for all parsers
 .PHONY: all_parser_tests
 all_parser_tests: return_annotation_parser semantic_annotation_parser regex_parser
 	@echo "🎉 All parser comprehensive flows completed!"
+
+# Individual test targets for Return Annotation Parser
+# Basic scalar references
+.PHONY: test-return-scalar-1
+test-return-scalar-1: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: \$$1"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='\$$1' cargo test test_individual_return_test -- --nocapture
+
+.PHONY: test-return-scalar-2
+test-return-scalar-2: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: \$$2"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='\$$2' cargo test test_individual_return_test -- --nocapture
+
+.PHONY: test-return-scalar-10
+test-return-scalar-10: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: \$$10"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='\$$10' cargo test test_individual_return_test -- --nocapture
+
+# Literals
+.PHONY: test-return-literal-hello
+test-return-literal-hello: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: \"hello\""
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='"hello"' cargo test test_individual_return_test -- --nocapture
+
+.PHONY: test-return-literal-42
+test-return-literal-42: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: 42"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='42' cargo test test_individual_return_test -- --nocapture
+
+.PHONY: test-return-literal-true
+test-return-literal-true: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: true"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='true' cargo test test_individual_return_test -- --nocapture
+
+# Arrays
+.PHONY: test-return-array-simple
+test-return-array-simple: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: [\$$1]"
+	@cd $(RUST_DIR) && cargo test test_individual_return_test -- --nocapture '[\$$1]'
+
+.PHONY: test-return-array-dual
+test-return-array-dual: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: [\$$1, \$$2]"
+	@cd $(RUST_DIR) && cargo test test_individual_return_test -- --nocapture '[\$$1, \$$2]'
+
+.PHONY: test-return-array-empty
+test-return-array-empty: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: []"
+	@cd $(RUST_DIR) && cargo test test_individual_return_test -- --nocapture '[]'
+
+# Objects
+.PHONY: test-return-object-simple
+test-return-object-simple: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: {key: \$$1}"
+	@cd $(RUST_DIR) && cargo test test_individual_return_test -- --nocapture '{key: \$$1}'
+
+.PHONY: test-return-object-dual
+test-return-object-dual: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: {name: \$$1, value: \$$2}"
+	@cd $(RUST_DIR) && cargo test test_individual_return_test -- --nocapture '{name: \$$1, value: \$$2}'
+
+.PHONY: test-return-object-empty
+test-return-object-empty: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: {}"
+	@cd $(RUST_DIR) && cargo test test_individual_return_test -- --nocapture '{}'
+
+# Dot notation
+.PHONY: test-return-dot-value
+test-return-dot-value: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: \$$1.value"
+	@cd $(RUST_DIR) && cargo test test_individual_return_test -- --nocapture '\$$1.value'
+
+# Array access
+.PHONY: test-return-array-access-0
+test-return-array-access-0: $(RETURN_ANNOTATION_PARSER)
+	@echo "🔍 Testing Return Parser: \$$1[0]"
+	@cd $(RUST_DIR) && cargo test test_individual_return_test -- --nocapture '\$$1[0]'
+
+# Individual test targets for Semantic Annotation Parser
+# Basic annotations
+.PHONY: test-semantic-type
+test-semantic-type: $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "🔍 Testing Semantic Parser: @type: \"Expression\""
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='@type: "Expression"' cargo test test_individual_semantic_test -- --nocapture
+
+.PHONY: test-semantic-precedence
+test-semantic-precedence: $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "🔍 Testing Semantic Parser: @precedence: 5"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='@precedence: 5' cargo test test_individual_semantic_test -- --nocapture
+
+.PHONY: test-semantic-boolean
+test-semantic-boolean: $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "🔍 Testing Semantic Parser: @side_effect: false"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='@side_effect: false' cargo test test_individual_semantic_test -- --nocapture
+
+# Arrays
+.PHONY: test-semantic-array-validate
+test-semantic-array-validate: $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "🔍 Testing Semantic Parser: @validate: [\"check_bounds\"]"
+	@cd $(RUST_DIR) && cargo test test_individual_semantic_test -- --nocapture '@validate: [\"check_bounds\"]'
+
+# Objects
+.PHONY: test-semantic-object-cache
+test-semantic-object-cache: $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "🔍 Testing Semantic Parser: @cache: {ttl: 300}"
+	@cd $(RUST_DIR) && cargo test test_individual_semantic_test -- --nocapture '@cache: {ttl: 300}'
+
+# Individual test targets for Regex Parser
+# Basic patterns
+.PHONY: test-regex-hello
+test-regex-hello: $(REGEX_PARSER)
+	@echo "🔍 Testing Regex Parser: hello"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='hello' cargo test test_individual_regex_test -- --nocapture
+
+.PHONY: test-regex-dot
+test-regex-dot: $(REGEX_PARSER)
+	@echo "🔍 Testing Regex Parser: ."
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='.' cargo test test_individual_regex_test -- --nocapture
+
+.PHONY: test-regex-anchor-start
+test-regex-anchor-start: $(REGEX_PARSER)
+	@echo "🔍 Testing Regex Parser: ^start"
+	@cd $(RUST_DIR) && PGEN_TEST_INPUT='^start' cargo test test_individual_regex_test -- --nocapture
+
+# Character classes
+.PHONY: test-regex-char-class-az
+test-regex-char-class-az: $(REGEX_PARSER)
+	@echo "🔍 Testing Regex Parser: [a-z]"
+	@cd $(RUST_DIR) && cargo test test_individual_regex_test -- --nocapture '[a-z]'
+
+.PHONY: test-regex-digit
+test-regex-digit: $(REGEX_PARSER)
+	@echo "🔍 Testing Regex Parser: \\d"
+	@cd $(RUST_DIR) && cargo test test_individual_regex_test -- --nocapture '\\d'
+
+# Quantifiers
+.PHONY: test-regex-star
+test-regex-star: $(REGEX_PARSER)
+	@echo "🔍 Testing Regex Parser: a*"
+	@cd $(RUST_DIR) && cargo test test_individual_regex_test -- --nocapture 'a*'
+
+.PHONY: test-regex-plus
+test-regex-plus: $(REGEX_PARSER)
+	@echo "🔍 Testing Regex Parser: b+"
+	@cd $(RUST_DIR) && cargo test test_individual_regex_test -- --nocapture 'b+'
+
+# Groups
+.PHONY: test-regex-group
+test-regex-group: $(REGEX_PARSER)
+	@echo "🔍 Testing Regex Parser: (abc)"
+	@cd $(RUST_DIR) && cargo test test_individual_regex_test -- --nocapture '(abc)'
 
 # Bootstrap mode targets
 .PHONY: bootstrap-test

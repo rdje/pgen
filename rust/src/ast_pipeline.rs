@@ -1263,8 +1263,12 @@ impl RustASTPipeline {
         let entry_rule = self.entry_rule.as_ref()
             .map(|s| s.clone())
             .unwrap_or_else(|| {
-                // Fallback to first rule in rule_order if available
-                rule_order.first().cloned().unwrap_or_else(|| raw_data.grammar_name.clone())
+                // Always use the first rule in rule_order to prevent infinite recursion
+                // Never use grammar_name as it creates circular calls parse_grammar_name() -> parse_grammar_name()
+                rule_order.first().cloned().unwrap_or_else(|| {
+                    eprintln!("ERROR: No rules found in rule_order, cannot determine entry rule");
+                    "unknown_entry_rule".to_string()
+                })
             });
         
         let mut code_generator = if enable_trace && enable_backtrack_debug {
