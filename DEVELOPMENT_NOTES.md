@@ -75,6 +75,14 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - **Placeholder Integration**: Structure tests with TODO markers for seamless parser integration
 - **Test Categories**: Organize by pattern complexity (basic → advanced → real-world)
 
+### Test Reproduction System Architecture
+- **Dual Option Design**: Always provide both Makefile and cargo reproduction commands for user choice
+- **Format String Pattern**: Use clear labeling ("REPRODUCE with make:" vs "REPRODUCE with cargo:") to distinguish options
+- **Target Name Mapping**: Ensure makefile_generator.rs correctly maps test names to Makefile target names
+- **Escape Handling**: Properly escape special characters in test inputs when generating cargo commands
+- **Regeneration Workflow**: Use `cargo run --bin sync_tests sync` to apply reproduction message changes to all targets
+- **User Experience Priority**: Test reproduction guidance should be immediately actionable and clear
+
 ### Version Control Integration Lessons
 - **Git Operations**: Always use `git mv` and `git rm` for tracked files to preserve history
 - **Documentation Importance**: WARP.md rules prevent common version control mistakes
@@ -147,18 +155,23 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - Critical stack overflow bug definitively resolved
 
 ### ✅ Test Reproduction Feature (2025-09-26)
-**Status: COMPLETE**
+**Status: COMPLETE - ENHANCED (2025-09-27)**
 
-**Implementation**:
+**Original Implementation**:
 - TestTargetMapper module maps test inputs to Makefile targets 
 - Enhanced comprehensive stress tests show reproduction commands on failure
 - Error summaries include copy-paste `make` commands for instant debugging
 
-**Example Output**:
+**Enhanced Implementation (2025-09-27)**:
+- **Dual Reproduction Options**: Modified makefile_generator.rs to provide both Makefile and cargo reproduction commands
+- **User Choice**: Test failures now display two options for reproducing issues
+- **Format Enhancement**: Clear labeling distinguishes between make and cargo approaches
+
+**Example Output (Enhanced)**:
 ```
-❌ PARSE FAILED: Return parser failed on '$1': ParseError  
-🔧 REPRODUCE THIS FAILURE: make test-return-scalar-1
-💡 TIP: Copy and paste any 'make' command above to reproduce specific failures
+❌ FAIL: test-semantic-type-xtypec_qexpressionq - Type annotation
+🔧 REPRODUCE with make: make test-semantic-type-xtypec_qexpressionq
+🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@type: "Expression"'
 ```
 
 **Coverage**:
@@ -166,7 +179,10 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - Semantic Parser: 5 individual test targets (types, precedence, booleans, arrays, objects)  
 - Regex Parser: 8 individual test targets (patterns, character classes, quantifiers)
 
-**Benefits**: 10x faster debugging cycles with instant test reproduction
+**Benefits**: 
+- 10x faster debugging cycles with instant test reproduction
+- User flexibility: choose between convenient Makefile targets or direct cargo commands
+- Enhanced developer experience with clear reproduction guidance
 
 ## Current Architecture
 

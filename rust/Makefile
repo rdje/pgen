@@ -5,6 +5,9 @@
 # Include automatic test synchronization
 include Makefile.auto-sync
 
+# Include stress test targets
+include Makefile.stress
+
 # Directories
 GRAMMARS_DIR = ../grammars
 GENERATED_DIR = ../generated
@@ -32,6 +35,13 @@ RETURN_ANNOTATION_EXE = $(GENERATED_DIR)/return_annotation_parser
 
 # Rust build artifacts
 RUST_AST_PIPELINE = $(RUST_DIR)/target/debug/ast_pipeline
+
+# Source dependencies for AST pipeline - if any of these change, parsers need regeneration
+AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
+                      $(RUST_DIR)/src/lib.rs \
+                      $(RUST_DIR)/src/ast_pipeline.rs \
+                      $(RUST_DIR)/src/ast_pipeline/high_performance_generator.rs \
+                      $(RUST_DIR)/Cargo.toml
 
 # Tools
 EBNF_TO_JSON = $(TOOLS_DIR)/ebnf_to_json.pl
@@ -83,21 +93,30 @@ $(GENERATED_DIR)/return_annotation_parser.rs.placeholder:
 	@echo "}" >> $(RETURN_ANNOTATION_PARSER)
 	@touch $@
 
-# Build Rust AST pipeline (depends on placeholder parsers existing)
-$(RUST_AST_PIPELINE): $(GENERATED_DIR)/semantic_annotation_parser.rs.placeholder $(GENERATED_DIR)/return_annotation_parser.rs.placeholder
-	@echo "Building Rust AST pipeline..."
-	cd $(RUST_DIR) && cargo build
+# Create placeholder parsers to avoid circular dependency during build
+.PHONY: create-placeholders
+create-placeholders:
+	@echo "Ensuring parser placeholders exist to avoid circular dependency..."
+	@[ -f $(SEMANTIC_ANNOTATION_PARSER) ] || ./scripts/create_placeholder_parser.sh Semantic_annotationParser $(SEMANTIC_ANNOTATION_PARSER)
+	@[ -f $(RETURN_ANNOTATION_PARSER) ] || ./scripts/create_placeholder_parser.sh Return_annotationParser $(RETURN_ANNOTATION_PARSER)
+
+# Build Rust AST pipeline binary only (avoids circular dependency with generated parsers in lib.rs)
+$(RUST_AST_PIPELINE): $(AST_PIPELINE_SOURCES) create-placeholders
+	@echo "Building Rust AST pipeline binary only (avoiding circular dependency)..."
+	cd $(RUST_DIR) && cargo build --bin ast_pipeline
 
 # Step 2: Generate Rust parsers from JSON files using bootstrap mode
 # These parsers are generated using bootstrap mode to avoid circular dependency
-$(SEMANTIC_ANNOTATION_PARSER): $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+$(SEMANTIC_ANNOTATION_PARSER): $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE) $(AST_PIPELINE_SOURCES)
 	@echo "Generating semantic annotation Rust parser from JSON (bootstrap mode)..."
 	@mkdir -p $(GENERATED_DIR)
+	@echo "Generating real parser (placeholder already exists from dependencies)..."
 	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER)
 
-$(RETURN_ANNOTATION_PARSER): $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+$(RETURN_ANNOTATION_PARSER): $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE) $(AST_PIPELINE_SOURCES)
 	@echo "Generating return annotation Rust parser from JSON (bootstrap mode)..."
 	@mkdir -p $(GENERATED_DIR)
+	@echo "Generating real parser (placeholder already exists from dependencies)..."
 	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER)
 
 # Step 3: Compile the generated Rust parsers as executables
@@ -110,13 +129,13 @@ $(RETURN_ANNOTATION_EXE): $(RETURN_ANNOTATION_PARSER)
 	rustc --edition 2021 -g -o $(RETURN_ANNOTATION_EXE) $(RETURN_ANNOTATION_PARSER)
 
 # Generate regex JSON from EBNF (depends only on Rust pipeline - parsers are optional)
-$(REGEX_JSON): $(REGEX_EBNF) $(RUST_AST_PIPELINE)
+$(REGEX_JSON): $(REGEX_EBNF) $(RUST_AST_PIPELINE) $(AST_PIPELINE_SOURCES)
 	@echo "Generating regex JSON with debug output..."
 	@mkdir -p $(GENERATED_DIR)
 	$(EBNF_TO_JSON) --verbosity debug --pretty $(REGEX_EBNF) -o $(REGEX_JSON)
 
 # Generate final regex parser from JSON
-$(REGEX_PARSER): $(REGEX_JSON)
+$(REGEX_PARSER): $(REGEX_JSON) $(AST_PIPELINE_SOURCES)
 	@echo "Generating final regex parser from JSON..."
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
@@ -293,7 +312,7 @@ return_annotation_parser: check-sync-needed $(RETURN_ANNOTATION_JSON) $(RUST_AST
 	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER)
 	@echo "✅ Generated: $(RETURN_ANNOTATION_PARSER)"
 	@echo "🧪 Step 3: Running comprehensive stress tests"
-	cd $(RUST_DIR) && cargo test comprehensive_stress_tests --release -- --nocapture return_annotation
+	cd $(RUST_DIR) && cargo test test_return_parser_comprehensive_stress --release -- --nocapture
 	@echo "🎉 Return annotation parser comprehensive flow completed!"
 
 # Semantic annotation parser complete flow
@@ -306,7 +325,7 @@ semantic_annotation_parser: check-sync-needed $(SEMANTIC_ANNOTATION_JSON) $(RUST
 	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER)
 	@echo "✅ Generated: $(SEMANTIC_ANNOTATION_PARSER)"
 	@echo "🧪 Step 3: Running comprehensive stress tests"
-	cd $(RUST_DIR) && cargo test comprehensive_stress_tests --release -- --nocapture semantic_annotation
+	cd $(RUST_DIR) && cargo test test_semantic_annotation_parser_comprehensive_stress --release -- --nocapture
 	@echo "🎉 Semantic annotation parser comprehensive flow completed!"
 
 # Regex parser complete flow
@@ -319,7 +338,7 @@ regex_parser: check-sync-needed $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
 	@echo "✅ Generated: $(REGEX_PARSER)"
 	@echo "🧪 Step 3: Running comprehensive stress tests"
-	cd $(RUST_DIR) && cargo test comprehensive_stress_tests --release -- --nocapture regex
+	cd $(RUST_DIR) && cargo test test_regex_parser_comprehensive_stress --release -- --nocapture
 	@echo "🎉 Regex parser comprehensive flow completed!"
 
 # Convenience aliases for easier typing
@@ -347,10 +366,19 @@ regex-parser-with-log-alias: regex-parser-with-log
 all_parser_tests: return_annotation_parser semantic_annotation_parser regex_parser
 	@echo "🎉 All parser comprehensive flows completed!"
 
+# Specific test target with proper dependencies for debugging stack overflow issue
+.PHONY: test-semantic-complex-xq_if_s1_else_q
+test-semantic-complex-xq_if_s1_else_q: $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "🧪 Testing semantic parser with complex input (potential stack overflow case)..."
+	@echo "Input: ^\" if \$1 else \""
+	@echo "📝 Generated parser will be used from: $(SEMANTIC_ANNOTATION_PARSER)"
+	cd $(RUST_DIR) && cargo run -- --parser semantic --input '^\" if \$1 else \"' 2>&1 | tee $(GENERATED_DIR)/test-semantic-complex-xq_if_s1_else_q.log || true
+	@echo "📋 Debug output saved to: $(GENERATED_DIR)/test-semantic-complex-xq_if_s1_else_q.log"
+
 # Individual test targets for Return Annotation Parser
 # Basic scalar references
 .PHONY: test-return-scalar-1
-test-return-scalar-1: check-sync-needed $(RETURN_ANNOTATION_PARSER)
+test-return-scalar-1: $(RETURN_ANNOTATION_PARSER)
 	@echo "🔍 Testing Return Parser: \$1"
 	@cd $(RUST_DIR) && PGEN_TEST_INPUT='\$1' cargo test test_individual_return_test -- --nocapture
 
@@ -527,13 +555,194 @@ bootstrap-status:
 	@echo "To test bootstrap mode: make bootstrap-test"
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Auto-generated Makefile targets for stress tests
-# Generated at: 2025-09-26T18:25:21.719564+00:00
+# Generated at: 2025-09-27T15:25:52.823834+00:00
 # DO NOT EDIT MANUALLY - This section is automatically regenerated
 
+# Type annotation - type
+test-semantic-type-xtypec_qexpressionq: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @type: \"Expression\""
+	@echo "Running: cargo run -- --parser semantic --input '@type: \"Expression\"'"
+	@if cargo run -- --parser semantic --input '@type: \"Expression\"' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-type-xtypec_qexpressionq - Type annotation"; \
+	else \
+		echo "❌ FAIL: test-semantic-type-xtypec_qexpressionq - Type annotation"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-type-xtypec_qexpressionq"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@type: \"Expression\"'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Precedence annotation - precedence
+test-semantic-precedence-xprecedencec_5: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @precedence: 5"
+	@echo "Running: cargo run -- --parser semantic --input '@precedence: 5'"
+	@if cargo run -- --parser semantic --input '@precedence: 5' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-precedence-xprecedencec_5 - Precedence annotation"; \
+	else \
+		echo "❌ FAIL: test-semantic-precedence-xprecedencec_5 - Precedence annotation"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-precedence-xprecedencec_5"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@precedence: 5'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Boolean annotation - boolean
+test-semantic-boolean-xsidexeffectc_false: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @side_effect: false"
+	@echo "Running: cargo run -- --parser semantic --input '@side_effect: false'"
+	@if cargo run -- --parser semantic --input '@side_effect: false' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-boolean-xsidexeffectc_false - Boolean annotation"; \
+	else \
+		echo "❌ FAIL: test-semantic-boolean-xsidexeffectc_false - Boolean annotation"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-boolean-xsidexeffectc_false"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@side_effect: false'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Array annotation - array
+test-semantic-array-xvalidatec_aqcheckxboundsqa: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @validate: [\"check_bounds\"]"
+	@echo "Running: cargo run -- --parser semantic --input '@validate: [\"check_bounds\"]'"
+	@if cargo run -- --parser semantic --input '@validate: [\"check_bounds\"]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-array-xvalidatec_aqcheckxboundsqa - Array annotation"; \
+	else \
+		echo "❌ FAIL: test-semantic-array-xvalidatec_aqcheckxboundsqa - Array annotation"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-array-xvalidatec_aqcheckxboundsqa"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@validate: [\"check_bounds\"]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Object annotation - object
+test-semantic-object-xcachec_ottlc_300o: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @cache: {ttl: 300}"
+	@echo "Running: cargo run -- --parser semantic --input '@cache: {ttl: 300}'"
+	@if cargo run -- --parser semantic --input '@cache: {ttl: 300}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-object-xcachec_ottlc_300o - Object annotation"; \
+	else \
+		echo "❌ FAIL: test-semantic-object-xcachec_ottlc_300o - Object annotation"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-object-xcachec_ottlc_300o"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@cache: {ttl: 300}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Complex function call annotation - complex
+test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: generate_char_class_matcher(has_negation(\$2), collect_class_items(\$2))"
+	@echo "Running: cargo run -- --parser semantic --input 'generate_char_class_matcher(has_negation(\$2), collect_class_items(\$2))'"
+	@if cargo run -- --parser semantic --input 'generate_char_class_matcher(has_negation(\$2), collect_class_items(\$2))' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx - Complex function call annotation"; \
+	else \
+		echo "❌ FAIL: test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx - Complex function call annotation"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input 'generate_char_class_matcher(has_negation(\$2), collect_class_items(\$2))'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Complex conditional expression - complex
+test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: count(flatten(\$2)) > 8 ? \"lookup_table\" : \"linear_checks\""
+	@echo "Running: cargo run -- --parser semantic --input 'count(flatten(\$2)) > 8 ? \"lookup_table\" : \"linear_checks\"'"
+	@if cargo run -- --parser semantic --input 'count(flatten(\$2)) > 8 ? \"lookup_table\" : \"linear_checks\"' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq - Complex conditional expression"; \
+	else \
+		echo "❌ FAIL: test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq - Complex conditional expression"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input 'count(flatten(\$2)) > 8 ? \"lookup_table\" : \"linear_checks\"'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Complex lambda expression - complex
+test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: all(extract_ranges(\$2), r => valid_range(r.start, r.end))"
+	@echo "Running: cargo run -- --parser semantic --input 'all(extract_ranges(\$2), r => valid_range(r.start, r.end))'"
+	@if cargo run -- --parser semantic --input 'all(extract_ranges(\$2), r => valid_range(r.start, r.end))' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx - Complex lambda expression"; \
+	else \
+		echo "❌ FAIL: test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx - Complex lambda expression"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input 'all(extract_ranges(\$2), r => valid_range(r.start, r.end))'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Invalid syntax pattern (causes stack overflow) - complex
+test-semantic-complex-xq_if_s1_else_q: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: ^\" if \$1 else \""
+	@echo "Running: cargo run -- --parser semantic --input '^\" if \$1 else \"'"
+	@if cargo run -- --parser semantic --input '^\" if \$1 else \"' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-complex-xq_if_s1_else_q - Invalid syntax pattern (causes stack overflow)"; \
+	else \
+		echo "❌ FAIL: test-semantic-complex-xq_if_s1_else_q - Invalid syntax pattern (causes stack overflow)"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-complex-xq_if_s1_else_q"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '^\" if \$1 else \"'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Comparison expression - complex
+test-semantic-complex-s1_xx_null: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: \$1 != null"
+	@echo "Running: cargo run -- --parser semantic --input '\$1 != null'"
+	@if cargo run -- --parser semantic --input '\$1 != null' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-complex-s1_xx_null - Comparison expression"; \
+	else \
+		echo "❌ FAIL: test-semantic-complex-s1_xx_null - Comparison expression"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-complex-s1_xx_null"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '\$1 != null'"; \
+		exit 1; \
+	fi
+	@echo ""
+
 # Run all stress tests
-test-all: 
+test-all: test-semantic-type-xtypec_qexpressionq test-semantic-precedence-xprecedencec_5 test-semantic-boolean-xsidexeffectc_false test-semantic-array-xvalidatec_aqcheckxboundsqa test-semantic-object-xcachec_ottlc_300o test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
 	@echo "🎯 All stress tests completed successfully!"
+
+# Run all semantic parser tests
+test-semantic: test-semantic-type-xtypec_qexpressionq test-semantic-precedence-xprecedencec_5 test-semantic-boolean-xsidexeffectc_false test-semantic-array-xvalidatec_aqcheckxboundsqa test-semantic-object-xcachec_ottlc_300o test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
+	@echo "🎯 All semantic parser tests completed!"
+
+# Run all array category tests
+test-array: test-semantic-array-xvalidatec_aqcheckxboundsqa
+	@echo "🎯 All array tests completed!"
+
+# Run all boolean category tests
+test-boolean: test-semantic-boolean-xsidexeffectc_false
+	@echo "🎯 All boolean tests completed!"
+
+# Run all complex category tests
+test-complex: test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
+	@echo "🎯 All complex tests completed!"
+
+# Run all object category tests
+test-object: test-semantic-object-xcachec_ottlc_300o
+	@echo "🎯 All object tests completed!"
+
+# Run all precedence category tests
+test-precedence: test-semantic-precedence-xprecedencec_5
+	@echo "🎯 All precedence tests completed!"
+
+# Run all type category tests
+test-type: test-semantic-type-xtypec_qexpressionq
+	@echo "🎯 All type tests completed!"
 
 # Convenience targets
 test-quick: test-return test-semantic
@@ -550,16 +759,12 @@ test-debug: target/debug/pgen
 test-stats:
 	@echo "📊 Test Statistics:"
 	@echo "  Return tests: 0"
-	@echo "  Semantic tests: 0"
+	@echo "  Semantic tests: 10"
 	@echo "  Regex tests: 0"
-	@echo "  Total tests: 0"
+	@echo "  Total tests: 10"
 
 .PHONY: test-all test-return test-semantic test-regex test-quick test-comprehensive test-debug test-stats
 
 
 # End of auto-generated targets
-
-
-
-
 

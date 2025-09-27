@@ -1,0 +1,67 @@
+{
+  "parser_type": "semantic",
+  "basic_tests": [
+    {
+      "input": "@type: \"Expression\"",
+      "description": "Type annotation",
+      "category": "type",
+      "expected": "success"
+    },
+    {
+      "input": "@precedence: 5", 
+      "description": "Precedence annotation",
+      "category": "precedence",
+      "expected": "success"
+    },
+    {
+      "input": "@side_effect: false",
+      "description": "Boolean annotation", 
+      "category": "boolean",
+      "expected": "success"
+    },
+    {
+      "input": "@validate: [\"check_bounds\"]",
+      "description": "Array annotation",
+      "category": "array", 
+      "expected": "success"
+    },
+    {
+      "input": "@cache: {ttl: 300}",
+      "description": "Object annotation",
+      "category": "object",
+      "expected": "success"
+    }
+  ],
+  "complex_tests": [
+    {
+      "input": "generate_char_class_matcher(has_negation($2), collect_class_items($2))",
+      "description": "Complex function call annotation",
+      "category": "complex",
+      "expected": "success"
+    },
+    {
+      "input": "count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"", 
+      "description": "Complex conditional expression",
+      "category": "complex",
+      "expected": "success"
+    },
+    {
+      "input": "all(extract_ranges($2), r => valid_range(r.start, r.end))",
+      "description": "Complex lambda expression", 
+      "category": "complex",
+      "expected": "success"
+    },
+    {
+      "input": "^\" if $1 else \"",
+      "description": "Invalid syntax pattern (causes stack overflow)",
+      "category": "complex",
+      "expected": "failure"
+    },
+    {
+      "input": "$1 != null",
+      "description": "Comparison expression",
+      "category": "complex", 
+      "expected": "success"
+    }
+  ]
+}

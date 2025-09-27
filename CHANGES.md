@@ -1,5 +1,59 @@
 # CHANGES.md
 
+## 2025-09-27: Enhanced Test Reproduction Guidance ✅
+
+### Problem Addressed
+**User Experience Issue**: When tests failed, users were only shown a cargo run command for reproducing the failure, but not the corresponding Makefile target, which would be more convenient for users who prefer the Makefile workflow.
+
+### Achievement: Dual Reproduction Options
+**What Was Implemented:**
+- ✅ **Enhanced REPRODUCE Messages**: Modified test failure output to show both Makefile and cargo reproduction options
+- ✅ **User Choice**: Users can now choose between convenient `make test-name` targets or direct `cargo run --parser...` commands
+- ✅ **Backward Compatibility**: Maintained the original cargo command while adding Makefile option
+- ✅ **Consistent Implementation**: Applied across all generated test targets
+
+### Technical Implementation Details
+**Code Changes:**
+- **Modified `src/makefile_generator.rs`**: Updated `generate_individual_target` function in the `MakefileGenerator` implementation
+- **Added dual output format**: 
+  - `🔧 REPRODUCE with make: make {target_name}`
+  - `🔧 REPRODUCE with cargo: cargo run -- --parser {parser_type} --input '{escaped_input}'`
+- **Updated format string parameters**: Ensured correct `target_name` insertion for Makefile references
+
+**Regeneration Process:**
+- **Command**: `cargo run --bin sync_tests sync`
+- **Effect**: Regenerated all test targets in Makefile with enhanced REPRODUCE messages
+- **Validation**: Tested multiple failing test targets to confirm both reproduction options appear
+
+### User Experience Impact
+**Before:**
+```
+❌ FAIL: test-semantic-type-xtypec_qexpressionq - Type annotation
+🔧 REPRODUCE: cargo run -- --parser semantic --input '@type: "Expression"'
+```
+
+**After:**
+```
+❌ FAIL: test-semantic-type-xtypec_qexpressionq - Type annotation
+🔧 REPRODUCE with make: make test-semantic-type-xtypec_qexpressionq
+🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@type: "Expression"'
+```
+
+### Files Modified
+- **MODIFIED:** `src/makefile_generator.rs` - Enhanced test target generation with dual reproduction options
+- **REGENERATED:** `Makefile` - All test targets updated with new REPRODUCE message format
+- **UPDATED:** `git_message_brief.txt` - Documented reproduction guidance enhancement
+
+### Validation Results
+✅ **Functionality**: Both reproduction options display correctly in test failures  
+✅ **Consistency**: Enhancement applied uniformly across all test targets  
+✅ **User Choice**: Users can select their preferred reproduction method  
+✅ **Compatibility**: Original cargo-based workflow remains fully functional  
+
+**This improvement enhances the developer experience by providing flexible test failure reproduction options while maintaining full backward compatibility.**
+
+---
+
 ## 2025-09-26: Top-Notch Debug Output Transformation & Test Infrastructure Completion ✅
 
 ### Achievement: Enhanced Debug Output Formatting

@@ -68,7 +68,8 @@ impl MakefileGenerator {
 		echo "✅ PASS: {} - {}"; \
 	else \
 		echo "❌ FAIL: {} - {}"; \
-		echo "🔧 REPRODUCE: cargo run -- --parser {} --input '{}'"; \
+		echo "🔧 REPRODUCE with make: make {}"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser {} --input '{}'"; \
 		exit 1; \
 	fi
 	@echo ""
@@ -87,6 +88,7 @@ impl MakefileGenerator {
         description,
         target_name, 
         description,
+        target_name,
         test.parser_type, 
         escaped_input
         )

@@ -234,7 +234,6 @@ pub struct {parser_name}<'input> {{
     debug_mode: bool,
     debug_depth: usize,
     debug_output: Vec<String>,
-    debug_log_file: Option<String>, // Log file path for debug output
 }}
 
 impl<'input> {parser_name}<'input> {{
@@ -249,7 +248,6 @@ impl<'input> {parser_name}<'input> {{
             debug_mode: {enable_trace},
             debug_depth: 0,
             debug_output: Vec::new(),
-            debug_log_file: None,
         }}
     }}
     
@@ -264,17 +262,10 @@ impl<'input> {parser_name}<'input> {{
             debug_mode: true,
             debug_depth: 0,
             debug_output: Vec::new(),
-            debug_log_file: None,
         }}
     }}
     
-    /// Create new parser with debug mode and automatic log file creation
-    #[inline]
-    pub fn with_debug_log(input: &'input str, test_name: &str) -> Self {{
-        let mut parser = Self::with_debug(input);
-        parser.setup_debug_logging(test_name);
-        parser
-    }}
+    // TODO: Re-add debug log file functionality after fixing template issues
     
     /// Get debug output for analysis
     pub fn debug_output(&self) -> &[String] {{
@@ -287,43 +278,7 @@ impl<'input> {parser_name}<'input> {{
         self.debug_depth = 0;
     }}
     
-    /// Setup debug logging with automatic log file creation
-    pub fn setup_debug_logging(&mut self, test_name: &str) {{
-        let parser_name = "{parser_name}".to_lowercase().replace("parser", "");
-        let log_filename = format!("{{}}_{{}}_{{}}.log", 
-            parser_name, 
-            test_name, 
-            chrono::Utc::now().format("%Y%m%d_%H%M%S"));
-        self.debug_log_file = Some(log_filename);
-    }}
-    
-    /// Write debug output to log file
-    pub fn write_debug_log(&self) -> Result<(), std::io::Error> {{
-        if let Some(ref log_file_path) = self.debug_log_file {{
-            use std::fs::File;
-            use std::io::{{Write, BufWriter}};
-            
-            let file = File::create(log_file_path)?;
-            let mut writer = BufWriter::new(file);
-            
-            // Write header
-            writeln!(writer, "# Debug Log for {{}} Parser", "{parser_name}")?;
-            writeln!(writer, "# Generated: {{}}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"))?;
-            writeln!(writer, "# Input Length: {{}} characters", self.input.len())?;
-            writeln!(writer, "# Log File: {{}}", log_file_path)?;
-            writeln!(writer, "# {{}}", "=".repeat(80))?;
-            writeln!(writer)?;
-            
-            // Write all debug output
-            for line in &self.debug_output {{
-                writeln!(writer, "{{}}", line)?;
-            }}
-            
-            writer.flush()?;
-            println!("📁 Debug log written to: {{}}", log_file_path);
-        }}
-        Ok(())
-    }}
+    // TODO: Re-implement debug logging methods after fixing template formatting
 
     /// Parse entry point - returns AST or error with beautiful debug output
     pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {{
@@ -332,9 +287,9 @@ impl<'input> {parser_name}<'input> {{
         
         if self.debug_mode {{
             let input_preview = if self.input.len() > 40 {{
-                format!("\"{{}}\"", self.format_debug_string(&self.input[..40]))
+                format!("{{}}", self.format_debug_string(&self.input[..40]))
             }} else {{
-                format!("\"{{}}\"", self.format_debug_string(self.input))
+                format!("{{}}", self.format_debug_string(self.input))
             }};
             self.debug_output.push(format!("🔍 PARSING: {{}}", input_preview));
             self.debug_output.push("".to_string());
@@ -347,7 +302,7 @@ impl<'input> {parser_name}<'input> {{
                 Ok(ast) => {{
                     self.debug_output.push("".to_string());
                     self.debug_output.push("✅ PARSE COMPLETE: {entry_rule}".to_string());
-                    self.debug_output.push(format!("📊 Total consumed: {{}}/{{}}} characters", 
+                    self.debug_output.push(format!("📊 Total consumed: {{}}/{{}} characters", 
                         self.position, self.input.len()));
                     self.debug_output.push(format!("🎯 Result: {{:?}}", ast));
                 }}
@@ -370,10 +325,7 @@ impl<'input> {parser_name}<'input> {{
                 }}
             }}
             
-            // Automatically write debug log file if configured
-            if let Err(e) = self.write_debug_log() {{
-                eprintln!("Warning: Failed to write debug log file: {{}}", e);
-            }}
+            // TODO: Re-add debug log file writing after fixing template issues
         }}
         
         result
@@ -538,8 +490,8 @@ impl<'input> {parser_name}<'input> {{
             let rule_hierarchy = if self.debug_depth == 0 {{
                 rule_name.to_string()
             }} else {{
-                // Build hierarchical path: parent → ... → current_rule
-                format!("{} → {}", self.get_rule_hierarchy(), rule_name)
+                // Build hierarchical path: parent_rule → current_rule
+                format!("{{}} → {{}}", self.get_rule_hierarchy(), rule_name)
             }};
             
             let context = if self.position < self.input.len() {{
@@ -685,10 +637,9 @@ impl<'input> {parser_name}<'input> {{
             .collect()
     }}
 
-"#, 
-            parser_name = parser_name,
-            entry_rule = entry_rule,
-            enable_trace = self.enable_trace
+"#,
+            enable_trace = self.enable_trace,
+            backtrack_debug_code = backtrack_debug_code
         )
     }
 

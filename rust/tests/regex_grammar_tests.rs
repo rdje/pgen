@@ -1,4 +1,4 @@
-use ebnf_pipeline::{RustASTPipeline, PipelineConfig, ASTNode};
+use pgen::{RustASTPipeline, PipelineConfig, ASTNode};
 
 /// Test that the regex grammar transforms successfully and contains expected productions
 #[test]
