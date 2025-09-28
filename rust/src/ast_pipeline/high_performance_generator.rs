@@ -164,6 +164,7 @@ pub enum ParseError {{
     UnexpectedToken {{ expected: &'static str, found: char, position: usize }},
     InvalidSyntax {{ message: &'static str, position: usize }},
     Backtrack {{ position: usize }},
+    RecursionDepthExceeded {{ position: usize, depth: usize }},
 }}
 
 impl fmt::Display for ParseError {{
@@ -177,6 +178,8 @@ impl fmt::Display for ParseError {{
                 write!(f, "{{}} at position {{}}", message, position),
             ParseError::Backtrack {{ position }} => 
                 write!(f, "Backtrack at position {{}}", position),
+            ParseError::RecursionDepthExceeded {{ position, depth }} => 
+                write!(f, "Recursion depth exceeded ({{}} levels) at position {{}}", depth, position),
         }}
     }}
 }}
@@ -211,6 +214,9 @@ struct MemoEntry<'input> {{
 /// Compact rule ID for fast memoization lookups
 type RuleId = u16;
 
+/// Maximum recursion depth to prevent stack overflow in circular grammars
+const MAX_RECURSION_DEPTH: usize = 1000;
+
 "#, grammar_name = self.grammar_name)
     }
 
@@ -236,6 +242,7 @@ pub struct {parser_name}<'input> {{
     debug_depth: usize,
     debug_output: Vec<String>,
     rule_stack: Vec<String>, // Track rule hierarchy
+    recursion_depth: usize, // Track recursion depth to prevent stack overflow
 }}
 
 impl<'input> {parser_name}<'input> {{
@@ -251,6 +258,7 @@ impl<'input> {parser_name}<'input> {{
             debug_depth: 0,
             debug_output: Vec::new(),
             rule_stack: Vec::new(),
+            recursion_depth: 0,
         }}
     }}
     
@@ -266,6 +274,7 @@ impl<'input> {parser_name}<'input> {{
             debug_depth: 0,
             debug_output: Vec::new(),
             rule_stack: Vec::new(),
+            recursion_depth: 0,
         }}
     }}
     
@@ -281,6 +290,7 @@ impl<'input> {parser_name}<'input> {{
         self.debug_output.clear();
         self.debug_depth = 0;
         self.rule_stack.clear();
+        self.recursion_depth = 0;
     }}
     
     // TODO: Re-implement debug logging methods after fixing template formatting
@@ -380,7 +390,7 @@ impl<'input> {parser_name}<'input> {{
         &self.input[range]
     }}
 
-    /// Memoized rule call with packrat parsing
+    /// Memoized rule call with packrat parsing and recursion depth tracking
     #[inline]
     fn memoized_call<F>(&mut self, rule_id: RuleId, f: F) -> ParseResult<ParseNode<'input>>
     where
@@ -388,23 +398,56 @@ impl<'input> {parser_name}<'input> {{
     {{
         let key = (rule_id, self.position);
         
+        // Left-recursion detection: check if we're already trying to parse this rule at this position
+        if self.recursion_depth > 0 {{
+            // This is a simple left-recursion detector - for full LR support we'd need a more sophisticated approach
+            // For now, we'll rely on the memo table and recursion limits to handle cycles
+            if self.debug_mode {{
+                self.debug_output.push(format!("      🔄 RECURSION CHECK: Rule ID {{}} at pos {{}} (depth {{}})", rule_id, key.1, self.recursion_depth));
+            }}
+        }}
+        
         // Check memo table
         if let Some(entry) = self.memo.get(&key) {{
+            // Memoization HIT - use cached result
+            if self.debug_mode {{
+                self.debug_output.push(format!("      🎯 MEMO HIT: Rule ID {{}} at pos {{}} → cached result (pos {{}})", rule_id, key.1, entry.end_pos));
+            }}
             self.position = entry.end_pos;
             match &entry.result {{
                 Some(node) => Ok(node.clone()),
                 None => Err(ParseError::Backtrack {{ position: self.position }}),
             }}
         }} else {{
-            // Not memoized - compute result
+            // Memoization MISS - need to compute result
+            if self.debug_mode {{
+                self.debug_output.push(format!("      📝 MEMO MISS: Rule ID {{}} at pos {{}} → computing...", rule_id, key.1));
+            }}
+            // Check recursion depth limit to prevent stack overflow
+            if self.recursion_depth >= MAX_RECURSION_DEPTH {{
+                return Err(ParseError::RecursionDepthExceeded {{
+                    position: self.position,
+                    depth: self.recursion_depth,
+                }});
+            }}
+            
+            // Not memoized - compute result with recursion tracking
+            self.recursion_depth += 1;
             let start_pos = self.position;
-            match f(self) {{
+            
+            let result = f(self);
+            self.recursion_depth -= 1;
+            
+            match result {{
                 Ok(node) => {{
                     let end_pos = self.position;
                     self.memo.insert(key, MemoEntry {{
                         result: Some(node.clone()),
                         end_pos,
                     }});
+                    if self.debug_mode {{
+                        self.debug_output.push(format!("      ✅ MEMO CACHE: Rule ID {{}} at pos {{}} → SUCCESS (advanced to {{}})", rule_id, key.1, end_pos));
+                    }}
                     Ok(node)
                 }}
                 Err(err) => {{
@@ -412,6 +455,9 @@ impl<'input> {parser_name}<'input> {{
                         result: None,
                         end_pos: start_pos,
                     }});
+                    if self.debug_mode {{
+                        self.debug_output.push(format!("      ❌ MEMO CACHE: Rule ID {{}} at pos {{}} → FAILURE (stayed at {{}})", rule_id, key.1, start_pos));
+                    }}
                     Err(err)
                 }}
             }}
@@ -478,6 +524,27 @@ impl<'input> {parser_name}<'input> {{
             Ok(result) => Some(result),
             Err(_) => {{
 {backtrack_debug_code}                self.position = saved_pos;
+                None
+            }}
+        }}
+    }}
+    
+    /// Try parsing rule call with memoization-aware backtracking
+    /// This version preserves memoization when used in quantifiers
+    #[inline]
+    fn try_parse_memoized<F>(&mut self, f: F) -> Option<ParseContent<'input>>
+    where
+        F: FnOnce(&mut Self) -> ParseResult<ParseContent<'input>>,
+    {{
+        let saved_pos = self.position;
+        let saved_recursion_depth = self.recursion_depth;
+        
+        match f(self) {{
+            Ok(result) => Some(result),
+            Err(_) => {{
+{backtrack_debug_code}                // Restore parser state completely
+                self.position = saved_pos;
+                self.recursion_depth = saved_recursion_depth;
                 None
             }}
         }}
@@ -572,6 +639,8 @@ impl<'input> {parser_name}<'input> {{
                     format!("{{}}", message),
                 ParseError::Backtrack {{ position }} => 
                     format!("Backtracked to position {{}}", position),
+                ParseError::RecursionDepthExceeded {{ position, depth }} => 
+                    format!("Recursion depth exceeded ({{}} levels) at position {{}}", depth, position),
             }};
             
             let suggestion = match error {{
@@ -628,6 +697,16 @@ impl<'input> {parser_name}<'input> {{
         }}
     }}
     
+    /// Debug: Log quantifier iteration failure with beautiful formatting
+    #[inline]
+    fn debug_quantifier_iteration_failed(&mut self, quantifier: &str) {{
+        if self.debug_mode {{
+            let fail_msg = format!("      ⚡ Quantifier '{{}}' iteration FAILED at position {{}} (will backtrack)", 
+                quantifier, self.position);
+            self.debug_output.push(fail_msg);
+        }}
+    }}
+    
     /// Debug: Log sequence element success with beautiful formatting
     #[inline]
     fn debug_sequence_element_success(&mut self, elem_index: usize, total: usize, rule_name: &str, elem_description: &str, consumed_chars: usize) {{
@@ -648,6 +727,8 @@ impl<'input> {parser_name}<'input> {{
                     format!("Expected '{{}}', found '{{}}'", expected, found),
                 ParseError::InvalidSyntax {{ message, position }} => message.to_string(),
                 ParseError::Backtrack {{ position }} => "Backtracked".to_string(),
+                ParseError::RecursionDepthExceeded {{ position, depth }} => 
+                    format!("Recursion depth exceeded ({{}} levels)", depth),
             }};
             let failure_msg = format!("      ❌ FAILURE: Element {{}}/{{}} of {{}}: {{}} ({{}})", 
                 elem_index + 1, total, rule_name, elem_description, error_reason);
@@ -1434,7 +1515,9 @@ impl<'input> {parser_name}<'input> {{
         let element_description = self.extract_ebnf_description(element);
         let quantified_description = format!("{}{}", element_description, quantifier);
         
-        // Filter out any debug_quantifier_end calls from the inner code to avoid variable scoping issues
+        // CRITICAL FIX: For quantified sequences, we need to ensure proper backtracking
+        // When a quantified element contains a sequence, we need to isolate failures
+        // so that the quantifier can properly handle zero matches without propagating errors
         let inner_code = element_code
             .replace("let result =", "    let content =")
             .replace("parser.", "p.")
@@ -1444,20 +1527,51 @@ impl<'input> {parser_name}<'input> {{
             .collect::<Vec<_>>()
             .join("\n");
         
+        // For * and ? quantifiers, wrap the inner code to handle failures gracefully
+        let quantifier_wrapper = match quantifier {
+            "*" | "?" => {
+                // These quantifiers allow zero matches, so we need to ensure proper scoped backtracking
+                // The key insight: failures within quantifiers should not escape the quantifier context
+                format!(
+                    r##"{indent}let element_content = parser.parse_quantified_optimized("{quantifier}", |p| {{
+{indent}    // Quantifier scope: failures here are converted to backtrack signals for try_parse_memoized
+{inner_code}
+{indent}    Ok(content)
+{indent}}})?;"##
+                )
+            }
+            "+" => {
+                // + quantifier requires at least one match, so propagate errors normally
+                format!(
+                    r##"{indent}let element_content = parser.parse_quantified_optimized("{quantifier}", |p| {{
+{inner_code}
+{indent}    Ok(content)
+{indent}}})?;"##
+                )
+            }
+            
+            _ => {
+                // Other quantifiers (like {n,m}) - use default behavior
+                format!(
+                    r##"{indent}let element_content = parser.parse_quantified_optimized("{quantifier}", |p| {{
+{inner_code}
+{indent}    Ok(content)
+{indent}}})?;"##
+                )
+            }
+        };
+        
         Ok(format!(
             r##"{indent}// Debug quantifier attempt
 {indent}parser.debug_quantifier_start("{rule_name}", r#"{quantified_description}"#, "{quantifier}");
-{indent}let element_content = parser.parse_quantified_optimized("{quantifier}", |p| {{
-{inner_code}
-{indent}    Ok(content)
-{indent}}})?;
+{quantifier_wrapper}
 {indent}parser.debug_quantifier_end("{rule_name}", r#"{quantified_description}"#, "{quantifier}", &element_content);
 "##,
             indent = indent,
             rule_name = rule_name,
             quantifier = quantifier,
             quantified_description = quantified_description,
-            inner_code = inner_code
+            quantifier_wrapper = quantifier_wrapper
         ))
     }
 
@@ -1592,8 +1706,8 @@ impl<'input> {parser_name}<'input> {{
         
         match quantifier {
             "*" => {
-                // Zero or more - optimized loop
-                while let Some(content) = self.try_parse(&mut f) {
+                // Zero or more - optimized loop with memoization preservation
+                while let Some(content) = self.try_parse_memoized(&mut f) {
                     iteration += 1;
                     self.debug_quantifier_iteration(iteration, quantifier);
                     results.push(ParseNode {
@@ -1617,7 +1731,7 @@ impl<'input> {parser_name}<'input> {{
                             span: 0..0,
                         });
                         
-                        while let Some(content) = self.try_parse(&mut f) {
+                        while let Some(content) = self.try_parse_memoized(&mut f) {
                             iteration += 1;
                             self.debug_quantifier_iteration(iteration, quantifier);
                             results.push(ParseNode {
@@ -1632,8 +1746,8 @@ impl<'input> {parser_name}<'input> {{
                 }
             }
             "?" => {
-                // Zero or one
-                if let Some(content) = self.try_parse(&mut f) {
+                // Zero or one with memoization preservation
+                if let Some(content) = self.try_parse_memoized(&mut f) {
                     iteration += 1;
                     self.debug_quantifier_iteration(iteration, quantifier);
                     results.push(ParseNode {

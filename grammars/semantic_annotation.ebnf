@@ -13,13 +13,12 @@
 # =============================================================================
 
 # Main semantic annotation rule - can appear before any grammar rule
-# semantic_annotation := "@" annotation_name ":" annotation_value
-semantic_annotation := annotation_value
-    -> {type: "semantic_annotation", name: $2, value: $4}
+semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
+    -> {type: "semantic_annotation", name: $3, value: $6}
 
 # Compact form (same as above, for backward compatibility)
-annotation := "@" annotation_name ":" annotation_value  
-    -> {type: "semantic_annotation", name: $2, value: $4}
+annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value  
+    -> {type: "semantic_annotation", name: $3, value: $6}
 
 # =============================================================================
 # ANNOTATION NAMES AND TYPES
@@ -201,25 +200,24 @@ identifier_literal := /([a-zA-Z_][a-zA-Z0-9_]*)/
 # =============================================================================
 
 # Array/List values: [item1, item2, item3]
-array_value := "[" (array_element ("," array_element)*)? "]"
-    -> {type: "array", elements: [$2, $3*]}
+array_value := "[" /\s*/ (array_element (/\s*/ "," /\s*/ array_element)*)? /\s*/ "]"
+    -> {type: "array", elements: [$3, $4*]}
 
 array_element := annotation_value | spread_element
     -> $1
 
-spread_element := "..." annotation_value
-    -> {type: "spread", value: $2}
+spread_element := "..." /\s*/ annotation_value
+    -> {type: "spread", value: $3}
 
 # Object/Map values: {key1: value1, key2: value2}  
-object_value := "{" (object_property ("," object_property)*)? "}"
-    -> {type: "object", properties: [$2, $3*]}
+object_value := "{" /\s*/ (object_property (/\s*/ "," /\s*/ object_property)*)? /\s*/ "}"
+    -> {type: "object", properties: [$3, $4*]}
 
 object_property := 
-    property_key ":" annotation_value |
+    (property_key /\s*/ ":" /\s*/ annotation_value) -> {type: "property", key: $1, value: $5} |
     computed_property |
     shorthand_property |
     spread_property
-    -> $1
 
 property_key := 
     string_literal |
@@ -227,41 +225,41 @@ property_key :=
     computed_key
     -> $1
 
-computed_key := "[" annotation_value "]"
-    -> {type: "computed_key", expression: $2}
+computed_key := "[" /\s*/ annotation_value /\s*/ "]"
+    -> {type: "computed_key", expression: $3}
 
-computed_property := "[" annotation_value "]" ":" annotation_value
-    -> {type: "computed_property", key: $2, value: $5}
+computed_property := "[" /\s*/ annotation_value /\s*/ "]" /\s*/ ":" /\s*/ annotation_value
+    -> {type: "computed_property", key: $3, value: $9}
 
 shorthand_property := identifier_literal
     -> {type: "shorthand_property", name: $1}
 
-spread_property := "..." annotation_value  
-    -> {type: "spread_property", value: $2}
+spread_property := "..." /\s*/ annotation_value  
+    -> {type: "spread_property", value: $3}
 
 # Tuple values: (item1, item2, item3)
-tuple_value := "(" (tuple_element ("," tuple_element)*)? ")"
-    -> {type: "tuple", elements: [$2, $3*]}
+tuple_value := "(" /\s*/ (tuple_element (/\s*/ "," /\s*/ tuple_element)*)? /\s*/ ")"
+    -> {type: "tuple", elements: [$3, $4*]}
 
 tuple_element := annotation_value | named_tuple_element
     -> $1
 
-named_tuple_element := identifier_literal ":" annotation_value
-    -> {type: "named_element", name: $1, value: $3}
+named_tuple_element := identifier_literal /\s*/ ":" /\s*/ annotation_value
+    -> {type: "named_element", name: $1, value: $5}
 
 # Set values: {item1, item2, item3} (distinguished from objects by context)
-set_value := "#{" (set_element ("," set_element)*)? "}"
-    -> {type: "set", elements: [$2, $3*]}
+set_value := "#{" /\s*/ (set_element (/\s*/ "," /\s*/ set_element)*)? /\s*/ "}"
+    -> {type: "set", elements: [$3, $4*]}
 
 set_element := annotation_value
     -> $1
 
 # Map values: {key1 => value1, key2 => value2}
-map_value := "{" (map_entry ("," map_entry)*)? "}"
-    -> {type: "map", entries: [$2, $3*]}
+map_value := "{" /\s*/ (map_entry (/\s*/ "," /\s*/ map_entry)*)? /\s*/ "}"
+    -> {type: "map", entries: [$3, $4*]}
 
-map_entry := annotation_value "=>" annotation_value
-    -> {type: "map_entry", key: $1, value: $3}
+map_entry := annotation_value /\s*/ "=>" /\s*/ annotation_value
+    -> {type: "map_entry", key: $1, value: $5}
 
 # =============================================================================
 # EXPRESSION VALUES
@@ -322,17 +320,17 @@ comparison_op :=
     -> $1
 
 # Conditional expressions (ternary operator)
-conditional_expression := logical_expression "?" annotation_value ":" annotation_value
-    -> {type: "conditional", condition: $1, true_value: $3, false_value: $5}
+conditional_expression := logical_expression /\s*/ "?" /\s*/ annotation_value /\s*/ ":" /\s*/ annotation_value
+    -> {type: "conditional", condition: $1, true_value: $5, false_value: $9}
 
 # Function calls
-function_call := function_name "(" (function_argument ("," function_argument)*)? ")"
-    -> {type: "function_call", name: $1, arguments: [$3, $4*]}
+function_call := function_name /\s*/ "(" /\s*/ (function_argument (/\s*/ "," /\s*/ function_argument)*)? /\s*/ ")"
+    -> {type: "function_call", name: $1, arguments: [$5, $6*]}
 
 function_name := identifier_literal | qualified_name
     -> $1
 
-qualified_name := identifier_literal ("." identifier_literal)+
+qualified_name := identifier_literal (/\s*/ "." /\s*/ identifier_literal)+
     -> {type: "qualified_name", parts: [$1, $2*]}
 
 function_argument := 
@@ -344,24 +342,24 @@ function_argument :=
 positional_argument := annotation_value
     -> {type: "positional", value: $1}
 
-named_argument := identifier_literal ":" annotation_value
-    -> {type: "named", name: $1, value: $3}
+named_argument := identifier_literal /\s*/ ":" /\s*/ annotation_value
+    -> {type: "named", name: $1, value: $5}
 
-spread_argument := "..." annotation_value
-    -> {type: "spread", value: $2}
+spread_argument := "..." /\s*/ annotation_value
+    -> {type: "spread", value: $3}
 
 # Lambda expressions
 lambda_expression := 
-    "(" (lambda_parameter ("," lambda_parameter)*)? ")" "=>" annotation_value |
-    lambda_parameter "=>" annotation_value
-    -> {type: "lambda", parameters: [$2, $3*], body: $6}
+    "(" /\s*/ (lambda_parameter (/\s*/ "," /\s*/ lambda_parameter)*)? /\s*/ ")" /\s*/ "=>" /\s*/ annotation_value |
+    lambda_parameter /\s*/ "=>" /\s*/ annotation_value
+    -> {type: "lambda", parameters: [$3, $4*], body: $10}
 
 lambda_parameter := identifier_literal | destructuring_parameter
     -> $1
 
 destructuring_parameter := 
-    "[" (identifier_literal ("," identifier_literal)*)? "]" |
-    "{" (identifier_literal ("," identifier_literal)*)? "}"
+    "[" /\s*/ (identifier_literal (/\s*/ "," /\s*/ identifier_literal)*)? /\s*/ "]" |
+    "{" /\s*/ (identifier_literal (/\s*/ "," /\s*/ identifier_literal)*)? /\s*/ "}"
     -> {type: "destructuring", pattern: $1}
 
 # =============================================================================
@@ -382,22 +380,22 @@ type_reference :=
 primitive_type := /([A-Z][a-zA-Z0-9_]*)/
     -> {type: "primitive_type", name: $1}
 
-generic_type := primitive_type "<" (type_reference ("," type_reference)*)? ">"
-    -> {type: "generic_type", base: $1, parameters: [$3, $4*]}
+generic_type := primitive_type /\s*/ "<" /\s*/ (type_reference (/\s*/ "," /\s*/ type_reference)*)? /\s*/ ">"
+    -> {type: "generic_type", base: $1, parameters: [$5, $6*]}
 
-union_type := type_reference ("|" type_reference)+
+union_type := type_reference (/\s*/ "|" /\s*/ type_reference)+
     -> {type: "union_type", types: [$1, $2*]}
 
-intersection_type := type_reference ("&" type_reference)+
+intersection_type := type_reference (/\s*/ "&" /\s*/ type_reference)+
     -> {type: "intersection_type", types: [$1, $2*]}
 
-function_type := "(" (type_reference ("," type_reference)*)? ")" "=>" type_reference
-    -> {type: "function_type", parameters: [$2, $3*], return_type: $6}
+function_type := "(" /\s*/ (type_reference (/\s*/ "," /\s*/ type_reference)*)? /\s*/ ")" /\s*/ "=>" /\s*/ type_reference
+    -> {type: "function_type", parameters: [$3, $4*], return_type: $10}
 
-array_type := type_reference "[" "]"
+array_type := type_reference /\s*/ "[" /\s*/ "]"
     -> {type: "array_type", element_type: $1}
 
-optional_type := type_reference "?"
+optional_type := type_reference /\s*/ "?"
     -> {type: "optional_type", base_type: $1}
 
 # Rule references (references to other grammar rules)
@@ -433,8 +431,8 @@ url_reference := /(https?|ftp|file):\/\/[^\s]+/
 # =============================================================================
 
 # Precedence specifications (common pattern)
-precedence_value := precedence_level precedence_associativity?
-    -> {type: "precedence", level: $1, associativity: $2}
+precedence_value := precedence_level /\s+/ precedence_associativity?
+    -> {type: "precedence", level: $1, associativity: $3}
 
 precedence_level := integer_literal
     -> $1
@@ -443,8 +441,8 @@ precedence_associativity := "left" | "right" | "none" | "nonassoc"
     -> $1
 
 # Constraint specifications
-constraint_value := constraint_type constraint_expression
-    -> {type: "constraint", constraint_type: $1, expression: $2}
+constraint_value := constraint_type /\s+/ constraint_expression
+    -> {type: "constraint", constraint_type: $1, expression: $3}
 
 constraint_type := "requires" | "ensures" | "invariant" | "assert" | "assume"
     -> $1
@@ -456,14 +454,14 @@ constraint_expression := logical_expression | string_literal
 performance_value := complexity_spec | memory_spec | timing_spec
     -> $1
 
-complexity_spec := "O(" complexity_expr ")"
-    -> {type: "complexity", expression: $2}
+complexity_spec := "O(" /\s*/ complexity_expr /\s*/ ")"
+    -> {type: "complexity", expression: $3}
 
 complexity_expr := /([^)]+)/
     -> $1
 
-memory_spec := memory_amount memory_unit?
-    -> {type: "memory", amount: $1, unit: $2}
+memory_spec := memory_amount /\s*/ memory_unit?
+    -> {type: "memory", amount: $1, unit: $3}
 
 memory_amount := numeric_literal
     -> $1
@@ -471,8 +469,8 @@ memory_amount := numeric_literal
 memory_unit := "B" | "KB" | "MB" | "GB" | "TB" | "bytes" | "words" | "pages"
     -> $1
 
-timing_spec := time_amount time_unit?
-    -> {type: "timing", amount: $1, unit: $2}
+timing_spec := time_amount /\s*/ time_unit?
+    -> {type: "timing", amount: $1, unit: $3}
 
 time_amount := numeric_literal
     -> $1
@@ -498,15 +496,15 @@ version_range :=
     -> {type: "version_range", operator: $1, version: $2}
 
 # Exception specifications
-exception_spec := "[" (exception_type ("," exception_type)*)? "]"
-    -> {type: "exception_spec", exceptions: [$2, $3*]}
+exception_spec := "[" /\s*/ (exception_type (/\s*/ "," /\s*/ exception_type)*)? /\s*/ "]"
+    -> {type: "exception_spec", exceptions: [$3, $4*]}
 
 exception_type := type_reference | string_literal
     -> $1
 
 # Platform specifications
-platform_spec := "[" (platform_name ("," platform_name)*)? "]"
-    -> {type: "platform_spec", platforms: [$2, $3*]}
+platform_spec := "[" /\s*/ (platform_name (/\s*/ "," /\s*/ platform_name)*)? /\s*/ "]"
+    -> {type: "platform_spec", platforms: [$3, $4*]}
 
 platform_name := string_literal | identifier_literal
     -> $1

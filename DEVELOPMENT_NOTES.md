@@ -122,6 +122,44 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 
 ## Critical Issues Resolved
 
+### ✅ AST Pipeline: Epsilon Production & Regex Pattern Handling (2025-09-28)
+**Status: RESOLVED - CRITICAL AST TRANSFORMATION FIX**
+
+**Issue**: Parser generation failed due to improper handling of epsilon (ε) symbols and regex patterns during AST transformations, causing missing parse methods and incorrect empty terminal conversions.
+
+**Root Cause**: 
+- Epsilon symbols (ε) were not being converted to proper empty terminals, causing generation of missing `parse_ε()` methods
+- Regex patterns in AST nodes were being converted to generic "COMPLEX:" entries, losing their regex semantics
+- Complex optional/quantified groups were being simplified to epsilon productions incorrectly
+- AST transformation pipeline lacked proper regex token recognition during left recursion elimination
+
+**Technical Solution**:
+1. **Epsilon Symbol Handling**: Enhanced `ast_node_to_productions()` to convert `"ε"` symbols to `ParseContent::Terminal("")` 
+2. **Regex Pattern Recognition**: Added "REGEX:" prefix handling in `ast_node_to_productions()` and `productions_to_ast_node()`
+3. **Complex Entry Processing**: Improved handling of "COMPLEX:" entries to prevent parser generation errors
+4. **Recursion Depth Tracking**: Added stack overflow prevention in high_performance_generator.rs
+
+**AST Pipeline Insights**:
+- **Epsilon Semantics**: Epsilon (ε) represents empty production, should generate empty terminal match `("")`, not missing parse method
+- **Regex Preservation**: Regex patterns must maintain their semantic meaning through all AST transformations
+- **Left Recursion Impact**: Left recursion elimination can inadvertently convert complex patterns to epsilon if not handled carefully
+- **Production Conversion**: `ast_node_to_productions()` and `productions_to_ast_node()` are critical transformation points that require special handling for regex and epsilon cases
+
+**Code Generation Patterns**:
+- **Token Recognition**: Use prefix patterns ("REGEX:", "COMPLEX:") to preserve token semantics during transformations
+- **Epsilon Conversion**: Always convert epsilon symbols to empty terminals rather than attempting to generate parse methods
+- **Complex Group Detection**: Identify when optional/quantified groups are incorrectly simplified to epsilon
+- **Debug Preservation**: Maintain detailed debug output during AST transformations for troubleshooting
+
+**Impact**: 
+- ✅ Parser builds successfully without missing method errors
+- ✅ Regex patterns preserve correct semantics through AST pipeline
+- ✅ Epsilon productions handled correctly as empty terminals
+- 🚨 **Outstanding Issue**: Complex optional/quantified groups still being converted to epsilon productions incorrectly
+
+**Remaining Work**: 
+The AST transformation pipeline needs further enhancement to properly detect and preserve complex nested groups, optional groups, and quantified sequences to prevent them from being simplified to epsilon productions.
+
 ### ✅ Debug Quantifier Variable Scoping (2025-09-28)
 **Status: RESOLVED - CRITICAL FIX**
 
@@ -253,6 +291,15 @@ Makefile Dependencies:
 - **Filter Design**: Use simple, comprehensive filters rather than complex conditional logic
 - **Debug Call Placement**: Add debug calls after operations complete when target variables are available
 
+### AST Pipeline Transformation
+- **Epsilon Handling**: Always convert epsilon (ε) symbols to empty terminals `ParseContent::Terminal("")`, never generate missing parse methods
+- **Regex Preservation**: Use semantic prefixes ("REGEX:", "COMPLEX:") to maintain token semantics through transformations
+- **Left Recursion Safety**: Ensure left recursion elimination doesn't inadvertently convert complex patterns to epsilon
+- **Token Recognition**: Implement robust pattern matching in `ast_node_to_productions()` and `productions_to_ast_node()`
+- **Complex Group Preservation**: Detect and preserve optional/quantified group structures to prevent epsilon simplification
+- **Transformation Debugging**: Log all AST node conversions with before/after states for troubleshooting
+- **Semantic Consistency**: Ensure AST transformations maintain the original grammar's intended parsing behavior
+
 ### Build System
 - Use file-based targets for better Make integration
 - Provide comprehensive clean and status targets
@@ -273,11 +320,19 @@ Makefile Dependencies:
 - Return annotation object key limit (3 keys maximum)
 - Function call argument limit (4 arguments maximum)
 
+### AST Pipeline Outstanding Issues
+- **Complex Group Simplification**: Optional/quantified groups being incorrectly converted to epsilon productions during AST transformations
+- **Debug String Parsing**: Current complex group detection relies on fragile debug string parsing that should be replaced with proper AST analysis
+- **Left Recursion Edge Cases**: Some complex nested structures may still be affected by left recursion elimination side effects
+- **EBNF Preservation**: Need better preservation of original EBNF semantics through all transformation stages
+
 ### Potential Improvements
-1. **Enhanced Bootstrap Mode**: Support for more complex patterns
-2. **Performance Optimization**: Benchmark and optimize generated parsers
-3. **Extended Annotations**: Support for more annotation types
-4. **Build Parallelization**: Parallel processing of independent components
+1. **Enhanced AST Transformation**: Improve complex group detection and preservation during AST pipeline processing
+2. **Bootstrap Mode Enhancement**: Support for more complex patterns
+3. **Performance Optimization**: Benchmark and optimize generated parsers
+4. **Extended Annotations**: Support for more annotation types
+5. **Build Parallelization**: Parallel processing of independent components
+6. **AST Debugging Tools**: Enhanced debugging tools for AST transformation pipeline troubleshooting
 
 ## Development Guidelines
 

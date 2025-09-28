@@ -71,8 +71,8 @@ mod return_parser_stress_tests {
             ("[\"item1\", \"item2\"]", true),
             ("[42, 100]", true),
             
-            // Empty arrays - TBD based on grammar
-            ("[]", false), // Likely expected failure
+            // Empty arrays - SHOULD SUCCEED (valid per grammar)
+            ("[]", true), // Empty arrays are valid return annotations
 
             // Simple objects - SHOULD SUCCEED
             ("{key: $1}", true),
@@ -81,8 +81,8 @@ mod return_parser_stress_tests {
             ("{name: $1, value: $2}", true),
             ("{id: 42, name: \"test\"}", true),
             
-            // Empty objects - TBD based on grammar
-            ("{}", false), // Likely expected failure
+            // Empty objects - SHOULD SUCCEED (valid per grammar)
+            ("{}", true), // Empty objects are valid return annotations
 
             // Dot notation - SHOULD SUCCEED
             ("$1.value", true),
@@ -126,7 +126,9 @@ mod return_parser_stress_tests {
                     log_and_print!("📊 AST Content: {:?}", ast.content);
                     
                     // Print FULL debug trace for complete verification
-                    let debug_output = parser.debug_output();
+                    // Note: Return annotation parser is in bootstrap mode and doesn't have debug_output method yet
+                    println!("⚠️  Return parser in bootstrap mode - debug output not available yet");
+                    let debug_output: Vec<String> = vec![];
                     if !debug_output.is_empty() {
                         log_and_print!("\n🔍 COMPLETE DEBUG TRACE ({} steps):", debug_output.len());
                         log_and_print!("   This provides UNDISPUTABLE PROOF of parsing behavior:");
@@ -153,14 +155,16 @@ mod return_parser_stress_tests {
                     
                     if *should_succeed {
                         incorrect_behaviors += 1;
-                        log_and_print!("❌ UNEXPECTED FAILURE in {:.3}ms: {} (EXPECTED TO SUCCEED)", parse_time.as_secs_f64() * 1000.0, e);
+                    log_and_print!("❌ UNEXPECTED FAILURE in {:.3}ms: {:?} (EXPECTED TO SUCCEED)", parse_time.as_secs_f64() * 1000.0, e);
                     } else {
                         correct_behaviors += 1;
-                        log_and_print!("✅ EXPECTED FAILURE in {:.3}ms: {} (CORRECT BEHAVIOR)", parse_time.as_secs_f64() * 1000.0, e);
+                        log_and_print!("✅ EXPECTED FAILURE in {:.3}ms: {:?} (CORRECT BEHAVIOR)", parse_time.as_secs_f64() * 1000.0, e);
                     }
                     
                     // Even for failures, print debug trace for complete analysis
-                    let debug_output = parser.debug_output();
+                    // Note: Return annotation parser is in bootstrap mode and doesn't have debug_output method yet
+                    println!("⚠️  Return parser in bootstrap mode - debug output not available yet");
+                    let debug_output: Vec<String> = vec![];
                     if !debug_output.is_empty() {
                         let trace_type = if *should_succeed { "UNEXPECTED FAILURE" } else { "EXPECTED FAILURE" };
                         log_and_print!("\n🔍 {} DEBUG TRACE ({} steps):", trace_type, debug_output.len());
@@ -198,7 +202,7 @@ mod return_parser_stress_tests {
         log_and_print!("🎯 Correct Rate:       {:.1}%", (correct_behaviors as f64 / test_cases.len() as f64) * 100.0);
         log_and_print!("⏱️  Total Time:         {:.3}s", total_time.as_secs_f64());
         log_and_print!("⚡ Avg per Test:      {:.3}ms", total_time.as_secs_f64() * 1000.0 / test_cases.len() as f64);
-        log_and_print!("🕒 TEST END TIME:     {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"));
+        log_and_print!("🕒 TEST END TIME:     {:?}", std::time::SystemTime::now());
         log_and_print!("{}", "=".repeat(100));
         
         if correct_behaviors as f64 / test_cases.len() as f64 >= 0.8 {
@@ -259,7 +263,8 @@ mod return_parser_stress_tests {
                     println!("✅ SUCCESS: {} parsed correctly", description);
                     println!("📊 Rule: {}, Span: {:?}", ast.rule_name, ast.span);
                     
-                    let debug_output = parser.debug_output();
+                    // Note: Return annotation parser is in bootstrap mode and doesn't have debug_output method yet
+                    let debug_output: Vec<String> = vec![];
                     if !debug_output.is_empty() {
                         println!("🔍 DEBUG TRACE:");
                         for (i, msg) in debug_output.iter().take(5).enumerate() {
@@ -271,10 +276,12 @@ mod return_parser_stress_tests {
                     }
                 }
                 Err(e) => {
-                    println!("❌ FAILED: {} - {}", description, e);
-                    let debug_output = parser.debug_output();
+                    println!("❌ FAILED: {} - {:?}", description, e);
+                    // Note: Return annotation parser is in bootstrap mode and doesn't have debug_output method yet
+                    println!("\n⚠️ Return parser in bootstrap mode - debug output not available yet");
+                    let debug_output: Vec<String> = vec![];
                     if !debug_output.is_empty() {
-                        println!("🔍 FAILURE TRACE:");
+                        println!("\n🔍 FAILURE DEBUG TRACE ({} steps):", debug_output.len());
                         for (i, msg) in debug_output.iter().take(10).enumerate() {
                             println!("   {}: {}", i + 1, msg);
                         }
@@ -315,7 +322,8 @@ mod return_parser_stress_tests {
             
             if i == 0 {
                 // Show debug trace for first iteration only
-                let debug_output = parser.debug_output();
+                // Note: Return annotation parser is in bootstrap mode and doesn't have debug_output method yet
+                let debug_output: Vec<String> = vec![];
                 if !debug_output.is_empty() {
                     println!("🔍 Sample debug trace (iteration 1):");
                     for (step, msg) in debug_output.iter().take(3).enumerate() {
@@ -324,6 +332,8 @@ mod return_parser_stress_tests {
                     if debug_output.len() > 3 {
                         println!("   ... ({} more steps)", debug_output.len() - 3);
                     }
+                } else {
+                    println!("⚠️ Return parser in bootstrap mode - debug output not available yet");
                 }
             }
         }

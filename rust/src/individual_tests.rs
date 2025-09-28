@@ -1,6 +1,6 @@
 //! Individual Test Cases
 //! Auto-generated from test registry
-//! Generated at: 2025-09-27T15:25:52.824229+00:00
+//! Generated at: 2025-09-28T13:26:44.635190+00:00
 //! DO NOT EDIT MANUALLY - This file is automatically regenerated
 
 // Test imports will be added when individual parsers are implemented

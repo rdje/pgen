@@ -1,18 +1,14 @@
 //! Semantic Annotation Parser Stress Test
 //! Provides undisputable proof of ROCK SOLID behavior with full debug traces
 
+use crate::ast_pipeline::semantic_annotation_parser::Semantic_annotationParser;
+use std::fs::File;
+use std::io::{Write, BufWriter};
+use std::time::Instant;
+
 #[cfg(test)]
 mod semantic_annotation_stress_tests {
-use std::time::Instant;
-use chrono;
-
-// Import the actual generated parser
-mod semantic_annotation_parser {
-    include!("../../generated/semantic_annotation_parser.rs");
-}
-use semantic_annotation_parser::*;
-    // TODO: Import the actual generated semantic annotation parser
-    // use crate::ast_pipeline::semantic_annotation_parser::Semantic_annotationParser;
+    use super::*;
     
     /// Comprehensive stress test data for semantic annotation parser
     /// These test cases are extracted from the stress test source files
@@ -107,37 +103,54 @@ use semantic_annotation_parser::*;
 
     #[test]
     fn test_semantic_annotation_parser_comprehensive_stress() {
-        println!("\n{}", "=".repeat(100));
-        println!("🚀 SEMANTIC ANNOTATION PARSER COMPREHENSIVE STRESS TEST");
-        println!("{}", "=".repeat(100));
-        println!("📁 LOG FILE: semantic_annotation_parser_stress_test.log");
-        println!("🕒 TEST START TIME: {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"));
-        println!("{}", "=".repeat(100));
-        println!("📋 PARSER IDENTIFICATION & SOURCE INFORMATION:");
-        println!("   🔧 Parser Type: EXTERNAL AUTOMATICALLY GENERATED PARSER");
-        println!("   📁 Generated Parser Path: /Users/richarddje/Documents/github/pgen/generated/semantic_annotation_parser.rs");
-        println!("   📄 Source Grammar (.ebnf): /Users/richarddje/Documents/github/pgen/grammars/semantic_annotation.ebnf");
-        println!("   🎯 Entry Rule: semantic_annotation");
-        println!("   📊 Parser Features: Zero-copy, memoization, SIMD-optimized, minimal allocations");
-        println!("   ⚙️  Parser Implementation: Automatically generated Rust code from EBNF grammar");
-        println!("   🔍 Debug Mode: ENABLED with full trace output");
-        println!("{}", "=".repeat(100));
-        println!("🔍 Running with MAXIMUM DEBUG/TRACE output for complete verification");
-        println!("📈 This provides UNDISPUTABLE PROOF of ROCK SOLID behavior\n");
+        // Create log file with timestamp
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let log_file_path = format!("semantic_parser_comprehensive_stress_test_{}.log", timestamp);
+        
+        let log_file = File::create(&log_file_path).expect("Failed to create log file");
+        let mut writer = BufWriter::new(log_file);
+        
+        // Macro to write to both console and log file
+        macro_rules! log_and_print {
+            ($($arg:tt)*) => {
+                let line = format!($($arg)*);
+                println!("{}", line);
+                writeln!(writer, "{}", line).expect("Failed to write to log file");
+            };
+        }
+        
+        log_and_print!("\n{}", "=".repeat(100));
+        log_and_print!("🚀 SEMANTIC ANNOTATION PARSER COMPREHENSIVE STRESS TEST");
+        log_and_print!("{}", "=".repeat(100));
+        log_and_print!("📁 LOG FILE: {}", log_file_path);
+        log_and_print!("🕒 TEST START TIME: {:?}", std::time::SystemTime::now());
+        log_and_print!("{}", "=".repeat(100));
+        log_and_print!("📋 PARSER IDENTIFICATION & SOURCE INFORMATION:");
+        log_and_print!("   🔧 Parser Type: EXTERNAL AUTOMATICALLY GENERATED PARSER");
+        log_and_print!("   📁 Generated Parser Path: /Users/richarddje/Documents/github/pgen/generated/semantic_annotation_parser.rs");
+        log_and_print!("   📄 Source Grammar (.ebnf): /Users/richarddje/Documents/github/pgen/grammars/semantic_annotation.ebnf");
+        log_and_print!("   🎯 Entry Rule: semantic_annotation");
+        log_and_print!("   📊 Parser Features: Zero-copy, memoization, SIMD-optimized, minimal allocations");
+        log_and_print!("   ⚙️  Parser Implementation: Automatically generated Rust code from EBNF grammar");
+        log_and_print!("   🔍 Debug Mode: ENABLED with full trace output");
+        log_and_print!("{}", "=".repeat(100));
+        log_and_print!("🔍 Running with MAXIMUM DEBUG/TRACE output for complete verification");
+        log_and_print!("📈 This provides UNDISPUTABLE PROOF of ROCK SOLID behavior\n");
 
         let mut correct_behaviors = 0;
         let mut incorrect_behaviors = 0;
         let start_time = Instant::now();
 
         for (i, test_input) in SEMANTIC_TEST_INPUTS.iter().enumerate() {
-            println!("\n{}", "=".repeat(80));
-            println!("🔍 Semantic Parser Stress Test {}/{}: '{}'", i + 1, SEMANTIC_TEST_INPUTS.len(), test_input);
-            println!("{}", "=".repeat(80));
+            log_and_print!("\n{}", "=".repeat(80));
+            log_and_print!("🔍 Semantic Parser Stress Test {}/{}: '{}' (expect SUCCESS)", 
+                i + 1, SEMANTIC_TEST_INPUTS.len(), test_input);
+            log_and_print!("{}", "=".repeat(80));
             
-            // TODO: Uncomment when actual parser is available
-            /*
-            let test_name = format!("stress_test_{}", i + 1);
-            let mut parser = Semantic_annotationParser::with_debug_log(test_input, &test_name);
+            let mut parser = Semantic_annotationParser::with_debug(test_input);
             let parse_start = Instant::now();
             
             match parser.parse() {
@@ -145,84 +158,86 @@ use semantic_annotation_parser::*;
                     let parse_time = parse_start.elapsed();
                     correct_behaviors += 1;
                     
-                    println!("✅ PARSE SUCCESS in {:.3}ms", parse_time.as_secs_f64() * 1000.0);
-                    println!("📊 AST Rule: {}", ast.rule_name);
-                    println!("📊 AST Span: {:?}", ast.span);
-                    println!("📊 AST Content: {:?}", ast.content);
+                    log_and_print!("✅ PARSE SUCCESS in {:.3}ms (EXPECTED BEHAVIOR)", parse_time.as_secs_f64() * 1000.0);
+                    log_and_print!("📊 AST Rule: {}", ast.rule_name);
+                    log_and_print!("📊 AST Span: {:?}", ast.span);
+                    log_and_print!("📊 AST Content: {:?}", ast.content);
                     
                     // Print FULL debug trace for complete verification
                     let debug_output = parser.debug_output();
                     if !debug_output.is_empty() {
-                        println!("\n🔍 COMPLETE DEBUG TRACE ({} steps):", debug_output.len());
-                        println!("   This provides UNDISPUTABLE PROOF of parsing behavior:");
-                        println!("   Format: Hierarchical rule processing with clear nesting");
-                        println!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
-                        println!();
+                        log_and_print!("\n🔍 COMPLETE DEBUG TRACE ({} steps):", debug_output.len());
+                        log_and_print!("   This provides UNDISPUTABLE PROOF of parsing behavior:");
+                        log_and_print!("   Format: Hierarchical rule processing with clear nesting");
+                        log_and_print!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
+                        log_and_print!("");
                         for (step, msg) in debug_output.iter().enumerate() {
                             // Format hierarchical debug messages with proper spacing
                             if msg.contains(" → ") && !msg.starts_with("semantic_annotation →") {
-                                println!(); // Empty line before non-top rule processing
+                                log_and_print!(""); // Empty line before non-top rule processing
                             }
-                            println!("   {:4}: {}", step + 1, msg);
+                            log_and_print!("   {:4}: {}", step + 1, msg);
                         }
                     }
                     
-                    println!("\n✅ SEMANTIC PARSER: ROCK SOLID BEHAVIOR CONFIRMED FOR '{}'", test_input);
+                    log_and_print!("\n✅ SEMANTIC PARSER: ROCK SOLID BEHAVIOR CONFIRMED FOR '{}'", test_input);
                 }
                 Err(e) => {
                     let parse_time = parse_start.elapsed();
                     incorrect_behaviors += 1;
                     
-                    println!("❌ PARSE FAILED in {:.3}ms: {}", parse_time.as_secs_f64() * 1000.0, e);
+                    log_and_print!("❌ UNEXPECTED FAILURE in {:.3}ms: {} (EXPECTED TO SUCCEED)", parse_time.as_secs_f64() * 1000.0, e);
                     
                     // Even for failures, print debug trace for complete analysis
                     let debug_output = parser.debug_output();
                     if !debug_output.is_empty() {
-                        println!("\n🔍 FAILURE DEBUG TRACE ({} steps):", debug_output.len());
-                        println!("   This shows exactly where parsing failed:");
+                        log_and_print!("\n🔍 FAILURE DEBUG TRACE ({} steps):", debug_output.len());
+                        log_and_print!("   This shows exactly where parsing failed:");
+                        log_and_print!("   Format: Hierarchical rule processing with clear nesting");
+                        log_and_print!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
+                        log_and_print!("");
                         for (step, msg) in debug_output.iter().enumerate() {
-                            println!("   {:4}: {}", step + 1, msg);
+                            // Format hierarchical debug messages with proper spacing
+                            if msg.contains(" → ") && !msg.starts_with("semantic_annotation →") {
+                                log_and_print!(""); // Empty line before non-top rule processing
+                            }
+                            log_and_print!("   {:4}: {}", step + 1, msg);
                         }
                     }
                     
-                    println!("❌ INPUT: '{}' - ANALYZE DEBUG TRACE ABOVE", test_input);
+                    log_and_print!("❌ UNEXPECTED FAILURE FOR: '{}' - SHOULD HAVE SUCCEEDED", test_input);
                 }
             }
-            */
-            
-            // Placeholder implementation for now
-            println!("✅ PLACEHOLDER: Semantic annotation test case acknowledged: '{}'", test_input);
-            correct_behaviors += 1;
         }
 
         let total_time = start_time.elapsed();
         
         // Final comprehensive results
-        println!("\n{}", "=".repeat(100));
-        println!("🎯 SEMANTIC ANNOTATION PARSER COMPREHENSIVE STRESS TEST RESULTS");
-        println!("{}", "=".repeat(100));
-        println!("📊 Total Tests:        {}", SEMANTIC_TEST_INPUTS.len());
-        println!("✅ Correct Behaviors:  {} (includes expected successes AND expected failures)", correct_behaviors);
-        println!("❌ Incorrect Behaviors: {} (unexpected successes or unexpected failures)", incorrect_behaviors);
-        println!("🎯 Correct Rate:       {:.1}%", (correct_behaviors as f64 / SEMANTIC_TEST_INPUTS.len() as f64) * 100.0);
-        println!("⏱️  Total Time:     {:.3}s", total_time.as_secs_f64());
-        println!("⚡ Avg per Test:    {:.3}ms", total_time.as_secs_f64() * 1000.0 / SEMANTIC_TEST_INPUTS.len() as f64);
-        println!("🕒 TEST END TIME:   {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"));
-        println!("{}", "=".repeat(100));
+        log_and_print!("\n{}", "=".repeat(100));
+        log_and_print!("🎯 SEMANTIC ANNOTATION PARSER COMPREHENSIVE STRESS TEST RESULTS");
+        log_and_print!("{}", "=".repeat(100));
+        log_and_print!("📊 Total Tests:        {}", SEMANTIC_TEST_INPUTS.len());
+        log_and_print!("✅ Correct Behaviors:  {} (includes expected successes AND expected failures)", correct_behaviors);
+        log_and_print!("❌ Incorrect Behaviors: {} (unexpected successes or unexpected failures)", incorrect_behaviors);
+        log_and_print!("🎯 Correct Rate:       {:.1}%", (correct_behaviors as f64 / SEMANTIC_TEST_INPUTS.len() as f64) * 100.0);
+        log_and_print!("⏱️  Total Time:         {:.3}s", total_time.as_secs_f64());
+        log_and_print!("⚡ Avg per Test:      {:.3}ms", total_time.as_secs_f64() * 1000.0 / SEMANTIC_TEST_INPUTS.len() as f64);
+        log_and_print!("🕒 TEST END TIME:     {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"));
+        log_and_print!("{}", "=".repeat(100));
         
         if correct_behaviors as f64 / SEMANTIC_TEST_INPUTS.len() as f64 >= 0.8 {
-            println!("🏆 SUCCESS: Semantic Annotation Parser demonstrates ROCK SOLID behavior!");
-            println!("📈 Correct behavior rate {:.1}% EXCEEDS 80% threshold", (correct_behaviors as f64 / SEMANTIC_TEST_INPUTS.len() as f64) * 100.0);
-            println!("✅ UNDISPUTABLE PROOF: Parser behaves correctly on all expected inputs");
-            println!("📝 Expected failures are correctly handled as successes per grammar specification");
+            log_and_print!("🏆 SUCCESS: Semantic Annotation Parser demonstrates ROCK SOLID behavior!");
+            log_and_print!("📈 Correct behavior rate {:.1}% EXCEEDS 80% threshold", (correct_behaviors as f64 / SEMANTIC_TEST_INPUTS.len() as f64) * 100.0);
+            log_and_print!("✅ UNDISPUTABLE PROOF: Parser behaves correctly on all expected inputs");
+            log_and_print!("📏 Expected failures are correctly handled as successes per grammar specification");
         } else {
-            println!("❌ FAILURE: Semantic parser correct behavior rate {:.1}% is below 80% threshold", (correct_behaviors as f64 / SEMANTIC_TEST_INPUTS.len() as f64) * 100.0);
+            log_and_print!("❌ FAILURE: Semantic parser correct behavior rate {:.1}% is below 80% threshold", (correct_behaviors as f64 / SEMANTIC_TEST_INPUTS.len() as f64) * 100.0);
         }
         
         // Additional verification
         assert!(correct_behaviors > 0, "At least some behaviors should be correct");
-        println!("\n🎉 COMPREHENSIVE SEMANTIC ANNOTATION STRESS TEST COMPLETED SUCCESSFULLY!");
-        println!("📋 Full debug traces provided COMPLETE VERIFICATION of parser behavior");
+        log_and_print!("\n🎉 COMPREHENSIVE SEMANTIC ANNOTATION STRESS TEST COMPLETED SUCCESSFULLY!");
+        log_and_print!("📋 Full debug traces provided COMPLETE VERIFICATION of parser behavior");
     }
 
     #[test]  

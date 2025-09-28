@@ -56,16 +56,18 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let config = PipelineConfig {
-        debug: args.debug,
-        trace: args.trace,
-        validate_input: !args.no_validate,
-        preserve_annotations: true,
-        validate_output: true,
-        max_recursion_depth: 100,
-        bootstrap_mode: args.bootstrap_mode,
-        eliminate_left_recursion: args.eliminate_left_recursion,
-    };
+    // Start with default config and override only specified options
+    let mut config = PipelineConfig::default();
+    config.debug = args.debug;
+    config.trace = args.trace;
+    config.validate_input = !args.no_validate;
+    config.bootstrap_mode = args.bootstrap_mode;
+    
+    // Only override left recursion elimination if explicitly specified
+    if args.eliminate_left_recursion {
+        config.eliminate_left_recursion = true;
+    }
+    // Note: eliminate_left_recursion defaults to true in PipelineConfig::default()
 
     let mut pipeline = RustASTPipeline::new(config);
 

@@ -46,7 +46,7 @@ AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
 # Tools
 EBNF_TO_JSON = $(TOOLS_DIR)/ebnf_to_json.pl
 RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --debug --trace
-RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --debug
+RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion
 
 # Default target
 .PHONY: all
@@ -569,7 +569,7 @@ bootstrap-status:
 
 
 # Auto-generated Makefile targets for stress tests
-# Generated at: 2025-09-27T15:25:52.823834+00:00
+# Generated at: 2025-09-28T13:26:44.634516+00:00
 # DO NOT EDIT MANUALLY - This section is automatically regenerated
 
 # Type annotation - type
@@ -767,4 +767,9 @@ test-stats:
 
 
 # End of auto-generated targets
+
+
+
+
+
 

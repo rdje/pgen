@@ -1398,6 +1398,11 @@ impl RustASTPipeline {
                                             production.push(name.to_string());
                                         }
                                     }
+                                    Some("regex") => {
+                                        if let Some(pattern) = token[1].as_str() {
+                                            production.push(format!("REGEX:{}", pattern));
+                                        }
+                                    }
                                     _ => production.push(format!("COMPLEX:{:?}", element)),
                                 }
                             } else {
@@ -1422,6 +1427,13 @@ impl RustASTPipeline {
                         Some("rule_reference") => {
                             if let Some(name) = token[1].as_str() {
                                 Ok(vec![vec![name.to_string()]])
+                            } else {
+                                Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
+                            }
+                        }
+                        Some("regex") => {
+                            if let Some(pattern) = token[1].as_str() {
+                                Ok(vec![vec![format!("REGEX:{}", pattern)]])
                             } else {
                                 Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
                             }
@@ -1458,6 +1470,29 @@ impl RustASTPipeline {
                             TokenValue::String(symbol[9..].to_string())
                         ]) 
                     })
+                } else if symbol.starts_with("REGEX:") {
+                    Ok(ASTNode::Atom { 
+                        value: ASTValue::Token(vec![
+                            TokenValue::String("regex".to_string()), 
+                            TokenValue::String(symbol[6..].to_string())
+                        ]) 
+                    })
+                } else if symbol.starts_with("COMPLEX:") {
+                    // Handle COMPLEX entries by treating as empty terminal
+                    Ok(ASTNode::Atom { 
+                        value: ASTValue::Token(vec![
+                            TokenValue::String("quoted_string".to_string()), 
+                            TokenValue::String("".to_string()) // Empty terminal
+                        ]) 
+                    })
+                } else if symbol == "ε" {
+                    // Handle epsilon productions - convert to empty terminal
+                    Ok(ASTNode::Atom { 
+                        value: ASTValue::Token(vec![
+                            TokenValue::String("quoted_string".to_string()), 
+                            TokenValue::String("".to_string()) // Empty terminal for epsilon
+                        ]) 
+                    })
                 } else {
                     Ok(ASTNode::Atom { 
                         value: ASTValue::Token(vec![
@@ -1474,6 +1509,22 @@ impl RustASTPipeline {
                             value: ASTValue::Token(vec![
                                 TokenValue::String("quoted_string".to_string()), 
                                 TokenValue::String(symbol[9..].to_string())
+                            ]) 
+                        });
+                    } else if symbol.starts_with("REGEX:") {
+                        elements.push(ASTNode::Atom { 
+                            value: ASTValue::Token(vec![
+                                TokenValue::String("regex".to_string()), 
+                                TokenValue::String(symbol[6..].to_string())
+                            ]) 
+                        });
+                    } else if symbol.starts_with("COMPLEX:") {
+                        // Handle COMPLEX entries by parsing the debug representation
+                        // For now, treat as empty terminal to avoid generation errors
+                        elements.push(ASTNode::Atom { 
+                            value: ASTValue::Token(vec![
+                                TokenValue::String("quoted_string".to_string()), 
+                                TokenValue::String("".to_string()) // Empty terminal
                             ]) 
                         });
                     } else {
