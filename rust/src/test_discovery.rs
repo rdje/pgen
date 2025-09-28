@@ -3,7 +3,6 @@
 
 use std::path::Path;
 use std::fs;
-use regex::Regex;
 use crate::test_registry::{TestCase, TestExpectation, TestRegistry};
 
 pub struct TestDiscovery {
@@ -112,6 +111,7 @@ impl TestDiscovery {
     }
     
     /// Generate a human-readable description for a test input
+    #[allow(dead_code)]
     fn generate_description_for_input(&self, input: &str, parser_type: &str) -> String {
         match parser_type {
             "return" => {
@@ -172,6 +172,7 @@ impl TestDiscovery {
     }
     
     /// Categorize a test input into a logical category
+    #[allow(dead_code)]
     fn categorize_input(&self, input: &str, parser_type: &str) -> String {
         match parser_type {
             "return" => {

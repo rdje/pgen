@@ -1,7 +1,6 @@
 //! Centralized Test Registry System
 //! Automatically discovers and synchronizes test cases across all files
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

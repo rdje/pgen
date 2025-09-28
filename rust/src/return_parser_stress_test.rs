@@ -2,9 +2,9 @@
 //! Provides undisputable proof of ROCK SOLID behavior with full debug traces
 
 use crate::ast_pipeline::return_annotation_parser::Return_annotationParser;
-use std::time::Instant;
 use std::fs::File;
 use std::io::{Write, BufWriter};
+use std::time::Instant;
 
 #[cfg(test)]
 mod return_parser_stress_tests {

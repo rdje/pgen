@@ -193,6 +193,7 @@ impl RustASTPipeline {
     
     /// Create new pipeline with left recursion elimination enabled
     /// This will help resolve stack overflow issues caused by left-recursive grammars
+    #[allow(dead_code)]
     pub fn with_left_recursion_elimination() -> Self {
         let mut config = PipelineConfig::default();
         config.eliminate_left_recursion = true;
@@ -205,16 +206,19 @@ impl RustASTPipeline {
     }
     
     /// Enable left recursion elimination on this pipeline
+    #[allow(dead_code)]
     pub fn enable_left_recursion_elimination(&mut self) {
         self.config.eliminate_left_recursion = true;
     }
     
     /// Disable left recursion elimination on this pipeline
+    #[allow(dead_code)]
     pub fn disable_left_recursion_elimination(&mut self) {
         self.config.eliminate_left_recursion = false;
     }
     
     /// Check if left recursion elimination is enabled
+    #[allow(dead_code)]
     pub fn is_left_recursion_elimination_enabled(&self) -> bool {
         self.config.eliminate_left_recursion
     }
@@ -1228,21 +1232,25 @@ impl RustASTPipeline {
     }
 
     /// Get return annotations for a specific rule
+    #[allow(dead_code)]
     pub fn get_return_annotation(&self, rule_name: &str) -> Option<&ReturnAnnotation> {
         self.annotations.return_annotations.get(rule_name)
     }
     
     /// Get all return annotations
+    #[allow(dead_code)]
     pub fn get_all_return_annotations(&self) -> &HashMap<String, ReturnAnnotation> {
         &self.annotations.return_annotations
     }
     
     /// Get semantic annotations for a specific rule
+    #[allow(dead_code)]
     pub fn get_semantic_annotations(&self, rule_name: &str) -> Option<&Vec<String>> {
         self.annotations.semantic_annotations.get(rule_name)
     }
     
-    /// Get logging annotations for a specific rule  
+    /// Get logging annotations for a specific rule
+    #[allow(dead_code)]
     pub fn get_logging_annotations(&self, rule_name: &str) -> Option<&Vec<String>> {
         self.annotations.logging_annotations.get(rule_name)
     }
