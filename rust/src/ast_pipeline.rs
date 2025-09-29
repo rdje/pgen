@@ -7,8 +7,9 @@
 //! Implements the 5-stage transformation pipeline equivalent to Perl AST::Transform.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs;
+use std::collections::{HashMap, HashSet};
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write, BufWriter};
 use anyhow::{Context, Result};
 
 // Import the generated semantic annotation parser
@@ -172,23 +173,51 @@ pub struct TransformMetadata {
     pub stats: TransformStats,
 }
 
+/// Structure to hold grouped quantifier parsing result
+struct GroupedQuantifierResult {
+    quantified_node: ASTNode,
+    next_index: usize,
+}
+
 /// Main Rust AST Pipeline implementation
 pub struct RustASTPipeline {
     config: PipelineConfig,
     stats: TransformStats,
     annotations: Annotations,
     entry_rule: Option<String>,
+    log_file: Option<BufWriter<std::fs::File>>,
+    log_filename: Option<String>,
+    /// Track which contexts have already been logged to add empty lines before first occurrence
+    logged_contexts: HashSet<String>,
+    /// Track the last context that was logged to detect method boundary changes
+    last_logged_context: Option<String>,
 }
 
 impl RustASTPipeline {
     /// Create new pipeline with configuration
     pub fn new(config: PipelineConfig) -> Self {
-        Self {
+        let (log_file, log_filename) = if config.debug {
+            Self::create_log_file().unwrap_or((None, None))
+        } else {
+            (None, None)
+        };
+        
+        let mut pipeline = Self {
             config,
             stats: TransformStats::default(),
             annotations: Annotations::default(),
             entry_rule: None,
+            log_file,
+            log_filename,
+            logged_contexts: HashSet::new(),
+            last_logged_context: None,
+        };
+        
+        if pipeline.config.debug {
+            pipeline.write_log_header();
         }
+        
+        pipeline
     }
     
     /// Create new pipeline with left recursion elimination enabled
@@ -197,12 +226,8 @@ impl RustASTPipeline {
     pub fn with_left_recursion_elimination() -> Self {
         let mut config = PipelineConfig::default();
         config.eliminate_left_recursion = true;
-        Self {
-            config,
-            stats: TransformStats::default(),
-            annotations: Annotations::default(),
-            entry_rule: None,
-        }
+        config.debug = true; // Enable debug for logging
+        Self::new(config)
     }
     
     /// Enable left recursion elimination on this pipeline
@@ -221,6 +246,177 @@ impl RustASTPipeline {
     #[allow(dead_code)]
     pub fn is_left_recursion_elimination_enabled(&self) -> bool {
         self.config.eliminate_left_recursion
+    }
+    
+    /// Create a timestamped log file for debug output
+    fn create_log_file() -> Result<(Option<BufWriter<std::fs::File>>, Option<String>)> {
+        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
+        let filename = format!("ast_pipeline_{}.log", timestamp);
+        
+        match OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&filename) {
+            Ok(file) => {
+                let writer = BufWriter::new(file);
+                Ok((Some(writer), Some(filename)))
+            }
+            Err(e) => {
+                eprintln!("[ast_pipeline.rs][create_log_file] Warning: Failed to create log file {}: {}", filename, e);
+                Ok((None, None))
+            }
+        }
+    }
+    
+    /// Write a comprehensive header to the log file
+    fn write_log_header(&mut self) {
+        let header = format!(
+            "# AST Pipeline Debug Log\n# Generated: {}\n# Pipeline: Rust AST Pipeline v1.0\n# Debug Mode: {}\n# Trace Mode: {}\n# Bootstrap Mode: {}\n# Left Recursion Elimination: {}\n# Validate Input: {}\n# Validate Output: {}\n# Max Recursion Depth: {}\n\n",
+            chrono::Utc::now().to_rfc3339(),
+            self.config.debug,
+            self.config.trace,
+            self.config.bootstrap_mode,
+            self.config.eliminate_left_recursion,
+            self.config.validate_input,
+            self.config.validate_output,
+            self.config.max_recursion_depth
+        );
+        
+        self.write_to_log(&header);
+    }
+    
+    /// Unified logging method that writes to both console (if debug) and log file
+    fn log_debug(&mut self, context: &str, message: &str) {
+        // Check if this is a method context that hasn't been logged before
+        // Add empty line before first occurrence of specific method contexts for better readability
+        let ast_pipeline_contexts = [
+            "extract_annotations", "group_by_or_operators", "handle_parentheses", 
+            "parse_sequences", "handle_quantifiers", "apply_quantifiers_to_node",
+            "build_tree_structure", "eliminate_left_recursion"
+        ];
+        
+        let generator_contexts = [
+            "generate_quantified_group_functions", "generate_lightning_fast_parser",
+            "generate_optimized_rule_methods", "generate_optimized_rule_method"
+        ];
+        
+        let all_method_contexts: Vec<&str> = ast_pipeline_contexts.iter().chain(generator_contexts.iter()).copied().collect();
+        
+        if all_method_contexts.contains(&context) && !self.logged_contexts.contains(context) {
+            // Add empty line before first occurrence of this method context
+            if self.config.debug {
+                println!(""); // Empty line to console
+            }
+            self.write_to_log("\n"); // Empty line to log file
+            self.logged_contexts.insert(context.to_string());
+        }
+        
+        // Determine the correct source file based on the context
+        let source_file = if generator_contexts.contains(&context) {
+            "high_performance_generator.rs"
+        } else {
+            "ast_pipeline.rs"
+        };
+        
+        let formatted_message = format!("[{}][{}] {}", source_file, context, message);
+        
+        if self.config.debug {
+            println!("{}", formatted_message);
+        }
+        
+        self.write_to_log(&format!("{} {}\n", 
+            chrono::Utc::now().format("%H:%M:%S%.3f"), 
+            formatted_message
+        ));
+    }
+    
+    /// Write formatted progress indicator to log
+    fn log_progress(&mut self, context: &str, step: usize, total: usize, description: &str) {
+        let progress_msg = format!(
+            "🔄 PROGRESS [{}/{}] {}: {}", 
+            step, total, context, description
+        );
+        
+        // Add empty line before PROGRESS messages for better readability
+        if self.config.debug {
+            println!(""); // Empty line to console
+        }
+        self.write_to_log("\n"); // Empty line to log file
+        
+        self.log_debug("PROGRESS", &progress_msg);
+    }
+    
+    /// Write success indicator to log
+    fn log_success(&mut self, context: &str, message: &str) {
+        self.log_debug(context, &format!("✅ SUCCESS: {}", message));
+    }
+    
+    /// Write failure indicator to log
+    fn log_failure(&mut self, context: &str, message: &str) {
+        self.log_debug(context, &format!("❌ FAILURE: {}", message));
+    }
+    
+    /// Write informational message to log
+    fn log_info(&mut self, context: &str, message: &str) {
+        self.log_debug(context, &format!("ℹ️  INFO: {}", message));
+    }
+    
+    /// Write warning message to log
+    fn log_warning(&mut self, context: &str, message: &str) {
+        self.log_debug(context, &format!("⚠️  WARNING: {}", message));
+    }
+    
+    /// Internal method to write to log file
+    fn write_to_log(&mut self, message: &str) {
+        if let Some(ref mut log_file) = self.log_file {
+            if let Err(e) = log_file.write_all(message.as_bytes()) {
+                if self.config.debug {
+                    eprintln!("[ast_pipeline.rs][write_to_log] Warning: Failed to write to log file: {}", e);
+                }
+            }
+            if let Err(e) = log_file.flush() {
+                if self.config.debug {
+                    eprintln!("[ast_pipeline.rs][write_to_log] Warning: Failed to flush log file: {}", e);
+                }
+            }
+        }
+    }
+    
+    /// Write a summary to the log file at the end of processing
+    fn write_log_summary(&mut self) {
+        if !self.config.debug {
+            return;
+        }
+        
+        let summary = format!(
+            "\n\n# AST Pipeline Summary\n# Processing completed: {}\n# Rules processed: {}\n# Annotations preserved: {}\n# Transformations applied: {}\n# Entry rule: {}\n# Log file: {}\n\n",
+            chrono::Utc::now().to_rfc3339(),
+            self.stats.rules_processed,
+            self.stats.annotations_preserved,
+            self.stats.transformations_applied,
+            self.entry_rule.as_deref().unwrap_or("None"),
+            self.log_filename.as_deref().unwrap_or("None")
+        );
+        
+        self.write_to_log(&summary);
+        
+        if let Some(ref filename) = self.log_filename {
+            if self.config.debug {
+                println!("[ast_pipeline.rs][write_log_summary] ✅ Complete debug log written to: {}", filename);
+            }
+        }
+    }
+    
+    /// Flush the log file to ensure all data is written
+    fn flush_log(&mut self) {
+        if let Some(ref mut log_file) = self.log_file {
+            if let Err(e) = log_file.flush() {
+                if self.config.debug {
+                    eprintln!("[ast_pipeline.rs][flush_log] Warning: Failed to flush log file: {}", e);
+                }
+            }
+        }
     }
     
     /// Extract the entry rule name from raw AST JSON
@@ -289,46 +485,73 @@ impl RustASTPipeline {
 
     /// Transform raw AST to semantic AST (main pipeline)
     pub fn transform_raw_ast(&mut self, raw_ast: &RawAST) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
-        if self.config.debug {
-            println!("=== Rust AST Transformation Pipeline ===");
-        }
+        self.log_info("transform_raw_ast", "🚀 STARTING Rust AST Transformation Pipeline");
+        self.log_info("transform_raw_ast", &format!("📊 Input contains {} rule definitions", raw_ast.len()));
         
         // Extract the entry rule name for dynamic parser instantiation
         let entry_rule = self.extract_entry_rule(raw_ast)?;
-        if self.config.debug {
-            println!("Detected entry rule: {}", entry_rule);
-        }
+        self.log_success("transform_raw_ast", &format!("📍 Detected entry rule: {}", entry_rule));
 
+        let total_steps = if self.config.eliminate_left_recursion { 6 } else { 5 };
+        let mut current_step = 1;
+        
         // Stage 1: Extract annotations
+        self.log_progress("transform_raw_ast", current_step, total_steps, "Extract annotations");
         let cleaned_ast = self.extract_annotations(raw_ast)?;
+        self.log_success("transform_raw_ast", &format!("Stage 1 completed: {} rules cleaned", cleaned_ast.len()));
+        current_step += 1;
 
         // Stage 2: Group by OR operators  
+        self.log_progress("transform_raw_ast", current_step, total_steps, "Group by OR operators");
         let grouped_rules = self.group_by_or_operators(&cleaned_ast)?;
+        self.log_success("transform_raw_ast", &format!("Stage 2 completed: {} rules grouped", grouped_rules.len()));
+        current_step += 1;
 
         // Stage 2.5: Handle parentheses
+        self.log_progress("transform_raw_ast", current_step, total_steps, "Handle parentheses");
         let processed_rules = self.handle_parentheses(&grouped_rules)?;
+        self.log_success("transform_raw_ast", &format!("Stage 2.5 completed: {} rules processed", processed_rules.len()));
+        current_step += 1;
 
         // Stage 3: Parse sequences
+        self.log_progress("transform_raw_ast", current_step, total_steps, "Parse sequences");
         let sequenced_rules = self.parse_sequences(&processed_rules)?;
+        self.log_success("transform_raw_ast", &format!("Stage 3 completed: {} rules sequenced", sequenced_rules.len()));
+        current_step += 1;
 
         // Stage 4: Handle quantifiers
+        self.log_progress("transform_raw_ast", current_step, total_steps, "Handle quantifiers");
         let quantified_rules = self.handle_quantifiers(&sequenced_rules)?;
+        self.log_success("transform_raw_ast", &format!("Stage 4 completed: {} rules quantified", quantified_rules.len()));
+        current_step += 1;
 
         // Stage 5: Build tree structure
+        self.log_progress("transform_raw_ast", current_step, total_steps, "Build tree structure");
         let (mut grammar_tree, mut rule_order) = self.build_tree_structure(&quantified_rules)?;
+        self.log_success("transform_raw_ast", &format!("Stage 5 completed: {} final rules", grammar_tree.len()));
+        current_step += 1;
 
         // Stage 6 (Optional): Left recursion elimination
         if self.config.eliminate_left_recursion {
-            if self.config.debug {
-                println!("Stage 6: Applying left recursion elimination...");
-            }
+            self.log_progress("transform_raw_ast", current_step, total_steps, "Apply left recursion elimination");
             (grammar_tree, rule_order) = self.eliminate_left_recursion(grammar_tree, rule_order)?;
+            self.log_success("transform_raw_ast", "Stage 6 completed: Left recursion eliminated");
             self.stats.transformations_applied = 6;
         } else {
+            self.log_info("transform_raw_ast", "Stage 6 skipped: Left recursion elimination disabled");
             self.stats.transformations_applied = 5;
         }
 
         self.stats.rules_processed = grammar_tree.len();
+        
+        self.log_success("transform_raw_ast", &format!(
+            "🎉 PIPELINE COMPLETE! {} rules processed, {} annotations preserved, {} stages applied",
+            self.stats.rules_processed,
+            self.stats.annotations_preserved, 
+            self.stats.transformations_applied
+        ));
+        
+        self.write_log_summary();
 
         Ok((grammar_tree, rule_order))
     }
@@ -733,22 +956,24 @@ impl RustASTPipeline {
 
     /// Stage 1: Extract and preserve annotations
     fn extract_annotations(&mut self, raw_ast: &RawAST) -> Result<RawAST> {
-        if self.config.debug {
-            println!("Stage 1: Extracting annotations...");
-        }
+        self.log_info("extract_annotations", &format!("🔍 Starting annotation extraction for {} rules", raw_ast.len()));
 
         let mut cleaned_ast = RawAST::new();
+        let mut total_annotations_found = 0;
 
-        for rule_def in raw_ast {
+        for (rule_index, rule_def) in raw_ast.iter().enumerate() {
             if rule_def.is_empty() {
+                self.log_warning("extract_annotations", &format!("Skipping empty rule at index {}", rule_index));
                 continue;
             }
 
             let mut rule_name: Option<String> = None;
             let mut cleaned_rule = TokenSequence::new();
+            let mut rule_annotations_found = 0;
 
-            for token in rule_def {
+            for (token_index, token) in rule_def.iter().enumerate() {
                 if token.len() != 2 {
+                    self.log_warning("extract_annotations", &format!("Skipping malformed token at rule[{}][{}]: {:?}", rule_index, token_index, token));
                     continue;
                 }
 
@@ -762,6 +987,7 @@ impl RustASTPipeline {
                     "rule" => {
                         if let TokenValue::String(name) = &token[1] {
                             rule_name = Some(name.clone());
+                            self.log_info("extract_annotations", &format!("🔖 Processing rule: '{}' (index: {})", name, rule_index));
                             cleaned_rule.push(token.clone());
                         }
                     }
@@ -776,6 +1002,7 @@ impl RustASTPipeline {
                                         
                                         match token_type.as_str() {
                                             "semantic_annotation" => {
+                                                self.log_info("extract_annotations", &format!("🏷️  Parsing semantic annotation: '{}' = '{}' for rule '{}'", annotation_name, annotation_value, name));
                                                 // Use the semantic annotation parser for semantic annotations
                                                 let parsed_value = self.parse_semantic_annotation(annotation_value)
                                                     .unwrap_or_else(|_| format!("raw:{}", annotation_value));
@@ -784,30 +1011,30 @@ impl RustASTPipeline {
                                                     .entry(name.clone())
                                                     .or_insert_with(Vec::new)
                                                     .push(formatted_annotation);
+                                                self.log_success("extract_annotations", &format!("Semantic annotation processed: '{}'", annotation_name));
                                             }
                                             "logging_annotation" => {
+                                                self.log_info("extract_annotations", &format!("📝 Parsing logging annotation: '{}' = '{}' for rule '{}'", annotation_name, annotation_value, name));
                                                 let formatted_annotation = format!("{}({})", annotation_name, annotation_value);
                                                 self.annotations.logging_annotations
                                                     .entry(name.clone())
                                                     .or_insert_with(Vec::new)
                                                     .push(formatted_annotation);
+                                                self.log_success("extract_annotations", &format!("Logging annotation processed: '{}'", annotation_name));
                                             }
                                             _ => unreachable!(),
                                         }
                                         
-                                        if self.config.debug {
-                                            println!("Parsed {} annotation: {} = {}", token_type, annotation_name, annotation_value);
-                                        }
+                                        rule_annotations_found += 1;
                                     }
                                 } else {
                                     // Fallback for old string format or malformed data
-                                    if self.config.debug {
-                                        println!("Warning: Unexpected annotation format for {}: {:?}", token_type, token[1]);
-                                    }
+                                    self.log_warning("extract_annotations", &format!("Unexpected annotation format for {}: {:?}", token_type, token[1]));
                                     match token_type.as_str() {
                                         "semantic_annotation" => {
                                             // Still try to parse string format semantic annotations
                                             if let TokenValue::String(value_str) = &token[1] {
+                                                self.log_info("extract_annotations", &format!("🔄 Fallback: Parsing string format semantic annotation for rule '{}'", name));
                                                 let parsed_value = self.parse_semantic_annotation(value_str)
                                                     .unwrap_or_else(|_| format!("raw:{}", value_str));
                                                 self.annotations.semantic_annotations
@@ -815,6 +1042,7 @@ impl RustASTPipeline {
                                                     .or_insert_with(Vec::new)
                                                     .push(parsed_value);
                                             } else {
+                                                self.log_warning("extract_annotations", &format!("Storing raw semantic annotation for rule '{}'", name));
                                                 self.annotations.semantic_annotations
                                                     .entry(name.clone())
                                                     .or_insert_with(Vec::new)
@@ -822,6 +1050,7 @@ impl RustASTPipeline {
                                             }
                                         }
                                         "logging_annotation" => {
+                                            self.log_warning("extract_annotations", &format!("Storing raw logging annotation for rule '{}'", name));
                                             self.annotations.logging_annotations
                                                 .entry(name.clone())
                                                 .or_insert_with(Vec::new)
@@ -829,9 +1058,14 @@ impl RustASTPipeline {
                                         }
                                         _ => unreachable!(),
                                     }
+                                    rule_annotations_found += 1;
                                 }
                                 self.stats.annotations_preserved += 1;
+                            } else {
+                                self.log_warning("extract_annotations", "Annotation preservation is disabled");
                             }
+                        } else {
+                            self.log_warning("extract_annotations", "Found annotation token but no rule name available");
                         }
                         // Don't add to cleaned rule
                     }
@@ -846,6 +1080,7 @@ impl RustASTPipeline {
                                 };
                                 
                                 if !annotation_content.is_empty() {
+                                    self.log_info("extract_annotations", &format!("↩️  Parsing return annotation: '{}' (type: {}) for rule '{}'", annotation_content, token_type, name));
                                     // Parse the return annotation NOW (consistent with semantic annotations)
                                     let parsed_content = self.parse_return_annotation(annotation_content)
                                         .unwrap_or_else(|_| format!("raw:{}", annotation_content));
@@ -857,19 +1092,20 @@ impl RustASTPipeline {
                                     self.annotations.return_annotations
                                         .insert(name.clone(), return_annotation);
                                     
-                                    if self.config.debug {
-                                        println!("Parsed return annotation for {}: {} (type: {})", name, annotation_content, token_type);
-                                    }
+                                    self.log_success("extract_annotations", &format!("Return annotation processed: {} (type: {})", annotation_content, token_type));
+                                    rule_annotations_found += 1;
                                 } else {
                                     // Fallback: create a basic return annotation with just the type for empty content
                                     // This shouldn't happen with valid grammar, but we need a fallback
-                                    if self.config.debug {
-                                        println!("Warning: Empty return annotation content for {}, skipping", name);
-                                    }
+                                    self.log_warning("extract_annotations", &format!("Empty return annotation content for rule '{}', skipping", name));
                                 }
                                 
                                 self.stats.annotations_preserved += 1;
+                            } else {
+                                self.log_warning("extract_annotations", "Return annotation preservation is disabled");
                             }
+                        } else {
+                            self.log_warning("extract_annotations", "Found return annotation token but no rule name available");
                         }
                         // Don't add to cleaned rule
                     }
@@ -881,26 +1117,44 @@ impl RustASTPipeline {
 
             if !cleaned_rule.is_empty() {
                 cleaned_ast.push(cleaned_rule);
+                if rule_annotations_found > 0 {
+                    self.log_success("extract_annotations", &format!("Rule '{}' completed: {} annotations found", rule_name.as_deref().unwrap_or("unknown"), rule_annotations_found));
+                    total_annotations_found += rule_annotations_found;
+                }
+            } else {
+                self.log_warning("extract_annotations", &format!("Rule at index {} resulted in empty cleaned rule", rule_index));
             }
         }
 
-        if self.config.debug {
-            println!("Preserved {} annotations", self.stats.annotations_preserved);
-        }
+        self.log_success("extract_annotations", &format!(
+            "📊 Annotation extraction complete! {} total annotations preserved from {} rules", 
+            self.stats.annotations_preserved, 
+            cleaned_ast.len()
+        ));
+        
+        // Log breakdown by annotation type
+        let semantic_count = self.annotations.semantic_annotations.values().map(|v| v.len()).sum::<usize>();
+        let logging_count = self.annotations.logging_annotations.values().map(|v| v.len()).sum::<usize>();
+        let return_count = self.annotations.return_annotations.len();
+        
+        self.log_info("extract_annotations", &format!(
+            "📊 Breakdown: {} semantic, {} logging, {} return annotations",
+            semantic_count, logging_count, return_count
+        ));
 
         Ok(cleaned_ast)
     }
 
     /// Stage 2: Group rule definitions by OR operators
-    fn group_by_or_operators(&self, ast: &RawAST) -> Result<HashMap<String, Vec<TokenSequence>>> {
-        if self.config.debug {
-            println!("Stage 2: Grouping by OR operators...");
-        }
+    fn group_by_or_operators(&mut self, ast: &RawAST) -> Result<HashMap<String, Vec<TokenSequence>>> {
+        self.log_info("group_by_or_operators", &format!("🔀 Starting OR operator grouping for {} rules", ast.len()));
 
         let mut grouped = HashMap::new();
+        let mut total_alternatives = 0;
 
-        for rule_def in ast {
+        for (rule_index, rule_def) in ast.iter().enumerate() {
             if rule_def.is_empty() {
+                self.log_warning("group_by_or_operators", &format!("Skipping empty rule at index {}", rule_index));
                 continue;
             }
 
@@ -910,6 +1164,7 @@ impl RustASTPipeline {
                     if let (TokenValue::String(type_str), TokenValue::String(name_str)) = (&token[0], &token[1]) {
                         if type_str == "rule" {
                             rule_name = Some(name_str.clone());
+                            self.log_info("group_by_or_operators", &format!("🔖 Processing rule: '{}' (index: {})", name_str, rule_index));
                             break;
                         }
                     }
@@ -919,15 +1174,27 @@ impl RustASTPipeline {
             if let Some(name) = rule_name {
                 let mut alternatives = Vec::new();
                 let mut current_alt = TokenSequence::new();
+                let mut or_operators_found = 0;
 
                 // Skip rule definition token
+                let mut paren_depth: i32 = 0;
                 for token in rule_def.iter().skip(1) {
                     if token.len() == 2 {
                         if let (TokenValue::String(type_str), TokenValue::String(value_str)) = (&token[0], &token[1]) {
-                            if type_str == "operator" && value_str == "|" {
+                            // Track parentheses depth
+                            match type_str.as_str() {
+                                "group_open" => paren_depth += 1,
+                                "group_close" => paren_depth = paren_depth.saturating_sub(1),
+                                _ => {}
+                            }
+                            
+                            // Only split on | operators at top level (outside parentheses)
+                            if type_str == "operator" && value_str == "|" && paren_depth == 0 {
                                 if !current_alt.is_empty() {
                                     alternatives.push(current_alt);
                                     current_alt = TokenSequence::new();
+                                    or_operators_found += 1;
+                                    self.log_info("group_by_or_operators", &format!("✂️  OR operator #{} found in rule '{}', creating alternative", or_operators_found, name));
                                 }
                                 continue;
                             }
@@ -940,18 +1207,25 @@ impl RustASTPipeline {
                     alternatives.push(current_alt);
                 }
 
+                self.log_success("group_by_or_operators", &format!("Rule '{}' processed: {} alternatives created", name, alternatives.len()));
+                total_alternatives += alternatives.len();
                 grouped.entry(name).or_insert_with(Vec::new).extend(alternatives);
+            } else {
+                self.log_warning("group_by_or_operators", &format!("No rule name found for rule at index {}", rule_index));
             }
         }
+
+        self.log_success("group_by_or_operators", &format!(
+            "📊 OR operator grouping complete! {} rules processed, {} total alternatives created",
+            grouped.len(), total_alternatives
+        ));
 
         Ok(grouped)
     }
 
     /// Stage 2.5: Handle parentheses and grouping
-    fn handle_parentheses(&self, grouped_rules: &HashMap<String, Vec<TokenSequence>>) -> Result<HashMap<String, Vec<TokenSequence>>> {
-        if self.config.debug {
-            println!("Stage 2.5: Handling parentheses...");
-        }
+    fn handle_parentheses(&mut self, grouped_rules: &HashMap<String, Vec<TokenSequence>>) -> Result<HashMap<String, Vec<TokenSequence>>> {
+        self.log_info("handle_parentheses", &format!("🔗 Starting parentheses handling for {} rules", grouped_rules.len()));
 
         let mut processed = HashMap::new();
 
@@ -1017,11 +1291,66 @@ impl RustASTPipeline {
         Ok(result)
     }
 
-    /// Stage 3: Parse sequences
-    fn parse_sequences(&self, processed_rules: &HashMap<String, Vec<TokenSequence>>) -> Result<HashMap<String, Vec<ASTNode>>> {
-        if self.config.debug {
-            println!("Stage 3: Parsing sequences...");
+    /// Parse group content, handling OR operators to create proper Or nodes
+    fn parse_group_with_or_handling(&self, group_content: &TokenSequence) -> Result<ASTNode> {
+        // Check if this group contains OR operators
+        let has_or_operators = group_content.iter().any(|token| {
+            token.len() == 2 && token[0] == "operator" && token[1].as_str() == Some("|")
+        });
+
+        if has_or_operators {
+            // Split on OR operators to create alternatives
+            let mut alternatives = Vec::new();
+            let mut current_alt = TokenSequence::new();
+
+            for token in group_content {
+                if token.len() == 2 && token[0] == "operator" && token[1].as_str() == Some("|") {
+                    if !current_alt.is_empty() {
+                        let alt_node = if current_alt.len() == 1 {
+                            self.parse_single_element(&current_alt[0])?
+                        } else {
+                            let elements: Result<Vec<ASTNode>> = current_alt
+                                .iter()
+                                .map(|elem| self.parse_single_element(elem))
+                                .collect();
+                            ASTNode::Sequence { elements: elements? }
+                        };
+                        alternatives.push(alt_node);
+                        current_alt.clear();
+                    }
+                } else {
+                    current_alt.push(token.clone());
+                }
+            }
+
+            // Add final alternative
+            if !current_alt.is_empty() {
+                let alt_node = if current_alt.len() == 1 {
+                    self.parse_single_element(&current_alt[0])?
+                } else {
+                    let elements: Result<Vec<ASTNode>> = current_alt
+                        .iter()
+                        .map(|elem| self.parse_single_element(elem))
+                        .collect();
+                    ASTNode::Sequence { elements: elements? }
+                };
+                alternatives.push(alt_node);
+            }
+
+            Ok(ASTNode::Or { alternatives })
+        } else {
+            // No OR operators - treat as a sequence
+            let elements: Result<Vec<ASTNode>> = group_content
+                .iter()
+                .map(|elem| self.parse_single_element(elem))
+                .collect();
+            Ok(ASTNode::Sequence { elements: elements? })
         }
+    }
+
+    /// Stage 3: Parse sequences
+    fn parse_sequences(&mut self, processed_rules: &HashMap<String, Vec<TokenSequence>>) -> Result<HashMap<String, Vec<ASTNode>>> {
+        self.log_info("parse_sequences", &format!("🔗 Starting sequence parsing for {} rules", processed_rules.len()));
 
         let mut sequenced = HashMap::new();
 
@@ -1066,11 +1395,8 @@ impl RustASTPipeline {
                     if group_content.len() == 1 {
                         self.parse_single_element(&group_content[0])
                     } else {
-                        let elements: Result<Vec<ASTNode>> = group_content
-                            .iter()
-                            .map(|elem| self.parse_single_element(elem))
-                            .collect();
-                        Ok(ASTNode::Sequence { elements: elements? })
+                        // Check if this group contains OR operators that should create an Or node
+                        self.parse_group_with_or_handling(&group_content)
                     }
                 } else {
                     Ok(ASTNode::Atom { value: ASTValue::Token(element.clone()) })
@@ -1081,10 +1407,8 @@ impl RustASTPipeline {
     }
 
     /// Stage 4: Handle quantifiers
-    fn handle_quantifiers(&self, sequenced_rules: &HashMap<String, Vec<ASTNode>>) -> Result<HashMap<String, Vec<ASTNode>>> {
-        if self.config.debug {
-            println!("Stage 4: Handling quantifiers...");
-        }
+    fn handle_quantifiers(&mut self, sequenced_rules: &HashMap<String, Vec<ASTNode>>) -> Result<HashMap<String, Vec<ASTNode>>> {
+        self.log_info("handle_quantifiers", &format!("✨ Starting quantifier handling for {} rules", sequenced_rules.len()));
 
         let mut quantified = HashMap::new();
 
@@ -1103,27 +1427,74 @@ impl RustASTPipeline {
     }
 
     /// Apply quantifiers to AST node
-    fn apply_quantifiers_to_node(&self, node: ASTNode) -> Result<ASTNode> {
+    fn apply_quantifiers_to_node(&mut self, node: ASTNode) -> Result<ASTNode> {
         match node {
             ASTNode::Sequence { elements } => {
+                self.log_info("apply_quantifiers_to_node", &format!("🔄 Processing sequence with {} elements", elements.len()));
+                if self.config.debug {
+                    for (idx, elem) in elements.iter().enumerate() {
+                        self.log_debug("apply_quantifiers_to_node", &format!("  Element[{}]: {:?}", idx, elem));
+                    }
+                }
+                
+                // Pre-process: flatten nested sequences that contain grouped quantifiers
+                let flattened_elements = self.flatten_grouped_quantifiers_in_sequence(&elements)?;
+                if self.config.debug && flattened_elements.len() != elements.len() {
+                    println!("[AST][apply_quantifiers_to_node] Flattened sequence: {} -> {} elements", elements.len(), flattened_elements.len());
+                    for (idx, elem) in flattened_elements.iter().enumerate() {
+                        println!("[AST][apply_quantifiers_to_node]   FlatElement[{}]: {:?}", idx, elem);
+                    }
+                }
+                
                 let mut new_elements = Vec::new();
                 let mut i = 0;
 
-                while i < elements.len() {
-                    let element = &elements[i];
-
-                    // Check if next element is a quantifier
-                    if i + 1 < elements.len() {
-                        if let ASTNode::Atom { value: ASTValue::Token(token) } = &elements[i + 1] {
+                while i < flattened_elements.len() {
+                    if self.config.debug {
+                        println!("[AST][apply_quantifiers_to_node] Processing element {} of {}", i, flattened_elements.len());
+                    }
+                    // Check for grouped quantifiers: group_open ... group_close operator
+                    if self.config.debug {
+                        println!("[AST][apply_quantifiers_to_node] Checking for grouped quantifiers at index {}", i);
+                    }
+                    if let Some(grouped_result) = self.try_parse_grouped_quantifier(&flattened_elements, i)? {
+                        if self.config.debug {
+                            println!("[AST][apply_quantifiers_to_node] 🎉 Found grouped quantifier! Adding to new_elements and skipping to index {}", grouped_result.next_index);
+                        }
+                        new_elements.push(grouped_result.quantified_node);
+                        i = grouped_result.next_index;
+                        continue;
+                    } else {
+                        if self.config.debug {
+                            println!("[AST][apply_quantifiers_to_node] No grouped quantifier found at index {}", i);
+                        }
+                    }
+                    
+                    // Check for simple quantifiers: element operator
+                    let element = &flattened_elements[i];
+                    if self.config.debug {
+                        println!("[AST][apply_quantifiers_to_node] Checking for simple quantifiers, element: {:?}", element);
+                    }
+                    if i + 1 < flattened_elements.len() {
+                        if self.config.debug {
+                            println!("[AST][apply_quantifiers_to_node] Checking next element for quantifier: {:?}", flattened_elements[i + 1]);
+                        }
+                        if let ASTNode::Atom { value: ASTValue::Token(token) } = &flattened_elements[i + 1] {
                             if token.len() == 2 && token[0] == "operator" {
                                 if let Some(op_str) = token[1].as_str() {
                                     if ["*", "+", "?"].contains(&op_str) {
+                                        if self.config.debug {
+                                            println!("[AST][apply_quantifiers_to_node] ⭐ Found simple quantifier: '{}' for element: {:?}", op_str, element);
+                                        }
                                         let quantified_node = ASTNode::Quantified {
                                             element: Box::new(element.clone()),
                                             quantifier: op_str.to_string(),
                                         };
                                         new_elements.push(quantified_node);
                                         i += 2; // Skip quantifier token
+                                        if self.config.debug {
+                                            println!("[AST][apply_quantifiers_to_node] Added simple quantified node, advancing to index {}", i);
+                                        }
                                         continue;
                                     }
                                 }
@@ -1131,21 +1502,267 @@ impl RustASTPipeline {
                         }
                     }
 
+                    if self.config.debug {
+                        println!("[AST][apply_quantifiers_to_node] No quantifier found, adding element as-is: {:?}", element);
+                    }
                     new_elements.push(element.clone());
                     i += 1;
                 }
 
+                if self.config.debug {
+                    println!("[AST][apply_quantifiers_to_node] ✅ Finished processing sequence. Original: {} elements, New: {} elements", elements.len(), new_elements.len());
+                    println!("[AST][apply_quantifiers_to_node] New sequence elements:");
+                    for (idx, elem) in new_elements.iter().enumerate() {
+                        println!("[AST][apply_quantifiers_to_node]   NewElement[{}]: {:?}", idx, elem);
+                    }
+                }
                 Ok(ASTNode::Sequence { elements: new_elements })
             }
-            _ => Ok(node)
+            _ => {
+                if self.config.debug {
+                    println!("[AST][apply_quantifiers_to_node] Non-sequence node, returning as-is: {:?}", node);
+                }
+                Ok(node)
+            }
         }
     }
 
-    /// Stage 5: Build final tree structure
-    fn build_tree_structure(&self, quantified_rules: &HashMap<String, Vec<ASTNode>>) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
+    /// Try to parse a grouped quantifier pattern: group_open ... group_close operator
+    fn try_parse_grouped_quantifier(&self, elements: &[ASTNode], start_index: usize) -> Result<Option<GroupedQuantifierResult>> {
         if self.config.debug {
-            println!("Stage 5: Building tree structure...");
+            println!("[AST][try_parse_grouped_quantifier] Checking for grouped quantifier at index {}/{}", start_index, elements.len());
+            println!("[AST][try_parse_grouped_quantifier] Elements remaining: {}", elements.len() - start_index);
+            if start_index < elements.len() {
+                println!("[AST][try_parse_grouped_quantifier] First element: {:?}", elements[start_index]);
+            }
         }
+        
+        if start_index >= elements.len() {
+            if self.config.debug {
+                println!("[AST][try_parse_grouped_quantifier] ❌ No elements left to check");
+            }
+            return Ok(None);
+        }
+
+        // Check if we start with a group_open token
+        if let ASTNode::Atom { value: ASTValue::Token(token) } = &elements[start_index] {
+            if self.config.debug {
+                println!("[AST][try_parse_grouped_quantifier] Found atom with token: {:?}", token);
+                println!("[AST][try_parse_grouped_quantifier] Token length: {}, type: {:?}, value: {:?}", token.len(), token.get(0), token.get(1));
+            }
+            if token.len() == 2 && (token[0] == "group_open" || token[0] == "(") {
+                if self.config.debug {
+                    println!("[AST][try_parse_grouped_quantifier] ✅ Found group_open token, parsing group...");
+                    println!("[AST][try_parse_grouped_quantifier] Starting group collection from index {}", start_index + 1);
+                }
+                // Find the matching group_close and quantifier
+                let mut depth = 1;
+                let mut group_content = Vec::new();
+                let mut i = start_index + 1;
+                
+                // Collect group content until we find the matching close
+                if self.config.debug {
+                    println!("[AST][try_parse_grouped_quantifier] Starting group collection loop, depth={}, i={}", depth, i);
+                }
+                while i < elements.len() && depth > 0 {
+                    if self.config.debug {
+                        println!("[AST][try_parse_grouped_quantifier] Loop iteration: i={}, depth={}, element: {:?}", i, depth, elements[i]);
+                    }
+                    match &elements[i] {
+                        ASTNode::Atom { value: ASTValue::Token(token) } if token.len() == 2 => {
+                            if self.config.debug {
+                                println!("[AST][try_parse_grouped_quantifier] Processing token: {:?}", token);
+                            }
+                            match token[0].as_str() {
+                                Some("group_open") | Some("(") => {
+                                    depth += 1;
+                                    if self.config.debug {
+                                        println!("[AST][try_parse_grouped_quantifier] Found nested group_open, depth now: {}", depth);
+                                    }
+                                    if depth > 1 { // Don't include nested group markers in content
+                                        group_content.push(elements[i].clone());
+                                        if self.config.debug {
+                                            println!("[AST][try_parse_grouped_quantifier] Added nested group_open to content");
+                                        }
+                                    }
+                                }
+                                Some("group_close") | Some(")") => {
+                                    depth -= 1;
+                                    if self.config.debug {
+                                        println!("[AST][try_parse_grouped_quantifier] Found group_close, depth now: {}", depth);
+                                    }
+                                    if depth > 0 { // Don't include the final group_close
+                                        group_content.push(elements[i].clone());
+                                        if self.config.debug {
+                                            println!("[AST][try_parse_grouped_quantifier] Added nested group_close to content");
+                                        }
+                                    } else {
+                                        if self.config.debug {
+                                            println!("[AST][try_parse_grouped_quantifier] Found final group_close, not adding to content");
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    group_content.push(elements[i].clone());
+                                    if self.config.debug {
+                                        println!("[AST][try_parse_grouped_quantifier] Added regular token to content: {:?}", token);
+                                    }
+                                }
+                            }
+                        }
+                        _ => {
+                            group_content.push(elements[i].clone());
+                            if self.config.debug {
+                                println!("[AST][try_parse_grouped_quantifier] Added non-token element to content: {:?}", elements[i]);
+                            }
+                        }
+                    }
+                    i += 1;
+                }
+                if self.config.debug {
+                    println!("[AST][try_parse_grouped_quantifier] Group collection finished: depth={}, i={}, group_content.len()={}", depth, i, group_content.len());
+                }
+                
+                // Check if we found the complete group and have a quantifier following
+                if self.config.debug {
+                    println!("[AST][try_parse_grouped_quantifier] Checking for quantifier: depth={}, i={}, elements.len()={}", depth, i, elements.len());
+                }
+                if depth == 0 && i < elements.len() {
+                    if self.config.debug {
+                        println!("[AST][try_parse_grouped_quantifier] Group complete, checking element at i={}: {:?}", i, elements[i]);
+                    }
+                    if let ASTNode::Atom { value: ASTValue::Token(op_token) } = &elements[i] {
+                        if self.config.debug {
+                            println!("[AST][try_parse_grouped_quantifier] Found token at quantifier position: {:?}", op_token);
+                        }
+                        if op_token.len() == 2 && op_token[0] == "operator" {
+                            if self.config.debug {
+                                println!("[AST][try_parse_grouped_quantifier] Token is an operator: {:?}", op_token[1]);
+                            }
+                            if let Some(quantifier) = op_token[1].as_str() {
+                                if ["*", "+", "?"].contains(&quantifier) {
+                                    if self.config.debug {
+                                        println!("[AST][try_parse_grouped_quantifier] 🎉 FOUND COMPLETE GROUPED QUANTIFIER! quantifier: '{}'", quantifier);
+                                        println!("[AST][try_parse_grouped_quantifier] Group content elements: {}", group_content.len());
+                                        for (idx, elem) in group_content.iter().enumerate() {
+                                            println!("[AST][try_parse_grouped_quantifier]   Content[{}]: {:?}", idx, elem);
+                                        }
+                                    }
+                                    // Create a sequence from the group content
+                                    let group_element = if group_content.is_empty() {
+                                        // Empty group - create a dummy terminal
+                                        ASTNode::Atom { 
+                                            value: ASTValue::Token(vec![
+                                                TokenValue::String("empty_group".to_string()),
+                                                TokenValue::String("".to_string())
+                                            ])
+                                        }
+                                    } else if group_content.len() == 1 {
+                                        // Single element group
+                                        group_content[0].clone()
+                                    } else {
+                                        // Multi-element group becomes a sequence
+                                        ASTNode::Sequence { elements: group_content }
+                                    };
+                                    
+                                    let quantified_node = ASTNode::Quantified {
+                                        element: Box::new(group_element),
+                                        quantifier: quantifier.to_string(),
+                                    };
+                                    
+                                    if self.config.debug {
+                                        println!("[AST][try_parse_grouped_quantifier] ✅ Returning grouped quantifier result, next_index: {}", i + 1);
+                                    }
+                                    return Ok(Some(GroupedQuantifierResult {
+                                        quantified_node,
+                                        next_index: i + 1, // Skip past the quantifier
+                                    }));
+                                } else {
+                                    if self.config.debug {
+                                        println!("[AST][try_parse_grouped_quantifier] ❌ Invalid quantifier: '{}'", quantifier);
+                                    }
+                                }
+                            } else {
+                                if self.config.debug {
+                                    println!("[AST][try_parse_grouped_quantifier] ❌ Quantifier value is not a string");
+                                }
+                            }
+                        } else {
+                            if self.config.debug {
+                                println!("[AST][try_parse_grouped_quantifier] ❌ Token is not an operator: {:?}", op_token);
+                            }
+                        }
+                    } else {
+                        if self.config.debug {
+                            println!("[AST][try_parse_grouped_quantifier] ❌ Element at quantifier position is not a token: {:?}", elements[i]);
+                        }
+                    }
+                } else {
+                    if self.config.debug {
+                        if depth != 0 {
+                            println!("[AST][try_parse_grouped_quantifier] ❌ Group not properly closed, depth: {}", depth);
+                        } else {
+                            println!("[AST][try_parse_grouped_quantifier] ❌ No quantifier following group (i={}, elements.len()={})", i, elements.len());
+                        }
+                    }
+                }
+            } else {
+                if self.config.debug {
+                    println!("[AST][try_parse_grouped_quantifier] ❌ Token type/value mismatch for group_open");
+                }
+            }
+        } else {
+            if self.config.debug {
+                println!("[AST][try_parse_grouped_quantifier] ❌ First element is not an atom with token: {:?}", elements[start_index]);
+            }
+        }
+        
+        if self.config.debug {
+            println!("[AST][try_parse_grouped_quantifier] ❌ No grouped quantifier found at index {}", start_index);
+        }
+        Ok(None)
+    }
+    
+    /// Flatten nested sequences that contain grouped quantifiers into the parent sequence
+    /// This pre-processing step makes grouped quantifiers detectable at the top level
+    fn flatten_grouped_quantifiers_in_sequence(&self, elements: &[ASTNode]) -> Result<Vec<ASTNode>> {
+        let mut flattened = Vec::new();
+        
+        for element in elements {
+            if let ASTNode::Sequence { elements: nested_elements } = element {
+                // Check if this nested sequence contains a grouped quantifier pattern
+                if self.contains_grouped_quantifier(nested_elements)? {
+                    if self.config.debug {
+                        println!("[AST][flatten_grouped_quantifiers_in_sequence] Flattening nested sequence with {} elements", nested_elements.len());
+                    }
+                    // Flatten: add all nested elements to the parent level
+                    flattened.extend(nested_elements.clone());
+                } else {
+                    // Keep the nested sequence as-is
+                    flattened.push(element.clone());
+                }
+            } else {
+                // Regular element - add as-is
+                flattened.push(element.clone());
+            }
+        }
+        
+        Ok(flattened)
+    }
+    
+    /// Check if a sequence contains a grouped quantifier pattern: group_open ... group_close operator
+    fn contains_grouped_quantifier(&self, elements: &[ASTNode]) -> Result<bool> {
+        for i in 0..elements.len() {
+            if let Some(_) = self.try_parse_grouped_quantifier(elements, i)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    /// Stage 5: Build final tree structure
+    fn build_tree_structure(&mut self, quantified_rules: &HashMap<String, Vec<ASTNode>>) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
+        self.log_info("build_tree_structure", &format!("🌳 Starting tree structure building for {} rules", quantified_rules.len()));
 
         let mut grammar_tree = HashMap::new();
         let rule_order: Vec<String> = quantified_rules.keys().cloned().collect();
@@ -1213,21 +1830,28 @@ impl RustASTPipeline {
         raw_ast_json_file: &str,
         output_json_file: Option<&str>,
     ) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
+        self.log_info("transform_from_file", &format!("📂 Loading raw AST from: {}", raw_ast_json_file));
         let raw_data = self.load_raw_ast(raw_ast_json_file)?;
         let (grammar_tree, rule_order) = self.transform_raw_ast(&raw_data.raw_ast)?;
 
         if let Some(output_file) = output_json_file {
+            self.log_info("transform_from_file", &format!("💾 Saving transformed AST to: {}", output_file));
             self.save_transformed_ast(&grammar_tree, &rule_order, &raw_data.grammar_name, output_file)?;
         }
 
+        // Ensure log file is flushed before returning
+        self.flush_log();
         Ok((grammar_tree, rule_order))
     }
 
     /// Cross-language API: Transform raw AST JSON file to transformed AST JSON file
     pub fn transform_to_json(&mut self, raw_ast_json_file: &str, output_json_file: &str) -> Result<()> {
+        self.log_info("transform_to_json", &format!("🔄 Cross-language transformation: {} → {}", raw_ast_json_file, output_json_file));
         let (grammar_tree, rule_order) = self.transform_from_file(raw_ast_json_file, None)?;
         let raw_data = self.load_raw_ast(raw_ast_json_file)?;
         self.save_transformed_ast(&grammar_tree, &rule_order, &raw_data.grammar_name, output_json_file)?;
+        self.log_success("transform_to_json", &format!("✅ Cross-language transformation complete: {}", output_json_file));
+        self.flush_log();
         Ok(())
     }
 
@@ -1284,11 +1908,11 @@ impl RustASTPipeline {
         } else if enable_trace {
             HighPerformanceRustGenerator::with_trace(&raw_data.grammar_name, true)
         } else {
-            let mut gen = HighPerformanceRustGenerator::new(&raw_data.grammar_name);
             if enable_backtrack_debug {
-                gen.enable_backtrack_debug = true;
+                HighPerformanceRustGenerator::with_full_debug(&raw_data.grammar_name)
+            } else {
+                HighPerformanceRustGenerator::new(&raw_data.grammar_name)
             }
-            gen
         };
         
         // Set the entry rule immediately after generator creation
@@ -1297,7 +1921,7 @@ impl RustASTPipeline {
         // Pass the return annotations to the code generator
         code_generator.set_return_annotations(&self.annotations.return_annotations);
         
-        let rust_code = code_generator.generate_lightning_fast_parser(&grammar_tree, &rule_order)?;
+        let rust_code = code_generator.generate_lightning_fast_parser_with_logging(&grammar_tree, &rule_order, self)?;
         
         fs::write(output_rust_file, rust_code)
             .with_context(|| format!("Failed to write high-performance Rust parser to: {}", output_rust_file))?;
@@ -1403,13 +2027,47 @@ impl RustASTPipeline {
                                             production.push(format!("REGEX:{}", pattern));
                                         }
                                     }
-                                    _ => production.push(format!("COMPLEX:{:?}", element)),
+                                    _ => {
+                                        // Handle complex AST nodes by preserving their structure
+                                        let serialized = serde_json::to_string(element)
+                                            .unwrap_or_else(|_| format!("{:?}", element));
+                                        production.push(format!("COMPLEX_GROUP:{}", serialized));
+                                    },
                                 }
                             } else {
-                                production.push(format!("COMPLEX:{:?}", element));
+                                // Handle complex AST nodes by preserving their structure
+                                let serialized = serde_json::to_string(element)
+                                    .unwrap_or_else(|_| format!("{:?}", element));
+                                production.push(format!("COMPLEX_GROUP:{}", serialized));
                             }
                         }
-                        _ => production.push(format!("COMPLEX:{:?}", element)),
+                        ASTNode::Quantified { element, quantifier } => {
+                            // Preserve quantified groups with their structure
+                            let serialized = serde_json::to_string(element)
+                                .unwrap_or_else(|_| format!("{:?}", element));
+                            production.push(format!("QUANTIFIED:{}:{}", quantifier, serialized));
+                        }
+                        ASTNode::Or { alternatives } => {
+                            // Preserve OR groups with their structure  
+                            let serialized = serde_json::to_string(alternatives)
+                                .unwrap_or_else(|_| format!("{:?}", alternatives));
+                            production.push(format!("OR_GROUP:{}", serialized));
+                        }
+                        ASTNode::Sequence { elements } => {
+                            // Preserve nested sequences with their structure
+                            let serialized = serde_json::to_string(elements)
+                                .unwrap_or_else(|_| format!("{:?}", elements));
+                            production.push(format!("NESTED_SEQUENCE:{}", serialized));
+                        }
+                        ASTNode::Atom { value: ASTValue::Node(node) } => {
+                            // Handle nested nodes by recursively processing them
+                            let inner_productions = self.ast_node_to_productions(node)?;
+                            if !inner_productions.is_empty() && !inner_productions[0].is_empty() {
+                                production.extend(inner_productions[0].clone());
+                            } else {
+                                production.push("ε".to_string());
+                            }
+                        }
                     }
                 }
                 Ok(vec![production])
@@ -1421,30 +2079,51 @@ impl RustASTPipeline {
                             if let Some(value) = token[1].as_str() {
                                 Ok(vec![vec![format!("TERMINAL:{}", value)]])
                             } else {
-                                Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
+                                let serialized = serde_json::to_string(token)
+                                    .unwrap_or_else(|_| format!("{:?}", token));
+                                Ok(vec![vec![format!("COMPLEX_GROUP:{}", serialized)]])
                             }
                         }
                         Some("rule_reference") => {
                             if let Some(name) = token[1].as_str() {
                                 Ok(vec![vec![name.to_string()]])
                             } else {
-                                Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
+                                let serialized = serde_json::to_string(token)
+                                    .unwrap_or_else(|_| format!("{:?}", token));
+                                Ok(vec![vec![format!("COMPLEX_GROUP:{}", serialized)]])
                             }
                         }
                         Some("regex") => {
                             if let Some(pattern) = token[1].as_str() {
                                 Ok(vec![vec![format!("REGEX:{}", pattern)]])
                             } else {
-                                Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
+                                let serialized = serde_json::to_string(token)
+                                    .unwrap_or_else(|_| format!("{:?}", token));
+                                Ok(vec![vec![format!("COMPLEX_GROUP:{}", serialized)]])
                             }
                         }
-                        _ => Ok(vec![vec![format!("COMPLEX:{:?}", token)]]),
+                        _ => {
+                            let serialized = serde_json::to_string(token)
+                                .unwrap_or_else(|_| format!("{:?}", token));
+                            Ok(vec![vec![format!("COMPLEX_GROUP:{}", serialized)]])
+                        },
                     }
                 } else {
-                    Ok(vec![vec![format!("COMPLEX:{:?}", token)]])
+                    let serialized = serde_json::to_string(token)
+                        .unwrap_or_else(|_| format!("{:?}", token));
+                    Ok(vec![vec![format!("COMPLEX_GROUP:{}", serialized)]])
                 }
             }
-            _ => Ok(vec![vec![format!("COMPLEX:{:?}", node)]])
+            ASTNode::Quantified { element, quantifier } => {
+                // Handle top-level quantified nodes
+                let serialized = serde_json::to_string(element)
+                    .unwrap_or_else(|_| format!("{:?}", element));
+                Ok(vec![vec![format!("QUANTIFIED:{}:{}", quantifier, serialized)]])
+            }
+            ASTNode::Atom { value: ASTValue::Node(node) } => {
+                // Handle nested nodes by recursively processing them
+                self.ast_node_to_productions(node)
+            }
         }
     }
     
@@ -1477,8 +2156,85 @@ impl RustASTPipeline {
                             TokenValue::String(symbol[6..].to_string())
                         ]) 
                     })
+                } else if symbol.starts_with("QUANTIFIED:") {
+                    // Handle quantified groups: format is "QUANTIFIED:quantifier:serialized_element"
+                    let parts: Vec<&str> = symbol[11..].splitn(2, ':').collect();
+                    if parts.len() == 2 {
+                        let quantifier = parts[0].to_string();
+                        let serialized_element = parts[1];
+                        
+                        // Try to deserialize the element back to ASTNode
+                        let element: ASTNode = serde_json::from_str(serialized_element)
+                            .unwrap_or_else(|_| ASTNode::Atom { 
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String("".to_string()) // Fallback to empty terminal
+                                ]) 
+                            });
+                            
+                        Ok(ASTNode::Quantified { 
+                            element: Box::new(element), 
+                            quantifier 
+                        })
+                    } else {
+                        // Malformed quantified entry, treat as empty terminal
+                        Ok(ASTNode::Atom { 
+                            value: ASTValue::Token(vec![
+                                TokenValue::String("quoted_string".to_string()), 
+                                TokenValue::String("".to_string())
+                            ]) 
+                        })
+                    }
+                } else if symbol.starts_with("OR_GROUP:") {
+                    // Handle OR groups: format is "OR_GROUP:serialized_alternatives"
+                    let serialized_alternatives = &symbol[9..];
+                    
+                    // Try to deserialize the alternatives back to Vec<ASTNode>
+                    let alternatives: Vec<ASTNode> = serde_json::from_str(serialized_alternatives)
+                        .unwrap_or_else(|_| vec![ASTNode::Atom { 
+                            value: ASTValue::Token(vec![
+                                TokenValue::String("quoted_string".to_string()),
+                                TokenValue::String("".to_string()) // Fallback to empty terminal
+                            ]) 
+                        }]);
+                        
+                    Ok(ASTNode::Or { alternatives })
+                } else if symbol.starts_with("NESTED_SEQUENCE:") {
+                    // Handle nested sequences: format is "NESTED_SEQUENCE:serialized_elements"
+                    let serialized_elements = &symbol[16..];
+                    
+                    // Try to deserialize the elements back to Vec<ASTNode>
+                    let elements: Vec<ASTNode> = serde_json::from_str(serialized_elements)
+                        .unwrap_or_else(|_| vec![ASTNode::Atom { 
+                            value: ASTValue::Token(vec![
+                                TokenValue::String("quoted_string".to_string()),
+                                TokenValue::String("".to_string()) // Fallback to empty terminal
+                            ]) 
+                        }]);
+                        
+                    Ok(ASTNode::Sequence { elements })
+                } else if symbol.starts_with("COMPLEX_GROUP:") {
+                    // Handle complex groups by deserializing back to original structure
+                    let serialized_node = &symbol[14..];
+                    
+                    // Try to deserialize back to original ASTNode structure
+                    serde_json::from_str(serialized_node)
+                        .or_else(|_| {
+                            // If JSON deserialization fails, try parsing as token
+                            if let Ok(token) = serde_json::from_str::<Vec<TokenValue>>(serialized_node) {
+                                Ok(ASTNode::Atom { value: ASTValue::Token(token) })
+                            } else {
+                                // Final fallback to empty terminal
+                                Ok(ASTNode::Atom { 
+                                    value: ASTValue::Token(vec![
+                                        TokenValue::String("quoted_string".to_string()), 
+                                        TokenValue::String("".to_string())
+                                    ]) 
+                                })
+                            }
+                        })
                 } else if symbol.starts_with("COMPLEX:") {
-                    // Handle COMPLEX entries by treating as empty terminal
+                    // Legacy complex handling - convert to empty terminal
                     Ok(ASTNode::Atom { 
                         value: ASTValue::Token(vec![
                             TokenValue::String("quoted_string".to_string()), 
@@ -1518,9 +2274,81 @@ impl RustASTPipeline {
                                 TokenValue::String(symbol[6..].to_string())
                             ]) 
                         });
+                    } else if symbol.starts_with("QUANTIFIED:") {
+                        // Handle quantified groups in sequences
+                        let parts: Vec<&str> = symbol[11..].splitn(2, ':').collect();
+                        if parts.len() == 2 {
+                            let quantifier = parts[0].to_string();
+                            let serialized_element = parts[1];
+                            
+                            let element: ASTNode = serde_json::from_str(serialized_element)
+                                .unwrap_or_else(|_| ASTNode::Atom { 
+                                    value: ASTValue::Token(vec![
+                                        TokenValue::String("quoted_string".to_string()),
+                                        TokenValue::String("".to_string())
+                                    ]) 
+                                });
+                                
+                            elements.push(ASTNode::Quantified { 
+                                element: Box::new(element), 
+                                quantifier 
+                            });
+                        } else {
+                            // Fallback for malformed quantified entry
+                            elements.push(ASTNode::Atom { 
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()), 
+                                    TokenValue::String("".to_string())
+                                ]) 
+                            });
+                        }
+                    } else if symbol.starts_with("OR_GROUP:") {
+                        // Handle OR groups in sequences
+                        let serialized_alternatives = &symbol[9..];
+                        let alternatives: Vec<ASTNode> = serde_json::from_str(serialized_alternatives)
+                            .unwrap_or_else(|_| vec![ASTNode::Atom { 
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String("".to_string())
+                                ]) 
+                            }]);
+                        elements.push(ASTNode::Or { alternatives });
+                    } else if symbol.starts_with("NESTED_SEQUENCE:") {
+                        // Handle nested sequences in sequences
+                        let serialized_elements = &symbol[16..];
+                        let nested_elements: Vec<ASTNode> = serde_json::from_str(serialized_elements)
+                            .unwrap_or_else(|_| vec![ASTNode::Atom { 
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String("".to_string())
+                                ]) 
+                            }]);
+                        elements.push(ASTNode::Sequence { elements: nested_elements });
+                    } else if symbol.starts_with("COMPLEX_GROUP:") {
+                        // Handle complex groups in sequences
+                        let serialized_node = &symbol[14..];
+                        let node = serde_json::from_str(serialized_node)
+                            .or_else(|_| {
+                                if let Ok(token) = serde_json::from_str::<Vec<TokenValue>>(serialized_node) {
+                                    Ok(ASTNode::Atom { value: ASTValue::Token(token) })
+                                } else {
+                                    Ok(ASTNode::Atom { 
+                                        value: ASTValue::Token(vec![
+                                            TokenValue::String("quoted_string".to_string()), 
+                                            TokenValue::String("".to_string())
+                                        ]) 
+                                    })
+                                }
+                            })
+                            .unwrap_or_else(|_: serde_json::Error| ASTNode::Atom { 
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()), 
+                                    TokenValue::String("".to_string())
+                                ]) 
+                            });
+                        elements.push(node);
                     } else if symbol.starts_with("COMPLEX:") {
-                        // Handle COMPLEX entries by parsing the debug representation
-                        // For now, treat as empty terminal to avoid generation errors
+                        // Legacy complex handling
                         elements.push(ASTNode::Atom { 
                             value: ASTValue::Token(vec![
                                 TokenValue::String("quoted_string".to_string()), 

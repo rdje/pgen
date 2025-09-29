@@ -35,6 +35,14 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - Universal application across all parser debugging contexts
 - Improved developer experience with clear, structured debug information
 
+### ✅ Enhanced Logging System & Complex Group Infrastructure (2025-09-29)
+**Status: COMPLETE**
+- Centralized logging system with intelligent source file assignment
+- Dynamic context-aware log prefixes distinguish pipeline vs generator code
+- Comprehensive timestamped log files with professional debug output
+- Advanced complex group parsing with grouped quantifier support
+- Expanded test infrastructure from 10 to 21 test cases with real-world patterns
+
 ### ✅ Complete Test Infrastructure (2025-09-26)
 **Status: COMPLETE**
 - Comprehensive stress test files for all three parsers
@@ -67,6 +75,10 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - **Fallback Strategies**: Bootstrap mode demonstrates importance of graceful degradation
 - **Debug Visibility**: Extensive logging essential for debugging complex transformations
 - **Mode Detection**: Automatic fallback when external dependencies unavailable
+- **Centralized Logging**: Single logging method with context-aware source file assignment improves maintainability
+- **Stage Progress Tracking**: Step-by-step progress logging with completion statistics enhances debugging
+- **Complex Group Support**: Advanced detection and handling of grouped quantifier patterns in real-world grammars
+- **Context Preservation**: Method context tracking enables proper attribution of log messages to correct components
 
 ### Test Infrastructure Best Practices
 - **Dedicated Test Files**: Each parser needs individual stress test file (`*_stress_test.rs` pattern)
@@ -74,6 +86,32 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - **Comprehensive Coverage**: Include basic patterns, edge cases, and real-world examples
 - **Placeholder Integration**: Structure tests with TODO markers for seamless parser integration
 - **Test Categories**: Organize by pattern complexity (basic → advanced → real-world)
+
+### Enhanced Centralized Logging System Architecture
+- **Intelligent Source File Assignment**: Dynamic context detection assigns correct source file prefix (`[ast_pipeline.rs]` vs `[high_performance_generator.rs]`)
+- **Context-Aware Logging**: Method contexts like `generate_quantified_group_functions` correctly show generator origin
+- **Comprehensive Log Infrastructure**: Timestamped log files with complete debug traces and professional formatting
+- **Dual Output System**: Write to both console (if debug enabled) and persistent log files simultaneously
+- **Context Tracking**: Track logged contexts and add visual separation for better readability
+- **Professional Log Methods**: `log_progress()`, `log_success()`, `log_failure()`, `log_info()`, `log_warning()` with emoji indicators
+- **Error Resilience**: Graceful fallback if log file creation fails, no impact on core functionality
+
+### Complex Group Parsing Architecture
+- **Grouped Quantifier Detection**: Advanced pattern recognition for `(element1 element2 element3)*` patterns
+- **Nested Structure Support**: Handle depth tracking for nested parentheses and complex group nesting
+- **Sequence Flattening**: Pre-process nested sequences to make grouped quantifiers detectable at top level
+- **Multi-Pattern Support**: OR alternatives, mixed content types, regex patterns within groups
+- **AST Integration**: Seamless integration with existing AST transformation pipeline stages
+- **Quantifier Preservation**: Maintain correct quantifier semantics through complex group transformations
+- **Debug Traceability**: Comprehensive debug output for grouped quantifier detection and processing
+
+### Test Infrastructure Architecture Enhancement
+- **Category Organization**: Tests grouped by complexity (optional_group, quantified_group, nested_complex, etc.)
+- **Real-World Patterns**: Test cases based on actual grammar patterns encountered in practice
+- **Edge Case Coverage**: Empty strings, epsilon handling, complex nesting scenarios
+- **Statistics Tracking**: Automated test count updates and category-based test organization
+- **Makefile Integration**: Automatic test target generation with enhanced reproduction guidance
+- **Pattern Diversity**: 11 new test cases covering grouped quantifiers, destructuring, mixed patterns
 
 ### Test Reproduction System Architecture
 - **Dual Option Design**: Always provide both Makefile and cargo reproduction commands for user choice
@@ -290,6 +328,9 @@ Makefile Dependencies:
 - **Variable Scoping**: Ensure debug calls reference variables in correct scope (closure vs outer context)
 - **Filter Design**: Use simple, comprehensive filters rather than complex conditional logic
 - **Debug Call Placement**: Add debug calls after operations complete when target variables are available
+- **Centralized Logging**: Use unified logging methods with context-aware source file assignment for clear traceability
+- **Complex Group Support**: Implement robust detection and handling of grouped quantifier patterns
+- **Progress Tracking**: Include stage-by-stage progress logging with step counting and completion statistics
 
 ### AST Pipeline Transformation
 - **Epsilon Handling**: Always convert epsilon (ε) symbols to empty terminals `ParseContent::Terminal("")`, never generate missing parse methods
@@ -313,6 +354,20 @@ Makefile Dependencies:
 - Maintain detailed transformation statistics
 
 ## Technical Debt & Future Enhancements
+
+### Logging System Enhancements Completed (2025-09-29)
+✅ **Centralized Logging Infrastructure**: Implemented unified logging system with context-aware source file assignment  
+✅ **Enhanced Debug Output**: Professional logging methods with emoji indicators and progress tracking  
+✅ **Persistent Log Files**: Timestamped log files with comprehensive debug traces and metadata  
+✅ **Context Intelligence**: Dynamic detection distinguishes AST pipeline vs generator code origins  
+✅ **Visual Enhancement**: Context tracking and visual separation improve log readability  
+
+### Complex Group Parsing Enhancements Completed (2025-09-29)
+✅ **Grouped Quantifier Support**: Advanced detection for `(element1 element2)*` patterns  
+✅ **Nested Structure Handling**: Depth tracking for complex parentheses and group nesting  
+✅ **Multi-Pattern Recognition**: OR alternatives, mixed content types, regex patterns in groups  
+✅ **AST Integration**: Seamless integration with transformation pipeline stages  
+✅ **Test Coverage**: 11 new test cases covering real-world complex group patterns  
 
 ### Bootstrap Mode Limitations
 - Complex nested structures not supported

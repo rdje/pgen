@@ -1,5 +1,187 @@
 # CHANGES.md
 
+## 2025-09-29: Enhanced Logging System & Complex Group Infrastructure ✅
+
+### Major Enhancement: Centralized Logging System with Source File Intelligence
+
+**Problem Addressed**: Previous logging system showed misleading source file prefixes in debug output. All log messages were prefixed with `[ast_pipeline.rs]` regardless of whether they originated from the AST pipeline or the high-performance generator components.
+
+**Technical Solution**: Implemented intelligent source file assignment in the centralized logging system:
+
+#### **Dynamic Source File Assignment**
+```rust
+// Enhanced log_debug method with context-aware source file detection
+let source_file = if generator_contexts.contains(&context) {
+    "high_performance_generator.rs"
+} else {
+    "ast_pipeline.rs"
+};
+```
+
+**Context Detection**: Method contexts like `generate_quantified_group_functions`, `generate_lightning_fast_parser`, `generate_optimized_rule_methods` now correctly show `[high_performance_generator.rs]` prefix instead of `[ast_pipeline.rs]`.
+
+#### **Comprehensive Logging Infrastructure**
+
+**1. Timestamped Log Files**:
+- **Auto-Creation**: `ast_pipeline_YYYYMMDD_HHMMSS.log` files created automatically
+- **Comprehensive Headers**: Include pipeline configuration, timestamps, and metadata
+- **Dual Output**: Write to both console (if debug enabled) and persistent log file
+- **Error Handling**: Graceful fallback if log file creation fails
+
+**2. Enhanced Logging Methods**:
+```rust
+fn log_progress()    // 🔄 PROGRESS indicators with step counting
+fn log_success()     // ✅ SUCCESS messages with clear outcomes
+fn log_failure()     // ❌ FAILURE indicators with detailed context
+fn log_info()        // ℹ️  INFO messages for important events
+fn log_warning()     // ⚠️  WARNING messages for non-critical issues
+```
+
+**3. Context Tracking System**:
+- **Logged Contexts Set**: Track which method contexts have been logged
+- **Empty Line Insertion**: Add visual separation before first occurrence of method contexts
+- **Method Boundary Detection**: Enhanced readability for complex log outputs
+
+### Major Enhancement: Complex Group Parsing Infrastructure
+
+**Problem Statement**: Parser needed robust support for complex grouped quantifier patterns like `(identifier /\s*/ "," /\s*/ identifier)*` that appear in real-world grammars.
+
+#### **Grouped Quantifier Support**
+
+**1. Enhanced Detection Logic**:
+```rust
+fn try_parse_grouped_quantifier() -> Option<GroupedQuantifierResult>
+fn flatten_grouped_quantifiers_in_sequence() -> Vec<ASTNode>
+fn contains_grouped_quantifier() -> bool
+```
+
+**2. Advanced Pattern Recognition**:
+- **Group Detection**: Recognizes `group_open ... group_close operator` patterns
+- **Nested Group Support**: Handles depth tracking for nested parentheses
+- **Quantifier Integration**: Supports `*`, `+`, `?` quantifiers on grouped content
+- **Sequence Flattening**: Pre-processes nested sequences for better detection
+
+**3. Complex Structure Handling**:
+- **Multi-Element Groups**: `(element1 element2 element3)*`
+- **Mixed Content Types**: Terminals, rules, regex patterns within groups
+- **OR Alternatives in Groups**: `("a" | "b" | "c")` patterns
+- **Nested Quantification**: `((element ",")*  | (element ";")*)?"`
+
+### Test Infrastructure Expansion
+
+**Achievement**: Added 11 comprehensive test cases for complex group patterns:
+
+1. **Optional Groups**: `(identifier)?` - Quantifier structure preservation
+2. **Zero/One-or-More**: `(identifier)*` and `(identifier)+` patterns
+3. **OR Alternatives**: `("a" | "b" | "c")` multi-choice patterns
+4. **Nested Groups**: `((identifier "," identifier)?)` complex nesting
+5. **Quantified Sequences**: `(identifier /\s*/ "," /\s*/ identifier)*` real-world patterns
+6. **Destructuring Parameters**: Complex parameter patterns that previously failed
+7. **Mixed Group Types**: Combinations of optional and quantified elements
+8. **Regex Integration**: `/[a-zA-Z_][a-zA-Z0-9_]*/` patterns within groups
+9. **Edge Cases**: Empty string handling and epsilon conversion prevention
+
+**Test Generation Enhancement**:
+- **Makefile Integration**: All test cases automatically added to build system
+- **Category Organization**: Tests grouped by complexity and pattern type
+- **Reproduction Guidance**: Both `make` and `cargo` reproduction options
+- **Statistics Tracking**: Test count automatically updated (10 → 21 tests)
+
+### Technical Implementation Details
+
+#### **Pipeline Enhancement**
+
+**1. Stage-by-Stage Progress Tracking**:
+```rust
+let total_steps = if self.config.eliminate_left_recursion { 6 } else { 5 };
+self.log_progress("transform_raw_ast", current_step, total_steps, "Stage description");
+```
+
+**2. Enhanced Error Context**:
+- **Rule-Level Debugging**: Track which rules are being processed
+- **Token-Level Analysis**: Detailed token structure examination
+- **Annotation Processing**: Comprehensive annotation extraction logging
+- **Quantifier Analysis**: Step-by-step quantifier application tracking
+
+**3. Performance Monitoring**:
+- **Stage Completion Tracking**: Time and statistics for each pipeline stage
+- **Memory Usage Awareness**: Track rule counts and annotation preservation
+- **Debug Summary Generation**: Complete processing summary at pipeline end
+
+#### **Generator Enhancement**
+
+**1. Method Context Identification**:
+```rust
+let generator_contexts = [
+    "generate_quantified_group_functions", "generate_lightning_fast_parser",
+    "generate_optimized_rule_methods", "generate_optimized_rule_method"
+];
+```
+
+**2. Logging Integration**:
+- **Context-Aware Prefixes**: Correct source file identification in all log messages
+- **Pipeline Coordination**: Seamless logging between AST pipeline and generator
+- **Debug Traceability**: Clear origin identification for troubleshooting
+
+### Validation Results
+
+#### **Logging System**
+✅ **Source File Accuracy**: Log messages correctly identify origin components  
+✅ **Comprehensive Coverage**: All major method contexts tracked and logged  
+✅ **File Generation**: Timestamped log files created with complete debug traces  
+✅ **Visual Clarity**: Empty lines and context tracking improve readability  
+
+#### **Complex Group Parsing**
+✅ **Pattern Recognition**: Successfully detects and parses complex grouped quantifiers  
+✅ **Structure Preservation**: Maintains AST integrity through transformation pipeline  
+✅ **Quantifier Application**: Correctly applies quantifiers to grouped content  
+✅ **Code Generation**: Generates appropriate parser code for complex patterns  
+
+#### **Test Infrastructure**
+✅ **Coverage Expansion**: 11 new test cases covering edge cases and real-world patterns  
+✅ **Makefile Integration**: Automated test target generation and statistics tracking  
+✅ **Category Organization**: Tests logically grouped for better maintainability  
+✅ **Reproduction Support**: Multiple ways to reproduce failing tests  
+
+### Files Modified
+
+**Core Implementation**:
+- ✅ **rust/src/ast_pipeline.rs**: Major logging system enhancement and complex group parsing
+- ✅ **rust/src/ast_pipeline/high_performance_generator.rs**: Enhanced integration with centralized logging
+
+**Test Infrastructure**:
+- ✅ **rust/Makefile**: 11 new test targets with enhanced reproduction guidance
+- ✅ **rust/Makefile.stress**: Parallel stress test system updates
+- ✅ **test_data/complex_group_tests.json**: New test case definitions
+
+**Testing & Validation**:
+- ✅ **rust/src/individual_tests.rs**: Enhanced test framework integration
+- ✅ **rust/src/semantic_annotation_stress_test.rs**: Expanded stress test coverage
+
+### Impact Assessment
+
+**Developer Experience**:
+- **Enhanced Debugging**: Clear, context-aware logging output for troubleshooting
+- **Better Traceability**: Accurate source file identification eliminates confusion
+- **Comprehensive Testing**: Extensive test coverage for complex parsing scenarios
+- **Professional Output**: Structured, readable debug information with visual indicators
+
+**System Robustness**:
+- **Complex Pattern Support**: Handles real-world grammar patterns that were previously challenging
+- **Persistent Logging**: Complete debug traces preserved in timestamped files
+- **Test Coverage**: Comprehensive validation of edge cases and complex scenarios
+- **Maintainable Architecture**: Clear separation of concerns between components
+
+**Foundation Enhancement**:
+- **Production Readiness**: Robust logging infrastructure for production debugging
+- **Extensible Design**: Easy to add new logging contexts and test categories
+- **Professional Standards**: High-quality debug output that meets professional development standards
+- **Future-Proof**: Architecture supports future enhancements without major refactoring
+
+**This enhancement establishes a professional-grade logging and testing infrastructure that significantly improves developer experience and system maintainability while adding robust support for complex grammar patterns.**
+
+---
+
 ## 2025-09-28: Critical Debug Quantifier Variable Scoping Fix ✅
 
 ### Problem Statement

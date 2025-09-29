@@ -101,6 +101,74 @@ mod semantic_annotation_stress_tests {
         ("group_literals_for_switch($1)", true),
     ];
 
+    #[derive(Debug, Clone)]
+    struct TestResult {
+        name: String,
+        input: String,
+        expected: String,
+        observed: String,
+        duration_ms: f64,
+        success: bool,
+    }
+    
+    fn print_test_dashboard(test_results: &[TestResult]) {
+        println!("\n{}", "█".repeat(120));
+        println!("📊 SEMANTIC ANNOTATION PARSER - TEST DASHBOARD");
+        println!("{}", "█".repeat(120));
+        
+        let total_tests = test_results.len();
+        let successful = test_results.iter().filter(|r| r.success).count();
+        let failed = total_tests - successful;
+        
+        println!("\n📈 SUMMARY STATISTICS:");
+        println!("   Total Tests:     {:4}", total_tests);
+        println!("   Successful:      {:4} ({:5.1}%)", successful, (successful as f64 / total_tests as f64) * 100.0);
+        println!("   Failed:          {:4} ({:5.1}%)", failed, (failed as f64 / total_tests as f64) * 100.0);
+        println!("   Avg Time:     {:7.2} ms", test_results.iter().map(|r| r.duration_ms).sum::<f64>() / total_tests as f64);
+        
+        println!("\n{}", "─".repeat(120));
+        println!("{:<4} {:<40} {:<20} {:<20} {:<12} {:<8}", "#", "TEST INPUT", "EXPECTED", "OBSERVED", "TIME(ms)", "STATUS");
+        println!("{}", "─".repeat(120));
+        
+        for (i, result) in test_results.iter().enumerate() {
+            let status = if result.success { "✅ PASS" } else { "❌ FAIL" };
+            let truncated_input = if result.input.len() > 38 {
+                format!("{}...", &result.input[0..35])
+            } else {
+                result.input.clone()
+            };
+            
+            println!(
+                "{:<4} {:<40} {:<20} {:<20} {:8.2} {:<8}",
+                i + 1,
+                truncated_input,
+                result.expected,
+                result.observed,
+                result.duration_ms,
+                status
+            );
+        }
+        
+        println!("{}", "─".repeat(120));
+        
+        // Failed tests details
+        let failed_tests: Vec<&TestResult> = test_results.iter().filter(|r| !r.success).collect();
+        if !failed_tests.is_empty() {
+            println!("\n❌ FAILED TESTS DETAILS:");
+            for (i, result) in failed_tests.iter().enumerate() {
+                println!("\n   {}. {}", i + 1, result.name);
+                println!("      Input:    '{}'", result.input);
+                println!("      Expected: {}", result.expected);
+                println!("      Observed: {}", result.observed);
+                println!("      Duration: {:.2} ms", result.duration_ms);
+            }
+        }
+        
+        println!("\n{}", "█".repeat(120));
+        println!("📊 END OF TEST DASHBOARD");
+        println!("{}", "█".repeat(120));
+    }
+    
     #[test]
     fn test_semantic_annotation_parser_comprehensive_stress() {
         // Create log file with timestamp
@@ -142,6 +210,7 @@ mod semantic_annotation_stress_tests {
 
         let mut correct_behaviors = 0;
         let mut incorrect_behaviors = 0;
+        let mut test_results = Vec::new();
         let start_time = Instant::now();
 
         for (i, test_input) in SEMANTIC_TEST_INPUTS.iter().enumerate() {
@@ -162,6 +231,15 @@ mod semantic_annotation_stress_tests {
                     log_and_print!("📊 AST Rule: {}", ast.rule_name);
                     log_and_print!("📊 AST Span: {:?}", ast.span);
                     log_and_print!("📊 AST Content: {:?}", ast.content);
+                    
+                    test_results.push(TestResult {
+                        name: format!("basic_test_{}", i + 1),
+                        input: test_input.to_string(),
+                        expected: "SUCCESS".to_string(),
+                        observed: "SUCCESS".to_string(),
+                        duration_ms: parse_time.as_secs_f64() * 1000.0,
+                        success: true,
+                    });
                     
                     // Print FULL debug trace for complete verification
                     let debug_output = parser.debug_output();
@@ -187,6 +265,15 @@ mod semantic_annotation_stress_tests {
                     incorrect_behaviors += 1;
                     
                     log_and_print!("❌ UNEXPECTED FAILURE in {:.3}ms: {} (EXPECTED TO SUCCEED)", parse_time.as_secs_f64() * 1000.0, e);
+                    
+                    test_results.push(TestResult {
+                        name: format!("basic_test_{}", i + 1),
+                        input: test_input.to_string(),
+                        expected: "SUCCESS".to_string(),
+                        observed: format!("FAILURE: {:?}", e),
+                        duration_ms: parse_time.as_secs_f64() * 1000.0,
+                        success: false,
+                    });
                     
                     // Even for failures, print debug trace for complete analysis
                     let debug_output = parser.debug_output();
@@ -233,6 +320,63 @@ mod semantic_annotation_stress_tests {
         } else {
             log_and_print!("❌ FAILURE: Semantic parser correct behavior rate {:.1}% is below 80% threshold", (correct_behaviors as f64 / SEMANTIC_TEST_INPUTS.len() as f64) * 100.0);
         }
+        
+        // Print comprehensive dashboard to both console and log
+        log_and_print!("\n{}", "█".repeat(120));
+        log_and_print!("📊 SEMANTIC ANNOTATION PARSER - TEST DASHBOARD");
+        log_and_print!("{}", "█".repeat(120));
+        
+        let total_tests = test_results.len();
+        let successful = test_results.iter().filter(|r| r.success).count();
+        let failed = total_tests - successful;
+        
+        log_and_print!("\n📈 SUMMARY STATISTICS:");
+        log_and_print!("   Total Tests:     {:4}", total_tests);
+        log_and_print!("   Successful:      {:4} ({:5.1}%)", successful, (successful as f64 / total_tests as f64) * 100.0);
+        log_and_print!("   Failed:          {:4} ({:5.1}%)", failed, (failed as f64 / total_tests as f64) * 100.0);
+        log_and_print!("   Avg Time:     {:7.2} ms", test_results.iter().map(|r| r.duration_ms).sum::<f64>() / total_tests as f64);
+        
+        log_and_print!("\n{}", "─".repeat(120));
+        log_and_print!("{:<4} {:<40} {:<20} {:<20} {:<12} {:<8}", "#", "TEST INPUT", "EXPECTED", "OBSERVED", "TIME(ms)", "STATUS");
+        log_and_print!("{}", "─".repeat(120));
+        
+        for (i, result) in test_results.iter().enumerate() {
+            let status = if result.success { "✅ PASS" } else { "❌ FAIL" };
+            let truncated_input = if result.input.len() > 38 {
+                format!("{}...", &result.input[0..35])
+            } else {
+                result.input.clone()
+            };
+            
+            log_and_print!(
+                "{:<4} {:<40} {:<20} {:<20} {:8.2} {:<8}",
+                i + 1,
+                truncated_input,
+                result.expected,
+                result.observed,
+                result.duration_ms,
+                status
+            );
+        }
+        
+        log_and_print!("{}", "─".repeat(120));
+        
+        // Failed tests details
+        let failed_tests: Vec<&TestResult> = test_results.iter().filter(|r| !r.success).collect();
+        if !failed_tests.is_empty() {
+            log_and_print!("\n❌ FAILED TESTS DETAILS:");
+            for (i, result) in failed_tests.iter().enumerate() {
+                log_and_print!("\n   {}. {}", i + 1, result.name);
+                log_and_print!("      Input:    '{}'", result.input);
+                log_and_print!("      Expected: {}", result.expected);
+                log_and_print!("      Observed: {}", result.observed);
+                log_and_print!("      Duration: {:.2} ms", result.duration_ms);
+            }
+        }
+        
+        log_and_print!("\n{}", "█".repeat(120));
+        log_and_print!("📊 END OF TEST DASHBOARD");
+        log_and_print!("{}", "█".repeat(120));
         
         // Additional verification
         assert!(correct_behaviors > 0, "At least some behaviors should be correct");
@@ -319,6 +463,7 @@ mod semantic_annotation_stress_tests {
         
         let mut correct_behaviors = 0;
         let mut incorrect_behaviors = 0;
+        let mut test_results = Vec::new();
         let start_time = Instant::now();
         
         for (i, (annotation, should_succeed)) in COMPLEX_REGEX_ANNOTATIONS.iter().enumerate() {
@@ -329,6 +474,7 @@ mod semantic_annotation_stress_tests {
             
             let parse_start = Instant::now();
             let mut parser = Semantic_annotationParser::new(annotation);
+            let expected = if *should_succeed { "SUCCESS" } else { "FAILURE" };
             
             match parser.parse() {
                 Ok(ast) => {
@@ -339,11 +485,29 @@ mod semantic_annotation_stress_tests {
                         println!("✅ PARSE SUCCESS in {:.3}ms (EXPECTED SUCCESS)", parse_time.as_secs_f64() * 1000.0);
                         println!("📊 AST Rule: {}", ast.rule_name);
                         println!("📊 AST Span: {:?}", ast.span);
+                        
+                        test_results.push(TestResult {
+                            name: format!("complex_test_{}", i + 1),
+                            input: annotation.to_string(),
+                            expected: expected.to_string(),
+                            observed: "SUCCESS".to_string(),
+                            duration_ms: parse_time.as_secs_f64() * 1000.0,
+                            success: true,
+                        });
                     } else {
                         incorrect_behaviors += 1;
                         println!("❌ UNEXPECTED SUCCESS in {:.3}ms (EXPECTED TO FAIL)", parse_time.as_secs_f64() * 1000.0);
                         println!("📊 AST Rule: {}", ast.rule_name);
                         println!("📊 This annotation should have failed but didn't!");
+                        
+                        test_results.push(TestResult {
+                            name: format!("complex_test_{}", i + 1),
+                            input: annotation.to_string(),
+                            expected: expected.to_string(),
+                            observed: "SUCCESS (unexpected)".to_string(),
+                            duration_ms: parse_time.as_secs_f64() * 1000.0,
+                            success: false,
+                        });
                     }
                 }
                 Err(e) => {
@@ -353,9 +517,27 @@ mod semantic_annotation_stress_tests {
                         incorrect_behaviors += 1;
                         println!("❌ UNEXPECTED FAILURE in {:.3}ms: {:?} (EXPECTED TO SUCCEED)", parse_time.as_secs_f64() * 1000.0, e);
                         println!("🚨 THIS IS THE KIND OF FAILURE SEEN IN REGEX PARSER GENERATION!");
+                        
+                        test_results.push(TestResult {
+                            name: format!("complex_test_{}", i + 1),
+                            input: annotation.to_string(),
+                            expected: expected.to_string(),
+                            observed: format!("FAILURE: {:?}", e),
+                            duration_ms: parse_time.as_secs_f64() * 1000.0,
+                            success: false,
+                        });
                     } else {
                         correct_behaviors += 1;
                         println!("✅ EXPECTED FAILURE in {:.3}ms: {:?} (CORRECT BEHAVIOR)", parse_time.as_secs_f64() * 1000.0, e);
+                        
+                        test_results.push(TestResult {
+                            name: format!("complex_test_{}", i + 1),
+                            input: annotation.to_string(),
+                            expected: expected.to_string(),
+                            observed: "FAILURE (expected)".to_string(),
+                            duration_ms: parse_time.as_secs_f64() * 1000.0,
+                            success: true,
+                        });
                     }
                 }
             }
@@ -382,6 +564,63 @@ mod semantic_annotation_stress_tests {
             println!("❌ FAILURE: Complex annotation parsing has issues - this explains regex generation failures!");
             println!("📉 Correct behavior rate {:.1}% is below 80% threshold", (correct_behaviors as f64 / COMPLEX_REGEX_ANNOTATIONS.len() as f64) * 100.0);
         }
+        
+        // Print comprehensive dashboard  
+        println!("\n{}", "█".repeat(120));
+        println!("📊 SEMANTIC ANNOTATION PARSER - TEST DASHBOARD");
+        println!("{}", "█".repeat(120));
+        
+        let total_tests = test_results.len();
+        let successful = test_results.iter().filter(|r| r.success).count();
+        let failed = total_tests - successful;
+        
+        println!("\n📈 SUMMARY STATISTICS:");
+        println!("   Total Tests:     {:4}", total_tests);
+        println!("   Successful:      {:4} ({:5.1}%)", successful, (successful as f64 / total_tests as f64) * 100.0);
+        println!("   Failed:          {:4} ({:5.1}%)", failed, (failed as f64 / total_tests as f64) * 100.0);
+        println!("   Avg Time:     {:7.2} ms", test_results.iter().map(|r| r.duration_ms).sum::<f64>() / total_tests as f64);
+        
+        println!("\n{}", "─".repeat(120));
+        println!("{:<4} {:<40} {:<20} {:<20} {:<12} {:<8}", "#", "TEST INPUT", "EXPECTED", "OBSERVED", "TIME(ms)", "STATUS");
+        println!("{}", "─".repeat(120));
+        
+        for (i, result) in test_results.iter().enumerate() {
+            let status = if result.success { "✅ PASS" } else { "❌ FAIL" };
+            let truncated_input = if result.input.len() > 38 {
+                format!("{}...", &result.input[0..35])
+            } else {
+                result.input.clone()
+            };
+            
+            println!(
+                "{:<4} {:<40} {:<20} {:<20} {:8.2} {:<8}",
+                i + 1,
+                truncated_input,
+                result.expected,
+                result.observed,
+                result.duration_ms,
+                status
+            );
+        }
+        
+        println!("{}", "─".repeat(120));
+        
+        // Failed tests details
+        let failed_tests: Vec<&TestResult> = test_results.iter().filter(|r| !r.success).collect();
+        if !failed_tests.is_empty() {
+            println!("\n❌ FAILED TESTS DETAILS:");
+            for (i, result) in failed_tests.iter().enumerate() {
+                println!("\n   {}. {}", i + 1, result.name);
+                println!("      Input:    '{}'", result.input);
+                println!("      Expected: {}", result.expected);
+                println!("      Observed: {}", result.observed);
+                println!("      Duration: {:.2} ms", result.duration_ms);
+            }
+        }
+        
+        println!("\n{}", "█".repeat(120));
+        println!("📊 END OF TEST DASHBOARD");
+        println!("{}", "█".repeat(120));
         
         // This test is expected to reveal issues, so we don't assert success
         println!("\n🔍 ANALYSIS: This test reveals why regex parser generation fell back to bootstrap mode");

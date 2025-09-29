@@ -569,8 +569,162 @@ bootstrap-status:
 
 
 # Auto-generated Makefile targets for stress tests
-# Generated at: 2025-09-28T13:26:44.634516+00:00
+# Generated at: 2025-09-29T01:11:06.468772+00:00
 # DO NOT EDIT MANUALLY - This section is automatically regenerated
+
+# Optional group - should preserve quantifier structure - optional_group
+test-semantic-optional-group-xoptionalxgroupc_xidentifierxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @optional_group: (identifier)?"
+	@echo "Running: cargo run -- --parser semantic --input '@optional_group: (identifier)?'"
+	@if cargo run -- --parser semantic --input '@optional_group: (identifier)?' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-optional-group-xoptionalxgroupc_xidentifierxx - Optional group - should preserve quantifier structure"; \
+	else \
+		echo "❌ FAIL: test-semantic-optional-group-xoptionalxgroupc_xidentifierxx - Optional group - should preserve quantifier structure"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-optional-group-xoptionalxgroupc_xidentifierxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@optional_group: (identifier)?'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Zero-or-more quantified group - should preserve * quantifier - quantified_group
+test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @zero_or_more: (identifier)*"
+	@echo "Running: cargo run -- --parser semantic --input '@zero_or_more: (identifier)*'"
+	@if cargo run -- --parser semantic --input '@zero_or_more: (identifier)*' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx - Zero-or-more quantified group - should preserve * quantifier"; \
+	else \
+		echo "❌ FAIL: test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx - Zero-or-more quantified group - should preserve * quantifier"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@zero_or_more: (identifier)*'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# One-or-more quantified group - should preserve + quantifier - quantified_group
+test-semantic-quantified-group-xonexorxmorec_xidentifierxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @one_or_more: (identifier)+"
+	@echo "Running: cargo run -- --parser semantic --input '@one_or_more: (identifier)+'"
+	@if cargo run -- --parser semantic --input '@one_or_more: (identifier)+' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-quantified-group-xonexorxmorec_xidentifierxx - One-or-more quantified group - should preserve + quantifier"; \
+	else \
+		echo "❌ FAIL: test-semantic-quantified-group-xonexorxmorec_xidentifierxx - One-or-more quantified group - should preserve + quantifier"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-quantified-group-xonexorxmorec_xidentifierxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@one_or_more: (identifier)+'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# OR group with multiple alternatives - or_group
+test-semantic-or-group-xorxgroupc_xqaq_x_qbq_x_qcqx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @or_group: (\"a\" | \"b\" | \"c\")"
+	@echo "Running: cargo run -- --parser semantic --input '@or_group: (\"a\" | \"b\" | \"c\")'"
+	@if cargo run -- --parser semantic --input '@or_group: (\"a\" | \"b\" | \"c\")' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-or-group-xorxgroupc_xqaq_x_qbq_x_qcqx - OR group with multiple alternatives"; \
+	else \
+		echo "❌ FAIL: test-semantic-or-group-xorxgroupc_xqaq_x_qbq_x_qcqx - OR group with multiple alternatives"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-or-group-xorxgroupc_xqaq_x_qbq_x_qcqx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@or_group: (\"a\" | \"b\" | \"c\")'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Nested group with optional quantifier - complex structure - nested_group
+test-semantic-nested-group-xnestedxoptionalc_xxidentifier_qmq_identifierxxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @nested_optional: ((identifier \",\" identifier)?)"
+	@echo "Running: cargo run -- --parser semantic --input '@nested_optional: ((identifier \",\" identifier)?)'"
+	@if cargo run -- --parser semantic --input '@nested_optional: ((identifier \",\" identifier)?)' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-nested-group-xnestedxoptionalc_xxidentifier_qmq_identifierxxx - Nested group with optional quantifier - complex structure"; \
+	else \
+		echo "❌ FAIL: test-semantic-nested-group-xnestedxoptionalc_xxidentifier_qmq_identifierxxx - Nested group with optional quantifier - complex structure"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-nested-group-xnestedxoptionalc_xxidentifier_qmq_identifierxxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@nested_optional: ((identifier \",\" identifier)?)'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Quantified sequence with regex whitespace - real-world pattern - complex_group
+test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @sequence_quantified: (identifier /\\s*/ \",\" /\\s*/ identifier)*"
+	@echo "Running: cargo run -- --parser semantic --input '@sequence_quantified: (identifier /\\s*/ \",\" /\\s*/ identifier)*'"
+	@if cargo run -- --parser semantic --input '@sequence_quantified: (identifier /\\s*/ \",\" /\\s*/ identifier)*' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx - Quantified sequence with regex whitespace - real-world pattern"; \
+	else \
+		echo "❌ FAIL: test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx - Quantified sequence with regex whitespace - real-world pattern"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@sequence_quantified: (identifier /\\s*/ \",\" /\\s*/ identifier)*'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Complex destructuring parameter pattern - the exact pattern that fails - destructuring
+test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @destructuring_parameter: (identifier_literal (/\\s*/ \",\" /\\s*/ identifier_literal)*)?"
+	@echo "Running: cargo run -- --parser semantic --input '@destructuring_parameter: (identifier_literal (/\\s*/ \",\" /\\s*/ identifier_literal)*)?'"
+	@if cargo run -- --parser semantic --input '@destructuring_parameter: (identifier_literal (/\\s*/ \",\" /\\s*/ identifier_literal)*)?' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx - Complex destructuring parameter pattern - the exact pattern that fails"; \
+	else \
+		echo "❌ FAIL: test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx - Complex destructuring parameter pattern - the exact pattern that fails"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@destructuring_parameter: (identifier_literal (/\\s*/ \",\" /\\s*/ identifier_literal)*)?'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Nested quantifiers with OR alternatives - extremely complex - nested_complex
+test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @nested_quantifiers: ((element \",\")*  | (element \";\")*)?"
+	@echo "Running: cargo run -- --parser semantic --input '@nested_quantifiers: ((element \",\")*  | (element \";\")*)?'"
+	@if cargo run -- --parser semantic --input '@nested_quantifiers: ((element \",\")*  | (element \";\")*)?' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx - Nested quantifiers with OR alternatives - extremely complex"; \
+	else \
+		echo "❌ FAIL: test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx - Nested quantifiers with OR alternatives - extremely complex"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@nested_quantifiers: ((element \",\")*  | (element \";\")*)?'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Mixed group types in sequence - optional and quantified - mixed_groups
+test-semantic-mixed-groups-xmixedxgroupsc_xrequiredxelement_xoptionalxelementxx_xrepeatingxelementxxx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @mixed_groups: (required_element (optional_element)? (repeating_element)*)"
+	@echo "Running: cargo run -- --parser semantic --input '@mixed_groups: (required_element (optional_element)? (repeating_element)*)'"
+	@if cargo run -- --parser semantic --input '@mixed_groups: (required_element (optional_element)? (repeating_element)*)' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-mixed-groups-xmixedxgroupsc_xrequiredxelement_xoptionalxelementxx_xrepeatingxelementxxx - Mixed group types in sequence - optional and quantified"; \
+	else \
+		echo "❌ FAIL: test-semantic-mixed-groups-xmixedxgroupsc_xrequiredxelement_xoptionalxelementxx_xrepeatingxelementxxx - Mixed group types in sequence - optional and quantified"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-mixed-groups-xmixedxgroupsc_xrequiredxelement_xoptionalxelementxx_xrepeatingxelementxxx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@mixed_groups: (required_element (optional_element)? (repeating_element)*)'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Regex patterns within complex groups - identifier path pattern - regex_groups
+test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @regex_in_group: (/[a-zA-Z_][a-zA-Z0-9_]*/ (\".\" /[a-zA-Z_][a-zA-Z0-9_]*/)* )?"
+	@echo "Running: cargo run -- --parser semantic --input '@regex_in_group: (/[a-zA-Z_][a-zA-Z0-9_]*/ (\".\" /[a-zA-Z_][a-zA-Z0-9_]*/)* )?'"
+	@if cargo run -- --parser semantic --input '@regex_in_group: (/[a-zA-Z_][a-zA-Z0-9_]*/ (\".\" /[a-zA-Z_][a-zA-Z0-9_]*/)* )?' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx - Regex patterns within complex groups - identifier path pattern"; \
+	else \
+		echo "❌ FAIL: test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx - Regex patterns within complex groups - identifier path pattern"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@regex_in_group: (/[a-zA-Z_][a-zA-Z0-9_]*/ (\".\" /[a-zA-Z_][a-zA-Z0-9_]*/)* )?'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Empty string should not be converted incorrectly to epsilon - epsilon_edge_case
+test-semantic-epsilon-edge-case-xepsilonxissuec_qq: target/debug/pgen
+	@echo "🧪 Testing semantic parser with: @epsilon_issue: \"\""
+	@echo "Running: cargo run -- --parser semantic --input '@epsilon_issue: \"\"'"
+	@if cargo run -- --parser semantic --input '@epsilon_issue: \"\"' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-semantic-epsilon-edge-case-xepsilonxissuec_qq - Empty string should not be converted incorrectly to epsilon"; \
+	else \
+		echo "❌ FAIL: test-semantic-epsilon-edge-case-xepsilonxissuec_qq - Empty string should not be converted incorrectly to epsilon"; \
+		echo "🔧 REPRODUCE with make: make test-semantic-epsilon-edge-case-xepsilonxissuec_qq"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser semantic --input '@epsilon_issue: \"\"'"; \
+		exit 1; \
+	fi
+	@echo ""
 
 # Type annotation - type
 test-semantic-type-xtypec_qexpressionq: target/debug/pgen
@@ -713,12 +867,16 @@ test-semantic-complex-s1_xx_null: target/debug/pgen
 	@echo ""
 
 # Run all stress tests
-test-all: test-semantic-type-xtypec_qexpressionq test-semantic-precedence-xprecedencec_5 test-semantic-boolean-xsidexeffectc_false test-semantic-array-xvalidatec_aqcheckxboundsqa test-semantic-object-xcachec_ottlc_300o test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
+test-all: test-semantic-optional-group-xoptionalxgroupc_xidentifierxx test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx test-semantic-quantified-group-xonexorxmorec_xidentifierxx test-semantic-or-group-xorxgroupc_xqaq_x_qbq_x_qcqx test-semantic-nested-group-xnestedxoptionalc_xxidentifier_qmq_identifierxxx test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx test-semantic-mixed-groups-xmixedxgroupsc_xrequiredxelement_xoptionalxelementxx_xrepeatingxelementxxx test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx test-semantic-epsilon-edge-case-xepsilonxissuec_qq test-semantic-type-xtypec_qexpressionq test-semantic-precedence-xprecedencec_5 test-semantic-boolean-xsidexeffectc_false test-semantic-array-xvalidatec_aqcheckxboundsqa test-semantic-object-xcachec_ottlc_300o test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
 	@echo "🎯 All stress tests completed successfully!"
 
 # Run all semantic parser tests
-test-semantic: test-semantic-type-xtypec_qexpressionq test-semantic-precedence-xprecedencec_5 test-semantic-boolean-xsidexeffectc_false test-semantic-array-xvalidatec_aqcheckxboundsqa test-semantic-object-xcachec_ottlc_300o test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
+test-semantic: test-semantic-optional-group-xoptionalxgroupc_xidentifierxx test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx test-semantic-quantified-group-xonexorxmorec_xidentifierxx test-semantic-or-group-xorxgroupc_xqaq_x_qbq_x_qcqx test-semantic-nested-group-xnestedxoptionalc_xxidentifier_qmq_identifierxxx test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx test-semantic-mixed-groups-xmixedxgroupsc_xrequiredxelement_xoptionalxelementxx_xrepeatingxelementxxx test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx test-semantic-epsilon-edge-case-xepsilonxissuec_qq test-semantic-type-xtypec_qexpressionq test-semantic-precedence-xprecedencec_5 test-semantic-boolean-xsidexeffectc_false test-semantic-array-xvalidatec_aqcheckxboundsqa test-semantic-object-xcachec_ottlc_300o test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
 	@echo "🎯 All semantic parser tests completed!"
+
+# Run all regex parser tests
+test-regex: test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx
+	@echo "🎯 All regex parser tests completed!"
 
 # Run all array category tests
 test-array: test-semantic-array-xvalidatec_aqcheckxboundsqa
@@ -729,8 +887,12 @@ test-boolean: test-semantic-boolean-xsidexeffectc_false
 	@echo "🎯 All boolean tests completed!"
 
 # Run all complex category tests
-test-complex: test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
+test-complex: test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
 	@echo "🎯 All complex tests completed!"
+
+# Run all destructuring category tests
+test-destructuring: test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx
+	@echo "🎯 All destructuring tests completed!"
 
 # Run all object category tests
 test-object: test-semantic-object-xcachec_ottlc_300o
@@ -759,14 +921,17 @@ test-debug: target/debug/pgen
 test-stats:
 	@echo "📊 Test Statistics:"
 	@echo "  Return tests: 0"
-	@echo "  Semantic tests: 10"
+	@echo "  Semantic tests: 21"
 	@echo "  Regex tests: 0"
-	@echo "  Total tests: 10"
+	@echo "  Total tests: 21"
 
 .PHONY: test-all test-return test-semantic test-regex test-quick test-comprehensive test-debug test-stats
 
 
 # End of auto-generated targets
+
+
+
 
 
 

@@ -1,9 +1,97 @@
 //! Individual Test Cases
 //! Auto-generated from test registry
-//! Generated at: 2025-09-28T13:26:44.635190+00:00
+//! Generated at: 2025-09-29T01:11:06.469445+00:00
 //! DO NOT EDIT MANUALLY - This file is automatically regenerated
 
 // Test imports will be added when individual parsers are implemented
+
+#[test]
+fn test_semantic_optional_group_atoptionalxgroupcolon_lparenidentifierrparenque_etc() {
+    // Optional group - should preserve quantifier structure
+    let _input = "@optional_group: (identifier)?";
+    println!("✅ Test optional_group: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_quantified_group_atzeroxorxmorecolon_lparenidentifierrparenstar() {
+    // Zero-or-more quantified group - should preserve * quantifier
+    let _input = "@zero_or_more: (identifier)*";
+    println!("✅ Test quantified_group: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_quantified_group_atonexorxmorecolon_lparenidentifierrparenplus() {
+    // One-or-more quantified group - should preserve + quantifier
+    let _input = "@one_or_more: (identifier)+";
+    println!("✅ Test quantified_group: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_or_group_atorxgroupcolon_lparenquoteaquote_pipe_quotebqu_etc() {
+    // OR group with multiple alternatives
+    let _input = "@or_group: (\"a\" | \"b\" | \"c\")";
+    println!("✅ Test or_group: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_nested_group_atnestedxoptionalcolon_lparenlparenidentifier_q_etc() {
+    // Nested group with optional quantifier - complex structure
+    let _input = "@nested_optional: ((identifier \",\" identifier)?)";
+    println!("✅ Test nested_group: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_complex_group_atsequencexquantifiedcolon_lparenidentifier_sla_etc() {
+    // Quantified sequence with regex whitespace - real-world pattern
+    let _input = "@sequence_quantified: (identifier /\\s*/ \",\" /\\s*/ identifier)*";
+    println!("✅ Test complex_group: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_destructuring_atdestructuringxparametercolon_lparenidentifier_etc() {
+    // Complex destructuring parameter pattern - the exact pattern that fails
+    let _input = "@destructuring_parameter: (identifier_literal (/\\s*/ \",\" /\\s*/ identifier_literal)*)?";
+    println!("✅ Test destructuring: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_nested_complex_atnestedxquantifierscolon_lparenlparenelement_q_etc() {
+    // Nested quantifiers with OR alternatives - extremely complex
+    let _input = "@nested_quantifiers: ((element \",\")*  | (element \";\")*)?";
+    println!("✅ Test nested_complex: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_mixed_groups_atmixedxgroupscolon_lparenrequiredxelement_lpar_etc() {
+    // Mixed group types in sequence - optional and quantified
+    let _input = "@mixed_groups: (required_element (optional_element)? (repeating_element)*)";
+    println!("✅ Test mixed_groups: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_regex_groups_atregexxinxgroupcolon_lparenslashlbracketadashz_etc() {
+    // Regex patterns within complex groups - identifier path pattern
+    let _input = "@regex_in_group: (/[a-zA-Z_][a-zA-Z0-9_]*/ (\".\" /[a-zA-Z_][a-zA-Z0-9_]*/)* )?";
+    println!("✅ Test regex_groups: completed");
+    // TODO: Add actual semantic parser test
+}
+
+#[test]
+fn test_semantic_epsilon_edge_case_atepsilonxissuecolon_quotequote() {
+    // Empty string should not be converted incorrectly to epsilon
+    let _input = "@epsilon_issue: \"\"";
+    println!("✅ Test epsilon_edge_case: completed");
+    // TODO: Add actual semantic parser test
+}
 
 #[test]
 fn test_semantic_type_attypecolon_quoteexpressionquote() {

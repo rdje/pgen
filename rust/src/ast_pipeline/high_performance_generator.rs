@@ -7,9 +7,10 @@
 
 use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, ReturnAnnotation};
 use std::collections::HashMap;
-use anyhow::Result;
+use std::fs;
+use std::io::Write;
+use anyhow::{Context, Result};
 use serde_json::Value as JsonValue;
-
 
 /// Escape a string for safe inclusion in Rust raw string literals
 fn escape_rust_string(s: &str) -> String {
@@ -47,9 +48,20 @@ pub struct HighPerformanceRustGenerator {
     grammar_name: String,
     entry_rule: Option<String>,
     enable_trace: bool,
-    pub enable_backtrack_debug: bool,
+    enable_backtrack_debug: bool,
     annotations: Option<Annotations>,
     return_annotations: HashMap<String, ReturnAnnotation>,
+    quantified_group_counter: std::cell::RefCell<u32>,
+    quantified_groups: std::cell::RefCell<Vec<QuantifiedGroupInfo>>,
+}
+
+#[derive(Debug, Clone)]
+struct QuantifiedGroupInfo {
+    rule_name: String,
+    group_id: u32,
+    element: ASTNode,
+    quantifier: String,
+    rule_annotations: Option<Vec<String>>,
 }
 
 impl HighPerformanceRustGenerator {
@@ -61,6 +73,8 @@ impl HighPerformanceRustGenerator {
             enable_backtrack_debug: false,
             annotations: None,
             return_annotations: HashMap::new(),
+            quantified_group_counter: std::cell::RefCell::new(0),
+            quantified_groups: std::cell::RefCell::new(Vec::new()),
         }
     }
     
@@ -73,6 +87,8 @@ impl HighPerformanceRustGenerator {
             enable_backtrack_debug: false,
             annotations: None,
             return_annotations: HashMap::new(),
+            quantified_group_counter: std::cell::RefCell::new(0),
+            quantified_groups: std::cell::RefCell::new(Vec::new()),
         }
     }
     
@@ -85,6 +101,8 @@ impl HighPerformanceRustGenerator {
             enable_backtrack_debug: true,
             annotations: None,
             return_annotations: HashMap::new(),
+            quantified_group_counter: std::cell::RefCell::new(0),
+            quantified_groups: std::cell::RefCell::new(Vec::new()),
         }
     }
     
@@ -103,6 +121,305 @@ impl HighPerformanceRustGenerator {
     pub fn set_return_annotations(&mut self, return_annotations: &HashMap<String, ReturnAnnotation>) {
         self.return_annotations = return_annotations.clone();
     }
+    
+    /// Log message using the AST Pipeline's unified logging system
+    /// This method will be replaced with calls to pipeline.log_debug() when we have access to the pipeline
+    fn log_debug(&self, message: &str) {
+        // Fallback: only print to console if no pipeline is available
+        // This should rarely be used since we'll pass pipeline references
+        println!("{}", message);
+    }
+    
+    /// Generate next unique ID for quantified groups
+    fn get_next_quantified_group_id(&self) -> u32 {
+        let mut counter = self.quantified_group_counter.borrow_mut();
+        let id = *counter;
+        *counter += 1;
+        id
+    }
+    
+    /// Register a quantified group for later function generation
+    fn register_quantified_group(
+        &self, 
+        rule_name: &str, 
+        group_id: u32, 
+        element: &ASTNode, 
+        quantifier: &str,
+        rule_annotations: Option<&[String]>
+    ) -> Result<()> {
+        let group_info = QuantifiedGroupInfo {
+            rule_name: rule_name.to_string(),
+            group_id,
+            element: element.clone(),
+            quantifier: quantifier.to_string(),
+            rule_annotations: rule_annotations.map(|a| a.to_vec()),
+        };
+        
+        self.quantified_groups.borrow_mut().push(group_info);
+        self.log_debug(&format!("[HighPerformanceRustGenerator] 📋 Registered quantified group: {}_group_{} with quantifier '{}'", rule_name, group_id, quantifier));
+        Ok(())
+    }
+    
+    /// Generate all quantified group functions with proper scope isolation
+    fn generate_quantified_group_functions(&self) -> Result<String> {
+        self.generate_quantified_group_functions_with_pipeline(None)
+    }
+    
+    /// Generate quantified group functions with pipeline logging
+    fn generate_quantified_group_functions_with_pipeline(&self, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
+        let groups = self.quantified_groups.borrow();
+        let mut code = String::new();
+        
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_quantified_group_functions", &format!("🏰 Generating {} quantified group functions", groups.len()));
+        } else {
+            println!("[HighPerformanceRustGenerator] 🏰 Generating {} quantified group functions", groups.len());
+        }
+        
+        for (index, group) in groups.iter().enumerate() {
+            if let Some(ref mut p) = pipeline {
+                p.log_info("generate_quantified_group_functions", &format!("🔧 [{}/{}] Generating function: parse_{}_quantified_group_{}", index + 1, groups.len(), group.rule_name, group.group_id));
+            } else {
+                println!("[HighPerformanceRustGenerator]   🔧 Generating function: parse_{}_quantified_group_{}", group.rule_name, group.group_id);
+            }
+            
+            let function_code = self.generate_single_quantified_group_function(group)?;
+            code.push_str(&function_code);
+            code.push_str("\n");
+        }
+        
+        Ok(code)
+    }
+    
+    /// Generate a single quantified group function with proper memoization
+    fn generate_single_quantified_group_function(&self, group: &QuantifiedGroupInfo) -> Result<String> {
+        let function_name = format!("parse_{}_quantified_group_{}", group.rule_name, group.group_id);
+        let element_code = self.generate_optimized_node_code(&group.element, 2, &group.rule_name, group.rule_annotations.as_deref())?;
+        
+        // Generate the quantifier logic based on the specific quantifier type
+        let quantifier_logic = match group.quantifier.as_str() {
+            "*" => self.generate_star_quantifier_logic(&element_code, &function_name),
+            "+" => self.generate_plus_quantifier_logic(&element_code, &function_name), 
+            "?" => self.generate_question_quantifier_logic(&element_code, &function_name),
+            _ => return Err(anyhow::anyhow!("Unsupported quantifier: {}", group.quantifier))
+        };
+        
+        let template = format!(r#"    /// Parse quantified group {group_id} for rule {rule_name} with quantifier '{quantifier}'
+    /// This function provides proper scope isolation for the quantified group
+    #[inline]
+    fn {function_name}(&mut self) -> ParseResult<ParseContent<'input>> {{
+        if self.debug_mode {{
+            self.debug_output.push(format!("🚀 QUANTIFIED GROUP FUNCTION ENTRY: {function_name}() at position {{}}", self.position));
+        }}
+        
+{quantifier_logic}
+        
+        if self.debug_mode {{
+            match &result {{
+                Ok(_) => self.debug_output.push(format!("✅ QUANTIFIED GROUP FUNCTION EXIT SUCCESS: {function_name}() completed at position {{}}", self.position)),
+                Err(e) => self.debug_output.push(format!("❌ QUANTIFIED GROUP FUNCTION EXIT FAILURE: {function_name}() failed: {{:?}}", e)),
+            }}
+        }}
+        
+        result
+    }}
+"#, 
+            group_id = group.group_id,
+            rule_name = group.rule_name,
+            quantifier = group.quantifier,
+            function_name = function_name,
+            quantifier_logic = quantifier_logic
+        );
+        
+        Ok(template)
+    }
+
+    /// Generate star quantifier logic (*) with proper scope isolation
+    fn generate_star_quantifier_logic(&self, element_code: &str, function_name: &str) -> String {
+        let fixed_element_code = element_code.replace("parser.", "self.");
+        format!(r#"        // Star quantifier (*) - zero or more with proper scope isolation
+        let mut results = Vec::new();
+        let mut iteration = 0;
+        let start_pos = self.position;
+        
+        if self.debug_mode {{
+            self.debug_output.push(format!("🔄 {function_name}: Starting STAR quantifier (zero-or-more) at position {{}}", self.position));
+        }}
+        
+        loop {{
+            let checkpoint_pos = self.position;
+            if self.debug_mode {{
+                self.debug_output.push(format!("🔁 {function_name}: STAR iteration {{}} at position {{}}", iteration + 1, checkpoint_pos));
+            }}
+            
+            // Parse element with isolated scope
+            let element_result = (|| -> ParseResult<ParseContent<'input>> {{
+{fixed_element_code}
+                Ok(result)
+            }})();
+            
+            match element_result {{
+                Ok(content) => {{
+                    iteration += 1;
+                    if self.debug_mode {{
+                        self.debug_output.push(format!("✅ {function_name}: STAR iteration {{}} succeeded, position {{}} -> {{}}", iteration, checkpoint_pos, self.position));
+                    }}
+                    results.push(ParseNode {{
+                        rule_name: "quantified",
+                        content,
+                        span: 0..0,
+                    }});
+                    
+                    // Prevent infinite loops on zero-length matches
+                    if self.position == checkpoint_pos {{
+                        if self.debug_mode {{
+                            self.debug_output.push(format!("⚠️ {function_name}: STAR zero-length match detected - stopping to prevent infinite loop"));
+                        }}
+                        break;
+                    }}
+                }}
+                Err(_) => {{
+                    if self.debug_mode {{
+                        self.debug_output.push(format!("🛑 {function_name}: STAR iteration {{}} failed at position {{}} - ending (normal for * quantifier)", iteration + 1, checkpoint_pos));
+                    }}
+                    break;
+                }}
+            }}
+        }}
+        
+        if self.debug_mode {{
+            self.debug_output.push(format!("🏁 {function_name}: STAR quantifier completed - matched {{}} iterations, position {{}} -> {{}}", iteration, start_pos, self.position));
+        }}
+        
+        let result = Ok(ParseContent::Quantified(results, "*"));
+"#, function_name = function_name, fixed_element_code = fixed_element_code)
+    }
+    
+    /// Generate plus quantifier logic (+) with proper scope isolation
+    fn generate_plus_quantifier_logic(&self, element_code: &str, function_name: &str) -> String {
+        let fixed_element_code = element_code.replace("parser.", "self.");
+        format!(r#"        // Plus quantifier (+) - one or more with proper scope isolation
+        let mut results = Vec::new();
+        let mut iteration = 0;
+        let start_pos = self.position;
+        
+        if self.debug_mode {{
+            self.debug_output.push(format!("🔄 {function_name}: Starting PLUS quantifier (one-or-more) at position {{}}", self.position));
+        }}
+        
+        // We need at least one successful match for '+' quantifier
+        let first_result = (|| -> ParseResult<ParseContent<'input>> {{
+{fixed_element_code}
+            Ok(result)
+        }})();
+        
+        let result = match first_result {{
+            Ok(content) => {{
+                iteration = 1;
+                if self.debug_mode {{
+                    self.debug_output.push(format!("✅ {function_name}: PLUS first iteration succeeded, position {{}} -> {{}}", start_pos, self.position));
+                }}
+                results.push(ParseNode {{
+                    rule_name: "quantified",
+                    content,
+                    span: 0..0,
+                }});
+                
+                // Continue with zero-or-more pattern
+                loop {{
+                    let checkpoint_pos = self.position;
+                    if self.debug_mode {{
+                        self.debug_output.push(format!("🔁 {function_name}: PLUS iteration {{}} at position {{}}", iteration + 1, checkpoint_pos));
+                    }}
+                    
+                    let element_result = (|| -> ParseResult<ParseContent<'input>> {{
+{fixed_element_code}
+                        Ok(result)
+                    }})();
+                    
+                    match element_result {{
+                        Ok(content) => {{
+                            iteration += 1;
+                            if self.debug_mode {{
+                                self.debug_output.push(format!("✅ {function_name}: PLUS iteration {{}} succeeded, position {{}} -> {{}}", iteration, checkpoint_pos, self.position));
+                            }}
+                            results.push(ParseNode {{
+                                rule_name: "quantified",
+                                content,
+                                span: 0..0,
+                            }});
+                            
+                            // Prevent infinite loops on zero-length matches
+                            if self.position == checkpoint_pos {{
+                                if self.debug_mode {{
+                                    self.debug_output.push(format!("⚠️ {function_name}: PLUS zero-length match detected - stopping"));
+                                }}
+                                break;
+                            }}
+                        }}
+                        Err(_) => {{
+                            if self.debug_mode {{
+                                self.debug_output.push(format!("🛑 {function_name}: PLUS iteration {{}} failed at position {{}} - ending", iteration + 1, checkpoint_pos));
+                            }}
+                            break;
+                        }}
+                    }}
+                }}
+                
+                if self.debug_mode {{
+                    self.debug_output.push(format!("🏁 {function_name}: PLUS quantifier completed - matched {{}} iterations, position {{}} -> {{}}", iteration, start_pos, self.position));
+                }}
+                
+                Ok(ParseContent::Quantified(results, "+"))
+            }}
+            Err(e) => {{
+                if self.debug_mode {{
+                    self.debug_output.push(format!("❌ {function_name}: PLUS first iteration failed - quantifier fails"));
+                }}
+                Err(e)
+            }}
+        }};
+"#, function_name = function_name, fixed_element_code = fixed_element_code)
+    }
+    
+    /// Generate question quantifier logic (?) with proper scope isolation
+    fn generate_question_quantifier_logic(&self, element_code: &str, function_name: &str) -> String {
+        let fixed_element_code = element_code.replace("parser.", "self.");
+        format!(r#"        // Question quantifier (?) - zero or one with proper scope isolation
+        let start_pos = self.position;
+        
+        if self.debug_mode {{
+            self.debug_output.push(format!("🔄 {function_name}: Starting QUESTION quantifier (zero-or-one) at position {{}}", self.position));
+        }}
+        
+        // Try to parse the element once
+        let element_result = (|| -> ParseResult<ParseContent<'input>> {{
+{fixed_element_code}
+            Ok(result)
+        }})();
+        
+        let result = match element_result {{
+            Ok(content) => {{
+                if self.debug_mode {{
+                    self.debug_output.push(format!("✅ {function_name}: QUESTION quantifier matched (1 occurrence), position {{}} -> {{}}", start_pos, self.position));
+                }}
+                let results = vec![ParseNode {{
+                    rule_name: "quantified",
+                    content,
+                    span: 0..0,
+                }}];
+                Ok(ParseContent::Quantified(results, "?"))
+            }}
+            Err(_) => {{
+                if self.debug_mode {{
+                    self.debug_output.push(format!("⭕ {function_name}: QUESTION quantifier no match (0 occurrences) - this is OK for ? quantifier"));
+                }}
+                // Zero matches is OK for ? quantifier
+                Ok(ParseContent::Quantified(Vec::new(), "?"))
+            }}
+        }};
+"#, function_name = function_name, fixed_element_code = fixed_element_code)
+    }
 
     /// Generate lightning-fast parser suitable for production regex engine
     pub fn generate_lightning_fast_parser(
@@ -110,8 +427,38 @@ impl HighPerformanceRustGenerator {
         grammar_tree: &HashMap<String, ASTNode>,
         rule_order: &[String],
     ) -> Result<String> {
+        // Fallback method that doesn't use pipeline logging
+        self.generate_lightning_fast_parser_impl(grammar_tree, rule_order, None)
+    }
+    
+    /// Generate lightning-fast parser with unified AST pipeline logging
+    pub fn generate_lightning_fast_parser_with_logging(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+        rule_order: &[String],
+        pipeline: &mut crate::ast_pipeline::RustASTPipeline,
+    ) -> Result<String> {
+        // Use pipeline logging for unified output
+        self.generate_lightning_fast_parser_impl(grammar_tree, rule_order, Some(pipeline))
+    }
+    
+    /// Internal implementation that can optionally use pipeline logging
+    fn generate_lightning_fast_parser_impl(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+        rule_order: &[String],
+        mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>,
+    ) -> Result<String> {
         if rule_order.is_empty() {
             return Err(anyhow::anyhow!("No rules provided - cannot determine entry rule"));
+        }
+        
+        // Log using pipeline if available, otherwise fallback
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_lightning_fast_parser", "🚀 Starting high-performance parser generation");
+            p.log_info("generate_lightning_fast_parser", &format!("📋 {} rules to process: {}", rule_order.len(), rule_order.join(", ")));
+        } else {
+            self.log_debug("[HighPerformanceRustGenerator] 🚀 Starting high-performance parser generation");
         }
         
         // Entry rule should be the first rule in the grammar, or explicitly set entry rule
@@ -120,25 +467,55 @@ impl HighPerformanceRustGenerator {
             .or_else(|| rule_order.first().cloned())
             .ok_or_else(|| anyhow::anyhow!("No rules provided in rule_order - cannot determine entry rule"))?;
         
+        if let Some(ref mut p) = pipeline {
+            p.log_success("generate_lightning_fast_parser", &format!("📍 Entry rule determined: {}", entry_rule));
+        }
+        
         let mut code = String::with_capacity(65536); // Pre-allocate for performance
 
         // Generate high-performance parser header
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_lightning_fast_parser", "📜 Generating parser header and imports");
+        }
         code.push_str(&self.generate_parser_header());
         
         // Generate core parsing engine with memoization (starts impl block)
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_lightning_fast_parser", "⚙️  Generating core memoized parser engine");
+        }
         code.push_str(&self.generate_memoized_parser_core(&entry_rule));
         
         // Generate optimized rule methods (inside impl block)
-        code.push_str(&self.generate_optimized_rule_methods(grammar_tree, rule_order)?);
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_lightning_fast_parser", &format!("🛠️  Generating {} optimized rule methods", rule_order.len()));
+        }
+        code.push_str(&self.generate_optimized_rule_methods_with_pipeline(grammar_tree, rule_order, pipeline.as_deref_mut())?);
+        
+        // Generate quantified group functions (inside impl block)
+        if let Some(ref mut p) = pipeline {
+            let group_count = self.quantified_groups.borrow().len();
+            p.log_info("generate_lightning_fast_parser", &format!("🔄 Generating {} quantified group functions", group_count));
+        }
+        code.push_str(&self.generate_quantified_group_functions_with_pipeline(pipeline.as_deref_mut())?);
         
         // Generate fast helper methods (inside impl block)
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_lightning_fast_parser", "⚡ Generating fast helper methods");
+        }
         code.push_str(&self.generate_fast_helpers());
         
         // Close the impl block
         code.push_str("}\n\n");
         
         // Generate performance tests
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_lightning_fast_parser", "📏 Generating performance tests");
+        }
         code.push_str(&self.generate_performance_tests());
+        
+        if let Some(ref mut p) = pipeline {
+            p.log_success("generate_lightning_fast_parser", &format!("🎉 High-performance parser generation complete! Generated {} lines of Rust code", code.lines().count()));
+        }
         
         Ok(code)
     }
@@ -539,10 +916,24 @@ impl<'input> {parser_name}<'input> {{
         let saved_pos = self.position;
         let saved_recursion_depth = self.recursion_depth;
         
+        if self.debug_mode {{
+            self.debug_output.push(format!("        🔍 MEMOIZED TRY: Starting attempt at position {{}} (checkpoint set, depth={{}})", saved_pos, saved_recursion_depth));
+        }}
+        
         match f(self) {{
-            Ok(result) => Some(result),
-            Err(_) => {{
-{backtrack_debug_code}                // Restore parser state completely
+            Ok(result) => {{
+                if self.debug_mode {{
+                    self.debug_output.push(format!("        ✅ MEMOIZED SUCCESS: Parse succeeded, advanced from {{}} to {{}} (keeping new position & depth)", 
+                        saved_pos, self.position));
+                }}
+                Some(result)
+            }},
+            Err(err) => {{
+                if self.debug_mode {{
+                    self.debug_output.push(format!("        🔄 MEMOIZED BACKTRACK: Parse failed at position {{}}, restoring to checkpoint {{}} (depth {{}} → {{}}, error: {{:?}})", 
+                        self.position, saved_pos, self.recursion_depth, saved_recursion_depth, err));
+                }}
+                // Restore parser state completely
                 self.position = saved_pos;
                 self.recursion_depth = saved_recursion_depth;
                 None
@@ -799,17 +1190,31 @@ impl<'input> {parser_name}<'input> {{
         grammar_tree: &HashMap<String, ASTNode>,
         rule_order: &[String],
     ) -> Result<String> {
+        self.generate_optimized_rule_methods_with_pipeline(grammar_tree, rule_order, None)
+    }
+    
+    fn generate_optimized_rule_methods_with_pipeline(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+        rule_order: &[String],
+        mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>,
+    ) -> Result<String> {
         let mut code = String::new();
         
-        println!("[HighPerformanceRustGenerator] Starting rule method generation");
-        println!("[HighPerformanceRustGenerator] Total rules in rule_order: {}", rule_order.len());
-        println!("[HighPerformanceRustGenerator] Total rules in grammar_tree: {}", grammar_tree.len());
-        
-        // Debug: List all rules
-        println!("[HighPerformanceRustGenerator] Rules in rule_order: {:?}", rule_order);
-        println!("[HighPerformanceRustGenerator] Rules in grammar_tree: {:?}", grammar_tree.keys().collect::<Vec<_>>());
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_optimized_rule_methods", &format!("🚀 Starting rule method generation: {} rules in order, {} in tree", rule_order.len(), grammar_tree.len()));
+            p.log_debug("generate_optimized_rule_methods", &format!("Rules in order: {:?}", rule_order));
+            p.log_debug("generate_optimized_rule_methods", &format!("Rules in tree: {:?}", grammar_tree.keys().collect::<Vec<_>>()));
+        } else {
+            println!("[HighPerformanceRustGenerator] Starting rule method generation");
+            println!("[HighPerformanceRustGenerator] Total rules in rule_order: {}", rule_order.len());
+            println!("[HighPerformanceRustGenerator] Total rules in grammar_tree: {}", grammar_tree.len());
+        }
         
         // Generate rule ID constants
+        if let Some(ref mut p) = pipeline {
+            p.log_info("generate_optimized_rule_methods", "🏷️  Generating rule ID constants for memoization");
+        }
         code.push_str("    // Rule IDs for memoization\n");
         for (i, rule_name) in rule_order.iter().enumerate() {
             code.push_str(&format!("    const RULE_{}: RuleId = {};\n", 
@@ -823,23 +1228,38 @@ impl<'input> {parser_name}<'input> {{
         
         for (i, rule_name) in rule_order.iter().enumerate() {
             if let Some(ast_node) = grammar_tree.get(rule_name) {
-                println!("[HighPerformanceRustGenerator] ✓ Generating method for rule: {} (index {})", rule_name, i);
-                let method_code = self.generate_optimized_rule_method(rule_name, ast_node, i as u16)?;
+                if let Some(ref mut p) = pipeline {
+                    p.log_info("generate_optimized_rule_methods", &format!("✅ [{}/{}] Generating method for rule: {}", i + 1, rule_order.len(), rule_name));
+                } else {
+                    println!("[HighPerformanceRustGenerator] ✓ Generating method for rule: {} (index {})", rule_name, i);
+                }
+                let method_code = self.generate_optimized_rule_method_with_pipeline(rule_name, ast_node, i as u16, pipeline.as_deref_mut())?;
                 code.push_str(&method_code);
                 methods_generated += 1;
             } else {
-                println!("[HighPerformanceRustGenerator] ✗ SKIPPING rule: {} (not found in grammar_tree)", rule_name);
+                if let Some(ref mut p) = pipeline {
+                    p.log_warning("generate_optimized_rule_methods", &format!("SKIPPING rule: {} (not found in grammar_tree)", rule_name));
+                } else {
+                    println!("[HighPerformanceRustGenerator] ✗ SKIPPING rule: {} (not found in grammar_tree)", rule_name);
+                }
                 methods_skipped += 1;
             }
         }
         
-        println!("[HighPerformanceRustGenerator] Summary:");
-        println!("[HighPerformanceRustGenerator]   ✓ Methods generated: {}", methods_generated);
-        println!("[HighPerformanceRustGenerator]   ✗ Methods skipped: {}", methods_skipped);
-        println!("[HighPerformanceRustGenerator]   📊 Total rules processed: {}", rule_order.len());
-        
-        if methods_skipped > 0 {
-            println!("[HighPerformanceRustGenerator] ⚠️  WARNING: {} rules were skipped - this will cause compilation errors!", methods_skipped);
+        if let Some(ref mut p) = pipeline {
+            p.log_success("generate_optimized_rule_methods", &format!("📊 Summary: {} methods generated, {} skipped, {} total processed", methods_generated, methods_skipped, rule_order.len()));
+            if methods_skipped > 0 {
+                p.log_warning("generate_optimized_rule_methods", &format!("⚠️  WARNING: {} rules were skipped - this will cause compilation errors!", methods_skipped));
+            }
+        } else {
+            println!("[HighPerformanceRustGenerator] Summary:");
+            println!("[HighPerformanceRustGenerator]   ✓ Methods generated: {}", methods_generated);
+            println!("[HighPerformanceRustGenerator]   ✗ Methods skipped: {}", methods_skipped);
+            println!("[HighPerformanceRustGenerator]   📊 Total rules processed: {}", rule_order.len());
+            
+            if methods_skipped > 0 {
+                println!("[HighPerformanceRustGenerator] ⚠️  WARNING: {} rules were skipped - this will cause compilation errors!", methods_skipped);
+            }
         }
 
         Ok(code)
@@ -851,8 +1271,22 @@ impl<'input> {parser_name}<'input> {{
         ast_node: &ASTNode,
         rule_id: u16,
     ) -> Result<String> {
-        println!("[HighPerformanceRustGenerator][generate_optimized_rule_method] 🔧 Processing rule: '{}' (ID: {})", rule_name, rule_id);
-        println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   📋 Rule AST: {:?}", ast_node);
+        self.generate_optimized_rule_method_with_pipeline(rule_name, ast_node, rule_id, None)
+    }
+    
+    fn generate_optimized_rule_method_with_pipeline(
+        &self,
+        rule_name: &str,
+        ast_node: &ASTNode,
+        rule_id: u16,
+        mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>,
+    ) -> Result<String> {
+        if let Some(ref mut p) = pipeline {
+            p.log_debug("generate_optimized_rule_method", &format!("🔧 Processing rule: '{}' (ID: {})", rule_name, rule_id));
+        } else {
+            println!("[HighPerformanceRustGenerator][generate_optimized_rule_method] 🔧 Processing rule: '{}' (ID: {})", rule_name, rule_id);
+            println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   📋 Rule AST: {:?}", ast_node);
+        }
         
         // Get semantic annotations for this rule if available
         let rule_annotations = if let Some(ref annotations) = self.annotations {
@@ -862,24 +1296,44 @@ impl<'input> {parser_name}<'input> {{
         };
         
         if let Some(ref annotations) = rule_annotations {
-            println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   🏷️  Found {} semantic annotations for '{}'", annotations.len(), rule_name);
-            for (i, annotation) in annotations.iter().enumerate() {
-                println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]     {}. {}", i + 1, annotation);
+            if let Some(ref mut p) = pipeline {
+                p.log_info("generate_optimized_rule_method", &format!("🏷️  Found {} semantic annotations for '{}': {}", annotations.len(), rule_name, annotations.join(", ")));
+            } else {
+                println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   🏷️  Found {} semantic annotations for '{}'", annotations.len(), rule_name);
+                for (i, annotation) in annotations.iter().enumerate() {
+                    println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]     {}. {}", i + 1, annotation);
+                }
             }
         } else {
-            println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   ❌ No semantic annotations found for '{}'", rule_name);
+            if let Some(ref mut p) = pipeline {
+                p.log_debug("generate_optimized_rule_method", &format!("❌ No semantic annotations found for '{}'", rule_name));
+            } else {
+                println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   ❌ No semantic annotations found for '{}'", rule_name);
+            }
         }
         
-        println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   🏢️  Generating method body for '{}'", rule_name);
+        if let Some(ref mut p) = pipeline {
+            p.log_debug("generate_optimized_rule_method", &format!("🏢️  Generating method body for '{}'", rule_name));
+        } else {
+            println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   🏢️  Generating method body for '{}'", rule_name);
+        }
         let method_body = self.generate_optimized_node_code(ast_node, 2, rule_name, rule_annotations.as_deref())?;
         
         let method_name = format!("parse_{}", rule_name);
-        println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   ✅ Generated method: '{}()' for rule '{}'\n", method_name, rule_name);
+        if let Some(ref mut p) = pipeline {
+            p.log_success("generate_optimized_rule_method", &format!("✅ Generated method: '{}()' for rule '{}'", method_name, rule_name));
+        } else {
+            println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   ✅ Generated method: '{}()' for rule '{}'\n", method_name, rule_name);
+        }
         
         let method_code_template = format!(r#"    /// Parse {rule_name} with memoization
     #[inline]
     fn parse_{rule_name}(&mut self) -> ParseResult<ParseNode<'input>> {{
-        self.memoized_call(Self::RULE_{rule_name_upper}, |parser| {{
+        if self.debug_mode {{
+            self.debug_output.push(format!("🚀 FUNCTION ENTRY: parse_{{}}() at position {{}}", "{rule_name}", self.position));
+        }}
+        
+        let result = self.memoized_call(Self::RULE_{rule_name_upper}, |parser| {{
             parser.debug_enter_rule("{rule_name}");
             let start_pos = parser.position;
             
@@ -900,7 +1354,20 @@ impl<'input> {parser_name}<'input> {{
             }};
             
             parse_result
-        }})
+        }});
+        
+        if self.debug_mode {{
+            match &result {{
+                Ok(node) => {{
+                    self.debug_output.push(format!("✅ FUNCTION EXIT SUCCESS: parse_{{}}() returned node spanning {{}} -> {{}}", "{rule_name}", node.span.start, node.span.end));
+                }}
+                Err(err) => {{
+                    self.debug_output.push(format!("❌ FUNCTION EXIT FAILURE: parse_{{}}() failed with error: {{:?}}", "{rule_name}", err));
+                }}
+            }}
+        }}
+        
+        result
     }}
 
 "#, 
@@ -941,19 +1408,27 @@ impl<'input> {parser_name}<'input> {{
     }
 
     fn generate_atom_code(&self, value: &ASTValue, indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {
-        println!("[HighPerformanceRustGenerator][generate_atom_code] ⚛️  Processing atom: {:?}", value);
+        // Only log if debug or trace mode is enabled
+        if self.enable_trace {
+            self.log_debug(&format!("[HighPerformanceRustGenerator][generate_atom_code] ⚛️  Processing atom: {:?}", value));
+        }
         
         match value {
             ASTValue::Token(token) if token.len() == 2 => {
                 let token_type = &token[0];
                 let token_value = &token[1];
                 
-                println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token type: {:?}", token_type);
-                println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token value: {:?}", token_value);
+                // Only log detailed token info in trace mode
+                if self.enable_trace {
+                    println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token type: {:?}", token_type);
+                    println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token value: {:?}", token_value);
+                }
                 
                 // Check for semantic annotations that might guide code generation
                 let custom_code = if let Some(annotations) = rule_annotations {
-                    println!("[HighPerformanceRustGenerator][generate_atom_code]   🏷️  Checking rule-level semantic annotations for atom customization");
+                    if self.enable_trace {
+                        println!("[HighPerformanceRustGenerator][generate_atom_code]   🏷️  Checking rule-level semantic annotations for atom customization");
+                    }
                     self.apply_semantic_annotations(annotations, token_type, token_value, indent)
                 } else {
                     // Note: This is normal - most atoms use default generation
@@ -963,14 +1438,20 @@ impl<'input> {parser_name}<'input> {{
                 
                 // If we have custom code from semantic annotations, use it; otherwise use default generation
                 if let Some(code) = custom_code {
-                    println!("[HighPerformanceRustGenerator][generate_atom_code]   🎯 Using custom code from semantic annotations");
+                    if self.enable_trace {
+                        println!("[HighPerformanceRustGenerator][generate_atom_code]   🎯 Using custom code from semantic annotations");
+                    }
                     return Ok(code);
                 }
                 
-                println!("[HighPerformanceRustGenerator][generate_atom_code]   🔧 Using default code generation for token_type: {:?}", token_type.as_str());
+                if self.enable_trace {
+                    println!("[HighPerformanceRustGenerator][generate_atom_code]   🔧 Using default code generation for token_type: {:?}", token_type.as_str());
+                }
                 match token_type.as_str() {
                         Some("quoted_string") => {
-                            println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating quoted_string code");
+                            if self.enable_trace {
+                                println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating quoted_string code");
+                            }
                             if token_value.is_empty() {
                                 // Handle empty strings with regular string literals
                                 Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(\"\")?);\n"))
@@ -980,25 +1461,40 @@ impl<'input> {parser_name}<'input> {{
                             }
                         }
                         Some("regex") => {
-                            println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating regex code");
+                            if self.enable_trace {
+                                println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating regex code");
+                            }
                             let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
                             Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_regex_optimized(r#\"{escaped_value}\"#)?);\n"))
                         }
                     Some("rule_reference") => {
                         let rule_name = token_value.as_str().unwrap_or("unknown");
-                        println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating rule_reference code for rule: '{}'", rule_name);
-                        println!("[HighPerformanceRustGenerator][generate_atom_code]       🔗 Will call method: parse_{}()", rule_name);
+                        if self.enable_trace {
+                            println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating rule_reference code for rule: '{}'", rule_name);
+                            println!("[HighPerformanceRustGenerator][generate_atom_code]       🔗 Will call method: parse_{}()", rule_name);
+                        }
                         Ok(format!("{indent}let result = ParseContent::Alternative(Box::new(parser.parse_{rule_name}()?));\n"))
                     }
+                    // Skip grammar tokens - these should not generate any parsing code
+                    Some("group_open") | Some("group_close") | Some("operator") | Some("separator") => {
+                        if self.enable_trace {
+                            self.log_debug(&format!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Skipping grammar token: {:?} - no code generation needed", token_type.as_str()));
+                        }
+                        Ok(format!("{indent}let result = ParseContent::Terminal(\"\");\n"))
+                    }
                     _ => {
-                        println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating default terminal code for unknown token type: {:?}", token_type.as_str());
+                        if self.enable_trace {
+                            println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating default terminal code for unknown token type: {:?}", token_type.as_str());
+                        }
                         let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
                         Ok(format!("{indent}let result = ParseContent::Terminal(r#\"{escaped_value}\"#);\n"))
                     }
                 }
             }
             _ => {
-                println!("[HighPerformanceRustGenerator][generate_atom_code]   ⚠️  Non-token AST value: {:?}", value);
+                if self.enable_trace {
+                    println!("[HighPerformanceRustGenerator][generate_atom_code]   ⚠️  Non-token AST value: {:?}", value);
+                }
                 Ok(format!("{indent}let result = ParseContent::Terminal(\"unknown\");\n"))
             }
         }
@@ -1013,10 +1509,14 @@ impl<'input> {parser_name}<'input> {{
         token_value: &crate::ast_pipeline::TokenValue, 
         indent: &str
     ) -> Option<String> {
-        println!("[HighPerformanceRustGenerator][apply_semantic_annotations] 📝 Processing {} annotations for token_type: {:?}, token_value: {:?}", annotations.len(), token_type, token_value);
+        if self.enable_trace {
+            println!("[HighPerformanceRustGenerator][apply_semantic_annotations] 📝 Processing {} annotations for token_type: {:?}, token_value: {:?}", annotations.len(), token_type, token_value);
+        }
         
         if annotations.is_empty() {
-            println!("[HighPerformanceRustGenerator][apply_semantic_annotations]   ❌ No annotations to process");
+            if self.enable_trace {
+                println!("[HighPerformanceRustGenerator][apply_semantic_annotations]   ❌ No annotations to process");
+            }
             return None;
         }
         
@@ -1327,12 +1827,8 @@ impl<'input> {parser_name}<'input> {{
             let fixed_element_code = element_code
                 .replace("let result =", "        let element_content =")
                 .replace("&result)", "&element_content)")
-                .replace("parser.", "parser.")
-                // Filter out any remaining debug_quantifier_end calls that would reference incorrect variables
-                .lines()
-                .filter(|line| !line.contains("debug_quantifier_end"))
-                .collect::<Vec<_>>()
-                .join("\n");
+                // Replace self. with parser. since we're inside the memoized_call closure
+                .replace("self.", "parser.");
             code.push_str(&fixed_element_code);
             code.push_str(&format!("{indent}        Ok(element_content)\n"));
             code.push_str(&format!("{indent}    }})();\n"));
@@ -1373,8 +1869,7 @@ impl<'input> {parser_name}<'input> {{
             1 => {
                 // Single branch - no alternatives, just execute directly
                 let alt_code = self.generate_optimized_node_code(&alternatives[0], 0, rule_name, rule_annotations)?;
-                let single_branch_code = alt_code.replace("parser.", "parser.");
-                Ok(single_branch_code)
+                Ok(alt_code)
             }
             _ => {
                 // Multiple branches - use systematic N-branch template
@@ -1411,7 +1906,8 @@ impl<'input> {parser_name}<'input> {{
             let branch_content = alt_code
                 .replace("let result =", &format!("{branch_indent}let branch_content ="))
                 .replace("&result)", "&branch_content)")
-                .replace("parser.", "p.");
+                .replace("parser.", "p.")  // Use p. inside the closure, not parser.
+                .replace("self.", "p.");
             
             builder.add_raw(&branch_content);
             builder.add_line(&format!("{indent}{branch_indent}Ok(branch_content)"));
@@ -1483,6 +1979,11 @@ impl<'input> {parser_name}<'input> {{
                                 "quoted_string" => format!("'{}'", token_value),
                                 "regex" => format!("/{}/", token_value),
                                 "rule_reference" => token_value.clone(),
+                                // Handle grammar tokens - show their symbol value instead of raw token
+                                "group_open" => token_value.clone(),
+                                "group_close" => token_value.clone(),
+                                "operator" => token_value.clone(),
+                                "separator" => token_value.clone(),
                                 _ => format!("{}:{}", token_type, token_value),
                             }
                         } else {
@@ -1511,67 +2012,30 @@ impl<'input> {parser_name}<'input> {{
     }
 
     fn generate_quantified_code(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>) -> Result<String> {
-        let element_code = self.generate_optimized_node_code(element, 0, rule_name, rule_annotations)?;
+        // Generate a unique function name for this quantified group to ensure proper scope isolation
+        let quantified_group_id = self.get_next_quantified_group_id();
+        let quantified_function_name = format!("parse_{}_quantified_group_{}", rule_name, quantified_group_id);
+        
+        println!("[HighPerformanceRustGenerator][generate_quantified_code] 🔧 Generating separate function '{}' for quantifier '{}'", quantified_function_name, quantifier);
+        
+        // Store this quantified group for later function generation
+        self.register_quantified_group(rule_name, quantified_group_id, element, quantifier, rule_annotations)?;
+        
         let element_description = self.extract_ebnf_description(element);
         let quantified_description = format!("{}{}", element_description, quantifier);
         
-        // CRITICAL FIX: For quantified sequences, we need to ensure proper backtracking
-        // When a quantified element contains a sequence, we need to isolate failures
-        // so that the quantifier can properly handle zero matches without propagating errors
-        let inner_code = element_code
-            .replace("let result =", "    let content =")
-            .replace("parser.", "p.")
-            // Remove any debug_quantifier_end calls that would reference out-of-scope variables
-            .lines()
-            .filter(|line| !line.contains("debug_quantifier_end"))
-            .collect::<Vec<_>>()
-            .join("\n");
-        
-        // For * and ? quantifiers, wrap the inner code to handle failures gracefully
-        let quantifier_wrapper = match quantifier {
-            "*" | "?" => {
-                // These quantifiers allow zero matches, so we need to ensure proper scoped backtracking
-                // The key insight: failures within quantifiers should not escape the quantifier context
-                format!(
-                    r##"{indent}let element_content = parser.parse_quantified_optimized("{quantifier}", |p| {{
-{indent}    // Quantifier scope: failures here are converted to backtrack signals for try_parse_memoized
-{inner_code}
-{indent}    Ok(content)
-{indent}}})?;"##
-                )
-            }
-            "+" => {
-                // + quantifier requires at least one match, so propagate errors normally
-                format!(
-                    r##"{indent}let element_content = parser.parse_quantified_optimized("{quantifier}", |p| {{
-{inner_code}
-{indent}    Ok(content)
-{indent}}})?;"##
-                )
-            }
-            
-            _ => {
-                // Other quantifiers (like {n,m}) - use default behavior
-                format!(
-                    r##"{indent}let element_content = parser.parse_quantified_optimized("{quantifier}", |p| {{
-{inner_code}
-{indent}    Ok(content)
-{indent}}})?;"##
-                )
-            }
-        };
-        
+        // Instead of inline quantifier handling, call the separate function
         Ok(format!(
-            r##"{indent}// Debug quantifier attempt
+            r##"{indent}// Call dedicated quantified group function with proper scope isolation
 {indent}parser.debug_quantifier_start("{rule_name}", r#"{quantified_description}"#, "{quantifier}");
-{quantifier_wrapper}
+{indent}let element_content = parser.{quantified_function_name}()?;
 {indent}parser.debug_quantifier_end("{rule_name}", r#"{quantified_description}"#, "{quantifier}", &element_content);
 "##,
             indent = indent,
             rule_name = rule_name,
             quantifier = quantifier,
             quantified_description = quantified_description,
-            quantifier_wrapper = quantifier_wrapper
+            quantified_function_name = quantified_function_name
         ))
     }
 
@@ -1703,65 +2167,200 @@ impl<'input> {parser_name}<'input> {{
     {
         let mut results = Vec::new();
         let mut iteration = 0;
+        let start_pos = self.position;
+        
+        if self.debug_mode {
+            self.debug_output.push(format!("      🔧 QUANTIFIER ENGINE START: '{}' quantifier at position {}", quantifier, start_pos));
+            self.debug_output.push(format!("      📝 QUANTIFIER DETAILS: Will attempt to match pattern repeatedly with '{}' semantics", 
+                match quantifier {
+                    "*" => "zero-or-more (greedy)",
+                    "+" => "one-or-more (greedy)", 
+                    "?" => "zero-or-one (optional)",
+                    _ => "custom"
+                }
+            ));
+        }
         
         match quantifier {
             "*" => {
                 // Zero or more - optimized loop with memoization preservation
-                while let Some(content) = self.try_parse_memoized(&mut f) {
-                    iteration += 1;
-                    self.debug_quantifier_iteration(iteration, quantifier);
-                    results.push(ParseNode {
-                        rule_name: "quantified",
-                        content,
-                        span: 0..0, // Will be filled by caller
-                    });
+                if self.debug_mode {
+                    self.debug_output.push(format!("      🔄 STAR QUANTIFIER: Starting zero-or-more loop at position {}", self.position));
+                }
+                
+                loop {
+                    let loop_start_pos = self.position;
+                    if self.debug_mode {
+                        self.debug_output.push(format!("      🔁 STAR ITERATION: Attempting iteration {} at position {}", iteration + 1, loop_start_pos));
+                    }
+                    
+                    match self.try_parse_memoized(&mut f) {
+                        Some(content) => {
+                            iteration += 1;
+                            if self.debug_mode {
+                                self.debug_output.push(format!("      ✅ STAR ITERATION SUCCESS: Iteration {} succeeded, advanced from {} to {}", 
+                                    iteration, loop_start_pos, self.position));
+                            }
+                            self.debug_quantifier_iteration(iteration, quantifier);
+                            results.push(ParseNode {
+                                rule_name: "quantified",
+                                content,
+                                span: 0..0, // Will be filled by caller
+                            });
+                        }
+                        None => {
+                            if self.debug_mode {
+                                self.debug_output.push(format!("      🛑 STAR ITERATION END: Iteration {} failed at position {} - stopping loop (this is normal for '*' quantifier)", 
+                                    iteration + 1, loop_start_pos));
+                            }
+                            break;
+                        }
+                    }
+                    
+                    // Prevent infinite loops on zero-length matches
+                    if self.position == loop_start_pos {
+                        if self.debug_mode {
+                            self.debug_output.push(format!("      ⚠️ STAR ZERO-LENGTH: Detected zero-length match at position {} - stopping to prevent infinite loop", self.position));
+                        }
+                        break;
+                    }
+                }
+                
+                if self.debug_mode {
+                    self.debug_output.push(format!("      🏁 STAR QUANTIFIER END: Matched {} iterations, advanced from {} to {}", 
+                        iteration, start_pos, self.position));
                 }
                 Ok(ParseContent::Quantified(results, "*"))
             }
             
             "+" => {
                 // One or more - require at least one
+                if self.debug_mode {
+                    self.debug_output.push(format!("      🔄 PLUS QUANTIFIER: Starting one-or-more, requires at least 1 match at position {}", self.position));
+                }
+                
                 iteration += 1;
+                let first_attempt_pos = self.position;
+                if self.debug_mode {
+                    self.debug_output.push(format!("      🎯 PLUS FIRST ATTEMPT: Trying required first match at position {}", first_attempt_pos));
+                }
+                
                 self.debug_quantifier_iteration(iteration, quantifier);
                 match f(self) {
                     Ok(content) => {
+                        if self.debug_mode {
+                            self.debug_output.push(format!("      ✅ PLUS FIRST SUCCESS: Required first match succeeded, advanced from {} to {}", 
+                                first_attempt_pos, self.position));
+                        }
+                        
                         results.push(ParseNode {
                             rule_name: "quantified",
                             content,
                             span: 0..0,
                         });
                         
-                        while let Some(content) = self.try_parse_memoized(&mut f) {
-                            iteration += 1;
-                            self.debug_quantifier_iteration(iteration, quantifier);
-                            results.push(ParseNode {
-                                rule_name: "quantified", 
-                                content,
-                                span: 0..0,
-                            });
+                        // Continue with zero-or-more pattern
+                        if self.debug_mode {
+                            self.debug_output.push(format!("      🔁 PLUS CONTINUATION: First match succeeded, continuing with zero-or-more loop at position {}", self.position));
+                        }
+                        
+                        loop {
+                            let loop_start_pos = self.position;
+                            if self.debug_mode {
+                                self.debug_output.push(format!("      🔁 PLUS ITERATION: Attempting iteration {} at position {}", iteration + 1, loop_start_pos));
+                            }
+                            
+                            match self.try_parse_memoized(&mut f) {
+                                Some(content) => {
+                                    iteration += 1;
+                                    if self.debug_mode {
+                                        self.debug_output.push(format!("      ✅ PLUS ITERATION SUCCESS: Iteration {} succeeded, advanced from {} to {}", 
+                                            iteration, loop_start_pos, self.position));
+                                    }
+                                    self.debug_quantifier_iteration(iteration, quantifier);
+                                    results.push(ParseNode {
+                                        rule_name: "quantified", 
+                                        content,
+                                        span: 0..0,
+                                    });
+                                }
+                                None => {
+                                    if self.debug_mode {
+                                        self.debug_output.push(format!("      🛑 PLUS ITERATION END: Iteration {} failed at position {} - stopping loop", 
+                                            iteration + 1, loop_start_pos));
+                                    }
+                                    break;
+                                }
+                            }
+                            
+                            // Prevent infinite loops on zero-length matches
+                            if self.position == loop_start_pos {
+                                if self.debug_mode {
+                                    self.debug_output.push(format!("      ⚠️ PLUS ZERO-LENGTH: Detected zero-length match at position {} - stopping to prevent infinite loop", self.position));
+                                }
+                                break;
+                            }
+                        }
+                        
+                        if self.debug_mode {
+                            self.debug_output.push(format!("      🏁 PLUS QUANTIFIER END: Matched {} iterations, advanced from {} to {}", 
+                                iteration, start_pos, self.position));
                         }
                         Ok(ParseContent::Quantified(results, "+"))
                     }
-                    Err(err) => Err(err),
+                    Err(err) => {
+                        if self.debug_mode {
+                            self.debug_output.push(format!("      ❌ PLUS FIRST FAILURE: Required first match failed at position {} - entire '+' quantifier fails", 
+                                first_attempt_pos));
+                        }
+                        Err(err)
+                    },
                 }
             }
             "?" => {
                 // Zero or one with memoization preservation
-                if let Some(content) = self.try_parse_memoized(&mut f) {
-                    iteration += 1;
-                    self.debug_quantifier_iteration(iteration, quantifier);
-                    results.push(ParseNode {
-                        rule_name: "quantified",
-                        content,
-                        span: 0..0,
-                    });
+                if self.debug_mode {
+                    self.debug_output.push(format!("      🔄 QUESTION QUANTIFIER: Attempting zero-or-one (optional) match at position {}", self.position));
+                }
+                
+                let attempt_pos = self.position;
+                match self.try_parse_memoized(&mut f) {
+                    Some(content) => {
+                        iteration += 1;
+                        if self.debug_mode {
+                            self.debug_output.push(format!("      ✅ QUESTION SUCCESS: Optional match succeeded, advanced from {} to {}", 
+                                attempt_pos, self.position));
+                        }
+                        self.debug_quantifier_iteration(iteration, quantifier);
+                        results.push(ParseNode {
+                            rule_name: "quantified",
+                            content,
+                            span: 0..0,
+                        });
+                    }
+                    None => {
+                        if self.debug_mode {
+                            self.debug_output.push(format!("      ⭕ QUESTION NO MATCH: Optional match failed at position {} - this is OK for '?' quantifier (zero matches)", 
+                                attempt_pos));
+                        }
+                    }
+                }
+                
+                if self.debug_mode {
+                    self.debug_output.push(format!("      🏁 QUESTION QUANTIFIER END: Matched {} iterations, position {} to {}", 
+                        iteration, start_pos, self.position));
                 }
                 Ok(ParseContent::Quantified(results, "?"))
             }
-            _ => Err(ParseError::InvalidSyntax {
-                message: "Unknown quantifier",
-                position: self.position,
-            }),
+            _ => {
+                if self.debug_mode {
+                    self.debug_output.push(format!("      ❌ UNKNOWN QUANTIFIER: '{}' is not supported", quantifier));
+                }
+                Err(ParseError::InvalidSyntax {
+                    message: "Unknown quantifier",
+                    position: self.position,
+                })
+            },
         }
     }
 
