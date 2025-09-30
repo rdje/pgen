@@ -2210,10 +2210,11 @@ impl<'input> {parser_name}<'input> {{
         for (i, element_group) in processed_elements.iter().enumerate() {
             match element_group {
                 ProcessedElement::Mandatory(element) => {
-                    // Generate mandatory element as before
+                    // Generate mandatory element
                     let element_code = self.generate_optimized_node_code_with_context_and_pipeline(element, 0, rule_name, rule_annotations, parser_var, pipeline.as_deref_mut())?;
                     let element_description = self.extract_ebnf_description(element);
                     
+                    // When in closure, elements should use 'result' consistently
                     code.push_str(&self.generate_mandatory_element_code_with_context(element_code, element_description, i, processed_elements.len(), rule_name, indent, parser_var)?);
                 }
                 ProcessedElement::OptionalGroup(group_elements) => {
@@ -2228,15 +2229,8 @@ impl<'input> {parser_name}<'input> {{
             }
         }
         
-        // When generating inside a closure (parser_var != "parser"), use a consistent variable name
-        // that matches what the closure expects
-        if parser_var != "parser" {
-            // Inside a closure, use a more consistent variable name
-            code.push_str(&format!("{indent}let element_content = ParseContent::Sequence(sequence_elements);\n"));
-        } else {
-            // At the top level, use result
-            code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
-        }
+        // ALWAYS use 'result' for consistency - this is what outer contexts expect
+        code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
         Ok(code)
     }
 
@@ -2321,16 +2315,16 @@ impl<'input> {parser_name}<'input> {{
         
         // Wrap element parsing with result checking for better debug output
         code.push_str(&format!("{indent}    let element_result = (|| -> Result<ParseContent<'input>, ParseError> {{\n"));
+        // SIMPLIFIED: Always use 'result' for consistency everywhere
         let fixed_element_code = element_code
-            .replace("let result =", "        let element_content =")
-            .replace("&result)", "&element_content)")
             .replace("parser.", &format!("{parser_var}."));
+        
         code.push_str(&fixed_element_code);
-        code.push_str(&format!("{indent}        Ok(element_content)\n"));
+        code.push_str(&format!("{indent}        Ok(result)\n"));
         code.push_str(&format!("{indent}    }})();\n"));
         
         // Add success/failure debug logging
-        code.push_str(&format!("{indent}    let element_content = match element_result {{\n"));
+        code.push_str(&format!("{indent}    let result = match element_result {{\n"));
         code.push_str(&format!("{indent}        Ok(content) => {{\n"));
         code.push_str(&format!("{indent}            {parser_var}.debug_sequence_element_success({}, {}, \"{}\", r#\"{}\"#, {parser_var}.position - element_start);\n", index, total, rule_name, element_description));
         code.push_str(&format!("{indent}            content\n"));
@@ -2344,7 +2338,7 @@ impl<'input> {parser_name}<'input> {{
         code.push_str(&format!("{indent}    let element_end = {parser_var}.position;\n"));
         code.push_str(&format!("{indent}    sequence_elements.push(ParseNode {{\n"));
         code.push_str(&format!("{indent}        rule_name: \"element_{}\",\n", index));
-        code.push_str(&format!("{indent}        content: element_content,\n"));
+        code.push_str(&format!("{indent}        content: result,\n"));
         code.push_str(&format!("{indent}        span: element_start..element_end,\n"));
         code.push_str(&format!("{indent}    }});\n"));
         code.push_str(&format!("{indent}}};\n"));
@@ -2369,7 +2363,7 @@ impl<'input> {parser_name}<'input> {{
         code.push_str(&format!("{indent}    let element_start = parser.position;\n"));
         
         // Use try_parse to make the group optional
-        code.push_str(&format!("{indent}    let element_content = if let Some(content) = parser.try_parse(|p| {{\n"));
+        code.push_str(&format!("{indent}    let result = if let Some(content) = parser.try_parse(|p| {{\n"));
         
         // Generate the group content as a sequence
         code.push_str(&format!("{indent}        let mut group_elements = Vec::with_capacity({});\n", group_elements.len()));
@@ -2384,9 +2378,9 @@ impl<'input> {parser_name}<'input> {{
             // Fix scoping issue: ensure group_element_content is properly scoped
             let fixed_element_code = element_code
                 .replace("let result =", "let group_element_content =")
-                .replace("let element_content =", "let group_element_content =")  // Handle quantified groups
+                .replace("let result =", "let group_element_content =")  // Handle quantified groups
                 .replace("&result)", "&group_element_content)")
-                .replace("&element_content)", "&group_element_content)")  // Handle quantified groups
+                .replace("&result)", "&group_element_content)")  // Handle quantified groups
                 .replace("parser.", "p.");
             
             // Add proper indentation to the element code
@@ -2424,7 +2418,7 @@ impl<'input> {parser_name}<'input> {{
         code.push_str(&format!("{indent}    let element_end = parser.position;\n"));
         code.push_str(&format!("{indent}    sequence_elements.push(ParseNode {{\n"));
         code.push_str(&format!("{indent}        rule_name: \"element_{}\",\n", index));
-        code.push_str(&format!("{indent}        content: element_content,\n"));
+        code.push_str(&format!("{indent}        content: result,\n"));
         code.push_str(&format!("{indent}        span: element_start..element_end,\n"));
         code.push_str(&format!("{indent}    }});\n"));
         code.push_str(&format!("{indent}}};\n"));
@@ -2465,14 +2459,13 @@ impl<'input> {parser_name}<'input> {{
             // Generate branch content with proper indentation
             let alt_code = self.generate_optimized_node_code_with_context(&alt, 0, rule_name, rule_annotations, "p")?;
             let branch_indent = if branch_idx == 0 { "        " } else { "            " };
+            // SIMPLIFY: Don't rename variables - just use result consistently
             let branch_content = alt_code
-                .replace("let result =", &format!("{branch_indent}let branch_content ="))
-                .replace("&result)", "&branch_content)")
                 .replace("parser.", "p.")  // Use p. inside the closure, not parser.
                 .replace("self.", "p.");
             
             builder.add_raw(&branch_content);
-            builder.add_line(&format!("{indent}{branch_indent}Ok(branch_content)"));
+            builder.add_line(&format!("{indent}{branch_indent}Ok(result)"));
             
             // Close the try_parse closure and assign result
             if branch_idx == 0 {
@@ -2589,7 +2582,7 @@ impl<'input> {parser_name}<'input> {{
             "?" => {
                 // Optional: use try_parse to make entire element optional
                 code.push_str(&format!("{indent}// Optional group (?) for: {element_description}\n"));
-                code.push_str(&format!("{indent}let element_content = if let Some(content) = {parser_var}.try_parse(|p| {{\n"));
+                code.push_str(&format!("{indent}let result = if let Some(content) = {parser_var}.try_parse(|p| {{\n"));
                 
                 // Generate code for inner element preserving its structure
                 let inner_code = self.generate_optimized_node_code_with_context_and_pipeline(
@@ -2597,27 +2590,15 @@ impl<'input> {parser_name}<'input> {{
                 )?;
                 
                 // Wrap the inner code to return the content
-                // Check what variable name the inner code uses
-                if inner_code.contains("let element_content") {
-                    // Inner code uses element_content, so return that
-                    code.push_str(&format!("{indent}    {}", inner_code.trim_end()));
-                    code.push_str(&format!("\n{indent}    Ok(element_content)\n"));
-                } else if inner_code.contains("let result") {
-                    // Inner code uses result, so return that
-                    code.push_str(&format!("{indent}    {}", inner_code.trim_end()));
-                    code.push_str(&format!("\n{indent}    Ok(result)\n"));
-                } else {
-                    // No variable declaration found, wrap in result
-                    code.push_str(&format!("{indent}    let result = {{ {}", inner_code.trim_end()));
-                    code.push_str(&format!("\n{indent}    }};\n"));
-                    code.push_str(&format!("{indent}    Ok(result)\n"));
-                }
+                // UNIFIED: Always expect 'result' from inner code
+                code.push_str(&format!("{indent}    {}", inner_code.trim_end()));
+                code.push_str(&format!("\n{indent}    Ok(result)\n"));
                 code.push_str(&format!("{indent}}}) {{\n"));
                 code.push_str(&format!("{indent}    content\n"));
                 code.push_str(&format!("{indent}}} else {{\n"));
                 code.push_str(&format!("{indent}    ParseContent::Sequence(Vec::new())\n"));
                 code.push_str(&format!("{indent}}};\n"));
-                code.push_str(&format!("{indent}let result = element_content;\n"));
+                // No need to reassign result to itself
             }
             "*" => {
                 // Zero or more: use loop
@@ -2631,23 +2612,9 @@ impl<'input> {parser_name}<'input> {{
                     element, 0, rule_name, rule_annotations, "p", None
                 )?;
                 
-                // For sequences and other elements generated in closure context,
-                // they should generate element_content instead of result
-                // We need to ensure consistency: return the right variable
-                if inner_code.contains("let element_content") {
-                    // Inner code uses element_content, so return that
-                    code.push_str(&format!("{indent}        {}", inner_code.trim_end()));
-                    code.push_str(&format!("\n{indent}        Ok(element_content)\n"));
-                } else if inner_code.contains("let result") {
-                    // Inner code uses result, so return that
-                    code.push_str(&format!("{indent}        {}", inner_code.trim_end()));
-                    code.push_str(&format!("\n{indent}        Ok(result)\n"));
-                } else {
-                    // No variable declaration found, wrap in result
-                    code.push_str(&format!("{indent}        let result = {{ {}", inner_code.trim_end()));
-                    code.push_str(&format!("\n{indent}        }};\n"));
-                    code.push_str(&format!("{indent}        Ok(result)\n"));
-                }
+                // UNIFIED: Always expect 'result' from inner code
+                code.push_str(&format!("{indent}        {}", inner_code.trim_end()));
+                code.push_str(&format!("\n{indent}        Ok(result)\n"));
                 code.push_str(&format!("{indent}    }}) {{\n"));
                 code.push_str(&format!("{indent}        quantified_elements.push(ParseNode {{\n"));
                 code.push_str(&format!("{indent}            rule_name: \"quantified\",\n"));
@@ -2685,21 +2652,9 @@ impl<'input> {parser_name}<'input> {{
                     element, 0, rule_name, rule_annotations, "p", None
                 )?;
                 
-                // Check what variable name the inner code uses
-                if loop_code.contains("let element_content") {
-                    // Inner code uses element_content, so return that
-                    code.push_str(&format!("{indent}        {}", loop_code.trim_end()));
-                    code.push_str(&format!("\n{indent}        Ok(element_content)\n"));
-                } else if loop_code.contains("let result") {
-                    // Inner code uses result, so return that
-                    code.push_str(&format!("{indent}        {}", loop_code.trim_end()));
-                    code.push_str(&format!("\n{indent}        Ok(result)\n"));
-                } else {
-                    // No variable declaration found, wrap in result
-                    code.push_str(&format!("{indent}        let result = {{ {}", loop_code.trim_end()));
-                    code.push_str(&format!("\n{indent}        }};\n"));
-                    code.push_str(&format!("{indent}        Ok(result)\n"));
-                }
+                // UNIFIED: Always expect 'result' from inner code
+                code.push_str(&format!("{indent}        {}", loop_code.trim_end()));
+                code.push_str(&format!("\n{indent}        Ok(result)\n"));
                 code.push_str(&format!("{indent}    }}) {{\n"));
                 code.push_str(&format!("{indent}        quantified_elements.push(ParseNode {{\n"));
                 code.push_str(&format!("{indent}            rule_name: \"quantified\",\n"));

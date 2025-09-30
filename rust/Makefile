@@ -140,6 +140,10 @@ $(REGEX_PARSER): $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
 
+.PHONY: return_semantic_parsers
+return_semantic_parsers: clean $(SEMANTIC_ANNOTATION_PARSER) $(RETURN_ANNOTATION_PARSER)
+
+
 # Development targets
 .PHONY: debug-json
 debug-json: $(REGEX_JSON)
