@@ -216,8 +216,7 @@ pub enum ParseContinuation<'input> {
 // Type aliases for integration with generated parsers
 pub type RuleId = u16;
 pub type ParseError = String; // Will be replaced with actual error type
-pub type ParseNode<'input> = String; // Will be replaced with actual node type
+pub type ParseNode<'input> = &'input str; // Will be replaced with actual node type
 pub type MemoEntry<'input> = String; // Will be replaced with actual memo type
 
 // Re-export for use in generated code
-pub use self::{CycleType, RecursionGuard, ParseContinuation};

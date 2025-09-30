@@ -198,6 +198,66 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 **Remaining Work**: 
 The AST transformation pipeline needs further enhancement to properly detect and preserve complex nested groups, optional groups, and quantified sequences to prevent them from being simplified to epsilon productions.
 
+### 🔄 Variable Generation in Quantified Groups (2025-09-30)
+**Status: IN PROGRESS - CRITICAL BLOCKER**
+
+**Issue**: Parser generation fails with 39 compilation errors due to inconsistent variable naming between sequences and their containing quantified groups.
+
+**Root Cause**:
+- Sequences generated inside `try_parse` closures (used for *, +, ? quantifiers) create variables named `element_content`
+- Quantified wrappers expect to return a variable named `result`
+- No unified naming strategy exists for closure contexts vs top-level contexts
+- String-based detection of variable names is insufficient for proper coordination
+
+**Technical Analysis**:
+1. **Context Mismatch**: `generate_sequence_code_with_context_and_pipeline()` uses `parser_var` to decide naming
+2. **Return Expectation**: `generate_quantified_code_with_context_and_pipeline()` always returns `Ok(result)`
+3. **Detection Failure**: Attempted `if inner_code.contains("let element_content")` checks are fragile
+
+**Failed Attempts**:
+- ✅ Added RecursionGuard system (works but doesn't fix variable issue)
+- ❌ String-based detection of variable declarations
+- ❌ Conditional variable name generation based on parser context
+- ❌ Returning different variables based on detected names
+
+**Required Solution**:
+1. **Unified Naming Convention**: Establish single variable name for all closure contexts
+2. **Context Propagation**: Pass naming context through entire generation pipeline
+3. **Coordinated Generation**: Ensure all generators (sequence, atom, quantified) use same convention
+4. **Closure Detection**: Reliably detect when generating for closure vs top-level
+
+**Impact**:
+- 🚫 **Blocked**: Cannot generate working parsers
+- 🚫 **Blocked**: Single-element array parsing tests cannot proceed
+- ✅ **Working**: RecursionGuard prevents infinite loops (positive side effect)
+
+## Recursion Detection Architecture (2025-09-30)
+
+### RecursionGuard Implementation
+**Status: COMPLETE AND WORKING**
+
+**Components**:
+- `RecursionGuard` struct: Tracks parse stack with rule names and positions
+- `CycleType` enum: Categorizes detected cycles
+  - `Infinite`: Same rule at same position (immediate failure)
+  - `LeftRecursive`: Same rule without input consumption (failure)
+  - `MutualRecursive`: Circular dependencies with depth tracking
+- Configurable max depth: Default 100, prevents stack overflow
+
+**Integration Points**:
+- Added to parser state during generation
+- `enter()` called on rule entry
+- `exit()` called on rule exit
+- `check_cycle()` before parsing to detect issues early
+
+**Benefits**:
+- Prevents stack overflow from infinite recursion
+- Provides clear error messages for recursion issues
+- Helps debug complex grammar problems
+- Foundation for future left-recursion handling
+
+**Code Location**: `rust/src/ast_pipeline/mutual_recursion_handler.rs`
+
 ### ✅ Debug Quantifier Variable Scoping (2025-09-28)
 **Status: RESOLVED - CRITICAL FIX**
 

@@ -719,13 +719,76 @@ impl HighPerformanceRustGenerator {
 // Features: Zero-copy, memoization, SIMD-optimized, minimal allocations
 
 use std::{{
-    collections::HashMap,
+    collections::{{HashMap, HashSet}},
     fmt,
     ops::Range,
     fs::File,
     io::{{Write, BufWriter}},
 }};
 use regex::Regex;
+
+/// Cycle detection for mutual recursion handling
+#[derive(Debug, Clone, PartialEq)]
+pub enum CycleType {{
+    None,
+    Infinite,
+    LeftRecursive,
+    MutualRecursive {{ depth: usize, rules: Vec<String> }},
+}}
+
+/// Smart recursion guard with cycle detection
+pub struct RecursionGuard {{
+    parse_stack: Vec<(String, usize)>,
+    max_depth: usize,
+    cycle_cache: HashMap<(String, usize), CycleType>,
+}}
+
+impl RecursionGuard {{
+    pub fn new(max_depth: usize) -> Self {{
+        Self {{
+            parse_stack: Vec::new(),
+            max_depth,
+            cycle_cache: HashMap::new(),
+        }}
+    }}
+    
+    pub fn check_cycle(&mut self, rule_name: &str, position: usize) -> CycleType {{
+        if let Some(cached) = self.cycle_cache.get(&(rule_name.to_string(), position)) {{
+            return cached.clone();
+        }}
+        
+        for (r, p) in self.parse_stack.iter() {{
+            if r == rule_name && *p == position {{
+                let cycle = CycleType::Infinite;
+                self.cycle_cache.insert((rule_name.to_string(), position), cycle.clone());
+                return cycle;
+            }}
+            if r == rule_name && *p > position {{
+                let cycle = CycleType::LeftRecursive;
+                self.cycle_cache.insert((rule_name.to_string(), position), cycle.clone());
+                return cycle;
+            }}
+        }}
+        
+        if self.parse_stack.len() >= self.max_depth {{
+            let rules: HashSet<String> = self.parse_stack.iter().map(|(r, _)| r.clone()).collect();
+            return CycleType::MutualRecursive {{
+                depth: self.parse_stack.len(),
+                rules: rules.into_iter().collect(),
+            }};
+        }}
+        
+        CycleType::None
+    }}
+    
+    pub fn enter(&mut self, rule_name: &str, position: usize) {{
+        self.parse_stack.push((rule_name.to_string(), position));
+    }}
+    
+    pub fn exit(&mut self) {{
+        self.parse_stack.pop();
+    }}
+}}
 
 /// Parse result with zero-copy string slices
 #[derive(Debug, Clone, PartialEq)]
@@ -813,6 +876,7 @@ pub struct {parser_name}<'input> {{
     debug_output: Vec<String>,
     rule_stack: Vec<String>, // Track rule hierarchy
     recursion_depth: usize, // Track recursion depth to prevent stack overflow
+    recursion_guard: RecursionGuard, // Mutual recursion detection
 }}
 
 impl<'input> {parser_name}<'input> {{
@@ -829,6 +893,7 @@ impl<'input> {parser_name}<'input> {{
             debug_output: Vec::new(),
             rule_stack: Vec::new(),
             recursion_depth: 0,
+            recursion_guard: RecursionGuard::new(100), // Max depth 100
         }}
     }}
     
@@ -845,6 +910,7 @@ impl<'input> {parser_name}<'input> {{
             debug_output: Vec::new(),
             rule_stack: Vec::new(),
             recursion_depth: 0,
+            recursion_guard: RecursionGuard::new(100), // Max depth 100
         }}
     }}
     
@@ -1525,9 +1591,52 @@ impl<'input> {parser_name}<'input> {{
             println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   ✅ Generated method: '{}()' for rule '{}'\n", method_name, rule_name);
         }
         
-        let method_code_template = format!(r#"    /// Parse {rule_name} with memoization
+        let method_code_template = format!(r#"    /// Parse {rule_name} with memoization and mutual recursion protection
     #[inline]
     fn parse_{rule_name}(&mut self) -> ParseResult<ParseNode<'input>> {{
+        // Check for recursion cycles before entering
+        let position = self.position;
+        let cycle_type = self.recursion_guard.check_cycle("{rule_name}", position);
+        
+        match cycle_type {{
+            CycleType::Infinite => {{
+                // Infinite loop detected, fail immediately
+                if self.debug_mode {{
+                    self.debug_output.push(format!("🔄 INFINITE RECURSION detected in rule: {rule_name} at position {{}}", position));
+                }}
+                return Err(ParseError::InvalidSyntax {{
+                    message: "Infinite recursion detected in rule: {rule_name}",
+                    position,
+                }});
+            }}
+            CycleType::LeftRecursive => {{
+                // Left recursion detected, fail to break cycle
+                if self.debug_mode {{
+                    self.debug_output.push(format!("↩️ LEFT RECURSION detected in rule: {rule_name} at position {{}}", position));
+                }}
+                return Err(ParseError::InvalidSyntax {{
+                    message: "Left recursion detected in rule: {rule_name}",
+                    position,
+                }});
+            }}
+            CycleType::MutualRecursive {{ depth, ref rules }} if depth >= 100 => {{
+                // Maximum recursion depth exceeded
+                if self.debug_mode {{
+                    self.debug_output.push(format!("🔃 MUTUAL RECURSION depth limit exceeded in {rule_name}: depth={{}} rules={{:?}}", depth, rules));
+                }}
+                return Err(ParseError::InvalidSyntax {{
+                    message: "Maximum recursion depth exceeded in mutual recursion",
+                    position,
+                }});
+            }}
+            _ => {{
+                // Safe to proceed
+            }}
+        }}
+        
+        // Enter recursion tracking
+        self.recursion_guard.enter("{rule_name}", position);
+        
         if self.debug_mode {{
             self.debug_output.push(format!("🚀 FUNCTION ENTRY: parse_{{}}() at position {{}}", "{rule_name}", self.position));
         }}
@@ -1554,6 +1663,9 @@ impl<'input> {parser_name}<'input> {{
             
             parse_result
         }});
+        
+        // Exit recursion tracking
+        self.recursion_guard.exit();
         
         if self.debug_mode {{
             match &result {{
@@ -2116,7 +2228,15 @@ impl<'input> {parser_name}<'input> {{
             }
         }
         
-        code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
+        // When generating inside a closure (parser_var != "parser"), use a consistent variable name
+        // that matches what the closure expects
+        if parser_var != "parser" {
+            // Inside a closure, use a more consistent variable name
+            code.push_str(&format!("{indent}let element_content = ParseContent::Sequence(sequence_elements);\n"));
+        } else {
+            // At the top level, use result
+            code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
+        }
         Ok(code)
     }
 
@@ -2159,76 +2279,11 @@ impl<'input> {parser_name}<'input> {{
         let mut i = 0;
         
         while i < elements.len() {
-            // Check if this element is itself a quantified node with "?" quantifier
-            if let ASTNode::Quantified { element, quantifier } = &elements[i] {
-                println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   Found quantified element at {}: quantifier={}", i, quantifier);
-                if quantifier == "?" {
-                    println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   ✅ Found quantified '?' element at {}! Making it optional", i);
-                    
-                    // Special handling for group structures within the quantified element
-                    let group_elements = match element.as_ref() {
-                        // If the element is a sequence, unpack its elements into the optional group
-                        ASTNode::Sequence { elements: inner_elements } => {
-                            println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   📦 Unpacking sequence with {} elements", inner_elements.len());
-                            inner_elements.clone()
-                        }
-                        // If the element is a group or some other structure, just use it as-is
-                        _ => vec![(**element).clone()]
-                    };
-                    
-                    processed.push(ProcessedElement::OptionalGroup(group_elements));
-                    i += 1;
-                    continue;
-                }
-            }
-            
-            // Look ahead to find if there's a "?" quantifier in the near future
-            let mut found_optional_quantifier_at = None;
-            for j in (i + 1)..elements.len() {
-                if let ASTNode::Atom { value: ASTValue::Token(token) } = &elements[j] {
-                    if token.len() == 2 && 
-                       token[0].as_str() == Some("operator") && 
-                       token[1].as_str() == Some("?") {
-                        found_optional_quantifier_at = Some(j);
-                        println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   Found '?' quantifier at position {}", j);
-                        break;
-                    }
-                }
-                // Stop looking if we encounter another clearly mandatory element
-                // that would break the optional group pattern
-                if j > i + 3 {
-                    break; // Don't look too far ahead
-                }
-            }
-            
-            if let Some(q_pos) = found_optional_quantifier_at {
-                // Found a "?" quantifier ahead - group all elements from i to q_pos-1 as optional
-                println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   ✅ Grouping elements {}-{} as optional (quantifier at {})", i, q_pos - 1, q_pos);
-                
-                let mut group_elements = Vec::new();
-                for elem_idx in i..q_pos {
-                    match &elements[elem_idx] {
-                        // If an element is a sequence, unpack its elements
-                        ASTNode::Sequence { elements: inner_elements } => {
-                            println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   📦 Unpacking sequence at {} with {} elements", elem_idx, inner_elements.len());
-                            group_elements.extend(inner_elements.clone());
-                        }
-                        // Otherwise just add the element as-is
-                        _ => {
-                            group_elements.push(elements[elem_idx].clone());
-                        }
-                    }
-                }
-                
-                processed.push(ProcessedElement::OptionalGroup(group_elements));
-                i = q_pos + 1; // Skip past the quantifier
-                continue;
-            }
-            
-            // Not an optional pattern, treat as mandatory
-            println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   Element {} is mandatory", i);
+            // IMPORTANT: Do NOT flatten sequences! Each element should be preserved as-is
+            // The quantifier applies to the ENTIRE element, not its sub-parts
             processed.push(ProcessedElement::Mandatory(elements[i].clone()));
             i += 1;
+            // Removed the faulty look-ahead logic that was flattening structures
         }
         
         println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers] 🎯 Processed {} elements into {} groups", elements.len(), processed.len());
@@ -2526,37 +2581,143 @@ impl<'input> {parser_name}<'input> {{
         self.generate_quantified_code_with_context_and_pipeline(element, quantifier, indent, rule_name, rule_annotations, parser_var, None)
     }
     
-    fn generate_quantified_code_with_context_and_pipeline(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
-        // Generate a unique function name for this quantified group to ensure proper scope isolation
-        let quantified_group_id = self.get_next_quantified_group_id();
-        let quantified_function_name = format!("parse_{}_quantified_group_{}", rule_name, quantified_group_id);
+    fn generate_quantified_code_with_context_and_pipeline(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
+        let mut code = String::new();
+        let element_description = self.extract_ebnf_description(element);
         
-        if let Some(ref mut p) = pipeline {
-            p.log_debug("generate_quantified_code", &format!("🔧 Generating separate function '{}' for quantifier '{}'", quantified_function_name, quantifier));
-        } else if self.enable_trace {
-            println!("[HighPerformanceRustGenerator][generate_quantified_code] 🔧 Generating separate function '{}' for quantifier '{}'", quantified_function_name, quantifier);
+        match quantifier {
+            "?" => {
+                // Optional: use try_parse to make entire element optional
+                code.push_str(&format!("{indent}// Optional group (?) for: {element_description}\n"));
+                code.push_str(&format!("{indent}let element_content = if let Some(content) = {parser_var}.try_parse(|p| {{\n"));
+                
+                // Generate code for inner element preserving its structure
+                let inner_code = self.generate_optimized_node_code_with_context_and_pipeline(
+                    element, 0, rule_name, rule_annotations, "p", None
+                )?;
+                
+                // Wrap the inner code to return the content
+                // Check what variable name the inner code uses
+                if inner_code.contains("let element_content") {
+                    // Inner code uses element_content, so return that
+                    code.push_str(&format!("{indent}    {}", inner_code.trim_end()));
+                    code.push_str(&format!("\n{indent}    Ok(element_content)\n"));
+                } else if inner_code.contains("let result") {
+                    // Inner code uses result, so return that
+                    code.push_str(&format!("{indent}    {}", inner_code.trim_end()));
+                    code.push_str(&format!("\n{indent}    Ok(result)\n"));
+                } else {
+                    // No variable declaration found, wrap in result
+                    code.push_str(&format!("{indent}    let result = {{ {}", inner_code.trim_end()));
+                    code.push_str(&format!("\n{indent}    }};\n"));
+                    code.push_str(&format!("{indent}    Ok(result)\n"));
+                }
+                code.push_str(&format!("{indent}}}) {{\n"));
+                code.push_str(&format!("{indent}    content\n"));
+                code.push_str(&format!("{indent}}} else {{\n"));
+                code.push_str(&format!("{indent}    ParseContent::Sequence(Vec::new())\n"));
+                code.push_str(&format!("{indent}}};\n"));
+                code.push_str(&format!("{indent}let result = element_content;\n"));
+            }
+            "*" => {
+                // Zero or more: use loop
+                code.push_str(&format!("{indent}// Zero or more (*) for: {element_description}\n"));
+                code.push_str(&format!("{indent}let mut quantified_elements = Vec::new();\n"));
+                code.push_str(&format!("{indent}loop {{\n"));
+                code.push_str(&format!("{indent}    if let Some(content) = {parser_var}.try_parse(|p| {{\n"));
+                
+                // Generate code for the inner element
+                let inner_code = self.generate_optimized_node_code_with_context_and_pipeline(
+                    element, 0, rule_name, rule_annotations, "p", None
+                )?;
+                
+                // For sequences and other elements generated in closure context,
+                // they should generate element_content instead of result
+                // We need to ensure consistency: return the right variable
+                if inner_code.contains("let element_content") {
+                    // Inner code uses element_content, so return that
+                    code.push_str(&format!("{indent}        {}", inner_code.trim_end()));
+                    code.push_str(&format!("\n{indent}        Ok(element_content)\n"));
+                } else if inner_code.contains("let result") {
+                    // Inner code uses result, so return that
+                    code.push_str(&format!("{indent}        {}", inner_code.trim_end()));
+                    code.push_str(&format!("\n{indent}        Ok(result)\n"));
+                } else {
+                    // No variable declaration found, wrap in result
+                    code.push_str(&format!("{indent}        let result = {{ {}", inner_code.trim_end()));
+                    code.push_str(&format!("\n{indent}        }};\n"));
+                    code.push_str(&format!("{indent}        Ok(result)\n"));
+                }
+                code.push_str(&format!("{indent}    }}) {{\n"));
+                code.push_str(&format!("{indent}        quantified_elements.push(ParseNode {{\n"));
+                code.push_str(&format!("{indent}            rule_name: \"quantified\",\n"));
+                code.push_str(&format!("{indent}            content,\n"));
+                code.push_str(&format!("{indent}            span: 0..0,\n"));
+                code.push_str(&format!("{indent}        }});\n"));
+                code.push_str(&format!("{indent}    }} else {{\n"));
+                code.push_str(&format!("{indent}        break;\n"));
+                code.push_str(&format!("{indent}    }}\n"));
+                code.push_str(&format!("{indent}}}\n"));
+                code.push_str(&format!("{indent}let result = ParseContent::Quantified(quantified_elements, \"*\");\n"));
+            }
+            "+" => {
+                // One or more: parse first (mandatory), then loop
+                code.push_str(&format!("{indent}// One or more (+) for: {element_description}\n"));
+                code.push_str(&format!("{indent}let mut quantified_elements = Vec::new();\n"));
+                code.push_str(&format!("{indent}// First element is mandatory\n"));
+                
+                let first_code = self.generate_optimized_node_code_with_context_and_pipeline(
+                    element, 0, rule_name, rule_annotations, parser_var, None
+                )?;
+                
+                code.push_str(&first_code);
+                code.push_str(&format!("{indent}quantified_elements.push(ParseNode {{\n"));
+                code.push_str(&format!("{indent}    rule_name: \"quantified\",\n"));
+                code.push_str(&format!("{indent}    content: result,\n"));
+                code.push_str(&format!("{indent}    span: 0..0,\n"));
+                code.push_str(&format!("{indent}}});\n"));
+                
+                code.push_str(&format!("{indent}// Then zero or more additional\n"));
+                code.push_str(&format!("{indent}loop {{\n"));
+                code.push_str(&format!("{indent}    if let Some(content) = {parser_var}.try_parse(|p| {{\n"));
+                
+                let loop_code = self.generate_optimized_node_code_with_context_and_pipeline(
+                    element, 0, rule_name, rule_annotations, "p", None
+                )?;
+                
+                // Check what variable name the inner code uses
+                if loop_code.contains("let element_content") {
+                    // Inner code uses element_content, so return that
+                    code.push_str(&format!("{indent}        {}", loop_code.trim_end()));
+                    code.push_str(&format!("\n{indent}        Ok(element_content)\n"));
+                } else if loop_code.contains("let result") {
+                    // Inner code uses result, so return that
+                    code.push_str(&format!("{indent}        {}", loop_code.trim_end()));
+                    code.push_str(&format!("\n{indent}        Ok(result)\n"));
+                } else {
+                    // No variable declaration found, wrap in result
+                    code.push_str(&format!("{indent}        let result = {{ {}", loop_code.trim_end()));
+                    code.push_str(&format!("\n{indent}        }};\n"));
+                    code.push_str(&format!("{indent}        Ok(result)\n"));
+                }
+                code.push_str(&format!("{indent}    }}) {{\n"));
+                code.push_str(&format!("{indent}        quantified_elements.push(ParseNode {{\n"));
+                code.push_str(&format!("{indent}            rule_name: \"quantified\",\n"));
+                code.push_str(&format!("{indent}            content,\n"));
+                code.push_str(&format!("{indent}            span: 0..0,\n"));
+                code.push_str(&format!("{indent}        }});\n"));
+                code.push_str(&format!("{indent}    }} else {{\n"));
+                code.push_str(&format!("{indent}        break;\n"));
+                code.push_str(&format!("{indent}    }}\n"));
+                code.push_str(&format!("{indent}}}\n"));
+                code.push_str(&format!("{indent}let result = ParseContent::Quantified(quantified_elements, \"+\");\n"));
+            }
+            _ => {
+                return Err(anyhow::anyhow!("Unknown quantifier: {}", quantifier));
+            }
         }
         
-        // Store this quantified group for later function generation
-        self.register_quantified_group(rule_name, quantified_group_id, element, quantifier, rule_annotations)?;
-        
-        let element_description = self.extract_ebnf_description(element);
-        let quantified_description = format!("{}{}", element_description, quantifier);
-        
-        // Instead of inline quantifier handling, call the separate function
-        Ok(format!(
-            r##"{indent}// Call dedicated quantified group function with proper scope isolation
-{indent}{parser_var}.debug_quantifier_start("{rule_name}", r#"{quantified_description}"#, "{quantifier}");
-{indent}let element_content = {parser_var}.{quantified_function_name}()?;
-{indent}{parser_var}.debug_quantifier_end("{rule_name}", r#"{quantified_description}"#, "{quantifier}", &element_content);
-"##,
-            indent = indent,
-            parser_var = parser_var,
-            rule_name = rule_name,
-            quantifier = quantifier,
-            quantified_description = quantified_description,
-            quantified_function_name = quantified_function_name
-        ))
+        Ok(code)
     }
 
     fn generate_fast_helpers(&self) -> String {
