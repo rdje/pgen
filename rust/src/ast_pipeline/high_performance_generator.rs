@@ -6,10 +6,11 @@
 //! - Minimal allocations for rgx regex engine integration
 
 use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, ReturnAnnotation};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Write;
 use anyhow::{Context, Result};
+use super::mutual_recursion_handler::{RecursionGuard, CycleType};
 use serde_json::Value as JsonValue;
 
 /// Escape a string for safe inclusion in Rust raw string literals
@@ -1509,7 +1510,13 @@ impl<'input> {parser_name}<'input> {{
         } else {
             println!("[HighPerformanceRustGenerator][generate_optimized_rule_method]   🏢️  Generating method body for '{}'", rule_name);
         }
-        let method_body = self.generate_optimized_node_code(ast_node, 2, rule_name, rule_annotations.as_deref())?;
+        let method_body = if pipeline.is_some() {
+            self.generate_optimized_node_code_with_context_and_pipeline(
+                ast_node, 2, rule_name, rule_annotations.as_deref(), "parser", pipeline.as_deref_mut()
+            )?
+        } else {
+            self.generate_optimized_node_code(ast_node, 2, rule_name, rule_annotations.as_deref())?
+        };
         
         let method_name = format!("parse_{}", rule_name);
         if let Some(ref mut p) = pipeline {
@@ -1592,24 +1599,51 @@ impl<'input> {parser_name}<'input> {{
         rule_annotations: Option<&[String]>,
         parser_var: &str
     ) -> Result<String> {
+        self.generate_optimized_node_code_with_context_and_pipeline(
+            ast_node,
+            indent_level,
+            rule_name,
+            rule_annotations,
+            parser_var,
+            None
+        )
+    }
+    
+    fn generate_optimized_node_code_with_context_and_pipeline(
+        &self, 
+        ast_node: &ASTNode, 
+        indent_level: usize,
+        rule_name: &str,
+        rule_annotations: Option<&[String]>,
+        parser_var: &str,
+        mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>
+    ) -> Result<String> {
         let indent = "    ".repeat(indent_level);
         
-        println!("[HighPerformanceRustGenerator][generate_optimized_node_code] 🎯 Processing node for rule: {}", rule_name);
-        println!("[HighPerformanceRustGenerator][generate_optimized_node_code]   🔍 Node type: {:?}", std::mem::discriminant(ast_node));
-        println!("[HighPerformanceRustGenerator][generate_optimized_node_code]   📝 Full AST: {:?}", ast_node);
+        if let Some(ref mut p) = pipeline {
+            p.log_debug("generate_optimized_node_code", &format!("🎯 Processing node for rule: {}", rule_name));
+            p.log_debug("generate_optimized_node_code", &format!("🔍 Node type: {:?}", std::mem::discriminant(ast_node)));
+            if self.enable_trace {
+                p.log_debug("generate_optimized_node_code", &format!("📝 Full AST: {:?}", ast_node));
+            }
+        } else if self.enable_trace {
+            println!("[HighPerformanceRustGenerator][generate_optimized_node_code] 🎯 Processing node for rule: {}", rule_name);
+            println!("[HighPerformanceRustGenerator][generate_optimized_node_code]   🔍 Node type: {:?}", std::mem::discriminant(ast_node));
+            println!("[HighPerformanceRustGenerator][generate_optimized_node_code]   📝 Full AST: {:?}", ast_node);
+        }
         
         match ast_node {
             ASTNode::Atom { value } => {
-                self.generate_atom_code_with_context(value, &indent, rule_annotations, parser_var)
+                self.generate_atom_code_with_context_and_pipeline(value, &indent, rule_annotations, parser_var, pipeline)
             }
             ASTNode::Sequence { elements } => {
-                self.generate_sequence_code_with_context(elements, &indent, rule_name, rule_annotations, parser_var)
+                self.generate_sequence_code_with_context_and_pipeline(elements, &indent, rule_name, rule_annotations, parser_var, pipeline)
             }
             ASTNode::Or { alternatives } => {
-                self.generate_or_code_with_context(alternatives, &indent, rule_name, rule_annotations, parser_var)
+                self.generate_or_code_with_context_and_pipeline(alternatives, &indent, rule_name, rule_annotations, parser_var, pipeline)
             }
             ASTNode::Quantified { element, quantifier } => {
-                self.generate_quantified_code_with_context(element, quantifier, &indent, rule_name, rule_annotations, parser_var)
+                self.generate_quantified_code_with_context_and_pipeline(element, quantifier, &indent, rule_name, rule_annotations, parser_var, pipeline)
             }
         }
     }
@@ -1619,9 +1653,17 @@ impl<'input> {parser_name}<'input> {{
     }
     
     fn generate_atom_code_with_context(&self, value: &ASTValue, indent: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
+        self.generate_atom_code_with_context_and_pipeline(value, indent, rule_annotations, parser_var, None)
+    }
+    
+    fn generate_atom_code_with_context_and_pipeline(&self, value: &ASTValue, indent: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
         // Only log if debug or trace mode is enabled
         if self.enable_trace {
-            self.log_debug(&format!("[HighPerformanceRustGenerator][generate_atom_code] ⚛️  Processing atom: {:?}", value));
+            if let Some(ref mut p) = pipeline {
+                p.log_debug("generate_atom_code", &format!("⚛️  Processing atom: {:?}", value));
+            } else {
+                self.log_debug(&format!("[HighPerformanceRustGenerator][generate_atom_code] ⚛️  Processing atom: {:?}", value));
+            }
         }
         
         match value {
@@ -1631,8 +1673,13 @@ impl<'input> {parser_name}<'input> {{
                 
                 // Only log detailed token info in trace mode
                 if self.enable_trace {
-                    println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token type: {:?}", token_type);
-                    println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token value: {:?}", token_value);
+                    if let Some(ref mut p) = pipeline {
+                        p.log_debug("generate_atom_code", &format!("  📝 Token type: {:?}", token_type));
+                        p.log_debug("generate_atom_code", &format!("  📝 Token value: {:?}", token_value));
+                    } else {
+                        println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token type: {:?}", token_type);
+                        println!("[HighPerformanceRustGenerator][generate_atom_code]   📝 Token value: {:?}", token_value);
+                    }
                 }
                 
                 // Check for semantic annotations that might guide code generation
@@ -2026,10 +2073,22 @@ impl<'input> {parser_name}<'input> {{
     }
     
     fn generate_sequence_code_with_context(&self, elements: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
-        println!("[HighPerformanceRustGenerator][generate_sequence_code] 🚀 Generating sequence code for rule: {}", rule_name);
-        println!("[HighPerformanceRustGenerator][generate_sequence_code]   Elements count: {}", elements.len());
-        for (i, element) in elements.iter().enumerate() {
-            println!("[HighPerformanceRustGenerator][generate_sequence_code]   Element {}: {:?}", i, element);
+        self.generate_sequence_code_with_context_and_pipeline(elements, indent, rule_name, rule_annotations, parser_var, None)
+    }
+    
+    fn generate_sequence_code_with_context_and_pipeline(&self, elements: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
+        if let Some(ref mut p) = pipeline {
+            p.log_debug("generate_sequence_code", &format!("🚀 Generating sequence code for rule: {}", rule_name));
+            p.log_debug("generate_sequence_code", &format!("  Elements count: {}", elements.len()));
+            for (i, element) in elements.iter().enumerate() {
+                p.log_debug("generate_sequence_code", &format!("  Element {}: {:?}", i, element));
+            }
+        } else if self.enable_trace {
+            println!("[HighPerformanceRustGenerator][generate_sequence_code] 🚀 Generating sequence code for rule: {}", rule_name);
+            println!("[HighPerformanceRustGenerator][generate_sequence_code]   Elements count: {}", elements.len());
+            for (i, element) in elements.iter().enumerate() {
+                println!("[HighPerformanceRustGenerator][generate_sequence_code]   Element {}: {:?}", i, element);
+            }
         }
         
         // Check for optional quantified groups in the sequence
@@ -2040,7 +2099,7 @@ impl<'input> {parser_name}<'input> {{
             match element_group {
                 ProcessedElement::Mandatory(element) => {
                     // Generate mandatory element as before
-                    let element_code = self.generate_optimized_node_code_with_context(element, 0, rule_name, rule_annotations, parser_var)?;
+                    let element_code = self.generate_optimized_node_code_with_context_and_pipeline(element, 0, rule_name, rule_annotations, parser_var, pipeline.as_deref_mut())?;
                     let element_description = self.extract_ebnf_description(element);
                     
                     code.push_str(&self.generate_mandatory_element_code_with_context(element_code, element_description, i, processed_elements.len(), rule_name, indent, parser_var)?);
@@ -2066,6 +2125,10 @@ impl<'input> {parser_name}<'input> {{
     }
     
     fn generate_or_code_with_context(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
+        self.generate_or_code_with_context_and_pipeline(alternatives, indent, rule_name, rule_annotations, parser_var, None)
+    }
+    
+    fn generate_or_code_with_context_and_pipeline(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
         let n_branches = alternatives.len();
         
         match n_branches {
@@ -2075,12 +2138,12 @@ impl<'input> {parser_name}<'input> {{
             }
             1 => {
                 // Single branch - no alternatives, just execute directly
-                let alt_code = self.generate_optimized_node_code_with_context(&alternatives[0], 0, rule_name, rule_annotations, parser_var)?;
+                let alt_code = self.generate_optimized_node_code_with_context_and_pipeline(&alternatives[0], 0, rule_name, rule_annotations, parser_var, pipeline)?;
                 Ok(alt_code)
             }
             _ => {
                 // Multiple branches - use systematic N-branch template
-                self.generate_n_branch_template_with_context(alternatives, indent, rule_name, rule_annotations, parser_var)
+                self.generate_n_branch_template_with_context_and_pipeline(alternatives, indent, rule_name, rule_annotations, parser_var, pipeline)
             }
         }
     }
@@ -2320,6 +2383,10 @@ impl<'input> {parser_name}<'input> {{
     }
     
     fn generate_n_branch_template_with_context(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
+        self.generate_n_branch_template_with_context_and_pipeline(alternatives, indent, rule_name, rule_annotations, parser_var, None)
+    }
+    
+    fn generate_n_branch_template_with_context_and_pipeline(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
         let mut builder = RustCodeBuilder::new();
         let n_branches = alternatives.len();
         
@@ -2456,11 +2523,19 @@ impl<'input> {parser_name}<'input> {{
     }
     
     fn generate_quantified_code_with_context(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
+        self.generate_quantified_code_with_context_and_pipeline(element, quantifier, indent, rule_name, rule_annotations, parser_var, None)
+    }
+    
+    fn generate_quantified_code_with_context_and_pipeline(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
         // Generate a unique function name for this quantified group to ensure proper scope isolation
         let quantified_group_id = self.get_next_quantified_group_id();
         let quantified_function_name = format!("parse_{}_quantified_group_{}", rule_name, quantified_group_id);
         
-        println!("[HighPerformanceRustGenerator][generate_quantified_code] 🔧 Generating separate function '{}' for quantifier '{}'", quantified_function_name, quantifier);
+        if let Some(ref mut p) = pipeline {
+            p.log_debug("generate_quantified_code", &format!("🔧 Generating separate function '{}' for quantifier '{}'", quantified_function_name, quantifier));
+        } else if self.enable_trace {
+            println!("[HighPerformanceRustGenerator][generate_quantified_code] 🔧 Generating separate function '{}' for quantifier '{}'", quantified_function_name, quantifier);
+        }
         
         // Store this quantified group for later function generation
         self.register_quantified_group(rule_name, quantified_group_id, element, quantifier, rule_annotations)?;

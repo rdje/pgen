@@ -27,6 +27,7 @@ use return_annotation_parser::Return_annotationParser;
 
 mod high_performance_generator;
 use high_performance_generator::HighPerformanceRustGenerator;
+mod mutual_recursion_handler;
 
 /// Configuration for AST transformation pipeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
