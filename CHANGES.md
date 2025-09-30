@@ -1835,3 +1835,56 @@ expr_list := expr QUANTIFIED:SEQUENCE~TERMINAL:,||expr~*
 - **Parser Performance**: Ensure generated parsers maintain optimal speed
 
 This fix represents a critical breakthrough in enabling the parser generator to handle complex real-world grammars that require both grouped quantification and left-recursion elimination, completing the infrastructure necessary for production-ready parser generation.
+
+---
+
+## 2025-09-30: Fixed Quantified Group Function Generation
+
+### Problem Statement
+The semantic annotation parser stress tests were failing with "No alternative matched in 4-branch rule: annotation_value" errors. This occurred specifically when parsing arrays and objects with complex nested content.
+
+### Root Cause Analysis
+1. **Incorrect Context Passing**: Quantified group functions were being generated with element code using `"self"` context, but inside `try_parse` closures, the parser variable is `"p"`.
+
+2. **Missing Integration with Backtracking Infrastructure**: The quantified groups were attempting to create their own backtracking logic instead of using the existing `try_parse` and `try_parse_memoized` infrastructure.
+
+3. **Format String Template Issues**: The function template had unescaped braces causing compilation errors.
+
+### Solution Implemented
+1. **Fixed Context Generation**: Changed the element code generation to use `"p"` context since it runs inside `try_parse` closures:
+   ```rust
+   let element_code = self.generate_optimized_node_code_with_context(
+       &group.element, 
+       2, 
+       &group.rule_name, 
+       group.rule_annotations.as_deref(),
+       "p"  // Use "p" since this will be inside a try_parse closure
+   )?;
+   ```
+
+2. **Integrated with Existing Infrastructure**: Modified all three quantifier logic generators (star, plus, question) to use `self.try_parse` for backtracking:
+   ```rust
+   let element_result = self.try_parse(|p| {
+       // Element parsing with proper context (p is self in closure)
+       {indented_element_code}
+       Ok(result)
+   });
+   ```
+
+3. **Fixed Template Formatting**: Properly escaped all braces in the function template to avoid format string errors.
+
+### Key Insight
+The quantified group functions DON'T need their own memoization because:
+- They are not top-level rules that get memoized
+- They are called from within rule methods that already have memoization
+- They properly integrate with the existing `try_parse` infrastructure for backtracking
+
+### Files Modified
+- `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/high_performance_generator.rs`
+  - `generate_single_quantified_group_function()`: Fixed context to use "p"
+  - `generate_star_quantifier_logic()`: Integrated with try_parse
+  - `generate_plus_quantifier_logic()`: Integrated with try_parse  
+  - `generate_question_quantifier_logic()`: Integrated with try_parse
+
+### Validation
+The changes compile successfully and the quantified group functions now seamlessly integrate with the existing memoization and backtracking infrastructure, as requested by the user.

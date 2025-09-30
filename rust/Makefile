@@ -107,13 +107,13 @@ $(RUST_AST_PIPELINE): $(AST_PIPELINE_SOURCES) create-placeholders
 
 # Step 2: Generate Rust parsers from JSON files using bootstrap mode
 # These parsers are generated using bootstrap mode to avoid circular dependency
-$(SEMANTIC_ANNOTATION_PARSER): $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE) $(AST_PIPELINE_SOURCES)
+$(SEMANTIC_ANNOTATION_PARSER): $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 	@echo "Generating semantic annotation Rust parser from JSON (bootstrap mode)..."
 	@mkdir -p $(GENERATED_DIR)
 	@echo "Generating real parser (placeholder already exists from dependencies)..."
 	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER)
 
-$(RETURN_ANNOTATION_PARSER): $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE) $(AST_PIPELINE_SOURCES)
+$(RETURN_ANNOTATION_PARSER): $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 	@echo "Generating return annotation Rust parser from JSON (bootstrap mode)..."
 	@mkdir -p $(GENERATED_DIR)
 	@echo "Generating real parser (placeholder already exists from dependencies)..."
@@ -129,13 +129,13 @@ $(RETURN_ANNOTATION_EXE): $(RETURN_ANNOTATION_PARSER)
 	rustc --edition 2021 -g -o $(RETURN_ANNOTATION_EXE) $(RETURN_ANNOTATION_PARSER)
 
 # Generate regex JSON from EBNF (depends only on Rust pipeline - parsers are optional)
-$(REGEX_JSON): $(REGEX_EBNF) $(RUST_AST_PIPELINE) $(AST_PIPELINE_SOURCES)
+$(REGEX_JSON): $(REGEX_EBNF) $(RUST_AST_PIPELINE)
 	@echo "Generating regex JSON with debug output..."
 	@mkdir -p $(GENERATED_DIR)
 	$(EBNF_TO_JSON) --verbosity debug --pretty $(REGEX_EBNF) -o $(REGEX_JSON)
 
 # Generate final regex parser from JSON
-$(REGEX_PARSER): $(REGEX_JSON) $(AST_PIPELINE_SOURCES)
+$(REGEX_PARSER): $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@echo "Generating final regex parser from JSON..."
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
@@ -317,14 +317,9 @@ return_annotation_parser: check-sync-needed $(RETURN_ANNOTATION_JSON) $(RUST_AST
 
 # Semantic annotation parser complete flow
 .PHONY: semantic_annotation_parser
-semantic_annotation_parser: check-sync-needed $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+semantic_annotation_parser: check-sync-needed $(SEMANTIC_ANNOTATION_PARSER)
 	@echo "🚀 Starting complete flow for semantic annotation parser..."
-	@echo "📄 Step 1: EBNF -> JSON (already done: $(SEMANTIC_ANNOTATION_JSON))"
-	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
-	@mkdir -p $(GENERATED_DIR)
-	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER)
-	@echo "✅ Generated: $(SEMANTIC_ANNOTATION_PARSER)"
-	@echo "🧪 Step 3: Running comprehensive stress tests"
+	@echo "🧪 Running comprehensive stress tests"
 	cd $(RUST_DIR) && cargo test test_semantic_annotation_parser_comprehensive_stress --release -- --nocapture
 	@echo "🎉 Semantic annotation parser comprehensive flow completed!"
 

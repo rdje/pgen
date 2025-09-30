@@ -413,3 +413,68 @@ Makefile Dependencies:
 ✅ **Performance**: High-performance parser generation with semantic annotations  
 
 This foundation provides a solid base for future enhancements while maintaining reliability and performance.
+
+## Quantified Group Function Generation Architecture (2025-09-30)
+
+### Key Architectural Insight
+**The existing memoization and backtracking infrastructure is already robust and complete.** Quantified group functions must integrate seamlessly with this infrastructure rather than creating their own parallel system.
+
+### Infrastructure Integration Points
+
+#### Memoization Layer
+- **Top-level rules**: Use `memoized_call` with unique rule IDs for caching
+- **Quantified groups**: DO NOT need memoization - they are called from within memoized rules
+- **Design principle**: Memoization happens at rule boundaries, not within quantified groups
+
+#### Backtracking Infrastructure
+- **try_parse**: Basic backtracking for simple alternatives
+- **try_parse_memoized**: Backtracking with recursion depth preservation
+- **Quantified groups**: Use `self.try_parse` internally for proper backtracking
+
+#### Context Variables in Code Generation
+The parser variable name changes based on context:
+- **"parser"**: Used in top-level rule methods
+- **"self"**: Used in parser impl methods
+- **"p"**: Used inside closures (`try_parse`, `memoized_call`)
+
+**Critical Fix**: Quantified group functions must generate element code with `"p"` context since they run inside `try_parse` closures.
+
+### Quantified Group Function Design
+
+#### Function Structure
+```rust
+fn parse_{rule_name}_quantified_group_{id}(&mut self) -> ParseResult<ParseContent<'input>>
+```
+
+#### Key Implementation Details
+1. **Scope Isolation**: Each quantified group gets its own function for clean scope
+2. **Backtracking Integration**: Use `self.try_parse(|p| {...})` for element parsing
+3. **Context Passing**: Element code must use `"p"` as the parser variable
+4. **No Memoization**: These functions don't need their own memoization
+
+#### Code Generation Pattern
+```rust
+// Star quantifier example
+let element_result = self.try_parse(|p| {
+    // Element parsing with proper context (p is self in closure)
+    {indented_element_code}  // Code generated with "p" context
+    Ok(result)
+});
+```
+
+### Format String Template Considerations
+- Single braces `{` and `}` are format placeholders
+- Double braces `{{` and `}}` escape to literal braces
+- Be extra careful with nested templates and multiple levels of escaping
+
+### Lessons Learned
+1. **Integration Over Duplication**: Always integrate with existing infrastructure
+2. **Context Awareness**: Parser variable names are critical for correct code generation
+3. **Closure Scoping**: Understand variable scope boundaries in closures
+4. **Infrastructure Trust**: The existing memoization/backtracking system is battle-tested - use it
+
+### Technical Debt Addressed
+- ✅ Fixed context variable generation for quantified groups
+- ✅ Integrated with existing `try_parse` infrastructure
+- ✅ Fixed format string template escaping issues
+- ✅ Removed duplicate backtracking logic attempts

@@ -20,25 +20,89 @@ fn escape_rust_string(s: &str) -> String {
     s.to_string()
 }
 
-/// Builder for systematic Rust code generation
+/// Builder for systematic Rust code generation with automatic brace tracking
 struct RustCodeBuilder {
     lines: Vec<String>,
+    brace_depth: i32,
+    scope_variables: Vec<std::collections::HashSet<String>>,
+    current_indent: String,
 }
 
 impl RustCodeBuilder {
     fn new() -> Self {
-        Self { lines: Vec::new() }
+        Self { 
+            lines: Vec::new(),
+            brace_depth: 0,
+            scope_variables: vec![std::collections::HashSet::new()],
+            current_indent: String::new(),
+        }
     }
     
     fn add_line(&mut self, line: &str) {
+        // Track brace depth changes
+        let opens = line.matches('{').count() as i32;
+        let closes = line.matches('}').count() as i32;
+        self.brace_depth += opens - closes;
+        
+        // Manage scopes
+        for _ in 0..opens {
+            self.scope_variables.push(std::collections::HashSet::new());
+        }
+        for _ in 0..closes {
+            if self.scope_variables.len() > 1 {
+                self.scope_variables.pop();
+            }
+        }
+        
         self.lines.push(line.to_string());
     }
     
     fn add_raw(&mut self, code: &str) {
-        self.lines.push(code.to_string());
+        // Process each line in the raw code to track braces
+        for line in code.lines() {
+            self.add_line(line);
+        }
+    }
+    
+    fn enter_scope(&mut self, indent: &str) {
+        self.add_line(&format!("{indent}{{"));
+        self.current_indent = format!("{indent}    ");
+    }
+    
+    fn exit_scope(&mut self, indent: &str) {
+        self.add_line(&format!("{indent}}}"));
+        if indent.len() >= 4 {
+            self.current_indent = indent[..indent.len()-4].to_string();
+        } else {
+            self.current_indent = String::new();
+        }
+    }
+    
+    fn declare_variable(&mut self, var_name: &str) {
+        if let Some(current_scope) = self.scope_variables.last_mut() {
+            current_scope.insert(var_name.to_string());
+        }
+    }
+    
+    fn is_variable_in_scope(&self, var_name: &str) -> bool {
+        self.scope_variables.iter().any(|scope| scope.contains(var_name))
+    }
+    
+    fn validate(&self) -> Result<()> {
+        if self.brace_depth != 0 {
+            return Err(anyhow::anyhow!(
+                "Unbalanced braces detected: depth = {} (positive means missing closing braces, negative means extra closing braces)",
+                self.brace_depth
+            ));
+        }
+        Ok(())
     }
     
     fn build(self) -> String {
+        // Validate before building
+        if let Err(e) = self.validate() {
+            eprintln!("⚠️  Code generation warning: {}", e);
+        }
         self.lines.join("\n")
     }
 }
@@ -62,6 +126,15 @@ struct QuantifiedGroupInfo {
     element: ASTNode,
     quantifier: String,
     rule_annotations: Option<Vec<String>>,
+}
+
+/// Represents processed elements in a sequence, distinguishing between mandatory and optional groups
+#[derive(Debug, Clone)]
+enum ProcessedElement {
+    /// A mandatory element that must be parsed
+    Mandatory(ASTNode),
+    /// An optional group that can be skipped if parsing fails
+    OptionalGroup(Vec<ASTNode>),
 }
 
 impl HighPerformanceRustGenerator {
@@ -130,6 +203,94 @@ impl HighPerformanceRustGenerator {
         println!("{}", message);
     }
     
+    /// Validate generated Rust code for common issues
+    fn validate_generated_code(&self, code: &str, context: &str) -> Result<()> {
+        let mut issues = Vec::new();
+        
+        // Check brace balance
+        let open_braces = code.matches('{').count();
+        let close_braces = code.matches('}').count();
+        if open_braces != close_braces {
+            issues.push(format!("Unbalanced braces: {} open, {} close", open_braces, close_braces));
+        }
+        
+        // Check parentheses balance
+        let open_parens = code.matches('(').count();
+        let close_parens = code.matches(')').count();
+        if open_parens != close_parens {
+            issues.push(format!("Unbalanced parentheses: {} open, {} close", open_parens, close_parens));
+        }
+        
+        // Check for common scoping issues
+        if code.contains("group_element_content") {
+            // Look for variable declarations and usage patterns
+            let lines: Vec<&str> = code.lines().collect();
+            let mut in_scope = false;
+            let mut scope_depth = 0;
+            let mut declaration_depth = None;
+            
+            for (line_num, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
+                
+                // Track scope depth
+                scope_depth += trimmed.matches('{').count() as i32;
+                scope_depth -= trimmed.matches('}').count() as i32;
+                
+                // Check for variable declaration
+                if trimmed.contains("let group_element_content =") {
+                    declaration_depth = Some(scope_depth);
+                    in_scope = true;
+                }
+                
+                // Check for variable usage outside scope
+                if trimmed.contains("content: group_element_content") {
+                    if let Some(decl_depth) = declaration_depth {
+                        if scope_depth < decl_depth {
+                            issues.push(format!("Variable 'group_element_content' used outside its scope at line {}", line_num + 1));
+                        }
+                    } else if !in_scope {
+                        issues.push(format!("Variable 'group_element_content' used before declaration at line {}", line_num + 1));
+                    }
+                }
+                
+                // Reset scope tracking when we exit the declaration scope
+                if let Some(decl_depth) = declaration_depth {
+                    if scope_depth < decl_depth {
+                        in_scope = false;
+                        declaration_depth = None;
+                    }
+                }
+            }
+        }
+        
+        if !issues.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Code validation failed for {}: {}\nGenerated code:\n{}",
+                context,
+                issues.join("; "),
+                code
+            ));
+        }
+        
+        Ok(())
+    }
+    
+    /// Helper to validate and log code generation
+    fn generate_and_validate_code<F>(&self, context: &str, generator_fn: F) -> Result<String>
+    where
+        F: FnOnce() -> Result<String>,
+    {
+        let code = generator_fn()?;
+        
+        // Validate the generated code
+        if let Err(e) = self.validate_generated_code(&code, context) {
+            self.log_debug(&format!("⚠️ Code validation warning for {}: {}", context, e));
+            // Don't fail the build, just warn
+        }
+        
+        Ok(code)
+    }
+    
     /// Generate next unique ID for quantified groups
     fn get_next_quantified_group_id(&self) -> u32 {
         let mut counter = self.quantified_group_counter.borrow_mut();
@@ -194,7 +355,15 @@ impl HighPerformanceRustGenerator {
     /// Generate a single quantified group function with proper memoization
     fn generate_single_quantified_group_function(&self, group: &QuantifiedGroupInfo) -> Result<String> {
         let function_name = format!("parse_{}_quantified_group_{}", group.rule_name, group.group_id);
-        let element_code = self.generate_optimized_node_code(&group.element, 2, &group.rule_name, group.rule_annotations.as_deref())?;
+        
+        // Generate element code with "p" context for use inside try_parse closures
+        let element_code = self.generate_optimized_node_code_with_context(
+            &group.element, 
+            2, 
+            &group.rule_name, 
+            group.rule_annotations.as_deref(),
+            "p"  // Use "p" since this will be inside a try_parse closure
+        )?;
         
         // Generate the quantifier logic based on the specific quantifier type
         let quantifier_logic = match group.quantifier.as_str() {
@@ -236,7 +405,17 @@ impl HighPerformanceRustGenerator {
 
     /// Generate star quantifier logic (*) with proper scope isolation
     fn generate_star_quantifier_logic(&self, element_code: &str, function_name: &str) -> String {
-        let fixed_element_code = element_code.replace("parser.", "self.");
+        // Element code should already have proper "self" context from generate_optimized_node_code_with_context
+        // We need to indent the element_code properly for embedding
+        let indented_element_code = element_code.lines()
+            .map(|line| if line.trim().is_empty() { 
+                line.to_string() 
+            } else { 
+                format!("                {}", line) 
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+            
         format!(r#"        // Star quantifier (*) - zero or more with proper scope isolation
         let mut results = Vec::new();
         let mut iteration = 0;
@@ -252,38 +431,36 @@ impl HighPerformanceRustGenerator {
                 self.debug_output.push(format!("🔁 {function_name}: STAR iteration {{}} at position {{}}", iteration + 1, checkpoint_pos));
             }}
             
-            // Parse element with isolated scope
-            let element_result = (|| -> ParseResult<ParseContent<'input>> {{
-{fixed_element_code}
+            // Try to parse element with backtracking support
+            let element_result = self.try_parse(|p| {{
+                // Element parsing with proper context (p is self in closure)
+{indented_element_code}
                 Ok(result)
-            }})();
+            }});
             
-            match element_result {{
-                Ok(content) => {{
-                    iteration += 1;
-                    if self.debug_mode {{
-                        self.debug_output.push(format!("✅ {function_name}: STAR iteration {{}} succeeded, position {{}} -> {{}}", iteration, checkpoint_pos, self.position));
-                    }}
-                    results.push(ParseNode {{
-                        rule_name: "quantified",
-                        content,
-                        span: 0..0,
-                    }});
-                    
-                    // Prevent infinite loops on zero-length matches
-                    if self.position == checkpoint_pos {{
-                        if self.debug_mode {{
-                            self.debug_output.push(format!("⚠️ {function_name}: STAR zero-length match detected - stopping to prevent infinite loop"));
-                        }}
-                        break;
-                    }}
+            if let Some(content) = element_result {{
+                iteration += 1;
+                if self.debug_mode {{
+                    self.debug_output.push(format!("✅ {function_name}: STAR iteration {{}} succeeded, position {{}} -> {{}}", iteration, checkpoint_pos, self.position));
                 }}
-                Err(_) => {{
+                results.push(ParseNode {{
+                    rule_name: "quantified",
+                    content,
+                    span: 0..0,
+                }});
+                
+                // Prevent infinite loops on zero-length matches
+                if self.position == checkpoint_pos {{
                     if self.debug_mode {{
-                        self.debug_output.push(format!("🛑 {function_name}: STAR iteration {{}} failed at position {{}} - ending (normal for * quantifier)", iteration + 1, checkpoint_pos));
+                        self.debug_output.push(format!("⚠️ {function_name}: STAR zero-length match detected - stopping to prevent infinite loop"));
                     }}
                     break;
                 }}
+            }} else {{
+                if self.debug_mode {{
+                    self.debug_output.push(format!("🛑 {function_name}: STAR iteration {{}} failed at position {{}} - ending (normal for * quantifier)", iteration + 1, checkpoint_pos));
+                }}
+                break;
             }}
         }}
         
@@ -292,12 +469,22 @@ impl HighPerformanceRustGenerator {
         }}
         
         let result = Ok(ParseContent::Quantified(results, "*"));
-"#, function_name = function_name, fixed_element_code = fixed_element_code)
+"#, function_name = function_name, indented_element_code = indented_element_code)
     }
     
     /// Generate plus quantifier logic (+) with proper scope isolation
     fn generate_plus_quantifier_logic(&self, element_code: &str, function_name: &str) -> String {
-        let fixed_element_code = element_code.replace("parser.", "self.");
+        // Element code should already have proper "self" context from generate_optimized_node_code_with_context
+        // We need to indent the element_code properly for embedding
+        let indented_element_code = element_code.lines()
+            .map(|line| if line.trim().is_empty() { 
+                line.to_string() 
+            } else { 
+                format!("                {}", line) 
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+            
         format!(r#"        // Plus quantifier (+) - one or more with proper scope isolation
         let mut results = Vec::new();
         let mut iteration = 0;
@@ -308,83 +495,91 @@ impl HighPerformanceRustGenerator {
         }}
         
         // We need at least one successful match for '+' quantifier
-        let first_result = (|| -> ParseResult<ParseContent<'input>> {{
-{fixed_element_code}
+        // First attempt with backtracking
+        let first_result = self.try_parse(|p| {{
+{indented_element_code}
             Ok(result)
-        }})();
+        }});
         
-        let result = match first_result {{
-            Ok(content) => {{
-                iteration = 1;
+        let result = if let Some(content) = first_result {{
+            iteration = 1;
+            if self.debug_mode {{
+                self.debug_output.push(format!("✅ {function_name}: PLUS first iteration succeeded, position {{}} -> {{}}", start_pos, self.position));
+            }}
+            results.push(ParseNode {{
+                rule_name: "quantified",
+                content,
+                span: 0..0,
+            }});
+            
+            // Continue with zero-or-more pattern
+            loop {{
+                let checkpoint_pos = self.position;
                 if self.debug_mode {{
-                    self.debug_output.push(format!("✅ {function_name}: PLUS first iteration succeeded, position {{}} -> {{}}", start_pos, self.position));
+                    self.debug_output.push(format!("🔁 {function_name}: PLUS iteration {{}} at position {{}}", iteration + 1, checkpoint_pos));
                 }}
-                results.push(ParseNode {{
-                    rule_name: "quantified",
-                    content,
-                    span: 0..0,
+                
+                let element_result = self.try_parse(|p| {{
+{indented_element_code}
+                    Ok(result)
                 }});
                 
-                // Continue with zero-or-more pattern
-                loop {{
-                    let checkpoint_pos = self.position;
+                if let Some(content) = element_result {{
+                    iteration += 1;
                     if self.debug_mode {{
-                        self.debug_output.push(format!("🔁 {function_name}: PLUS iteration {{}} at position {{}}", iteration + 1, checkpoint_pos));
+                        self.debug_output.push(format!("✅ {function_name}: PLUS iteration {{}} succeeded, position {{}} -> {{}}", iteration, checkpoint_pos, self.position));
                     }}
+                    results.push(ParseNode {{
+                        rule_name: "quantified",
+                        content,
+                        span: 0..0,
+                    }});
                     
-                    let element_result = (|| -> ParseResult<ParseContent<'input>> {{
-{fixed_element_code}
-                        Ok(result)
-                    }})();
-                    
-                    match element_result {{
-                        Ok(content) => {{
-                            iteration += 1;
-                            if self.debug_mode {{
-                                self.debug_output.push(format!("✅ {function_name}: PLUS iteration {{}} succeeded, position {{}} -> {{}}", iteration, checkpoint_pos, self.position));
-                            }}
-                            results.push(ParseNode {{
-                                rule_name: "quantified",
-                                content,
-                                span: 0..0,
-                            }});
-                            
-                            // Prevent infinite loops on zero-length matches
-                            if self.position == checkpoint_pos {{
-                                if self.debug_mode {{
-                                    self.debug_output.push(format!("⚠️ {function_name}: PLUS zero-length match detected - stopping"));
-                                }}
-                                break;
-                            }}
+                    // Prevent infinite loops on zero-length matches
+                    if self.position == checkpoint_pos {{
+                        if self.debug_mode {{
+                            self.debug_output.push(format!("⚠️ {function_name}: PLUS zero-length match detected - stopping"));
                         }}
-                        Err(_) => {{
-                            if self.debug_mode {{
-                                self.debug_output.push(format!("🛑 {function_name}: PLUS iteration {{}} failed at position {{}} - ending", iteration + 1, checkpoint_pos));
-                            }}
-                            break;
-                        }}
+                        break;
                     }}
+                }} else {{
+                    if self.debug_mode {{
+                        self.debug_output.push(format!("🛑 {function_name}: PLUS iteration {{}} failed at position {{}} - ending", iteration + 1, checkpoint_pos));
+                    }}
+                    break;
                 }}
-                
-                if self.debug_mode {{
-                    self.debug_output.push(format!("🏁 {function_name}: PLUS quantifier completed - matched {{}} iterations, position {{}} -> {{}}", iteration, start_pos, self.position));
-                }}
-                
-                Ok(ParseContent::Quantified(results, "+"))
             }}
-            Err(e) => {{
-                if self.debug_mode {{
-                    self.debug_output.push(format!("❌ {function_name}: PLUS first iteration failed - quantifier fails"));
-                }}
-                Err(e)
+            
+            if self.debug_mode {{
+                self.debug_output.push(format!("🏁 {function_name}: PLUS quantifier completed - matched {{}} iterations, position {{}} -> {{}}", iteration, start_pos, self.position));
             }}
+            
+            Ok(ParseContent::Quantified(results, "+"))
+        }} else {{
+            if self.debug_mode {{
+                self.debug_output.push(format!("❌ {function_name}: PLUS first iteration failed - quantifier fails"));
+            }}
+            Err(ParseError::InvalidSyntax {{
+                message: "Plus quantifier requires at least one match",
+                position: start_pos,
+            }})
         }};
-"#, function_name = function_name, fixed_element_code = fixed_element_code)
+"#, function_name = function_name, indented_element_code = indented_element_code)
     }
     
     /// Generate question quantifier logic (?) with proper scope isolation
     fn generate_question_quantifier_logic(&self, element_code: &str, function_name: &str) -> String {
-        let fixed_element_code = element_code.replace("parser.", "self.");
+        // Element code should already have proper "self" context from generate_optimized_node_code_with_context
+        // We need to indent the element_code properly for embedding
+        let indented_element_code = element_code.lines()
+            .map(|line| if line.trim().is_empty() { 
+                line.to_string() 
+            } else { 
+                format!("            {}", line) 
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+            
         format!(r#"        // Question quantifier (?) - zero or one with proper scope isolation
         let start_pos = self.position;
         
@@ -392,33 +587,30 @@ impl HighPerformanceRustGenerator {
             self.debug_output.push(format!("🔄 {function_name}: Starting QUESTION quantifier (zero-or-one) at position {{}}", self.position));
         }}
         
-        // Try to parse the element once
-        let element_result = (|| -> ParseResult<ParseContent<'input>> {{
-{fixed_element_code}
+        // Try to parse the element once with backtracking
+        let element_result = self.try_parse(|p| {{
+{indented_element_code}
             Ok(result)
-        }})();
+        }});
         
-        let result = match element_result {{
-            Ok(content) => {{
-                if self.debug_mode {{
-                    self.debug_output.push(format!("✅ {function_name}: QUESTION quantifier matched (1 occurrence), position {{}} -> {{}}", start_pos, self.position));
-                }}
-                let results = vec![ParseNode {{
-                    rule_name: "quantified",
-                    content,
-                    span: 0..0,
-                }}];
-                Ok(ParseContent::Quantified(results, "?"))
+        let result = if let Some(content) = element_result {{
+            if self.debug_mode {{
+                self.debug_output.push(format!("✅ {function_name}: QUESTION quantifier matched (1 occurrence), position {{}} -> {{}}", start_pos, self.position));
             }}
-            Err(_) => {{
-                if self.debug_mode {{
-                    self.debug_output.push(format!("⭕ {function_name}: QUESTION quantifier no match (0 occurrences) - this is OK for ? quantifier"));
-                }}
-                // Zero matches is OK for ? quantifier
-                Ok(ParseContent::Quantified(Vec::new(), "?"))
+            let results = vec![ParseNode {{
+                rule_name: "quantified",
+                content,
+                span: 0..0,
+            }}];
+            Ok(ParseContent::Quantified(results, "?"))
+        }} else {{
+            if self.debug_mode {{
+                self.debug_output.push(format!("⭕ {function_name}: QUESTION quantifier no match (0 occurrences) - this is OK for ? quantifier"));
             }}
+            // Zero matches is OK for ? quantifier
+            Ok(ParseContent::Quantified(Vec::new(), "?"))
         }};
-"#, function_name = function_name, fixed_element_code = fixed_element_code)
+"#, function_name = function_name, indented_element_code = indented_element_code)
     }
 
     /// Generate lightning-fast parser suitable for production regex engine
@@ -1389,25 +1581,44 @@ impl<'input> {parser_name}<'input> {{
         rule_name: &str,
         rule_annotations: Option<&[String]>
     ) -> Result<String> {
+        self.generate_optimized_node_code_with_context(ast_node, indent_level, rule_name, rule_annotations, "parser")
+    }
+    
+    fn generate_optimized_node_code_with_context(
+        &self, 
+        ast_node: &ASTNode, 
+        indent_level: usize,
+        rule_name: &str,
+        rule_annotations: Option<&[String]>,
+        parser_var: &str
+    ) -> Result<String> {
         let indent = "    ".repeat(indent_level);
+        
+        println!("[HighPerformanceRustGenerator][generate_optimized_node_code] 🎯 Processing node for rule: {}", rule_name);
+        println!("[HighPerformanceRustGenerator][generate_optimized_node_code]   🔍 Node type: {:?}", std::mem::discriminant(ast_node));
+        println!("[HighPerformanceRustGenerator][generate_optimized_node_code]   📝 Full AST: {:?}", ast_node);
         
         match ast_node {
             ASTNode::Atom { value } => {
-                self.generate_atom_code(value, &indent, rule_annotations)
+                self.generate_atom_code_with_context(value, &indent, rule_annotations, parser_var)
             }
             ASTNode::Sequence { elements } => {
-                self.generate_sequence_code(elements, &indent, rule_name, rule_annotations)
+                self.generate_sequence_code_with_context(elements, &indent, rule_name, rule_annotations, parser_var)
             }
             ASTNode::Or { alternatives } => {
-                self.generate_or_code(alternatives, &indent, rule_name, rule_annotations)
+                self.generate_or_code_with_context(alternatives, &indent, rule_name, rule_annotations, parser_var)
             }
             ASTNode::Quantified { element, quantifier } => {
-                self.generate_quantified_code(element, quantifier, &indent, rule_name, rule_annotations)
+                self.generate_quantified_code_with_context(element, quantifier, &indent, rule_name, rule_annotations, parser_var)
             }
         }
     }
 
     fn generate_atom_code(&self, value: &ASTValue, indent: &str, rule_annotations: Option<&[String]>) -> Result<String> {
+        self.generate_atom_code_with_context(value, indent, rule_annotations, "parser")
+    }
+    
+    fn generate_atom_code_with_context(&self, value: &ASTValue, indent: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
         // Only log if debug or trace mode is enabled
         if self.enable_trace {
             self.log_debug(&format!("[HighPerformanceRustGenerator][generate_atom_code] ⚛️  Processing atom: {:?}", value));
@@ -1454,10 +1665,10 @@ impl<'input> {parser_name}<'input> {{
                             }
                             if token_value.is_empty() {
                                 // Handle empty strings with regular string literals
-                                Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(\"\")?);\n"))
+                                Ok(format!("{indent}let result = ParseContent::Terminal({parser_var}.match_string(\"\")?);\n"))
                             } else {
                                 let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
-                                Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_string(r#\"{escaped_value}\"#)?);\n"))
+                                Ok(format!("{indent}let result = ParseContent::Terminal({parser_var}.match_string(r#\"{escaped_value}\"#)?);\n"))
                             }
                         }
                         Some("regex") => {
@@ -1465,7 +1676,7 @@ impl<'input> {parser_name}<'input> {{
                                 println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating regex code");
                             }
                             let escaped_value = escape_rust_string(token_value.as_str().unwrap_or(""));
-                            Ok(format!("{indent}let result = ParseContent::Terminal(parser.match_regex_optimized(r#\"{escaped_value}\"#)?);\n"))
+                            Ok(format!("{indent}let result = ParseContent::Terminal({parser_var}.match_regex_optimized(r#\"{escaped_value}\"#)?);\n"))
                         }
                     Some("rule_reference") => {
                         let rule_name = token_value.as_str().unwrap_or("unknown");
@@ -1473,7 +1684,7 @@ impl<'input> {parser_name}<'input> {{
                             println!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Generating rule_reference code for rule: '{}'", rule_name);
                             println!("[HighPerformanceRustGenerator][generate_atom_code]       🔗 Will call method: parse_{}()", rule_name);
                         }
-                        Ok(format!("{indent}let result = ParseContent::Alternative(Box::new(parser.parse_{rule_name}()?));\n"))
+                        Ok(format!("{indent}let result = ParseContent::Alternative(Box::new({parser_var}.parse_{rule_name}()?));\n"))
                     }
                     // Skip grammar tokens - these should not generate any parsing code
                     Some("group_open") | Some("group_close") | Some("operator") | Some("separator") => {
@@ -1811,47 +2022,39 @@ impl<'input> {parser_name}<'input> {{
     }
 
     fn generate_sequence_code(&self, elements: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>) -> Result<String> {
-        let mut code = format!("{indent}let mut sequence_elements = Vec::with_capacity({});\n", elements.len());
-        
+        self.generate_sequence_code_with_context(elements, indent, rule_name, rule_annotations, "parser")
+    }
+    
+    fn generate_sequence_code_with_context(&self, elements: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
+        println!("[HighPerformanceRustGenerator][generate_sequence_code] 🚀 Generating sequence code for rule: {}", rule_name);
+        println!("[HighPerformanceRustGenerator][generate_sequence_code]   Elements count: {}", elements.len());
         for (i, element) in elements.iter().enumerate() {
-            let element_code = self.generate_optimized_node_code(element, 0, rule_name, rule_annotations)?;
-            let element_description = self.extract_ebnf_description(element);
-            
-            // Use raw string literal to avoid escaping issues
-            code.push_str(&format!("{indent}{{\n"));
-            code.push_str(&format!("{indent}    parser.debug_sequence_element({}, {}, \"{}\", r#\"{}\"#);\n", i, elements.len(), rule_name, element_description));
-            code.push_str(&format!("{indent}    let element_start = parser.position;\n"));
-            
-            // Wrap element parsing with result checking for better debug output
-            code.push_str(&format!("{indent}    let element_result = (|| -> Result<ParseContent<'input>, ParseError> {{\n"));
-            let fixed_element_code = element_code
-                .replace("let result =", "        let element_content =")
-                .replace("&result)", "&element_content)")
-                // Replace self. with parser. since we're inside the memoized_call closure
-                .replace("self.", "parser.");
-            code.push_str(&fixed_element_code);
-            code.push_str(&format!("{indent}        Ok(element_content)\n"));
-            code.push_str(&format!("{indent}    }})();\n"));
-            
-            // Add success/failure debug logging
-            code.push_str(&format!("{indent}    let element_content = match element_result {{\n"));
-            code.push_str(&format!("{indent}        Ok(content) => {{\n"));
-            code.push_str(&format!("{indent}            parser.debug_sequence_element_success({}, {}, \"{}\", r#\"{}\"#, parser.position - element_start);\n", i, elements.len(), rule_name, element_description));
-            code.push_str(&format!("{indent}            content\n"));
-            code.push_str(&format!("{indent}        }},\n"));
-            code.push_str(&format!("{indent}        Err(e) => {{\n"));
-            code.push_str(&format!("{indent}            parser.debug_sequence_element_failure({}, {}, \"{}\", r#\"{}\"#, &e);\n", i, elements.len(), rule_name, element_description));
-            code.push_str(&format!("{indent}            return Err(e);\n"));
-            code.push_str(&format!("{indent}        }}\n"));
-            code.push_str(&format!("{indent}    }};\n"));
-            
-            code.push_str(&format!("{indent}    let element_end = parser.position;\n"));
-            code.push_str(&format!("{indent}    sequence_elements.push(ParseNode {{\n"));
-            code.push_str(&format!("{indent}        rule_name: \"element_{}\",\n", i));
-            code.push_str(&format!("{indent}        content: element_content,\n"));
-            code.push_str(&format!("{indent}        span: element_start..element_end,\n"));
-            code.push_str(&format!("{indent}    }});\n"));
-            code.push_str(&format!("{indent}}};\n"));
+            println!("[HighPerformanceRustGenerator][generate_sequence_code]   Element {}: {:?}", i, element);
+        }
+        
+        // Check for optional quantified groups in the sequence
+        let processed_elements = self.analyze_and_group_optional_quantifiers(elements)?;
+        let mut code = format!("{indent}let mut sequence_elements = Vec::with_capacity({});\n", processed_elements.len());
+        
+        for (i, element_group) in processed_elements.iter().enumerate() {
+            match element_group {
+                ProcessedElement::Mandatory(element) => {
+                    // Generate mandatory element as before
+                    let element_code = self.generate_optimized_node_code_with_context(element, 0, rule_name, rule_annotations, parser_var)?;
+                    let element_description = self.extract_ebnf_description(element);
+                    
+                    code.push_str(&self.generate_mandatory_element_code_with_context(element_code, element_description, i, processed_elements.len(), rule_name, indent, parser_var)?);
+                }
+                ProcessedElement::OptionalGroup(group_elements) => {
+                    // Generate optional group using try_parse
+                    let group_description = group_elements.iter()
+                        .map(|e| self.extract_ebnf_description(e))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    
+                    code.push_str(&self.generate_optional_group_code(group_elements, &group_description, i, processed_elements.len(), rule_name, indent)?);
+                }
+            }
         }
         
         code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
@@ -1859,27 +2062,264 @@ impl<'input> {parser_name}<'input> {{
     }
 
     fn generate_or_code(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>) -> Result<String> {
+        self.generate_or_code_with_context(alternatives, indent, rule_name, rule_annotations, "parser")
+    }
+    
+    fn generate_or_code_with_context(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
         let n_branches = alternatives.len();
         
         match n_branches {
             0 => {
                 // No alternatives - this shouldn't happen but handle gracefully
-                Ok(format!("{indent}return Err(ParseError::InvalidSyntax {{\n{indent}    message: \"No alternatives provided\",\n{indent}    position: parser.position,\n{indent}}});\n"))
+                Ok(format!("{indent}return Err(ParseError::InvalidSyntax {{\n{indent}    message: \"No alternatives provided\",\n{indent}    position: {parser_var}.position,\n{indent}}});\n"))
             }
             1 => {
                 // Single branch - no alternatives, just execute directly
-                let alt_code = self.generate_optimized_node_code(&alternatives[0], 0, rule_name, rule_annotations)?;
+                let alt_code = self.generate_optimized_node_code_with_context(&alternatives[0], 0, rule_name, rule_annotations, parser_var)?;
                 Ok(alt_code)
             }
             _ => {
                 // Multiple branches - use systematic N-branch template
-                self.generate_n_branch_template(alternatives, indent, rule_name, rule_annotations)
+                self.generate_n_branch_template_with_context(alternatives, indent, rule_name, rule_annotations, parser_var)
             }
         }
     }
     
+    /// Analyze sequence elements to identify optional quantified groups
+    fn analyze_and_group_optional_quantifiers(&self, elements: &[ASTNode]) -> Result<Vec<ProcessedElement>> {
+        println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers] 🔍 Analyzing {} elements for optional quantifiers:", elements.len());
+        for (i, element) in elements.iter().enumerate() {
+            println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   Element {}: {:?}", i, element);
+        }
+        
+        let mut processed = Vec::new();
+        let mut i = 0;
+        
+        while i < elements.len() {
+            // Check if this element is itself a quantified node with "?" quantifier
+            if let ASTNode::Quantified { element, quantifier } = &elements[i] {
+                println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   Found quantified element at {}: quantifier={}", i, quantifier);
+                if quantifier == "?" {
+                    println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   ✅ Found quantified '?' element at {}! Making it optional", i);
+                    
+                    // Special handling for group structures within the quantified element
+                    let group_elements = match element.as_ref() {
+                        // If the element is a sequence, unpack its elements into the optional group
+                        ASTNode::Sequence { elements: inner_elements } => {
+                            println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   📦 Unpacking sequence with {} elements", inner_elements.len());
+                            inner_elements.clone()
+                        }
+                        // If the element is a group or some other structure, just use it as-is
+                        _ => vec![(**element).clone()]
+                    };
+                    
+                    processed.push(ProcessedElement::OptionalGroup(group_elements));
+                    i += 1;
+                    continue;
+                }
+            }
+            
+            // Look ahead to find if there's a "?" quantifier in the near future
+            let mut found_optional_quantifier_at = None;
+            for j in (i + 1)..elements.len() {
+                if let ASTNode::Atom { value: ASTValue::Token(token) } = &elements[j] {
+                    if token.len() == 2 && 
+                       token[0].as_str() == Some("operator") && 
+                       token[1].as_str() == Some("?") {
+                        found_optional_quantifier_at = Some(j);
+                        println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   Found '?' quantifier at position {}", j);
+                        break;
+                    }
+                }
+                // Stop looking if we encounter another clearly mandatory element
+                // that would break the optional group pattern
+                if j > i + 3 {
+                    break; // Don't look too far ahead
+                }
+            }
+            
+            if let Some(q_pos) = found_optional_quantifier_at {
+                // Found a "?" quantifier ahead - group all elements from i to q_pos-1 as optional
+                println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   ✅ Grouping elements {}-{} as optional (quantifier at {})", i, q_pos - 1, q_pos);
+                
+                let mut group_elements = Vec::new();
+                for elem_idx in i..q_pos {
+                    match &elements[elem_idx] {
+                        // If an element is a sequence, unpack its elements
+                        ASTNode::Sequence { elements: inner_elements } => {
+                            println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   📦 Unpacking sequence at {} with {} elements", elem_idx, inner_elements.len());
+                            group_elements.extend(inner_elements.clone());
+                        }
+                        // Otherwise just add the element as-is
+                        _ => {
+                            group_elements.push(elements[elem_idx].clone());
+                        }
+                    }
+                }
+                
+                processed.push(ProcessedElement::OptionalGroup(group_elements));
+                i = q_pos + 1; // Skip past the quantifier
+                continue;
+            }
+            
+            // Not an optional pattern, treat as mandatory
+            println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers]   Element {} is mandatory", i);
+            processed.push(ProcessedElement::Mandatory(elements[i].clone()));
+            i += 1;
+        }
+        
+        println!("[HighPerformanceRustGenerator][analyze_and_group_optional_quantifiers] 🎯 Processed {} elements into {} groups", elements.len(), processed.len());
+        Ok(processed)
+    }
+    
+    /// Generate code for a mandatory element
+    fn generate_mandatory_element_code(
+        &self,
+        element_code: String,
+        element_description: String,
+        index: usize,
+        total: usize,
+        rule_name: &str,
+        indent: &str
+    ) -> Result<String> {
+        self.generate_mandatory_element_code_with_context(element_code, element_description, index, total, rule_name, indent, "parser")
+    }
+    
+    fn generate_mandatory_element_code_with_context(
+        &self,
+        element_code: String,
+        element_description: String,
+        index: usize,
+        total: usize,
+        rule_name: &str,
+        indent: &str,
+        parser_var: &str
+    ) -> Result<String> {
+        let mut code = String::new();
+        
+        code.push_str(&format!("{indent}{{\n"));
+        code.push_str(&format!("{indent}    {parser_var}.debug_sequence_element({}, {}, \"{}\", r#\"{}\"#);\n", index, total, rule_name, element_description));
+        code.push_str(&format!("{indent}    let element_start = {parser_var}.position;\n"));
+        
+        // Wrap element parsing with result checking for better debug output
+        code.push_str(&format!("{indent}    let element_result = (|| -> Result<ParseContent<'input>, ParseError> {{\n"));
+        let fixed_element_code = element_code
+            .replace("let result =", "        let element_content =")
+            .replace("&result)", "&element_content)")
+            .replace("parser.", &format!("{parser_var}."));
+        code.push_str(&fixed_element_code);
+        code.push_str(&format!("{indent}        Ok(element_content)\n"));
+        code.push_str(&format!("{indent}    }})();\n"));
+        
+        // Add success/failure debug logging
+        code.push_str(&format!("{indent}    let element_content = match element_result {{\n"));
+        code.push_str(&format!("{indent}        Ok(content) => {{\n"));
+        code.push_str(&format!("{indent}            {parser_var}.debug_sequence_element_success({}, {}, \"{}\", r#\"{}\"#, {parser_var}.position - element_start);\n", index, total, rule_name, element_description));
+        code.push_str(&format!("{indent}            content\n"));
+        code.push_str(&format!("{indent}        }},\n"));
+        code.push_str(&format!("{indent}        Err(e) => {{\n"));
+        code.push_str(&format!("{indent}            {parser_var}.debug_sequence_element_failure({}, {}, \"{}\", r#\"{}\"#, &e);\n", index, total, rule_name, element_description));
+        code.push_str(&format!("{indent}            return Err(e);\n"));
+        code.push_str(&format!("{indent}        }}\n"));
+        code.push_str(&format!("{indent}    }};\n"));
+        
+        code.push_str(&format!("{indent}    let element_end = {parser_var}.position;\n"));
+        code.push_str(&format!("{indent}    sequence_elements.push(ParseNode {{\n"));
+        code.push_str(&format!("{indent}        rule_name: \"element_{}\",\n", index));
+        code.push_str(&format!("{indent}        content: element_content,\n"));
+        code.push_str(&format!("{indent}        span: element_start..element_end,\n"));
+        code.push_str(&format!("{indent}    }});\n"));
+        code.push_str(&format!("{indent}}};\n"));
+        
+        Ok(code)
+    }
+    
+    /// Generate code for an optional group using try_parse
+    fn generate_optional_group_code(
+        &self,
+        group_elements: &[ASTNode],
+        group_description: &str,
+        index: usize,
+        total: usize,
+        rule_name: &str,
+        indent: &str
+    ) -> Result<String> {
+        let mut code = String::new();
+        
+        code.push_str(&format!("{indent}{{\n"));
+        code.push_str(&format!("{indent}    parser.debug_sequence_element({}, {}, \"{}\", r#\"({})? (optional group)\"#);\n", index, total, rule_name, group_description));
+        code.push_str(&format!("{indent}    let element_start = parser.position;\n"));
+        
+        // Use try_parse to make the group optional
+        code.push_str(&format!("{indent}    let element_content = if let Some(content) = parser.try_parse(|p| {{\n"));
+        
+        // Generate the group content as a sequence
+        code.push_str(&format!("{indent}        let mut group_elements = Vec::with_capacity({});\n", group_elements.len()));
+        
+        for (group_idx, element) in group_elements.iter().enumerate() {
+            let element_code = self.generate_optimized_node_code_with_context(element, 0, rule_name, None, "p")?;
+            let element_desc = self.extract_ebnf_description(element);
+            
+            code.push_str(&format!("{indent}        {{\n"));
+            code.push_str(&format!("{indent}            let group_element_start = p.position;\n"));
+            
+            // Fix scoping issue: ensure group_element_content is properly scoped
+            let fixed_element_code = element_code
+                .replace("let result =", "let group_element_content =")
+                .replace("let element_content =", "let group_element_content =")  // Handle quantified groups
+                .replace("&result)", "&group_element_content)")
+                .replace("&element_content)", "&group_element_content)")  // Handle quantified groups
+                .replace("parser.", "p.");
+            
+            // Add proper indentation to the element code
+            let indented_element_code = fixed_element_code
+                .lines()
+                .map(|line| if line.trim().is_empty() { 
+                    line.to_string() 
+                } else { 
+                    format!("{indent}            {}", line) 
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            
+            code.push_str(&indented_element_code);
+            code.push_str("\n");
+            
+            code.push_str(&format!("{indent}            let group_element_end = p.position;\n"));
+            code.push_str(&format!("{indent}            group_elements.push(ParseNode {{\n"));
+            code.push_str(&format!("{indent}                rule_name: \"group_element_{}\",\n", group_idx));
+            code.push_str(&format!("{indent}                content: group_element_content,\n"));
+            code.push_str(&format!("{indent}                span: group_element_start..group_element_end,\n"));
+            code.push_str(&format!("{indent}            }});\n"));
+            code.push_str(&format!("{indent}        }}\n"));
+        }
+        
+        code.push_str(&format!("{indent}        Ok(ParseContent::Sequence(group_elements))\n"));
+        code.push_str(&format!("{indent}    }}) {{\n"));
+        code.push_str(&format!("{indent}        parser.debug_sequence_element_success({}, {}, \"{}\", r#\"({})? (optional group)\"#, parser.position - element_start);\n", index, total, rule_name, group_description));
+        code.push_str(&format!("{indent}        content\n"));
+        code.push_str(&format!("{indent}    }} else {{\n"));
+        code.push_str(&format!("{indent}        parser.debug_sequence_element_success({}, {}, \"{}\", r#\"({})? (optional group - empty)\"#, 0);\n", index, total, rule_name, group_description));
+        code.push_str(&format!("{indent}        ParseContent::Sequence(Vec::new())  // Empty optional group\n"));
+        code.push_str(&format!("{indent}    }};\n"));
+        
+        code.push_str(&format!("{indent}    let element_end = parser.position;\n"));
+        code.push_str(&format!("{indent}    sequence_elements.push(ParseNode {{\n"));
+        code.push_str(&format!("{indent}        rule_name: \"element_{}\",\n", index));
+        code.push_str(&format!("{indent}        content: element_content,\n"));
+        code.push_str(&format!("{indent}        span: element_start..element_end,\n"));
+        code.push_str(&format!("{indent}    }});\n"));
+        code.push_str(&format!("{indent}}};\n"));
+        
+        Ok(code)
+    }
+    
     /// Generate systematic N-branch template using builder pattern
     fn generate_n_branch_template(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>) -> Result<String> {
+        self.generate_n_branch_template_with_context(alternatives, indent, rule_name, rule_annotations, "parser")
+    }
+    
+    fn generate_n_branch_template_with_context(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
         let mut builder = RustCodeBuilder::new();
         let n_branches = alternatives.len();
         
@@ -1901,7 +2341,7 @@ impl<'input> {parser_name}<'input> {{
             }
             
             // Generate branch content with proper indentation
-            let alt_code = self.generate_optimized_node_code(&alt, 0, rule_name, rule_annotations)?;
+            let alt_code = self.generate_optimized_node_code_with_context(&alt, 0, rule_name, rule_annotations, "p")?;
             let branch_indent = if branch_idx == 0 { "        " } else { "            " };
             let branch_content = alt_code
                 .replace("let result =", &format!("{branch_indent}let branch_content ="))
@@ -1934,7 +2374,7 @@ impl<'input> {parser_name}<'input> {{
         builder.add_line(&format!("{indent}}} else {{"));
         builder.add_line(&format!("{indent}    return Err(ParseError::InvalidSyntax {{"));
         builder.add_line(&format!("{indent}        message: \"No alternative matched in {}-branch rule: {{rule_name}}\",", n_branches));
-        builder.add_line(&format!("{indent}        position: parser.position,"));
+        builder.add_line(&format!("{indent}        position: {parser_var}.position,"));
         builder.add_line(&format!("{indent}    }});"));
         builder.add_line(&format!("{indent}}}"));
         
@@ -2012,6 +2452,10 @@ impl<'input> {parser_name}<'input> {{
     }
 
     fn generate_quantified_code(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>) -> Result<String> {
+        self.generate_quantified_code_with_context(element, quantifier, indent, rule_name, rule_annotations, "parser")
+    }
+    
+    fn generate_quantified_code_with_context(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str) -> Result<String> {
         // Generate a unique function name for this quantified group to ensure proper scope isolation
         let quantified_group_id = self.get_next_quantified_group_id();
         let quantified_function_name = format!("parse_{}_quantified_group_{}", rule_name, quantified_group_id);
@@ -2027,11 +2471,12 @@ impl<'input> {parser_name}<'input> {{
         // Instead of inline quantifier handling, call the separate function
         Ok(format!(
             r##"{indent}// Call dedicated quantified group function with proper scope isolation
-{indent}parser.debug_quantifier_start("{rule_name}", r#"{quantified_description}"#, "{quantifier}");
-{indent}let element_content = parser.{quantified_function_name}()?;
-{indent}parser.debug_quantifier_end("{rule_name}", r#"{quantified_description}"#, "{quantifier}", &element_content);
+{indent}{parser_var}.debug_quantifier_start("{rule_name}", r#"{quantified_description}"#, "{quantifier}");
+{indent}let element_content = {parser_var}.{quantified_function_name}()?;
+{indent}{parser_var}.debug_quantifier_end("{rule_name}", r#"{quantified_description}"#, "{quantifier}", &element_content);
 "##,
             indent = indent,
+            parser_var = parser_var,
             rule_name = rule_name,
             quantifier = quantifier,
             quantified_description = quantified_description,

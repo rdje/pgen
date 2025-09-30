@@ -9,8 +9,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, OpenOptions};
-use std::io::{self, Write, BufWriter};
+use std::io::{Write, BufWriter};
 use anyhow::{Context, Result};
+// Visualization functionality implemented inline to avoid import issues
 
 // Import the generated semantic annotation parser
 pub mod semantic_annotation_parser {
@@ -143,6 +144,7 @@ pub struct Annotations {
     pub logging_annotations: HashMap<String, Vec<String>>,
     pub return_annotations: HashMap<String, ReturnAnnotation>,
 }
+
 
 /// Transformation statistics
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -517,18 +519,27 @@ impl RustASTPipeline {
         self.log_progress("transform_raw_ast", current_step, total_steps, "Parse sequences");
         let sequenced_rules = self.parse_sequences(&processed_rules)?;
         self.log_success("transform_raw_ast", &format!("Stage 3 completed: {} rules sequenced", sequenced_rules.len()));
+        
+        // AST visualization removed
+        
         current_step += 1;
 
         // Stage 4: Handle quantifiers
         self.log_progress("transform_raw_ast", current_step, total_steps, "Handle quantifiers");
         let quantified_rules = self.handle_quantifiers(&sequenced_rules)?;
         self.log_success("transform_raw_ast", &format!("Stage 4 completed: {} rules quantified", quantified_rules.len()));
+        
+        // AST visualization removed
+        
         current_step += 1;
 
         // Stage 5: Build tree structure
         self.log_progress("transform_raw_ast", current_step, total_steps, "Build tree structure");
         let (mut grammar_tree, mut rule_order) = self.build_tree_structure(&quantified_rules)?;
         self.log_success("transform_raw_ast", &format!("Stage 5 completed: {} final rules", grammar_tree.len()));
+        
+        // AST visualization removed
+        
         current_step += 1;
 
         // Stage 6 (Optional): Left recursion elimination
@@ -536,6 +547,9 @@ impl RustASTPipeline {
             self.log_progress("transform_raw_ast", current_step, total_steps, "Apply left recursion elimination");
             (grammar_tree, rule_order) = self.eliminate_left_recursion(grammar_tree, rule_order)?;
             self.log_success("transform_raw_ast", "Stage 6 completed: Left recursion eliminated");
+            
+            // AST visualization removed
+            
             self.stats.transformations_applied = 6;
         } else {
             self.log_info("transform_raw_ast", "Stage 6 skipped: Left recursion elimination disabled");
@@ -1725,29 +1739,82 @@ impl RustASTPipeline {
     
     /// Flatten nested sequences that contain grouped quantifiers into the parent sequence
     /// This pre-processing step makes grouped quantifiers detectable at the top level
+    /// IMPORTANT: Only flatten sequences that are purely structural (not logical groupings)
     fn flatten_grouped_quantifiers_in_sequence(&self, elements: &[ASTNode]) -> Result<Vec<ASTNode>> {
         let mut flattened = Vec::new();
         
         for element in elements {
-            if let ASTNode::Sequence { elements: nested_elements } = element {
-                // Check if this nested sequence contains a grouped quantifier pattern
-                if self.contains_grouped_quantifier(nested_elements)? {
-                    if self.config.debug {
-                        println!("[AST][flatten_grouped_quantifiers_in_sequence] Flattening nested sequence with {} elements", nested_elements.len());
+            match element {
+                ASTNode::Sequence { elements: nested_elements } => {
+                    // Check if this nested sequence contains a grouped quantifier pattern
+                    if self.contains_grouped_quantifier(nested_elements)? {
+                        // CRITICAL FIX: Do NOT flatten sequences that represent logical groupings
+                        // like optional groups, alternatives, etc. Only flatten "pure" sequences
+                        // that are artifacts of parsing multiple elements together.
+                        if self.should_preserve_sequence_structure(nested_elements) {
+                            if self.config.debug {
+                                println!("[AST][flatten_grouped_quantifiers_in_sequence] Preserving logical sequence structure with {} elements (contains optional/logical groupings)", nested_elements.len());
+                            }
+                            // Keep the nested sequence as-is but recursively process its elements
+                            let recursively_flattened = self.flatten_grouped_quantifiers_in_sequence(nested_elements)?;
+                            flattened.push(ASTNode::Sequence { elements: recursively_flattened });
+                        } else {
+                            if self.config.debug {
+                                println!("[AST][flatten_grouped_quantifiers_in_sequence] Flattening pure structural sequence with {} elements", nested_elements.len());
+                            }
+                            // Flatten: add all nested elements to the parent level (recursively processed)
+                            let recursively_flattened = self.flatten_grouped_quantifiers_in_sequence(nested_elements)?;
+                            flattened.extend(recursively_flattened);
+                        }
+                    } else {
+                        // Recursively process the nested sequence even if it doesn't contain grouped quantifiers
+                        let recursively_flattened = self.flatten_grouped_quantifiers_in_sequence(nested_elements)?;
+                        flattened.push(ASTNode::Sequence { elements: recursively_flattened });
                     }
-                    // Flatten: add all nested elements to the parent level
-                    flattened.extend(nested_elements.clone());
-                } else {
-                    // Keep the nested sequence as-is
+                }
+                // Recursively process other node types that can contain sequences
+                ASTNode::Or { alternatives } => {
+                    let mut processed_alternatives = Vec::new();
+                    for alt in alternatives {
+                        processed_alternatives.push(self.flatten_grouped_quantifiers_in_node(alt)?);
+                    }
+                    flattened.push(ASTNode::Or { alternatives: processed_alternatives });
+                }
+                ASTNode::Quantified { element, quantifier } => {
+                    let processed_element = self.flatten_grouped_quantifiers_in_node(element.as_ref())?;
+                    flattened.push(ASTNode::Quantified { element: Box::new(processed_element), quantifier: quantifier.clone() });
+                }
+                // Regular elements - add as-is
+                _ => {
                     flattened.push(element.clone());
                 }
-            } else {
-                // Regular element - add as-is
-                flattened.push(element.clone());
             }
         }
         
         Ok(flattened)
+    }
+
+    /// Recursively apply flattening to a single AST node
+    fn flatten_grouped_quantifiers_in_node(&self, node: &ASTNode) -> Result<ASTNode> {
+        match node {
+            ASTNode::Sequence { elements } => {
+                let flattened_elements = self.flatten_grouped_quantifiers_in_sequence(elements)?;
+                Ok(ASTNode::Sequence { elements: flattened_elements })
+            }
+            ASTNode::Or { alternatives } => {
+                let mut processed_alternatives = Vec::new();
+                for alt in alternatives {
+                    processed_alternatives.push(self.flatten_grouped_quantifiers_in_node(alt)?);
+                }
+                Ok(ASTNode::Or { alternatives: processed_alternatives })
+            }
+            ASTNode::Quantified { element, quantifier } => {
+                let processed_element = self.flatten_grouped_quantifiers_in_node(element.as_ref())?;
+                Ok(ASTNode::Quantified { element: Box::new(processed_element), quantifier: quantifier.clone() })
+            }
+            // Other node types don't need processing
+            _ => Ok(node.clone())
+        }
     }
     
     /// Check if a sequence contains a grouped quantifier pattern: group_open ... group_close operator
@@ -1758,6 +1825,66 @@ impl RustASTPipeline {
             }
         }
         Ok(false)
+    }
+
+    /// Determine if a sequence structure should be preserved (not flattened)
+    /// Returns true if the sequence contains logical groupings that should not be flattened
+    fn should_preserve_sequence_structure(&self, elements: &[ASTNode]) -> bool {
+        for element in elements {
+            match element {
+                // Preserve sequences that contain alternatives (OR operations)
+                ASTNode::Or { .. } => {
+                    if self.config.debug {
+                        println!("[AST][should_preserve_sequence_structure] Found OR alternatives - preserving structure");
+                    }
+                    return true;
+                }
+                // Preserve sequences that contain quantified elements
+                ASTNode::Quantified { quantifier, .. } => {
+                    if ["?", "*", "+"].contains(&quantifier.as_str()) {
+                        if self.config.debug {
+                            println!("[AST][should_preserve_sequence_structure] Found quantified element '{}' - preserving structure", quantifier);
+                        }
+                        return true;
+                    }
+                }
+                // Check for group tokens that represent logical groupings
+                ASTNode::Atom { value: ASTValue::Token(token) } => {
+                    if token.len() == 2 && token[0] == "group" {
+                        if self.config.debug {
+                            println!("[AST][should_preserve_sequence_structure] Found group token - preserving structure");
+                        }
+                        return true;
+                    }
+                    // Check for quantifier operators that indicate the sequence should be preserved
+                    if token.len() == 2 && token[0] == "operator" {
+                        if let Some(op_str) = token[1].as_str() {
+                            if ["?", "*", "+"].contains(&op_str) {
+                                if self.config.debug {
+                                    println!("[AST][should_preserve_sequence_structure] Found quantifier operator '{}' - preserving structure", op_str);
+                                }
+                                return true;
+                            }
+                        }
+                    }
+                }
+                // Recursively check nested sequences
+                ASTNode::Sequence { elements: nested_elements } => {
+                    if self.should_preserve_sequence_structure(nested_elements) {
+                        return true;
+                    }
+                }
+                // Handle nested nodes in ASTValue::Node - though this is rare
+                ASTNode::Atom { value: ASTValue::Node(_) } => {
+                    // Nested nodes should preserve structure  
+                    if self.config.debug {
+                        println!("[AST][should_preserve_sequence_structure] Found nested AST node - preserving structure");
+                    }
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     /// Stage 5: Build final tree structure
@@ -2486,6 +2613,8 @@ impl RustASTPipeline {
         
         Ok(())
     }
+
+    // HTML visualization functions removed
 
 }
 
