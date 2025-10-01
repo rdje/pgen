@@ -81,12 +81,20 @@ element_sequence := element_item (/\s+/ element_item)* -> [$1, $3*]
 - The `->` operator separates the pattern from its return annotation
 - Annotations describe how to construct the AST from captured elements
 
+#### Debug Output and Implicit Passthrough (2025-10-01)
+**Features Added:**
+- **Debug Output**: When `--debug` flag is enabled, parser shows structured parsing process
+- **Implicit Passthrough**: Rules without explicit annotations automatically return `$1`
+- **Grammar Simplification**: Removed redundant `-> $1` annotations throughout grammars
+- **Visibility Enhancement**: Clear trace of return annotation processing pipeline
+
 #### Dual-Mode System
 1. **Bootstrap Mode** (`ReturnAnnotationHandler`)
    - Internal implementation for self-hosted parsers
    - Limited subset: scalars ($1), arrays ([$1, $2]), objects ({key: $1})
    - Avoids circular dependencies during parser generation
    - Used for: semantic_annotation_parser.rs, return_annotation_parser.rs
+   - Grammar specification: `grammars/return_annotation_bootstrap.ebnf`
 
 2. **Full Mode** (`../generated/return_annotation_parser.rs`)
    - External parser with complete grammar support
@@ -208,6 +216,19 @@ The `GroupedQuantifierParser` module is designed with:
 3. **AST Construction**: Builds nested structure based on token relationships
 4. **Mode Selection**: Bootstrap mode uses limited internal parser, full mode uses external
 5. **Code Generation**: Produces Rust code for AST construction
+
+#### Bootstrap Parser Enhancement (2025-10-01)
+**JSON-like Format Support:**
+- Bootstrap parser now handles structured format: `{type: "scalar", index: X}`
+- Recursive parsing of nested objects and arrays
+- Compatible with actual AST output from `return_annotation.ebnf`
+- Maintains self-contained bootstrap mode without external dependencies
+
+**Debug Features:**
+- Shows annotation processing: `"-> $1" → {type: "scalar", index: 1}`
+- Traces implicit passthrough: `"No annotation" → Default: $1`
+- Visual hierarchy for nested structures
+- Clear error messages for unsupported patterns
 
 #### Test Data Management
 - **JSON Structure**: `rust/test_data/return_tests.json` with categories and descriptions

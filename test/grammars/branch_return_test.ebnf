@@ -1,0 +1,33 @@
+# Branch Return Annotation Test Grammar
+# Tests that each branch gets its own return annotation
+
+# Test 1: Different return types for each branch
+value := object_value -> {type: "object", data: $1}
+      | array_value -> {type: "array", data: $1}
+      | string_value -> {type: "string", data: $1}
+      | number_value -> {type: "number", data: $1}
+
+# Test 2: Different object structures per branch
+identifier := /[a-z]+/ -> {kind: "lowercase", value: $1}
+           | /[A-Z]+/ -> {kind: "uppercase", value: $1}
+           | /[0-9]+/ -> {kind: "numeric", value: $1}
+
+# Test 3: Different array returns per branch
+list := single_item -> [$1]
+     | item_pair -> [$1, $2]
+     | item_triple -> [$1, $2, $3]
+
+# Test 4: Scalar returns with different transformations
+result := "success" -> "ok"
+       | "failure" -> "error"
+       | "pending" -> "waiting"
+
+# Supporting rules
+object_value := "{" /\w+/ "}"
+array_value := "[" /\w+/ "]"
+string_value := /"[^"]*"/
+number_value := /\d+/
+
+single_item := /\w+/
+item_pair := /\w+/ /\s+/ /\w+/
+item_triple := /\w+/ /\s+/ /\w+/ /\s+/ /\w+/

@@ -147,7 +147,9 @@ pub struct ReturnAnnotation {
 pub struct Annotations {
     pub semantic_annotations: HashMap<String, Vec<String>>,
     pub logging_annotations: HashMap<String, Vec<String>>,
-    pub return_annotations: HashMap<String, ReturnAnnotation>,
+    /// Branch-level return annotations: rule_name -> Vec[branch_index] -> Option<annotation>
+    /// Each alternative/branch can have its own return annotation
+    pub branch_return_annotations: HashMap<String, Vec<Option<ReturnAnnotation>>>,
 }
 
 
@@ -509,9 +511,16 @@ impl RustASTPipeline {
         self.log_success("transform_raw_ast", &format!("Stage 2 completed: {} rules grouped", grouped_rules.len()));
         current_step += 1;
 
+        // Stage 2a: Extract branch return annotations
+        self.log_progress("transform_raw_ast", current_step, total_steps, "Extract branch return annotations");
+        let grouped_rules_cleaned = self.extract_branch_return_annotations(&grouped_rules)?;
+        self.log_success("transform_raw_ast", &format!("Stage 2a completed: {} branch annotations extracted", 
+            self.annotations.branch_return_annotations.len()));
+        // Don't increment step counter - this is a sub-stage
+
         // Stage 2.5: Handle parentheses
         self.log_progress("transform_raw_ast", current_step, total_steps, "Handle parentheses");
-        let processed_rules = self.handle_parentheses(&grouped_rules)?;
+        let processed_rules = self.handle_parentheses(&grouped_rules_cleaned)?;
         self.log_success("transform_raw_ast", &format!("Stage 2.5 completed: {} rules processed", processed_rules.len()));
         current_step += 1;
 
@@ -1084,48 +1093,12 @@ impl RustASTPipeline {
                         // Don't add to cleaned rule
                     }
                     "return_scalar" | "return_array" | "return_object" => {
+                        // IMPORTANT: Keep return annotations in the token stream!
+                        // They will be extracted later after alternatives are split
                         if let Some(ref name) = rule_name {
-                            if self.config.preserve_annotations {
-                                // Extract return annotation content (same as before)
-                                let annotation_content = match &token[1] {
-                                    TokenValue::String(content) => content.as_str(),
-                                    TokenValue::Array(arr) if !arr.is_empty() => &arr[0],
-                                    _ => "",
-                                };
-                                
-                                if !annotation_content.is_empty() {
-                                    self.log_info("extract_annotations", &format!("↩️  Found return annotation: '{}' (type: {}) for rule '{}'", annotation_content, token_type, name));
-                                    
-                                    // Ensure the annotation has the -> prefix for the new grammar
-                                    let prefixed_annotation = if annotation_content.starts_with("->") {
-                                        annotation_content.to_string()
-                                    } else {
-                                        format!("-> {}", annotation_content)
-                                    };
-                                    
-                                    let return_annotation = ReturnAnnotation {
-                                        annotation_type: token_type.clone(),
-                                        annotation_content: prefixed_annotation, // Store raw annotation with -> prefix
-                                    };
-                                    self.annotations.return_annotations
-                                        .insert(name.clone(), return_annotation);
-                                    
-                                    self.log_success("extract_annotations", &format!("Return annotation stored: {} (type: {})", annotation_content, token_type));
-                                    rule_annotations_found += 1;
-                                } else {
-                                    // Fallback: create a basic return annotation with just the type for empty content
-                                    // This shouldn't happen with valid grammar, but we need a fallback
-                                    self.log_warning("extract_annotations", &format!("Empty return annotation content for rule '{}', skipping", name));
-                                }
-                                
-                                self.stats.annotations_preserved += 1;
-                            } else {
-                                self.log_warning("extract_annotations", "Return annotation preservation is disabled");
-                            }
-                        } else {
-                            self.log_warning("extract_annotations", "Found return annotation token but no rule name available");
+                            self.log_info("extract_annotations", &format!("↩️  Keeping return annotation in stream: type={} for rule '{}'", token_type, name));
                         }
-                        // Don't add to cleaned rule
+                        cleaned_rule.push(token.clone());  // ADD to cleaned rule, don't remove!
                     }
                     _ => {
                         cleaned_rule.push(token.clone());
@@ -1153,11 +1126,11 @@ impl RustASTPipeline {
         // Log breakdown by annotation type
         let semantic_count = self.annotations.semantic_annotations.values().map(|v| v.len()).sum::<usize>();
         let logging_count = self.annotations.logging_annotations.values().map(|v| v.len()).sum::<usize>();
-        let return_count = self.annotations.return_annotations.len();
+        // Return annotations are now kept in stream for later extraction
         
         self.log_info("extract_annotations", &format!(
-            "📊 Breakdown: {} semantic, {} logging, {} return annotations",
-            semantic_count, logging_count, return_count
+            "📊 Breakdown: {} semantic, {} logging annotations (return annotations kept in stream)",
+            semantic_count, logging_count
         ));
 
         Ok(cleaned_ast)
@@ -1239,6 +1212,77 @@ impl RustASTPipeline {
         ));
 
         Ok(grouped)
+    }
+
+    /// Stage 2a: Extract branch return annotations from grouped alternatives
+    fn extract_branch_return_annotations(&mut self, grouped_rules: &HashMap<String, Vec<TokenSequence>>) -> Result<HashMap<String, Vec<TokenSequence>>> {
+        self.log_info("extract_branch_return_annotations", &format!("🎯 Extracting branch-level return annotations for {} rules", grouped_rules.len()));
+        
+        let mut processed = HashMap::new();
+        let mut total_branch_annotations = 0;
+        
+        for (rule_name, alternatives) in grouped_rules {
+            let mut branch_annotations = Vec::new();
+            let mut cleaned_alts = Vec::new();
+            
+            self.log_info("extract_branch_return_annotations", &format!("📌 Processing rule '{}' with {} alternatives", rule_name, alternatives.len()));
+            
+            for (branch_idx, alt) in alternatives.iter().enumerate() {
+                let mut cleaned_alt = TokenSequence::new();
+                let mut branch_annotation: Option<ReturnAnnotation> = None;
+                
+                // Scan the alternative for return annotations
+                for token in alt {
+                    if token.len() == 2 {
+                        if let (TokenValue::String(type_str), TokenValue::String(content)) = (&token[0], &token[1]) {
+                            match type_str.as_str() {
+                                "return_scalar" | "return_array" | "return_object" => {
+                                    // Found a return annotation for this branch!
+                                    self.log_success("extract_branch_return_annotations", 
+                                        &format!("  Branch {}: Found {} annotation: '{}'", branch_idx, type_str, content));
+                                    
+                                    // Ensure the annotation has the -> prefix for the new grammar
+                                    let prefixed_annotation = if content.starts_with("->") {
+                                        content.clone()
+                                    } else {
+                                        format!("-> {}", content)
+                                    };
+                                    
+                                    branch_annotation = Some(ReturnAnnotation {
+                                        annotation_type: type_str.clone(),
+                                        annotation_content: prefixed_annotation,
+                                    });
+                                    total_branch_annotations += 1;
+                                    // Don't add return annotation tokens to cleaned alternative
+                                    continue;
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    cleaned_alt.push(token.clone());
+                }
+                
+                branch_annotations.push(branch_annotation);
+                cleaned_alts.push(cleaned_alt);
+            }
+            
+            // Store the branch annotations for this rule
+            if branch_annotations.iter().any(|a| a.is_some()) {
+                self.annotations.branch_return_annotations.insert(rule_name.clone(), branch_annotations);
+                self.log_success("extract_branch_return_annotations", 
+                    &format!("Rule '{}': Stored {} branch annotations", rule_name, 
+                        self.annotations.branch_return_annotations[rule_name].iter().filter(|a| a.is_some()).count()));
+            }
+            
+            processed.insert(rule_name.clone(), cleaned_alts);
+        }
+        
+        self.log_success("extract_branch_return_annotations", 
+            &format!("✅ Branch return annotation extraction complete! {} total annotations from {} rules", 
+                total_branch_annotations, processed.len()));
+        
+        Ok(processed)
     }
 
     /// Stage 2.5: Handle parentheses and grouping
@@ -1523,16 +1567,16 @@ impl RustASTPipeline {
         Ok(())
     }
 
-    /// Get return annotations for a specific rule
+    /// Get branch return annotations for a specific rule
     #[allow(dead_code)]
-    pub fn get_return_annotation(&self, rule_name: &str) -> Option<&ReturnAnnotation> {
-        self.annotations.return_annotations.get(rule_name)
+    pub fn get_branch_return_annotations(&self, rule_name: &str) -> Option<&Vec<Option<ReturnAnnotation>>> {
+        self.annotations.branch_return_annotations.get(rule_name)
     }
     
-    /// Get all return annotations
+    /// Get all branch return annotations
     #[allow(dead_code)]
-    pub fn get_all_return_annotations(&self) -> &HashMap<String, ReturnAnnotation> {
-        &self.annotations.return_annotations
+    pub fn get_all_branch_return_annotations(&self) -> &HashMap<String, Vec<Option<ReturnAnnotation>>> {
+        &self.annotations.branch_return_annotations
     }
     
     /// Get semantic annotations for a specific rule
@@ -1589,8 +1633,13 @@ impl RustASTPipeline {
         // Set bootstrap mode if configured
         code_generator.set_bootstrap_mode(self.config.bootstrap_mode);
         
-        // Pass the return annotations to the code generator
-        code_generator.set_return_annotations(&self.annotations.return_annotations);
+        // Enable debug output for return annotations when debug is enabled
+        if enable_backtrack_debug || enable_trace {
+            code_generator.set_debug_mode(true);
+        }
+        
+        // Pass the branch-level return annotations to the code generator
+        code_generator.set_branch_return_annotations(&self.annotations.branch_return_annotations);
         
         let rust_code = code_generator.generate_lightning_fast_parser_with_logging(&grammar_tree, &rule_order, self)?;
         

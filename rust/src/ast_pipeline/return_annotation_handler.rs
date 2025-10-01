@@ -54,6 +54,7 @@ impl ReturnAnnotationHandler {
     
     /// Parse a return annotation string into structured form
     /// Bootstrap mode supports: -> $1, -> [$1, $2*], -> {key: value}, -> "literal"
+    /// Also handles the format used by return_annotation.ebnf: {type: "scalar", index: ...}
     pub fn parse_return_annotation(&self, annotation: &str) -> Result<ReturnAnnotation, String> {
         if self.debug {
             println!("[ReturnAnnotationHandler] Parsing annotation: {}", annotation);
@@ -81,6 +82,10 @@ impl ReturnAnnotationHandler {
         
         // Check for object: {...}
         if trimmed.starts_with('{') && trimmed.ends_with('}') {
+            // Check if it's a structured format from return_annotation.ebnf
+            if trimmed.contains("type:") {
+                return self.parse_structured_object(trimmed);
+            }
             return self.parse_object(trimmed);
         }
         
@@ -194,6 +199,110 @@ impl ReturnAnnotationHandler {
         self.split_array_elements(contents)
     }
     
+    /// Parse structured objects from return_annotation.ebnf format
+    /// Examples: {type: "scalar", index: $2}, {type: "array", contents: ...}
+    fn parse_structured_object(&self, input: &str) -> Result<ReturnAnnotation, String> {
+        // Remove braces and parse the object
+        let contents = &input[1..input.len()-1].trim();
+        
+        // Parse key-value pairs
+        let pairs = self.split_object_pairs(contents);
+        
+        // Look for the type field
+        let mut type_value = None;
+        let mut properties = HashMap::new();
+        
+        for pair in pairs {
+            let parts: Vec<&str> = pair.splitn(2, ':').collect();
+            if parts.len() != 2 {
+                continue;
+            }
+            
+            let key = parts[0].trim().trim_matches('"');
+            let value = parts[1].trim();
+            
+            if key == "type" {
+                type_value = Some(value.trim_matches('"').to_string());
+            } else {
+                properties.insert(key.to_string(), value.to_string());
+            }
+        }
+        
+        // Handle based on type
+        match type_value.as_deref() {
+            Some("scalar") => {
+                // {type: "scalar", index: $2} or {type: "scalar", index: {type: "pos", value: "2"}}
+                if let Some(index_str) = properties.get("index") {
+                    // Check if index is a scalar reference like $2
+                    if index_str.starts_with('$') {
+                        return self.parse_scalar_ref(index_str);
+                    }
+                    // Check if index is itself a structured object
+                    if index_str.starts_with('{') && index_str.ends_with('}') {
+                        // For now, extract the numeric value from nested structures
+                        if index_str.contains("value:") {
+                            // Extract value from {type: "pos", value: "2"}
+                            let value_regex = regex::Regex::new(r#"value:\s*["']?(\d+)["']?"#).unwrap();
+                            if let Some(caps) = value_regex.captures(index_str) {
+                                if let Ok(idx) = caps.get(1).unwrap().as_str().parse::<usize>() {
+                                    return Ok(ReturnAnnotation::ScalarRef { index: idx });
+                                }
+                            }
+                        }
+                    }
+                    // Try to parse as direct number
+                    if let Ok(idx) = index_str.trim_matches('"').parse::<usize>() {
+                        return Ok(ReturnAnnotation::ScalarRef { index: idx });
+                    }
+                }
+            }
+            Some("array") => {
+                // {type: "array", contents: ...} or {type: "array", element: ...}
+                if let Some(contents_str) = properties.get("contents").or_else(|| properties.get("element")) {
+                    // Recursively parse the contents
+                    if contents_str.starts_with('[') {
+                        return self.parse_array(contents_str);
+                    } else if contents_str.starts_with('$') {
+                        // Simple scalar reference as element
+                        let elem = self.parse_scalar_ref(contents_str)?;
+                        return Ok(ReturnAnnotation::Array {
+                            elements: vec![ArrayElement::Single(elem)]
+                        });
+                    }
+                }
+                // Empty array if no contents
+                return Ok(ReturnAnnotation::Array { elements: vec![] });
+            }
+            Some("object") => {
+                // {type: "object", contents: ...} or other object structures
+                // For now, convert to a simple object with the properties
+                let mut result_props = HashMap::new();
+                for (k, v) in properties {
+                    if k != "type" {
+                        // Try to parse each value
+                        let parsed_value = if v.starts_with('$') {
+                            self.parse_scalar_ref(&v)?
+                        } else if v.starts_with('"') && v.ends_with('"') {
+                            ReturnAnnotation::Literal { 
+                                value: v[1..v.len()-1].to_string() 
+                            }
+                        } else {
+                            ReturnAnnotation::Literal { value: v }
+                        };
+                        result_props.insert(k, parsed_value);
+                    }
+                }
+                return Ok(ReturnAnnotation::Object { properties: result_props });
+            }
+            _ => {
+                // Unknown type or no type field, treat as regular object
+                return self.parse_object(input);
+            }
+        }
+        
+        Err(format!("Failed to parse structured object: {}", input))
+    }
+    
     /// Generate code to build the AST based on return annotation
     pub fn generate_ast_builder_code(
         &self,
@@ -203,9 +312,12 @@ impl ReturnAnnotationHandler {
     ) -> Result<String, String> {
         match annotation {
             ReturnAnnotation::ScalarRef { index } => {
-                // Reference to a captured parse result - extract content from ParseNode
+                // Reference to a captured parse result
                 if *index > 0 && *index <= captured_vars.len() {
-                    Ok(format!("{}.content", captured_vars[index - 1]))
+                    // In bootstrap mode within branches, the captured variable is already a ParseContent,
+                    // not a ParseNode, so we return it directly without accessing .content
+                    // This is a special case for branch return annotations in bootstrap mode
+                    Ok(captured_vars[index - 1].clone())
                 } else {
                     Err(format!("Invalid scalar reference: ${}", index))
                 }

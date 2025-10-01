@@ -117,7 +117,7 @@ pub struct HighPerformanceRustGenerator {
     enable_backtrack_debug: bool,
     bootstrap_mode: bool,
     annotations: Option<Annotations>,
-    return_annotations: HashMap<String, ReturnAnnotation>,
+    branch_return_annotations: HashMap<String, Vec<Option<ReturnAnnotation>>>,
     quantified_group_counter: std::cell::RefCell<u32>,
     quantified_groups: std::cell::RefCell<Vec<QuantifiedGroupInfo>>,
 }
@@ -149,7 +149,7 @@ impl HighPerformanceRustGenerator {
             enable_backtrack_debug: false,
             bootstrap_mode: false,
             annotations: None,
-            return_annotations: HashMap::new(),
+            branch_return_annotations: HashMap::new(),
             quantified_group_counter: std::cell::RefCell::new(0),
             quantified_groups: std::cell::RefCell::new(Vec::new()),
         }
@@ -164,7 +164,7 @@ impl HighPerformanceRustGenerator {
             enable_backtrack_debug: false,
             bootstrap_mode: false,
             annotations: None,
-            return_annotations: HashMap::new(),
+            branch_return_annotations: HashMap::new(),
             quantified_group_counter: std::cell::RefCell::new(0),
             quantified_groups: std::cell::RefCell::new(Vec::new()),
         }
@@ -179,7 +179,7 @@ impl HighPerformanceRustGenerator {
             enable_backtrack_debug: true,
             bootstrap_mode: false,
             annotations: None,
-            return_annotations: HashMap::new(),
+            branch_return_annotations: HashMap::new(),
             quantified_group_counter: std::cell::RefCell::new(0),
             quantified_groups: std::cell::RefCell::new(Vec::new()),
         }
@@ -196,14 +196,29 @@ impl HighPerformanceRustGenerator {
         self.annotations = Some(annotations);
     }
     
-    /// Set return annotations for code generation
-    pub fn set_return_annotations(&mut self, return_annotations: &HashMap<String, ReturnAnnotation>) {
-        self.return_annotations = return_annotations.clone();
+    /// Set branch return annotations for code generation
+    pub fn set_branch_return_annotations(&mut self, branch_return_annotations: &HashMap<String, Vec<Option<ReturnAnnotation>>>) {
+        println!("[DEBUG] Setting branch return annotations: {} rules with annotations", branch_return_annotations.len());
+        for (rule_name, annotations) in branch_return_annotations {
+            let ann_count = annotations.iter().filter(|a| a.is_some()).count();
+            if ann_count > 0 {
+                println!("[DEBUG]   Rule '{}': {} branch annotations", rule_name, ann_count);
+            }
+        }
+        self.branch_return_annotations = branch_return_annotations.clone();
     }
     
     /// Set bootstrap mode for limited return annotation support
     pub fn set_bootstrap_mode(&mut self, bootstrap: bool) {
         self.bootstrap_mode = bootstrap;
+    }
+    
+    /// Enable debug output for return annotations
+    pub fn set_debug_mode(&mut self, enable_debug: bool) {
+        // When debug mode is enabled, we want to show AST dumps for return annotations
+        if enable_debug {
+            self.enable_trace = true;
+        }
     }
     
     /// Log message using the AST Pipeline's unified logging system
@@ -2216,12 +2231,10 @@ impl<'input> {parser_name}<'input> {{
             }
         }
         
-        // Check for return annotation for this rule
-        let return_annotation = if let Some(annotations) = &self.annotations {
-            annotations.return_annotations.get(rule_name)
-        } else {
-            None
-        };
+        // Check for return annotation for this rule (sequence level - not branch level)
+        // This is for sequences that are not part of an OR alternative
+        // For now, we don't have sequence-level return annotations, only branch-level
+        let return_annotation: Option<&ReturnAnnotation> = None;
         
         // Check for optional quantified groups in the sequence
         let processed_elements = self.analyze_and_group_optional_quantifiers(elements)?;
@@ -2511,8 +2524,19 @@ impl<'input> {parser_name}<'input> {{
     }
     
     fn generate_n_branch_template_with_context_and_pipeline(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
+        println!("[DEBUG] generate_n_branch_template called for rule '{}' with {} branches, enable_trace={}", rule_name, alternatives.len(), self.enable_trace);
         let mut builder = RustCodeBuilder::new();
         let n_branches = alternatives.len();
+        
+        // Check if any branch has a return annotation
+        let any_branch_has_annotation = self.branch_return_annotations
+            .get(rule_name)
+            .map(|branches| branches.iter().any(|opt| opt.is_some()))
+            .unwrap_or(false);
+        
+        if !any_branch_has_annotation && self.enable_trace {
+            println!("[DEBUG] Rule '{}' has no branch annotations - will apply implicit -> $1 (passthrough)", rule_name);
+        }
         
         // Declare result variable in outer scope
         builder.add_line(&format!("{indent}let result: ParseContent<'input>;"));
@@ -2555,6 +2579,96 @@ impl<'input> {parser_name}<'input> {{
                 .replace("self.", "p.");
             
             builder.add_raw(&branch_content);
+            
+            // Check for branch-specific return annotation
+            println!("[DEBUG] Checking branch return annotation for rule '{}', branch {}", rule_name, branch_idx);
+            let branch_return_annotation = self.branch_return_annotations
+                .get(rule_name)
+                .and_then(|branches| {
+                    println!("[DEBUG]   Found {} branches for rule '{}'", branches.len(), rule_name);
+                    branches.get(branch_idx)
+                })
+                .and_then(|opt| {
+                    if opt.is_some() {
+                        println!("[DEBUG]   Found annotation for branch {}", branch_idx);
+                    } else {
+                        println!("[DEBUG]   No annotation for branch {}", branch_idx);
+                    }
+                    opt.as_ref()
+                });
+            
+            // Apply return annotation (explicit or implicit)
+            if let Some(return_ann) = branch_return_annotation {
+                // Apply explicit branch-specific return annotation
+                if self.enable_trace {
+                    builder.add_line(&format!("{indent}{branch_indent}// Applying branch {} return annotation: {}", branch_idx, return_ann.annotation_type));
+                }
+            } else if !any_branch_has_annotation {
+                // Apply implicit passthrough (-> $1) when NO branches have annotations
+                if self.enable_trace {
+                    builder.add_line(&format!("{indent}{branch_indent}// No annotations on any branch - applying implicit -> $1 (passthrough)"));
+                }
+                // Result is already in 'result' variable from branch execution, so no action needed
+                // The passthrough is implicit - we just use the result as-is
+            }
+            
+            if let Some(return_ann) = branch_return_annotation {
+                
+                // Parse and apply return annotation
+                let handler = ReturnAnnotationHandler::new(
+                    if self.bootstrap_mode { ReturnAnnotationMode::Bootstrap } else { ReturnAnnotationMode::Full },
+                    self.enable_trace
+                );
+                
+                println!("[DEBUG] About to parse return annotation: '{}'", return_ann.annotation_content);
+                match handler.parse_return_annotation(&return_ann.annotation_content) {
+                    Ok(parsed_ann) => {
+                        println!("[DEBUG] Successfully parsed return annotation for branch {}", branch_idx);
+                        builder.add_line(&format!("{indent}{branch_indent}// DEBUG: Successfully parsed return annotation"));
+                        // Add debug output for return annotation AST as comments
+                        // when either debug or trace mode is enabled
+                        // Add empty line before debug output
+                        builder.add_line(&format!("{indent}{branch_indent}"));
+                        builder.add_line(&format!("{indent}{branch_indent}// ═══════════════════════════════════════════════════════"));
+                        builder.add_line(&format!("{indent}{branch_indent}// Return Annotation Debug Output for branch {}", branch_idx));
+                        builder.add_line(&format!("{indent}{branch_indent}// ═══════════════════════════════════════════════════════"));
+                        builder.add_line(&format!("{indent}{branch_indent}// Text representation: {}", return_ann.annotation_content));
+                        builder.add_line(&format!("{indent}{branch_indent}// Annotation type: {}", return_ann.annotation_type));
+                        builder.add_line(&format!("{indent}{branch_indent}//"));
+                        builder.add_line(&format!("{indent}{branch_indent}// Parsed AST:"));
+                        let ast_dump = self.format_return_annotation_ast(&parsed_ann, 0);
+                        for line in ast_dump.lines() {
+                            builder.add_line(&format!("{indent}{branch_indent}// {}", line));
+                        }
+                        builder.add_line(&format!("{indent}{branch_indent}// ═══════════════════════════════════════════════════════"));
+                        // Add empty line after debug output
+                        builder.add_line(&format!("{indent}{branch_indent}"));
+                        // For branches, we need to handle the captured variables differently
+                        // The result is typically in a variable called 'result'
+                        let captured_vars = vec!["result".to_string()];
+                        
+                        match handler.generate_ast_builder_code(&parsed_ann, &captured_vars, &format!("{indent}{branch_indent}")) {
+                            Ok(ast_code) => {
+                                builder.add_line(&format!("{indent}{branch_indent}let result = {};", ast_code));
+                            }
+                            Err(e) => {
+                                if self.enable_trace {
+                                    builder.add_line(&format!("{indent}{branch_indent}// Failed to generate AST from return annotation: {}", e));
+                                }
+                                // Keep the original result
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("[DEBUG] Failed to parse return annotation for branch {}: {}", branch_idx, e);
+                        if self.enable_trace {
+                            builder.add_line(&format!("{indent}{branch_indent}// Failed to parse return annotation: {}", e));
+                        }
+                        // Keep the original result
+                    }
+                }
+            }
+            
             builder.add_line(&format!("{indent}{branch_indent}Ok(result)"));
             
             // Close the try_parse closure and assign result
@@ -2584,6 +2698,73 @@ impl<'input> {parser_name}<'input> {{
         builder.add_line(&format!("{indent}}}"));
         
         Ok(builder.build())
+    }
+    
+    /// Pretty-print a return annotation AST for debug output
+    fn format_return_annotation_ast(&self, ann: &crate::ast_pipeline::return_annotation_handler::ReturnAnnotation, indent: usize) -> String {
+        use crate::ast_pipeline::return_annotation_handler::{ReturnAnnotation, ArrayElement};
+        let indent_str = "  ".repeat(indent);
+        
+        match ann {
+            ReturnAnnotation::ScalarRef { index } => {
+                format!("{}ScalarRef {{ index: {} }}", indent_str, index)
+            }
+            ReturnAnnotation::Array { elements } => {
+                let mut result = format!("{}Array {{", indent_str);
+                if !elements.is_empty() {
+                    result.push_str("\n");
+                    result.push_str(&format!("{}  elements: [\n", indent_str));
+                    for (i, elem) in elements.iter().enumerate() {
+                        match elem {
+                            ArrayElement::Single(ann) => {
+                                result.push_str(&format!("{}    [{}] Single:\n", indent_str, i));
+                                result.push_str(&self.format_return_annotation_ast(ann, indent + 3));
+                            }
+                            ArrayElement::Spread(ann) => {
+                                result.push_str(&format!("{}    [{}] Spread (*):\n", indent_str, i));
+                                result.push_str(&self.format_return_annotation_ast(ann, indent + 3));
+                            }
+                        }
+                        result.push('\n');
+                    }
+                    result.push_str(&format!("{}  ]\n", indent_str));
+                    result.push_str(&format!("{}}}", indent_str));
+                } else {
+                    result.push_str(" elements: [] }");
+                }
+                result
+            }
+            ReturnAnnotation::Object { properties } => {
+                let mut result = format!("{}Object {{", indent_str);
+                if !properties.is_empty() {
+                    result.push_str("\n");
+                    result.push_str(&format!("{}  properties: {{\n", indent_str));
+                    let mut sorted_keys: Vec<_> = properties.keys().collect();
+                    sorted_keys.sort();
+                    for key in sorted_keys {
+                        result.push_str(&format!("{}    \"{}\": \n", indent_str, key));
+                        result.push_str(&self.format_return_annotation_ast(&properties[key], indent + 3));
+                        result.push('\n');
+                    }
+                    result.push_str(&format!("{}  }}\n", indent_str));
+                    result.push_str(&format!("{}}}", indent_str));
+                } else {
+                    result.push_str(" properties: {} }");
+                }
+                result
+            }
+            ReturnAnnotation::Literal { value } => {
+                format!("{}Literal {{ value: \"{}\" }}", indent_str, value)
+            }
+            ReturnAnnotation::Quantified { base, quantifier } => {
+                format!("{}Quantified {{ quantifier: \"{}\" }}\n{}  base:\n{}", 
+                    indent_str, quantifier, indent_str, 
+                    self.format_return_annotation_ast(base, indent + 1))
+            }
+            ReturnAnnotation::Passthrough => {
+                format!("{}Passthrough", indent_str)
+            }
+        }
     }
     
     /// Helper function to get the first rule reference in an AST node (for mutual recursion checking)

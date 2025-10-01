@@ -3,9 +3,6 @@ name = "test"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "simple_test"
-path = "simple_test.rs"
 
 [dependencies]
 regex = "1.0"

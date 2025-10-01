@@ -1,5 +1,201 @@
 # CHANGES.md
 
+## 2025-10-01: Return Annotation Debug Output and Implicit Passthrough ✅
+
+### Problem Statement
+Developers needed better visibility into how return annotations are parsed and applied, and the return_annotation.ebnf grammar had excessive redundant `-> $1` annotations making it verbose and harder to maintain.
+
+### Solution Implementation
+
+#### 1. Comprehensive Debug Output for Return Annotations
+- **Added AST dump visualization** when `--debug` or `--trace` flags enabled
+- **New helper function** `format_return_annotation_ast()` pretty-prints parsed annotation structures
+- **Debug output includes**:
+  - Box-drawing separator lines for clarity
+  - Branch identification (which branch number)
+  - Text representation of raw annotation
+  - Annotation type (scalar/array/object)
+  - Indented parsed AST structure
+- **Location**: Comments in generated parser code for easy inspection
+
+#### 2. Implicit Passthrough Behavior
+- **Automatic `-> $1` application** when NO branches have return annotations
+- **Consistent semantics**:
+  - No annotation = implicit passthrough
+  - All branches with `-> $1` = can be factored out
+  - Mixed annotations = each branch keeps its specific annotation
+- **Implementation**: Detects annotation-less rules and applies passthrough automatically
+
+#### 3. Bootstrap Handler Enhancement  
+- **Updated `parse_structured_object()`** to handle return_annotation.ebnf format
+- **Supports structured objects**: `{type: "scalar", index: $2}`
+- **Recursive parsing** for nested structures
+- **Handles all grammar patterns**:
+  - Scalar references with nested objects
+  - Array structures with contents/elements
+  - Object structures with properties
+
+#### 4. Grammar Simplification
+- **Removed 50+ redundant `-> $1` annotations** from return_annotation.ebnf
+- **Cleaned rules**:
+  - `return_expression` (11 branches)
+  - `property_value` (8 branches)
+  - `inner_value` (8 branches)
+  - `object_value` (5 branches)
+  - `array_element` (5 branches)
+  - `accessor`, `index`, `literal`, all object keys, etc.
+
+### Example Transformations
+
+**Before (verbose)**:
+```ebnf
+property_value := nested_array -> $1
+               | nested_object -> $1
+               | grouped_quantified_array -> $1
+               | quantified_array -> $1
+               | simple_array -> $1
+               | ultimate_dot_notation -> $1
+               | scalar_ref -> $1
+               | literal -> $1
+```
+
+**After (clean)**:
+```ebnf
+property_value := nested_array
+               | nested_object
+               | grouped_quantified_array
+               | quantified_array
+               | simple_array
+               | ultimate_dot_notation
+               | scalar_ref
+               | literal
+```
+
+### Debug Output Example
+```rust
+// ═══════════════════════════════════════════════════════
+// Return Annotation Debug Output for branch 0
+// ═══════════════════════════════════════════════════════
+// Text representation: -> $1
+// Annotation type: return_scalar
+//
+// Parsed AST:
+// ScalarRef { index: 1 }
+// ═══════════════════════════════════════════════════════
+```
+
+### Files Modified
+- `rust/src/ast_pipeline/high_performance_generator.rs` - Added debug output and implicit passthrough
+- `rust/src/ast_pipeline/return_annotation_handler.rs` - Enhanced structured object parsing
+- `grammars/return_annotation.ebnf` - Removed redundant annotations
+
+### Impact
+- **Developer Experience**: Clear visibility into annotation processing
+- **Maintainability**: Cleaner, more readable grammar files
+- **Consistency**: Uniform behavior for annotation-less rules
+- **Debugging**: Comprehensive AST dumps for troubleshooting
+
+---
+
+## 2025-01-10: Branch-Level Return Annotation Implementation ✅
+
+### Critical Discovery
+Return annotations are attached to **branches/alternatives**, not rules! The current implementation has a fundamental flaw.
+
+### Problem Analysis
+
+#### JSON Structure Reality
+In the JSON files from ebnf_to_json.pl, return annotations appear inline:
+```json
+["regex", "pattern1"],
+["return_scalar", "$1"],     // <-- Annotation for branch 1
+["operator", "|"],
+["regex", "pattern2"],  
+["return_object", "{...}"]   // <-- Annotation for branch 2
+```
+
+#### Current Implementation Bug
+1. **Stage 1**: Extracts ALL return annotations, stores by rule name
+2. **Data Loss**: Only the LAST annotation is kept per rule!
+3. **Stage 2**: Splits alternatives but annotations already removed
+4. **Result**: Wrong annotation applied to all branches
+
+### Solution Design
+
+#### Architectural Change
+```rust
+// OLD - Wrong
+pub struct Annotations {
+    return_annotations: HashMap<String, ReturnAnnotation>  // One per rule
+}
+
+// NEW - Correct
+pub struct Annotations {
+    branch_return_annotations: HashMap<String, Vec<Option<ReturnAnnotation>>>  // One per branch
+}
+```
+
+#### Implementation Plan
+1. Keep return annotations in token stream during Stage 1
+2. Let Stage 2 split WITH annotations intact
+3. Extract after alternatives are separated
+4. Apply branch-specific annotations in code generation
+
+### Implementation Completed
+
+#### Files Modified
+- `src/ast_pipeline.rs` - Modified annotation extraction pipeline
+- `src/ast_pipeline/high_performance_generator.rs` - Updated code generation
+- New method `extract_branch_return_annotations` added after Stage 2
+- Branch annotations applied in `generate_n_branch_template`
+
+#### Files Created
+- `BRANCH_RETURN_ANNOTATIONS.md` - Complete implementation plan
+- `grammars/return_annotation_bootstrap.ebnf` - Bootstrap mode grammar specification
+- `test/grammars/branch_return_test.ebnf` - Test EBNF with multiple branches
+- `tests/test_branch_return_annotations.rs` - Unit test for verification
+
+### Impact
+- **Correctness**: Each branch gets its proper return annotation
+- **Completeness**: No more data loss from multiple annotations
+- **EBNF Compliance**: Matches the actual EBNF semantics
+
+---
+
+## 2025-01-10: Bootstrap Mode Return Annotation Grammar Specification ✅
+
+### Problem Statement
+The bootstrap mode implementation in ReturnAnnotationHandler lacked formal documentation of its exact capabilities and limitations, making it unclear what features are supported versus unsupported.
+
+### Solution Implementation
+Created `grammars/return_annotation_bootstrap.ebnf` - a formal EBNF grammar specification that precisely documents the bootstrap mode subset.
+
+#### Grammar Coverage
+**Supported Features:**
+- Scalar references: `$1`, `$2`, `$99`
+- String literals: `"value"`
+- Arrays with spread: `[$1, $3*]`
+- Simple objects: `{key: $1, type: "array"}`
+- Basic nesting (parsed but limited code generation)
+
+**Explicitly Unsupported:**
+- Dot notation access (`$1.property`)
+- Array indexing/slicing (`$1[0]`, `$1[1:3]`)
+- Quantifiers on annotations (`[$1]*`, `{key: $1}+`)
+- Number/boolean literals without quotes
+- Null values
+- Single-quoted strings
+- Complex accessor chains
+- Negative indexing
+- Multiple indices
+
+### Impact
+- **Clarity**: Developers know exactly what bootstrap mode supports
+- **Documentation**: Formal grammar serves as authoritative specification
+- **Future Development**: Clear boundaries for implementing return annotations
+
+---
+
 ## 2025-01-10: Return Annotation Architecture Documentation Enhancement ✅
 
 ### Problem Statement
@@ -99,6 +295,47 @@ Each alternative branch can have its own return annotation after the `->` operat
 - `rust/src/ast_pipeline/return_annotation_handler.rs` - Updated to handle `->` prefix
 - `rust/src/ast_pipeline.rs` - Preserves `->` prefix from EBNF
 - `rust/test_data/return_tests.json` - All test cases updated with `->` prefix
+
+---
+
+## 2024-12-20: Bootstrap Mode Grammar Alignment ✅
+
+### Task
+- Modified return_annotation.ebnf to be compatible with bootstrap mode subset
+- Bootstrap mode supports limited features compared to full mode
+
+### Changes Made to return_annotation.ebnf
+- Removed complex constructs not supported in bootstrap mode:
+  - Dot notation field access (e.g., $1.field)
+  - Array slicing and indexing
+  - Quantifiers on entire annotations
+  - Complex nested structures beyond simple arrays/objects
+- Ensured all return annotations use supported constructs:
+  - Scalar references ($1, $2, etc.)
+  - String literals (double quotes only)
+  - Simple arrays with optional spread operator
+  - Simple objects with unquoted keys allowed
+
+### Issue Discovered and Fixed
+- Bootstrap mode code generator was producing invalid code
+- Tried to access `.content` field on `ParseContent` enum (which doesn't exist)
+- Error occurred where return annotations were applied in branches
+- Example: `let result = result.content;` where result is `ParseContent<'input>`
+
+### Solution Implemented
+- Modified return_annotation_handler.rs to handle bootstrap mode correctly
+- In bootstrap mode within branches, captured variables are already `ParseContent`
+- Changed handler to return variable directly without `.content` access
+- Manually fixed existing generated parser to unblock build
+- Regenerated parser successfully with corrected code
+
+### Verification
+- ✅ EBNF grammar successfully modified for bootstrap compatibility
+- ✅ JSON generation from EBNF successful
+- ✅ AST pipeline transformation with --bootstrap-mode successful
+- ✅ Bootstrap mode code generator fixed
+- ✅ Parser regeneration successful without `.content` errors
+- ✅ Build completes successfully
 - `rust/src/stress_test_framework.rs` - Standardized test framework (separate feature)
 
 ### Impact Assessment
