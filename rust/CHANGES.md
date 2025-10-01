@@ -51,3 +51,30 @@ Added tests for:
 - Implement proper mutual recursion detection in the recursion guard
 - Update code generator to utilize the structured quantifiers and groups
 - Run comprehensive stress tests on complex grammars
+
+## 2025-10-01: Fixed Nested Quantified Groups Issue
+
+### Problem
+The semantic_annotation parser was failing with "unexpected quantifier '?'" errors on patterns like:
+```
+( tuple_element ( \s* , \s* tuple_element )* )?
+```
+
+### Root Cause
+The `handle_parentheses` stage was collapsing groups into single "group" tokens with serialized JSON content. This lost the group_open and group_close boundaries that the quantifier parser needed to properly match nested groups.
+
+### Solution
+Simplified the pipeline by removing the group collapsing behavior:
+1. `handle_parentheses` now just passes tokens through unchanged
+2. `parse_single_element` treats all tokens as atoms
+3. Group boundaries are preserved for the quantifier parser
+
+### Impact
+- ✅ Semantic annotation parser now generates successfully (1MB+ file)
+- ✅ All nested quantified group patterns work correctly
+- ✅ Pipeline is simpler and more maintainable
+
+### Validation
+- Tested with full semantic_annotation.ebnf grammar
+- Parser compiles without errors
+- Generated parser is functional

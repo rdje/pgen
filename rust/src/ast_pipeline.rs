@@ -1257,108 +1257,12 @@ impl RustASTPipeline {
 
     /// Process parentheses within a token sequence
     fn process_parentheses_in_sequence(&self, sequence: &TokenSequence) -> Result<TokenSequence> {
-        let mut result = TokenSequence::new();
-        let mut i = 0;
-
-        while i < sequence.len() {
-            let token = &sequence[i];
-
-            if token.len() == 2 && token[0] == "group_open" {
-                // Find matching close
-                let mut paren_count = 1;
-                let mut j = i + 1;
-                let mut group_content = TokenSequence::new();
-
-                while j < sequence.len() && paren_count > 0 {
-                    if sequence[j].len() == 2 {
-                        if let Some(token_str) = sequence[j][0].as_str() {
-                            match token_str {
-                                "group_open" => paren_count += 1,
-                                "group_close" => paren_count -= 1,
-                                _ => {}
-                            }
-                        }
-                    }
-
-                    if paren_count > 0 {
-                        group_content.push(sequence[j].clone());
-                    }
-                    j += 1;
-                }
-
-                if !group_content.is_empty() {
-                    // Create group token - serialize content as JSON for now
-                    let content_json = serde_json::to_string(&group_content)
-                        .context("Failed to serialize group content")?;
-                    result.push(vec![TokenValue::String("group".to_string()), TokenValue::String(content_json)]);
-                }
-
-                i = j;
-            } else {
-                result.push(token.clone());
-                i += 1;
-            }
-        }
-
-        Ok(result)
+        // For now, just return the sequence as-is
+        // We'll handle groups properly in the quantifier stage
+        // This preserves the group_open and group_close tokens
+        Ok(sequence.clone())
     }
 
-    /// Parse group content, handling OR operators to create proper Or nodes
-    fn parse_group_with_or_handling(&self, group_content: &TokenSequence) -> Result<ASTNode> {
-        // Check if this group contains OR operators
-        let has_or_operators = group_content.iter().any(|token| {
-            token.len() == 2 && token[0] == "operator" && token[1].as_str() == Some("|")
-        });
-
-        if has_or_operators {
-            // Split on OR operators to create alternatives
-            let mut alternatives = Vec::new();
-            let mut current_alt = TokenSequence::new();
-
-            for token in group_content {
-                if token.len() == 2 && token[0] == "operator" && token[1].as_str() == Some("|") {
-                    if !current_alt.is_empty() {
-                        let alt_node = if current_alt.len() == 1 {
-                            self.parse_single_element(&current_alt[0])?
-                        } else {
-                            let elements: Result<Vec<ASTNode>> = current_alt
-                                .iter()
-                                .map(|elem| self.parse_single_element(elem))
-                                .collect();
-                            ASTNode::Sequence { elements: elements? }
-                        };
-                        alternatives.push(alt_node);
-                        current_alt.clear();
-                    }
-                } else {
-                    current_alt.push(token.clone());
-                }
-            }
-
-            // Add final alternative
-            if !current_alt.is_empty() {
-                let alt_node = if current_alt.len() == 1 {
-                    self.parse_single_element(&current_alt[0])?
-                } else {
-                    let elements: Result<Vec<ASTNode>> = current_alt
-                        .iter()
-                        .map(|elem| self.parse_single_element(elem))
-                        .collect();
-                    ASTNode::Sequence { elements: elements? }
-                };
-                alternatives.push(alt_node);
-            }
-
-            Ok(ASTNode::Or { alternatives })
-        } else {
-            // No OR operators - treat as a sequence
-            let elements: Result<Vec<ASTNode>> = group_content
-                .iter()
-                .map(|elem| self.parse_single_element(elem))
-                .collect();
-            Ok(ASTNode::Sequence { elements: elements? })
-        }
-    }
 
     /// Stage 3: Parse sequences
     fn parse_sequences(&mut self, processed_rules: &HashMap<String, Vec<TokenSequence>>) -> Result<HashMap<String, Vec<ASTNode>>> {
@@ -1390,32 +1294,9 @@ impl RustASTPipeline {
 
     /// Parse a single grammar element
     fn parse_single_element(&self, element: &Token) -> Result<ASTNode> {
-        if element.len() != 2 {
-            return Ok(ASTNode::Atom { value: ASTValue::Token(element.clone()) });
-        }
-
-        let token_type = &element[0];
-        let token_value = &element[1];
-
-        match token_type.as_str() {
-            Some("group") => {
-                // Deserialize group content
-                if let TokenValue::String(json_str) = token_value {
-                    let group_content: TokenSequence = serde_json::from_str(json_str)
-                        .context("Failed to deserialize group content")?;
-
-                    if group_content.len() == 1 {
-                        self.parse_single_element(&group_content[0])
-                    } else {
-                        // Check if this group contains OR operators that should create an Or node
-                        self.parse_group_with_or_handling(&group_content)
-                    }
-                } else {
-                    Ok(ASTNode::Atom { value: ASTValue::Token(element.clone()) })
-                }
-            }
-            _ => Ok(ASTNode::Atom { value: ASTValue::Token(element.clone()) })
-        }
+        // All tokens are now treated as atoms since we preserve group boundaries
+        // Groups will be handled properly in the quantifier stage
+        Ok(ASTNode::Atom { value: ASTValue::Token(element.clone()) })
     }
 
     /// Stage 4: Handle quantifiers
@@ -1498,7 +1379,7 @@ impl RustASTPipeline {
         }
     }
     
-    /// Convert an ASTNode to tokens - preserving group structure for nested sequences
+    /// Convert an ASTNode to tokens
     fn ast_node_to_tokens_simple(&self, node: &ASTNode, tokens: &mut Vec<Token>) -> Result<()> {
         match node {
             ASTNode::Atom { value } => {
@@ -1510,36 +1391,13 @@ impl RustASTPipeline {
                 }
             }
             ASTNode::Sequence { elements } => {
+                // Since we're not collapsing groups anymore, sequences should just be
+                // a flat list of atoms at this point
                 if self.config.debug && self.config.trace {
-                    println!("[AST][ast_node_to_tokens_simple]   Processing nested Sequence with {} elements", elements.len());
+                    println!("[AST][ast_node_to_tokens_simple]   Processing Sequence with {} elements", elements.len());
                 }
-                // Check if this sequence starts with group_open and ends with group_close/quantifier
-                // This indicates it's a grouped sequence that should be preserved
-                let mut has_group_markers = false;
-                if !elements.is_empty() {
-                    // Check first element for group_open
-                    if let ASTNode::Atom { value: ASTValue::Token(ref first_token) } = elements[0] {
-                        if first_token.len() == 2 {
-                            if let (TokenValue::String(ref token_type), _) = (&first_token[0], &first_token[1]) {
-                                if token_type == "group_open" {
-                                    has_group_markers = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                if has_group_markers {
-                    // This is a grouped sequence - extract its tokens directly
-                    // The group_open, group_close, and quantifier tokens will be preserved
-                    for elem in elements {
-                        self.ast_node_to_tokens_simple(elem, tokens)?;
-                    }
-                } else {
-                    // Regular nested sequence - shouldn't happen but handle it
-                    for elem in elements {
-                        self.ast_node_to_tokens_simple(elem, tokens)?;
-                    }
+                for elem in elements {
+                    self.ast_node_to_tokens_simple(elem, tokens)?;
                 }
             }
             ASTNode::Or { alternatives } => {

@@ -5,10 +5,15 @@
 ### AST Pipeline Architecture
 The AST pipeline follows a 5-stage transformation process:
 1. **Annotation Extraction**: Preserves semantic and logging annotations
-2. **Rule Atomization**: Breaks down raw tokens into atomic AST nodes
-3. **Sequence Formation**: Groups consecutive elements into sequences
-4. **Quantifier Handling**: Applies quantifiers and handles grouped patterns
-5. **Tree Building**: Constructs final grammar tree structure
+2. **Group By OR**: Splits rules on `|` operators at depth 0 (outside parentheses)
+3. **Handle Parentheses**: Currently a pass-through (preserves all tokens)
+4. **Parse Sequences**: Converts token sequences into AST nodes (all atoms now)
+5. **Quantifier Handling**: Applies quantifiers and handles grouped patterns
+6. **Tree Building**: Constructs final grammar tree structure
+
+**Note**: Stage 3 (Handle Parentheses) was simplified on 2025-10-01. Previously it
+collapsed groups into single tokens with JSON content, but this lost structural
+information needed for nested quantifiers. Now it just passes tokens through.
 
 ### Grouped Quantifier Parser Design
 The `GroupedQuantifierParser` module is designed with:
@@ -32,6 +37,12 @@ The `GroupedQuantifierParser` module is designed with:
 2. Add debug logging before implementing logic
 3. Test each component in isolation before integration
 4. Maintain backward compatibility when refactoring
+
+### Lessons Learned
+1. **Preserve Structure**: Don't collapse structural elements too early in the pipeline
+2. **Token Boundaries Matter**: Group delimiters (parentheses, brackets) are critical for parsing
+3. **Simplicity Wins**: Sometimes removing "clever" optimizations makes the code more robust
+4. **Debug Output is Gold**: Detailed token-by-token logging essential for diagnosing parser issues
 
 ## Deep Understanding of Complex Systems
 
@@ -58,8 +69,15 @@ The `GroupedQuantifierParser` module is designed with:
 
 ### Known Issues
 1. **Mutual Recursion Detection**: Current implementation only checks immediate recursion
-2. **Error Messages**: Parser error messages could be more descriptive
+2. **Error Messages**: Parser error messages could be more descriptive  
 3. **Performance**: Token conversion adds overhead that could be optimized
+
+### Recently Fixed Issues
+1. **Nested Quantified Groups** (Fixed 2025-10-01)
+   - **Problem**: Pattern `(elem (,elem)*)?` was failing with orphaned `?` quantifier
+   - **Root Cause**: The `handle_parentheses` stage was collapsing groups into single tokens
+   - **Solution**: Simplified pipeline to preserve all tokens including group boundaries
+   - **Result**: Semantic annotation parser now generates successfully
 
 ### Future Enhancement Ideas
 1. **Grammar Validation**: Add pre-flight validation of grammar rules
