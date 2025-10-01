@@ -11,6 +11,7 @@ use std::fs;
 use std::io::Write;
 use anyhow::{Context, Result};
 use super::mutual_recursion_handler::{RecursionGuard, CycleType};
+use super::return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
 use serde_json::Value as JsonValue;
 
 /// Escape a string for safe inclusion in Rust raw string literals
@@ -114,6 +115,7 @@ pub struct HighPerformanceRustGenerator {
     entry_rule: Option<String>,
     enable_trace: bool,
     enable_backtrack_debug: bool,
+    bootstrap_mode: bool,
     annotations: Option<Annotations>,
     return_annotations: HashMap<String, ReturnAnnotation>,
     quantified_group_counter: std::cell::RefCell<u32>,
@@ -145,6 +147,7 @@ impl HighPerformanceRustGenerator {
             entry_rule: None,
             enable_trace: false,
             enable_backtrack_debug: false,
+            bootstrap_mode: false,
             annotations: None,
             return_annotations: HashMap::new(),
             quantified_group_counter: std::cell::RefCell::new(0),
@@ -159,6 +162,7 @@ impl HighPerformanceRustGenerator {
             entry_rule: None,
             enable_trace,
             enable_backtrack_debug: false,
+            bootstrap_mode: false,
             annotations: None,
             return_annotations: HashMap::new(),
             quantified_group_counter: std::cell::RefCell::new(0),
@@ -173,6 +177,7 @@ impl HighPerformanceRustGenerator {
             entry_rule: None,
             enable_trace: true,
             enable_backtrack_debug: true,
+            bootstrap_mode: false,
             annotations: None,
             return_annotations: HashMap::new(),
             quantified_group_counter: std::cell::RefCell::new(0),
@@ -194,6 +199,11 @@ impl HighPerformanceRustGenerator {
     /// Set return annotations for code generation
     pub fn set_return_annotations(&mut self, return_annotations: &HashMap<String, ReturnAnnotation>) {
         self.return_annotations = return_annotations.clone();
+    }
+    
+    /// Set bootstrap mode for limited return annotation support
+    pub fn set_bootstrap_mode(&mut self, bootstrap: bool) {
+        self.bootstrap_mode = bootstrap;
     }
     
     /// Log message using the AST Pipeline's unified logging system
@@ -2206,9 +2216,20 @@ impl<'input> {parser_name}<'input> {{
             }
         }
         
+        // Check for return annotation for this rule
+        let return_annotation = if let Some(annotations) = &self.annotations {
+            annotations.return_annotations.get(rule_name)
+        } else {
+            None
+        };
+        
         // Check for optional quantified groups in the sequence
         let processed_elements = self.analyze_and_group_optional_quantifiers(elements)?;
         let mut code = format!("{indent}let mut sequence_elements = Vec::with_capacity({});\n", processed_elements.len());
+        
+        // Track captured elements for return annotation processing
+        // We'll reference the actual sequence_elements array indices
+        let mut captured_vars = Vec::new();
         
         for (i, element_group) in processed_elements.iter().enumerate() {
             match element_group {
@@ -2216,6 +2237,9 @@ impl<'input> {parser_name}<'input> {{
                     // Generate mandatory element
                     let element_code = self.generate_optimized_node_code_with_context_and_pipeline(element, 0, rule_name, rule_annotations, parser_var, pipeline.as_deref_mut())?;
                     let element_description = self.extract_ebnf_description(element);
+                    
+                    // Track reference to this element in sequence_elements
+                    captured_vars.push(format!("sequence_elements[{}]", i));
                     
                     // When in closure, elements should use 'result' consistently
                     code.push_str(&self.generate_mandatory_element_code_with_context(element_code, element_description, i, processed_elements.len(), rule_name, indent, parser_var)?);
@@ -2227,13 +2251,56 @@ impl<'input> {parser_name}<'input> {{
                         .collect::<Vec<_>>()
                         .join(" ");
                     
+                    // Track reference to this element in sequence_elements
+                    captured_vars.push(format!("sequence_elements[{}]", i));
+                    
                     code.push_str(&self.generate_optional_group_code(group_elements, &group_description, i, processed_elements.len(), rule_name, indent)?);
                 }
             }
         }
         
-        // ALWAYS use 'result' for consistency - this is what outer contexts expect
-        code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
+        // Apply return annotation if present, otherwise use default sequence
+        if let Some(return_ann) = return_annotation {
+            if self.enable_trace {
+                println!("[HighPerformanceRustGenerator][generate_sequence_code] 📌 Applying return annotation for rule: {}", rule_name);
+                println!("[HighPerformanceRustGenerator][generate_sequence_code]   Annotation: {:?}", return_ann.annotation_content);
+            }
+            
+            // Parse and apply return annotation
+            let handler = ReturnAnnotationHandler::new(
+                if self.bootstrap_mode { ReturnAnnotationMode::Bootstrap } else { ReturnAnnotationMode::Full },
+                self.enable_trace
+            );
+            
+            match handler.parse_return_annotation(&return_ann.annotation_content) {
+                Ok(parsed_ann) => {
+                    // Generate custom AST based on return annotation
+                    match handler.generate_ast_builder_code(&parsed_ann, &captured_vars, indent) {
+                        Ok(ast_code) => {
+                            code.push_str(&format!("{indent}let result = {};\n", ast_code));
+                        }
+                        Err(e) => {
+                            // Fallback to default if annotation processing fails
+                            if self.enable_trace {
+                                println!("[HighPerformanceRustGenerator][generate_sequence_code] ⚠️ Failed to generate AST from return annotation: {}", e);
+                            }
+                            code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
+                        }
+                    }
+                }
+                Err(e) => {
+                    // Fallback to default if annotation parsing fails
+                    if self.enable_trace {
+                        println!("[HighPerformanceRustGenerator][generate_sequence_code] ⚠️ Failed to parse return annotation: {}", e);
+                    }
+                    code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
+                }
+            }
+        } else {
+            // No return annotation - use default sequence
+            code.push_str(&format!("{indent}let result = ParseContent::Sequence(sequence_elements);\n"));
+        }
+        
         Ok(code)
     }
 

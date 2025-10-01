@@ -1,0 +1,175 @@
+{
+  "parser_type": "return_annotation",
+  "basic_tests": [
+    {
+      "input": "$1",
+      "description": "Basic scalar reference $1",
+      "category": "scalar_reference",
+      "expected": "success"
+    },
+    {
+      "input": "$2",
+      "description": "Basic scalar reference $2",
+      "category": "scalar_reference",
+      "expected": "success"
+    },
+    {
+      "input": "$10",
+      "description": "Multi-digit scalar reference",
+      "category": "scalar_reference",
+      "expected": "success"
+    },
+    {
+      "input": "$99",
+      "description": "Large scalar reference",
+      "category": "scalar_reference",
+      "expected": "success"
+    },
+    {
+      "input": "\"hello\"",
+      "description": "String literal",
+      "category": "literal",
+      "expected": "success"
+    },
+    {
+      "input": "\"test string\"",
+      "description": "String literal with space",
+      "category": "literal",
+      "expected": "success"
+    },
+    {
+      "input": "42",
+      "description": "Integer literal",
+      "category": "literal",
+      "expected": "success"
+    },
+    {
+      "input": "123",
+      "description": "Multi-digit integer literal",
+      "category": "literal",
+      "expected": "success"
+    },
+    {
+      "input": "true",
+      "description": "Bare identifier - should fail",
+      "category": "identifier",
+      "expected": "failure"
+    },
+    {
+      "input": "false",
+      "description": "Bare identifier - should fail",
+      "category": "identifier",
+      "expected": "failure"
+    },
+    {
+      "input": "[$1]",
+      "description": "Single element array with scalar reference",
+      "category": "array",
+      "expected": "success"
+    },
+    {
+      "input": "[$2]",
+      "description": "Single element array with scalar reference",
+      "category": "array",
+      "expected": "success"
+    },
+    {
+      "input": "[]",
+      "description": "Empty array",
+      "category": "array",
+      "expected": "success"
+    },
+    {
+      "input": "{}",
+      "description": "Empty object",
+      "category": "object",
+      "expected": "success"
+    }
+  ],
+  "complex_tests": [
+    {
+      "input": "[$1, $2]",
+      "description": "Multi-element array with scalar references",
+      "category": "array",
+      "expected": "success"
+    },
+    {
+      "input": "[\"item1\", \"item2\"]",
+      "description": "String array",
+      "category": "array",
+      "expected": "success"
+    },
+    {
+      "input": "[42, 100]",
+      "description": "Integer array",
+      "category": "array",
+      "expected": "success"
+    },
+    {
+      "input": "{key: $1}",
+      "description": "Single property object",
+      "category": "object",
+      "expected": "success"
+    },
+    {
+      "input": "{name: $1}",
+      "description": "Single property object with name key",
+      "category": "object",
+      "expected": "success"
+    },
+    {
+      "input": "{value: $2}",
+      "description": "Single property object with value key",
+      "category": "object",
+      "expected": "success"
+    },
+    {
+      "input": "{name: $1, value: $2}",
+      "description": "Multi-property object",
+      "category": "object",
+      "expected": "success"
+    },
+    {
+      "input": "{id: 42, name: \"test\"}",
+      "description": "Mixed type object",
+      "category": "object",
+      "expected": "success"
+    },
+    {
+      "input": "$1.value",
+      "description": "Dot notation access",
+      "category": "accessor",
+      "expected": "success"
+    },
+    {
+      "input": "$1.name",
+      "description": "Dot notation access to name property",
+      "category": "accessor",
+      "expected": "success"
+    },
+    {
+      "input": "$1.data",
+      "description": "Dot notation access to data property",
+      "category": "accessor",
+      "expected": "success"
+    },
+    {
+      "input": "$1[0]",
+      "description": "Array indexing at position 0",
+      "category": "accessor",
+      "expected": "success"
+    },
+    {
+      "input": "$1[1]",
+      "description": "Array indexing at position 1",
+      "category": "accessor",
+      "expected": "success"
+    },
+    {
+      "input": "$2[0]",
+      "description": "Array indexing on second reference",
+      "category": "accessor",
+      "expected": "success"
+    }
+  ]
+}

@@ -30,6 +30,8 @@ use return_annotation_parser::Return_annotationParser;
 mod high_performance_generator;
 use high_performance_generator::HighPerformanceRustGenerator;
 mod mutual_recursion_handler;
+mod return_annotation_handler;
+use return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
 
 /// Configuration for AST transformation pipeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1579,6 +1581,9 @@ impl RustASTPipeline {
         
         // Set the entry rule immediately after generator creation
         code_generator.set_entry_rule(&entry_rule);
+        
+        // Set bootstrap mode if configured
+        code_generator.set_bootstrap_mode(self.config.bootstrap_mode);
         
         // Pass the return annotations to the code generator
         code_generator.set_return_annotations(&self.annotations.return_annotations);

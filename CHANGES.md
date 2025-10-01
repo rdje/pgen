@@ -1,5 +1,147 @@
 # CHANGES.md
 
+## 2025-10-01: Standardized Stress Test Framework for All Parsers ✅
+
+### Problem Statement
+**Consistency Issue**: Different parsers had varying stress test implementations with inconsistent output formats, making it difficult to compare results and maintain tests.
+
+### Root Cause Analysis
+- Semantic annotation parser had comprehensive dashboard with statistics
+- Return annotation parser had basic output without dashboard
+- Regex parser tests lacked standardized reporting
+- No unified approach to test data management
+- Inconsistent log file generation and formatting
+
+### Solution Implementation
+
+#### Unified Test Framework (rust/src/stress_test_framework.rs)
+
+**StressTestRunner Class**:
+- Centralized test execution and reporting
+- Automatic timestamped log file generation
+- Consistent dashboard output across all parsers
+- Professional statistics and tabular results
+
+**Test Data Management**:
+- JSON-based test files in `rust/test_data/` directory
+- Standardized schema with input, description, category, expected outcome
+- Easy maintenance and extension of test cases
+
+**Key Features**:
+1. **Comprehensive Header**: Parser identification, source files, test counts
+2. **Progress Reporting**: Real-time test execution status
+3. **Debug Traces**: Hierarchical rule processing output
+4. **Summary Statistics**: Pass/fail rates, timing metrics
+5. **Dashboard Table**: All tests with status, timing, results
+6. **Failed Test Details**: Dedicated section for debugging failures
+7. **Persistent Logs**: Timestamped files for historical analysis
+
+### Technical Implementation
+
+**Framework Architecture**:
+```rust
+pub struct StressTestRunner {
+    pub parser_name: String,
+    pub log_file_path: String,
+    pub writer: BufWriter<File>,
+    pub test_results: Vec<TestResult>,
+    pub start_time: Instant,
+}
+```
+
+**Test Data Schema**:
+```json
+{
+  "parser_type": "return_annotation",
+  "basic_tests": [
+    {
+      "input": "$1",
+      "description": "Basic scalar reference",
+      "category": "scalar_reference",
+      "expected": "success"
+    }
+  ]
+}
+```
+
+### Integration Updates
+
+**Makefile Integration**:
+- Updated `Makefile.auto-sync` to monitor framework files
+- `check-sync-needed` ensures test synchronization
+- Automatic sync on stress test modifications
+
+**Parser Implementations**:
+- ✅ Return Annotation Parser: Fully migrated to framework
+- 📋 Semantic Annotation Parser: Ready for migration
+- 📋 Regex Parser: Ready for migration
+
+### Validation Results
+
+✅ **Framework Creation**: StressTestRunner operational
+✅ **Return Parser Migration**: Successfully using framework
+✅ **Test Data Loading**: JSON parsing working correctly
+✅ **Dashboard Generation**: Professional output with statistics
+✅ **Log File Creation**: Timestamped logs generated
+✅ **Auto-sync Integration**: Makefile targets operational
+
+### Files Created/Modified
+
+**Created**:
+- `rust/src/stress_test_framework.rs` - Main framework implementation
+- `rust/test_data/return_tests.json` - Return parser test data
+
+**Modified**:
+- `rust/src/return_parser_stress_test.rs` - Migrated to framework
+- `rust/src/lib.rs` - Added framework module
+- `rust/Makefile.auto-sync` - Included framework in monitoring
+
+### Impact Assessment
+
+**Developer Experience**:
+- Consistent test output format across all parsers
+- Easy to compare parser performance and reliability
+- Professional dashboard for quick status overview
+- Simplified test maintenance via JSON files
+
+**System Benefits**:
+- Reduced code duplication
+- Maintainable test infrastructure
+- Extensible to new parsers
+- Historical test tracking via logs
+
+### Example Output
+
+```
+====================================================================================================
+🚀 RETURN ANNOTATION PARSER COMPREHENSIVE STRESS TEST
+====================================================================================================
+📁 LOG FILE: return_annotation_parser_comprehensive_stress_test_1735689600.log
+🕒 TEST START TIME: 2025-10-01 02:00:00 UTC
+====================================================================================================
+📋 PARSER IDENTIFICATION & SOURCE INFORMATION:
+   🔧 Parser Type: EXTERNAL AUTOMATICALLY GENERATED PARSER
+   📁 Generated Parser Path: /path/to/parser.rs
+   📄 Source Grammar (.ebnf): /path/to/grammar.ebnf
+   🎯 Entry Rule: return_annotation
+   📊 Parser Features: Zero-copy, memoization, SIMD-optimized
+====================================================================================================
+
+[Test execution with progress bars and debug traces]
+
+█████████████████████████████████████████████████████████████████████████████████████████████████████
+📊 RETURN ANNOTATION PARSER - TEST DASHBOARD
+█████████████████████████████████████████████████████████████████████████████████████████████████████
+
+📈 SUMMARY STATISTICS:
+   Total Tests:       30
+   Successful:        28 ( 93.3%)
+   Failed:             2 (  6.7%)
+   Avg Time:       2.34 ms
+```
+
+This standardization ensures all parser stress tests provide consistent, professional output with comprehensive debugging information.
+
 ## 2025-10-01: Fixed Nested Quantified Groups Issue in AST Pipeline ✅
 
 ### Problem Statement

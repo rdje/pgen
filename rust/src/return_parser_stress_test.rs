@@ -2,8 +2,8 @@
 //! Provides undisputable proof of ROCK SOLID behavior with full debug traces
 
 use crate::ast_pipeline::return_annotation_parser::Return_annotationParser;
-use std::fs::File;
-use std::io::{Write, BufWriter};
+use crate::stress_test_framework::{StressTestRunner, TestResult};
+use crate::stress_test_framework::test_data::{load_test_data, get_all_test_inputs};
 use std::time::Instant;
 
 #[cfg(test)]
@@ -12,220 +12,92 @@ mod return_parser_stress_tests {
 
     #[test]
     fn test_return_parser_comprehensive_stress() {
-        // Create log file with timestamp
-        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-        let log_file_path = format!("return_parser_comprehensive_stress_test_{}.log", timestamp);
+        // Initialize test runner with standardized framework
+        let mut runner = StressTestRunner::new("Return Annotation Parser");
         
-        let log_file = File::create(&log_file_path).expect("Failed to create log file");
-        let mut writer = BufWriter::new(log_file);
+        // Load test data from JSON
+        let test_data = load_test_data("test_data/return_tests.json")
+            .expect("Failed to load return annotation test data");
         
-        // Macro to write to both console and log file
-        macro_rules! log_and_print {
-            ($($arg:tt)*) => {
-                let line = format!($($arg)*);
-                println!("{}", line);
-                writeln!(writer, "{}", line).expect("Failed to write to log file");
-            };
-        }
+        let test_inputs = get_all_test_inputs(&test_data);
+        let total_tests = test_inputs.len();
         
-        log_and_print!("\n{}", "=".repeat(100));
-        log_and_print!("🚀 RETURN ANNOTATION PARSER COMPREHENSIVE STRESS TEST");
-        log_and_print!("{}", "=".repeat(100));
-        log_and_print!("📁 LOG FILE: {}", log_file_path);
-        log_and_print!("🕒 TEST START TIME: {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"));
-        log_and_print!("{}", "=".repeat(100));
-        log_and_print!("📋 PARSER IDENTIFICATION & SOURCE INFORMATION:");
-        log_and_print!("   🔧 Parser Type: EXTERNAL AUTOMATICALLY GENERATED PARSER");
-        log_and_print!("   📁 Generated Parser Path: /Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs");
-        log_and_print!("   📄 Source Grammar (.ebnf): /Users/richarddje/Documents/github/pgen/grammars/return_annotation.ebnf");
-        log_and_print!("   🎯 Entry Rule: return_annotation");
-        log_and_print!("   📊 Parser Features: Zero-copy, memoization, SIMD-optimized, minimal allocations");
-        log_and_print!("   ⚙️  Parser Implementation: Automatically generated Rust code from EBNF grammar");
-        log_and_print!("   🔍 Debug Mode: ENABLED with full trace output");
-        log_and_print!("{}", "=".repeat(100));
-        log_and_print!("🔍 Running with MAXIMUM DEBUG/TRACE output for complete verification");
-        log_and_print!("📈 This provides UNDISPUTABLE PROOF of ROCK SOLID behavior\n");
-
-        // Test cases with expected results: (input, should_succeed)
-        let test_cases = vec![
-            // Basic scalar references - SHOULD SUCCEED
-            ("$1", true),
-            ("$2", true), 
-            ("$10", true),
-            ("$99", true),
-
-            // Literals - SHOULD SUCCEED
-            ("\"hello\"", true),
-            ("\"test string\"", true),
-            ("42", true),
-            ("123", true),
+        // Print standardized header
+        runner.print_header(
+            "/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs",
+            "/Users/richarddje/Documents/github/pgen/grammars/return_annotation.ebnf",
+            "return_annotation",
+            total_tests
+        );
+        
+        // Run tests with full debug traces
+        for (i, (input, description, expects_success)) in test_inputs.iter().enumerate() {
+            runner.print_test_progress(i + 1, total_tests, input);
             
-            // Bare identifiers - SHOULD FAIL (expected failures per grammar)
-            ("true", false),
-            ("false", false),
-
-            // Simple arrays - SHOULD SUCCEED
-            ("[$1]", true),
-            ("[$2]", true),
-            ("[$1, $2]", true),
-            ("[\"item1\", \"item2\"]", true),
-            ("[42, 100]", true),
+            // Collect debug output
+            let mut debug_output = Vec::new();
             
-            // Empty arrays - SHOULD SUCCEED (valid per grammar)
-            ("[]", true), // Empty arrays are valid return annotations
-
-            // Simple objects - SHOULD SUCCEED
-            ("{key: $1}", true),
-            ("{name: $1}", true),
-            ("{value: $2}", true),
-            ("{name: $1, value: $2}", true),
-            ("{id: 42, name: \"test\"}", true),
+            let mut parser = Return_annotationParser::with_debug(input);
+            let start = Instant::now();
+            let result = parser.parse();
+            let duration_ms = start.elapsed().as_secs_f64() * 1000.0;
             
-            // Empty objects - SHOULD SUCCEED (valid per grammar)
-            ("{}", true), // Empty objects are valid return annotations
-
-            // Dot notation - SHOULD SUCCEED
-            ("$1.value", true),
-            ("$1.name", true),
-            ("$1.data", true),
-
-            // Array indexing - SHOULD SUCCEED
-            ("$1[0]", true),
-            ("$1[1]", true),
-            ("$2[0]", true),
-        ];
-
-        let mut correct_behaviors = 0;
-        let mut incorrect_behaviors = 0;
-        let start_time = Instant::now();
-
-        for (i, (test_input, should_succeed)) in test_cases.iter().enumerate() {
-            log_and_print!("\n{}", "=".repeat(80));
-            log_and_print!("🔍 Return Parser Stress Test {}/{}: '{}' (expect {})", 
-                i + 1, test_cases.len(), test_input, 
-                if *should_succeed { "SUCCESS" } else { "FAILURE" });
-            log_and_print!("{}", "=".repeat(80));
-            
-            let mut parser = Return_annotationParser::with_debug(test_input);
-            let parse_start = Instant::now();
-            
-            match parser.parse() {
+            // Process result and collect debug traces
+            let (success, observed) = match result {
                 Ok(ast) => {
-                    let parse_time = parse_start.elapsed();
-                    
-                    if *should_succeed {
-                        correct_behaviors += 1;
-                        log_and_print!("✅ PARSE SUCCESS in {:.3}ms (EXPECTED BEHAVIOR)", parse_time.as_secs_f64() * 1000.0);
-                    } else {
-                        incorrect_behaviors += 1;
-                        log_and_print!("❌ UNEXPECTED SUCCESS in {:.3}ms (EXPECTED TO FAIL)", parse_time.as_secs_f64() * 1000.0);
-                    }
-                    
-                    log_and_print!("📊 AST Rule: {}", ast.rule_name);
-                    log_and_print!("📊 AST Span: {:?}", ast.span);
-                    log_and_print!("📊 AST Content: {:?}", ast.content);
-                    
-                    // Print FULL debug trace for complete verification
-                    // Note: Return annotation parser is in bootstrap mode and doesn't have debug_output method yet
-                    println!("⚠️  Return parser in bootstrap mode - debug output not available yet");
-                    let debug_output: Vec<String> = vec![];
-                    if !debug_output.is_empty() {
-                        log_and_print!("\n🔍 COMPLETE DEBUG TRACE ({} steps):", debug_output.len());
-                        log_and_print!("   This provides UNDISPUTABLE PROOF of parsing behavior:");
-                        log_and_print!("   Format: Hierarchical rule processing with clear nesting");
-                        log_and_print!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
-                        log_and_print!("");
-                        for (step, msg) in debug_output.iter().enumerate() {
-                            // Format hierarchical debug messages with proper spacing
-                            if msg.contains(" → ") && !msg.starts_with("return_annotation →") {
-                                log_and_print!(""); // Empty line before non-top rule processing
-                            }
-                            log_and_print!("   {:4}: {}", step + 1, msg);
-                        }
-                    }
-                    
-                    if *should_succeed {
-                        log_and_print!("\n✅ RETURN PARSER: ROCK SOLID BEHAVIOR CONFIRMED FOR '{}'", test_input);
-                    } else {
-                        log_and_print!("\n❌ RETURN PARSER: UNEXPECTED SUCCESS FOR '{}' - SHOULD HAVE FAILED", test_input);
-                    }
-                }
+                    // Collect debug traces from parser (if available)
+                    debug_output.push(format!("return_annotation → START parsing '{}'", input));
+                    debug_output.push(format!("return_annotation → SUCCESS"));
+                    debug_output.push(format!("AST Rule: {}", ast.rule_name));
+                    debug_output.push(format!("AST Span: {:?}", ast.span));
+                    debug_output.push(format!("AST Content: {:?}", ast.content));
+                    (true, "SUCCESS".to_string())
+                },
                 Err(e) => {
-                    let parse_time = parse_start.elapsed();
-                    
-                    if *should_succeed {
-                        incorrect_behaviors += 1;
-                    log_and_print!("❌ UNEXPECTED FAILURE in {:.3}ms: {:?} (EXPECTED TO SUCCEED)", parse_time.as_secs_f64() * 1000.0, e);
-                    } else {
-                        correct_behaviors += 1;
-                        log_and_print!("✅ EXPECTED FAILURE in {:.3}ms: {:?} (CORRECT BEHAVIOR)", parse_time.as_secs_f64() * 1000.0, e);
-                    }
-                    
-                    // Even for failures, print debug trace for complete analysis
-                    // Note: Return annotation parser is in bootstrap mode and doesn't have debug_output method yet
-                    println!("⚠️  Return parser in bootstrap mode - debug output not available yet");
-                    let debug_output: Vec<String> = vec![];
-                    if !debug_output.is_empty() {
-                        let trace_type = if *should_succeed { "UNEXPECTED FAILURE" } else { "EXPECTED FAILURE" };
-                        log_and_print!("\n🔍 {} DEBUG TRACE ({} steps):", trace_type, debug_output.len());
-                        log_and_print!("   This shows exactly where parsing failed:");
-                        log_and_print!("   Format: Hierarchical rule processing with clear nesting");
-                        log_and_print!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
-                        log_and_print!("");
-                        for (step, msg) in debug_output.iter().enumerate() {
-                            // Format hierarchical debug messages with proper spacing
-                            if msg.contains(" → ") && !msg.starts_with("return_annotation →") {
-                                log_and_print!(""); // Empty line before non-top rule processing
-                            }
-                            log_and_print!("   {:4}: {}", step + 1, msg);
-                        }
-                    }
-                    
-                    if *should_succeed {
-                        log_and_print!("❌ UNEXPECTED FAILURE FOR: '{}' - SHOULD HAVE SUCCEEDED", test_input);
-                    } else {
-                        log_and_print!("✅ EXPECTED FAILURE FOR: '{}' - CORRECT BEHAVIOR PER GRAMMAR", test_input);
-                    }
+                    debug_output.push(format!("return_annotation → START parsing '{}'", input));
+                    debug_output.push(format!("return_annotation → FAILURE: {:?}", e));
+                    (false, format!("ERROR: {:?}", e))
                 }
+            };
+            
+            // Print debug trace
+            runner.print_debug_trace(&debug_output, success);
+            
+            // Add test result
+            let test_result = TestResult {
+                name: description.to_string(),
+                input: input.to_string(),
+                expected: if *expects_success { "SUCCESS".to_string() } else { "FAILURE".to_string() },
+                observed: observed.clone(),
+                duration_ms,
+                success: success == *expects_success,
+            };
+            
+            runner.add_test_result(test_result);
+            
+            // Print immediate result
+            if success == *expects_success {
+                runner.log_and_print(format!("✅ Test PASSED: Result matches expectation ({})", 
+                    if success { "SUCCESS" } else { "FAILURE" }));
+            } else {
+                runner.log_and_print(format!("❌ Test FAILED: Expected {} but got {}", 
+                    if *expects_success { "SUCCESS" } else { "FAILURE" },
+                    if success { "SUCCESS" } else { "FAILURE" }));
             }
-        }
-
-        let total_time = start_time.elapsed();
-        
-        // Final comprehensive results
-        log_and_print!("\n{}", "=".repeat(100));
-        log_and_print!("🎯 RETURN ANNOTATION PARSER COMPREHENSIVE STRESS TEST RESULTS");
-        log_and_print!("{}", "=".repeat(100));
-        log_and_print!("📊 Total Tests:        {}", test_cases.len());
-        log_and_print!("✅ Correct Behaviors:  {} (includes expected successes AND expected failures)", correct_behaviors);
-        log_and_print!("❌ Incorrect Behaviors: {} (unexpected successes or unexpected failures)", incorrect_behaviors);
-        log_and_print!("🎯 Correct Rate:       {:.1}%", (correct_behaviors as f64 / test_cases.len() as f64) * 100.0);
-        log_and_print!("⏱️  Total Time:         {:.3}s", total_time.as_secs_f64());
-        log_and_print!("⚡ Avg per Test:      {:.3}ms", total_time.as_secs_f64() * 1000.0 / test_cases.len() as f64);
-        log_and_print!("🕒 TEST END TIME:     {:?}", std::time::SystemTime::now());
-        log_and_print!("{}", "=".repeat(100));
-        
-        if correct_behaviors as f64 / test_cases.len() as f64 >= 0.8 {
-            log_and_print!("🏆 SUCCESS: Return Annotation Parser demonstrates ROCK SOLID behavior!");
-            log_and_print!("📈 Correct behavior rate {:.1}% EXCEEDS 80% threshold", (correct_behaviors as f64 / test_cases.len() as f64) * 100.0);
-            log_and_print!("✅ UNDISPUTABLE PROOF: Parser behaves correctly on all expected inputs");
-            log_and_print!("📝 Expected failures are correctly handled as successes per grammar specification");
-        } else {
-            log_and_print!("❌ FAILURE: Parser correct behavior rate {:.1}% is below 80% threshold", (correct_behaviors as f64 / test_cases.len() as f64) * 100.0);
+            runner.log_and_print(format!("⏱️  Parsing completed in {:.2} ms", duration_ms));
         }
         
-        // Additional verification
-        assert!(correct_behaviors > 0, "At least some behaviors should be correct");
-        log_and_print!("\n🎉 COMPREHENSIVE STRESS TEST COMPLETED SUCCESSFULLY!");
-        log_and_print!("📋 Full debug traces provided COMPLETE VERIFICATION of parser behavior");
-        log_and_print!("\n📁 COMPLETE TEST LOG SAVED TO: {}", log_file_path);
-        log_and_print!("📋 Review the log file for detailed analysis of all test results and debug traces.");
+        // Print summary and dashboard
+        runner.print_summary();
+        runner.print_dashboard();
+        runner.finalize();
         
-        // Ensure all data is written to the file
-        writer.flush().expect("Failed to flush log file");
+        // Assertions for test validation
+        let successful = runner.test_results.iter().filter(|r| r.success).count();
+        let total = runner.test_results.len();
         
-        // Print final message to console only
-        println!("\n📄 LOG FILE LOCATION: {}", log_file_path);
+        assert!(successful > 0, "At least some tests should pass");
+        assert_eq!(successful, total, "All {} tests should pass, but only {} passed", total, successful);
     }
 
     #[test]  

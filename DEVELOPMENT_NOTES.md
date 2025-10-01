@@ -5,6 +5,15 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 
 ## Major Milestones Completed
 
+### ✅ Standardized Stress Test Framework (2025-10-01)
+**Status: COMPLETE**
+- Unified StressTestRunner for consistent test execution across all parsers
+- JSON-based test data management in `rust/test_data/` directory
+- Professional dashboard reporting with statistics and tables
+- Automatic timestamped log file generation
+- Return annotation parser successfully migrated to framework
+- Makefile.auto-sync integration for automatic synchronization
+
 ### ✅ Bootstrap Build System (2025-01-05)
 **Status: COMPLETE**
 - Solved circular dependency problem for annotation parsers
@@ -113,12 +122,26 @@ The `GroupedQuantifierParser` module is designed with:
 - **Quantified**: Element with ?, *, or + modifier
 - **Group**: Logical grouping without quantification
 
+### Standardized Test Framework Architecture (2025-10-01)
+- **StressTestRunner Module**: Central coordinator for all test execution and reporting
+- **JSON Test Data**: External test files in `rust/test_data/` for easy maintenance
+- **Test Result Tracking**: Structured `TestResult` objects with timing and outcome data
+- **Dashboard Generation**: Professional tabular output with statistics and failed test details
+- **Log File Persistence**: Automatic timestamped logs for historical analysis
+- **Framework Benefits**:
+  - Consistent output format across all parsers
+  - Reduced code duplication
+  - Easy test maintenance via JSON
+  - Professional presentation
+  - Historical tracking
+
 ### Test Infrastructure Best Practices
 - **Dedicated Test Files**: Each parser needs individual stress test file (`*_stress_test.rs` pattern)
-- **Structured Test Data**: Use const arrays for test cases to enable automatic extraction
+- **Structured Test Data**: JSON files in `test_data/` directory with standardized schema
 - **Comprehensive Coverage**: Include basic patterns, edge cases, and real-world examples
-- **Placeholder Integration**: Structure tests with TODO markers for seamless parser integration
+- **Framework Integration**: Use StressTestRunner for consistent output
 - **Test Categories**: Organize by pattern complexity (basic → advanced → real-world)
+- **Auto-sync Integration**: Include test files in Makefile.auto-sync monitoring
 
 ### Enhanced Centralized Logging System Architecture
 - **Intelligent Source File Assignment**: Dynamic context detection assigns correct source file prefix (`[ast_pipeline.rs]` vs `[high_performance_generator.rs]`)

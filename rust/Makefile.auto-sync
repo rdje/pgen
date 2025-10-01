@@ -2,7 +2,7 @@
 # This file provides automatic sync whenever stress test files change
 
 # Configuration
-STRESS_TEST_FILES = src/comprehensive_stress_test.rs src/semantic_annotation_stress_test.rs
+STRESS_TEST_FILES = src/comprehensive_stress_test.rs src/semantic_annotation_stress_test.rs src/return_parser_stress_test.rs src/stress_test_framework.rs
 SYNC_TOOL = cargo run --bin sync_tests --quiet --
 REGISTRY_FILE = test_registry.json
 SYNC_TIMESTAMP = .last_sync_timestamp
