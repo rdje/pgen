@@ -5,6 +5,14 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 
 ## Major Milestones Completed
 
+### ✅ Return Annotation Handler Update (2025-10-01)
+**Status: COMPLETE**
+- Updated ReturnAnnotationHandler for new grammar with `->` prefix
+- Return annotations correctly parsed from branch alternatives (not rules)
+- Bootstrap mode maintains limited subset for self-hosted parsers
+- Full external parser used for all other parsers
+- 100% test pass rate with 46 comprehensive test cases
+
 ### ✅ Standardized Stress Test Framework (2025-10-01)
 **Status: COMPLETE**
 - Unified StressTestRunner for consistent test execution across all parsers
@@ -60,6 +68,37 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - Placeholder architecture enables seamless parser integration when ready
 
 ## Key Technical Insights
+
+### Return Annotation Architecture
+
+#### Branch-Level Annotations
+Return annotations are attached to **branch alternatives**, not rules:
+```ebnf
+element_sequence := element_item (/\s+/ element_item)* -> [$1, $3*]
+                  | element_item -> [$1]
+```
+- Each branch can have its own return annotation
+- The `->` operator separates the pattern from its return annotation
+- Annotations describe how to construct the AST from captured elements
+
+#### Dual-Mode System
+1. **Bootstrap Mode** (`ReturnAnnotationHandler`)
+   - Internal implementation for self-hosted parsers
+   - Limited subset: scalars ($1), arrays ([$1, $2]), objects ({key: $1})
+   - Avoids circular dependencies during parser generation
+   - Used for: semantic_annotation_parser.rs, return_annotation_parser.rs
+
+2. **Full Mode** (`../generated/return_annotation_parser.rs`)
+   - External parser with complete grammar support
+   - Advanced features: dot notation, array slicing, quantifiers
+   - Used for all other parsers
+   - Supports unlimited nesting and complex expressions
+
+#### Grammar Evolution
+- Original: Return annotations without prefix
+- Current: Requires `->` prefix as part of grammar syntax
+- Handler strips prefix for backward compatibility
+- AST pipeline preserves prefix from source
 
 ### Bootstrap Mode Design Principles
 1. **Bounded Complexity**: Bootstrap parsers handle only essential patterns to break circular dependencies
@@ -160,6 +199,31 @@ The `GroupedQuantifierParser` module is designed with:
 - **AST Integration**: Seamless integration with existing AST transformation pipeline stages
 - **Quantifier Preservation**: Maintain correct quantifier semantics through complex group transformations
 - **Debug Traceability**: Comprehensive debug output for grouped quantifier detection and processing
+
+### Return Annotation Implementation Details
+
+#### Handler Processing Flow
+1. **Prefix Stripping**: ReturnAnnotationHandler removes `->` prefix from input
+2. **Token Parsing**: Breaks annotation into tokens (scalars, arrays, objects, operators)
+3. **AST Construction**: Builds nested structure based on token relationships
+4. **Mode Selection**: Bootstrap mode uses limited internal parser, full mode uses external
+5. **Code Generation**: Produces Rust code for AST construction
+
+#### Test Data Management
+- **JSON Structure**: `rust/test_data/return_tests.json` with categories and descriptions
+- **Prefix Requirement**: All test inputs include mandatory `->` prefix
+- **Coverage Areas**:
+  - Basic patterns: scalars, simple arrays/objects
+  - Advanced patterns: dot notation, array slicing, quantifiers
+  - Complex patterns: nested structures, chained accessors
+- **Validation**: Stress test framework ensures 100% pass rate
+
+#### Parser Regeneration Workflow
+1. Update `return_annotation.ebnf` grammar
+2. Run `make return_annotation_parser` to regenerate
+3. Update test data in JSON file with new patterns
+4. Run `cargo test return_parser_stress_test` to validate
+5. Check bootstrap mode compatibility for self-hosted parsers
 
 ### Test Infrastructure Architecture Enhancement
 - **Category Organization**: Tests grouped by complexity (optional_group, quantified_group, nested_complex, etc.)

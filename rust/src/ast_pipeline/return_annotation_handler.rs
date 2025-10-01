@@ -53,13 +53,21 @@ impl ReturnAnnotationHandler {
     }
     
     /// Parse a return annotation string into structured form
-    /// Bootstrap mode supports: $1, [$1, $2*], {key: value}, "literal"
+    /// Bootstrap mode supports: -> $1, -> [$1, $2*], -> {key: value}, -> "literal"
     pub fn parse_return_annotation(&self, annotation: &str) -> Result<ReturnAnnotation, String> {
         if self.debug {
             println!("[ReturnAnnotationHandler] Parsing annotation: {}", annotation);
         }
         
+        // First, strip the -> prefix if present
         let trimmed = annotation.trim();
+        let trimmed = if trimmed.starts_with("-> ") {
+            trimmed[3..].trim()  // Skip "-> " (3 chars)
+        } else if trimmed.starts_with("->") {
+            trimmed[2..].trim()  // Skip "->" (2 chars)
+        } else {
+            trimmed  // No prefix, use as-is for backward compatibility
+        };
         
         // Check for scalar reference: $1, $2, etc.
         if trimmed.starts_with('$') {

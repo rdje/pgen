@@ -1094,19 +1094,23 @@ impl RustASTPipeline {
                                 };
                                 
                                 if !annotation_content.is_empty() {
-                                    self.log_info("extract_annotations", &format!("↩️  Parsing return annotation: '{}' (type: {}) for rule '{}'", annotation_content, token_type, name));
-                                    // Parse the return annotation NOW (consistent with semantic annotations)
-                                    let parsed_content = self.parse_return_annotation(annotation_content)
-                                        .unwrap_or_else(|_| format!("raw:{}", annotation_content));
+                                    self.log_info("extract_annotations", &format!("↩️  Found return annotation: '{}' (type: {}) for rule '{}'", annotation_content, token_type, name));
+                                    
+                                    // Ensure the annotation has the -> prefix for the new grammar
+                                    let prefixed_annotation = if annotation_content.starts_with("->") {
+                                        annotation_content.to_string()
+                                    } else {
+                                        format!("-> {}", annotation_content)
+                                    };
                                     
                                     let return_annotation = ReturnAnnotation {
                                         annotation_type: token_type.clone(),
-                                        annotation_content: parsed_content, // Store parsed JSON instead of raw string
+                                        annotation_content: prefixed_annotation, // Store raw annotation with -> prefix
                                     };
                                     self.annotations.return_annotations
                                         .insert(name.clone(), return_annotation);
                                     
-                                    self.log_success("extract_annotations", &format!("Return annotation processed: {} (type: {})", annotation_content, token_type));
+                                    self.log_success("extract_annotations", &format!("Return annotation stored: {} (type: {})", annotation_content, token_type));
                                     rule_annotations_found += 1;
                                 } else {
                                     // Fallback: create a basic return annotation with just the type for empty content

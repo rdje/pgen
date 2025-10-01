@@ -1,5 +1,120 @@
 # CHANGES.md
 
+## 2025-01-10: Return Annotation Architecture Documentation Enhancement ✅
+
+### Problem Statement
+The return annotation system lacked comprehensive documentation of its dual-mode architecture, branch-level annotation design, and implementation details.
+
+### Solution Implementation
+Enhanced DEVELOPMENT_NOTES.md with complete technical documentation:
+
+#### 1. Architecture Overview
+- **Branch-Level Annotations**: Clear explanation with EBNF examples
+- **Operator Syntax**: The `->` separator between patterns and annotations
+- **AST Construction**: How annotations describe tree building
+
+#### 2. Dual-Mode System Documentation
+- **Bootstrap Mode**: Limited subset for self-hosted parsers
+- **Full Mode**: External parser with complete feature support
+- **Use Cases**: Which parsers use which mode and why
+
+#### 3. Implementation Details
+- **Processing Flow**: 5-step handler workflow
+- **Test Management**: JSON structure and coverage areas
+- **Regeneration Workflow**: Step-by-step parser update process
+
+#### 4. Grammar Evolution History
+- **Original Format**: Without prefix requirement
+- **Current Format**: Mandatory `->` prefix
+- **Compatibility**: Handler strips prefix, AST preserves it
+
+### Files Modified
+- `DEVELOPMENT_NOTES.md` - Added comprehensive return annotation sections
+- `git_message_brief.txt` - Updated with documentation commit message
+
+### Impact
+- **Knowledge Transfer**: Complete documentation for future developers
+- **Maintenance**: Clear understanding of system architecture
+- **Developer Experience**: Easy to understand and extend the system
+
+---
+
+## 2025-10-01: Return Annotation Handler Updated for New Grammar ✅
+
+### Problem Statement
+**Grammar Evolution**: The return_annotation.ebnf grammar was enhanced with advanced features and now requires the `->` prefix. The ReturnAnnotationHandler needed to be updated to work with this new grammar while maintaining bootstrap mode compatibility.
+
+### Key Architectural Insight
+**Return annotations are attached to branch alternatives, not rules**. In EBNF:
+```ebnf
+element_sequence := element_item (/\s+/ element_item)* -> [$1, $3*]
+                  | element_item -> [$1]
+```
+Each alternative branch can have its own return annotation after the `->` operator.
+
+### Solution Implementation
+
+#### 1. ReturnAnnotationHandler Updates
+- Modified to strip `->` prefix when parsing annotations
+- Backward compatible - handles both formats
+- Located in `rust/src/ast_pipeline/return_annotation_handler.rs`
+
+#### 2. AST Pipeline Updates  
+- Preserves `->` prefix from EBNF source when storing annotations
+- Ensures correct format when passing to handler
+- Located in `rust/src/ast_pipeline.rs`
+
+#### 3. Test Data Migration
+- Updated all 46 test cases in `rust/test_data/return_tests.json`
+- Added tests for new features:
+  - Ultimate dot notation: `-> $1.property[2].subprop`
+  - Advanced array slicing: `-> $1[*]`, `-> $1[:]`, `-> $1[0..2]`, `-> $1[1:4]`
+  - Nested structures: `-> [[$1, $2], [$3, $4]]`, `-> {outer: {inner: $1}}`
+  - Quantified elements: `-> [$1]*`, `-> {key: $1}+`
+  - Complex accessors: `-> $1[-1]`, `-> $1[1,3,5]`
+
+### Architecture Clarification
+
+**Two Return Annotation Systems**:
+
+1. **Bootstrap Mode** (Limited Subset)
+   - Used when generating: `semantic_annotation_parser.rs`, `return_annotation_parser.rs`
+   - Implemented by: `ReturnAnnotationHandler` (internal)
+   - Supports: Basic scalars, simple arrays/objects, flat structures
+
+2. **Full Mode** (Complete Grammar)
+   - Used for: All other parsers
+   - Implemented by: `../generated/return_annotation_parser.rs` (external)
+   - Supports: Full grammar including nesting, quantifiers, advanced accessors
+
+### Validation Results
+
+✅ **Return parser stress test**: 100% pass rate (46/46 tests)
+✅ **Bootstrap mode**: Working with limited subset
+✅ **Grammar compliance**: Fully compatible with new return_annotation.ebnf
+✅ **Backward compatibility**: Handles both old and new formats
+
+### Files Modified
+
+- `rust/src/ast_pipeline/return_annotation_handler.rs` - Updated to handle `->` prefix
+- `rust/src/ast_pipeline.rs` - Preserves `->` prefix from EBNF
+- `rust/test_data/return_tests.json` - All test cases updated with `->` prefix
+- `rust/src/stress_test_framework.rs` - Standardized test framework (separate feature)
+
+### Impact Assessment
+
+**Developer Benefits**:
+- Clear separation between bootstrap and full modes
+- Support for advanced return annotation features
+- Consistent handling of `->` prefix throughout pipeline
+- 100% test coverage with standardized framework
+
+**System Benefits**:
+- Self-hosted parser generation works correctly
+- No circular dependencies in bootstrap
+- Clean architecture with clear boundaries
+- Ready for production use
+
 ## 2025-10-01: Standardized Stress Test Framework for All Parsers ✅
 
 ### Problem Statement

@@ -3,7 +3,7 @@
 # with advanced dot notation from ultimate_dot_notation.ebnf
 
 # Main entry point
-return_annotation := return_expression
+return_annotation := /\s*->\s*/ return_expression
 
 # CORE: Recursive return expressions (from return_annotation.ebnf)
 # Enhanced with dot notation support (from ultimate_dot_notation.ebnf)

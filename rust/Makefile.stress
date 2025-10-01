@@ -1,6 +1,6 @@
 # Stress Test Makefile
 # Auto-generated from test registry
-# Generated at: 2025-09-29T01:11:06.469189+00:00
+# Generated at: 2025-10-01T02:27:42.045475+00:00
 
 # Default target
 all: test-all
@@ -163,6 +163,650 @@ test-semantic-epsilon-edge-case-xepsilonxissuec_qq: target/debug/pgen
 	fi
 	@echo ""
 
+# Basic scalar reference $1 - scalar_reference
+test-return_annotation-scalar-reference-xx_s1: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1'"
+	@if cargo run -- --parser return_annotation --input '-> \$1' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-scalar-reference-xx_s1 - Basic scalar reference $1"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-scalar-reference-xx_s1 - Basic scalar reference $1"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-scalar-reference-xx_s1"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Basic scalar reference $2 - scalar_reference
+test-return_annotation-scalar-reference-xx_s2: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$2"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$2'"
+	@if cargo run -- --parser return_annotation --input '-> \$2' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-scalar-reference-xx_s2 - Basic scalar reference $2"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-scalar-reference-xx_s2 - Basic scalar reference $2"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-scalar-reference-xx_s2"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$2'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Multi-digit scalar reference - scalar_reference
+test-return_annotation-scalar-reference-xx_s10: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$10"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$10'"
+	@if cargo run -- --parser return_annotation --input '-> \$10' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-scalar-reference-xx_s10 - Multi-digit scalar reference"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-scalar-reference-xx_s10 - Multi-digit scalar reference"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-scalar-reference-xx_s10"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$10'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Large scalar reference - scalar_reference
+test-return_annotation-scalar-reference-xx_s99: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$99"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$99'"
+	@if cargo run -- --parser return_annotation --input '-> \$99' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-scalar-reference-xx_s99 - Large scalar reference"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-scalar-reference-xx_s99 - Large scalar reference"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-scalar-reference-xx_s99"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$99'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# String literal - literal
+test-return_annotation-literal-xx_qhelloq: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \"hello\""
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \"hello\"'"
+	@if cargo run -- --parser return_annotation --input '-> \"hello\"' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-literal-xx_qhelloq - String literal"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-literal-xx_qhelloq - String literal"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-literal-xx_qhelloq"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \"hello\"'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# String literal with space - literal
+test-return_annotation-literal-xx_qtest_stringq: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \"test string\""
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \"test string\"'"
+	@if cargo run -- --parser return_annotation --input '-> \"test string\"' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-literal-xx_qtest_stringq - String literal with space"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-literal-xx_qtest_stringq - String literal with space"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-literal-xx_qtest_stringq"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \"test string\"'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Integer literal - literal
+test-return_annotation-literal-xx_42: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> 42"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> 42'"
+	@if cargo run -- --parser return_annotation --input '-> 42' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-literal-xx_42 - Integer literal"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-literal-xx_42 - Integer literal"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-literal-xx_42"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> 42'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Multi-digit integer literal - literal
+test-return_annotation-literal-xx_123: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> 123"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> 123'"
+	@if cargo run -- --parser return_annotation --input '-> 123' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-literal-xx_123 - Multi-digit integer literal"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-literal-xx_123 - Multi-digit integer literal"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-literal-xx_123"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> 123'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Bare identifier - should fail - identifier
+test-return_annotation-identifier-xx_true: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> true"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> true'"
+	@if cargo run -- --parser return_annotation --input '-> true' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-identifier-xx_true - Bare identifier - should fail"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-identifier-xx_true - Bare identifier - should fail"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-identifier-xx_true"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> true'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Bare identifier - should fail - identifier
+test-return_annotation-identifier-xx_false: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> false"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> false'"
+	@if cargo run -- --parser return_annotation --input '-> false' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-identifier-xx_false - Bare identifier - should fail"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-identifier-xx_false - Bare identifier - should fail"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-identifier-xx_false"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> false'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Single element array with scalar reference - array
+test-return_annotation-array-xx_as1a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [\$1]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [\$1]'"
+	@if cargo run -- --parser return_annotation --input '-> [\$1]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-array-xx_as1a - Single element array with scalar reference"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-array-xx_as1a - Single element array with scalar reference"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-array-xx_as1a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [\$1]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Single element array with scalar reference - array
+test-return_annotation-array-xx_as2a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [\$2]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [\$2]'"
+	@if cargo run -- --parser return_annotation --input '-> [\$2]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-array-xx_as2a - Single element array with scalar reference"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-array-xx_as2a - Single element array with scalar reference"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-array-xx_as2a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [\$2]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Empty array - array
+test-return_annotation-array-xx_aa: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> []"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> []'"
+	@if cargo run -- --parser return_annotation --input '-> []' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-array-xx_aa - Empty array"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-array-xx_aa - Empty array"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-array-xx_aa"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> []'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Empty object - object
+test-return_annotation-object-xx_oo: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {}'"
+	@if cargo run -- --parser return_annotation --input '-> {}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-object-xx_oo - Empty object"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-object-xx_oo - Empty object"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-object-xx_oo"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Multi-element array with scalar references - array
+test-return_annotation-array-xx_as1m_s2a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [\$1, \$2]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [\$1, \$2]'"
+	@if cargo run -- --parser return_annotation --input '-> [\$1, \$2]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-array-xx_as1m_s2a - Multi-element array with scalar references"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-array-xx_as1m_s2a - Multi-element array with scalar references"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-array-xx_as1m_s2a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [\$1, \$2]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# String array - array
+test-return_annotation-array-xx_aqitem1qm_qitem2qa: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [\"item1\", \"item2\"]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [\"item1\", \"item2\"]'"
+	@if cargo run -- --parser return_annotation --input '-> [\"item1\", \"item2\"]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-array-xx_aqitem1qm_qitem2qa - String array"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-array-xx_aqitem1qm_qitem2qa - String array"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-array-xx_aqitem1qm_qitem2qa"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [\"item1\", \"item2\"]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Integer array - array
+test-return_annotation-array-xx_a42m_100a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [42, 100]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [42, 100]'"
+	@if cargo run -- --parser return_annotation --input '-> [42, 100]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-array-xx_a42m_100a - Integer array"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-array-xx_a42m_100a - Integer array"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-array-xx_a42m_100a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [42, 100]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Single property object - object
+test-return_annotation-object-xx_okeyc_s1o: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {key: \$1}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {key: \$1}'"
+	@if cargo run -- --parser return_annotation --input '-> {key: \$1}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-object-xx_okeyc_s1o - Single property object"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-object-xx_okeyc_s1o - Single property object"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-object-xx_okeyc_s1o"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {key: \$1}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Single property object with name key - object
+test-return_annotation-object-xx_onamec_s1o: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {name: \$1}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {name: \$1}'"
+	@if cargo run -- --parser return_annotation --input '-> {name: \$1}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-object-xx_onamec_s1o - Single property object with name key"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-object-xx_onamec_s1o - Single property object with name key"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-object-xx_onamec_s1o"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {name: \$1}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Single property object with value key - object
+test-return_annotation-object-xx_ovaluec_s2o: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {value: \$2}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {value: \$2}'"
+	@if cargo run -- --parser return_annotation --input '-> {value: \$2}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-object-xx_ovaluec_s2o - Single property object with value key"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-object-xx_ovaluec_s2o - Single property object with value key"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-object-xx_ovaluec_s2o"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {value: \$2}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Multi-property object - object
+test-return_annotation-object-xx_onamec_s1m_valuec_s2o: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {name: \$1, value: \$2}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {name: \$1, value: \$2}'"
+	@if cargo run -- --parser return_annotation --input '-> {name: \$1, value: \$2}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-object-xx_onamec_s1m_valuec_s2o - Multi-property object"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-object-xx_onamec_s1m_valuec_s2o - Multi-property object"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-object-xx_onamec_s1m_valuec_s2o"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {name: \$1, value: \$2}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Mixed type object - object
+test-return_annotation-object-xx_oidc_42m_namec_qtestqo: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {id: 42, name: \"test\"}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {id: 42, name: \"test\"}'"
+	@if cargo run -- --parser return_annotation --input '-> {id: 42, name: \"test\"}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-object-xx_oidc_42m_namec_qtestqo - Mixed type object"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-object-xx_oidc_42m_namec_qtestqo - Mixed type object"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-object-xx_oidc_42m_namec_qtestqo"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {id: 42, name: \"test\"}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Dot notation access - accessor
+test-return_annotation-accessor-xx_s1dvalue: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1.value"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1.value'"
+	@if cargo run -- --parser return_annotation --input '-> \$1.value' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-accessor-xx_s1dvalue - Dot notation access"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-accessor-xx_s1dvalue - Dot notation access"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-accessor-xx_s1dvalue"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1.value'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Dot notation access to name property - accessor
+test-return_annotation-accessor-xx_s1dname: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1.name"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1.name'"
+	@if cargo run -- --parser return_annotation --input '-> \$1.name' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-accessor-xx_s1dname - Dot notation access to name property"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-accessor-xx_s1dname - Dot notation access to name property"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-accessor-xx_s1dname"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1.name'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Dot notation access to data property - accessor
+test-return_annotation-accessor-xx_s1ddata: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1.data"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1.data'"
+	@if cargo run -- --parser return_annotation --input '-> \$1.data' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-accessor-xx_s1ddata - Dot notation access to data property"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-accessor-xx_s1ddata - Dot notation access to data property"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-accessor-xx_s1ddata"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1.data'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Array indexing at position 0 - accessor
+test-return_annotation-accessor-xx_s1a0a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[0]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[0]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[0]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-accessor-xx_s1a0a - Array indexing at position 0"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-accessor-xx_s1a0a - Array indexing at position 0"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-accessor-xx_s1a0a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[0]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Array indexing at position 1 - accessor
+test-return_annotation-accessor-xx_s1a1a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[1]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[1]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[1]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-accessor-xx_s1a1a - Array indexing at position 1"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-accessor-xx_s1a1a - Array indexing at position 1"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-accessor-xx_s1a1a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[1]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Array indexing on second reference - accessor
+test-return_annotation-accessor-xx_s2a0a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$2[0]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$2[0]'"
+	@if cargo run -- --parser return_annotation --input '-> \$2[0]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-accessor-xx_s2a0a - Array indexing on second reference"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-accessor-xx_s2a0a - Array indexing on second reference"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-accessor-xx_s2a0a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$2[0]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Bash-style whole array access - advanced_accessor
+test-return_annotation-advanced-accessor-xx_s1axa: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[*]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[*]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[*]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-advanced-accessor-xx_s1axa - Bash-style whole array access"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-advanced-accessor-xx_s1axa - Bash-style whole array access"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-advanced-accessor-xx_s1axa"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[*]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Python-style whole array slice - advanced_accessor
+test-return_annotation-advanced-accessor-xx_s1aca: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[:]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[:]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[:]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-advanced-accessor-xx_s1aca - Python-style whole array slice"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-advanced-accessor-xx_s1aca - Python-style whole array slice"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-advanced-accessor-xx_s1aca"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[:]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Perl-style range - advanced_accessor
+test-return_annotation-advanced-accessor-xx_s1a0dd2a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[0..2]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[0..2]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[0..2]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-advanced-accessor-xx_s1a0dd2a - Perl-style range"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-advanced-accessor-xx_s1a0dd2a - Perl-style range"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-advanced-accessor-xx_s1a0dd2a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[0..2]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Python-style slice - advanced_accessor
+test-return_annotation-advanced-accessor-xx_s1a1c4a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[1:4]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[1:4]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[1:4]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-advanced-accessor-xx_s1a1c4a - Python-style slice"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-advanced-accessor-xx_s1a1c4a - Python-style slice"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-advanced-accessor-xx_s1a1c4a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[1:4]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Python-style slice with step - advanced_accessor
+test-return_annotation-advanced-accessor-xx_s1a1c10c2a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[1:10:2]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[1:10:2]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[1:10:2]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-advanced-accessor-xx_s1a1c10c2a - Python-style slice with step"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-advanced-accessor-xx_s1a1c10c2a - Python-style slice with step"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-advanced-accessor-xx_s1a1c10c2a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[1:10:2]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Nested arrays - nested_structures
+test-return_annotation-nested-structures-xx_aas1m_s2am_as3m_s4aa: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [[\$1, \$2], [\$3, \$4]]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [[\$1, \$2], [\$3, \$4]]'"
+	@if cargo run -- --parser return_annotation --input '-> [[\$1, \$2], [\$3, \$4]]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-nested-structures-xx_aas1m_s2am_as3m_s4aa - Nested arrays"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-nested-structures-xx_aas1m_s2am_as3m_s4aa - Nested arrays"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-nested-structures-xx_aas1m_s2am_as3m_s4aa"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [[\$1, \$2], [\$3, \$4]]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Nested objects - nested_structures
+test-return_annotation-nested-structures-xx_oouterc_oinnerc_s1oo: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {outer: {inner: \$1}}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {outer: {inner: \$1}}'"
+	@if cargo run -- --parser return_annotation --input '-> {outer: {inner: \$1}}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-nested-structures-xx_oouterc_oinnerc_s1oo - Nested objects"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-nested-structures-xx_oouterc_oinnerc_s1oo - Nested objects"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-nested-structures-xx_oouterc_oinnerc_s1oo"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {outer: {inner: \$1}}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Quantified array element - quantified
+test-return_annotation-quantified-xx_as1xa: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [\$1*]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [\$1*]'"
+	@if cargo run -- --parser return_annotation --input '-> [\$1*]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-quantified-xx_as1xa - Quantified array element"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-quantified-xx_as1xa - Quantified array element"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-quantified-xx_as1xa"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [\$1*]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Quantified object - quantified
+test-return_annotation-quantified-xx_okeyc_s1ox: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {key: \$1}*"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {key: \$1}*'"
+	@if cargo run -- --parser return_annotation --input '-> {key: \$1}*' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-quantified-xx_okeyc_s1ox - Quantified object"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-quantified-xx_okeyc_s1ox - Quantified object"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-quantified-xx_okeyc_s1ox"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {key: \$1}*'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Grouped quantified array - grouped_quantified
+test-return_annotation-grouped-quantified-xx_axelement1_element2xxa: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [(element1 element2)*]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [(element1 element2)*]'"
+	@if cargo run -- --parser return_annotation --input '-> [(element1 element2)*]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-grouped-quantified-xx_axelement1_element2xxa - Grouped quantified array"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-grouped-quantified-xx_axelement1_element2xxa - Grouped quantified array"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-grouped-quantified-xx_axelement1_element2xxa"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [(element1 element2)*]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Chained accessors - chained_accessor
+test-return_annotation-chained-accessor-xx_s1dpropertya2adsubprop: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1.property[2].subprop"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1.property[2].subprop'"
+	@if cargo run -- --parser return_annotation --input '-> \$1.property[2].subprop' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-chained-accessor-xx_s1dpropertya2adsubprop - Chained accessors"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-chained-accessor-xx_s1dpropertya2adsubprop - Chained accessors"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-chained-accessor-xx_s1dpropertya2adsubprop"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1.property[2].subprop'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Negative indexing - negative_index
+test-return_annotation-negative-index-xx_s1ax1a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[-1]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[-1]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[-1]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-negative-index-xx_s1ax1a - Negative indexing"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-negative-index-xx_s1ax1a - Negative indexing"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-negative-index-xx_s1ax1a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[-1]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Multiple indices - multi_index
+test-return_annotation-multi-index-xx_s1a1m3m5a: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> \$1[1,3,5]"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> \$1[1,3,5]'"
+	@if cargo run -- --parser return_annotation --input '-> \$1[1,3,5]' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-multi-index-xx_s1a1m3m5a - Multiple indices"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-multi-index-xx_s1a1m3m5a - Multiple indices"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-multi-index-xx_s1a1m3m5a"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> \$1[1,3,5]'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Optional array - optional_quantifier
+test-return_annotation-optional-quantifier-xx_as1ax: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [\$1]?"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [\$1]?'"
+	@if cargo run -- --parser return_annotation --input '-> [\$1]?' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-optional-quantifier-xx_as1ax - Optional array"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-optional-quantifier-xx_as1ax - Optional array"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-optional-quantifier-xx_as1ax"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [\$1]?'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# One or more quantifier on array - plus_quantifier
+test-return_annotation-plus-quantifier-xx_as1ax: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> [\$1]+"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> [\$1]+'"
+	@if cargo run -- --parser return_annotation --input '-> [\$1]+' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-plus-quantifier-xx_as1ax - One or more quantifier on array"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-plus-quantifier-xx_as1ax - One or more quantifier on array"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-plus-quantifier-xx_as1ax"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> [\$1]+'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Exact repetition quantifier - exact_quantifier
+test-return_annotation-exact-quantifier-xx_ocountc_s1oo3o: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {count: \$1}{3}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {count: \$1}{3}'"
+	@if cargo run -- --parser return_annotation --input '-> {count: \$1}{3}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-exact-quantifier-xx_ocountc_s1oo3o - Exact repetition quantifier"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-exact-quantifier-xx_ocountc_s1oo3o - Exact repetition quantifier"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-exact-quantifier-xx_ocountc_s1oo3o"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {count: \$1}{3}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Range repetition quantifier - range_quantifier
+test-return_annotation-range-quantifier-xx_oitemsc_as1aoo2m5o: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {items: [\$1]}{2,5}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {items: [\$1]}{2,5}'"
+	@if cargo run -- --parser return_annotation --input '-> {items: [\$1]}{2,5}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-range-quantifier-xx_oitemsc_as1aoo2m5o - Range repetition quantifier"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-range-quantifier-xx_oitemsc_as1aoo2m5o - Range repetition quantifier"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-range-quantifier-xx_oitemsc_as1aoo2m5o"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {items: [\$1]}{2,5}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
+# Up to n repetitions - max_quantifier
+test-return_annotation-max-quantifier-xx_odatac_s1oom3o: target/debug/pgen
+	@echo "🧪 Testing return_annotation parser with: -> {data: \$1}{,3}"
+	@echo "Running: cargo run -- --parser return_annotation --input '-> {data: \$1}{,3}'"
+	@if cargo run -- --parser return_annotation --input '-> {data: \$1}{,3}' > /dev/null 2>&1; then \
+		echo "✅ PASS: test-return_annotation-max-quantifier-xx_odatac_s1oom3o - Up to n repetitions"; \
+	else \
+		echo "❌ FAIL: test-return_annotation-max-quantifier-xx_odatac_s1oom3o - Up to n repetitions"; \
+		echo "🔧 REPRODUCE with make: make test-return_annotation-max-quantifier-xx_odatac_s1oom3o"; \
+		echo "🔧 REPRODUCE with cargo: cargo run -- --parser return_annotation --input '-> {data: \$1}{,3}'"; \
+		exit 1; \
+	fi
+	@echo ""
+
 # Type annotation - type
 test-semantic-type-xtypec_qexpressionq: target/debug/pgen
 	@echo "🧪 Testing semantic parser with: @type: \"Expression\""
@@ -304,7 +948,7 @@ test-semantic-complex-s1_xx_null: target/debug/pgen
 	@echo ""
 
 # Run all stress tests
-test-all: test-semantic-optional-group-xoptionalxgroupc_xidentifierxx test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx test-semantic-quantified-group-xonexorxmorec_xidentifierxx test-semantic-or-group-xorxgroupc_xqaq_x_qbq_x_qcqx test-semantic-nested-group-xnestedxoptionalc_xxidentifier_qmq_identifierxxx test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx test-semantic-mixed-groups-xmixedxgroupsc_xrequiredxelement_xoptionalxelementxx_xrepeatingxelementxxx test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx test-semantic-epsilon-edge-case-xepsilonxissuec_qq test-semantic-type-xtypec_qexpressionq test-semantic-precedence-xprecedencec_5 test-semantic-boolean-xsidexeffectc_false test-semantic-array-xvalidatec_aqcheckxboundsqa test-semantic-object-xcachec_ottlc_300o test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
+test-all: test-semantic-optional-group-xoptionalxgroupc_xidentifierxx test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx test-semantic-quantified-group-xonexorxmorec_xidentifierxx test-semantic-or-group-xorxgroupc_xqaq_x_qbq_x_qcqx test-semantic-nested-group-xnestedxoptionalc_xxidentifier_qmq_identifierxxx test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsxx_qmq_xxsxx_identifierxx test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx test-semantic-nested-complex-xnestedxquantifiersc_xxelement_qmqxx__x_xelement_qxqxxxx test-semantic-mixed-groups-xmixedxgroupsc_xrequiredxelement_xoptionalxelementxx_xrepeatingxelementxxx test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx test-semantic-epsilon-edge-case-xepsilonxissuec_qq test-return_annotation-scalar-reference-xx_s1 test-return_annotation-scalar-reference-xx_s2 test-return_annotation-scalar-reference-xx_s10 test-return_annotation-scalar-reference-xx_s99 test-return_annotation-literal-xx_qhelloq test-return_annotation-literal-xx_qtest_stringq test-return_annotation-literal-xx_42 test-return_annotation-literal-xx_123 test-return_annotation-identifier-xx_true test-return_annotation-identifier-xx_false test-return_annotation-array-xx_as1a test-return_annotation-array-xx_as2a test-return_annotation-array-xx_aa test-return_annotation-object-xx_oo test-return_annotation-array-xx_as1m_s2a test-return_annotation-array-xx_aqitem1qm_qitem2qa test-return_annotation-array-xx_a42m_100a test-return_annotation-object-xx_okeyc_s1o test-return_annotation-object-xx_onamec_s1o test-return_annotation-object-xx_ovaluec_s2o test-return_annotation-object-xx_onamec_s1m_valuec_s2o test-return_annotation-object-xx_oidc_42m_namec_qtestqo test-return_annotation-accessor-xx_s1dvalue test-return_annotation-accessor-xx_s1dname test-return_annotation-accessor-xx_s1ddata test-return_annotation-accessor-xx_s1a0a test-return_annotation-accessor-xx_s1a1a test-return_annotation-accessor-xx_s2a0a test-return_annotation-advanced-accessor-xx_s1axa test-return_annotation-advanced-accessor-xx_s1aca test-return_annotation-advanced-accessor-xx_s1a0dd2a test-return_annotation-advanced-accessor-xx_s1a1c4a test-return_annotation-advanced-accessor-xx_s1a1c10c2a test-return_annotation-nested-structures-xx_aas1m_s2am_as3m_s4aa test-return_annotation-nested-structures-xx_oouterc_oinnerc_s1oo test-return_annotation-quantified-xx_as1xa test-return_annotation-quantified-xx_okeyc_s1ox test-return_annotation-grouped-quantified-xx_axelement1_element2xxa test-return_annotation-chained-accessor-xx_s1dpropertya2adsubprop test-return_annotation-negative-index-xx_s1ax1a test-return_annotation-multi-index-xx_s1a1m3m5a test-return_annotation-optional-quantifier-xx_as1ax test-return_annotation-plus-quantifier-xx_as1ax test-return_annotation-exact-quantifier-xx_ocountc_s1oo3o test-return_annotation-range-quantifier-xx_oitemsc_as1aoo2m5o test-return_annotation-max-quantifier-xx_odatac_s1oom3o test-semantic-type-xtypec_qexpressionq test-semantic-precedence-xprecedencec_5 test-semantic-boolean-xsidexeffectc_false test-semantic-array-xvalidatec_aqcheckxboundsqa test-semantic-object-xcachec_ottlc_300o test-semantic-complex-generatexcharxclassxmatcherxhasxnegationxs2xm_collectxclassxitemsxs2xx test-semantic-complex-countxflattenxs2xx_x_8_x_qlookupxtableq_c_qlinearxchecksq test-semantic-complex-allxextractxrangesxs2xm_r_xx_validxrangexrdstartm_rdendxx test-semantic-complex-xq_if_s1_else_q test-semantic-complex-s1_xx_null
 	@echo "🎯 All stress tests completed successfully!"
 
 # Run all semantic parser tests
@@ -315,8 +959,12 @@ test-semantic: test-semantic-optional-group-xoptionalxgroupc_xidentifierxx test-
 test-regex: test-semantic-regex-groups-xregexxinxgroupc_xxaaxzaxzxaaaxzaxz0x9xaxx_xqdq_xaaxzaxzxaaaxzaxz0x9xaxxxx_xx
 	@echo "🎯 All regex parser tests completed!"
 
+# Run all accessor category tests
+test-accessor: test-return_annotation-accessor-xx_s1dvalue test-return_annotation-accessor-xx_s1dname test-return_annotation-accessor-xx_s1ddata test-return_annotation-accessor-xx_s1a0a test-return_annotation-accessor-xx_s1a1a test-return_annotation-accessor-xx_s2a0a test-return_annotation-advanced-accessor-xx_s1axa test-return_annotation-advanced-accessor-xx_s1aca test-return_annotation-advanced-accessor-xx_s1a0dd2a test-return_annotation-advanced-accessor-xx_s1a1c4a test-return_annotation-advanced-accessor-xx_s1a1c10c2a test-return_annotation-chained-accessor-xx_s1dpropertya2adsubprop
+	@echo "🎯 All accessor tests completed!"
+
 # Run all array category tests
-test-array: test-semantic-array-xvalidatec_aqcheckxboundsqa
+test-array: test-return_annotation-array-xx_as1a test-return_annotation-array-xx_as2a test-return_annotation-array-xx_aa test-return_annotation-array-xx_as1m_s2a test-return_annotation-array-xx_aqitem1qm_qitem2qa test-return_annotation-array-xx_a42m_100a test-semantic-array-xvalidatec_aqcheckxboundsqa
 	@echo "🎯 All array tests completed!"
 
 # Run all boolean category tests
@@ -331,13 +979,25 @@ test-complex: test-semantic-complex-group-xsequencexquantifiedc_xidentifier_xxsx
 test-destructuring: test-semantic-destructuring-xdestructuringxparameterc_xidentifierxliteral_xxxsxx_qmq_xxsxx_identifierxliteralxxxx
 	@echo "🎯 All destructuring tests completed!"
 
+# Run all identifier category tests
+test-identifier: test-return_annotation-identifier-xx_true test-return_annotation-identifier-xx_false
+	@echo "🎯 All identifier tests completed!"
+
+# Run all literal category tests
+test-literal: test-return_annotation-literal-xx_qhelloq test-return_annotation-literal-xx_qtest_stringq test-return_annotation-literal-xx_42 test-return_annotation-literal-xx_123
+	@echo "🎯 All literal tests completed!"
+
 # Run all object category tests
-test-object: test-semantic-object-xcachec_ottlc_300o
+test-object: test-return_annotation-object-xx_oo test-return_annotation-object-xx_okeyc_s1o test-return_annotation-object-xx_onamec_s1o test-return_annotation-object-xx_ovaluec_s2o test-return_annotation-object-xx_onamec_s1m_valuec_s2o test-return_annotation-object-xx_oidc_42m_namec_qtestqo test-semantic-object-xcachec_ottlc_300o
 	@echo "🎯 All object tests completed!"
 
 # Run all precedence category tests
 test-precedence: test-semantic-precedence-xprecedencec_5
 	@echo "🎯 All precedence tests completed!"
+
+# Run all quantified category tests
+test-quantified: test-semantic-quantified-group-xzeroxorxmorec_xidentifierxx test-semantic-quantified-group-xonexorxmorec_xidentifierxx test-return_annotation-quantified-xx_as1xa test-return_annotation-quantified-xx_okeyc_s1ox test-return_annotation-grouped-quantified-xx_axelement1_element2xxa
+	@echo "🎯 All quantified tests completed!"
 
 # Run all type category tests
 test-type: test-semantic-type-xtypec_qexpressionq
@@ -358,9 +1018,9 @@ test-debug: target/debug/pgen
 test-stats:
 	@echo "📊 Test Statistics:"
 	@echo "  Return tests: 0"
-	@echo "  Semantic tests: 21"
+	@echo "  Semantic tests: 67"
 	@echo "  Regex tests: 0"
-	@echo "  Total tests: 21"
+	@echo "  Total tests: 67"
 
 .PHONY: test-all test-return test-semantic test-regex test-quick test-comprehensive test-debug test-stats
 

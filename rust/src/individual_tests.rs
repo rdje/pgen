@@ -1,6 +1,6 @@
 //! Individual Test Cases
 //! Auto-generated from test registry
-//! Generated at: 2025-09-29T01:11:06.469445+00:00
+//! Generated at: 2025-10-01T02:27:42.046360+00:00
 //! DO NOT EDIT MANUALLY - This file is automatically regenerated
 
 // Test imports will be added when individual parsers are implemented
@@ -91,6 +91,328 @@ fn test_semantic_epsilon_edge_case_atepsilonxissuecolon_quotequote() {
     let _input = "@epsilon_issue: \"\"";
     println!("✅ Test epsilon_edge_case: completed");
     // TODO: Add actual semantic parser test
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_scalar_reference_dashx_dollar1() {
+    // Basic scalar reference $1
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_scalar_reference_dashx_dollar2() {
+    // Basic scalar reference $2
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_scalar_reference_dashx_dollar10() {
+    // Multi-digit scalar reference
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_scalar_reference_dashx_dollar99() {
+    // Large scalar reference
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_literal_dashx_quotehelloquote() {
+    // String literal
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_literal_dashx_quotetest_stringquote() {
+    // String literal with space
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_literal_dashx_42() {
+    // Integer literal
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_literal_dashx_123() {
+    // Multi-digit integer literal
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_identifier_dashx_true() {
+    // Bare identifier - should fail
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_identifier_dashx_false() {
+    // Bare identifier - should fail
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_array_dashx_lbracketdollar1rbracket() {
+    // Single element array with scalar reference
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_array_dashx_lbracketdollar2rbracket() {
+    // Single element array with scalar reference
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_array_dashx_lbracketrbracket() {
+    // Empty array
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_object_dashx_lbracerbrace() {
+    // Empty object
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_array_dashx_lbracketdollar1comma_dollar2rbracket() {
+    // Multi-element array with scalar references
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_array_dashx_lbracketquoteitem1quotecomma_quoteitem2qu_etc() {
+    // String array
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_array_dashx_lbracket42comma_100rbracket() {
+    // Integer array
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_object_dashx_lbracekeycolon_dollar1rbrace() {
+    // Single property object
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_object_dashx_lbracenamecolon_dollar1rbrace() {
+    // Single property object with name key
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_object_dashx_lbracevaluecolon_dollar2rbrace() {
+    // Single property object with value key
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_object_dashx_lbracenamecolon_dollar1comma_valuecolon_d_etc() {
+    // Multi-property object
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_object_dashx_lbraceidcolon_42comma_namecolon_quotetest_etc() {
+    // Mixed type object
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_accessor_dashx_dollar1dotvalue() {
+    // Dot notation access
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_accessor_dashx_dollar1dotname() {
+    // Dot notation access to name property
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_accessor_dashx_dollar1dotdata() {
+    // Dot notation access to data property
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_accessor_dashx_dollar1lbracket0rbracket() {
+    // Array indexing at position 0
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_accessor_dashx_dollar1lbracket1rbracket() {
+    // Array indexing at position 1
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_accessor_dashx_dollar2lbracket0rbracket() {
+    // Array indexing on second reference
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_advanced_accessor_dashx_dollar1lbracketstarrbracket() {
+    // Bash-style whole array access
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_advanced_accessor_dashx_dollar1lbracketcolonrbracket() {
+    // Python-style whole array slice
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_advanced_accessor_dashx_dollar1lbracket0dotdot2rbracket() {
+    // Perl-style range
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_advanced_accessor_dashx_dollar1lbracket1colon4rbracket() {
+    // Python-style slice
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_advanced_accessor_dashx_dollar1lbracket1colon10colon2rbracket() {
+    // Python-style slice with step
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_nested_structures_dashx_lbracketlbracketdollar1comma_dollar2rbrac_etc() {
+    // Nested arrays
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_nested_structures_dashx_lbraceoutercolon_lbraceinnercolon_dollar1_etc() {
+    // Nested objects
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_quantified_dashx_lbracketdollar1starrbracket() {
+    // Quantified array element
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_quantified_dashx_lbracekeycolon_dollar1rbracestar() {
+    // Quantified object
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_grouped_quantified_dashx_lbracketlparenelement1_element2rparenstar_etc() {
+    // Grouped quantified array
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_chained_accessor_dashx_dollar1dotpropertylbracket2rbracketdotsub_etc() {
+    // Chained accessors
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_negative_index_dashx_dollar1lbracketdash1rbracket() {
+    // Negative indexing
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_multi_index_dashx_dollar1lbracket1comma3comma5rbracket() {
+    // Multiple indices
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_optional_quantifier_dashx_lbracketdollar1rbracketquestion() {
+    // Optional array
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_plus_quantifier_dashx_lbracketdollar1rbracketplus() {
+    // One or more quantifier on array
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_exact_quantifier_dashx_lbracecountcolon_dollar1rbracelbrace3rbrace() {
+    // Exact repetition quantifier
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_range_quantifier_dashx_lbraceitemscolon_lbracketdollar1rbracketr_etc() {
+    // Range repetition quantifier
+    println!("⚠️  Test skipped - unknown parser type");
+}
+
+#[test]
+#[ignore] // Unknown parser type: return_annotation
+fn test_return_annotation_max_quantifier_dashx_lbracedatacolon_dollar1rbracelbracecomma3_etc() {
+    // Up to n repetitions
+    println!("⚠️  Test skipped - unknown parser type");
 }
 
 #[test]

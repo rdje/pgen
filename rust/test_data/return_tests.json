@@ -2,85 +2,85 @@
   "parser_type": "return_annotation",
   "basic_tests": [
     {
-      "input": "$1",
+      "input": "-> $1",
       "description": "Basic scalar reference $1",
       "category": "scalar_reference",
       "expected": "success"
     },
     {
-      "input": "$2",
+      "input": "-> $2",
       "description": "Basic scalar reference $2",
       "category": "scalar_reference",
       "expected": "success"
     },
     {
-      "input": "$10",
+      "input": "-> $10",
       "description": "Multi-digit scalar reference",
       "category": "scalar_reference",
       "expected": "success"
     },
     {
-      "input": "$99",
+      "input": "-> $99",
       "description": "Large scalar reference",
       "category": "scalar_reference",
       "expected": "success"
     },
     {
-      "input": "\"hello\"",
+      "input": "-> \"hello\"",
       "description": "String literal",
       "category": "literal",
       "expected": "success"
     },
     {
-      "input": "\"test string\"",
+      "input": "-> \"test string\"",
       "description": "String literal with space",
       "category": "literal",
       "expected": "success"
     },
     {
-      "input": "42",
+      "input": "-> 42",
       "description": "Integer literal",
       "category": "literal",
       "expected": "success"
     },
     {
-      "input": "123",
+      "input": "-> 123",
       "description": "Multi-digit integer literal",
       "category": "literal",
       "expected": "success"
     },
     {
-      "input": "true",
+      "input": "-> true",
       "description": "Bare identifier - should fail",
       "category": "identifier",
       "expected": "failure"
     },
     {
-      "input": "false",
+      "input": "-> false",
       "description": "Bare identifier - should fail",
       "category": "identifier",
       "expected": "failure"
     },
     {
-      "input": "[$1]",
+      "input": "-> [$1]",
       "description": "Single element array with scalar reference",
       "category": "array",
       "expected": "success"
     },
     {
-      "input": "[$2]",
+      "input": "-> [$2]",
       "description": "Single element array with scalar reference",
       "category": "array",
       "expected": "success"
     },
     {
-      "input": "[]",
+      "input": "-> []",
       "description": "Empty array",
       "category": "array",
       "expected": "success"
     },
     {
-      "input": "{}",
+      "input": "-> {}",
       "description": "Empty object",
       "category": "object",
       "expected": "success"
@@ -88,87 +88,195 @@
   ],
   "complex_tests": [
     {
-      "input": "[$1, $2]",
+      "input": "-> [$1, $2]",
       "description": "Multi-element array with scalar references",
       "category": "array",
       "expected": "success"
     },
     {
-      "input": "[\"item1\", \"item2\"]",
+      "input": "-> [\"item1\", \"item2\"]",
       "description": "String array",
       "category": "array",
       "expected": "success"
     },
     {
-      "input": "[42, 100]",
+      "input": "-> [42, 100]",
       "description": "Integer array",
       "category": "array",
       "expected": "success"
     },
     {
-      "input": "{key: $1}",
+      "input": "-> {key: $1}",
       "description": "Single property object",
       "category": "object",
       "expected": "success"
     },
     {
-      "input": "{name: $1}",
+      "input": "-> {name: $1}",
       "description": "Single property object with name key",
       "category": "object",
       "expected": "success"
     },
     {
-      "input": "{value: $2}",
+      "input": "-> {value: $2}",
       "description": "Single property object with value key",
       "category": "object",
       "expected": "success"
     },
     {
-      "input": "{name: $1, value: $2}",
+      "input": "-> {name: $1, value: $2}",
       "description": "Multi-property object",
       "category": "object",
       "expected": "success"
     },
     {
-      "input": "{id: 42, name: \"test\"}",
+      "input": "-> {id: 42, name: \"test\"}",
       "description": "Mixed type object",
       "category": "object",
       "expected": "success"
     },
     {
-      "input": "$1.value",
+      "input": "-> $1.value",
       "description": "Dot notation access",
       "category": "accessor",
       "expected": "success"
     },
     {
-      "input": "$1.name",
+      "input": "-> $1.name",
       "description": "Dot notation access to name property",
       "category": "accessor",
       "expected": "success"
     },
     {
-      "input": "$1.data",
+      "input": "-> $1.data",
       "description": "Dot notation access to data property",
       "category": "accessor",
       "expected": "success"
     },
     {
-      "input": "$1[0]",
+      "input": "-> $1[0]",
       "description": "Array indexing at position 0",
       "category": "accessor",
       "expected": "success"
     },
     {
-      "input": "$1[1]",
+      "input": "-> $1[1]",
       "description": "Array indexing at position 1",
       "category": "accessor",
       "expected": "success"
     },
     {
-      "input": "$2[0]",
+      "input": "-> $2[0]",
       "description": "Array indexing on second reference",
       "category": "accessor",
+      "expected": "success"
+    },
+    {
+      "input": "-> $1[*]",
+      "description": "Bash-style whole array access",
+      "category": "advanced_accessor",
+      "expected": "success"
+    },
+    {
+      "input": "-> $1[:]",
+      "description": "Python-style whole array slice",
+      "category": "advanced_accessor",
+      "expected": "success"
+    },
+    {
+      "input": "-> $1[0..2]",
+      "description": "Perl-style range",
+      "category": "advanced_accessor",
+      "expected": "success"
+    },
+    {
+      "input": "-> $1[1:4]",
+      "description": "Python-style slice",
+      "category": "advanced_accessor",
+      "expected": "success"
+    },
+    {
+      "input": "-> $1[1:10:2]",
+      "description": "Python-style slice with step",
+      "category": "advanced_accessor",
+      "expected": "success"
+    },
+    {
+      "input": "-> [[$1, $2], [$3, $4]]",
+      "description": "Nested arrays",
+      "category": "nested_structures",
+      "expected": "success"
+    },
+    {
+      "input": "-> {outer: {inner: $1}}",
+      "description": "Nested objects",
+      "category": "nested_structures",
+      "expected": "success"
+    },
+    {
+      "input": "-> [$1*]",
+      "description": "Quantified array element",
+      "category": "quantified",
+      "expected": "success"
+    },
+    {
+      "input": "-> {key: $1}*",
+      "description": "Quantified object",
+      "category": "quantified",
+      "expected": "success"
+    },
+    {
+      "input": "-> [(element1 element2)*]",
+      "description": "Grouped quantified array",
+      "category": "grouped_quantified",
+      "expected": "success"
+    },
+    {
+      "input": "-> $1.property[2].subprop",
+      "description": "Chained accessors",
+      "category": "chained_accessor",
+      "expected": "success"
+    },
+    {
+      "input": "-> $1[-1]",
+      "description": "Negative indexing",
+      "category": "negative_index",
+      "expected": "success"
+    },
+    {
+      "input": "-> $1[1,3,5]",
+      "description": "Multiple indices",
+      "category": "multi_index",
+      "expected": "success"
+    },
+    {
+      "input": "-> [$1]?",
+      "description": "Optional array",
+      "category": "optional_quantifier",
+      "expected": "success"
+    },
+    {
+      "input": "-> [$1]+",
+      "description": "One or more quantifier on array",
+      "category": "plus_quantifier",
+      "expected": "success"
+    },
+    {
+      "input": "-> {count: $1}{3}",
+      "description": "Exact repetition quantifier",
+      "category": "exact_quantifier",
+      "expected": "success"
+    },
+    {
+      "input": "-> {items: [$1]}{2,5}",
+      "description": "Range repetition quantifier",
+      "category": "range_quantifier",
+      "expected": "success"
+    },
+    {
+      "input": "-> {data: $1}{,3}",
+      "description": "Up to n repetitions",
+      "category": "max_quantifier",
       "expected": "success"
     }
   ]
