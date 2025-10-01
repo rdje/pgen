@@ -1,5 +1,88 @@
 # CHANGES.md
 
+## 2025-10-01: Unified Return Annotation AST Architecture ✅
+
+### Problem Statement
+The return annotation system had multiple parallel AST representations and parsers:
+- `ReturnAnnotationHandler` with its own AST and parser
+- `ReturnValueAST` (in return_annotation_ast.rs) - another AST attempt
+- Bootstrap parser producing JSON
+- External parser producing `ParseNode`
+- Multiple conversion paths causing confusion and bugs
+
+### Root Cause Analysis
+1. **No Single Source of Truth**: Multiple AST types meant duplicate logic
+2. **Wasted Work**: External parser output was parsed but then discarded
+3. **Future Problem**: When switching from bootstrap to external parser, code generator would break
+4. **Conceptual Confusion**: Mixed syntactic AST (how parsed) with semantic AST (what it means)
+
+### Solution Implementation
+
+#### 1. Created UnifiedReturnAST
+- **Single semantic AST** used by all paths
+- **Location**: `rust/src/ast_pipeline/unified_return_ast.rs`
+- **Variants**: PositionalRef, StringLiteral, Array, Object, Spread, etc.
+- **Bootstrap parser**: Directly produces UnifiedReturnAST
+- **Pretty-print**: Built-in debugging visualization
+
+#### 2. Implemented ParseNode → UnifiedReturnAST Conversion
+- **Function**: `convert_parse_node_to_unified_ast()`
+- **Purpose**: Transform syntactic AST to semantic AST
+- **Handles**: All rule types from return_annotation.ebnf
+- **Fallback**: Uses bootstrap parser if conversion fails
+
+#### 3. Updated Code Generator
+- **Single path**: Only uses UnifiedReturnAST
+- **No re-parsing**: Uses pre-parsed AST from pipeline
+- **Debug output**: Shows unified AST structure
+- **Removed**: Old `ReturnAnnotationHandler` parsing logic
+
+#### 4. Documented Three-Level Bootstrap Architecture
+
+**Level 1: Built-in Parsers** (hardcoded)
+- `parse_semantic_annotation_bootstrap()` - simple patterns
+- `UnifiedReturnAST::parse_bootstrap()` - full recursion support
+
+**Level 2: Special Parsers** (bootstrap-generated)
+- `semantic_annotation.ebnf` → `Semantic_annotationParser`
+- `return_annotation.ebnf` → `Return_annotationParser`
+- Must be parseable by Level 1 parsers
+
+**Level 3: User Parsers** (fully-featured)
+- All other grammars use Level 2 parsers
+- Can use all annotation features
+
+### Data Flow Architecture
+
+**Bootstrap Mode**:
+```
+Text → UnifiedReturnAST::parse_bootstrap() → UnifiedReturnAST → Code Generator
+```
+
+**Full Mode**:
+```
+Text → Return_annotationParser → ParseNode → convert_to_unified() → UnifiedReturnAST → Code Generator
+```
+
+### Files Modified
+- `rust/src/ast_pipeline/unified_return_ast.rs` - NEW unified AST implementation
+- `rust/src/ast_pipeline.rs` - Added conversion function, updated parsing
+- `rust/src/ast_pipeline/high_performance_generator.rs` - Use pre-parsed AST
+- `docs/BOOTSTRAP_SYSTEM_COMPLETE.md` - Complete architecture documentation
+
+### Files Removed/Obsoleted
+- `rust/src/ast_pipeline/return_annotation_ast.rs` - Superseded by unified_return_ast.rs
+- Multiple test scripts and debug outputs
+
+### Impact
+- **Single Source of Truth**: One AST format for all paths
+- **No Wasted Work**: External parser output properly utilized
+- **Future-Proof**: Clean transition from bootstrap to full parser
+- **Clear Semantics**: Separation of syntax vs meaning
+- **Better Debugging**: Unified AST pretty-printing throughout
+
+---
+
 ## 2025-01-13: Fixed Rust AST Pipeline Compilation Errors ✅
 
 ### Problem Statement

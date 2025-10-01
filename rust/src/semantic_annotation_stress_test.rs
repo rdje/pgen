@@ -241,22 +241,8 @@ mod semantic_annotation_stress_tests {
                         success: true,
                     });
                     
-                    // Print FULL debug trace for complete verification
-                    let debug_output = parser.debug_output();
-                    if !debug_output.is_empty() {
-                        log_and_print!("\n🔍 COMPLETE DEBUG TRACE ({} steps):", debug_output.len());
-                        log_and_print!("   This provides UNDISPUTABLE PROOF of parsing behavior:");
-                        log_and_print!("   Format: Hierarchical rule processing with clear nesting");
-                        log_and_print!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
-                        log_and_print!("");
-                        for (step, msg) in debug_output.iter().enumerate() {
-                            // Format hierarchical debug messages with proper spacing
-                            if msg.contains(" → ") && !msg.starts_with("semantic_annotation →") {
-                                log_and_print!(""); // Empty line before non-top rule processing
-                            }
-                            log_and_print!("   {:4}: {}", step + 1, msg);
-                        }
-                    }
+                    // Note: Debug output not available in placeholder parser
+                    log_and_print!("\n📝 Note: Debug trace not available in placeholder parser");
                     
                     log_and_print!("\n✅ SEMANTIC PARSER: ROCK SOLID BEHAVIOR CONFIRMED FOR '{}'", test_input);
                 }
@@ -264,7 +250,7 @@ mod semantic_annotation_stress_tests {
                     let parse_time = parse_start.elapsed();
                     incorrect_behaviors += 1;
                     
-                    log_and_print!("❌ UNEXPECTED FAILURE in {:.3}ms: {} (EXPECTED TO SUCCEED)", parse_time.as_secs_f64() * 1000.0, e);
+                    log_and_print!("❌ UNEXPECTED FAILURE in {:.3}ms: {:?} (EXPECTED TO SUCCEED)", parse_time.as_secs_f64() * 1000.0, e);
                     
                     test_results.push(TestResult {
                         name: format!("basic_test_{}", i + 1),
@@ -275,22 +261,8 @@ mod semantic_annotation_stress_tests {
                         success: false,
                     });
                     
-                    // Even for failures, print debug trace for complete analysis
-                    let debug_output = parser.debug_output();
-                    if !debug_output.is_empty() {
-                        log_and_print!("\n🔍 FAILURE DEBUG TRACE ({} steps):", debug_output.len());
-                        log_and_print!("   This shows exactly where parsing failed:");
-                        log_and_print!("   Format: Hierarchical rule processing with clear nesting");
-                        log_and_print!("   Rule hierarchy format: rule-top → ... → RULE (with empty line preceding)");
-                        log_and_print!("");
-                        for (step, msg) in debug_output.iter().enumerate() {
-                            // Format hierarchical debug messages with proper spacing
-                            if msg.contains(" → ") && !msg.starts_with("semantic_annotation →") {
-                                log_and_print!(""); // Empty line before non-top rule processing
-                            }
-                            log_and_print!("   {:4}: {}", step + 1, msg);
-                        }
-                    }
+                    // Note: Debug output not available in placeholder parser
+                    log_and_print!("\n📝 Note: Debug trace not available in placeholder parser");
                     
                     log_and_print!("❌ UNEXPECTED FAILURE FOR: '{}' - SHOULD HAVE SUCCEEDED", test_input);
                 }

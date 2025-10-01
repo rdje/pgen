@@ -32,6 +32,8 @@ use high_performance_generator::HighPerformanceRustGenerator;
 mod mutual_recursion_handler;
 mod return_annotation_handler;
 use return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
+mod unified_return_ast;
+use unified_return_ast::UnifiedReturnAST;
 
 /// Configuration for AST transformation pipeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -139,7 +141,8 @@ pub enum ASTValue {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReturnAnnotation {
     pub annotation_type: String, // "return_scalar", "return_array", "return_object"
-    pub annotation_content: String, // The original annotation content - we parse this on demand in the generator
+    pub annotation_content: String, // The original annotation content (for logging/display)
+    pub parsed_ast: Option<UnifiedReturnAST>, // The parsed AST ready for code generation
 }
 
 /// Preserved annotations from raw AST
@@ -696,41 +699,50 @@ impl RustASTPipeline {
     }
     
     
-    /// Parse return annotation using the return annotation parser
-    fn parse_return_annotation(&self, annotation_value: &str) -> Result<String> {
-        if self.should_use_bootstrap_mode() {
-            if self.config.debug {
-                println!("[AST Pipeline] Using bootstrap mode for return annotation: '{}'", annotation_value);
-            }
-            return self.parse_return_annotation_bootstrap(annotation_value);
+    /// Parse return annotation into the unified AST
+    fn parse_return_annotation(&self, annotation_value: &str) -> Result<UnifiedReturnAST> {
+        if self.config.debug {
+            println!("[AST Pipeline] Parsing return annotation: '{}'", annotation_value);
         }
         
-        // Use the generated return annotation parser to parse the value
+        if self.should_use_bootstrap_mode() {
+            if self.config.debug {
+                println!("[AST Pipeline] Using bootstrap mode for return annotation");
+            }
+            return UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug)
+                .map_err(|e| anyhow!("Bootstrap parser error: {}", e));
+        }
+        
+        // Try to use the generated return annotation parser first
         let mut parser = if self.config.debug || self.config.trace {
             Return_annotationParser::with_debug(annotation_value)
         } else {
             Return_annotationParser::new(annotation_value)
         };
         
-        if self.config.debug {
-            println!("[AST Pipeline] Parsing return annotation with value: '{}'", annotation_value);
-        }
-        
         // Parse the annotation value into an AST
         match parser.parse() {
             Ok(parsed_ast) => {
-                // Convert the AST to a simplified JSON representation for storage
-                // This will be used by the code generator to execute return annotation operations
-                let simplified = self.simplify_return_parse_node(&parsed_ast);
-                serde_json::to_string(&simplified)
-                    .context("Failed to serialize parsed return annotation AST")
+                // Convert from external parser AST to UnifiedReturnAST
+                if self.config.debug {
+                    println!("[AST Pipeline] External parser succeeded, converting to unified AST");
+                }
+                self.convert_parse_node_to_unified_ast(&parsed_ast)
+                    .or_else(|e| {
+                        if self.config.debug {
+                            println!("[AST Pipeline] Conversion failed ({}), falling back to bootstrap parser", e);
+                        }
+                        UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug)
+                            .map_err(|e| anyhow!("Bootstrap parser also failed: {}", e))
+                    })
             }
             Err(_) => {
                 // If parsing fails, fallback to bootstrap mode
                 if self.config.debug {
-                    println!("Warning: External return parser failed, falling back to bootstrap mode: {}", annotation_value);
+                    println!("[AST Pipeline] External parser failed, falling back to bootstrap mode");
                 }
-                self.parse_return_annotation_bootstrap(annotation_value)
+                UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug)
+                    .map_err(|e| anyhow!("Bootstrap parser error: {}", e))
             }
         }
     }
@@ -945,6 +957,214 @@ impl RustASTPipeline {
         
         obj.insert("content".to_string(), content);
         Value::Object(obj)
+    }
+    
+    /// Parse and pretty-print return annotation for display
+    fn parse_return_annotation_for_display(&self, annotation: &str) -> Result<String> {
+        // Parse the return annotation to understand its structure
+        let mut output = String::new();
+        let indent = "     ";
+        
+        // Simple pattern matching for common return annotation patterns
+        if annotation.starts_with("$") {
+            // Scalar reference like $1, $2, etc.
+            output.push_str(&format!("{}📌 AST Type: Scalar Reference\n", indent));
+            output.push_str(&format!("{}└─ Index: {}\n", indent, &annotation[1..]));
+        } else if annotation.starts_with("[") && annotation.ends_with("]") {
+            // Array pattern like [$1, $2*]
+            output.push_str(&format!("{}📌 AST Type: Array\n", indent));
+            let content = &annotation[1..annotation.len()-1];
+            output.push_str(&format!("{}└─ Elements: {}\n", indent, content));
+            
+            // Parse array elements
+            if content.contains("$") {
+                output.push_str(&format!("{}   ├─ Contains scalar references\n", indent));
+            }
+            if content.contains("*") {
+                output.push_str(&format!("{}   └─ Has spread operator (*)\n", indent));
+            }
+        } else if annotation.starts_with("{") && annotation.ends_with("}") {
+            // Object pattern like {type: "array", contents: $3}
+            output.push_str(&format!("{}📌 AST Type: Object\n", indent));
+            let content = &annotation[1..annotation.len()-1];
+            
+            // Parse object properties
+            let parts: Vec<&str> = content.split(',').collect();
+            for (i, part) in parts.iter().enumerate() {
+                let is_last = i == parts.len() - 1;
+                let prefix = if is_last { "└─" } else { "├─" };
+                
+                if let Some(colon_pos) = part.find(':') {
+                    let key = part[..colon_pos].trim();
+                    let value = part[colon_pos+1..].trim();
+                    output.push_str(&format!("{}   {} Property: {}\n", indent, prefix, key));
+                    output.push_str(&format!("{}      Value: {}\n", indent, value));
+                }
+            }
+        } else if annotation == "\"*\"" || annotation == "\"+\"" || annotation == "\"?\"" {
+            // Quantifier
+            output.push_str(&format!("{}📌 AST Type: Quantifier\n", indent));
+            output.push_str(&format!("{}└─ Value: {}\n", indent, annotation));
+        } else if annotation.starts_with('"') && annotation.ends_with('"') {
+            // String literal
+            output.push_str(&format!("{}📌 AST Type: String Literal\n", indent));
+            output.push_str(&format!("{}└─ Value: {}\n", indent, annotation));
+        } else {
+            // Complex or unknown pattern
+            output.push_str(&format!("{}📌 AST Type: Complex Expression\n", indent));
+            output.push_str(&format!("{}└─ Raw: {}\n", indent, annotation));
+        }
+        
+        Ok(output)
+    }
+    
+    /// Convert external parser's ParseNode to UnifiedReturnAST
+    /// This interprets the syntactic parse tree to extract semantic meaning
+    fn convert_parse_node_to_unified_ast(&self, node: &return_annotation_parser::ParseNode) -> Result<UnifiedReturnAST> {
+        use return_annotation_parser::ParseContent;
+        
+        if self.config.debug {
+            println!("[AST Pipeline] Converting ParseNode to UnifiedReturnAST");
+            println!("  Rule: {}", node.rule_name);
+        }
+        
+        // The external parser produces a syntactic tree based on the return_annotation.ebnf grammar
+        // We need to interpret this tree to build the semantic UnifiedReturnAST
+        
+        match node.rule_name {
+            "return_annotation" => {
+                // Top level rule - delegate to the content
+                match &node.content {
+                    ParseContent::Sequence(nodes) if !nodes.is_empty() => {
+                        // Usually contains the actual annotation content
+                        self.convert_parse_node_to_unified_ast(&nodes[0])
+                    }
+                    ParseContent::Alternative(inner) => {
+                        self.convert_parse_node_to_unified_ast(inner)
+                    }
+                    _ => Err(anyhow!("Unexpected return_annotation structure"))
+                }
+            }
+            "scalar_ref" | "positional_ref" => {
+                // Parse $N references
+                match &node.content {
+                    ParseContent::Terminal(text) => {
+                        // Extract the number from $N
+                        let num_str = text.trim_start_matches('$');
+                        let index = num_str.parse::<usize>()
+                            .map_err(|_| anyhow!("Invalid positional reference: {}", text))?;
+                        Ok(UnifiedReturnAST::PositionalRef { index })
+                    }
+                    _ => Err(anyhow!("Invalid scalar_ref structure"))
+                }
+            }
+            "array" | "array_spec" => {
+                // Parse array [...]
+                match &node.content {
+                    ParseContent::Sequence(nodes) => {
+                        // Extract array elements, handling spread operators
+                        let mut elements = Vec::new();
+                        for node in nodes {
+                            if node.rule_name == "spread" || node.rule_name.contains("spread") {
+                                // Handle spread operator
+                                let base = self.convert_parse_node_to_unified_ast(node)?;
+                                elements.push(UnifiedReturnAST::Spread { base: Box::new(base) });
+                            } else if node.rule_name != "[" && node.rule_name != "]" && node.rule_name != "," {
+                                // Regular element
+                                elements.push(self.convert_parse_node_to_unified_ast(node)?);
+                            }
+                        }
+                        Ok(UnifiedReturnAST::Array { elements })
+                    }
+                    _ => Err(anyhow!("Invalid array structure"))
+                }
+            }
+            "object" | "object_spec" => {
+                // Parse object {...}
+                match &node.content {
+                    ParseContent::Sequence(nodes) => {
+                        // Extract key-value pairs
+                        let mut properties = std::collections::HashMap::new();
+                        let mut i = 0;
+                        while i < nodes.len() {
+                            // Look for key:value patterns
+                            if i + 2 < nodes.len() {
+                                let key_node = &nodes[i];
+                                let colon_node = &nodes[i + 1];
+                                let value_node = &nodes[i + 2];
+                                
+                                if let ParseContent::Terminal(colon) = &colon_node.content {
+                                    if colon == ":" {
+                                        let key = self.extract_string_from_node(key_node)?;
+                                        let value = self.convert_parse_node_to_unified_ast(value_node)?;
+                                        properties.insert(key, Box::new(value));
+                                        i += 3;
+                                        continue;
+                                    }
+                                }
+                            }
+                            i += 1;
+                        }
+                        Ok(UnifiedReturnAST::Object { properties })
+                    }
+                    _ => Err(anyhow!("Invalid object structure"))
+                }
+            }
+            "string_literal" | "string" => {
+                // Parse string literals
+                match &node.content {
+                    ParseContent::Terminal(text) => {
+                        // Remove quotes if present
+                        let cleaned = text.trim_matches('"');
+                        Ok(UnifiedReturnAST::StringLiteral { value: cleaned.to_string() })
+                    }
+                    _ => Err(anyhow!("Invalid string literal structure"))
+                }
+            }
+            _ => {
+                // Fallback: try to interpret based on content
+                match &node.content {
+                    ParseContent::Terminal(text) => {
+                        // Check what kind of terminal this is
+                        if text.starts_with('$') {
+                            let index = text[1..].parse::<usize>()
+                                .map_err(|_| anyhow!("Invalid positional reference: {}", text))?;
+                            Ok(UnifiedReturnAST::PositionalRef { index })
+                        } else if text.starts_with('"') && text.ends_with('"') {
+                            Ok(UnifiedReturnAST::StringLiteral { 
+                                value: text[1..text.len()-1].to_string() 
+                            })
+                        } else if let Ok(num) = text.parse::<f64>() {
+                            Ok(UnifiedReturnAST::NumberLiteral { value: num })
+                        } else {
+                            Err(anyhow!("Unknown terminal content: {}", text))
+                        }
+                    }
+                    ParseContent::Alternative(inner) => {
+                        // Unwrap alternatives
+                        self.convert_parse_node_to_unified_ast(inner)
+                    }
+                    ParseContent::Sequence(nodes) if nodes.len() == 1 => {
+                        // Unwrap single-element sequences
+                        self.convert_parse_node_to_unified_ast(&nodes[0])
+                    }
+                    _ => Err(anyhow!("Cannot convert ParseNode with rule '{}' to UnifiedReturnAST", node.rule_name))
+                }
+            }
+        }
+    }
+    
+    /// Helper to extract a string from a parse node (for object keys, etc.)
+    fn extract_string_from_node(&self, node: &return_annotation_parser::ParseNode) -> Result<String> {
+        use return_annotation_parser::ParseContent;
+        
+        match &node.content {
+            ParseContent::Terminal(text) => {
+                // Remove quotes if present
+                Ok(text.trim_matches('"').to_string())
+            }
+            _ => Err(anyhow!("Expected terminal for string extraction"))
+        }
     }
     
     /// Convert return annotation ParseNode to a serializable simplified representation
@@ -1241,6 +1461,25 @@ impl RustASTPipeline {
                                     self.log_success("extract_branch_return_annotations", 
                                         &format!("  Branch {}: Found {} annotation: '{}'", branch_idx, type_str, content));
                                     
+                                    // Always log the return annotation details with pretty-printed AST
+                                    self.log_info("extract_branch_return_annotations", 
+                                        &format!("\n📝 RETURN ANNOTATION DETAILS:"));
+                                    self.log_info("extract_branch_return_annotations", 
+                                        &format!("   Rule: {}", rule_name));
+                                    self.log_info("extract_branch_return_annotations", 
+                                        &format!("   Branch: {}", branch_idx));
+                                    self.log_info("extract_branch_return_annotations", 
+                                        &format!("   Type: {}", type_str));
+                                    self.log_info("extract_branch_return_annotations", 
+                                        &format!("   Raw Value: '{}'", content));
+                                    
+                                    // Try to parse and pretty-print the return annotation
+                                    if let Ok(parsed) = self.parse_return_annotation_for_display(content) {
+                                        self.log_info("extract_branch_return_annotations", 
+                                            &format!("   Parsed AST (pretty-printed):\n{}", parsed));
+                                    }
+                                    self.log_info("extract_branch_return_annotations", &format!(""));
+                                    
                                     // Ensure the annotation has the -> prefix for the new grammar
                                     let prefixed_annotation = if content.starts_with("->") {
                                         content.clone()
@@ -1248,9 +1487,25 @@ impl RustASTPipeline {
                                         format!("-> {}", content)
                                     };
                                     
+                                    // Parse the annotation into the unified AST
+                                    let parsed_ast = self.parse_return_annotation(&prefixed_annotation)
+                                        .map_err(|e| {
+                                            self.log_warning("extract_branch_return_annotations",
+                                                &format!("Failed to parse return annotation: {}", e));
+                                            e
+                                        })
+                                        .ok();
+                                    
+                                    // Log the parsed AST for debugging
+                                    if let Some(ref ast) = parsed_ast {
+                                        self.log_info("extract_branch_return_annotations",
+                                            &format!("   Parsed Unified AST:\n{}", ast.pretty_print(5)));
+                                    }
+                                    
                                     branch_annotation = Some(ReturnAnnotation {
                                         annotation_type: type_str.clone(),
                                         annotation_content: prefixed_annotation,
+                                        parsed_ast,
                                     });
                                     total_branch_annotations += 1;
                                     // Don't add return annotation tokens to cleaned alternative
