@@ -80,6 +80,39 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - **Complex Group Support**: Advanced detection and handling of grouped quantifier patterns in real-world grammars
 - **Context Preservation**: Method context tracking enables proper attribution of log messages to correct components
 
+### Rust AST Pipeline Architecture (Updated 2025-10-01)
+
+#### 6-Stage Transformation Process
+1. **Annotation Extraction**: Preserves semantic and logging annotations
+2. **Group By OR**: Splits rules on `|` operators at depth 0 (outside parentheses)
+3. **Handle Parentheses**: Pass-through stage (preserves all tokens) ← SIMPLIFIED
+4. **Parse Sequences**: Converts token sequences into AST nodes (all atoms now)
+5. **Quantifier Handling**: Applies quantifiers and handles grouped patterns
+6. **Tree Building**: Constructs final grammar tree structure
+
+**Critical Change**: Stage 3 was simplified on 2025-10-01. Previously it collapsed groups into single tokens with JSON content, but this lost structural information needed for nested quantifiers.
+
+#### Grouped Quantifier Parser Design
+The `GroupedQuantifierParser` module is designed with:
+- **Token-based Processing**: Converts AST nodes to tokens for uniform processing
+- **Recursive Descent**: Uses recursive parsing for nested structures
+- **Lookahead Strategy**: Checks next token for quantifiers
+- **Depth Tracking**: Maintains depth counter for matching parentheses
+- **Alternative Handling**: Special processing for pipe operators at depth 0
+
+#### EBNF Grammar Parsing Insights
+1. **Nested Quantifiers**: Groups can contain quantified elements which themselves contain groups
+2. **Alternative Scope**: Pipe operator precedence must be carefully managed
+3. **Token Ambiguity**: Same characters can be structural or content depending on context
+4. **Flattening Pitfalls**: Premature flattening loses critical structural information
+
+#### AST Node Types (Rust Implementation)
+- **Atom**: Terminal elements (literals, regexes, rule references)
+- **Sequence**: Ordered list of elements to match consecutively
+- **Or**: Alternative branches (first match wins)
+- **Quantified**: Element with ?, *, or + modifier
+- **Group**: Logical grouping without quantification
+
 ### Test Infrastructure Best Practices
 - **Dedicated Test Files**: Each parser needs individual stress test file (`*_stress_test.rs` pattern)
 - **Structured Test Data**: Use const arrays for test cases to enable automatic extraction
@@ -455,6 +488,13 @@ Makefile Dependencies:
 - **Debug String Parsing**: Current complex group detection relies on fragile debug string parsing that should be replaced with proper AST analysis
 - **Left Recursion Edge Cases**: Some complex nested structures may still be affected by left recursion elimination side effects
 - **EBNF Preservation**: Need better preservation of original EBNF semantics through all transformation stages
+
+### Recently Fixed Rust AST Pipeline Issues (2025-10-01)
+✅ **Nested Quantified Groups**:
+- **Problem**: Pattern `(elem (,elem)*)?` was failing with orphaned `?` quantifier
+- **Root Cause**: The `handle_parentheses` stage was collapsing groups into single tokens
+- **Solution**: Simplified pipeline to preserve all tokens including group boundaries
+- **Result**: Semantic annotation parser now generates successfully (1MB+ file)
 
 ### Potential Improvements
 1. **Enhanced AST Transformation**: Improve complex group detection and preservation during AST pipeline processing

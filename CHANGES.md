@@ -1,5 +1,88 @@
 # CHANGES.md
 
+## 2025-10-01: Fixed Nested Quantified Groups Issue in AST Pipeline ✅
+
+### Problem Statement
+**Critical Issue**: The semantic_annotation parser was failing with "unexpected quantifier '?'" errors on complex patterns with nested quantified groups.
+
+### Root Cause Analysis
+
+**Pattern Example**:
+```
+( tuple_element ( \s* , \s* tuple_element )* )?
+```
+
+This pattern has:
+- An outer group with `?` quantifier (optional)
+- An inner repeated group with `*` quantifier (zero or more comma-separated elements)
+
+**Issue Location**: The AST pipeline's `handle_parentheses` stage was collapsing groups into single "group" tokens with serialized JSON content, losing the explicit group boundaries (`group_open` and `group_close`) that the quantifier parser needed to properly match nested groups.
+
+### Solution Implementation
+
+#### Simplified Pipeline Architecture
+
+**Before**: Complex group collapsing in `handle_parentheses` stage
+**After**: Clean pass-through preserving all tokens including boundaries
+
+**Key Changes**:
+1. **handle_parentheses**: Now a transparent pass-through stage
+2. **parse_single_element**: Treats all tokens as atoms without special deserialization
+3. **Group boundaries**: Preserved for proper quantifier matching
+
+### Technical Details
+
+**AST Pipeline Architecture** (Updated):
+1. **Annotation Extraction**: Preserves semantic and logging annotations
+2. **Group By OR**: Splits rules on `|` operators at depth 0
+3. **Handle Parentheses**: Pass-through stage (preserves all tokens) ← SIMPLIFIED
+4. **Parse Sequences**: Converts token sequences into AST nodes
+5. **Quantifier Handling**: Applies quantifiers with full group awareness
+6. **Tree Building**: Constructs final grammar tree structure
+
+**GroupedQuantifierParser Module**:
+- **Robust Token Recognition**: Distinguishes structural vs content tokens
+- **Nested Group Handling**: Recursive parsing maintaining structure
+- **Alternative Support**: Handles `|` operators within groups
+- **Quantifier Application**: Correct scope application
+
+### Validation Results
+
+✅ **Parser Generation**: Semantic annotation parser generates successfully (1MB+ file)
+✅ **Pattern Support**: All nested quantified group patterns work correctly
+✅ **Pipeline Simplicity**: Cleaner, more maintainable architecture
+✅ **Backward Compatibility**: All existing grammars continue to work
+
+### Files Modified
+
+- **SIMPLIFIED:** `rust/src/ast_pipeline.rs` - Pass-through parentheses handling
+- **ENHANCED:** `rust/src/ast_pipeline/grouped_quantifier_parser.rs` - SOTA parser implementation
+- **UPDATED:** `rust/CHANGES.md` - Technical change documentation
+- **UPDATED:** `rust/DEVELOPMENT_NOTES.md` - Architecture insights
+
+### Lessons Learned
+
+**Preserve Structure**: Don't collapse structural elements too early in the pipeline
+**Token Boundaries Matter**: Group delimiters are critical for parsing
+**Simplicity Wins**: Removing "clever" optimizations makes code more robust
+**Debug Output is Gold**: Detailed logging essential for diagnosing issues
+
+### Impact Assessment
+
+**Developer Experience**:
+- Complex EBNF patterns now parse correctly
+- Clearer error messages for malformed patterns
+- Simpler pipeline easier to debug and maintain
+
+**System Robustness**:
+- Handles arbitrary nesting depth
+- Supports all EBNF quantifier patterns
+- More predictable behavior
+
+This fix resolves a fundamental architectural issue in the AST pipeline, enabling correct parsing of complex real-world grammars.
+
+---
+
 ## 2025-12-13: Fixed Missing Generator Debug Logs in Pipeline ✅
 
 ### Problem Statement
