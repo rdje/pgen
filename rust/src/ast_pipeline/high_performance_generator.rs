@@ -1846,11 +1846,14 @@ impl<'input> {parser_name}<'input> {{
                         Ok(format!("{indent}let result = ParseContent::Alternative(Box::new({parser_var}.parse_{rule_name}()?));\n"))
                     }
                     // Skip grammar tokens - these should not generate any parsing code
+                    // These tokens are EBNF syntax elements and should have been processed during AST transformation
                     Some("group_open") | Some("group_close") | Some("operator") | Some("separator") => {
                         if self.enable_trace {
-                            self.log_debug(&format!("[HighPerformanceRustGenerator][generate_atom_code]     ➤ Skipping grammar token: {:?} - no code generation needed", token_type.as_str()));
+                            self.log_debug(&format!("[HighPerformanceRustGenerator][generate_atom_code]     ⚠️ WARNING: Grammar token {:?} found in code generation - this indicates an AST transformation issue", token_type.as_str()));
                         }
-                        Ok(format!("{indent}let result = ParseContent::Terminal(\"\");\n"))
+                        // Return empty string to skip generating any code for these tokens
+                        // They should not appear in a properly transformed AST
+                        Ok(String::new())
                     }
                     _ => {
                         if self.enable_trace {
@@ -2307,6 +2310,11 @@ impl<'input> {parser_name}<'input> {{
         indent: &str,
         parser_var: &str
     ) -> Result<String> {
+        // Skip generating code for empty elements (grammar tokens that were incorrectly left in the AST)
+        if element_code.trim().is_empty() {
+            return Ok(String::new());
+        }
+        
         let mut code = String::new();
         
         code.push_str(&format!("{indent}{{\n"));
@@ -2456,6 +2464,21 @@ impl<'input> {parser_name}<'input> {{
                 builder.add_line(&format!("{indent}    p.debug_try_alternative(\"{{rule_name}}\", {}, {}, \"{}\");", branch_idx, n_branches, alt_name));
             }
             
+            // Add mutual recursion check for each branch
+            // If a branch contains a rule reference that would cause mutual recursion,
+            // that specific branch should return None to skip to the next branch
+            if let Some(referenced_rule) = self.get_rule_reference_from_ast(alt) {
+                builder.add_line(&format!("{indent}    // Check for mutual recursion on this branch"));
+                builder.add_line(&format!("{indent}    let branch_cycle = p.recursion_guard.check_cycle(\"{}\", p.position);", referenced_rule));
+                builder.add_line(&format!("{indent}    if matches!(branch_cycle, CycleType::MutualRecursive {{ .. }}) {{"));
+                builder.add_line(&format!("{indent}        // Skip this branch due to mutual recursion - try next alternative"));
+                builder.add_line(&format!("{indent}        if p.debug_mode {{"));
+                builder.add_line(&format!("{indent}            p.debug_output.push(format!(\"⚠️ Skipping branch {{}} due to mutual recursion with {{}}\", {}, \"{}\"));", branch_idx, referenced_rule));
+                builder.add_line(&format!("{indent}        }}"));
+                builder.add_line(&format!("{indent}        return Err(ParseError::Backtrack {{ position: p.position }});"));
+                builder.add_line(&format!("{indent}    }}"));
+            }
+            
             // Generate branch content with proper indentation
             let alt_code = self.generate_optimized_node_code_with_context(&alt, 0, rule_name, rule_annotations, "p")?;
             let branch_indent = if branch_idx == 0 { "        " } else { "            " };
@@ -2494,6 +2517,42 @@ impl<'input> {parser_name}<'input> {{
         builder.add_line(&format!("{indent}}}"));
         
         Ok(builder.build())
+    }
+    
+    /// Helper function to get the first rule reference in an AST node (for mutual recursion checking)
+    fn get_rule_reference_from_ast(&self, ast_node: &ASTNode) -> Option<String> {
+        match ast_node {
+            ASTNode::Atom { value } => {
+                match value {
+                    ASTValue::Token(token) if token.len() == 2 => {
+                        if let (crate::ast_pipeline::TokenValue::String(token_type), crate::ast_pipeline::TokenValue::String(token_value)) = (&token[0], &token[1]) {
+                            if token_type == "rule_reference" {
+                                return Some(token_value.clone());
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                // Return the first rule reference found in the sequence
+                for element in elements {
+                    if let Some(rule_ref) = self.get_rule_reference_from_ast(element) {
+                        return Some(rule_ref);
+                    }
+                }
+            }
+            ASTNode::Or { alternatives } => {
+                // For OR nodes, check the first alternative
+                if let Some(first_alt) = alternatives.first() {
+                    return self.get_rule_reference_from_ast(first_alt);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                return self.get_rule_reference_from_ast(element);
+            }
+        }
+        None
     }
     
     /// Helper function to extract rule name from AST node

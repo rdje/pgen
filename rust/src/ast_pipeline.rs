@@ -7,10 +7,12 @@
 //! Implements the 5-stage transformation pipeline equivalent to Perl AST::Transform.
 
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::fs::{self, OpenOptions};
-use std::io::{Write, BufWriter};
-use anyhow::{Context, Result};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::fs::{File, OpenOptions};
+use std::io::{BufWriter, Write};
+use anyhow::{Result, Context, anyhow};
+
+pub mod grouped_quantifier_parser;
 // Visualization functionality implemented inline to avoid import issues
 
 // Import the generated semantic annotation parser
@@ -176,11 +178,6 @@ pub struct TransformMetadata {
     pub stats: TransformStats,
 }
 
-/// Structure to hold grouped quantifier parsing result
-struct GroupedQuantifierResult {
-    quantified_node: ASTNode,
-    next_index: usize,
-}
 
 /// Main Rust AST Pipeline implementation
 pub struct RustASTPipeline {
@@ -454,7 +451,7 @@ impl RustASTPipeline {
             println!("Loading raw AST from: {}", file_path);
         }
 
-        let content = fs::read_to_string(file_path)
+        let content = std::fs::read_to_string(file_path)
             .with_context(|| format!("Failed to read file: {}", file_path))?;
 
         let data: RawASTJson = serde_json::from_str(&content)
@@ -1441,8 +1438,10 @@ impl RustASTPipeline {
         Ok(quantified)
     }
 
-    /// Apply quantifiers to AST node
+    /// Apply quantifiers to AST node using the new SOTA grouped quantifier parser
     fn apply_quantifiers_to_node(&mut self, node: ASTNode) -> Result<ASTNode> {
+        self.log_info("apply_quantifiers_to_node", "📥 ENTER: Processing AST node for quantifiers");
+        
         match node {
             ASTNode::Sequence { elements } => {
                 self.log_info("apply_quantifiers_to_node", &format!("🔄 Processing sequence with {} elements", elements.len()));
@@ -1452,442 +1451,119 @@ impl RustASTPipeline {
                     }
                 }
                 
-                // Pre-process: flatten nested sequences that contain grouped quantifiers
-                let flattened_elements = self.flatten_grouped_quantifiers_in_sequence(&elements)?;
-                if self.config.debug && flattened_elements.len() != elements.len() {
-                    println!("[AST][apply_quantifiers_to_node] Flattened sequence: {} -> {} elements", elements.len(), flattened_elements.len());
-                    for (idx, elem) in flattened_elements.iter().enumerate() {
-                        println!("[AST][apply_quantifiers_to_node]   FlatElement[{}]: {:?}", idx, elem);
-                    }
+                self.log_debug("apply_quantifiers_to_node", "🔄 Converting AST elements to tokens (no flattening)");
+                // Convert AST elements DIRECTLY to tokens - NO FLATTENING
+                let mut tokens = Vec::new();
+                for element in &elements {
+                    self.ast_node_to_tokens_simple(element, &mut tokens)?;
+                }
+                self.log_debug("apply_quantifiers_to_node", &format!("  Converted to {} raw tokens", tokens.len()));
+                
+                // Use the new grouped quantifier parser
+                self.log_debug("apply_quantifiers_to_node", "🎭 Creating GroupedQuantifierParser");
+                let parser = grouped_quantifier_parser::GroupedQuantifierParser::new(self.config.debug);
+                
+                self.log_debug("apply_quantifiers_to_node", "🔄 Tokenizing raw tokens");
+                let parsed_tokens = parser.tokenize_from_raw_tokens(&tokens)?;
+                self.log_debug("apply_quantifiers_to_node", &format!("  Tokenized to {} tokens", parsed_tokens.len()));
+                
+                self.log_debug("apply_quantifiers_to_node", "🔄 Parsing token sequence for quantified groups");
+                let parsed_elements = parser.parse_sequence(&parsed_tokens)
+                    .with_context(|| format!("Failed to parse quantified groups"))?;
+                self.log_debug("apply_quantifiers_to_node", &format!("  Parsed {} elements", parsed_elements.len()));
+                
+                // Convert back to AST nodes
+                self.log_debug("apply_quantifiers_to_node", "🔄 Converting parsed elements back to AST nodes");
+                let mut new_elements = Vec::new();
+                for (idx, parsed) in parsed_elements.into_iter().enumerate() {
+                    self.log_debug("apply_quantifiers_to_node", &format!("  Converting element[{}]", idx));
+                    new_elements.push(parser.to_ast_node(parsed));
                 }
                 
-                let mut new_elements = Vec::new();
-                let mut i = 0;
-
-                while i < flattened_elements.len() {
-                    if self.config.debug {
-                        println!("[AST][apply_quantifiers_to_node] Processing element {} of {}", i, flattened_elements.len());
-                    }
-                    // Check for grouped quantifiers: group_open ... group_close operator
-                    if self.config.debug {
-                        println!("[AST][apply_quantifiers_to_node] Checking for grouped quantifiers at index {}", i);
-                    }
-                    if let Some(grouped_result) = self.try_parse_grouped_quantifier(&flattened_elements, i)? {
-                        if self.config.debug {
-                            println!("[AST][apply_quantifiers_to_node] 🎉 Found grouped quantifier! Adding to new_elements and skipping to index {}", grouped_result.next_index);
-                        }
-                        new_elements.push(grouped_result.quantified_node);
-                        i = grouped_result.next_index;
-                        continue;
-                    } else {
-                        if self.config.debug {
-                            println!("[AST][apply_quantifiers_to_node] No grouped quantifier found at index {}", i);
-                        }
-                    }
-                    
-                    // Check for simple quantifiers: element operator
-                    let element = &flattened_elements[i];
-                    if self.config.debug {
-                        println!("[AST][apply_quantifiers_to_node] Checking for simple quantifiers, element: {:?}", element);
-                    }
-                    if i + 1 < flattened_elements.len() {
-                        if self.config.debug {
-                            println!("[AST][apply_quantifiers_to_node] Checking next element for quantifier: {:?}", flattened_elements[i + 1]);
-                        }
-                        if let ASTNode::Atom { value: ASTValue::Token(token) } = &flattened_elements[i + 1] {
-                            if token.len() == 2 && token[0] == "operator" {
-                                if let Some(op_str) = token[1].as_str() {
-                                    if ["*", "+", "?"].contains(&op_str) {
-                                        if self.config.debug {
-                                            println!("[AST][apply_quantifiers_to_node] ⭐ Found simple quantifier: '{}' for element: {:?}", op_str, element);
-                                        }
-                                        let quantified_node = ASTNode::Quantified {
-                                            element: Box::new(element.clone()),
-                                            quantifier: op_str.to_string(),
-                                        };
-                                        new_elements.push(quantified_node);
-                                        i += 2; // Skip quantifier token
-                                        if self.config.debug {
-                                            println!("[AST][apply_quantifiers_to_node] Added simple quantified node, advancing to index {}", i);
-                                        }
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if self.config.debug {
-                        println!("[AST][apply_quantifiers_to_node] No quantifier found, adding element as-is: {:?}", element);
-                    }
-                    new_elements.push(element.clone());
-                    i += 1;
-                }
-
                 if self.config.debug {
-                    println!("[AST][apply_quantifiers_to_node] ✅ Finished processing sequence. Original: {} elements, New: {} elements", elements.len(), new_elements.len());
+                    self.log_success("apply_quantifiers_to_node", &format!("✅ Finished processing sequence. Original: {} elements, New: {} elements", elements.len(), new_elements.len()));
                     println!("[AST][apply_quantifiers_to_node] New sequence elements:");
                     for (idx, elem) in new_elements.iter().enumerate() {
                         println!("[AST][apply_quantifiers_to_node]   NewElement[{}]: {:?}", idx, elem);
                     }
                 }
+                self.log_info("apply_quantifiers_to_node", "📤 EXIT: Returning processed sequence");
                 Ok(ASTNode::Sequence { elements: new_elements })
             }
             _ => {
-                if self.config.debug {
-                    println!("[AST][apply_quantifiers_to_node] Non-sequence node, returning as-is: {:?}", node);
-                }
+                self.log_debug("apply_quantifiers_to_node", &format!("Non-sequence node, returning as-is: {:?}", node));
+                self.log_info("apply_quantifiers_to_node", "📤 EXIT: Non-sequence node unchanged");
                 Ok(node)
             }
         }
     }
-
-    /// Try to parse a grouped quantifier pattern: group_open ... group_close operator
-    fn try_parse_grouped_quantifier(&self, elements: &[ASTNode], start_index: usize) -> Result<Option<GroupedQuantifierResult>> {
-        if self.config.debug {
-            println!("[AST][try_parse_grouped_quantifier] Checking for grouped quantifier at index {}/{}", start_index, elements.len());
-            println!("[AST][try_parse_grouped_quantifier] Elements remaining: {}", elements.len() - start_index);
-            if start_index < elements.len() {
-                println!("[AST][try_parse_grouped_quantifier] First element: {:?}", elements[start_index]);
-            }
-        }
-        
-        if start_index >= elements.len() {
-            if self.config.debug {
-                println!("[AST][try_parse_grouped_quantifier] ❌ No elements left to check");
-            }
-            return Ok(None);
-        }
-
-        // Check if we start with a group_open token
-        if let ASTNode::Atom { value: ASTValue::Token(token) } = &elements[start_index] {
-            if self.config.debug {
-                println!("[AST][try_parse_grouped_quantifier] Found atom with token: {:?}", token);
-                println!("[AST][try_parse_grouped_quantifier] Token length: {}, type: {:?}, value: {:?}", token.len(), token.get(0), token.get(1));
-            }
-            if token.len() == 2 && (token[0] == "group_open" || token[0] == "(") {
-                if self.config.debug {
-                    println!("[AST][try_parse_grouped_quantifier] ✅ Found group_open token, parsing group...");
-                    println!("[AST][try_parse_grouped_quantifier] Starting group collection from index {}", start_index + 1);
-                }
-                // Find the matching group_close and quantifier
-                let mut depth = 1;
-                let mut group_content = Vec::new();
-                let mut i = start_index + 1;
-                
-                // Collect group content until we find the matching close
-                if self.config.debug {
-                    println!("[AST][try_parse_grouped_quantifier] Starting group collection loop, depth={}, i={}", depth, i);
-                }
-                while i < elements.len() && depth > 0 {
-                    if self.config.debug {
-                        println!("[AST][try_parse_grouped_quantifier] Loop iteration: i={}, depth={}, element: {:?}", i, depth, elements[i]);
+    
+    /// Convert an ASTNode to tokens - preserving group structure for nested sequences
+    fn ast_node_to_tokens_simple(&self, node: &ASTNode, tokens: &mut Vec<Token>) -> Result<()> {
+        match node {
+            ASTNode::Atom { value } => {
+                if let ASTValue::Token(token) = value {
+                    if self.config.debug && self.config.trace {
+                        println!("[AST][ast_node_to_tokens_simple]   Adding Atom token: {:?}", token);
                     }
-                    match &elements[i] {
-                        ASTNode::Atom { value: ASTValue::Token(token) } if token.len() == 2 => {
-                            if self.config.debug {
-                                println!("[AST][try_parse_grouped_quantifier] Processing token: {:?}", token);
-                            }
-                            match token[0].as_str() {
-                                Some("group_open") | Some("(") => {
-                                    depth += 1;
-                                    if self.config.debug {
-                                        println!("[AST][try_parse_grouped_quantifier] Found nested group_open, depth now: {}", depth);
-                                    }
-                                    if depth > 1 { // Don't include nested group markers in content
-                                        group_content.push(elements[i].clone());
-                                        if self.config.debug {
-                                            println!("[AST][try_parse_grouped_quantifier] Added nested group_open to content");
-                                        }
-                                    }
-                                }
-                                Some("group_close") | Some(")") => {
-                                    depth -= 1;
-                                    if self.config.debug {
-                                        println!("[AST][try_parse_grouped_quantifier] Found group_close, depth now: {}", depth);
-                                    }
-                                    if depth > 0 { // Don't include the final group_close
-                                        group_content.push(elements[i].clone());
-                                        if self.config.debug {
-                                            println!("[AST][try_parse_grouped_quantifier] Added nested group_close to content");
-                                        }
-                                    } else {
-                                        if self.config.debug {
-                                            println!("[AST][try_parse_grouped_quantifier] Found final group_close, not adding to content");
-                                        }
-                                    }
-                                }
-                                _ => {
-                                    group_content.push(elements[i].clone());
-                                    if self.config.debug {
-                                        println!("[AST][try_parse_grouped_quantifier] Added regular token to content: {:?}", token);
-                                    }
+                    tokens.push(token.clone());
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                if self.config.debug && self.config.trace {
+                    println!("[AST][ast_node_to_tokens_simple]   Processing nested Sequence with {} elements", elements.len());
+                }
+                // Check if this sequence starts with group_open and ends with group_close/quantifier
+                // This indicates it's a grouped sequence that should be preserved
+                let mut has_group_markers = false;
+                if !elements.is_empty() {
+                    // Check first element for group_open
+                    if let ASTNode::Atom { value: ASTValue::Token(ref first_token) } = elements[0] {
+                        if first_token.len() == 2 {
+                            if let (TokenValue::String(ref token_type), _) = (&first_token[0], &first_token[1]) {
+                                if token_type == "group_open" {
+                                    has_group_markers = true;
                                 }
                             }
                         }
-                        _ => {
-                            group_content.push(elements[i].clone());
-                            if self.config.debug {
-                                println!("[AST][try_parse_grouped_quantifier] Added non-token element to content: {:?}", elements[i]);
-                            }
-                        }
                     }
-                    i += 1;
-                }
-                if self.config.debug {
-                    println!("[AST][try_parse_grouped_quantifier] Group collection finished: depth={}, i={}, group_content.len()={}", depth, i, group_content.len());
                 }
                 
-                // Check if we found the complete group and have a quantifier following
-                if self.config.debug {
-                    println!("[AST][try_parse_grouped_quantifier] Checking for quantifier: depth={}, i={}, elements.len()={}", depth, i, elements.len());
-                }
-                if depth == 0 && i < elements.len() {
-                    if self.config.debug {
-                        println!("[AST][try_parse_grouped_quantifier] Group complete, checking element at i={}: {:?}", i, elements[i]);
-                    }
-                    if let ASTNode::Atom { value: ASTValue::Token(op_token) } = &elements[i] {
-                        if self.config.debug {
-                            println!("[AST][try_parse_grouped_quantifier] Found token at quantifier position: {:?}", op_token);
-                        }
-                        if op_token.len() == 2 && op_token[0] == "operator" {
-                            if self.config.debug {
-                                println!("[AST][try_parse_grouped_quantifier] Token is an operator: {:?}", op_token[1]);
-                            }
-                            if let Some(quantifier) = op_token[1].as_str() {
-                                if ["*", "+", "?"].contains(&quantifier) {
-                                    if self.config.debug {
-                                        println!("[AST][try_parse_grouped_quantifier] 🎉 FOUND COMPLETE GROUPED QUANTIFIER! quantifier: '{}'", quantifier);
-                                        println!("[AST][try_parse_grouped_quantifier] Group content elements: {}", group_content.len());
-                                        for (idx, elem) in group_content.iter().enumerate() {
-                                            println!("[AST][try_parse_grouped_quantifier]   Content[{}]: {:?}", idx, elem);
-                                        }
-                                    }
-                                    // Create a sequence from the group content
-                                    let group_element = if group_content.is_empty() {
-                                        // Empty group - create a dummy terminal
-                                        ASTNode::Atom { 
-                                            value: ASTValue::Token(vec![
-                                                TokenValue::String("empty_group".to_string()),
-                                                TokenValue::String("".to_string())
-                                            ])
-                                        }
-                                    } else if group_content.len() == 1 {
-                                        // Single element group
-                                        group_content[0].clone()
-                                    } else {
-                                        // Multi-element group becomes a sequence
-                                        ASTNode::Sequence { elements: group_content }
-                                    };
-                                    
-                                    let quantified_node = ASTNode::Quantified {
-                                        element: Box::new(group_element),
-                                        quantifier: quantifier.to_string(),
-                                    };
-                                    
-                                    if self.config.debug {
-                                        println!("[AST][try_parse_grouped_quantifier] ✅ Returning grouped quantifier result, next_index: {}", i + 1);
-                                    }
-                                    return Ok(Some(GroupedQuantifierResult {
-                                        quantified_node,
-                                        next_index: i + 1, // Skip past the quantifier
-                                    }));
-                                } else {
-                                    if self.config.debug {
-                                        println!("[AST][try_parse_grouped_quantifier] ❌ Invalid quantifier: '{}'", quantifier);
-                                    }
-                                }
-                            } else {
-                                if self.config.debug {
-                                    println!("[AST][try_parse_grouped_quantifier] ❌ Quantifier value is not a string");
-                                }
-                            }
-                        } else {
-                            if self.config.debug {
-                                println!("[AST][try_parse_grouped_quantifier] ❌ Token is not an operator: {:?}", op_token);
-                            }
-                        }
-                    } else {
-                        if self.config.debug {
-                            println!("[AST][try_parse_grouped_quantifier] ❌ Element at quantifier position is not a token: {:?}", elements[i]);
-                        }
+                if has_group_markers {
+                    // This is a grouped sequence - extract its tokens directly
+                    // The group_open, group_close, and quantifier tokens will be preserved
+                    for elem in elements {
+                        self.ast_node_to_tokens_simple(elem, tokens)?;
                     }
                 } else {
-                    if self.config.debug {
-                        if depth != 0 {
-                            println!("[AST][try_parse_grouped_quantifier] ❌ Group not properly closed, depth: {}", depth);
-                        } else {
-                            println!("[AST][try_parse_grouped_quantifier] ❌ No quantifier following group (i={}, elements.len()={})", i, elements.len());
-                        }
+                    // Regular nested sequence - shouldn't happen but handle it
+                    for elem in elements {
+                        self.ast_node_to_tokens_simple(elem, tokens)?;
                     }
                 }
-            } else {
-                if self.config.debug {
-                    println!("[AST][try_parse_grouped_quantifier] ❌ Token type/value mismatch for group_open");
-                }
-            }
-        } else {
-            if self.config.debug {
-                println!("[AST][try_parse_grouped_quantifier] ❌ First element is not an atom with token: {:?}", elements[start_index]);
-            }
-        }
-        
-        if self.config.debug {
-            println!("[AST][try_parse_grouped_quantifier] ❌ No grouped quantifier found at index {}", start_index);
-        }
-        Ok(None)
-    }
-    
-    /// Flatten nested sequences that contain grouped quantifiers into the parent sequence
-    /// This pre-processing step makes grouped quantifiers detectable at the top level
-    /// IMPORTANT: Only flatten sequences that are purely structural (not logical groupings)
-    fn flatten_grouped_quantifiers_in_sequence(&self, elements: &[ASTNode]) -> Result<Vec<ASTNode>> {
-        let mut flattened = Vec::new();
-        
-        for element in elements {
-            match element {
-                ASTNode::Sequence { elements: nested_elements } => {
-                    // Check if this nested sequence contains a grouped quantifier pattern
-                    if self.contains_grouped_quantifier(nested_elements)? {
-                        // CRITICAL FIX: Do NOT flatten sequences that represent logical groupings
-                        // like optional groups, alternatives, etc. Only flatten "pure" sequences
-                        // that are artifacts of parsing multiple elements together.
-                        if self.should_preserve_sequence_structure(nested_elements) {
-                            if self.config.debug {
-                                println!("[AST][flatten_grouped_quantifiers_in_sequence] Preserving logical sequence structure with {} elements (contains optional/logical groupings)", nested_elements.len());
-                            }
-                            // Keep the nested sequence as-is but recursively process its elements
-                            let recursively_flattened = self.flatten_grouped_quantifiers_in_sequence(nested_elements)?;
-                            flattened.push(ASTNode::Sequence { elements: recursively_flattened });
-                        } else {
-                            if self.config.debug {
-                                println!("[AST][flatten_grouped_quantifiers_in_sequence] Flattening pure structural sequence with {} elements", nested_elements.len());
-                            }
-                            // Flatten: add all nested elements to the parent level (recursively processed)
-                            let recursively_flattened = self.flatten_grouped_quantifiers_in_sequence(nested_elements)?;
-                            flattened.extend(recursively_flattened);
-                        }
-                    } else {
-                        // Recursively process the nested sequence even if it doesn't contain grouped quantifiers
-                        let recursively_flattened = self.flatten_grouped_quantifiers_in_sequence(nested_elements)?;
-                        flattened.push(ASTNode::Sequence { elements: recursively_flattened });
-                    }
-                }
-                // Recursively process other node types that can contain sequences
-                ASTNode::Or { alternatives } => {
-                    let mut processed_alternatives = Vec::new();
-                    for alt in alternatives {
-                        processed_alternatives.push(self.flatten_grouped_quantifiers_in_node(alt)?);
-                    }
-                    flattened.push(ASTNode::Or { alternatives: processed_alternatives });
-                }
-                ASTNode::Quantified { element, quantifier } => {
-                    let processed_element = self.flatten_grouped_quantifiers_in_node(element.as_ref())?;
-                    flattened.push(ASTNode::Quantified { element: Box::new(processed_element), quantifier: quantifier.clone() });
-                }
-                // Regular elements - add as-is
-                _ => {
-                    flattened.push(element.clone());
-                }
-            }
-        }
-        
-        Ok(flattened)
-    }
-
-    /// Recursively apply flattening to a single AST node
-    fn flatten_grouped_quantifiers_in_node(&self, node: &ASTNode) -> Result<ASTNode> {
-        match node {
-            ASTNode::Sequence { elements } => {
-                let flattened_elements = self.flatten_grouped_quantifiers_in_sequence(elements)?;
-                Ok(ASTNode::Sequence { elements: flattened_elements })
             }
             ASTNode::Or { alternatives } => {
-                let mut processed_alternatives = Vec::new();
-                for alt in alternatives {
-                    processed_alternatives.push(self.flatten_grouped_quantifiers_in_node(alt)?);
+                if self.config.debug && self.config.trace {
+                    println!("[AST][ast_node_to_tokens_simple]   Processing Or with {} alternatives", alternatives.len());
                 }
-                Ok(ASTNode::Or { alternatives: processed_alternatives })
+                // This shouldn't happen at this stage but handle it
+                for (i, alt) in alternatives.iter().enumerate() {
+                    if i > 0 {
+                        tokens.push(vec![TokenValue::String("operator".to_string()), TokenValue::String("|".to_string())]);
+                    }
+                    self.ast_node_to_tokens_simple(alt, tokens)?;
+                }
             }
-            ASTNode::Quantified { element, quantifier } => {
-                let processed_element = self.flatten_grouped_quantifiers_in_node(element.as_ref())?;
-                Ok(ASTNode::Quantified { element: Box::new(processed_element), quantifier: quantifier.clone() })
-            }
-            // Other node types don't need processing
-            _ => Ok(node.clone())
-        }
-    }
-    
-    /// Check if a sequence contains a grouped quantifier pattern: group_open ... group_close operator
-    fn contains_grouped_quantifier(&self, elements: &[ASTNode]) -> Result<bool> {
-        for i in 0..elements.len() {
-            if let Some(_) = self.try_parse_grouped_quantifier(elements, i)? {
-                return Ok(true);
+            ASTNode::Quantified { .. } => {
+                // This shouldn't happen at this stage - quantifiers haven't been applied yet
+                if self.config.debug {
+                    println!("[AST][ast_node_to_tokens_simple] ⚠️ WARNING: Unexpected quantified node before quantifier processing");
+                }
+                return Err(anyhow!("Unexpected quantified node before quantifier processing"));
             }
         }
-        Ok(false)
+        Ok(())
     }
-
-    /// Determine if a sequence structure should be preserved (not flattened)
-    /// Returns true if the sequence contains logical groupings that should not be flattened
-    fn should_preserve_sequence_structure(&self, elements: &[ASTNode]) -> bool {
-        for element in elements {
-            match element {
-                // Preserve sequences that contain alternatives (OR operations)
-                ASTNode::Or { .. } => {
-                    if self.config.debug {
-                        println!("[AST][should_preserve_sequence_structure] Found OR alternatives - preserving structure");
-                    }
-                    return true;
-                }
-                // Preserve sequences that contain quantified elements
-                ASTNode::Quantified { quantifier, .. } => {
-                    if ["?", "*", "+"].contains(&quantifier.as_str()) {
-                        if self.config.debug {
-                            println!("[AST][should_preserve_sequence_structure] Found quantified element '{}' - preserving structure", quantifier);
-                        }
-                        return true;
-                    }
-                }
-                // Check for group tokens that represent logical groupings
-                ASTNode::Atom { value: ASTValue::Token(token) } => {
-                    if token.len() == 2 && token[0] == "group" {
-                        if self.config.debug {
-                            println!("[AST][should_preserve_sequence_structure] Found group token - preserving structure");
-                        }
-                        return true;
-                    }
-                    // Check for quantifier operators that indicate the sequence should be preserved
-                    if token.len() == 2 && token[0] == "operator" {
-                        if let Some(op_str) = token[1].as_str() {
-                            if ["?", "*", "+"].contains(&op_str) {
-                                if self.config.debug {
-                                    println!("[AST][should_preserve_sequence_structure] Found quantifier operator '{}' - preserving structure", op_str);
-                                }
-                                return true;
-                            }
-                        }
-                    }
-                }
-                // Recursively check nested sequences
-                ASTNode::Sequence { elements: nested_elements } => {
-                    if self.should_preserve_sequence_structure(nested_elements) {
-                        return true;
-                    }
-                }
-                // Handle nested nodes in ASTValue::Node - though this is rare
-                ASTNode::Atom { value: ASTValue::Node(_) } => {
-                    // Nested nodes should preserve structure  
-                    if self.config.debug {
-                        println!("[AST][should_preserve_sequence_structure] Found nested AST node - preserving structure");
-                    }
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
     /// Stage 5: Build final tree structure
     fn build_tree_structure(&mut self, quantified_rules: &HashMap<String, Vec<ASTNode>>) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
         self.log_info("build_tree_structure", &format!("🌳 Starting tree structure building for {} rules", quantified_rules.len()));
@@ -1942,7 +1618,7 @@ impl RustASTPipeline {
         let json = serde_json::to_string_pretty(&transformed_data)
             .context("Failed to serialize transformed AST")?;
 
-        fs::write(output_file, json)
+        std::fs::write(output_file, json)
             .with_context(|| format!("Failed to write file: {}", output_file))?;
 
         if self.config.debug {
@@ -2051,7 +1727,7 @@ impl RustASTPipeline {
         
         let rust_code = code_generator.generate_lightning_fast_parser_with_logging(&grammar_tree, &rule_order, self)?;
         
-        fs::write(output_rust_file, rust_code)
+        std::fs::write(output_rust_file, rust_code)
             .with_context(|| format!("Failed to write high-performance Rust parser to: {}", output_rust_file))?;
         
         if self.config.debug {
