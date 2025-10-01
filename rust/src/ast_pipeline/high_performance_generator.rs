@@ -6,11 +6,8 @@
 //! - Minimal allocations for rgx regex engine integration
 
 use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, ReturnAnnotation};
-use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::io::Write;
-use anyhow::{Context, Result};
-use super::mutual_recursion_handler::{RecursionGuard, CycleType};
+use std::collections::HashMap;
+use anyhow::Result;
 use super::return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
 use serde_json::Value as JsonValue;
 
@@ -23,6 +20,7 @@ fn escape_rust_string(s: &str) -> String {
 }
 
 /// Builder for systematic Rust code generation with automatic brace tracking
+#[allow(dead_code)]
 struct RustCodeBuilder {
     lines: Vec<String>,
     brace_depth: i32,
@@ -118,6 +116,7 @@ pub struct HighPerformanceRustGenerator {
     bootstrap_mode: bool,
     annotations: Option<Annotations>,
     branch_return_annotations: HashMap<String, Vec<Option<ReturnAnnotation>>>,
+    #[allow(dead_code)]
     quantified_group_counter: std::cell::RefCell<u32>,
     quantified_groups: std::cell::RefCell<Vec<QuantifiedGroupInfo>>,
 }
@@ -133,6 +132,7 @@ struct QuantifiedGroupInfo {
 
 /// Represents processed elements in a sequence, distinguishing between mandatory and optional groups
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum ProcessedElement {
     /// A mandatory element that must be parsed
     Mandatory(ASTNode),
@@ -2325,7 +2325,7 @@ impl<'input> {parser_name}<'input> {{
         self.generate_or_code_with_context_and_pipeline(alternatives, indent, rule_name, rule_annotations, parser_var, None)
     }
     
-    fn generate_or_code_with_context_and_pipeline(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
+    fn generate_or_code_with_context_and_pipeline(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
         let n_branches = alternatives.len();
         
         match n_branches {
@@ -2458,7 +2458,7 @@ impl<'input> {parser_name}<'input> {{
         
         for (group_idx, element) in group_elements.iter().enumerate() {
             let element_code = self.generate_optimized_node_code_with_context(element, 0, rule_name, None, "p")?;
-            let element_desc = self.extract_ebnf_description(element);
+            let _element_desc = self.extract_ebnf_description(element);
             
             code.push_str(&format!("{indent}        {{\n"));
             code.push_str(&format!("{indent}            let group_element_start = p.position;\n"));
@@ -2523,7 +2523,7 @@ impl<'input> {parser_name}<'input> {{
         self.generate_n_branch_template_with_context_and_pipeline(alternatives, indent, rule_name, rule_annotations, parser_var, None)
     }
     
-    fn generate_n_branch_template_with_context_and_pipeline(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
+    fn generate_n_branch_template_with_context_and_pipeline(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, _pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
         println!("[DEBUG] generate_n_branch_template called for rule '{}' with {} branches, enable_trace={}", rule_name, alternatives.len(), self.enable_trace);
         let mut builder = RustCodeBuilder::new();
         let n_branches = alternatives.len();
@@ -2881,7 +2881,7 @@ impl<'input> {parser_name}<'input> {{
         self.generate_quantified_code_with_context_and_pipeline(element, quantifier, indent, rule_name, rule_annotations, parser_var, None)
     }
     
-    fn generate_quantified_code_with_context_and_pipeline(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
+    fn generate_quantified_code_with_context_and_pipeline(&self, element: &ASTNode, quantifier: &str, indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, _pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
         let mut code = String::new();
         let element_description = self.extract_ebnf_description(element);
         

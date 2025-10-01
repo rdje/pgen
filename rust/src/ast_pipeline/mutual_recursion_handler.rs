@@ -1,11 +1,11 @@
 // Mutual Recursion Handler for SOTA Parser Generation
 // Handles complex mutual recursion patterns without grammar modification
 
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::rc::Rc;
+use std::collections::{HashMap, HashSet};
 
 /// Cycle detection result
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum CycleType {
     /// No cycle detected
     None,
@@ -18,6 +18,7 @@ pub enum CycleType {
 }
 
 /// Smart recursion guard with cycle detection
+#[allow(dead_code)]
 pub struct RecursionGuard {
     /// Stack of (rule_name, position) currently being parsed
     parse_stack: Vec<(String, usize)>,
@@ -29,6 +30,7 @@ pub struct RecursionGuard {
     mutual_recursion_groups: HashMap<String, HashSet<String>>,
 }
 
+#[allow(dead_code)]
 impl RecursionGuard {
     pub fn new(max_depth: usize) -> Self {
         Self {
@@ -47,7 +49,7 @@ impl RecursionGuard {
         }
 
         // Check for direct infinite recursion
-        for (i, (r, p)) in self.parse_stack.iter().enumerate() {
+        for (_i, (r, p)) in self.parse_stack.iter().enumerate() {
             if r == rule_name && *p == position {
                 // Exact same rule at same position = infinite loop
                 let cycle = CycleType::Infinite;
@@ -68,7 +70,7 @@ impl RecursionGuard {
             let mut rules_in_cycle = HashSet::new();
             let mut found_repeat = false;
             
-            for (r, p) in self.parse_stack.iter().rev() {
+            for (r, _p) in self.parse_stack.iter().rev() {
                 rules_in_cycle.insert(r.clone());
                 if r == rule_name {
                     found_repeat = true;
@@ -131,6 +133,7 @@ impl RecursionGuard {
 }
 
 /// Generate parser code with mutual recursion handling
+#[allow(dead_code)]
 pub fn generate_mutual_recursion_safe_parser_method(
     rule_name: &str,
     original_body: &str,
@@ -203,6 +206,7 @@ pub fn generate_mutual_recursion_safe_parser_method(
 }
 
 /// Trampoline implementation for zero-stack parsing
+#[allow(dead_code)]
 pub enum ParseContinuation<'input> {
     Done(Result<ParseNode<'input>, ParseError>),
     Continue {
@@ -214,9 +218,13 @@ pub enum ParseContinuation<'input> {
 // Parse with trampolining will be integrated directly into generated parsers
 
 // Type aliases for integration with generated parsers
+#[allow(dead_code)]
 pub type RuleId = u16;
+#[allow(dead_code)]
 pub type ParseError = String; // Will be replaced with actual error type
+#[allow(dead_code)]
 pub type ParseNode<'input> = &'input str; // Will be replaced with actual node type
+#[allow(dead_code)]
 pub type MemoEntry<'input> = String; // Will be replaced with actual memo type
 
 // Re-export for use in generated code

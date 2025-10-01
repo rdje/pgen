@@ -129,19 +129,10 @@ fn test_semantic_parser(input: &str, debug: bool, writer: &mut BufWriter<File>) 
             log_and_print!("📊 AST Content: {:?}", ast.content);
             
             // Print debug trace if available
-            let debug_output = parser.debug_output();
-            if !debug_output.is_empty() {
+            // Note: Debug output method not yet available in placeholder parser
+            if debug {
                 log_and_print!("");
-                log_and_print!("🔍 COMPLETE DEBUG TRACE ({} steps):", debug_output.len());
-                log_and_print!("   This provides UNDISPUTABLE PROOF of parsing behavior:");
-                log_and_print!("   Format: Hierarchical rule processing with clear nesting");
-                log_and_print!("");
-                for (step, msg) in debug_output.iter().enumerate() {
-                    if msg.contains(" → ") && !msg.starts_with("semantic_annotation →") {
-                        log_and_print!("");
-                    }
-                    log_and_print!("   {:4}: {}", step + 1, msg);
-                }
+                log_and_print!("🔍 DEBUG MODE: Enabled (detailed trace will be available once parser is fully generated)");
             }
             
             log_and_print!("");
@@ -153,18 +144,10 @@ fn test_semantic_parser(input: &str, debug: bool, writer: &mut BufWriter<File>) 
             log_and_print!("❌ PARSE FAILURE in {:.3}ms: {:?}", parse_time.as_secs_f64() * 1000.0, e);
             
             // Print debug trace even for failures
-            let debug_output = parser.debug_output();
-            if !debug_output.is_empty() {
+            // Note: Debug output method not yet available in placeholder parser
+            if debug {
                 log_and_print!("");
-                log_and_print!("🔍 FAILURE DEBUG TRACE ({} steps):", debug_output.len());
-                log_and_print!("   This shows exactly where parsing failed:");
-                log_and_print!("");
-                for (step, msg) in debug_output.iter().enumerate() {
-                    if msg.contains(" → ") && !msg.starts_with("semantic_annotation →") {
-                        log_and_print!("");
-                    }
-                    log_and_print!("   {:4}: {}", step + 1, msg);
-                }
+                log_and_print!("🔍 DEBUG MODE: Enabled (detailed trace will be available once parser is fully generated)");
             }
             
             Err(format!("Semantic parser error: {:?}", e).into())
