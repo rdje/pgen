@@ -59,8 +59,8 @@ pub fn generate_parser_ast_based(
     
     // Transfer annotations if provided
     if let Some(annotations) = annotations {
-        generator.semantic_annotations = annotations.semantic_annotations.clone();
-        generator.logging_annotations = annotations.logging_annotations.clone();
+        // The AST generator stores all annotations in a single field
+        generator.annotations = annotations.clone();
         generator.branch_return_annotations = annotations.branch_return_annotations
             .iter()
             .map(|(rule, branches)| {

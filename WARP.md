@@ -2,6 +2,27 @@
 
 This file provides guidance to WARP (warp.dev) when working with code in this repository.
 
+## 🛑 CRITICAL RULES - MUST OBEY
+
+### File Deletion Policy
+**NEVER DELETE ANY FILES WITHOUT EXPLICIT PERMISSION**
+
+1. **NO file deletions** without user's explicit approval
+2. **ALWAYS explain WHY** you think a file needs to be deleted
+3. **WAIT for green light** from user before ANY deletion
+4. **Be careful and methodical** in all changes
+5. **This applies to ALL files**: source code, tests, documentation, configs, etc.
+
+**Rationale**: File deletions can break complex dependencies, lose important work, and cause difficult-to-recover situations. Every file may have a purpose that isn't immediately obvious.
+
+**If you think a file should be deleted**:
+- Explain what the file does
+- Explain why you think it should be deleted
+- Explain what impact deletion would have
+- Wait for explicit permission: "green light", "go ahead", "yes delete it", etc.
+
+**CAPICHE?** This rule is non-negotiable!
+
 ## 🚀 Quick Start (60 seconds)
 
 Get productive immediately with the Makefile system:

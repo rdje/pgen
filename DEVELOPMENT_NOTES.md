@@ -5,6 +5,15 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 
 ## Major Milestones Completed
 
+### ⚠️ Course Correction: AST-Based Generator Approach (2025-10-02)
+**Status: IN PROGRESS - CORRECTED**
+- Initially attempted to replace entire high_performance_generator.rs
+- Realized this would lose critical features (memoization, SIMD, backtracking)
+- Restored high_performance_generator.rs and mutual_recursion_handler.rs
+- Correct approach: Port ONLY string concatenation to AST, keep all optimizations
+- Added critical rule to WARP.md: No file deletions without permission
+- Lesson: AST generation should enhance, not replace, existing optimizations
+
 ### ✅ AST-Based Parser Generator Implementation & String-Based Removal (2025-10-02)
 **Status: COMPLETE**
 - Revolutionary code generation using Rust's `syn` and `quote` crates

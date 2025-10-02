@@ -33,7 +33,8 @@ RUST_AST_PIPELINE = $(RUST_DIR)/target/debug/ast_pipeline
 AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
                       $(RUST_DIR)/src/lib.rs \
                       $(RUST_DIR)/src/ast_pipeline.rs \
-                      $(RUST_DIR)/src/ast_pipeline/high_performance_generator.rs \
+                      $(RUST_DIR)/src/ast_pipeline/ast_based_generator.rs \
+                      $(RUST_DIR)/src/ast_pipeline/ast_generator_direct.rs \
                       $(RUST_DIR)/Cargo.toml
 
 # Tools

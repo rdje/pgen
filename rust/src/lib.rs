@@ -28,6 +28,6 @@ pub use ast_pipeline::{
     Annotations,
     ReturnAnnotation,
     unified_return_ast,
-    ast_based_generator,
-    generator_adapter
+    // ast_based_generator,  // TEMPORARILY DISABLED - needs fixing
+    // ast_generator_direct  // TEMPORARILY DISABLED - needs fixing
 };

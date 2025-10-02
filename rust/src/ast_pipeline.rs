@@ -35,14 +35,13 @@ use return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
 pub mod unified_return_ast;
 use unified_return_ast::UnifiedReturnAST;
 
-// AST-based generator using syn and quote (string-based removed)
-pub mod ast_based_generator;
-use ast_based_generator::AstBasedGenerator;
-mod ast_code_generator;
-pub mod ast_return_transform;
-pub mod ast_generator_direct;
-// Removed: generator_adapter (no longer needed)
-// Removed: ast_generator_integration (replaced by direct)
+// AST-based generator - TEMPORARILY DISABLED for fixing
+// TODO: Port high_performance_generator features to use syn/quote instead of string concat
+// pub mod ast_based_generator;
+// use ast_based_generator::AstBasedGenerator;
+// mod ast_code_generator;
+// pub mod ast_return_transform;
+// pub mod ast_generator_direct;
 
 /// Configuration for AST transformation pipeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1889,8 +1888,6 @@ impl RustASTPipeline {
         let entry_rule = self.entry_rule.as_ref()
             .map(|s| s.clone())
             .unwrap_or_else(|| {
-                // Always use the first rule in rule_order to prevent infinite recursion
-                // Never use grammar_name as it creates circular calls parse_grammar_name() -> parse_grammar_name()
                 rule_order.first().cloned().unwrap_or_else(|| {
                     eprintln!("ERROR: No rules found in rule_order, cannot determine entry rule");
                     "unknown_entry_rule".to_string()
@@ -1922,18 +1919,6 @@ impl RustASTPipeline {
         
         // Pass the branch-level return annotations to the code generator
         code_generator.set_branch_return_annotations(&self.annotations.branch_return_annotations);
-        
-        // Debug: verify simple_object is Or node before passing to generator
-        if let Some(node) = grammar_tree.get("simple_object") {
-            match node {
-                ASTNode::Or { alternatives } => {
-                    println!("[DEBUG] generate_high_performance_parser: simple_object is Or node with {} alternatives before passing to generator", alternatives.len());
-                }
-                _ => {
-                    println!("[DEBUG] generate_high_performance_parser: WARNING! simple_object is NOT Or node before passing to generator!");
-                }
-            }
-        }
         
         let rust_code = code_generator.generate_lightning_fast_parser_with_logging(&grammar_tree, &rule_order, self)?;
         
