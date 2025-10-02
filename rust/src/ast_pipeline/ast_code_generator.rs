@@ -100,6 +100,55 @@ impl AstCodeGenerator {
                 pub content: ParseContent<'input>,
                 pub span: Range<usize>,
             }
+            
+            #[derive(Debug, Clone)]
+            struct MemoEntry<'input> {
+                result: Option<ParseNode<'input>>,
+                end_pos: usize,
+            }
+            
+            type RuleId = u16;
+            
+            #[derive(Debug, Clone, PartialEq)]
+            pub enum CycleType {
+                None,
+                Infinite,
+                LeftRecursive,
+                MutualRecursive { depth: usize, rules: Vec<String> },
+            }
+            
+            pub struct RecursionGuard {
+                parse_stack: Vec<(String, usize)>,
+                max_depth: usize,
+                cycle_cache: HashMap<(String, usize), CycleType>,
+            }
+            
+            impl RecursionGuard {
+                pub fn new(max_depth: usize) -> Self {
+                    Self {
+                        parse_stack: Vec::new(),
+                        max_depth,
+                        cycle_cache: HashMap::new(),
+                    }
+                }
+                
+                pub fn check_cycle(&mut self, rule_name: &str, position: usize) -> CycleType {
+                    // Simple check - implement more sophisticated logic if needed
+                    if self.parse_stack.len() > self.max_depth {
+                        CycleType::Infinite
+                    } else {
+                        CycleType::None
+                    }
+                }
+                
+                pub fn enter(&mut self, rule_name: &str, position: usize) {
+                    self.parse_stack.push((rule_name.to_string(), position));
+                }
+                
+                pub fn exit(&mut self) {
+                    self.parse_stack.pop();
+                }
+            }
         }
     }
     
@@ -348,7 +397,12 @@ impl AstCodeGenerator {
     
     /// Generate quantified content
     fn generate_quantified_content(&self, element: &Box<BranchContent>, quantifier: &str) -> Result<TokenStream> {
-        let element_parser = self.generate_branch_content(element)?;
+        // Create a temporary branch definition for the element
+        let temp_branch = BranchDefinition {
+            content: (**element).clone(),
+            return_annotation: None,
+        };
+        let element_parser = self.generate_branch_content(&temp_branch)?;
         
         match quantifier {
             "*" => Ok(quote! {
@@ -570,9 +624,10 @@ pub enum ValueAST {
 }
 
 // Additional types
-type RuleId = u16;
+// RuleId is now defined in generate_types()
 
-struct MemoEntry<'input> {
-    result: ParseResult<ParseNode<'input>>,
-    end_pos: usize,
-}
+// These types will be defined by the generated code - remove local definition
+// struct MemoEntry<'input> {
+//     result: ParseResult<ParseNode<'input>>,
+//     end_pos: usize,
+// }

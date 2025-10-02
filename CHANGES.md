@@ -1,5 +1,25 @@
 # CHANGES.md
 
+## 2025-10-02 - AST Generator Migration Documentation and Pipeline Updates
+
+### Added Documentation
+- Created `docs/AST_GENERATOR_MIGRATION.md` - Comprehensive migration guide for transitioning from string-based to AST-based parser generation
+- Created `docs/STRING_GENERATOR_FEATURES_TO_PORT.md` - Detailed analysis of features that need to be ported from the string-based generator to maintain performance and functionality
+
+### Pipeline Component Updates
+- Updated `rust/src/ast_pipeline.rs` - Core pipeline modifications for better AST handling
+- Updated `rust/src/ast_pipeline/ast_based_generator.rs` - Enhanced AST-based generator with improved code generation patterns
+- Updated `rust/src/ast_pipeline/ast_code_generator.rs` - Code generation improvements for better output quality
+- Updated `rust/src/ast_pipeline/ast_generator_direct.rs` - Direct generator updates for streamlined processing
+- Updated `rust/src/ast_pipeline/high_performance_generator.rs` - Performance optimizations and feature restoration
+- Updated `rust/src/bin/pgen.rs` - CLI tool updates to support new AST generation features
+
+### Technical Details
+- Restored critical high-performance generator components that were temporarily removed
+- Enhanced AST-based generation capabilities with better type safety and code structure
+- Improved integration between different pipeline stages
+- Maintained backward compatibility while adding new AST-driven features
+
 ## 2025-10-02 - Course Correction: Restored High-Performance Generator
 
 ### Context

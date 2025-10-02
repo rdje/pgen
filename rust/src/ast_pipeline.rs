@@ -15,33 +15,37 @@ use anyhow::{Result, Context, anyhow};
 pub mod grouped_quantifier_parser;
 // Visualization functionality implemented inline to avoid import issues
 
+// TEMPORARILY DISABLED: Generated parsers need regeneration with AST-based generator
 // Import the generated semantic annotation parser
-pub mod semantic_annotation_parser {
-    include!("../../generated/semantic_annotation_parser.rs");
-}
-use semantic_annotation_parser::Semantic_annotationParser;
+// pub mod semantic_annotation_parser {
+//     include!("../../generated/semantic_annotation_parser.rs");
+// }
+// use semantic_annotation_parser::Semantic_annotationParser;
 
 // Import the generated return annotation parser
-pub mod return_annotation_parser {
-    include!("../../generated/return_annotation_parser.rs");
-}
-use return_annotation_parser::Return_annotationParser;
+// pub mod return_annotation_parser {
+//     include!("../../generated/return_annotation_parser.rs");
+// }
+// use return_annotation_parser::Return_annotationParser;
 
-mod high_performance_generator;
-use high_performance_generator::HighPerformanceRustGenerator;
+// ⚠️ FORBIDDEN: String-based generator - DO NOT UNCOMMENT!
+// This module uses string concatenation for code generation which is FORBIDDEN.
+// All code generation MUST use AST-based approach with syn/quote.
+// See docs/STRING_GENERATOR_FEATURES_TO_PORT.md for features to port.
+// mod high_performance_generator;  // CONTAINS compile_error! to prevent use
+// use high_performance_generator::HighPerformanceRustGenerator; // NEVER USE THIS
 mod mutual_recursion_handler;
 mod return_annotation_handler;
 use return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
 pub mod unified_return_ast;
 use unified_return_ast::UnifiedReturnAST;
 
-// AST-based generator - TEMPORARILY DISABLED for fixing
-// TODO: Port high_performance_generator features to use syn/quote instead of string concat
-// pub mod ast_based_generator;
-// use ast_based_generator::AstBasedGenerator;
-// mod ast_code_generator;
-// pub mod ast_return_transform;
-// pub mod ast_generator_direct;
+// AST-based generator - Using syn/quote for guaranteed syntax correctness
+pub mod ast_based_generator;
+use ast_based_generator::AstBasedGenerator;
+mod ast_code_generator;
+pub mod ast_return_transform;
+pub mod ast_generator_direct;
 
 /// Configuration for AST transformation pipeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -598,9 +602,8 @@ impl RustASTPipeline {
     
     /// Check if external generated parsers are available
     fn external_parsers_available(&self) -> bool {
-        // In a more sophisticated implementation, we could check file existence
-        // For now, assume they're available unless explicitly in bootstrap mode
-        !self.config.bootstrap_mode
+        // TEMPORARY: Force bootstrap mode until parsers are regenerated with AST-based generator
+        false // Always use bootstrap mode for now
     }
     
     /// Parse semantic annotation using the semantic annotation parser
@@ -626,59 +629,9 @@ impl RustASTPipeline {
             println!("[SEMANTIC_PARSE] Creating external parser for annotation: '{}'", annotation_value);
         }
         
-        // Use the generated semantic annotation parser to parse the value
-        let mut parser = if self.config.debug || self.config.trace {
-            if self.config.debug {
-                println!("[SEMANTIC_PARSE] Creating semantic parser with DEBUG enabled");
-            }
-            Semantic_annotationParser::with_debug(annotation_value)
-        } else {
-            if self.config.debug {
-                println!("[SEMANTIC_PARSE] Creating semantic parser without debug");
-            }
-            Semantic_annotationParser::new(annotation_value)
-        };
-        
-        if self.config.debug {
-            println!("[SEMANTIC_PARSE] About to call parser.parse() for annotation: '{}'", annotation_value);
-            println!("[SEMANTIC_PARSE] This is where stack overflow might occur...");
-        }
-        
-        // Parse the annotation value into an AST
-        match parser.parse() {
-            Ok(parsed_ast) => {
-                if self.config.debug {
-                    println!("[SEMANTIC_PARSE] ✅ SUCCESS: External parser succeeded for: '{}'", annotation_value);
-                    println!("[SEMANTIC_PARSE] About to simplify AST...");
-                }
-                // For now, convert the AST to a simplified JSON representation for storage
-                // In the future, this will be used by the code generator directly
-                let simplified = self.simplify_semantic_parse_node(&parsed_ast);
-                if self.config.debug {
-                    println!("[SEMANTIC_PARSE] ✅ SUCCESS: AST simplified");
-                    println!("[SEMANTIC_PARSE] About to serialize to JSON...");
-                }
-                let result = serde_json::to_string(&simplified)
-                    .context("Failed to serialize parsed semantic annotation AST");
-                if self.config.debug {
-                    println!("[SEMANTIC_PARSE] ✅ SUCCESS: JSON serialization complete");
-                    println!("[SEMANTIC_PARSE] ===== EXITING parse_semantic_annotation (SUCCESS) =====");
-                }
-                result
-            }
-            Err(err) => {
-                // If parsing fails, fallback to bootstrap mode
-                if self.config.debug {
-                    println!("[SEMANTIC_PARSE] ❌ FAILURE: External parser failed with error: {:?}", err);
-                    println!("[SEMANTIC_PARSE] Falling back to bootstrap mode for: '{}'", annotation_value);
-                }
-                let result = self.parse_semantic_annotation_bootstrap(annotation_value);
-                if self.config.debug {
-                    println!("[SEMANTIC_PARSE] ===== EXITING parse_semantic_annotation (FALLBACK) =====");
-                }
-                result
-            }
-        }
+        // TEMPORARY: External parser disabled until regenerated with AST-based generator
+        // Bootstrap mode will be used instead
+        return self.parse_semantic_annotation_bootstrap(annotation_value);
     }
     
     /// Built-in bootstrap semantic annotation parser
@@ -721,38 +674,10 @@ impl RustASTPipeline {
                 .map_err(|e| anyhow!("Bootstrap parser error: {}", e));
         }
         
-        // Try to use the generated return annotation parser first
-        let mut parser = if self.config.debug || self.config.trace {
-            Return_annotationParser::with_debug(annotation_value)
-        } else {
-            Return_annotationParser::new(annotation_value)
-        };
-        
-        // Parse the annotation value into an AST
-        match parser.parse() {
-            Ok(parsed_ast) => {
-                // Convert from external parser AST to UnifiedReturnAST
-                if self.config.debug {
-                    println!("[AST Pipeline] External parser succeeded, converting to unified AST");
-                }
-                self.convert_parse_node_to_unified_ast(&parsed_ast)
-                    .or_else(|e| {
-                        if self.config.debug {
-                            println!("[AST Pipeline] Conversion failed ({}), falling back to bootstrap parser", e);
-                        }
-                        UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug)
-                            .map_err(|e| anyhow!("Bootstrap parser also failed: {}", e))
-                    })
-            }
-            Err(_) => {
-                // If parsing fails, fallback to bootstrap mode
-                if self.config.debug {
-                    println!("[AST Pipeline] External parser failed, falling back to bootstrap mode");
-                }
-                UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug)
-                    .map_err(|e| anyhow!("Bootstrap parser error: {}", e))
-            }
-        }
+        // TEMPORARY: External parser disabled until regenerated with AST-based generator
+        // Bootstrap mode will be used instead
+        return UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug)
+            .map_err(|e| anyhow!("Bootstrap parser error: {}", e));
     }
     
     /// Built-in bootstrap return annotation parser
@@ -938,6 +863,7 @@ impl RustASTPipeline {
     }
     
     /// Convert semantic annotation ParseNode to a serializable simplified representation
+    /* TEMPORARILY DISABLED: Depends on generated parsers
     fn simplify_semantic_parse_node(&self, node: &semantic_annotation_parser::ParseNode) -> serde_json::Value {
         use serde_json::{json, Map, Value};
         use semantic_annotation_parser::ParseContent;
@@ -966,6 +892,7 @@ impl RustASTPipeline {
         obj.insert("content".to_string(), content);
         Value::Object(obj)
     }
+    */
     
     /// Parse and pretty-print return annotation for display
     fn parse_return_annotation_for_display(&self, annotation: &str) -> Result<String> {
@@ -1026,6 +953,7 @@ impl RustASTPipeline {
         Ok(output)
     }
     
+    /* TEMPORARILY DISABLED: Depends on generated parsers
     /// Convert external parser's ParseNode to UnifiedReturnAST
     /// This interprets the syntactic parse tree to extract semantic meaning
     fn convert_parse_node_to_unified_ast(&self, node: &return_annotation_parser::ParseNode) -> Result<UnifiedReturnAST> {
@@ -1174,7 +1102,9 @@ impl RustASTPipeline {
             _ => Err(anyhow!("Expected terminal for string extraction"))
         }
     }
+    */
     
+    /* TEMPORARILY DISABLED: Depends on generated parsers
     /// Convert return annotation ParseNode to a serializable simplified representation
     fn simplify_return_parse_node(&self, node: &return_annotation_parser::ParseNode) -> serde_json::Value {
         use serde_json::{json, Map, Value};
@@ -1204,6 +1134,7 @@ impl RustASTPipeline {
         obj.insert("content".to_string(), content);
         Value::Object(obj)
     }
+    */
 
     /// Stage 1: Extract and preserve annotations
     fn extract_annotations(&mut self, raw_ast: &RawAST) -> Result<RawAST> {
@@ -1872,9 +1803,9 @@ impl RustASTPipeline {
         self.annotations.logging_annotations.get(rule_name)
     }
 
-    /// Generate high-performance Rust parser code directly from transformed AST
-    /// Produces SOTA parser suitable for embedding in rgx regex engine
-    pub fn generate_high_performance_parser(
+    /// Generate AST-based Rust parser code using syn/quote for guaranteed correctness
+    /// Produces syntactically correct parsers with no string concatenation issues
+    pub fn generate_rust_parser(
         &mut self,
         raw_ast_json_file: &str,
         output_rust_file: &str,
@@ -1894,48 +1825,59 @@ impl RustASTPipeline {
                 })
             });
         
-        let mut code_generator = if enable_trace && enable_backtrack_debug {
-            HighPerformanceRustGenerator::with_full_debug(&raw_data.grammar_name)
-        } else if enable_trace {
-            HighPerformanceRustGenerator::with_trace(&raw_data.grammar_name, true)
-        } else {
-            if enable_backtrack_debug {
-                HighPerformanceRustGenerator::with_full_debug(&raw_data.grammar_name)
-            } else {
-                HighPerformanceRustGenerator::new(&raw_data.grammar_name)
-            }
-        };
+        // Use AST-based generator for guaranteed syntax correctness
+        let mut generator = AstBasedGenerator::new(raw_data.grammar_name.clone());
+        generator.entry_rule = Some(entry_rule);
+        generator.annotations = Some(self.annotations.clone());
+        generator.enable_debug = enable_trace || enable_backtrack_debug;
         
-        // Set the entry rule immediately after generator creation
-        code_generator.set_entry_rule(&entry_rule);
+        // Convert ReturnAnnotation to BranchAnnotation format
+        generator.branch_return_annotations = self.annotations.branch_return_annotations
+            .iter()
+            .map(|(rule, branches)| {
+                let converted_branches = branches
+                    .iter()
+                    .map(|opt_annotation| {
+                        opt_annotation.as_ref().map(|ann| ast_based_generator::BranchAnnotation {
+                            annotation_type: ann.annotation_type.clone(),
+                            annotation_content: ann.annotation_content.clone(),
+                            parsed_ast: ann.parsed_ast.clone(),
+                        })
+                    })
+                    .collect();
+                (rule.clone(), converted_branches)
+            })
+            .collect();
         
-        // Set bootstrap mode if configured
-        code_generator.set_bootstrap_mode(self.config.bootstrap_mode);
-        
-        // Enable debug output for return annotations when debug is enabled
-        if enable_backtrack_debug || enable_trace {
-            code_generator.set_debug_mode(true);
-        }
-        
-        // Pass the branch-level return annotations to the code generator
-        code_generator.set_branch_return_annotations(&self.annotations.branch_return_annotations);
-        
-        let rust_code = code_generator.generate_lightning_fast_parser_with_logging(&grammar_tree, &rule_order, self)?;
+        // Generate parser using AST-based approach
+        let rust_code = generator.generate_parser(&grammar_tree, &rule_order)?;
         
         std::fs::write(output_rust_file, rust_code)
-            .with_context(|| format!("Failed to write high-performance Rust parser to: {}", output_rust_file))?;
+            .with_context(|| format!("Failed to write AST-based Rust parser to: {}", output_rust_file))?;
         
         if self.config.debug {
-            println!("Generated SOTA regex parser: {}", output_rust_file);
+            println!("Generated AST-based parser: {}", output_rust_file);
+            println!("  - Guaranteed syntax correctness via syn/quote");
             if enable_trace {
                 println!("  - Trace logging enabled");
             }
             if enable_backtrack_debug {
-                println!("  - Backtrack debugging enabled");
+                println!("  - Debug mode enabled");
             }
         }
         
         Ok(())
+    }
+    
+    /// Compatibility alias for old method name
+    pub fn generate_high_performance_parser(
+        &mut self,
+        raw_ast_json_file: &str,
+        output_rust_file: &str,
+        enable_trace: bool,
+        enable_backtrack_debug: bool,
+    ) -> Result<()> {
+        self.generate_rust_parser(raw_ast_json_file, output_rust_file, enable_trace, enable_backtrack_debug)
     }
 
     /// Apply left recursion elimination using Aho-Sethi-Ullman algorithm

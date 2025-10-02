@@ -95,10 +95,7 @@ impl AstBasedGenerator {
         quote! {
             use std::collections::HashMap;
             use std::ops::Range;
-            use std::fs::File;
-            use std::io::{Write, BufWriter};
             use regex::Regex;
-            use serde_json;
             
             #[allow(dead_code)]
             #[allow(unused_variables)]
@@ -119,6 +116,12 @@ impl AstBasedGenerator {
                 InvalidSyntax { message: &'static str, position: usize },
                 Backtrack { position: usize },
                 RecursionDepthExceeded { position: usize, depth: usize },
+                ContextualError { 
+                    message: String,
+                    position: usize,
+                    rule_stack: Vec<String>,
+                    input_context: String,
+                },
             }
             
             impl std::fmt::Display for ParseError {
@@ -134,6 +137,16 @@ impl AstBasedGenerator {
                             write!(f, "Backtrack at position {}", position),
                         ParseError::RecursionDepthExceeded { position, depth } => 
                             write!(f, "Recursion depth exceeded ({} levels) at position {}", depth, position),
+                        ParseError::ContextualError { message, position, rule_stack, input_context } => {
+                            writeln!(f, "Parse Error: {}\n", message)?;
+                            writeln!(f, "Position: {}\n", position)?;
+                            writeln!(f, "Context: {}\n", input_context)?;
+                            writeln!(f, "Rule Stack:")?;
+                            for (i, rule) in rule_stack.iter().enumerate() {
+                                writeln!(f, "  {}: {}", i, rule)?;
+                            }
+                            Ok(())
+                        }
                     }
                 }
             }
@@ -324,6 +337,70 @@ impl AstBasedGenerator {
                     debug_output: Vec::new(),
                 }
             }
+            
+            pub fn with_debug_log(input: &'input str, test_name: &str) -> Self {
+                use std::fs::File;
+                use std::io::Write;
+                
+                let mut parser = Self::with_debug(input);
+                
+                // Create debug log file
+                let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+                let filename = format!("{}_{}.log", test_name, timestamp);
+                
+                // Write header to debug output
+                parser.debug_output.push(format!("==== Parser Debug Log ===="));
+                parser.debug_output.push(format!("Test: {}", test_name));
+                parser.debug_output.push(format!("Time: {}", timestamp));
+                parser.debug_output.push(format!("Input: {:?}", input));
+                parser.debug_output.push(format!("=".repeat(50)));
+                parser.debug_output.push(String::new());
+                
+                parser
+            }
+            
+            fn format_debug_indent(&self) -> String {
+                let depth = self.recursion_guard.parse_stack.len();
+                if depth == 0 {
+                    String::new()
+                } else {
+                    format!("{}├─ ", "│  ".repeat(depth.saturating_sub(1)))
+                }
+            }
+            
+            pub fn get_debug_trace(&self) -> String {
+                self.debug_output.join("\n")
+            }
+            
+            fn create_contextual_error(&self, message: &str) -> ParseError {
+                let rule_stack: Vec<String> = self.recursion_guard.parse_stack
+                    .iter()
+                    .map(|(rule, pos)| format!("{} @ {}", rule, pos))
+                    .collect();
+                
+                let context_start = self.position.saturating_sub(20);
+                let context_end = (self.position + 20).min(self.input.len());
+                let context = &self.input[context_start..context_end];
+                
+                let input_context = if context_start > 0 {
+                    format!("...{}", context)
+                } else {
+                    context.to_string()
+                };
+                
+                let input_context = if context_end < self.input.len() {
+                    format!("{}...", input_context)
+                } else {
+                    input_context
+                };
+                
+                ParseError::ContextualError {
+                    message: message.to_string(),
+                    position: self.position,
+                    rule_stack,
+                    input_context,
+                }
+            }
         }
     }
     
@@ -390,19 +467,47 @@ impl AstBasedGenerator {
                 self.recursion_guard.enter(#rule_name, position);
                 
                 let result = self.memoized_call(Self::#rule_const, |parser| {
-                    if parser.debug_mode {
-                        parser.debug_output.push(format!("🚀 PARSE {}: pos={}", #rule_name, parser.position));
-                    }
-                    
                     let start_pos = parser.position;
                     
-                    // Main parsing logic
-                    #parse_logic
+                    if parser.debug_mode {
+                        let indent = parser.format_debug_indent();
+                        let preview = if parser.position < parser.input.len() {
+                            let end = (parser.position + 20).min(parser.input.len());
+                            format!(" [{}...]", &parser.input[parser.position..end])
+                        } else {
+                            " [EOF]".to_string()
+                        };
+                        
+                        parser.debug_output.push(format!(
+                            "{}🚀 {} @ {}{}",
+                            indent, #rule_name, start_pos, preview
+                        ));
+                    }
+                    
+                    // Main parsing logic - produces the 'result' variable
+                    let result: ParseContent<'input>;
+                    #parse_logic;
                     
                     let end_pos = parser.position;
                     
                     if parser.debug_mode {
-                        parser.debug_output.push(format!("✅ PARSED {}: {} -> {}", #rule_name, start_pos, end_pos));
+                        let indent = parser.format_debug_indent();
+                        let consumed = end_pos - start_pos;
+                        let status = if consumed > 0 {
+                            format!("✅ consumed {} chars", consumed)
+                        } else {
+                            "⚠️ zero-length match".to_string()
+                        };
+                        
+                        parser.debug_output.push(format!(
+                            "{}{} {} [{}.{}] {}",
+                            indent, status, #rule_name, start_pos, end_pos,
+                            if consumed > 0 {
+                                format!(" = {:?}", &parser.input[start_pos..end_pos])
+                            } else {
+                                String::new()
+                            }
+                        ));
                     }
                     
                     Ok(ParseNode {
@@ -445,29 +550,43 @@ impl AstBasedGenerator {
             let branch_logic = self.generate_node_parsing_logic(branch, rule_name)?;
             
             // Check for return annotations for this rule
-            let transform = if let Some(branches) = self.branch_return_annotations.get(rule_name) {
-                if let Some(Some(annotation)) = branches.get(0) {
-                    self.generate_return_transform(annotation, rule_name)?
-                } else {
-                    quote! { branch_result }
-                }
+            let has_transform = if let Some(branches) = self.branch_return_annotations.get(rule_name) {
+                branches.get(0).map(|ann| ann.is_some()).unwrap_or(false)
             } else {
-                quote! { branch_result }
+                false
             };
             
-            Ok(quote! {
-                let result: ParseContent<'input>;
-                
-                // Single-branch rule
-                let branch_result = {
-                    #branch_logic
-                };
-                
-                // Apply any transformations
-                result = #transform;
-                
-                let result = result
-            })
+            if has_transform {
+                // Has return annotation - need to transform
+                let transform = self.branch_return_annotations.get(rule_name)
+                    .and_then(|branches| branches.get(0))
+                    .and_then(|ann| ann.as_ref())
+                    .map(|annotation| self.generate_return_transform(annotation, rule_name))
+                    .transpose()?
+                    .unwrap_or(quote! { result });
+                    
+                // Check if transform is just "result" - avoid redundant assignment
+                if transform.to_string() == "result" {
+                    Ok(quote! {
+                        // Single-branch rule, no transformation needed
+                        #branch_logic  // Sets result
+                    })
+                } else {
+                    Ok(quote! {
+                        // Single-branch rule with transformation
+                        #branch_logic;
+                        
+                        // Apply transformation (reassign result)
+                        result = #transform
+                    })
+                }
+            } else {
+                // No transformation needed - simpler code
+                Ok(quote! {
+                    // Single-branch rule
+                    #branch_logic  // Sets result directly
+                })
+            }
         } else {
             // Multi-branch - use try_parse for each alternative
             let mut branch_attempts = Vec::new();
@@ -508,10 +627,8 @@ impl AstBasedGenerator {
                     // Last branch - no try_parse needed
                     quote! {
                         else {
-                            let content = {
-                                #branch_logic;
-                                result
-                            };
+                            #branch_logic;
+                            let content = result;
                             result = #transform;
                         }
                     }
@@ -521,9 +638,8 @@ impl AstBasedGenerator {
             }
             
             Ok(quote! {
-                let result: ParseContent<'input>;
+                // Multi-branch parsing logic
                 #(#branch_attempts)*
-                let result = result
             })
         }
     }
@@ -597,24 +713,24 @@ impl AstBasedGenerator {
     fn generate_atom_logic(&self, value: &ASTValue, rule_name: &str) -> Result<TokenStream> {
         match value {
             ASTValue::Token(parts) if parts.len() >= 2 => {
-                let token_type = &parts[0];
-                let token_value = &parts[1];
+                let token_type_str = parts[0].as_str().unwrap_or("");
+                let token_value_str = parts[1].as_str().unwrap_or("");
                 
-                match token_type.as_str() {
+                match token_type_str {
                     "quoted_string" => {
                         Ok(quote! {
-                            let result = ParseContent::Terminal(parser.match_string(#token_value)?)
+                            let result = ParseContent::Terminal(parser.match_string(#token_value_str)?)
                         })
                     }
                     "rule_reference" => {
-                        let method = format_ident!("parse_{}", token_value);
+                        let method = format_ident!("parse_{}", token_value_str);
                         Ok(quote! {
                             let result = ParseContent::Alternative(Box::new(parser.#method()?))
                         })
                     }
                     "regex" => {
                         Ok(quote! {
-                            let result = ParseContent::Terminal(parser.match_regex(#token_value)?)
+                            let result = ParseContent::Terminal(parser.match_regex(#token_value_str)?)
                         })
                     }
                     _ => Ok(quote! {
@@ -639,23 +755,52 @@ impl AstBasedGenerator {
         match quantifier {
             "*" => Ok(quote! {
                 let mut results = Vec::new();
-                while let Some(node) = parser.try_parse(|p| {
-                    #element_logic;
-                    Ok(ParseNode {
-                        rule_name: "quantified",
-                        content: result,
-                        span: 0..0,
-                    })
-                }) {
-                    results.push(node);
-                    if parser.position == results.last().unwrap().span.start {
-                        break; // Prevent infinite loop on zero-length matches
+                let mut last_position = parser.position;
+                let mut iteration_count = 0;
+                const MAX_ITERATIONS: usize = 10000; // Safety limit
+                
+                while iteration_count < MAX_ITERATIONS {
+                    if let Some(node) = parser.try_parse(|p| {
+                        #element_logic;
+                        Ok(ParseNode {
+                            rule_name: "quantified",
+                            content: result,
+                            span: 0..0,
+                        })
+                    }) {
+                        let current_position = parser.position;
+                        
+                        // Critical: Check for zero-length match
+                        if current_position == last_position {
+                            if parser.debug_mode {
+                                parser.debug_output.push(format!(
+                                    "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
+                                    #rule_name, current_position
+                                ));
+                            }
+                            break;
+                        }
+                        
+                        results.push(node);
+                        last_position = current_position;
+                        iteration_count += 1;
+                    } else {
+                        break;
                     }
                 }
+                
+                if iteration_count >= MAX_ITERATIONS && parser.debug_mode {
+                    parser.debug_output.push(format!(
+                        "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
+                        MAX_ITERATIONS, #rule_name
+                    ));
+                }
+                
                 let result = ParseContent::Quantified(results, "*")
             }),
             "+" => Ok(quote! {
                 let mut results = Vec::new();
+                let start_position = parser.position;
                 
                 // First match is mandatory
                 {
@@ -667,19 +812,56 @@ impl AstBasedGenerator {
                     });
                 }
                 
+                // Check if first match consumed any input
+                if parser.position == start_position {
+                    if parser.debug_mode {
+                        parser.debug_output.push(format!(
+                            "⚠️ ZERO-LENGTH FIRST MATCH in {}+ quantifier at position {}",
+                            #rule_name, start_position
+                        ));
+                    }
+                }
+                
                 // Additional matches are optional
-                while let Some(node) = parser.try_parse(|p| {
-                    #element_logic;
-                    Ok(ParseNode {
-                        rule_name: "quantified",
-                        content: result,
-                        span: 0..0,
-                    })
-                }) {
-                    results.push(node);
-                    if parser.position == results.last().unwrap().span.start {
+                let mut last_position = parser.position;
+                let mut iteration_count = 1;
+                const MAX_ITERATIONS: usize = 10000;
+                
+                while iteration_count < MAX_ITERATIONS {
+                    if let Some(node) = parser.try_parse(|p| {
+                        #element_logic;
+                        Ok(ParseNode {
+                            rule_name: "quantified",
+                            content: result,
+                            span: 0..0,
+                        })
+                    }) {
+                        let current_position = parser.position;
+                        
+                        // Check for zero-length match
+                        if current_position == last_position {
+                            if parser.debug_mode {
+                                parser.debug_output.push(format!(
+                                    "⚠️ ZERO-LENGTH MATCH in {}+: Breaking at position {}",
+                                    #rule_name, current_position
+                                ));
+                            }
+                            break;
+                        }
+                        
+                        results.push(node);
+                        last_position = current_position;
+                        iteration_count += 1;
+                    } else {
                         break;
                     }
+                }
+                
+                if iteration_count >= MAX_ITERATIONS && parser.debug_mode {
+                    parser.debug_output.push(format!(
+                        "⚠️ MAX ITERATIONS ({}) reached in {}+ quantifier",
+                        MAX_ITERATIONS, #rule_name
+                    ));
                 }
                 
                 let result = ParseContent::Quantified(results, "+")
@@ -710,9 +892,9 @@ impl AstBasedGenerator {
         // For now, simple passthrough - you can expand this based on your UnifiedReturnAST
         if let Some(ref ast) = annotation.parsed_ast {
             // This would use the UnifiedReturnAST to generate proper transformation
-            Ok(quote! { branch_result })
+            Ok(quote! { result })  // Use result, not branch_result
         } else {
-            Ok(quote! { branch_result })
+            Ok(quote! { result })  // Use result, not branch_result
         }
     }
     
@@ -725,41 +907,83 @@ impl AstBasedGenerator {
                 if end <= self.input.len() {
                     let slice = &self.input[start..end];
                     if slice == expected {
+                        if self.debug_mode {
+                            let indent = self.format_debug_indent();
+                            self.debug_output.push(format!(
+                                "{}🎯 matched {:?} at position {}",
+                                indent, expected, start
+                            ));
+                        }
                         self.position = end;
                         return Ok(slice);
                     }
                 }
                 
-                Err(ParseError::UnexpectedToken {
-                    expected,
-                    found: if self.position < self.input.len() {
-                        self.input.chars().nth(self.position).unwrap_or('\0')
-                    } else {
-                        '\0'
-                    },
-                    position: self.position,
-                })
+                // Enhanced error with context
+                let found_str = if self.position < self.input.len() {
+                    let end = (self.position + expected.len()).min(self.input.len());
+                    &self.input[self.position..end]
+                } else {
+                    "<EOF>"
+                };
+                
+                if self.debug_mode {
+                    let indent = self.format_debug_indent();
+                    self.debug_output.push(format!(
+                        "{}❌ expected {:?}, found {:?} at position {}",
+                        indent, expected, found_str, start
+                    ));
+                }
+                
+                Err(self.create_contextual_error(&format!(
+                    "Expected '{}' but found '{}'",
+                    expected, found_str
+                )))
             }
             
             fn match_regex(&mut self, pattern: &str) -> ParseResult<&'input str> {
                 let re = regex::Regex::new(pattern)
-                    .map_err(|_| ParseError::InvalidSyntax {
-                        message: "Invalid regex pattern",
-                        position: self.position,
-                    })?;
+                    .map_err(|e| self.create_contextual_error(&format!(
+                        "Invalid regex pattern '{}': {}",
+                        pattern, e
+                    )))?;
                 
                 if let Some(mat) = re.find(&self.input[self.position..]) {
                     if mat.start() == 0 {
                         let matched = mat.as_str();
                         let start = self.position;
+                        
+                        if self.debug_mode {
+                            let indent = self.format_debug_indent();
+                            self.debug_output.push(format!(
+                                "{}🎯 regex {:?} matched {:?} at position {}",
+                                indent, pattern, matched, start
+                            ));
+                        }
+                        
                         self.position += matched.len();
                         return Ok(&self.input[start..self.position]);
                     }
                 }
                 
-                Err(ParseError::UnexpectedEof {
-                    position: self.position,
-                })
+                if self.debug_mode {
+                    let indent = self.format_debug_indent();
+                    let preview = if self.position < self.input.len() {
+                        let end = (self.position + 10).min(self.input.len());
+                        &self.input[self.position..end]
+                    } else {
+                        "<EOF>"
+                    };
+                    self.debug_output.push(format!(
+                        "{}❌ regex {:?} no match at position {} (next: {:?})",
+                        indent, pattern, self.position, preview
+                    ));
+                }
+                
+                Err(self.create_contextual_error(&format!(
+                    "No match for regex pattern '{}'",
+                    pattern
+                )))
             }
             
             fn try_parse<F, T>(&mut self, f: F) -> Option<T>

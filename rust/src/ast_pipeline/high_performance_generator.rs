@@ -1,3 +1,17 @@
+//! DEPRECATED - DO NOT USE THIS FILE!
+//! 
+//! This file uses STRING-BASED code generation which is FORBIDDEN.
+//! String-based code generation must be avoided like the plague!
+//! 
+//! All features from this file need to be ported to ast_based_generator.rs
+//! using syn/quote macros for AST-based generation.
+//!
+//! See docs/STRING_GENERATOR_FEATURES_TO_PORT.md for migration status.
+
+// This will ALWAYS cause a compilation error if this file is included!
+compile_error!("DO NOT USE high_performance_generator.rs! Use ast_based_generator.rs instead. String-based code generation is FORBIDDEN!");
+
+// Original documentation (DEPRECATED):
 //! High-Performance Rust Code Generator
 //! Generates lightning-fast parsers with:
 //! - Zero-copy parsing where possible

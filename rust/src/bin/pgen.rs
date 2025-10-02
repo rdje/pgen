@@ -93,8 +93,9 @@ fn main() {
     }
 }
 
-fn test_semantic_parser(input: &str, debug: bool, writer: &mut BufWriter<File>) -> Result<(), Box<dyn std::error::Error>> {
-    use pgen::ast_pipeline::semantic_annotation_parser::Semantic_annotationParser;
+fn test_semantic_parser(_input: &str, _debug: bool, writer: &mut BufWriter<File>) -> Result<(), Box<dyn std::error::Error>> {
+    // TEMPORARILY DISABLED: Parser needs regeneration with AST-based generator
+    // use pgen::ast_pipeline::semantic_annotation_parser::Semantic_annotationParser;
     use std::time::Instant;
 
     // Macro to write to both console and log file
@@ -113,20 +114,21 @@ fn test_semantic_parser(input: &str, debug: bool, writer: &mut BufWriter<File>) 
     log_and_print!("📊 Features: Zero-copy, memoization, recursion depth protection, SIMD-optimized");
     log_and_print!("");
 
-    let mut parser = if debug {
+    // TEMPORARILY DISABLED: Parser needs regeneration
+    /* let mut parser = if debug {
         Semantic_annotationParser::with_debug(input)
     } else {
         Semantic_annotationParser::new(input)
-    };
+    }; */
 
     let parse_start = Instant::now();
-    match parser.parse() {
-        Ok(ast) => {
+    // TEMPORARILY: Return error until parser is regenerated
+    let parser_result: Result<(), String> = Err("Parser temporarily disabled for regeneration".to_string());
+    match parser_result {
+        Ok(_) => {
             let parse_time = parse_start.elapsed();
             log_and_print!("✅ PARSE SUCCESS in {:.3}ms", parse_time.as_secs_f64() * 1000.0);
-            log_and_print!("📊 AST Rule: {}", ast.rule_name);
-            log_and_print!("📊 AST Span: {:?}", ast.span);
-            log_and_print!("📊 AST Content: {:?}", ast.content);
+            log_and_print!("📊 Parser temporarily disabled for regeneration");
             
             // Print debug trace if available
             // Note: Debug output method not yet available in placeholder parser
@@ -155,8 +157,9 @@ fn test_semantic_parser(input: &str, debug: bool, writer: &mut BufWriter<File>) 
     }
 }
 
-fn test_return_parser(input: &str, debug: bool, writer: &mut BufWriter<File>) -> Result<(), Box<dyn std::error::Error>> {
-    use pgen::ast_pipeline::return_annotation_parser::Return_annotationParser;
+fn test_return_parser(_input: &str, _debug: bool, writer: &mut BufWriter<File>) -> Result<(), Box<dyn std::error::Error>> {
+    // TEMPORARILY DISABLED: Parser needs regeneration with AST-based generator
+    // use pgen::ast_pipeline::return_annotation_parser::Return_annotationParser;
     use std::time::Instant;
 
     // Macro to write to both console and log file
@@ -175,20 +178,21 @@ fn test_return_parser(input: &str, debug: bool, writer: &mut BufWriter<File>) ->
     log_and_print!("📊 Features: Zero-copy, memoization, recursion depth protection, SIMD-optimized");
     log_and_print!("");
 
-    let mut parser = if debug {
+    // TEMPORARILY DISABLED: Parser needs regeneration
+    /* let mut parser = if debug {
         Return_annotationParser::with_debug(input)
     } else {
         Return_annotationParser::new(input)
-    };
+    }; */
 
     let parse_start = Instant::now();
-    match parser.parse() {
-        Ok(ast) => {
+    // TEMPORARILY: Return error until parser is regenerated
+    let parser_result: Result<(), String> = Err("Parser temporarily disabled for regeneration".to_string());
+    match parser_result {
+        Ok(_) => {
             let parse_time = parse_start.elapsed();
             log_and_print!("✅ PARSE SUCCESS in {:.3}ms", parse_time.as_secs_f64() * 1000.0);
-            log_and_print!("📊 AST Rule: {}", ast.rule_name);
-            log_and_print!("📊 AST Span: {:?}", ast.span);
-            log_and_print!("📊 AST Content: {:?}", ast.content);
+            log_and_print!("📊 Parser temporarily disabled for regeneration");
             
             // Print debug trace if available (if the parser supports it)
             // Note: Return annotation parser may not have debug_output method yet
