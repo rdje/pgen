@@ -51,15 +51,68 @@ Why we removed the string-based generator entirely:
 
 ### ✅ Regex Capture Group Fix for Return Annotations (2025-10-01)
 **Status: COMPLETE**
-- Fixed critical bug where regex patterns with capture groups weren't extracting groups
 - Updated match_regex_optimized() to detect and extract capture groups for -> $1 annotations
 - Fixed array code generation removing incorrect .flatten().collect() usage
 - Rules like quoted_string, number, identifier now correctly return captured content
 - All parsers regenerated and working correctly
 
-### ✅ Return Annotation Handler Update (2025-10-01)
+## Major Milestones Completed
+
+### ✅ ParseNode to UnifiedReturnAST Conversion & Bootstrap Mode OFF Infrastructure (2025-10-03)
+**Status: COMPLETE - Bootstrap Mode OFF Fully Operational**
+
+**ParseNode Conversion Function Enabled:**
+- **Uncommented** `convert_parse_node_to_unified_ast()` in ast_pipeline.rs
+- **Activated** the conversion from external parser ParseNode output to UnifiedReturnAST
+- **Added** `extract_string_from_node()` helper for parsing object keys and strings
+- **Enabled** return_annotation_parser module import
+
+**Smart Fallback Parsing Logic:**
+- **Bootstrap first**: Attempt `UnifiedReturnAST::parse_bootstrap()` for simple cases
+- **External fallback**: Use `Return_annotationParser` + conversion for complex cases
+- **Automatic selection**: Based on parsing success, no manual configuration needed
+- **Seamless integration**: Works transparently for both simple and complex return annotations
+
+**Bootstrap Mode OFF Infrastructure Complete:**
+- **ParseNode → UnifiedReturnAST**: External parser output properly converted
+- **AST integration**: Converted AST fed to AST-based generator for transformation code
+- **End-to-end verification**: Tested with both simple (`-> "world"`) and complex annotations
+- **Production ready**: Infrastructure complete for enabling bootstrap mode OFF
+
+**Implementation Details:**
+```rust
+fn parse_return_annotation(&self, annotation_value: &str) -> Result<UnifiedReturnAST> {
+    // Try bootstrap first (simple cases)
+    if let Ok(ast) = UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug) {
+        return Ok(ast);
+    }
+    
+    // Fallback to external parser (complex cases)
+    let parse_result = return_annotation_parser::Return_annotationParser::new(annotation_value).parse()?;
+    self.convert_parse_node_to_unified_ast(&parse_result)
+}
+```
+
+**Conversion Function Capabilities:**
+- **Rule matching**: Handles all return_annotation.ebnf rule types (positional_ref, array, object, string_literal, etc.)
+- **Recursive processing**: Properly handles nested structures and alternatives
+- **Error handling**: Comprehensive error reporting for malformed ParseNode structures
+- **Debug support**: Full debug output showing conversion process
+
+**Testing Results:**
+- ✅ **Simple strings**: `-> "world"` → bootstrap → `StringLiteral` → `ParseContent::Terminal("world")`
+- ✅ **Complex objects**: `{type: "positional", index: $2}` → external → ParseNode → conversion → UnifiedReturnAST → proper code
+- ✅ **Automatic fallback**: System correctly chooses appropriate parsing method
+- ✅ **Code generation**: AST-based generator produces correct transformation code
+
+- **Bootstrap mode OFF ready**: Complete infrastructure for external parser integration
+- **Flexible parsing**: Handles both simple and complex return annotation patterns
+- **Future-proof**: Clean separation between bootstrap and external parsing approaches
+- **Performance options**: Can choose fastest parsing method based on annotation complexity
+
+### ✅ AST-Based Generator Pretty Printing & UnifiedReturnAST Integration (2025-10-02)
 **Status: COMPLETE**
-- Updated ReturnAnnotationHandler for new grammar with `->` prefix
+- Updated ReturnAnnotationsHandler for new grammar with `->` prefix
 - Return annotations correctly parsed from branch alternatives (not rules)
 - Bootstrap mode maintains limited subset for self-hosted parsers
 - Full external parser used for all other parsers

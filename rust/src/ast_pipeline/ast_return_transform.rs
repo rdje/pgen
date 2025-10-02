@@ -58,6 +58,20 @@ impl AstReturnTransformer {
     
     /// Generate code for positional reference ($1, $2, etc.)
     fn generate_positional_ref(index: usize, captured_vars: &[String]) -> Result<TokenStream> {
+        // Special case: if we have a single "result" variable, assume it might be a sequence
+        // and try to extract the element at the requested index
+        if captured_vars.len() == 1 && captured_vars[0] == "result" {
+            let element_index = index - 1; // Convert from 1-based to 0-based
+            return Ok(quote! {
+                match &result {
+                    ParseContent::Sequence(elements) if elements.len() > #element_index => {
+                        elements[#element_index].content.clone()
+                    }
+                    _ => ParseContent::Terminal("<invalid_sequence_access>")
+                }
+            });
+        }
+        
         if index == 0 || index > captured_vars.len() {
             return Ok(quote! { 
                 ParseContent::Terminal("<invalid_positional_ref>") 
@@ -186,6 +200,28 @@ impl AstReturnTransformer {
     ) -> Result<TokenStream> {
         match ast {
             UnifiedReturnAST::PositionalRef { index } => {
+                // Special case: if we have a single "result" variable, assume it might be a sequence
+                if captured_vars.len() == 1 && captured_vars[0] == "result" {
+                    let element_index = index - 1; // Convert from 1-based to 0-based
+                    return Ok(quote! {
+                        match &result {
+                            ParseContent::Sequence(elements) if elements.len() > #element_index => {
+                                match &elements[#element_index].content {
+                                    ParseContent::Terminal(s) => s.to_string(),
+                                    ParseContent::Alternative(node) => {
+                                        match &node.content {
+                                            ParseContent::Terminal(s) => s.to_string(),
+                                            _ => format!("{:?}", node.content)
+                                        }
+                                    }
+                                    _ => format!("{:?}", elements[#element_index].content)
+                                }
+                            }
+                            _ => "<invalid_sequence_access>".to_string()
+                        }
+                    });
+                }
+                
                 if *index > 0 && *index <= captured_vars.len() {
                     let var_ref = &captured_vars[index - 1];
                     

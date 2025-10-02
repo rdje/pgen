@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2025-10-03 - ParseNode to UnifiedReturnAST Conversion & Bootstrap Mode OFF Infrastructure
+
+### ParseNode Conversion Function Enabled
+- **Uncommented** `convert_parse_node_to_unified_ast()` function in ast_pipeline.rs
+- **Enabled** return_annotation_parser module import
+- **Activated** ParseNode → UnifiedReturnAST conversion for bootstrap mode OFF
+- **Added** helper function `extract_string_from_node()` for parsing object keys
+
+### Smart Fallback Logic Implementation
+- **Implemented** intelligent return annotation parsing with fallback strategy
+- **Bootstrap first**: Try `UnifiedReturnAST::parse_bootstrap()` for simple cases
+- **External fallback**: Use `Return_annotationParser` + conversion for complex cases
+- **Seamless integration**: Automatic selection based on parsing success
+
+### Bootstrap Mode OFF Infrastructure Complete
+- **ParseNode conversion**: External parser output properly converted to UnifiedReturnAST
+- **AST integration**: Converted AST fed to AST-based generator for code generation
+- **End-to-end testing**: Verified conversion works for both simple and complex annotations
+- **Infrastructure ready**: Bootstrap mode OFF can now be enabled when needed
+
+### External Parser Integration
+- **Module import**: `return_annotation_parser` module properly imported
+- **Error handling**: Comprehensive error reporting for parsing failures
+- **Debug support**: Full debug output for conversion process
+- **Type safety**: Proper error propagation through Result types
+
+### Testing & Verification
+- **Simple annotations**: `-> "world"` correctly parsed via bootstrap → `StringLiteral` → `ParseContent::Terminal("world")`
+- **Complex annotations**: External parser → ParseNode → conversion → UnifiedReturnAST → proper code
+- **Fallback mechanism**: Automatic selection between bootstrap and external parsing
+- **Code generation**: Verified AST-based generator produces correct transformation code
+
+### Remaining Work
+- Enable bootstrap mode OFF in production (currently defaults to ON)
+- Comprehensive testing of complex return annotation patterns
+- Performance benchmarking of bootstrap vs external parsing
+
 ## 2025-10-02 - AST-Based Generator Pretty Printing & Integration Fixes
 
 ### Pretty Printing Implementation

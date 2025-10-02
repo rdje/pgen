@@ -24,10 +24,10 @@ pub mod grouped_quantifier_parser;
 // use semantic_annotation_parser::Semantic_annotationParser;
 
 // Import the generated return annotation parser
-// pub mod return_annotation_parser {
-//     include!("../../generated/return_annotation_parser.rs");
-// }
-// use return_annotation_parser::Return_annotationParser;
+pub mod return_annotation_parser {
+    include!("../../generated/return_annotation_parser.rs");
+}
+use return_annotation_parser::Return_annotationParser;
 
 // ⚠️ FORBIDDEN: String-based generator - DO NOT UNCOMMENT!
 // This module uses string concatenation for code generation which is FORBIDDEN.
@@ -667,18 +667,27 @@ impl RustASTPipeline {
             println!("[AST Pipeline] Parsing return annotation: '{}'", annotation_value);
         }
         
-        if self.should_use_bootstrap_mode() {
+        // First try bootstrap mode
+        if let Ok(ast) = UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug) {
             if self.config.debug {
-                println!("[AST Pipeline] Using bootstrap mode for return annotation");
+                println!("[AST Pipeline] Successfully parsed with bootstrap mode");
             }
-            return UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug)
-                .map_err(|e| anyhow!("Bootstrap parser error: {}", e));
+            return Ok(ast);
         }
         
-        // TEMPORARY: External parser disabled until regenerated with AST-based generator
-        // Bootstrap mode will be used instead
-        return UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug)
-            .map_err(|e| anyhow!("Bootstrap parser error: {}", e));
+        // Bootstrap failed, try external parser
+        if self.config.debug {
+            println!("[AST Pipeline] Bootstrap failed, trying external parser");
+        }
+        
+        let parse_result = {
+            let mut parser = return_annotation_parser::Return_annotationParser::new(annotation_value);
+            parser.parse()
+                .map_err(|e| anyhow!("External parser error: {:?}", e))?
+        };
+        
+        // Convert ParseNode to UnifiedReturnAST
+        self.convert_parse_node_to_unified_ast(&parse_result)
     }
     
     /// Built-in bootstrap return annotation parser
@@ -954,7 +963,6 @@ impl RustASTPipeline {
         Ok(output)
     }
     
-    /* TEMPORARILY DISABLED: Depends on generated parsers
     /// Convert external parser's ParseNode to UnifiedReturnAST
     /// This interprets the syntactic parse tree to extract semantic meaning
     fn convert_parse_node_to_unified_ast(&self, node: &return_annotation_parser::ParseNode) -> Result<UnifiedReturnAST> {
