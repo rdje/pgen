@@ -1565,6 +1565,21 @@ impl<'input> {parser_name}<'input> {{
         rule_id: u16,
         mut pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>,
     ) -> Result<String> {
+        // Debug: Check what type of AST node we have for simple_object
+        if rule_name == "simple_object" {
+            match ast_node {
+                ASTNode::Or { alternatives } => {
+                    println!("[DEBUG] simple_object has Or node with {} alternatives", alternatives.len());
+                }
+                ASTNode::Sequence { .. } => {
+                    println!("[DEBUG] WARNING: simple_object has Sequence node directly (should be wrapped in Or)!");
+                }
+                _ => {
+                    println!("[DEBUG] simple_object has unexpected node type: {:?}", std::mem::discriminant(ast_node));
+                }
+            }
+        }
+        
         if let Some(ref mut p) = pipeline {
             p.log_debug("generate_optimized_rule_method", &format!("🔧 Processing rule: '{}' (ID: {})", rule_name, rule_id));
         } else {
@@ -2330,13 +2345,9 @@ impl<'input> {parser_name}<'input> {{
                 // No alternatives - this shouldn't happen but handle gracefully
                 Ok(format!("{indent}return Err(ParseError::InvalidSyntax {{\n{indent}    message: \"No alternatives provided\",\n{indent}    position: {parser_var}.position,\n{indent}}});\n"))
             }
-            1 => {
-                // Single branch - no alternatives, just execute directly
-                let alt_code = self.generate_optimized_node_code_with_context_and_pipeline(&alternatives[0], 0, rule_name, rule_annotations, parser_var, pipeline)?;
-                Ok(alt_code)
-            }
             _ => {
-                // Multiple branches - use systematic N-branch template
+                // ALL rules (1-branch, 2-branch, N-branch) use the same template
+                // This ensures uniform handling of return annotations
                 self.generate_n_branch_template_with_context_and_pipeline(alternatives, indent, rule_name, rule_annotations, parser_var, pipeline)
             }
         }
@@ -2632,8 +2643,20 @@ impl<'input> {parser_name}<'input> {{
                     builder.add_line(&format!("{indent}{branch_indent}// ═══════════════════════════════════════════════════════"));
                     builder.add_line(&format!("{indent}{branch_indent}"));
                     
-                    // For branches, the result is typically in a variable called 'result'
-                    let captured_vars = vec!["result".to_string()];
+                    // For branches with sequences, we need to reference the sequence elements
+                    // Check if this branch is a sequence and if so, build proper captured_vars
+                    let captured_vars = match alt {
+                        ASTNode::Sequence { elements } => {
+                            // For sequences, generate references to each sequence_element
+                            (0..elements.len())
+                                .map(|i| format!("sequence_elements[{}]", i))
+                                .collect::<Vec<_>>()
+                        }
+                        _ => {
+                            // For non-sequences, use the result variable
+                            vec!["result".to_string()]
+                        }
+                    };
                     
                     match parsed_ast.generate_code(&captured_vars, &format!("{indent}{branch_indent}"), self.enable_trace) {
                         Ok(ast_code) => {
@@ -2905,6 +2928,7 @@ impl<'input> {parser_name}<'input> {{
     fn generate_fast_helpers(&self) -> String {
         String::from(r#"    /// Regex-based pattern matching using Rust regex engine
     /// Handles EBNF /.../ regex patterns properly
+    /// Supports capture group extraction for return annotations
     #[inline]
     fn match_regex_optimized(&mut self, pattern: &str) -> ParseResult<&'input str> {
         let start_pos = self.position;
@@ -2923,24 +2947,68 @@ impl<'input> {parser_name}<'input> {{
         
         match Regex::new(&anchored_pattern) {
             Ok(regex) => {
-                if let Some(matched) = regex.find(remaining_input) {
-                    // Ensure the match starts at position 0 (our current position)
-                    if matched.start() == 0 {
-                        let match_len = matched.len();
-                        let old_pos = self.position;
-                        self.position += match_len;
-                        Ok(&self.input[old_pos..self.position])
+                // Check if the pattern has capture groups
+                let has_captures = pattern.contains('(') && pattern.contains(')');
+                
+                if has_captures {
+                    // Use captures to extract groups
+                    if let Some(caps) = regex.captures(remaining_input) {
+                        if let Some(matched) = caps.get(0) {
+                            // Ensure the match starts at position 0
+                            if matched.start() == 0 {
+                                let match_len = matched.len();
+                                let old_pos = self.position;
+                                self.position += match_len;
+                                
+                                // Check if there's a capture group 1 (for -> $1 return annotations)
+                                if let Some(group1) = caps.get(1) {
+                                    // Return the first capture group content
+                                    let group_start = old_pos + group1.start();
+                                    let group_end = old_pos + group1.end();
+                                    Ok(&self.input[group_start..group_end])
+                                } else {
+                                    // No capture group 1, return full match
+                                    Ok(&self.input[old_pos..self.position])
+                                }
+                            } else {
+                                Err(ParseError::InvalidSyntax {
+                                    message: "Pattern mismatch at current position",
+                                    position: start_pos,
+                                })
+                            }
+                        } else {
+                            Err(ParseError::InvalidSyntax {
+                                message: "Pattern mismatch",
+                                position: start_pos,
+                            })
+                        }
                     } else {
                         Err(ParseError::InvalidSyntax {
-                            message: "Pattern mismatch at current position",
+                            message: "Pattern mismatch",
                             position: start_pos,
                         })
                     }
                 } else {
-                    Err(ParseError::InvalidSyntax {
-                        message: "Pattern mismatch",
-                        position: start_pos,
-                    })
+                    // No captures, use simple find
+                    if let Some(matched) = regex.find(remaining_input) {
+                        // Ensure the match starts at position 0 (our current position)
+                        if matched.start() == 0 {
+                            let match_len = matched.len();
+                            let old_pos = self.position;
+                            self.position += match_len;
+                            Ok(&self.input[old_pos..self.position])
+                        } else {
+                            Err(ParseError::InvalidSyntax {
+                                message: "Pattern mismatch at current position",
+                                position: start_pos,
+                            })
+                        }
+                    } else {
+                        Err(ParseError::InvalidSyntax {
+                            message: "Pattern mismatch",
+                            position: start_pos,
+                        })
+                    }
                 }
             }
             Err(_) => {

@@ -1,0 +1,64 @@
+{
+  "test_suite": "Return Annotations - Object Construction",
+  "description": "Tests for object literal syntax",
+  "tests": [
+    {
+      "name": "simple_object",
+      "input": "{key: $1, value: $2}",
+      "expected_ast": {
+        "type": "Object",
+        "properties": {
+          "key": {"type": "PositionalRef", "index": 1},
+          "value": {"type": "PositionalRef", "index": 2}
+        }
+      },
+      "description": "Simple object with positional references"
+    },
+    {
+      "name": "object_with_literals",
+      "input": "{type: \"array\", element: $3}",
+      "expected_ast": {
+        "type": "Object",
+        "properties": {
+          "type": {"type": "StringLiteral", "value": "array"},
+          "element": {"type": "PositionalRef", "index": 3}
+        }
+      },
+      "description": "Object with string literal and positional reference"
+    },
+    {
+      "name": "empty_object",
+      "input": "{}",
+      "expected_ast": {
+        "type": "Object",
+        "properties": {}
+      },
+      "description": "Empty object literal"
+    },
+    {
+      "name": "object_with_extraction",
+      "input": "{params: [$1, $2::2*], count: $3}",
+      "expected_ast": {
+        "type": "Object",
+        "properties": {
+          "params": {
+            "type": "Array",
+            "elements": [
+              {"type": "PositionalRef", "index": 1},
+              {
+                "type": "Spread",
+                "base": {
+                  "type": "QuantifiedExtraction",
+                  "base": {"type": "PositionalRef", "index": 2},
+                  "target": {"type": "Index", "value": 2}
+                }
+              }
+            ]
+          },
+          "count": {"type": "PositionalRef", "index": 3}
+        }
+      },
+      "description": "Object with nested array containing extraction"
+    }
+  ]
+}

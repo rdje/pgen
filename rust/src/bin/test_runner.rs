@@ -1,0 +1,119 @@
+#!/usr/bin/env rust
+// Universal Test Runner CLI
+// Run all tests, filter by parser, or filter by tags
+
+use clap::{Command, Arg};
+use pgen::universal_test_runner::{UniversalTestRunner, TestReport};
+use std::process::exit;
+
+fn main() {
+    let matches = Command::new("test_runner")
+        .about("Universal Test Runner for pgen")
+        .version("1.0.0")
+        .arg(
+            Arg::new("parser")
+                .short('p')
+                .long("parser")
+                .value_name("TYPE")
+                .help("Filter tests by parser type")
+                .value_parser(["return", "semantic", "regex", "all"])
+        )
+        .arg(
+            Arg::new("tags")
+                .short('t')
+                .long("tags")
+                .value_name("TAGS")
+                .help("Filter tests by tags (comma-separated)")
+        )
+        .arg(
+            Arg::new("verbose")
+                .short('v')
+                .long("verbose")
+                .help("Show detailed output")
+                .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
+            Arg::new("suite")
+                .short('s')
+                .long("suite")
+                .value_name("NAME")
+                .help("Run specific test suite by name")
+        )
+        .arg(
+            Arg::new("list")
+                .short('l')
+                .long("list")
+                .help("List available test suites without running")
+                .action(clap::ArgAction::SetTrue)
+        )
+        .get_matches();
+
+    let verbose = matches.get_flag("verbose");
+    let list_only = matches.get_flag("list");
+
+    // Create runner with options
+    let mut runner = UniversalTestRunner::new().with_verbose(verbose);
+
+    // Apply filters
+    if let Some(parser) = matches.get_one::<String>("parser") {
+        if parser != "all" {
+            runner = runner.with_parser_filter(parser.to_string());
+        }
+    }
+
+    if let Some(tags_str) = matches.get_one::<String>("tags") {
+        let tags: Vec<String> = tags_str.split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
+        runner = runner.with_tag_filter(tags);
+    }
+
+    // List mode
+    if list_only {
+        match runner.discover_test_suites() {
+            Ok(suites) => {
+                println!("📋 Available Test Suites:");
+                println!("{}", "=".repeat(60));
+                for suite in suites {
+                    println!("• {} ({})", suite.suite_name, suite.parser_type);
+                    println!("  {}", suite.description);
+                    println!("  Tests: {}", suite.tests.len());
+                }
+                println!("{}", "=".repeat(60));
+                println!("Total: {} suites", suites.len());
+            }
+            Err(e) => {
+                eprintln!("Error discovering test suites: {}", e);
+                exit(1);
+            }
+        }
+        return;
+    }
+
+    // Run tests
+    println!("🚀 Universal Test Runner");
+    println!("{}", "=".repeat(60));
+    
+    if let Some(parser) = matches.get_one::<String>("parser") {
+        println!("Parser filter: {}", parser);
+    }
+    if let Some(tags) = matches.get_one::<String>("tags") {
+        println!("Tag filter: {}", tags);
+    }
+    
+    match runner.run_all_tests() {
+        Ok(report) => {
+            report.print_summary();
+            
+            if report.failed > 0 {
+                exit(1);
+            } else {
+                exit(0);
+            }
+        }
+        Err(e) => {
+            eprintln!("\n❌ Test runner error: {}", e);
+            exit(2);
+        }
+    }
+}

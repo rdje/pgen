@@ -1,0 +1,55 @@
+{
+  "parser": "unified",
+  "suite_name": "Regex Capture Groups",
+  "description": "Tests for regex capture group extraction with return annotations",
+  "tests": [
+    {
+      "name": "quoted_string_extracts_content",
+      "input": "quoted_string := /\"([^\"]*)\"/ -> $1",
+      "test_inputs": [
+        {
+          "text": "\"hello world\"",
+          "expected": "hello world"
+        }
+      ],
+      "expected": {"success": true},
+      "tags": ["regex", "capture", "quotes"]
+    },
+    {
+      "name": "number_captures_digits",
+      "input": "number := /(\\d+)/ -> $1",
+      "test_inputs": [
+        {
+          "text": "12345",
+          "expected": "12345"
+        }
+      ],
+      "expected": {"success": true},
+      "tags": ["regex", "capture", "number"]
+    },
+    {
+      "name": "identifier_captures_full",
+      "input": "identifier := /([a-zA-Z_]\\w*)/ -> $1",
+      "test_inputs": [
+        {
+          "text": "myVariable123",
+          "expected": "myVariable123"
+        }
+      ],
+      "expected": {"success": true},
+      "tags": ["regex", "capture", "identifier"]
+    },
+    {
+      "name": "no_capture_groups_returns_full_match",
+      "input": "digits := /\\d+/ -> $0",
+      "test_inputs": [
+        {
+          "text": "999",
+          "expected": "999"
+        }
+      ],
+      "expected": {"success": true},
+      "tags": ["regex", "no-capture", "full-match"]
+    }
+  ]
+}

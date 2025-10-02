@@ -1094,7 +1094,7 @@ impl RustASTPipeline {
                                 let value_node = &nodes[i + 2];
                                 
                                 if let ParseContent::Terminal(colon) = &colon_node.content {
-                                    if colon == ":" {
+                                    if *colon == ":" {
                                         let key = self.extract_string_from_node(key_node)?;
                                         let value = self.convert_parse_node_to_unified_ast(value_node)?;
                                         properties.insert(key, Box::new(value));
@@ -1735,15 +1735,33 @@ impl RustASTPipeline {
         let rule_order: Vec<String> = quantified_rules.keys().cloned().collect();
 
         for (rule_name, alternatives) in quantified_rules {
-            let final_node = if alternatives.len() == 1 {
-                alternatives[0].clone()
-            } else {
-                ASTNode::Or {
-                    alternatives: alternatives.clone()
+            // Debug output for simple_object
+            if rule_name == "simple_object" {
+                println!("[DEBUG] build_tree_structure: Processing simple_object with {} alternatives", alternatives.len());
+                for (i, alt) in alternatives.iter().enumerate() {
+                    println!("[DEBUG]   Alternative {}: {:?}", i, std::mem::discriminant(alt));
                 }
+            }
+            
+            // ALWAYS wrap in Or node - even single-branch rules
+            // This ensures uniform handling of return annotations
+            let final_node = ASTNode::Or {
+                alternatives: alternatives.clone()
             };
+            
+            if rule_name == "simple_object" {
+                println!("[DEBUG] build_tree_structure: simple_object wrapped in Or node");
+            }
 
             grammar_tree.insert(rule_name.clone(), final_node);
+        }
+        
+        // Verify simple_object is wrapped
+        if let Some(node) = grammar_tree.get("simple_object") {
+            match node {
+                ASTNode::Or { .. } => println!("[DEBUG] build_tree_structure: VERIFIED simple_object is Or node in final grammar_tree"),
+                _ => println!("[DEBUG] build_tree_structure: ERROR! simple_object is NOT Or node in grammar_tree!")
+            }
         }
 
         Ok((grammar_tree, rule_order))
@@ -1896,6 +1914,18 @@ impl RustASTPipeline {
         // Pass the branch-level return annotations to the code generator
         code_generator.set_branch_return_annotations(&self.annotations.branch_return_annotations);
         
+        // Debug: verify simple_object is Or node before passing to generator
+        if let Some(node) = grammar_tree.get("simple_object") {
+            match node {
+                ASTNode::Or { alternatives } => {
+                    println!("[DEBUG] generate_high_performance_parser: simple_object is Or node with {} alternatives before passing to generator", alternatives.len());
+                }
+                _ => {
+                    println!("[DEBUG] generate_high_performance_parser: WARNING! simple_object is NOT Or node before passing to generator!");
+                }
+            }
+        }
+        
         let rust_code = code_generator.generate_lightning_fast_parser_with_logging(&grammar_tree, &rule_order, self)?;
         
         std::fs::write(output_rust_file, rust_code)
@@ -1960,7 +1990,16 @@ impl RustASTPipeline {
         // Convert back to AST format
         let mut result_grammar = HashMap::new();
         for (rule_name, productions) in simple_grammar {
-            result_grammar.insert(rule_name, self.productions_to_ast_node(productions)?);
+            let ast_node = self.productions_to_ast_node(productions)?;
+            
+            // CRITICAL: Ensure all rules are wrapped in Or nodes for uniform return annotation handling
+            // This preserves the structure established by build_tree_structure
+            let final_node = match ast_node {
+                ASTNode::Or { .. } => ast_node,  // Already an Or node
+                other => ASTNode::Or { alternatives: vec![other] }  // Wrap in Or node
+            };
+            
+            result_grammar.insert(rule_name, final_node);
         }
         
         if self.config.debug {

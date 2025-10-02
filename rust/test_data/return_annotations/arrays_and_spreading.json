@@ -1,0 +1,67 @@
+{
+  "test_suite": "Return Annotations - Arrays and Spreading",
+  "description": "Tests for array construction and spread operators",
+  "tests": [
+    {
+      "name": "simple_array",
+      "input": "[$1, $2]",
+      "expected_ast": {
+        "type": "Array",
+        "elements": [
+          {"type": "PositionalRef", "index": 1},
+          {"type": "PositionalRef", "index": 2}
+        ]
+      },
+      "description": "Simple array with two elements"
+    },
+    {
+      "name": "empty_array",
+      "input": "[]",
+      "expected_ast": {
+        "type": "Array",
+        "elements": []
+      },
+      "description": "Empty array literal"
+    },
+    {
+      "name": "spread_operator",
+      "input": "$3*",
+      "expected_ast": {
+        "type": "Spread",
+        "base": {
+          "type": "PositionalRef",
+          "index": 3
+        }
+      },
+      "description": "Spread operator on positional reference"
+    },
+    {
+      "name": "array_with_spread",
+      "input": "[$1, $2*]",
+      "expected_ast": {
+        "type": "Array",
+        "elements": [
+          {"type": "PositionalRef", "index": 1},
+          {
+            "type": "Spread",
+            "base": {"type": "PositionalRef", "index": 2}
+          }
+        ]
+      },
+      "description": "Array with spread element"
+    },
+    {
+      "name": "array_with_literals",
+      "input": "[\"first\", $1, \"last\"]",
+      "expected_ast": {
+        "type": "Array",
+        "elements": [
+          {"type": "StringLiteral", "value": "first"},
+          {"type": "PositionalRef", "index": 1},
+          {"type": "StringLiteral", "value": "last"}
+        ]
+      },
+      "description": "Array with mixed literals and references"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "test_suite": "Return Annotations - Extraction Operators",
+  "description": "Tests for the new :: extraction operator syntax",
+  "tests": [
+    {
+      "name": "extract_by_index",
+      "input": "$2::2",
+      "expected_ast": {
+        "type": "QuantifiedExtraction",
+        "base": {
+          "type": "PositionalRef",
+          "index": 2
+        },
+        "target": {
+          "type": "Index",
+          "value": 2
+        }
+      },
+      "description": "Extract element at index 2 from quantified group"
+    },
+    {
+      "name": "extract_first",
+      "input": "$3::first",
+      "expected_ast": {
+        "type": "QuantifiedExtraction",
+        "base": {
+          "type": "PositionalRef",
+          "index": 3
+        },
+        "target": "First"
+      },
+      "description": "Extract first element from each repetition"
+    },
+    {
+      "name": "extract_last",
+      "input": "$2::last",
+      "expected_ast": {
+        "type": "QuantifiedExtraction",
+        "base": {
+          "type": "PositionalRef",
+          "index": 2
+        },
+        "target": "Last"
+      },
+      "description": "Extract last element from each repetition"
+    },
+    {
+      "name": "extract_with_spread",
+      "input": "$2::1*",
+      "expected_ast": {
+        "type": "Spread",
+        "base": {
+          "type": "QuantifiedExtraction",
+          "base": {
+            "type": "PositionalRef",
+            "index": 2
+          },
+          "target": {
+            "type": "Index",
+            "value": 1
+          }
+        }
+      },
+      "description": "Extract and spread elements"
+    },
+    {
+      "name": "extract_in_array",
+      "input": "[$1, $2::2*]",
+      "expected_ast": {
+        "type": "Array",
+        "elements": [
+          {
+            "type": "PositionalRef",
+            "index": 1
+          },
+          {
+            "type": "Spread",
+            "base": {
+              "type": "QuantifiedExtraction",
+              "base": {
+                "type": "PositionalRef",
+                "index": 2
+              },
+              "target": {
+                "type": "Index",
+                "value": 2
+              }
+            }
+          }
+        ]
+      },
+      "description": "Extraction with spread inside array"
+    }
+  ]
+}

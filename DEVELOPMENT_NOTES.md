@@ -5,6 +5,14 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 
 ## Major Milestones Completed
 
+### ✅ Regex Capture Group Fix for Return Annotations (2025-10-01)
+**Status: COMPLETE**
+- Fixed critical bug where regex patterns with capture groups weren't extracting groups
+- Updated match_regex_optimized() to detect and extract capture groups for -> $1 annotations
+- Fixed array code generation removing incorrect .flatten().collect() usage
+- Rules like quoted_string, number, identifier now correctly return captured content
+- All parsers regenerated and working correctly
+
 ### ✅ Return Annotation Handler Update (2025-10-01)
 **Status: COMPLETE**
 - Updated ReturnAnnotationHandler for new grammar with `->` prefix
@@ -68,6 +76,55 @@ PGEN is a sophisticated regex parser generator pipeline that converts EBNF gramm
 - Placeholder architecture enables seamless parser integration when ready
 
 ## Key Technical Insights
+
+### Regex Capture Group Handling (2025-10-01)
+
+#### The Problem
+Return annotations like `-> $1` on regex patterns were fundamentally broken:
+- Pattern: `/"([^"]*)"/ -> $1` (quoted_string)
+- Input: `"hello world"`
+- Expected: `hello world` (captured group)
+- Actual: `"hello world"` (entire match with quotes)
+
+#### Root Cause
+The generated `match_regex_optimized()` function always used `regex.find()` which:
+- Only returns the full match
+- Ignores capture groups even when present
+- Made return annotations meaningless for regex rules
+
+#### Solution Architecture
+
+**Detection Phase**:
+```rust
+let has_captures = pattern.contains('(') && pattern.contains(')');  
+```
+
+**Extraction Phase**:
+```rust
+if has_captures {
+    // Use captures() to get groups
+    if let Some(caps) = regex.captures(remaining_input) {
+        if let Some(group1) = caps.get(1) {
+            // Return first capture group content
+            return Ok(&self.input[group_start..group_end]);
+        }
+    }
+} else {
+    // No captures, use simple find()
+}
+```
+
+#### Implementation Details
+- **File**: `high_performance_generator.rs`, lines 2905-2996
+- **Method**: Generated `match_regex_optimized()` in all parsers
+- **Behavior**: Automatically detects capture groups and extracts them
+- **Compatibility**: Falls back to full match when no groups present
+
+#### Related Fix: Array Code Generation
+- **File**: `unified_return_ast.rs`, line 427
+- **Issue**: Generated `.into_iter().flatten().collect()` for arrays
+- **Problem**: ParseNode doesn't implement Iterator
+- **Solution**: Removed flatten(), just close array with `])`
 
 ### Unified Return Annotation AST Architecture (2025-10-01)
 

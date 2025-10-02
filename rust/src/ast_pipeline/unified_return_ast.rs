@@ -12,6 +12,17 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 
+/// Extraction target for quantified groups
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ExtractionTarget {
+    /// Extract by index (0-based): $2::2
+    Index(usize),
+    /// Extract first element: $2::first
+    First,
+    /// Extract last element: $2::last
+    Last,
+}
+
 /// The unified AST representation of a return annotation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum UnifiedReturnAST {
@@ -62,6 +73,13 @@ pub enum UnifiedReturnAST {
     ArrayAccess {
         base: Box<UnifiedReturnAST>,
         index: Box<UnifiedReturnAST>,
+    },
+    
+    /// Extraction from quantified groups: $2::2, $2::first, $2::last
+    /// Extracts specific elements from each repetition of a quantified group
+    QuantifiedExtraction {
+        base: Box<UnifiedReturnAST>,
+        target: ExtractionTarget,
     },
     
     /// Passthrough - no explicit return annotation (implicit -> $1)
@@ -148,14 +166,20 @@ impl UnifiedReturnAST {
             println!("[UnifiedReturnAST::parse_positional_ref] Parsing: '{}'", input);
         }
         
-        // Handle $N, $N*, $N.property, $N[index]
-        let mut chars = input.chars();
-        chars.next(); // Skip '$'
+        // Handle $N, $N*, $N.property, $N[index], $N::target, $N::target*
+        // Skip the '$' and find where the number ends
+        let without_dollar = &input[1..];
+        let end_of_number = without_dollar
+            .chars()
+            .position(|c| !c.is_ascii_digit())
+            .unwrap_or(without_dollar.len());
         
-        // Extract the number
-        let num_str: String = chars.by_ref()
-            .take_while(|c| c.is_ascii_digit())
-            .collect();
+        let num_str = &without_dollar[..end_of_number];
+        let remaining = &without_dollar[end_of_number..];
+        
+        if debug {
+            println!("[UnifiedReturnAST::parse_positional_ref] Extracted number: '{}', remaining: '{}'", num_str, remaining);
+        }
         
         if num_str.is_empty() {
             return Err(format!("Invalid positional reference: '{}'", input));
@@ -166,9 +190,43 @@ impl UnifiedReturnAST {
         
         let mut base = UnifiedReturnAST::PositionalRef { index };
         
-        // Check for remaining characters (*, ., [)
-        let remaining: String = chars.collect();
-        if remaining.starts_with('*') {
+        // Check for extraction operator first (::)
+        if remaining.starts_with("::") {
+            let extraction_part = &remaining[2..];
+            
+            // Check if there's a spread operator at the end
+            let (target_str, has_spread) = if extraction_part.ends_with('*') {
+                (&extraction_part[..extraction_part.len()-1], true)
+            } else {
+                (extraction_part, false)
+            };
+            
+            // Parse the extraction target
+            let target = match target_str {
+                "first" => ExtractionTarget::First,
+                "last" => ExtractionTarget::Last,
+                s => {
+                    // Try to parse as index
+                    match s.parse::<usize>() {
+                        Ok(idx) => ExtractionTarget::Index(idx),
+                        Err(_) => return Err(format!("Invalid extraction target: '{}'", s)),
+                    }
+                }
+            };
+            
+            base = UnifiedReturnAST::QuantifiedExtraction {
+                base: Box::new(base),
+                target,
+            };
+            
+            // Apply spread if present
+            if has_spread {
+                base = UnifiedReturnAST::Spread { base: Box::new(base) };
+            }
+        } else if remaining.starts_with('*') {
+            if debug {
+                println!("[UnifiedReturnAST::parse_positional_ref] Found spread operator '*'");
+            }
             base = UnifiedReturnAST::Spread { base: Box::new(base) };
         } else if remaining.starts_with('.') {
             // Property access
@@ -195,6 +253,10 @@ impl UnifiedReturnAST {
             }
         } else if !remaining.is_empty() {
             return Err(format!("Invalid positional reference modifier: '{}'", remaining));
+        }
+        
+        if debug {
+            println!("[UnifiedReturnAST::parse_positional_ref] Returning: {:?}", base);
         }
         
         Ok(base)
@@ -346,6 +408,16 @@ impl UnifiedReturnAST {
                     indent_str, indent_str, base.pretty_print(indent + 2),
                     indent_str, index.pretty_print(indent + 2), indent_str)
             }
+            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+                let target_str = match target {
+                    ExtractionTarget::Index(idx) => format!("Index({})", idx),
+                    ExtractionTarget::First => "First".to_string(),
+                    ExtractionTarget::Last => "Last".to_string(),
+                };
+                format!("{}QuantifiedExtraction {{\n{}  base: \n{}{}  target: {}\n{}}}\n",
+                    indent_str, indent_str, base.pretty_print(indent + 2),
+                    indent_str, target_str, indent_str)
+            }
             UnifiedReturnAST::Passthrough => {
                 format!("{}Passthrough\n", indent_str)
             }
@@ -424,28 +496,76 @@ impl UnifiedReturnAST {
                     }
                 }
                 
-                code.push_str(&format!("\n{}].into_iter().flatten().collect())", indent));
+                code.push_str(&format!("\n{}])", indent));
                 Ok(code)
             }
             
             UnifiedReturnAST::Object { properties } => {
-                // For now, create a JSON representation as a Terminal
-                // In the future, this could be a proper object structure
-                let mut json_obj = serde_json::json!({});
+                // Generate code to build a JSON object at runtime with actual values
+                let mut code = String::new();
+                code.push_str(&format!("{{\n"));
+                code.push_str(&format!("{}    // Building object from return annotation\n", indent));
+                code.push_str(&format!("{}    let mut json_obj = serde_json::json!({{}});\n", indent));
                 
                 for (key, value) in properties {
-                    // Simplified representation for bootstrap mode
-                    let value_str = match value.as_ref() {
-                        UnifiedReturnAST::StringLiteral { value } => value.clone(),
-                        UnifiedReturnAST::PositionalRef { index } => format!("${}", index),
-                        _ => "<complex>".to_string(),
-                    };
-                    json_obj[key] = serde_json::json!(value_str);
+                    // Generate code to extract the actual value at runtime
+                    match value.as_ref() {
+                        UnifiedReturnAST::StringLiteral { value: str_val } => {
+                            // String literal - use as is
+                            code.push_str(&format!("{}    json_obj[r#\"{}\"#] = serde_json::json!(r#\"{}\"#);\n", 
+                                indent, key, str_val));
+                        }
+                        UnifiedReturnAST::PositionalRef { index } => {
+                            // Generate code to extract from captured variable
+                            if *index > 0 && *index <= captured_vars.len() {
+                                let var_ref = &captured_vars[index - 1];
+                                // Extract the actual content from the parsed element
+                                if var_ref.starts_with("sequence_elements[") {
+                                    // For sequence elements, we need to extract the content and convert to string
+                                    code.push_str(&format!("{}    json_obj[r#\"{}\"#] = serde_json::json!(\n", indent, key));
+                                    code.push_str(&format!("{}        match &{}.content {{\n", indent, var_ref));
+                                    code.push_str(&format!("{}            ParseContent::Terminal(s) => s.to_string(),\n", indent));
+                                    code.push_str(&format!("{}            ParseContent::Alternative(node) => {{\n", indent));
+                                    code.push_str(&format!("{}                match &node.content {{\n", indent));
+                                    code.push_str(&format!("{}                    ParseContent::Terminal(s) => s.to_string(),\n", indent));
+                                    code.push_str(&format!("{}                    _ => format!(\"{{:?}}\", node.content)\n", indent));
+                                    code.push_str(&format!("{}                }}\n", indent));
+                                    code.push_str(&format!("{}            }}\n", indent));
+                                    code.push_str(&format!("{}            _ => format!(\"{{:?}}\", {}.content)\n", indent, var_ref));
+                                    code.push_str(&format!("{}        }}\n", indent));
+                                    code.push_str(&format!("{}    );\n", indent));
+                                } else {
+                                    // Direct reference to content
+                                    code.push_str(&format!("{}    json_obj[r#\"{}\"#] = serde_json::json!({}); \n", 
+                                        indent, key, var_ref));
+                                }
+                            } else {
+                                // Invalid index - use placeholder
+                                code.push_str(&format!("{}    json_obj[r#\"{}\"#] = serde_json::json!(\"<invalid_ref_${}>\");\n", 
+                                    indent, key, index));
+                            }
+                        }
+                        UnifiedReturnAST::NumberLiteral { value: num } => {
+                            code.push_str(&format!("{}    json_obj[r#\"{}\"#] = serde_json::json!({});\n", 
+                                indent, key, num));
+                        }
+                        UnifiedReturnAST::BooleanLiteral { value: bool_val } => {
+                            code.push_str(&format!("{}    json_obj[r#\"{}\"#] = serde_json::json!({});\n", 
+                                indent, key, bool_val));
+                        }
+                        _ => {
+                            // For complex nested values, recursively generate code
+                            let nested_code = value.generate_code(captured_vars, &format!("{}        ", indent), debug)?;
+                            code.push_str(&format!("{}    json_obj[r#\"{}\"#] = serde_json::json!({}); \n", 
+                                indent, key, nested_code));
+                        }
+                    }
                 }
                 
-                let json_str = serde_json::to_string(&json_obj)
-                    .map_err(|e| format!("Failed to serialize object: {}", e))?;
-                Ok(format!("{}ParseContent::Terminal(r#\"{}\"#)", indent, json_str))
+                code.push_str(&format!("{}    let json_str = serde_json::to_string(&json_obj).unwrap_or_else(|_| \"{{}}\".to_string());\n", indent));
+                code.push_str(&format!("{}    ParseContent::Terminal(json_str)\n", indent));
+                code.push_str(&format!("{}}}", indent));
+                Ok(code)
             }
             
             UnifiedReturnAST::Spread { base } => {
@@ -467,8 +587,57 @@ impl UnifiedReturnAST {
                 let base_code = base.generate_code(captured_vars, indent, debug)?;
                 let index_code = index.generate_code(captured_vars, indent, debug)?;
                 // For now, this is a placeholder - would need runtime indexing
-                Ok(format!("{}// TODO: Array access [{}] on {}\n{}ParseContent::Terminal(\"<array_access>\")",
+                Ok(format!("{}// TODO: Array access [{}] on {}\n{}ParseContent::Terminal(\"<array_access>\"",
                     indent, index_code, base_code, indent))
+            }
+            
+            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+                // Extract specific elements from a quantified group
+                // The base should be a positional reference to a quantified capture
+                if let UnifiedReturnAST::PositionalRef { index } = base.as_ref() {
+                    if *index > 0 && *index <= captured_vars.len() {
+                        let var_ref = &captured_vars[index - 1];
+                        
+                        // Generate code to extract from each repetition
+                        let extraction_idx = match target {
+                            ExtractionTarget::Index(idx) => *idx,
+                            ExtractionTarget::First => 0,
+                            ExtractionTarget::Last => {
+                                // This would need runtime determination
+                                // For now, generate placeholder
+                                return Ok(format!("{}// TODO: Extract last element from quantified group\n{}ParseContent::Terminal(\"<last_extraction>\")",
+                                    indent, indent));
+                            }
+                        };
+                        
+                        // Generate code to extract from a quantified result
+                        // This assumes the quantified result is a Sequence of Sequences
+                        let mut code = String::new();
+                        code.push_str(&format!("{{\n"));
+                        code.push_str(&format!("{}    // Extract element {} from each repetition\n", indent, extraction_idx));
+                        code.push_str(&format!("{}    let extracted = match {} {{\n", indent, var_ref));
+                        code.push_str(&format!("{}        ParseContent::Sequence(items) => {{\n", indent));
+                        code.push_str(&format!("{}            items.iter().filter_map(|item| {{\n", indent));
+                        code.push_str(&format!("{}                match &item.content {{\n", indent));
+                        code.push_str(&format!("{}                    ParseContent::Sequence(subitems) if subitems.len() > {} => {{\n", indent, extraction_idx));
+                        code.push_str(&format!("{}                        Some(subitems[{}].clone())\n", indent, extraction_idx));
+                        code.push_str(&format!("{}                    }}\n", indent));
+                        code.push_str(&format!("{}                    _ => None\n", indent));
+                        code.push_str(&format!("{}                }}\n", indent));
+                        code.push_str(&format!("{}            }}).collect::<Vec<_>>()\n", indent));
+                        code.push_str(&format!("{}        }}\n", indent));
+                        code.push_str(&format!("{}        _ => vec![]\n", indent));
+                        code.push_str(&format!("{}    }};\n", indent));
+                        code.push_str(&format!("{}    ParseContent::Sequence(extracted)\n", indent));
+                        code.push_str(&format!("{}}}", indent));
+                        
+                        Ok(code)
+                    } else {
+                        Err(format!("Invalid positional reference in extraction: ${}", index))
+                    }
+                } else {
+                    Err(format!("Quantified extraction requires a positional reference as base"))
+                }
             }
             
             UnifiedReturnAST::Passthrough => {
@@ -577,5 +746,53 @@ mod tests {
         let ast = UnifiedReturnAST::StringLiteral { value: "test".to_string() };
         let code = ast.generate_code(&captured_vars, "", false).unwrap();
         assert_eq!(code, "ParseContent::Terminal(r#\"test\"#)");
+    }
+    
+    #[test]
+    fn test_parse_extraction_operators() {
+        // Test $2::2
+        let ast = UnifiedReturnAST::parse_bootstrap("$2::2", false).unwrap();
+        match ast {
+            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+                assert!(matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
+                assert_eq!(target, ExtractionTarget::Index(2));
+            }
+            _ => panic!("Expected QuantifiedExtraction"),
+        }
+        
+        // Test $2::first
+        let ast = UnifiedReturnAST::parse_bootstrap("$2::first", false).unwrap();
+        match ast {
+            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+                assert!(matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
+                assert_eq!(target, ExtractionTarget::First);
+            }
+            _ => panic!("Expected QuantifiedExtraction"),
+        }
+        
+        // Test $2::last
+        let ast = UnifiedReturnAST::parse_bootstrap("$2::last", false).unwrap();
+        match ast {
+            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+                assert!(matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
+                assert_eq!(target, ExtractionTarget::Last);
+            }
+            _ => panic!("Expected QuantifiedExtraction"),
+        }
+        
+        // Test $2::1* (extraction with spread)
+        let ast = UnifiedReturnAST::parse_bootstrap("$2::1*", false).unwrap();
+        match ast {
+            UnifiedReturnAST::Spread { base } => {
+                match base.as_ref() {
+                    UnifiedReturnAST::QuantifiedExtraction { base: inner_base, target } => {
+                        assert!(matches!(inner_base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
+                        assert_eq!(*target, ExtractionTarget::Index(1));
+                    }
+                    _ => panic!("Expected QuantifiedExtraction inside Spread"),
+                }
+            }
+            _ => panic!("Expected Spread"),
+        }
     }
 }

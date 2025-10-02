@@ -4,8 +4,10 @@
 //! including semantic annotation parsing and high-performance parser generation.
 
 pub mod ast_pipeline;
-pub mod stress_test_framework;
-pub mod return_parser_stress_test;
+pub mod lexer;
+pub mod test_runner;
+pub mod test_registry;
+pub mod universal_test_runner;
 pub mod semantic_annotation_stress_test;
 pub mod regex_stress_test;
 pub mod individual_tests;

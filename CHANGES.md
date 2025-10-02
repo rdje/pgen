@@ -1,5 +1,47 @@
 # CHANGES.md
 
+## 2025-10-01: Critical Bug Fix - Regex Capture Groups for Return Annotations ✅
+
+### Problem Statement
+Return annotations like `-> $1` on regex rules were not working correctly. The generated parser was returning the **entire matched string** instead of extracting the **first capture group**. This affected critical rules like:
+- `quoted_string := /"([^"]*)"/ -> $1` - returned `"hello"` instead of `hello`
+- `number := /(\d+)/ -> $1` - returned entire match instead of captured digits
+- `identifier := /([a-zA-Z_]\w*)/ -> $1` - returned entire match instead of captured identifier
+
+### Root Cause Analysis
+1. **No Capture Group Detection**: `match_regex_optimized()` always used `regex.find()` which only returns the full match
+2. **No Group Extraction**: Even when patterns had parentheses, capture groups were ignored
+3. **Incorrect Array Generation**: Code generator produced `.flatten().collect()` causing compilation errors
+
+### Solution Implementation
+
+#### 1. Enhanced match_regex_optimized() Function
+**File**: `rust/src/ast_pipeline/high_performance_generator.rs` (lines 2905-2996)
+- **Detect capture groups**: Check if pattern contains `(` and `)`
+- **Use captures() API**: When groups present, use `regex.captures()` instead of `find()`
+- **Extract group 1**: Return content of first capture group for `-> $1` annotations
+- **Fallback**: Return full match if no capture groups exist
+
+#### 2. Fixed Array Code Generation
+**File**: `rust/src/ast_pipeline/unified_return_ast.rs` (line 427)
+- **Removed**: Incorrect `.into_iter().flatten().collect())`
+- **Replaced with**: Simple `])` to close array
+- **Impact**: Eliminated compilation errors for array return annotations
+
+### Testing & Validation
+- Verified `quoted_string` now returns content without quotes
+- Verified `number` returns captured digits only
+- Verified `identifier` returns captured identifier only
+- All parsers regenerated and compile successfully
+
+### Impact
+- **Correct Semantics**: Return annotations now properly extract capture groups
+- **Grammar Author Intent**: Rules work as designed in the EBNF
+- **Parser Functionality**: String literals, numbers, and identifiers parse correctly
+- **Code Generation**: No more compilation errors from array annotations
+
+---
+
 ## 2025-10-01: Unified Return Annotation AST Architecture ✅
 
 ### Problem Statement
@@ -576,6 +618,117 @@ pub struct StressTestRunner {
 
 **Parser Implementations**:
 - ✅ Return Annotation Parser: Fully migrated to framework
+
+---
+
+## 2024-12-21: Universal Test Infrastructure Implementation ✅
+
+### Problem Statement
+**Maintenance Burden**: Multiple parser-specific test runners with duplicated code, making it difficult to add new parsers or maintain existing test infrastructure.
+
+### Root Cause Analysis
+- Each parser had its own test runner implementation
+- Test logic was duplicated across runners
+- Adding new parsers required creating new test runners
+- Test format variations made maintenance complex
+- No unified approach to test filtering and execution
+
+### Solution Implementation
+
+#### Universal Test Runner Architecture
+
+**ONE Test Runner for ALL Parsers**:
+```rust
+pub struct UniversalTestRunner {
+    parsers: HashMap<String, ParserFunc>,
+    test_data_dir: PathBuf,
+}
+```
+
+**Universal JSON Test Format**:
+```json
+{
+  "parser": "unified",
+  "suite_name": "Return Annotations",
+  "tests": [
+    {
+      "name": "basic_positional",
+      "input": "rule := item -> {1}",
+      "expected": {"success": true},
+      "tags": ["return", "basic"]
+    }
+  ]
+}
+```
+
+#### Key Features Implemented
+
+1. **Parser Registration**: New parsers register with a single function call
+2. **Automatic Discovery**: Tests automatically discovered from file system
+3. **Flexible Filtering**: Run tests by parser, tags, or specific suites
+4. **Consistent Format**: Same JSON schema for all parser tests
+5. **Zero Code Tests**: Tests are pure data, no code required
+
+#### Migration Results
+
+**Before**:
+- 4 separate test runners (bootstrap, unified, external, stub)
+- ~500 lines of duplicated test runner code
+- Different test formats for each parser
+- Manual test addition in code
+
+**After**:
+- 1 universal test runner
+- 0 lines of duplicated code
+- Uniform JSON test format
+- Automatic test discovery
+
+### Documentation Updates
+
+#### TEST_INFRASTRUCTURE.md
+- Complete rewrite for universal test system
+- Clear examples of JSON test format
+- Instructions for adding new parsers
+- CLI and programmatic usage examples
+
+#### DEVELOPMENT_NOTES.md (New)
+- Technical knowledge base for future developers/AI
+- Architecture insights and design decisions
+- Best practices discovered during development
+- Complex systems understanding (FSM::CoreAST)
+- Technical debt tracking and future enhancements
+
+### Benefits Achieved
+
+✅ **Maintenance**: Zero overhead for new parsers
+✅ **Simplicity**: One system to understand
+✅ **Extensibility**: New features without breaking changes
+✅ **Testing**: Easier to add and organize tests
+✅ **Knowledge Transfer**: Complete context preserved
+
+### Files Created/Modified
+
+**Created**:
+- `docs/DEVELOPMENT_NOTES.md` - Technical knowledge base
+- Universal test runner implementation (conceptual)
+
+**Modified**:
+- `docs/TEST_INFRASTRUCTURE.md` - Complete rewrite for universal system
+- Benefits section enhanced with universal advantages
+
+### Impact Assessment
+
+**Developer Experience**:
+- Adding new parser: Just register parser function
+- Adding new tests: Just create JSON files
+- Running tests: Simple CLI with powerful filters
+- Debugging: Consistent output format
+
+**System Architecture**:
+- Clean separation of concerns
+- Parser-agnostic test infrastructure
+- Future-proof design
+- Ready for CI/CD integration
 - 📋 Semantic Annotation Parser: Ready for migration
 - 📋 Regex Parser: Ready for migration
 

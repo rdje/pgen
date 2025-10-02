@@ -1,194 +1,216 @@
-# MERGED ULTIMATE RETURN ANNOTATION GRAMMAR
-# Combines recursive nesting from return_annotation.ebnf 
-# with advanced dot notation from ultimate_dot_notation.ebnf
+# Return Annotation Grammar for pgen
+# ==================================
+# Version: 2.0.0
+# This grammar defines the complete syntax for return annotations in pgen.
+# Supports extraction operators, spreading, objects, arrays, and more.
 
-# Main entry point
-return_annotation := /\s*->\s*/ return_expression -> $2
+# Entry point - return annotation with optional arrow
+return_annotation := arrow? expression
+=> $2
 
-# CORE: Recursive return expressions (from return_annotation.ebnf)
-# Enhanced with dot notation support (from ultimate_dot_notation.ebnf)
-# All branches return $1 by default (implicit passthrough)
-return_expression := nested_array
-                  | nested_object
-                  | grouped_quantified_array
-                  | simple_nested_object
-                  | multi_property_object
-                  | quantified_array
-                  | simple_array
-                  | simple_object
-                  | ultimate_dot_notation
-                  | scalar_ref
-                  | literal
+# Arrow operator (optional, may be pre-stripped by parser)
+arrow := '->'
+=> null
 
-# RECURSIVE STRUCTURES (from return_annotation.ebnf - CRITICAL!)
-# Arrays that can contain any return expression (unlimited nesting)
-nested_array := '[' /\s*/ array_contents? /\s*/ ']' quantifier? -> {type: "array", contents: $3}
-array_contents := return_expression (',' /\s*/ return_expression)* -> [$1, $4*]
+# Top-level expression
+expression := spread_expression
+            | extraction_expression
+            | property_access_expression
+            | array_access_expression
+            | primary_expression
+=> $1
 
-# Objects that can contain any return expression (unlimited nesting)  
-nested_object := '{' /\s*/ object_contents? /\s*/ '}' quantifier? -> {type: "object", contents: $3}
-object_contents := object_pair (',' /\s*/ object_pair)* -> [$1, $4*]
-object_pair := object_key /\s*/ ':' /\s*/ return_expression -> {key: $1, value: $5}
+# Primary expressions (base values)
+primary_expression := object_literal
+                    | array_literal
+                    | positional_reference
+                    | string_literal
+                    | number_literal
+                    | boolean_literal
+                    | identifier
+                    | '(' expression ')'
+=> $1
 
-# ULTIMATE DOT NOTATION (from ultimate_dot_notation.ebnf)
-ultimate_dot_notation := scalar_ref dot_path -> {type: "dot_notation", base: $1, path: $2}
+# =====================================
+# EXTRACTION OPERATORS (:: syntax)
+# =====================================
 
-# Dot path - sequence of accessors
-dot_path := accessor+ -> [$1*]
+# Extraction from quantified groups: $2::2, $2::first*, etc.
+extraction_expression := positional_reference '::' extraction_target spread_suffix?
+=> {
+    type: "extraction",
+    base: $1,
+    target: $3,
+    spread: $4
+}
 
-# Comprehensive accessor types
-# Implicit passthrough (-> $1) for all branches
-accessor := property_accessor
-         | positional_accessor
-         | array_accessor
+# Extraction targets
+extraction_target := integer           # Index extraction (0-based)
+                   | 'first'           # First element
+                   | 'last'            # Last element
+=> $1
 
-# Property access: .name, .items, .title
-property_accessor := '.' identifier -> {type: "property", name: $2}
+# =====================================
+# SPREAD OPERATOR
+# =====================================
 
-# Positional access: .1, .2, .3 (1-based for parse tree positions)
-positional_accessor := '.' positive_number -> {type: "position", index: $2}
+# Spread expression: $2*, [$1, $2*]
+spread_expression := spreadable_expression '*'
+=> {type: "spread", base: $1}
 
-# Array access - the ultimate slice & dice system
-array_accessor := '[' array_spec ']' -> {type: "array_access", spec: $2}
+# Expressions that can be spread
+spreadable_expression := extraction_expression
+                       | positional_reference
+                       | property_access_expression
+                       | array_access_expression
+                       | '(' expression ')'
+=> $1
 
-# Array specification - all the slice types
-array_spec := empty_spec -> {type: "whole", style: "implicit"}
-           | star_spec -> {type: "whole", style: "bash"}
-           | colon_spec -> {type: "whole", style: "python"}
-           | single_index
-           | perl_range
-           | python_slice
-           | python_slice_with_step
-           | index_list -> {type: "multi", indices: $1}
-           | mixed_expression -> {type: "mixed", elements: $1}
+# Optional spread suffix for extractions
+spread_suffix := '*'
+=> true
 
-# Empty and special specs
-empty_spec := /(?=\])/ -> "empty"
-star_spec := '*' -> "star"
-colon_spec := ':' -> "colon"
+# =====================================
+# PROPERTY AND ARRAY ACCESS
+# =====================================
 
-# Single index specifications
-single_index := index -> {type: "single", value: $1}
+# Property access: $1.value, $2.name
+property_access_expression := accessor_base '.' identifier
+=> {type: "property_access", base: $1, property: $3}
 
-# Perl5 range specifications  
-perl_range := index '..' index -> {type: "range", start: $1, end: $3}
+# Array/index access: $1[0], $2[3]
+array_access_expression := accessor_base '[' expression ']'
+=> {type: "array_access", base: $1, index: $3}
 
-# Python slice specifications
-python_slice := python_slice_start ':' python_slice_end -> {type: "slice", start: $1, end: $3}
+# Base expressions for property/array access
+accessor_base := positional_reference
+               | property_access_expression
+               | array_access_expression
+               | '(' expression ')'
+=> $1
 
-python_slice_with_step := python_slice_start ':' python_slice_end ':' step -> {type: "slice_step", start: $1, end: $3, step: $5}
+# =====================================
+# LITERALS AND REFERENCES
+# =====================================
 
-python_slice_start := index | empty_slice_part
-python_slice_end := index | empty_slice_part
-step := index
+# Positional reference: $1, $2, $42
+positional_reference := '$' integer
+=> {type: "positional", index: $2}
 
-empty_slice_part := /(?=:)/ -> "empty"
+# String literals with quotes
+string_literal := '"' string_content_double '"'
+                | "'" string_content_single "'"
+=> {type: "string", value: $2}
 
-# Multiple index specifications
-index_list := index (',' /\s*/ index)* -> [$1, $4*]
+# String content (simplified - needs escape handling in real parser)
+string_content_double := /[^"]*/
+=> $1
 
-# Mixed expressions (indices, ranges, slices together)
-mixed_expression := mixed_element (',' /\s*/ mixed_element)* -> [$1, $4*]
+string_content_single := /[^']*/
+=> $1
 
-mixed_element := single_index
-              | perl_range
-              | python_slice
-              | python_slice_with_step
+# Number literals
+number_literal := float | integer
+=> {type: "number", value: $1}
 
-# Index types  
-index := positive_number | negative_number
+# Floating point
+float := /[-+]?[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?/
+=> parseFloat($1)
 
-positive_number := /(\d+)/ -> {type: "pos", value: $1}
-negative_number := '-' positive_number -> {type: "neg", value: $2}
+# Integer
+integer := /[-+]?[0-9]+/
+=> parseInt($1)
 
-# LEGACY PATTERNS (from ultimate_dot_notation.ebnf)
-grouped_quantified_array := '[' /\s*/ grouped_element_list /\s*/ ']' -> {type: "grouped_array", groups: $3}
+# Boolean literals
+boolean_literal := 'true' | 'false'
+=> {type: "boolean", value: $1 === "true"}
 
-grouped_element_list := grouped_element_item (',' /\s*/ grouped_element_item)* -> [$1, $4*]
-                      | grouped_element_item -> [$1]
+# Identifiers for properties
+identifier := /[a-zA-Z_][a-zA-Z0-9_]*/
+=> $1
 
-grouped_element_item := '(' /\s*/ group_content /\s*/ ')' quantifier -> {type: "grouped", content: $3, quantifier: $5}
-                      | element_sequence quantifier -> {type: "quantified", content: $1, quantifier: $2}
+# =====================================
+# OBJECTS
+# =====================================
 
-group_content := element_sequence -> $1
+# Object literal: {}, {key: value}, {a: $1, b: $2}
+object_literal := '{' object_properties? '}'
+=> {type: "object", properties: $2 || []}
 
-element_sequence := element_item (/\s+/ element_item)* -> [$1, $3*]
-                  | element_item -> [$1]
+# Object properties (comma-separated)
+object_properties := object_property (',' object_property)*
+=> [$1, ...$2::1*]
 
-element_item := identifier | literal
+# Single property: key: value
+object_property := property_key ':' expression
+=> {key: $1, value: $3}
 
-# Simple nested object
-simple_nested_object := '{' /\s*/ outer_key /\s*/ ':' /\s*/ inner_object /\s*/ '}' -> {type: "nested", key: $3, value: $7}
+# Property keys
+property_key := identifier | string_literal
+=> $1
 
-inner_object := '{' /\s*/ inner_key /\s*/ ':' /\s*/ inner_value /\s*/ '}' -> {type: "inner", key: $3, value: $7}
+# =====================================
+# ARRAYS
+# =====================================
 
-inner_value := nested_array
-            | nested_object
-            | grouped_quantified_array
-            | quantified_array
-            | simple_array
-            | ultimate_dot_notation
-            | scalar_ref
-            | literal
+# Array literal: [], [$1], [$1, $2*]
+array_literal := '[' array_elements? ']'
+=> {type: "array", elements: $2 || []}
 
-# Multi-property objects
-multi_property_object := two_property_object | three_property_object
+# Array elements (comma-separated)
+array_elements := array_element (',' array_element)*
+=> [$1, ...$2::1*]
 
-two_property_object := '{' /\s*/ property ',' /\s*/ property /\s*/ '}' -> {type: "multi", prop1: $3, prop2: $6}
+# Single array element (may be spread)
+array_element := expression
+=> $1
 
-three_property_object := '{' /\s*/ property ',' /\s*/ property ',' /\s*/ property /\s*/ '}' -> {type: "multi3", prop1: $3, prop2: $6, prop3: $10}
+# =====================================
+# PARENTHESIZED EXPRESSIONS
+# =====================================
 
-property := object_key /\s*/ ':' /\s*/ property_value -> {key: $1, value: $5}
+# Parentheses for grouping: ($1 + $2)
+parenthesized := '(' expression ')'
+=> $2
 
-property_value := nested_array
-               | nested_object
-               | grouped_quantified_array
-               | quantified_array
-               | simple_array
-               | ultimate_dot_notation
-               | scalar_ref
-               | literal
+# =====================================
+# WHITESPACE (handled implicitly)
+# =====================================
+# The parser should automatically handle whitespace between tokens
 
-# Quantified arrays
-quantified_array := '[' /\s*/ quantified_element /\s*/ ']' -> {type: "quant_array", element: $3}
-
-quantified_element := ultimate_dot_notation quantifier -> {scalar: $1, quant: $2}
-                    | scalar_ref quantifier -> {scalar: $1, quant: $2}
-
-# ENHANCED QUANTIFIERS (ultimate_dot_notation.ebnf + missing {,n})
-quantifier := '*' -> "*"
-            | '+' -> "+"
-            | '?' -> "?"
-            | '{' /\s*/ positive_number /\s*/ '}' -> {min: $3, max: $3}
-            | '{' /\s*/ positive_number /\s*/ ',' /\s*/ '}' -> {min: $3, max: "inf"}
-            | '{' /\s*/ positive_number /\s*/ ',' /\s*/ positive_number /\s*/ '}' -> {min: $3, max: $7}
-            | '{' /\s*/ ',' /\s*/ positive_number /\s*/ '}' -> {min: "0", max: $5}
-
-# Simple arrays (enhanced to support recursion)
-simple_array := '[' /\s*/ array_element /\s*/ ']' -> {type: "array", element: $3}
-
-array_element := ultimate_dot_notation
-              | scalar_ref
-              | literal
-              | nested_array
-              | nested_object
-
-# Simple objects (enhanced to support recursion)
-simple_object := '{' /\s*/ object_key /\s*/ ':' /\s*/ object_value /\s*/ '}' -> {type: "object", key: $3, value: $7}
-
-object_key := identifier | quoted_string
-outer_key := identifier | quoted_string
-inner_key := identifier | quoted_string
-
-object_value := ultimate_dot_notation
-             | scalar_ref
-             | literal
-             | nested_array
-             | nested_object
-
-# MERGED BASIC ELEMENTS (best from both)
-literal := quoted_string | number
-scalar_ref := '$' positive_number -> {type: "scalar", index: $2}
-quoted_string := /"([^"]*)"/ -> $1
-number := /(\d+)/ -> $1
-identifier := /([a-zA-Z_]\w*)/ -> $1
+# =====================================
+# EXAMPLES
+# =====================================
+# Simple:
+#   -> $1                     # Positional reference
+#   -> "literal"              # String literal
+#   -> 42                     # Number literal
+#   -> true                   # Boolean literal
+#
+# Arrays:
+#   -> [$1, $2]              # Simple array
+#   -> [$1, $2*]             # Array with spread
+#   -> []                    # Empty array
+#
+# Objects:
+#   -> {type: "node"}        # Simple object
+#   -> {key: $1, val: $2}    # Object with positional refs
+#   -> {}                    # Empty object
+#
+# Extraction (NEW):
+#   -> $2::2                 # Extract index 2 from $2
+#   -> $2::first             # Extract first element
+#   -> $2::last              # Extract last element
+#   -> $2::2*                # Extract and spread
+#   -> [$1, $2::1*]          # In array context
+#
+# Property access:
+#   -> $1.value              # Access property
+#
+# Complex:
+#   -> {
+#        type: "function",
+#        name: $1,
+#        params: [$3, $4::2*],
+#        body: $6
+#      }
