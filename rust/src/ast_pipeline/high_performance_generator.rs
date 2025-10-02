@@ -2555,8 +2555,15 @@ impl<'input> {parser_name}<'input> {{
             
             if branch_idx == 0 {
                 // First branch: if let Some(...)
-                builder.add_line(&format!("{indent}parser.debug_try_alternative(\"{{rule_name}}\", {}, {}, \"{}\");", branch_idx, n_branches, alt_name));
-                builder.add_line(&format!("{indent}if let Some(content) = parser.try_parse(|p| {{"));
+                if n_branches == 1 {
+                    // Single branch: put debug inside closure
+                    builder.add_line(&format!("{indent}if let Some(content) = parser.try_parse(|p| {{"));
+                    builder.add_line(&format!("{indent}    p.debug_try_alternative(\"{{rule_name}}\", {}, {}, \"{}\");", branch_idx, n_branches, alt_name));
+                } else {
+                    // Multiple branches: debug outside for first branch
+                    builder.add_line(&format!("{indent}parser.debug_try_alternative(\"{{rule_name}}\", {}, {}, \"{}\");", branch_idx, n_branches, alt_name));
+                    builder.add_line(&format!("{indent}if let Some(content) = parser.try_parse(|p| {{"));
+                }
             } else {
                 // Subsequent branches: } else if let Some(...)
                 builder.add_line(&format!("{indent}}} else if let Some(content) = parser.try_parse(|p| {{"));

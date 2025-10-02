@@ -1202,7 +1202,7 @@ impl RustASTPipeline {
         self.log_info("extract_annotations", &format!("🔍 Starting annotation extraction for {} rules", raw_ast.len()));
 
         let mut cleaned_ast = RawAST::new();
-        let mut total_annotations_found = 0;
+        let mut _total_annotations_found = 0;
 
         for (rule_index, rule_def) in raw_ast.iter().enumerate() {
             if rule_def.is_empty() {
@@ -1330,7 +1330,7 @@ impl RustASTPipeline {
                 cleaned_ast.push(cleaned_rule);
                 if rule_annotations_found > 0 {
                     self.log_success("extract_annotations", &format!("Rule '{}' completed: {} annotations found", rule_name.as_deref().unwrap_or("unknown"), rule_annotations_found));
-                    total_annotations_found += rule_annotations_found;
+                    _total_annotations_found += rule_annotations_found;
                 }
             } else {
                 self.log_warning("extract_annotations", &format!("Rule at index {} resulted in empty cleaned rule", rule_index));

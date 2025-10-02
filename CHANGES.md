@@ -17,9 +17,22 @@
 - This correctly signals to the parser that these are return annotations, not rule definitions
 
 ### Next Steps
-- The generated parser still has syntax errors due to complex object literal handling in return annotations
-- This appears to be a bug in the high_performance_generator.rs when processing object literals
 - Consider adding support for `=>` as an alternative to `->` for better developer ergonomics
+
+## 2025-10-02 - Fixed Parser Generator Syntax Errors
+
+### Issues Fixed
+1. **Single-branch rule syntax error**: The `debug_try_alternative` call was being placed outside the `try_parse` closure for single-branch rules, causing mismatched delimiters.
+2. **Object literal code generation**: Fixed the `UnifiedReturnAST::generate_code` method for Object type to properly generate block expressions.
+
+### Code Changes
+- **high_performance_generator.rs**: Added conditional logic to place `debug_try_alternative` inside the closure for single-branch rules
+- **unified_return_ast.rs**: Fixed block expression generation for Object return annotations
+
+### Status
+- The parser generator now correctly handles single-branch rules with return annotations
+- Object literals in return annotations are properly generated as block expressions
+- Compilation errors have been resolved
 
 ## 2025-10-02: Complete Test Framework Migration and Parser Fix ✅
 
