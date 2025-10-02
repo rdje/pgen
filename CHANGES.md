@@ -811,6 +811,97 @@ test_data/
 - Universal test runner continues to work without changes
 - Parser determination still via JSON content
 - Directory structure purely organizational
+
+---
+
+## 2024-12-21: Universal Test Runner Rule and Comprehensive Testing ✅
+
+### WARP.md Relocation and Critical Testing Rule
+
+#### Problem Statement
+**Testing Discipline**: Risk of creating throwaway test runners instead of using the universal infrastructure.
+
+#### Solution Implementation
+
+**WARP.md Changes**:
+- Moved from `docs/WARP.md` to project root (standard WARP location)
+- Used `git mv` to preserve file history
+- Added CRITICAL TESTING RULE section
+
+**The Rule**:
+```
+🚫 CRITICAL TESTING RULE: UNIVERSAL TEST RUNNER ONLY
+- NEVER create throwaway test runners
+- ALWAYS use the Universal Test Runner
+- Tests are DATA, not CODE
+```
+
+### Comprehensive Return Annotation Test Suites
+
+#### New Test Files Created
+
+1. **regex_capture_tests.json** (10 tests)
+   - Tests for regex capture group extraction via $1, $2, etc.
+   - Validates the fix for match_regex_optimized()
+   - Tests quoted strings, numbers, identifiers with capture groups
+   - Tags: `regex`, `capture`, `extraction`
+
+2. **advanced_extraction_tests.json** (10 tests)
+   - Tests for double colon extraction operators (::)
+   - Covers $2::0*, $2::1*, $2::last* patterns
+   - Tests extraction with various quantifiers (*, +, ?)
+   - Tags: `extraction`, `index`, `quantifier`
+
+3. **edge_cases_tests.json** (15 tests)
+   - Boundary conditions and error handling
+   - Empty arrays/objects, very large indices ($999)
+   - Unicode strings, escape sequences
+   - Deeply nested structures
+   - Tags: `edge`, `error`, `boundary`
+
+#### Test Organization Summary
+
+**Total Test Files**: 8 comprehensive test suites in `test_data/return_annotation/`
+- return_tests.json (46 tests)
+- basic_positional.json
+- arrays_and_spreading.json
+- objects.json
+- extraction_operators.json
+- regex_capture_tests.json (NEW)
+- advanced_extraction_tests.json (NEW)
+- edge_cases_tests.json (NEW)
+
+### Files Modified
+
+**Moved**:
+- `docs/WARP.md` → `WARP.md` (using git mv)
+
+**Created**:
+- `test_data/return_annotation/regex_capture_tests.json`
+- `test_data/return_annotation/advanced_extraction_tests.json`
+- `test_data/return_annotation/edge_cases_tests.json`
+
+**Updated**:
+- `WARP.md` - Added Universal Test Runner rule
+- `test_data/unified/capture_groups.json` - Fixed parser_type field
+- `src/universal_test_runner.rs` - Fixed type inference
+
+### Impact Assessment
+
+**Testing Discipline**:
+- Clear prohibition on throwaway test scripts
+- All tests must be JSON data files
+- Universal test runner is the single entry point
+
+**Test Coverage**:
+- Comprehensive coverage of return annotation features
+- Specific tests for recent regex capture group fixes
+- Edge cases and error conditions covered
+
+**Developer Experience**:
+- WARP.md in standard location (project root)
+- Critical testing rule prominently displayed
+- No confusion about how to run tests
 - 📋 Semantic Annotation Parser: Ready for migration
 - 📋 Regex Parser: Ready for migration
 

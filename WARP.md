@@ -328,9 +328,74 @@ This format applies to:
 - **Memory Usage**: ~1MB per 1000 grammar rules for raw AST
 - **Build Time**: Complete parser generation typically under 30 seconds
 
+## 🚫 CRITICAL TESTING RULE: UNIVERSAL TEST RUNNER ONLY
+
+### **NEVER CREATE THROWAWAY TEST RUNNERS**
+
+**ABSOLUTE RULE**: The Universal Test Runner is the ONLY way to run tests in this project. CAPICHE!
+
+#### What NOT to do:
+- ❌ **NEVER** create temporary test scripts
+- ❌ **NEVER** write one-off test runners
+- ❌ **NEVER** make custom test harnesses
+- ❌ **NEVER** write ad-hoc validation scripts
+- ❌ **NEVER** create "quick" test programs
+
+#### What TO do:
+- ✅ **ALWAYS** use the Universal Test Runner: `./target/debug/test_runner`
+- ✅ **ALWAYS** create JSON test files in `test_data/<parser>/<feature>.json`
+- ✅ **ALWAYS** follow the format in `docs/TEST_INFRASTRUCTURE.md`
+
+### How to Test ANYTHING in pgen:
+
+1. **Create JSON test file**:
+   ```bash
+   # Place in: test_data/<parser>/<feature>.json
+   # Use format from TEST_INFRASTRUCTURE.md
+   ```
+
+2. **Run with Universal Test Runner**:
+   ```bash
+   # List available tests
+   ./target/debug/test_runner --list
+   
+   # Run all tests for a parser
+   ./target/debug/test_runner --parser return_annotation
+   
+   # Run with specific tags
+   ./target/debug/test_runner --tags regex,capture
+   
+   # Verbose output
+   ./target/debug/test_runner --verbose
+   ```
+
+3. **That's it!** No other steps, no custom code, no throwaway scripts.
+
+### Test Data Organization:
+- **Structure**: `test_data/<parser>/<feature>.json`
+- **Parser dirs match grammars**: `foo.ebnf` → `test_data/foo/`
+- **Tests are DATA, not CODE**: All tests are JSON files
+- **Universal discovery**: Runner finds all tests automatically
+
+### Why This Rule Exists:
+1. **Zero duplication** - ONE test runner for ALL parsers
+2. **Maintainability** - Tests are data files, not code
+3. **Consistency** - Same format everywhere
+4. **Permanence** - All tests version controlled
+5. **Simplicity** - No test code to write or maintain
+
+### The Universal Test Infrastructure:
+- **Runner**: `rust/src/universal_test_runner.rs`
+- **CLI**: `rust/src/bin/test_runner.rs`
+- **Documentation**: `docs/TEST_INFRASTRUCTURE.md`
+- **Test Data**: `rust/test_data/<parser>/<feature>.json`
+
+**REMEMBER**: If you're writing test code, you're doing it WRONG. Write JSON test data instead!
+
 ## Related Documentation
 
 For comprehensive technical details, see:
+- **`docs/TEST_INFRASTRUCTURE.md`** - MANDATORY: Universal test runner documentation
 - **`QUICKSTART_AI_ONBOARDING.md`** - Essential information for immediate productivity
 - **`PROJECT_OVERVIEW.md`** - Complete architecture and data flow pipeline  
 - **`DEVELOPMENT_NOTES.md`** - Technical knowledge base and lessons learned
