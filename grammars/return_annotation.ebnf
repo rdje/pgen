@@ -6,11 +6,11 @@
 
 # Entry point - return annotation with optional arrow
 return_annotation := arrow? expression
-=> $2
+-> $2
 
 # Arrow operator (optional, may be pre-stripped by parser)
 arrow := '->'
-=> null
+-> null
 
 # Top-level expression
 expression := spread_expression
@@ -18,7 +18,7 @@ expression := spread_expression
             | property_access_expression
             | array_access_expression
             | primary_expression
-=> $1
+-> $1
 
 # Primary expressions (base values)
 primary_expression := object_literal
@@ -29,7 +29,7 @@ primary_expression := object_literal
                     | boolean_literal
                     | identifier
                     | '(' expression ')'
-=> $1
+-> $1
 
 # =====================================
 # EXTRACTION OPERATORS (:: syntax)
@@ -37,7 +37,7 @@ primary_expression := object_literal
 
 # Extraction from quantified groups: $2::2, $2::first*, etc.
 extraction_expression := positional_reference '::' extraction_target spread_suffix?
-=> {
+-> {
     type: "extraction",
     base: $1,
     target: $3,
@@ -48,7 +48,7 @@ extraction_expression := positional_reference '::' extraction_target spread_suff
 extraction_target := integer           # Index extraction (0-based)
                    | 'first'           # First element
                    | 'last'            # Last element
-=> $1
+-> $1
 
 # =====================================
 # SPREAD OPERATOR
@@ -56,7 +56,7 @@ extraction_target := integer           # Index extraction (0-based)
 
 # Spread expression: $2*, [$1, $2*]
 spread_expression := spreadable_expression '*'
-=> {type: "spread", base: $1}
+-> {type: "spread", base: $1}
 
 # Expressions that can be spread
 spreadable_expression := extraction_expression
@@ -64,11 +64,11 @@ spreadable_expression := extraction_expression
                        | property_access_expression
                        | array_access_expression
                        | '(' expression ')'
-=> $1
+-> $1
 
 # Optional spread suffix for extractions
 spread_suffix := '*'
-=> true
+-> true
 
 # =====================================
 # PROPERTY AND ARRAY ACCESS
@@ -76,18 +76,18 @@ spread_suffix := '*'
 
 # Property access: $1.value, $2.name
 property_access_expression := accessor_base '.' identifier
-=> {type: "property_access", base: $1, property: $3}
+-> {type: "property_access", base: $1, property: $3}
 
 # Array/index access: $1[0], $2[3]
 array_access_expression := accessor_base '[' expression ']'
-=> {type: "array_access", base: $1, index: $3}
+-> {type: "array_access", base: $1, index: $3}
 
 # Base expressions for property/array access
 accessor_base := positional_reference
                | property_access_expression
                | array_access_expression
                | '(' expression ')'
-=> $1
+-> $1
 
 # =====================================
 # LITERALS AND REFERENCES
@@ -95,39 +95,39 @@ accessor_base := positional_reference
 
 # Positional reference: $1, $2, $42
 positional_reference := '$' integer
-=> {type: "positional", index: $2}
+-> {type: "positional", index: $2}
 
 # String literals with quotes
 string_literal := '"' string_content_double '"'
                 | "'" string_content_single "'"
-=> {type: "string", value: $2}
+-> {type: "string", value: $2}
 
 # String content (simplified - needs escape handling in real parser)
 string_content_double := /[^"]*/
-=> $1
+-> $1
 
 string_content_single := /[^']*/
-=> $1
+-> $1
 
 # Number literals
 number_literal := float | integer
-=> {type: "number", value: $1}
+-> {type: "number", value: $1}
 
 # Floating point
 float := /[-+]?[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?/
-=> parseFloat($1)
+-> parseFloat($1)
 
 # Integer
 integer := /[-+]?[0-9]+/
-=> parseInt($1)
+-> parseInt($1)
 
 # Boolean literals
 boolean_literal := 'true' | 'false'
-=> {type: "boolean", value: $1 === "true"}
+-> {type: "boolean", value: $1 === "true"}
 
 # Identifiers for properties
 identifier := /[a-zA-Z_][a-zA-Z0-9_]*/
-=> $1
+-> $1
 
 # =====================================
 # OBJECTS
@@ -135,19 +135,19 @@ identifier := /[a-zA-Z_][a-zA-Z0-9_]*/
 
 # Object literal: {}, {key: value}, {a: $1, b: $2}
 object_literal := '{' object_properties? '}'
-=> {type: "object", properties: $2 || []}
+-> {type: "object", properties: $2 || []}
 
 # Object properties (comma-separated)
 object_properties := object_property (',' object_property)*
-=> [$1, ...$2::1*]
+-> [$1, ...$2::1*]
 
 # Single property: key: value
 object_property := property_key ':' expression
-=> {key: $1, value: $3}
+-> {key: $1, value: $3}
 
 # Property keys
 property_key := identifier | string_literal
-=> $1
+-> $1
 
 # =====================================
 # ARRAYS
@@ -155,15 +155,15 @@ property_key := identifier | string_literal
 
 # Array literal: [], [$1], [$1, $2*]
 array_literal := '[' array_elements? ']'
-=> {type: "array", elements: $2 || []}
+-> {type: "array", elements: $2 || []}
 
 # Array elements (comma-separated)
 array_elements := array_element (',' array_element)*
-=> [$1, ...$2::1*]
+-> [$1, ...$2::1*]
 
 # Single array element (may be spread)
 array_element := expression
-=> $1
+-> $1
 
 # =====================================
 # PARENTHESIZED EXPRESSIONS
@@ -171,7 +171,7 @@ array_element := expression
 
 # Parentheses for grouping: ($1 + $2)
 parenthesized := '(' expression ')'
-=> $2
+-> $2
 
 # =====================================
 # WHITESPACE (handled implicitly)

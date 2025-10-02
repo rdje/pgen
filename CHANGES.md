@@ -1,5 +1,26 @@
 # CHANGES.md
 
+## 2025-10-02 - Fixed return_annotation.ebnf Syntax Error
+
+### Issue Identified
+- The return_annotation.ebnf file was using `=>` instead of `->` for return annotations
+- This caused the EBNF parser to misinterpret the syntax as rule definitions
+- Object literal keys like `type`, `base`, `index` were being treated as rule references
+- This led to compilation errors with undefined methods like `parse_type()`, `parse_base()`, etc.
+
+### Root Cause
+- Incorrect syntax used during refactoring: `=>` should be reserved for future use (possibly as an alternative syntax)
+- The EBNF parser correctly identified `=>` as a potential rule separator, not a return annotation marker
+
+### Fix Applied
+- Changed all return annotations from `=>` to `->` in return_annotation.ebnf
+- This correctly signals to the parser that these are return annotations, not rule definitions
+
+### Next Steps
+- The generated parser still has syntax errors due to complex object literal handling in return annotations
+- This appears to be a bug in the high_performance_generator.rs when processing object literals
+- Consider adding support for `=>` as an alternative to `->` for better developer ergonomics
+
 ## 2025-10-02: Complete Test Framework Migration and Parser Fix ✅
 
 ### Problem Statement
