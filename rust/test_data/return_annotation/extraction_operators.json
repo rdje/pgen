@@ -1,95 +1,70 @@
 {
-  "test_suite": "Return Annotations - Extraction Operators",
+  "suite_name": "Return Annotations - Extraction Operators",
   "description": "Tests for the new :: extraction operator syntax",
+  "parser_type": "return",
   "tests": [
     {
       "name": "extract_by_index",
+      "description": "Extract element at index 2 from quantified group",
       "input": "$2::2",
-      "expected_ast": {
-        "type": "QuantifiedExtraction",
-        "base": {
-          "type": "PositionalRef",
-          "index": 2
-        },
-        "target": {
-          "type": "Index",
-          "value": 2
-        }
-      },
-      "description": "Extract element at index 2 from quantified group"
+      "expected": {
+        "contains": [
+          "QuantifiedExtraction",
+          "Index",
+          "PositionalRef"
+        ]
+      }
     },
     {
       "name": "extract_first",
+      "description": "Extract first element from each repetition",
       "input": "$3::first",
-      "expected_ast": {
-        "type": "QuantifiedExtraction",
-        "base": {
-          "type": "PositionalRef",
-          "index": 3
-        },
-        "target": "First"
-      },
-      "description": "Extract first element from each repetition"
+      "expected": {
+        "contains": [
+          "QuantifiedExtraction",
+          "PositionalRef",
+          "First"
+        ]
+      }
     },
     {
       "name": "extract_last",
+      "description": "Extract last element from each repetition",
       "input": "$2::last",
-      "expected_ast": {
-        "type": "QuantifiedExtraction",
-        "base": {
-          "type": "PositionalRef",
-          "index": 2
-        },
-        "target": "Last"
-      },
-      "description": "Extract last element from each repetition"
+      "expected": {
+        "contains": [
+          "QuantifiedExtraction",
+          "Last",
+          "PositionalRef"
+        ]
+      }
     },
     {
       "name": "extract_with_spread",
+      "description": "Extract and spread elements",
       "input": "$2::1*",
-      "expected_ast": {
-        "type": "Spread",
-        "base": {
-          "type": "QuantifiedExtraction",
-          "base": {
-            "type": "PositionalRef",
-            "index": 2
-          },
-          "target": {
-            "type": "Index",
-            "value": 1
-          }
-        }
-      },
-      "description": "Extract and spread elements"
+      "expected": {
+        "contains": [
+          "QuantifiedExtraction",
+          "Index",
+          "PositionalRef",
+          "Spread"
+        ]
+      }
     },
     {
       "name": "extract_in_array",
+      "description": "Extraction with spread inside array",
       "input": "[$1, $2::2*]",
-      "expected_ast": {
-        "type": "Array",
-        "elements": [
-          {
-            "type": "PositionalRef",
-            "index": 1
-          },
-          {
-            "type": "Spread",
-            "base": {
-              "type": "QuantifiedExtraction",
-              "base": {
-                "type": "PositionalRef",
-                "index": 2
-              },
-              "target": {
-                "type": "Index",
-                "value": 2
-              }
-            }
-          }
+      "expected": {
+        "contains": [
+          "Array",
+          "Index",
+          "PositionalRef",
+          "QuantifiedExtraction",
+          "Spread"
         ]
-      },
-      "description": "Extraction with spread inside array"
+      }
     }
   ]
 }

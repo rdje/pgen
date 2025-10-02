@@ -370,3 +370,7 @@ Desktop.ini
 !sync_tests.rs
 !test_automation_demo.rs
 !Makefile.auto-sync
+
+# Test runner logs
+test_runner_*.log
+universal_test_runner_*.log

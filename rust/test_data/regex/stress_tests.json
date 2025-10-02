@@ -1,0 +1,407 @@
+{
+  "suite_name": "Regex Parser - Comprehensive Stress Tests",
+  "description": "Complete stress test suite for regex parser migrated from regex_stress_test.rs",
+  "parser_type": "regex",
+  "parser_config": {
+    "debug_mode": false,
+    "entry_rule": "regex"
+  },
+  "tests": [
+    {
+      "name": "simple_char_a",
+      "description": "Single character 'a'",
+      "input": "a",
+      "expected": {
+        "contains": ["regex", "a"]
+      },
+      "tags": ["stress", "basic", "single-char"]
+    },
+    {
+      "name": "simple_string_ab",
+      "description": "Simple string 'ab'",
+      "input": "ab",
+      "expected": {
+        "contains": ["regex"]
+      },
+      "tags": ["stress", "basic", "string"]
+    },
+    {
+      "name": "simple_string_abc",
+      "description": "Simple string 'abc'",
+      "input": "abc",
+      "expected": {
+        "contains": ["regex"]
+      },
+      "tags": ["stress", "basic", "string"]
+    },
+    {
+      "name": "word_hello",
+      "description": "Word 'hello'",
+      "input": "hello",
+      "expected": {
+        "contains": ["regex"]
+      },
+      "tags": ["stress", "basic", "word"]
+    },
+    {
+      "name": "word_world",
+      "description": "Word 'world'",
+      "input": "world",
+      "expected": {
+        "contains": ["regex"]
+      },
+      "tags": ["stress", "basic", "word"]
+    },
+    {
+      "name": "char_class_abc",
+      "description": "Character class [abc]",
+      "input": "[abc]",
+      "expected": {
+        "contains": ["character_class"]
+      },
+      "tags": ["stress", "char-class", "simple"]
+    },
+    {
+      "name": "char_class_range_az",
+      "description": "Character class range [a-z]",
+      "input": "[a-z]",
+      "expected": {
+        "contains": ["character_class", "range"]
+      },
+      "tags": ["stress", "char-class", "range"]
+    },
+    {
+      "name": "char_class_range_AZ",
+      "description": "Character class range [A-Z]",
+      "input": "[A-Z]",
+      "expected": {
+        "contains": ["character_class", "range"]
+      },
+      "tags": ["stress", "char-class", "range"]
+    },
+    {
+      "name": "char_class_range_09",
+      "description": "Character class range [0-9]",
+      "input": "[0-9]",
+      "expected": {
+        "contains": ["character_class", "range"]
+      },
+      "tags": ["stress", "char-class", "digits"]
+    },
+    {
+      "name": "char_class_multi_range",
+      "description": "Character class with multiple ranges [a-zA-Z]",
+      "input": "[a-zA-Z]",
+      "expected": {
+        "contains": ["character_class"]
+      },
+      "tags": ["stress", "char-class", "multi-range"]
+    },
+    {
+      "name": "char_class_alphanumeric",
+      "description": "Alphanumeric character class [a-zA-Z0-9]",
+      "input": "[a-zA-Z0-9]",
+      "expected": {
+        "contains": ["character_class"]
+      },
+      "tags": ["stress", "char-class", "alphanumeric"]
+    },
+    {
+      "name": "quantifier_star",
+      "description": "Zero or more quantifier a*",
+      "input": "a*",
+      "expected": {
+        "contains": ["quantifier", "*"]
+      },
+      "tags": ["stress", "quantifier", "star"]
+    },
+    {
+      "name": "quantifier_plus",
+      "description": "One or more quantifier a+",
+      "input": "a+",
+      "expected": {
+        "contains": ["quantifier", "+"]
+      },
+      "tags": ["stress", "quantifier", "plus"]
+    },
+    {
+      "name": "quantifier_question",
+      "description": "Optional quantifier a?",
+      "input": "a?",
+      "expected": {
+        "contains": ["quantifier", "?"]
+      },
+      "tags": ["stress", "quantifier", "optional"]
+    },
+    {
+      "name": "quantifier_exact",
+      "description": "Exact quantifier a{3}",
+      "input": "a{3}",
+      "expected": {
+        "contains": ["quantifier", "3"]
+      },
+      "tags": ["stress", "quantifier", "exact"]
+    },
+    {
+      "name": "quantifier_range",
+      "description": "Range quantifier a{2,4}",
+      "input": "a{2,4}",
+      "expected": {
+        "contains": ["quantifier", "2", "4"]
+      },
+      "tags": ["stress", "quantifier", "range"]
+    },
+    {
+      "name": "quantifier_min",
+      "description": "Minimum quantifier a{2,}",
+      "input": "a{2,}",
+      "expected": {
+        "contains": ["quantifier", "2"]
+      },
+      "tags": ["stress", "quantifier", "minimum"]
+    },
+    {
+      "name": "anchor_start",
+      "description": "Start anchor ^abc",
+      "input": "^abc",
+      "expected": {
+        "contains": ["anchor", "^"]
+      },
+      "tags": ["stress", "anchor", "start"]
+    },
+    {
+      "name": "anchor_end",
+      "description": "End anchor abc$",
+      "input": "abc$",
+      "expected": {
+        "contains": ["anchor", "$"]
+      },
+      "tags": ["stress", "anchor", "end"]
+    },
+    {
+      "name": "anchor_both",
+      "description": "Start and end anchors ^abc$",
+      "input": "^abc$",
+      "expected": {
+        "contains": ["anchor"]
+      },
+      "tags": ["stress", "anchor", "both"]
+    },
+    {
+      "name": "word_boundary",
+      "description": "Word boundary \\bword\\b",
+      "input": "\\bword\\b",
+      "expected": {
+        "contains": ["boundary"]
+      },
+      "tags": ["stress", "anchor", "word-boundary"]
+    },
+    {
+      "name": "escape_digit",
+      "description": "Digit escape \\d",
+      "input": "\\d",
+      "expected": {
+        "contains": ["escape", "d"]
+      },
+      "tags": ["stress", "escape", "digit"]
+    },
+    {
+      "name": "escape_word",
+      "description": "Word character escape \\w",
+      "input": "\\w",
+      "expected": {
+        "contains": ["escape", "w"]
+      },
+      "tags": ["stress", "escape", "word"]
+    },
+    {
+      "name": "escape_space",
+      "description": "Space escape \\s",
+      "input": "\\s",
+      "expected": {
+        "contains": ["escape", "s"]
+      },
+      "tags": ["stress", "escape", "space"]
+    },
+    {
+      "name": "escape_non_digit",
+      "description": "Non-digit escape \\D",
+      "input": "\\D",
+      "expected": {
+        "contains": ["escape", "D"]
+      },
+      "tags": ["stress", "escape", "non-digit"]
+    },
+    {
+      "name": "escape_dot",
+      "description": "Escaped dot \\.",
+      "input": "\\.",
+      "expected": {
+        "contains": ["escape", "."]
+      },
+      "tags": ["stress", "escape", "literal"]
+    },
+    {
+      "name": "escape_star",
+      "description": "Escaped star \\*",
+      "input": "\\*",
+      "expected": {
+        "contains": ["escape", "*"]
+      },
+      "tags": ["stress", "escape", "literal"]
+    },
+    {
+      "name": "escape_backslash",
+      "description": "Escaped backslash \\\\",
+      "input": "\\\\",
+      "expected": {
+        "contains": ["escape", "\\"]
+      },
+      "tags": ["stress", "escape", "backslash"]
+    },
+    {
+      "name": "group_simple",
+      "description": "Simple group (abc)",
+      "input": "(abc)",
+      "expected": {
+        "contains": ["group"]
+      },
+      "tags": ["stress", "group", "simple"]
+    },
+    {
+      "name": "group_alternation",
+      "description": "Alternation (a|b)",
+      "input": "(a|b)",
+      "expected": {
+        "contains": ["group", "alternation"]
+      },
+      "tags": ["stress", "group", "alternation"]
+    },
+    {
+      "name": "group_alternation_multi",
+      "description": "Multiple alternation (a|b|c)",
+      "input": "(a|b|c)",
+      "expected": {
+        "contains": ["group", "alternation"]
+      },
+      "tags": ["stress", "group", "alternation"]
+    },
+    {
+      "name": "group_quantified",
+      "description": "Quantified group (abc)*",
+      "input": "(abc)*",
+      "expected": {
+        "contains": ["group", "quantifier"]
+      },
+      "tags": ["stress", "group", "quantified"]
+    },
+    {
+      "name": "email_pattern",
+      "description": "Email-like pattern",
+      "input": "[a-z]+@[a-z]+\\.[a-z]{2,4}",
+      "expected": {
+        "contains": ["character_class", "@", "."]
+      },
+      "tags": ["stress", "complex", "email"]
+    },
+    {
+      "name": "ip_pattern",
+      "description": "IP address pattern",
+      "input": "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}",
+      "expected": {
+        "contains": ["escape", "quantifier", "."]
+      },
+      "tags": ["stress", "complex", "ip"]
+    },
+    {
+      "name": "empty_regex",
+      "description": "Empty regex",
+      "input": "",
+      "expected": {
+        "contains": ["regex"]
+      },
+      "tags": ["stress", "edge", "empty"]
+    },
+    {
+      "name": "dot_any",
+      "description": "Any character .",
+      "input": ".",
+      "expected": {
+        "contains": ["any"]
+      },
+      "tags": ["stress", "special", "dot"]
+    },
+    {
+      "name": "dot_star",
+      "description": "Any character zero or more .*",
+      "input": ".*",
+      "expected": {
+        "contains": ["any", "quantifier"]
+      },
+      "tags": ["stress", "special", "dot-star"]
+    },
+    {
+      "name": "dot_plus",
+      "description": "Any character one or more .+",
+      "input": ".+",
+      "expected": {
+        "contains": ["any", "quantifier"]
+      },
+      "tags": ["stress", "special", "dot-plus"]
+    },
+    {
+      "name": "negated_class",
+      "description": "Negated character class [^abc]",
+      "input": "[^abc]",
+      "expected": {
+        "contains": ["character_class", "negated"]
+      },
+      "tags": ["stress", "char-class", "negated"]
+    },
+    {
+      "name": "nested_groups",
+      "description": "Nested groups ((a|b)+c)*",
+      "input": "((a|b)+c)*",
+      "expected": {
+        "contains": ["group", "nested"]
+      },
+      "tags": ["stress", "complex", "nested"]
+    },
+    {
+      "name": "phone_pattern",
+      "description": "Phone number pattern",
+      "input": "^\\+?[1-9]\\d{1,14}$",
+      "expected": {
+        "contains": ["anchor", "character_class", "quantifier"]
+      },
+      "tags": ["stress", "complex", "phone"]
+    },
+    {
+      "name": "url_pattern",
+      "description": "URL pattern",
+      "input": "^https?://[^\\s/$.?#].[^\\s]*$",
+      "expected": {
+        "contains": ["anchor", "character_class"]
+      },
+      "tags": ["stress", "complex", "url"]
+    },
+    {
+      "name": "date_pattern",
+      "description": "Date pattern YYYY-MM-DD",
+      "input": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "expected": {
+        "contains": ["anchor", "character_class", "quantifier"]
+      },
+      "tags": ["stress", "complex", "date"]
+    },
+    {
+      "name": "uuid_pattern",
+      "description": "UUID pattern",
+      "input": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "expected": {
+        "contains": ["anchor", "character_class", "quantifier"]
+      },
+      "tags": ["stress", "complex", "uuid"]
+    }
+  ]
+}

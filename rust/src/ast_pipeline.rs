@@ -32,7 +32,7 @@ use high_performance_generator::HighPerformanceRustGenerator;
 mod mutual_recursion_handler;
 mod return_annotation_handler;
 use return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
-mod unified_return_ast;
+pub mod unified_return_ast;
 use unified_return_ast::UnifiedReturnAST;
 
 /// Configuration for AST transformation pipeline

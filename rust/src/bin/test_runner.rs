@@ -46,6 +46,13 @@ fn main() {
                 .help("List available test suites without running")
                 .action(clap::ArgAction::SetTrue)
         )
+        .arg(
+            Arg::new("dashboard")
+                .short('d')
+                .long("dashboard")
+                .help("Show comprehensive dashboard output (like stress tests)")
+                .action(clap::ArgAction::SetTrue)
+        )
         .get_matches();
 
     let verbose = matches.get_flag("verbose");
@@ -74,13 +81,14 @@ fn main() {
             Ok(suites) => {
                 println!("📋 Available Test Suites:");
                 println!("{}", "=".repeat(60));
+                let suite_count = suites.len();
                 for suite in suites {
                     println!("• {} ({})", suite.suite_name, suite.parser_type);
                     println!("  {}", suite.description);
                     println!("  Tests: {}", suite.tests.len());
                 }
                 println!("{}", "=".repeat(60));
-                println!("Total: {} suites", suites.len());
+                println!("Total: {} suites", suite_count);
             }
             Err(e) => {
                 eprintln!("Error discovering test suites: {}", e);
@@ -101,9 +109,19 @@ fn main() {
         println!("Tag filter: {}", tags);
     }
     
+    let show_dashboard = matches.get_flag("dashboard");
+    
     match runner.run_all_tests() {
         Ok(report) => {
-            report.print_summary();
+            if show_dashboard {
+                // Get parser name from filter or use "All Parsers"
+                let parser_name = matches.get_one::<String>("parser")
+                    .map(|s| s.as_str())
+                    .unwrap_or("All Parsers");
+                report.print_dashboard(parser_name);
+            } else {
+                report.print_summary();
+            }
             
             if report.failed > 0 {
                 exit(1);

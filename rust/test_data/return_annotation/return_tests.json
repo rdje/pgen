@@ -1,283 +1,471 @@
 {
-  "parser_type": "return_annotation",
-  "basic_tests": [
+  "suite_name": "return_annotation",
+  "description": "Converted test suite",
+  "parser_type": "return",
+  "tests": [
     {
-      "input": "-> $1",
+      "name": "basic_scalar_reference_$1",
       "description": "Basic scalar reference $1",
-      "category": "scalar_reference",
-      "expected": "success"
+      "input": "-> $1",
+      "expected": {},
+      "tags": [
+        "scalar_reference",
+        "basic"
+      ]
     },
     {
-      "input": "-> $2",
+      "name": "basic_scalar_reference_$2",
       "description": "Basic scalar reference $2",
-      "category": "scalar_reference",
-      "expected": "success"
+      "input": "-> $2",
+      "expected": {},
+      "tags": [
+        "scalar_reference",
+        "basic"
+      ]
     },
     {
-      "input": "-> $10",
+      "name": "multi-digit_scalar_reference",
       "description": "Multi-digit scalar reference",
-      "category": "scalar_reference",
-      "expected": "success"
+      "input": "-> $10",
+      "expected": {},
+      "tags": [
+        "scalar_reference",
+        "basic"
+      ]
     },
     {
-      "input": "-> $99",
+      "name": "large_scalar_reference",
       "description": "Large scalar reference",
-      "category": "scalar_reference",
-      "expected": "success"
+      "input": "-> $99",
+      "expected": {},
+      "tags": [
+        "scalar_reference",
+        "basic"
+      ]
     },
     {
-      "input": "-> \"hello\"",
+      "name": "string_literal",
       "description": "String literal",
-      "category": "literal",
-      "expected": "success"
+      "input": "-> \"hello\"",
+      "expected": {},
+      "tags": [
+        "literal",
+        "basic"
+      ]
     },
     {
-      "input": "-> \"test string\"",
+      "name": "string_literal_with_space",
       "description": "String literal with space",
-      "category": "literal",
-      "expected": "success"
+      "input": "-> \"test string\"",
+      "expected": {},
+      "tags": [
+        "literal",
+        "basic"
+      ]
     },
     {
-      "input": "-> 42",
+      "name": "integer_literal",
       "description": "Integer literal",
-      "category": "literal",
-      "expected": "success"
+      "input": "-> 42",
+      "expected": {},
+      "tags": [
+        "literal",
+        "basic"
+      ]
     },
     {
-      "input": "-> 123",
+      "name": "multi-digit_integer_literal",
       "description": "Multi-digit integer literal",
-      "category": "literal",
-      "expected": "success"
+      "input": "-> 123",
+      "expected": {},
+      "tags": [
+        "literal",
+        "basic"
+      ]
     },
     {
+      "name": "bare_identifier_-_should_fail",
+      "description": "Bare identifier - should fail",
       "input": "-> true",
-      "description": "Bare identifier - should fail",
-      "category": "identifier",
-      "expected": "failure"
+      "expected": {
+        "error": "Expected failure"
+      },
+      "tags": [
+        "identifier",
+        "basic"
+      ]
     },
     {
+      "name": "bare_identifier_-_should_fail",
+      "description": "Bare identifier - should fail",
       "input": "-> false",
-      "description": "Bare identifier - should fail",
-      "category": "identifier",
-      "expected": "failure"
+      "expected": {
+        "error": "Expected failure"
+      },
+      "tags": [
+        "identifier",
+        "basic"
+      ]
     },
     {
+      "name": "single_element_array_with_scal",
+      "description": "Single element array with scalar reference",
       "input": "-> [$1]",
-      "description": "Single element array with scalar reference",
-      "category": "array",
-      "expected": "success"
+      "expected": {},
+      "tags": [
+        "array",
+        "basic"
+      ]
     },
     {
+      "name": "single_element_array_with_scal",
+      "description": "Single element array with scalar reference",
       "input": "-> [$2]",
-      "description": "Single element array with scalar reference",
-      "category": "array",
-      "expected": "success"
+      "expected": {},
+      "tags": [
+        "array",
+        "basic"
+      ]
     },
     {
-      "input": "-> []",
+      "name": "empty_array",
       "description": "Empty array",
-      "category": "array",
-      "expected": "success"
+      "input": "-> []",
+      "expected": {},
+      "tags": [
+        "array",
+        "basic"
+      ]
     },
     {
-      "input": "-> {}",
+      "name": "empty_object",
       "description": "Empty object",
-      "category": "object",
-      "expected": "success"
-    }
-  ],
-  "complex_tests": [
+      "input": "-> {}",
+      "expected": {},
+      "tags": [
+        "object",
+        "basic"
+      ]
+    },
     {
-      "input": "-> [$1, $2]",
+      "name": "multi-element_array_with_scala",
       "description": "Multi-element array with scalar references",
-      "category": "array",
-      "expected": "success"
+      "input": "-> [$1, $2]",
+      "expected": {},
+      "tags": [
+        "array",
+        "complex"
+      ]
     },
     {
-      "input": "-> [\"item1\", \"item2\"]",
+      "name": "string_array",
       "description": "String array",
-      "category": "array",
-      "expected": "success"
+      "input": "-> [\"item1\", \"item2\"]",
+      "expected": {},
+      "tags": [
+        "array",
+        "complex"
+      ]
     },
     {
-      "input": "-> [42, 100]",
+      "name": "integer_array",
       "description": "Integer array",
-      "category": "array",
-      "expected": "success"
+      "input": "-> [42, 100]",
+      "expected": {},
+      "tags": [
+        "array",
+        "complex"
+      ]
     },
     {
-      "input": "-> {key: $1}",
+      "name": "single_property_object",
       "description": "Single property object",
-      "category": "object",
-      "expected": "success"
+      "input": "-> {key: $1}",
+      "expected": {},
+      "tags": [
+        "object",
+        "complex"
+      ]
     },
     {
-      "input": "-> {name: $1}",
+      "name": "single_property_object_with_na",
       "description": "Single property object with name key",
-      "category": "object",
-      "expected": "success"
+      "input": "-> {name: $1}",
+      "expected": {},
+      "tags": [
+        "object",
+        "complex"
+      ]
     },
     {
-      "input": "-> {value: $2}",
+      "name": "single_property_object_with_va",
       "description": "Single property object with value key",
-      "category": "object",
-      "expected": "success"
+      "input": "-> {value: $2}",
+      "expected": {},
+      "tags": [
+        "object",
+        "complex"
+      ]
     },
     {
-      "input": "-> {name: $1, value: $2}",
+      "name": "multi-property_object",
       "description": "Multi-property object",
-      "category": "object",
-      "expected": "success"
+      "input": "-> {name: $1, value: $2}",
+      "expected": {},
+      "tags": [
+        "object",
+        "complex"
+      ]
     },
     {
-      "input": "-> {id: 42, name: \"test\"}",
+      "name": "mixed_type_object",
       "description": "Mixed type object",
-      "category": "object",
-      "expected": "success"
+      "input": "-> {id: 42, name: \"test\"}",
+      "expected": {},
+      "tags": [
+        "object",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1.value",
+      "name": "dot_notation_access",
       "description": "Dot notation access",
-      "category": "accessor",
-      "expected": "success"
+      "input": "-> $1.value",
+      "expected": {},
+      "tags": [
+        "accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1.name",
+      "name": "dot_notation_access_to_name_pr",
       "description": "Dot notation access to name property",
-      "category": "accessor",
-      "expected": "success"
+      "input": "-> $1.name",
+      "expected": {},
+      "tags": [
+        "accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1.data",
+      "name": "dot_notation_access_to_data_pr",
       "description": "Dot notation access to data property",
-      "category": "accessor",
-      "expected": "success"
+      "input": "-> $1.data",
+      "expected": {},
+      "tags": [
+        "accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[0]",
+      "name": "array_indexing_at_position_0",
       "description": "Array indexing at position 0",
-      "category": "accessor",
-      "expected": "success"
+      "input": "-> $1[0]",
+      "expected": {},
+      "tags": [
+        "accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[1]",
+      "name": "array_indexing_at_position_1",
       "description": "Array indexing at position 1",
-      "category": "accessor",
-      "expected": "success"
+      "input": "-> $1[1]",
+      "expected": {},
+      "tags": [
+        "accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $2[0]",
+      "name": "array_indexing_on_second_refer",
       "description": "Array indexing on second reference",
-      "category": "accessor",
-      "expected": "success"
+      "input": "-> $2[0]",
+      "expected": {},
+      "tags": [
+        "accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[*]",
+      "name": "bash-style_whole_array_access",
       "description": "Bash-style whole array access",
-      "category": "advanced_accessor",
-      "expected": "success"
+      "input": "-> $1[*]",
+      "expected": {},
+      "tags": [
+        "advanced_accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[:]",
+      "name": "python-style_whole_array_slice",
       "description": "Python-style whole array slice",
-      "category": "advanced_accessor",
-      "expected": "success"
+      "input": "-> $1[:]",
+      "expected": {},
+      "tags": [
+        "advanced_accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[0..2]",
+      "name": "perl-style_range",
       "description": "Perl-style range",
-      "category": "advanced_accessor",
-      "expected": "success"
+      "input": "-> $1[0..2]",
+      "expected": {},
+      "tags": [
+        "advanced_accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[1:4]",
+      "name": "python-style_slice",
       "description": "Python-style slice",
-      "category": "advanced_accessor",
-      "expected": "success"
+      "input": "-> $1[1:4]",
+      "expected": {},
+      "tags": [
+        "advanced_accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[1:10:2]",
+      "name": "python-style_slice_with_step",
       "description": "Python-style slice with step",
-      "category": "advanced_accessor",
-      "expected": "success"
+      "input": "-> $1[1:10:2]",
+      "expected": {},
+      "tags": [
+        "advanced_accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> [[$1, $2], [$3, $4]]",
+      "name": "nested_arrays",
       "description": "Nested arrays",
-      "category": "nested_structures",
-      "expected": "success"
+      "input": "-> [[$1, $2], [$3, $4]]",
+      "expected": {},
+      "tags": [
+        "nested_structures",
+        "complex"
+      ]
     },
     {
-      "input": "-> {outer: {inner: $1}}",
+      "name": "nested_objects",
       "description": "Nested objects",
-      "category": "nested_structures",
-      "expected": "success"
+      "input": "-> {outer: {inner: $1}}",
+      "expected": {},
+      "tags": [
+        "nested_structures",
+        "complex"
+      ]
     },
     {
-      "input": "-> [$1*]",
+      "name": "quantified_array_element",
       "description": "Quantified array element",
-      "category": "quantified",
-      "expected": "success"
+      "input": "-> [$1*]",
+      "expected": {},
+      "tags": [
+        "quantified",
+        "complex"
+      ]
     },
     {
-      "input": "-> {key: $1}*",
+      "name": "quantified_object",
       "description": "Quantified object",
-      "category": "quantified",
-      "expected": "success"
+      "input": "-> {key: $1}*",
+      "expected": {},
+      "tags": [
+        "quantified",
+        "complex"
+      ]
     },
     {
-      "input": "-> [(element1 element2)*]",
+      "name": "grouped_quantified_array",
       "description": "Grouped quantified array",
-      "category": "grouped_quantified",
-      "expected": "success"
+      "input": "-> [(element1 element2)*]",
+      "expected": {},
+      "tags": [
+        "grouped_quantified",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1.property[2].subprop",
+      "name": "chained_accessors",
       "description": "Chained accessors",
-      "category": "chained_accessor",
-      "expected": "success"
+      "input": "-> $1.property[2].subprop",
+      "expected": {},
+      "tags": [
+        "chained_accessor",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[-1]",
+      "name": "negative_indexing",
       "description": "Negative indexing",
-      "category": "negative_index",
-      "expected": "success"
+      "input": "-> $1[-1]",
+      "expected": {},
+      "tags": [
+        "negative_index",
+        "complex"
+      ]
     },
     {
-      "input": "-> $1[1,3,5]",
+      "name": "multiple_indices",
       "description": "Multiple indices",
-      "category": "multi_index",
-      "expected": "success"
+      "input": "-> $1[1,3,5]",
+      "expected": {},
+      "tags": [
+        "multi_index",
+        "complex"
+      ]
     },
     {
-      "input": "-> [$1]?",
+      "name": "optional_array",
       "description": "Optional array",
-      "category": "optional_quantifier",
-      "expected": "success"
+      "input": "-> [$1]?",
+      "expected": {},
+      "tags": [
+        "optional_quantifier",
+        "complex"
+      ]
     },
     {
-      "input": "-> [$1]+",
+      "name": "one_or_more_quantifier_on_arra",
       "description": "One or more quantifier on array",
-      "category": "plus_quantifier",
-      "expected": "success"
+      "input": "-> [$1]+",
+      "expected": {},
+      "tags": [
+        "plus_quantifier",
+        "complex"
+      ]
     },
     {
-      "input": "-> {count: $1}{3}",
+      "name": "exact_repetition_quantifier",
       "description": "Exact repetition quantifier",
-      "category": "exact_quantifier",
-      "expected": "success"
+      "input": "-> {count: $1}{3}",
+      "expected": {},
+      "tags": [
+        "exact_quantifier",
+        "complex"
+      ]
     },
     {
-      "input": "-> {items: [$1]}{2,5}",
+      "name": "range_repetition_quantifier",
       "description": "Range repetition quantifier",
-      "category": "range_quantifier",
-      "expected": "success"
+      "input": "-> {items: [$1]}{2,5}",
+      "expected": {},
+      "tags": [
+        "range_quantifier",
+        "complex"
+      ]
     },
     {
-      "input": "-> {data: $1}{,3}",
+      "name": "up_to_n_repetitions",
       "description": "Up to n repetitions",
-      "category": "max_quantifier",
-      "expected": "success"
+      "input": "-> {data: $1}{,3}",
+      "expected": {},
+      "tags": [
+        "max_quantifier",
+        "complex"
+      ]
     }
   ]
 }

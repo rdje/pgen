@@ -1,12 +1,5 @@
 # Makefile for pgen - Regex Parser Generator Pipeline
 # This manages the complex build dependencies for generating Rust parsers from EBNF grammars
-# Now with automatic test synchronization when stress test files change
-
-# Include automatic test synchronization
-include Makefile.auto-sync
-
-# Include stress test targets
-include Makefile.stress
 
 # Directories
 GRAMMARS_DIR = ../grammars
@@ -150,7 +143,7 @@ debug-json: $(REGEX_JSON)
 	@echo "Regex JSON generated with debug output - check console for semantic annotation parsing details"
 
 .PHONY: test-parser
-test-parser: check-sync-needed $(REGEX_PARSER)
+test-parser: $(REGEX_PARSER)
 	@echo "Testing generated regex parser..."
 	cd $(RUST_DIR) && cargo test
 
@@ -308,37 +301,31 @@ debug-semantic-annotations: $(SEMANTIC_ANNOTATION_EXE) $(RETURN_ANNOTATION_EXE)
 
 # Return annotation parser complete flow
 .PHONY: return_annotation_parser
-return_annotation_parser: check-sync-needed $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 	@echo "🚀 Starting complete flow for return annotation parser..."
 	@echo "📄 Step 1: EBNF -> JSON (already done: $(RETURN_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER)
 	@echo "✅ Generated: $(RETURN_ANNOTATION_PARSER)"
-	@echo "🧪 Step 3: Running comprehensive stress tests"
-	cd $(RUST_DIR) && cargo test test_return_parser_comprehensive_stress --release -- --nocapture
-	@echo "🎉 Return annotation parser comprehensive flow completed!"
+	@echo "✅ Return annotation parser generated successfully!"
 
 # Semantic annotation parser complete flow
 .PHONY: semantic_annotation_parser
-semantic_annotation_parser: check-sync-needed $(SEMANTIC_ANNOTATION_PARSER)
+semantic_annotation_parser: $(SEMANTIC_ANNOTATION_PARSER)
 	@echo "🚀 Starting complete flow for semantic annotation parser..."
-	@echo "🧪 Running comprehensive stress tests"
-	cd $(RUST_DIR) && cargo test test_semantic_annotation_parser_comprehensive_stress --release -- --nocapture
-	@echo "🎉 Semantic annotation parser comprehensive flow completed!"
+	@echo "✅ Semantic annotation parser flow completed!"
 
 # Regex parser complete flow
 .PHONY: regex_parser
-regex_parser: check-sync-needed $(REGEX_JSON) $(RUST_AST_PIPELINE)
+regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@echo "🚀 Starting complete flow for regex parser..."
 	@echo "📄 Step 1: EBNF -> JSON (already done: $(REGEX_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
 	@echo "✅ Generated: $(REGEX_PARSER)"
-	@echo "🧪 Step 3: Running comprehensive stress tests"
-	cd $(RUST_DIR) && cargo test test_regex_parser_comprehensive_stress --release -- --nocapture
-	@echo "🎉 Regex parser comprehensive flow completed!"
+	@echo "✅ Regex parser generated successfully!"
 
 # Convenience aliases for easier typing
 .PHONY: return_parser

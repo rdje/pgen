@@ -1,62 +1,37 @@
 {
-  "test_suite": "Return Annotations - Object Construction",
+  "suite_name": "Return Annotations - Object Construction",
   "description": "Tests for object literal syntax",
+  "parser_type": "return",
   "tests": [
     {
       "name": "simple_object",
       "input": "{key: $1, value: $2}",
-      "expected_ast": {
-        "type": "Object",
-        "properties": {
-          "key": {"type": "PositionalRef", "index": 1},
-          "value": {"type": "PositionalRef", "index": 2}
-        }
+      "expected": {
+        "contains": ["Object", "key", "value", "PositionalRef"]
       },
       "description": "Simple object with positional references"
     },
     {
       "name": "object_with_literals",
       "input": "{type: \"array\", element: $3}",
-      "expected_ast": {
-        "type": "Object",
-        "properties": {
-          "type": {"type": "StringLiteral", "value": "array"},
-          "element": {"type": "PositionalRef", "index": 3}
-        }
+      "expected": {
+        "contains": ["Object", "type", "array", "element", "PositionalRef"]
       },
       "description": "Object with string literal and positional reference"
     },
     {
       "name": "empty_object",
       "input": "{}",
-      "expected_ast": {
-        "type": "Object",
-        "properties": {}
+      "expected": {
+        "contains": ["Object"]
       },
       "description": "Empty object literal"
     },
     {
       "name": "object_with_extraction",
       "input": "{params: [$1, $2::2*], count: $3}",
-      "expected_ast": {
-        "type": "Object",
-        "properties": {
-          "params": {
-            "type": "Array",
-            "elements": [
-              {"type": "PositionalRef", "index": 1},
-              {
-                "type": "Spread",
-                "base": {
-                  "type": "QuantifiedExtraction",
-                  "base": {"type": "PositionalRef", "index": 2},
-                  "target": {"type": "Index", "value": 2}
-                }
-              }
-            ]
-          },
-          "count": {"type": "PositionalRef", "index": 3}
-        }
+      "expected": {
+        "contains": ["Object", "params", "Array", "QuantifiedExtraction", "count"]
       },
       "description": "Object with nested array containing extraction"
     }

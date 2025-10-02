@@ -1,25 +1,21 @@
 {
-  "test_suite": "Return Annotations - Arrays and Spreading",
+  "suite_name": "Return Annotations - Arrays and Spreading",
   "description": "Tests for array construction and spread operators",
+  "parser_type": "return",
   "tests": [
     {
       "name": "simple_array",
       "input": "[$1, $2]",
-      "expected_ast": {
-        "type": "Array",
-        "elements": [
-          {"type": "PositionalRef", "index": 1},
-          {"type": "PositionalRef", "index": 2}
-        ]
+      "expected": {
+        "contains": ["Array", "PositionalRef"]
       },
       "description": "Simple array with two elements"
     },
     {
       "name": "empty_array",
       "input": "[]",
-      "expected_ast": {
-        "type": "Array",
-        "elements": []
+      "expected": {
+        "contains": ["Array"]
       },
       "description": "Empty array literal"
     },

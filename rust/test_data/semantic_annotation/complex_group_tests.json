@@ -1,73 +1,117 @@
 {
+  "suite_name": "semantic",
+  "description": "Converted test suite",
   "parser_type": "semantic",
-  "basic_tests": [
+  "tests": [
     {
-      "input": "@optional_group: (identifier)?",
+      "name": "optional_group_-_should_preser",
       "description": "Optional group - should preserve quantifier structure",
-      "category": "optional_group",
-      "expected": "success"
+      "input": "@optional_group: (identifier)?",
+      "expected": {},
+      "tags": [
+        "optional_group",
+        "basic"
+      ]
     },
     {
-      "input": "@zero_or_more: (identifier)*",
+      "name": "zero-or-more_quantified_group_",
       "description": "Zero-or-more quantified group - should preserve * quantifier",
-      "category": "quantified_group", 
-      "expected": "success"
+      "input": "@zero_or_more: (identifier)*",
+      "expected": {},
+      "tags": [
+        "quantified_group",
+        "basic"
+      ]
     },
     {
-      "input": "@one_or_more: (identifier)+",
+      "name": "one-or-more_quantified_group_-",
       "description": "One-or-more quantified group - should preserve + quantifier",
-      "category": "quantified_group",
-      "expected": "success"
+      "input": "@one_or_more: (identifier)+",
+      "expected": {},
+      "tags": [
+        "quantified_group",
+        "basic"
+      ]
     },
     {
-      "input": "@or_group: (\"a\" | \"b\" | \"c\")",
+      "name": "or_group_with_multiple_alterna",
       "description": "OR group with multiple alternatives",
-      "category": "or_group",
-      "expected": "success"
+      "input": "@or_group: (\"a\" | \"b\" | \"c\")",
+      "expected": {},
+      "tags": [
+        "or_group",
+        "basic"
+      ]
     },
     {
-      "input": "@nested_optional: ((identifier \",\" identifier)?)",
+      "name": "nested_group_with_optional_qua",
       "description": "Nested group with optional quantifier - complex structure",
-      "category": "nested_group",
-      "expected": "success"
+      "input": "@nested_optional: ((identifier \",\" identifier)?)",
+      "expected": {},
+      "tags": [
+        "nested_group",
+        "basic"
+      ]
     },
     {
-      "input": "@sequence_quantified: (identifier /\\s*/ \",\" /\\s*/ identifier)*",
+      "name": "quantified_sequence_with_regex",
       "description": "Quantified sequence with regex whitespace - real-world pattern",
-      "category": "complex_group",
-      "expected": "success"
-    }
-  ],
-  "complex_tests": [
+      "input": "@sequence_quantified: (identifier /\\s*/ \",\" /\\s*/ identifier)*",
+      "expected": {},
+      "tags": [
+        "complex_group",
+        "basic"
+      ]
+    },
     {
-      "input": "@destructuring_parameter: (identifier_literal (/\\s*/ \",\" /\\s*/ identifier_literal)*)?",
+      "name": "complex_destructuring_paramete",
       "description": "Complex destructuring parameter pattern - the exact pattern that fails",
-      "category": "destructuring",
-      "expected": "success"
+      "input": "@destructuring_parameter: (identifier_literal (/\\s*/ \",\" /\\s*/ identifier_literal)*)?",
+      "expected": {},
+      "tags": [
+        "destructuring",
+        "complex"
+      ]
     },
     {
-      "input": "@nested_quantifiers: ((element \",\")*  | (element \";\")*)?",
+      "name": "nested_quantifiers_with_or_alt",
       "description": "Nested quantifiers with OR alternatives - extremely complex",
-      "category": "nested_complex",
-      "expected": "success"
+      "input": "@nested_quantifiers: ((element \",\")*  | (element \";\")*)?",
+      "expected": {},
+      "tags": [
+        "nested_complex",
+        "complex"
+      ]
     },
     {
-      "input": "@mixed_groups: (required_element (optional_element)? (repeating_element)*)",
+      "name": "mixed_group_types_in_sequence_",
       "description": "Mixed group types in sequence - optional and quantified",
-      "category": "mixed_groups",
-      "expected": "success"
+      "input": "@mixed_groups: (required_element (optional_element)? (repeating_element)*)",
+      "expected": {},
+      "tags": [
+        "mixed_groups",
+        "complex"
+      ]
     },
     {
-      "input": "@regex_in_group: (/[a-zA-Z_][a-zA-Z0-9_]*/ (\".\" /[a-zA-Z_][a-zA-Z0-9_]*/)* )?",
+      "name": "regex_patterns_within_complex_",
       "description": "Regex patterns within complex groups - identifier path pattern",
-      "category": "regex_groups",
-      "expected": "success"
+      "input": "@regex_in_group: (/[a-zA-Z_][a-zA-Z0-9_]*/ (\".\" /[a-zA-Z_][a-zA-Z0-9_]*/)* )?",
+      "expected": {},
+      "tags": [
+        "regex_groups",
+        "complex"
+      ]
     },
     {
-      "input": "@epsilon_issue: \"\"",
+      "name": "empty_string_should_not_be_con",
       "description": "Empty string should not be converted incorrectly to epsilon",
-      "category": "epsilon_edge_case",
-      "expected": "success"
+      "input": "@epsilon_issue: \"\"",
+      "expected": {},
+      "tags": [
+        "epsilon_edge_case",
+        "complex"
+      ]
     }
   ]
 }

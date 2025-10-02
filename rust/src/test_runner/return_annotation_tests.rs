@@ -253,7 +253,7 @@ impl ReturnAnnotationTestRunner {
         let passed = self.results.iter().filter(|r| r.passed).count();
         let failed = total - passed;
         
-        println!("\n" + "═".repeat(50).as_str());
+        println!("\n{}", "═".repeat(50));
         println!("📊 Test Results Summary");
         println!("   Total:  {}", total);
         println!("   ✅ Passed: {}", passed);

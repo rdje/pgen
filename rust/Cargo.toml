@@ -15,14 +15,6 @@ name = "ast_pipeline"
 path = "src/main.rs"
 
 [[bin]]
-name = "sync_tests"
-path = "src/bin/sync_tests.rs"
-
-[[bin]]
-name = "test_automation_demo"
-path = "src/bin/test_automation_demo.rs"
-
-[[bin]]
 name = "pgen"
 path = "src/bin/pgen.rs"
 

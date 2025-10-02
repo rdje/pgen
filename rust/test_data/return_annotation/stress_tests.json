@@ -1,0 +1,191 @@
+{
+  "suite_name": "Return Annotation Parser - Comprehensive Stress Tests",
+  "description": "Complete stress test suite migrated from return_parser_stress_test.rs",
+  "parser_type": "return_annotation",
+  "parser_config": {
+    "debug_mode": false,
+    "entry_rule": "return_annotation"
+  },
+  "tests": [
+    {
+      "name": "basic_scalar_$1",
+      "description": "Basic scalar reference $1",
+      "input": "-> $1",
+      "expected": {
+        "contains": ["ScalarRef", "1"]
+      },
+      "tags": ["stress", "scalar", "basic"]
+    },
+    {
+      "name": "basic_scalar_$2",
+      "description": "Basic scalar reference $2", 
+      "input": "-> $2",
+      "expected": {
+        "contains": ["ScalarRef", "2"]
+      },
+      "tags": ["stress", "scalar", "basic"]
+    },
+    {
+      "name": "dot_notation_value",
+      "description": "Dot notation access $1.value",
+      "input": "-> $1.value",
+      "expected": {
+        "contains": ["PropertyAccess", "value"]
+      },
+      "tags": ["stress", "accessor", "dot"]
+    },
+    {
+      "name": "array_index_0",
+      "description": "Array index access $1[0]",
+      "input": "-> $1[0]",
+      "expected": {
+        "contains": ["ArrayIndex", "0"]
+      },
+      "tags": ["stress", "accessor", "array"]
+    },
+    {
+      "name": "simple_array",
+      "description": "Simple array [$1, $2]",
+      "input": "-> [$1, $2]",
+      "expected": {
+        "contains": ["Array", "ScalarRef(1)", "ScalarRef(2)"]
+      },
+      "tags": ["stress", "array", "construction"]
+    },
+    {
+      "name": "spread_in_array",
+      "description": "Array with spread [$1, $2*]",
+      "input": "-> [$1, $2*]",
+      "expected": {
+        "contains": ["Array", "Spread"]
+      },
+      "tags": ["stress", "array", "spread"]
+    },
+    {
+      "name": "simple_object",
+      "description": "Simple object {key: $1}",
+      "input": "-> {key: $1}",
+      "expected": {
+        "contains": ["Object", "key", "ScalarRef(1)"]
+      },
+      "tags": ["stress", "object", "construction"]
+    },
+    {
+      "name": "multi_property_object",
+      "description": "Multi-property object {name: $1, value: $2}",
+      "input": "-> {name: $1, value: $2}",
+      "expected": {
+        "contains": ["Object", "name", "value"]
+      },
+      "tags": ["stress", "object", "multiple"]
+    },
+    {
+      "name": "string_literal",
+      "description": "String literal return",
+      "input": "-> \"fixed_value\"",
+      "expected": {
+        "contains": ["StringLiteral", "fixed_value"]
+      },
+      "tags": ["stress", "literal", "string"]
+    },
+    {
+      "name": "numeric_literal",
+      "description": "Numeric literal return",
+      "input": "-> 42",
+      "expected": {
+        "contains": ["42"]
+      },
+      "tags": ["stress", "literal", "number"]
+    },
+    {
+      "name": "empty_array",
+      "description": "Empty array []",
+      "input": "-> []",
+      "expected": {
+        "contains": ["Array"]
+      },
+      "tags": ["stress", "array", "empty"]
+    },
+    {
+      "name": "empty_object",
+      "description": "Empty object {}",
+      "input": "-> {}",
+      "expected": {
+        "contains": ["Object"]
+      },
+      "tags": ["stress", "object", "empty"]
+    },
+    {
+      "name": "nested_arrays",
+      "description": "Nested arrays [[$1, $2], [$3, $4]]",
+      "input": "-> [[$1, $2], [$3, $4]]",
+      "expected": {
+        "contains": ["Array", "Array"]
+      },
+      "tags": ["stress", "nested", "array"]
+    },
+    {
+      "name": "nested_objects",
+      "description": "Nested objects {outer: {inner: $1}}",
+      "input": "-> {outer: {inner: $1}}",
+      "expected": {
+        "contains": ["Object", "outer", "inner"]
+      },
+      "tags": ["stress", "nested", "object"]
+    },
+    {
+      "name": "extraction_operator",
+      "description": "Extraction operator $2::2*",
+      "input": "-> $2::2*",
+      "expected": {
+        "contains": ["Extraction", "2", "Spread"]
+      },
+      "tags": ["stress", "extraction", "operator"]
+    },
+    {
+      "name": "multiple_extractions",
+      "description": "Multiple extractions [$1, $2::0*, $3::1*]",
+      "input": "-> [$1, $2::0*, $3::1*]",
+      "expected": {
+        "contains": ["Array", "Extraction"]
+      },
+      "tags": ["stress", "extraction", "multiple"]
+    },
+    {
+      "name": "complex_nested_structure",
+      "description": "Complex nested structure",
+      "input": "-> {data: [$1, {items: $2*, count: $3}], meta: {type: \"result\"}}",
+      "expected": {
+        "contains": ["Object", "data", "items", "meta", "type"]
+      },
+      "tags": ["stress", "complex", "nested"]
+    },
+    {
+      "name": "all_quantifiers",
+      "description": "All quantifier types [$1?, $2*, $3+]",
+      "input": "-> [$1?, $2*, $3+]",
+      "expected": {
+        "contains": ["Optional", "Star", "Plus"]
+      },
+      "tags": ["stress", "quantifier", "all"]
+    },
+    {
+      "name": "chained_accessors",
+      "description": "Chained property and array access $1.data[0].value",
+      "input": "-> $1.data[0].value",
+      "expected": {
+        "contains": ["PropertyAccess", "ArrayIndex", "value"]
+      },
+      "tags": ["stress", "accessor", "chained"]
+    },
+    {
+      "name": "large_index",
+      "description": "Very large index reference $999",
+      "input": "-> $999",
+      "expected": {
+        "contains": ["ScalarRef", "999"]
+      },
+      "tags": ["stress", "edge", "large-index"]
+    }
+  ]
+}

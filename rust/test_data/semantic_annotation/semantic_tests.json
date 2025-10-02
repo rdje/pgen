@@ -1,67 +1,109 @@
 {
+  "suite_name": "semantic",
+  "description": "Converted test suite",
   "parser_type": "semantic",
-  "basic_tests": [
+  "tests": [
     {
-      "input": "@type: \"Expression\"",
+      "name": "type_annotation",
       "description": "Type annotation",
-      "category": "type",
-      "expected": "success"
+      "input": "@type: \"Expression\"",
+      "expected": {},
+      "tags": [
+        "type",
+        "basic"
+      ]
     },
     {
-      "input": "@precedence: 5", 
+      "name": "precedence_annotation",
       "description": "Precedence annotation",
-      "category": "precedence",
-      "expected": "success"
+      "input": "@precedence: 5",
+      "expected": {},
+      "tags": [
+        "precedence",
+        "basic"
+      ]
     },
     {
+      "name": "boolean_annotation",
+      "description": "Boolean annotation",
       "input": "@side_effect: false",
-      "description": "Boolean annotation", 
-      "category": "boolean",
-      "expected": "success"
+      "expected": {},
+      "tags": [
+        "boolean",
+        "basic"
+      ]
     },
     {
-      "input": "@validate: [\"check_bounds\"]",
+      "name": "array_annotation",
       "description": "Array annotation",
-      "category": "array", 
-      "expected": "success"
+      "input": "@validate: [\"check_bounds\"]",
+      "expected": {},
+      "tags": [
+        "array",
+        "basic"
+      ]
     },
     {
-      "input": "@cache: {ttl: 300}",
+      "name": "object_annotation",
       "description": "Object annotation",
-      "category": "object",
-      "expected": "success"
-    }
-  ],
-  "complex_tests": [
+      "input": "@cache: {ttl: 300}",
+      "expected": {},
+      "tags": [
+        "object",
+        "basic"
+      ]
+    },
     {
-      "input": "generate_char_class_matcher(has_negation($2), collect_class_items($2))",
+      "name": "complex_function_call_annotati",
       "description": "Complex function call annotation",
-      "category": "complex",
-      "expected": "success"
+      "input": "generate_char_class_matcher(has_negation($2), collect_class_items($2))",
+      "expected": {},
+      "tags": [
+        "complex",
+        "complex"
+      ]
     },
     {
-      "input": "count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"", 
+      "name": "complex_conditional_expression",
       "description": "Complex conditional expression",
-      "category": "complex",
-      "expected": "success"
+      "input": "count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"",
+      "expected": {},
+      "tags": [
+        "complex",
+        "complex"
+      ]
     },
     {
+      "name": "complex_lambda_expression",
+      "description": "Complex lambda expression",
       "input": "all(extract_ranges($2), r => valid_range(r.start, r.end))",
-      "description": "Complex lambda expression", 
-      "category": "complex",
-      "expected": "success"
+      "expected": {},
+      "tags": [
+        "complex",
+        "complex"
+      ]
     },
     {
-      "input": "^\" if $1 else \"",
+      "name": "invalid_syntax_pattern_(causes",
       "description": "Invalid syntax pattern (causes stack overflow)",
-      "category": "complex",
-      "expected": "failure"
+      "input": "^\" if $1 else \"",
+      "expected": {
+        "error": "Expected failure"
+      },
+      "tags": [
+        "complex",
+        "complex"
+      ]
     },
     {
-      "input": "$1 != null",
+      "name": "comparison_expression",
       "description": "Comparison expression",
-      "category": "complex", 
-      "expected": "success"
+      "input": "$1 != null",
+      "expected": {},
+      "tags": [
+        "complex",
+        "complex"
+      ]
     }
   ]
 }
