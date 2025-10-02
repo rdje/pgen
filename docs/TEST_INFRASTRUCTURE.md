@@ -14,22 +14,37 @@ pgen uses a **SINGLE universal test runner** that works with ALL parsers through
 
 ## Directory Structure
 
+**Parser-First Organization**: Test data is organized by parser, matching the grammar files in `grammars/`:
+
 ```
 rust/
-├── test_data/
-│   ├── return_annotations/       # Return annotation parser tests
-│   │   ├── basic_positional.json
-│   │   ├── extraction_operators.json
-│   │   ├── arrays_and_spreading.json
-│   │   └── objects.json
-│   │
-│   ├── semantic_annotations/     # Semantic annotation parser tests
-│   │   └── (future tests)
-│   │
-│   └── stress_tests/            # Large-scale stress tests
-│       ├── regex_stress_test.json
-│       └── semantic_stress_test.json
+└── test_data/
+    ├── return_annotation/      # Tests for return_annotation.ebnf parser
+    │   ├── return_tests.json
+    │   ├── basic_positional.json
+    │   ├── extraction_operators.json
+    │   ├── arrays_and_spreading.json
+    │   └── objects.json
+    │
+    ├── semantic_annotation/    # Tests for semantic_annotation.ebnf parser
+    │   ├── semantic_tests.json
+    │   ├── basic_tests.json
+    │   └── complex_group_tests.json
+    │
+    ├── unified/               # Tests for the unified pgen parser
+    │   └── capture_groups.json
+    │
+    ├── bootstrap/             # Tests for bootstrap parser
+    ├── external/              # Tests for external grammar parser
+    ├── ebnf/                  # Tests for EBNF meta-grammar
+    ├── json/                  # Tests for JSON parser
+    └── regex/                 # Tests for regex parser
 ```
+
+**Mapping Rule**:
+- `grammars/foo.ebnf` → `test_data/foo/` 
+- Each parser's tests live in their own directory
+- Features are organized as JSON files within each parser directory
 
 ## Universal JSON Test Format
 
@@ -183,13 +198,13 @@ cargo test test_universal_runner -- --nocapture
 
 ## Adding New Tests
 
-### 1. Create a JSON file in the appropriate subdirectory
+### 1. Create a JSON file in the appropriate parser directory
 
 ```json
-// test_data/return_annotations/extraction_tests.json
+// test_data/return_annotation/new_feature_tests.json
 {
-  "suite_name": "Return Annotations - Extraction Tests",
-  "description": "Tests for the new extraction operator",
+  "suite_name": "Return Annotations - New Feature Tests",
+  "description": "Tests for the new feature",
   "parser_type": "return",
   "tests": [
     {

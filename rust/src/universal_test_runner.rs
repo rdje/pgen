@@ -288,7 +288,7 @@ impl UniversalTestRunner {
                 // Check exact output match if specified
                 if let Some(expected) = expected_output {
                     let output_json: serde_json::Value = serde_json::from_str(output)
-                        .or_else(|_| {
+                        .or_else(|_| -> Result<serde_json::Value> {
                             // If not JSON, wrap as string
                             Ok(serde_json::json!(output))
                         })?;

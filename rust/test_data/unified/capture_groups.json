@@ -1,5 +1,5 @@
 {
-  "parser": "unified",
+  "parser_type": "unified",
   "suite_name": "Regex Capture Groups",
   "description": "Tests for regex capture group extraction with return annotations",
   "tests": [

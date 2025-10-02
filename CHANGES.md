@@ -729,6 +729,88 @@ pub struct UniversalTestRunner {
 - Parser-agnostic test infrastructure
 - Future-proof design
 - Ready for CI/CD integration
+
+---
+
+## 2024-12-21: Test Data Reorganization - Parser-First Structure ✅
+
+### Problem Statement
+**Unclear Organization**: Test data was organized by feature rather than parser, making it unclear which tests belonged to which parser.
+
+### Previous Structure Issues
+- Tests scattered under feature directories (return_annotations/, semantic_annotations/)
+- Not clear which parser was being tested without opening JSON files
+- Mixing of different parser tests in flat structure
+
+### Solution Implementation
+
+#### New Directory Structure
+```
+test_data/
+├── return_annotation/      # Tests for return_annotation.ebnf parser
+│   ├── return_tests.json
+│   ├── basic_positional.json
+│   ├── extraction_operators.json
+│   ├── arrays_and_spreading.json
+│   └── objects.json
+├── semantic_annotation/    # Tests for semantic_annotation.ebnf parser
+│   ├── semantic_tests.json
+│   ├── basic_tests.json
+│   └── complex_group_tests.json
+└── unified/               # Tests for unified parser
+    └── capture_groups.json
+```
+
+**Key Principle**: `test_data/<parser>/<feature>.json`
+- Parser directory names match grammar files (foo.ebnf → test_data/foo/)
+- Each parser's tests clearly separated
+- Features organized as JSON files within parser directories
+
+### Universal Test Runner Compatibility
+
+**Discovery Mechanism**:
+- Test runner recursively walks entire test_data/ tree
+- Finds all JSON files regardless of directory depth
+- Uses `parser_type` field from JSON to determine parser
+- Directory structure is for human organization only
+
+**Implementation Details**:
+- Fixed inconsistent field names (unified to use `parser_type`)
+- Fixed type inference error in universal_test_runner.rs
+- All moves done with `git mv` to preserve history
+
+### Files Modified
+
+**Moved with git mv**:
+- `test_data/return_annotations/*` → `test_data/return_annotation/`
+- `test_data/semantic_annotations/*` → `test_data/semantic_annotation/`
+- `test_data/regex_captures/*` → `test_data/unified/`
+- Standalone test files moved to appropriate parser directories
+
+**Updated**:
+- `test_data/unified/capture_groups.json` - Fixed parser field to parser_type
+- `src/universal_test_runner.rs` - Fixed type inference error
+- `docs/TEST_INFRASTRUCTURE.md` - Documented parser-first organization
+
+### Benefits Achieved
+
+✅ **Clarity**: Immediately obvious which tests belong to which parser
+✅ **Consistency**: Directory structure matches grammar file names
+✅ **Scalability**: Easy to add new parsers and their tests
+✅ **Discoverability**: Tests grouped logically by parser
+✅ **Compatibility**: Universal test runner works seamlessly
+
+### Impact Assessment
+
+**Developer Experience**:
+- Clear where to add new tests for a parser
+- Easy to find all tests for a specific parser
+- No confusion about test ownership
+
+**Test Infrastructure**:
+- Universal test runner continues to work without changes
+- Parser determination still via JSON content
+- Directory structure purely organizational
 - 📋 Semantic Annotation Parser: Ready for migration
 - 📋 Regex Parser: Ready for migration
 
