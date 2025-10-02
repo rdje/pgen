@@ -35,6 +35,15 @@ use return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
 pub mod unified_return_ast;
 use unified_return_ast::UnifiedReturnAST;
 
+// AST-based generator using syn and quote (string-based removed)
+pub mod ast_based_generator;
+use ast_based_generator::AstBasedGenerator;
+mod ast_code_generator;
+pub mod ast_return_transform;
+pub mod ast_generator_direct;
+// Removed: generator_adapter (no longer needed)
+// Removed: ast_generator_integration (replaced by direct)
+
 /// Configuration for AST transformation pipeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipelineConfig {

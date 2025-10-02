@@ -24,5 +24,10 @@ pub use ast_pipeline::{
     PipelineConfig, 
     ASTNode, 
     ASTValue, 
-    TokenValue
+    TokenValue,
+    Annotations,
+    ReturnAnnotation,
+    unified_return_ast,
+    ast_based_generator,
+    generator_adapter
 };

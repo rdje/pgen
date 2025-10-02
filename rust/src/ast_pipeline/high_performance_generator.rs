@@ -2411,12 +2411,31 @@ impl<'input> {parser_name}<'input> {{
         
         // Wrap element parsing with result checking for better debug output
         code.push_str(&format!("{indent}    let element_result = (|| -> Result<ParseContent<'input>, ParseError> {{\n"));
-        // SIMPLIFIED: Always use 'result' for consistency everywhere
-        let fixed_element_code = element_code
+        
+        // Fix the element code to properly declare and use result
+        let mut fixed_element_code = element_code
             .replace("parser.", &format!("{parser_var}."));
         
-        code.push_str(&fixed_element_code);
-        code.push_str(&format!("{indent}        Ok(result)\n"));
+        // Check if the element_code already declares 'result'
+        if fixed_element_code.contains("let result =") {
+            // Already has result declaration, use as-is
+            code.push_str(&fixed_element_code);
+            if !fixed_element_code.trim().ends_with(';') {
+                code.push_str(";");
+            }
+        } else {
+            // No result declaration - this is just an expression
+            // Wrap it properly as: let result = <expression>;
+            code.push_str(&format!("{indent}        let result = "));
+            
+            // Remove any trailing semicolon from the expression first
+            fixed_element_code = fixed_element_code.trim_end().trim_end_matches(';').to_string();
+            
+            code.push_str(&fixed_element_code);
+            code.push_str(";");
+        }
+        
+        code.push_str(&format!("\n{indent}        Ok(result)\n"));
         code.push_str(&format!("{indent}    }})();\n"));
         
         // Add success/failure debug logging
@@ -2531,6 +2550,166 @@ impl<'input> {parser_name}<'input> {{
         self.generate_n_branch_template_with_context_and_pipeline(alternatives, indent, rule_name, rule_annotations, parser_var, None)
     }
     
+    /// Generate code for single-branch rules (no alternatives, just one path)
+    fn generate_single_branch_template(
+        &self, 
+        alternatives: &[ASTNode], 
+        indent: &str, 
+        rule_name: &str, 
+        rule_annotations: Option<&[String]>, 
+        parser_var: &str,
+        any_branch_has_annotation: bool
+    ) -> Result<String> {
+        let mut builder = RustCodeBuilder::new();
+        
+        if alternatives.is_empty() {
+            return Err(anyhow::anyhow!("No alternatives provided for single-branch rule"));
+        }
+        
+        let alt = &alternatives[0];
+        let alt_name = self.extract_rule_name_from_ast(alt);
+        
+        builder.add_line(&format!("{indent}// Single-branch rule: {}", rule_name));
+        builder.add_line(&format!("{indent}{parser_var}.debug_try_alternative(\"{{rule_name}}\", 0, 1, \"{}\");", alt_name));
+        
+        // CRITICAL: Declare result variable at the top level, just like multi-branch rules do
+        // This ensures structural consistency between single and multi-branch code generation
+        builder.add_line(&format!("{indent}let result: ParseContent<'input>;"));
+        
+        // Check for mutual recursion
+        if let Some(referenced_rule) = self.get_rule_reference_from_ast(alt) {
+            builder.add_line(&format!("{indent}// Check for mutual recursion"));
+            builder.add_line(&format!("{indent}let cycle = {parser_var}.recursion_guard.check_cycle(\"{}\", {parser_var}.position);", referenced_rule));
+            builder.add_line(&format!("{indent}if matches!(cycle, CycleType::MutualRecursive {{ .. }}) {{"));
+            builder.add_line(&format!("{indent}    if {parser_var}.debug_mode {{"));
+            builder.add_line(&format!("{indent}        {parser_var}.debug_output.push(format!(\"⚠️ Mutual recursion detected with {{}}\", \"{}\"));", referenced_rule));
+            builder.add_line(&format!("{indent}    }}"));
+            builder.add_line(&format!("{indent}    return Err(ParseError::InvalidSyntax {{"));
+            builder.add_line(&format!("{indent}        message: \"Mutual recursion detected\","));
+            builder.add_line(&format!("{indent}        position: {parser_var}.position,"));
+            builder.add_line(&format!("{indent}    }});"));
+            builder.add_line(&format!("{indent}}}"));
+        }
+        
+        // Now generate the branch content in a block that assigns to result
+        builder.add_line(&format!("{indent}{{"));
+        
+        // Generate the branch content with proper indentation
+        let branch_indent = format!("{}    ", indent);
+        let alt_code = self.generate_optimized_node_code_with_context(&alt, 0, rule_name, rule_annotations, parser_var)?;
+        
+        // Determine if we need to wrap in branch_result or use directly
+        // For sequences, the generated code will declare sequence_elements and we need to wrap them
+        if matches!(alt, ASTNode::Sequence { .. }) {
+            // Sequence code generates sequence_elements that need to be wrapped
+            builder.add_raw(&alt_code);
+            builder.add_line(&format!("{branch_indent}let branch_result = ParseContent::Sequence(sequence_elements);"));
+        } else {
+            // Non-sequence code should generate a 'let result = ...' statement
+            // We'll rename it to branch_result for consistency
+            if alt_code.contains("let result =") {
+                // Replace 'let result =' with 'let branch_result ='
+                let modified_code = alt_code.replace("let result =", &format!("{branch_indent}let branch_result ="));
+                builder.add_raw(&modified_code);
+            } else {
+                // If it's just an expression, wrap it
+                builder.add_line(&format!("{branch_indent}let branch_result = {{"));
+                builder.add_raw(&alt_code);
+                builder.add_line(&format!("{branch_indent}}};")); 
+            }
+        }
+        
+        // Check for branch-specific return annotation
+        println!("[DEBUG] Checking branch return annotation for single-branch rule '{}'", rule_name);
+        let branch_return_annotation = self.branch_return_annotations
+            .get(rule_name)
+            .and_then(|branches| branches.get(0))
+            .and_then(|opt| opt.as_ref());
+        
+        if let Some(return_ann) = branch_return_annotation {
+            if self.enable_trace {
+                builder.add_line(&format!("{branch_indent}// Applying return annotation: {}", return_ann.annotation_type));
+            }
+            
+            // Use the pre-parsed unified AST
+            if let Some(ref parsed_ast) = return_ann.parsed_ast {
+                println!("[DEBUG] Using pre-parsed unified AST for single-branch rule");
+                // Add debug output for return annotation AST as comments
+                builder.add_line(&format!("{branch_indent}// DEBUG: Using pre-parsed unified return annotation AST"));
+                builder.add_line(&format!("{branch_indent}"));
+                builder.add_line(&format!("{branch_indent}// ═══════════════════════════════════════════════════════"));
+                builder.add_line(&format!("{branch_indent}// Return Annotation Debug Output"));
+                builder.add_line(&format!("{branch_indent}// ═══════════════════════════════════════════════════════"));
+                builder.add_line(&format!("{branch_indent}// Text representation: {}", return_ann.annotation_content));
+                builder.add_line(&format!("{branch_indent}// Annotation type: {}", return_ann.annotation_type));
+                builder.add_line(&format!("{branch_indent}//"));
+                builder.add_line(&format!("{branch_indent}// Parsed Unified AST:"));
+                let ast_pretty = parsed_ast.pretty_print(0);
+                for line in ast_pretty.lines() {
+                    builder.add_line(&format!("{branch_indent}// {}", line));
+                }
+                builder.add_line(&format!("{branch_indent}// ═══════════════════════════════════════════════════════"));
+                builder.add_line(&format!("{branch_indent}"));
+                
+                // Build captured_vars based on whether this is a sequence or not
+                let captured_vars = match alt {
+                    ASTNode::Sequence { elements } => {
+                        // For sequences, we have sequence_elements available from branch_result
+                        // We need to reference them properly within the branch context
+                        (0..elements.len())
+                            .map(|i| {
+                                // Use a match expression to extract from branch_result
+                                format!("match &branch_result {{ ParseContent::Sequence(ref elems) if elems.len() > {} => &elems[{}], _ => panic!(\"Expected sequence element\") }}", i, i)
+                            })
+                            .collect::<Vec<_>>()
+                    }
+                    _ => {
+                        // For non-sequences, use branch_result directly
+                        vec!["branch_result".to_string()]
+                    }
+                };
+                
+                match parsed_ast.generate_code(&captured_vars, &branch_indent, self.enable_trace) {
+                    Ok(ast_code) => {
+                        // Assign the transformed result
+                        builder.add_line(&format!("{branch_indent}result = {};", ast_code));
+                    }
+                    Err(e) => {
+                        if self.enable_trace {
+                            builder.add_line(&format!("{branch_indent}// Failed to generate code from unified AST: {}", e));
+                        }
+                        // Fall back to using branch_result as is
+                        builder.add_line(&format!("{branch_indent}result = branch_result;"));
+                    }
+                }
+            } else {
+                println!("[DEBUG] No pre-parsed AST for single-branch rule, keeping original result");
+                if self.enable_trace {
+                    builder.add_line(&format!("{branch_indent}// No pre-parsed AST available, keeping original result"));
+                }
+                // Use branch_result as is
+                builder.add_line(&format!("{branch_indent}result = branch_result;"));
+            }
+        } else {
+            // No annotation - just use branch_result
+            if !any_branch_has_annotation {
+                // Apply implicit passthrough when NO branches have annotations
+                if self.enable_trace {
+                    builder.add_line(&format!("{branch_indent}// No annotations - applying implicit -> $1 (passthrough)"));
+                }
+            }
+            builder.add_line(&format!("{branch_indent}result = branch_result;"));
+        }
+        
+        // Close the block
+        builder.add_line(&format!("{indent}}}"));
+        
+        // For single-branch rules, just return the result directly
+        // The parent method's closure will wrap this in Ok(ParseNode { ... })
+        
+        Ok(builder.build())
+    }
+    
     fn generate_n_branch_template_with_context_and_pipeline(&self, alternatives: &[ASTNode], indent: &str, rule_name: &str, rule_annotations: Option<&[String]>, parser_var: &str, _pipeline: Option<&mut crate::ast_pipeline::RustASTPipeline>) -> Result<String> {
         println!("[DEBUG] generate_n_branch_template called for rule '{}' with {} branches, enable_trace={}", rule_name, alternatives.len(), self.enable_trace);
         let mut builder = RustCodeBuilder::new();
@@ -2546,7 +2725,12 @@ impl<'input> {parser_name}<'input> {{
             println!("[DEBUG] Rule '{}' has no branch annotations - will apply implicit -> $1 (passthrough)", rule_name);
         }
         
-        // Declare result variable in outer scope
+        // Special handling for single-branch rules
+        if n_branches == 1 {
+            return self.generate_single_branch_template(alternatives, indent, rule_name, rule_annotations, parser_var, any_branch_has_annotation);
+        }
+        
+        // Multi-branch handling: Declare result variable in outer scope
         builder.add_line(&format!("{indent}let result: ParseContent<'input>;"));
         
         // Generate alternatives as a single if-else-if-else chain
@@ -2704,13 +2888,15 @@ impl<'input> {parser_name}<'input> {{
             }
         }
         
-        // Final else clause for no match
-        builder.add_line(&format!("{indent}}} else {{"));
-        builder.add_line(&format!("{indent}    return Err(ParseError::InvalidSyntax {{"));
-        builder.add_line(&format!("{indent}        message: \"No alternative matched in {}-branch rule: {{rule_name}}\",", n_branches));
-        builder.add_line(&format!("{indent}        position: {parser_var}.position,"));
-        builder.add_line(&format!("{indent}    }});"));
-        builder.add_line(&format!("{indent}}}"));
+        // Final else clause for no match (only for multi-branch)
+        if n_branches > 1 {
+            builder.add_line(&format!("{indent}}} else {{"));
+            builder.add_line(&format!("{indent}    return Err(ParseError::InvalidSyntax {{"));
+            builder.add_line(&format!("{indent}        message: \"No alternative matched in {}-branch rule: {{rule_name}}\",", n_branches));
+            builder.add_line(&format!("{indent}        position: {parser_var}.position,"));
+            builder.add_line(&format!("{indent}    }});"));
+            builder.add_line(&format!("{indent}}}"));
+        }
         
         Ok(builder.build())
     }

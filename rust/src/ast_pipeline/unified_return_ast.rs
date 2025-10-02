@@ -502,9 +502,10 @@ impl UnifiedReturnAST {
             
             UnifiedReturnAST::Object { properties } => {
                 // Generate code to build a JSON object at runtime with actual values
-                // Note: This generates a block expression that evaluates to ParseContent
+                // Note: This needs to be generated as inline code suitable for assignment to let result = ...
+                // We'll use an immediately-invoked closure to maintain variable scoping
                 let mut code = String::new();
-                code.push_str("{\n");
+                code.push_str("(|| {\n");
                 code.push_str(&format!("{}    // Building object from return annotation\n", indent));
                 code.push_str(&format!("{}    let mut json_obj = serde_json::json!({{}});\n", indent));
                 
@@ -565,7 +566,7 @@ impl UnifiedReturnAST {
                 
                 code.push_str(&format!("{}    let json_str = serde_json::to_string(&json_obj).unwrap_or_else(|_| \"{{}}\".to_string());\n", indent));
                 code.push_str(&format!("{}    ParseContent::Terminal(json_str)\n", indent));
-                code.push_str("}");
+                code.push_str("})()");
                 Ok(code)
             }
             
