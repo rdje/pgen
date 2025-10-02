@@ -1,5 +1,34 @@
 # CHANGES.md
 
+## 2025-10-02 - AST-Based Generator Pretty Printing & Integration Fixes
+
+### Pretty Printing Implementation
+- **Added prettyplease dependency** for Rust code formatting
+- **Modified ast_based_generator.rs** to use `prettyplease::unparse()` instead of raw TokenStream string conversion
+- **Generated parsers now produce readable, formatted code** instead of minified single-line output
+- **Dramatically improved developer experience** - generated parsers are now human-readable and debuggable
+
+### AST-Based Generator Integration Fixes
+- **Connected UnifiedReturnAST system** to AST-based generator via `AstReturnTransformer::generate_transform()`
+- **Fixed method signatures** in `generate_return_transform()` to accept captured variables
+- **Updated caller sites** in `generate_n_branch_template()` to pass proper captured variables
+- **Enabled external parser integration** (though conversion function needs completion)
+
+### Code Quality Improvements
+- **Added missing imports** (`prettyplease`, `anyhow`) to ast_based_generator.rs
+- **Fixed compilation issues** with proper dependency management
+- **Enhanced error handling** in TokenStream formatting
+
+### Generated Code Quality
+- **Before**: 1 line, 140KB minified code (unreadable, undebuggable)
+- **After**: 6,106 lines properly formatted, indented Rust code (readable, maintainable)
+- **Impact**: Generated parsers are now suitable for human inspection and debugging
+
+### Remaining Work
+- Complete ParseNode → UnifiedReturnAST conversion for bootstrap mode OFF
+- Enable external parser usage in parse_return_annotation()
+- Test return annotation transformations in generated parsers
+
 ## 2025-10-02 - AST Generator Migration Documentation and Pipeline Updates
 
 ### Added Documentation

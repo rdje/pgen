@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
 use anyhow::{Result, Context, anyhow};
+use prettyplease::unparse;
 
 pub mod grouped_quantifier_parser;
 // Visualization functionality implemented inline to avoid import issues

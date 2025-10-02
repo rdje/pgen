@@ -93,7 +93,7 @@ fn main() {
     }
 }
 
-fn test_semantic_parser(_input: &str, _debug: bool, writer: &mut BufWriter<File>) -> Result<(), Box<dyn std::error::Error>> {
+fn test_semantic_parser(_input: &str, debug: bool, writer: &mut BufWriter<File>) -> Result<(), Box<dyn std::error::Error>> {
     // TEMPORARILY DISABLED: Parser needs regeneration with AST-based generator
     // use pgen::ast_pipeline::semantic_annotation_parser::Semantic_annotationParser;
     use std::time::Instant;
@@ -193,11 +193,11 @@ fn test_return_parser(_input: &str, _debug: bool, writer: &mut BufWriter<File>) 
             let parse_time = parse_start.elapsed();
             log_and_print!("✅ PARSE SUCCESS in {:.3}ms", parse_time.as_secs_f64() * 1000.0);
             log_and_print!("📊 Parser temporarily disabled for regeneration");
-            
+
             // Print debug trace if available (if the parser supports it)
             // Note: Return annotation parser may not have debug_output method yet
             log_and_print!("   Debug trace: Available when using --debug flag");
-            
+
             log_and_print!("");
             log_and_print!("✅ RETURN PARSER: ROCK SOLID BEHAVIOR CONFIRMED");
             Ok(())
@@ -205,11 +205,11 @@ fn test_return_parser(_input: &str, _debug: bool, writer: &mut BufWriter<File>) 
         Err(e) => {
             let parse_time = parse_start.elapsed();
             log_and_print!("❌ PARSE FAILURE in {:.3}ms: {:?}", parse_time.as_secs_f64() * 1000.0, e);
-            
+
             // Print debug trace even for failures (if the parser supports it)
             // Note: Return annotation parser may not have debug_output method yet
             log_and_print!("   Debug trace: Available when using --debug flag");
-            
+
             Err(format!("Return parser error: {:?}", e).into())
         }
     }

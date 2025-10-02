@@ -7,7 +7,9 @@ use quote::{quote, format_ident, ToTokens};
 use proc_macro2::TokenStream;
 use std::collections::HashMap;
 use anyhow::Result;
+use prettyplease;
 use crate::ast_pipeline::{ASTNode, ASTValue, Annotations};
+use crate::ast_pipeline::ast_return_transform::AstReturnTransformer;
 
 /// AST-based generator that produces guaranteed syntactically correct Rust code
 pub struct AstBasedGenerator {
@@ -44,8 +46,9 @@ impl AstBasedGenerator {
     ) -> Result<String> {
         let parser_tokens = self.generate_parser_tokens(grammar_tree, rule_order)?;
         
-        // Convert TokenStream to string
-        Ok(parser_tokens.to_string())
+        // Convert TokenStream to formatted string using prettyplease
+        let formatted_code = prettyplease::unparse(&syn::parse2(parser_tokens)?);
+        Ok(formatted_code)
     }
     
     /// Generate parser as TokenStream (the actual AST)
@@ -561,7 +564,7 @@ impl AstBasedGenerator {
                 let transform = self.branch_return_annotations.get(rule_name)
                     .and_then(|branches| branches.get(0))
                     .and_then(|ann| ann.as_ref())
-                    .map(|annotation| self.generate_return_transform(annotation, rule_name))
+                    .map(|annotation| self.generate_return_transform(annotation, rule_name, &["result".to_string()]))
                     .transpose()?
                     .unwrap_or(quote! { result });
                     
@@ -597,7 +600,7 @@ impl AstBasedGenerator {
                 // Check for branch-specific return annotation
                 let transform = if let Some(branches) = self.branch_return_annotations.get(rule_name) {
                     if let Some(Some(annotation)) = branches.get(idx) {
-                        self.generate_return_transform(annotation, rule_name)?
+                        self.generate_return_transform(annotation, rule_name, &["content".to_string()])?
                     } else {
                         quote! { content }
                     }
@@ -888,13 +891,12 @@ impl AstBasedGenerator {
         &self,
         annotation: &BranchAnnotation,
         rule_name: &str,
+        captured_vars: &[String],
     ) -> Result<TokenStream> {
-        // For now, simple passthrough - you can expand this based on your UnifiedReturnAST
         if let Some(ref ast) = annotation.parsed_ast {
-            // This would use the UnifiedReturnAST to generate proper transformation
-            Ok(quote! { result })  // Use result, not branch_result
+            AstReturnTransformer::generate_transform(ast, captured_vars, rule_name)
         } else {
-            Ok(quote! { result })  // Use result, not branch_result
+            Ok(quote! { result })
         }
     }
     

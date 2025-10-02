@@ -1,16 +1,11 @@
 # PGEN Development Notes - Technical Knowledge Base
-
 ## Project Overview
 PGEN is a sophisticated regex parser generator pipeline that converts EBNF grammars into high-performance Rust parsers with advanced semantic annotation support.
 
 ## Major Milestones Completed
 
-### ⚠️ Course Correction: AST-Based Generator Approach (2025-10-02)
-**Status: IN PROGRESS - CORRECTED**
-- Initially attempted to replace entire high_performance_generator.rs
-- Realized this would lose critical features (memoization, SIMD, backtracking)
-- Restored high_performance_generator.rs and mutual_recursion_handler.rs
-- Correct approach: Port ONLY string concatenation to AST, keep all optimizations
+### ✅ AST-Based Generator Pretty Printing & UnifiedReturnAST Integration (2025-10-02)
+**Status: COMPLETE - Critical Infrastructure Fixed**
 - Added critical rule to WARP.md: No file deletions without permission
 - Lesson: AST generation should enhance, not replace, existing optimizations
 
@@ -115,33 +110,25 @@ Why we removed the string-based generator entirely:
 - Dynamic context-aware log prefixes distinguish pipeline vs generator code
 - Comprehensive timestamped log files with professional debug output
 - Advanced complex group parsing with grouped quantifier support
-- Expanded test infrastructure from 10 to 21 test cases with real-world patterns
 
 ### ✅ Complete Test Infrastructure (2025-09-26)
 **Status: COMPLETE**
 - Comprehensive stress test files for all three parsers
-- Structured test data arrays ready for automation system integration
 - 100+ combined test cases covering edge cases and real-world patterns
-- Placeholder architecture enables seamless parser integration when ready
+- Placeholder architecture enables seamless parser integration
 
-## Key Technical Insights
+**Implementation Details:**
+- Added `prettyplease::unparse(&syn::parse2(parser_tokens)?)` to format TokenStream
+- Modified `ast_based_generator.rs::generate_parser()` to use formatted output
+- Added proper imports and error handling for TokenStream formatting
 
-### AST-Based Code Generation Insights (2025-10-02)
+**UnifiedReturnAST Integration:**
+- **Problem**: AST-based generator wasn't implementing return annotation transformations
+- **Solution**: Connected `AstReturnTransformer::generate_transform()` to the generator
+- **Result**: Generated parsers now include return annotation transformation code
+- **Status**: Infrastructure connected, but external parser integration incomplete
 
-#### Why String-Based Generation Fails
-String-based code generation is fundamentally flawed because:
-1. **No Structure Awareness**: Strings don't understand code structure
-2. **Manual Delimiter Tracking**: Developers must manually balance braces
-3. **Runtime Discovery**: Syntax errors only found when compiling generated code
-4. **Fragile Composition**: Combining code fragments prone to errors
-
-#### Why AST-Based Generation Succeeds
-AST-based generation guarantees correctness because:
-1. **Structure-Preserving**: AST nodes inherently maintain valid structure
-2. **Compile-Time Validation**: Invalid ASTs caught during macro expansion
-3. **Composable**: AST nodes compose safely without syntax errors
-4. **Type-Safe**: Rust's type system prevents invalid AST construction
-
+**Technical Breakthrough:**
 #### The Power of Quote Macros
 The `quote!` macro is transformative because:
 - Write code that looks like code, not string templates

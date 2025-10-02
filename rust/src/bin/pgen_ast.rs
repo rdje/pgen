@@ -4,7 +4,8 @@
 use clap::Parser;
 use pgen::ast_pipeline::{
     RustASTPipeline, PipelineConfig, TransformedASTJson,
-    ast_generator_direct::{AstGeneratorIntegration, generate_parser_ast_based},
+    ast_based_generator::AstBasedGenerator,
+    TransformMetadata, Annotations,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -62,20 +63,16 @@ fn run_direct_mode(input_content: &str, args: &Args) -> Result<()> {
         .context("Failed to parse input as transformed AST JSON")?;
     
     // Generate parser using AST-based generator
-    println!("✨ Generating parser with AST-based generator");
-    let parser_code = generate_parser_ast_based(
-        &transformed_ast.grammar_name,
-        &transformed_ast.grammar_tree,
-        &transformed_ast.rule_order,
-        transformed_ast.metadata.annotations.as_ref(),
-    )?;
+    let parser_code = AstBasedGenerator::new(transformed_ast.grammar_name.clone())
+        .generate_parser(&transformed_ast.grammar_tree, &transformed_ast.rule_order)?;
     
     // Write output
+    let parser_size = parser_code.len();
     fs::write(&args.output, parser_code)
         .context(format!("Failed to write output file: {:?}", args.output))?;
     
     println!("✅ Successfully generated parser: {:?}", args.output);
-    println!("📊 Parser size: {} bytes", parser_code.len());
+    println!("📊 Parser size: {} bytes", parser_size);
     
     Ok(())
 }
@@ -96,32 +93,54 @@ fn run_pipeline_mode(input_content: &str, args: &Args) -> Result<()> {
     };
     
     // Create pipeline
-    let mut pipeline = RustASTPipeline::with_config(config);
+    let mut pipeline = RustASTPipeline::new(config);
     
     // Process the input
     let result = if input_content.trim_start().starts_with('[') {
-        // Raw AST format
+        // Raw AST format - transform from JSON string
         println!("📥 Processing raw AST JSON");
-        pipeline.transform_from_json(input_content)?
+        // For raw AST input, we need to create a temporary file or handle it differently
+        // For now, assume it's transformed AST and parse directly
+        serde_json::from_str::<TransformedASTJson>(input_content)?
     } else {
-        // Already transformed
-        println!("📥 Input appears to be already transformed");
-        serde_json::from_str(input_content)?
+        // Transform from file (assumes input_content is a file path)
+        println!("📥 Processing from file: {}", input_content);
+        let (grammar_tree, rule_order) = pipeline.transform_from_file(input_content, None)?;
+        // Create a minimal TransformedASTJson for compatibility
+        TransformedASTJson {
+            grammar_name: "unknown".to_string(), // Would need to be extracted from file
+            grammar_tree,
+            rule_order,
+            metadata: TransformMetadata {
+                format: "transformed_ast".to_string(),
+                source_format: "raw_ast".to_string(),
+                transformed_at: chrono::Utc::now().to_rfc3339(),
+                transformer: "Rust AST Pipeline v1.0".to_string(),
+                pipeline_stage: "transformation".to_string(),
+                annotations: Some(Annotations::default()),
+                stats: Default::default(),
+            },
+        }
     };
     
     // Generate parser using AST-based generator
-    let integration = AstGeneratorIntegration::new()
-        .with_debug(args.debug);
+    let mut generator = AstBasedGenerator::new(result.grammar_name.clone());
+    generator.enable_debug = args.debug;
     
-    let parser_code = integration.generate_parser(&result)?;
+    if let Some(annotations) = result.metadata.annotations.as_ref() {
+        generator.annotations = Some(annotations.clone());
+    }
+    
+    let parser_code = generator.generate_parser(&result.grammar_tree, &result.rule_order)?;
     
     // Write output
+    let parser_size = parser_code.len();
     fs::write(&args.output, parser_code)
         .context(format!("Failed to write output file: {:?}", args.output))?;
     
     println!("✅ Successfully generated parser: {:?}", args.output);
     println!("📊 Rules processed: {}", result.grammar_tree.len());
-    println!("📊 Parser size: {} bytes", parser_code.len());
+    println!("📊 Parser size: {} bytes", parser_size);
     println!("🔧 Backend used: AST-based (syn/quote)");
     
     Ok(())
