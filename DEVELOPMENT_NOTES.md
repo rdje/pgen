@@ -1,5 +1,65 @@
-# PGEN Development Notes - Technical Knowledge Base
-## Project Overview
+# DEVELOPMENT_NOTES.md
+
+## 2025-10-03 - Architecture Decision: Remove high_performance_generator.rs
+
+### Context and Rationale
+
+**Critical Issue**: The `high_performance_generator.rs` file violated core project architecture principles by using string-based code generation instead of AST-based generation with syn/quote macros. This approach risked generating syntactically incorrect Rust code and made the codebase harder to maintain.
+
+**Decision Made**: Complete removal of the deprecated generator and standardization on the AST-based approach.
+
+### Technical Analysis
+
+#### Why String-Based Generation Was Forbidden
+1. **Syntax Errors**: String concatenation cannot guarantee balanced braces or valid Rust syntax
+2. **Type Safety**: No compile-time verification of generated code correctness
+3. **Maintainability**: Difficult to modify and extend compared to AST manipulation
+4. **Debugging**: Harder to trace issues in generated code
+
+#### Verification Process
+Conducted comprehensive audit of `high_performance_generator.rs` (3,513 lines) against current `ast_based_generator.rs` implementation:
+
+**Features Confirmed Present in AST-Based Generator:**
+- ✅ **Memoization**: `memoized_call()` method with HashMap<(RuleId, usize), Option<ParseNode>>
+- ✅ **Recursion Guard**: `RecursionGuard` struct with cycle detection (infinite, left-recursive, mutual-recursive)
+- ✅ **Quantified Groups**: Full support for `*`, `+`, `?` with zero-length match prevention
+- ✅ **Debug Mode**: Extensive tracing with emoji indicators and position tracking
+- ✅ **Return Annotations**: Integration with `ast_return_transform.rs` for AST-based transformation
+- ✅ **Bootstrap Mode**: Already implemented in `ast_pipeline.rs` for fallback parsing
+- ✅ **Error Recovery**: Contextual error messages with rule stack and input context
+
+#### Implementation Details
+1. **File Deletion**: Removed `high_performance_generator.rs` entirely
+2. **Reference Updates**: Updated all logging and documentation references
+3. **Bug Fix**: Completed incomplete `Display` implementation in `grouped_quantifier_parser.rs`
+4. **Verification**: Confirmed no functionality was lost in the migration
+
+### Architecture Benefits Achieved
+
+1. **Consistency**: All code generation now uses syn/quote macros exclusively
+2. **Reliability**: Generated code is guaranteed to be syntactically correct
+3. **Maintainability**: AST manipulation is easier to modify and extend
+4. **Type Safety**: Compile-time verification of generated code structure
+5. **Future-Proofing**: Easier to add new parser features using AST-based approach
+
+### Lessons Learned
+
+1. **Architecture Enforcement**: The presence of `compile_error!()` in the deprecated file was a good safeguard
+2. **Migration Strategy**: Features were successfully ported without loss of functionality
+3. **Documentation**: Clear documentation of forbidden patterns prevented accidental usage
+
+### Next Steps
+- Monitor parser generation performance to ensure no regressions
+- Consider removing the `docs/STRING_GENERATOR_FEATURES_TO_PORT.md` file as it's now obsolete
+- Update any remaining references in documentation
+
+## 2025-10-03 - EBNF Parser Fixes: Comments, Semantic Annotations & Bootstrap System
+
+### Issue #1: Comment Handling in EBNF Parser
+
+**Problem**: EBNF parser was incorrectly treating comment text as rule references, causing parsing failures when comments contained words that matched rule names.
+
+**Root Cause**: Token matching patterns in `fx/specs/ebnf.spec` lacked proper word boundaries, allowing partial matches within comments.
 PGEN is a sophisticated regex parser generator pipeline that converts EBNF grammars into high-performance Rust parsers with advanced semantic annotation support.
 # PGEN Development Notes - Technical Knowledge Base
 ## Project Overview

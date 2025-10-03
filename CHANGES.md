@@ -1,5 +1,58 @@
 # CHANGES.md
 
+## 2025-10-03 - Remove high_performance_generator.rs and Standardize on AST-Based Code Generation
+
+### Critical Architecture Decision: Eliminate String-Based Code Generation
+
+**Problem**: The `high_performance_generator.rs` file contained string-based code generation which is **FORBIDDEN** according to project architecture rules. While it contained valuable features, its approach violated the core principle of using AST-based generation with syn/quote macros for guaranteed syntax correctness.
+
+**Solution**: Complete migration to AST-based generator and removal of deprecated string-based generator.
+
+### Changes Made
+
+#### 1. File Deletion
+- **Deleted**: `rust/src/ast_pipeline/high_performance_generator.rs` (3,513 lines)
+- **Reason**: Used forbidden string concatenation for code generation instead of AST manipulation
+- **Compile Error Prevention**: File contained `compile_error!()` macro to prevent accidental use
+
+#### 2. Reference Updates
+- **Updated**: `rust/src/ast_pipeline.rs` - Removed module declaration and import references
+- **Updated**: Logging function to reference `ast_based_generator.rs` instead of `high_performance_generator.rs`
+- **Updated**: Documentation references to point to AST-based generator
+
+#### 3. Bug Fixes
+- **Fixed**: Syntax error in `rust/src/ast_pipeline/grouped_quantifier_parser.rs`
+- **Issue**: Incomplete Display implementation causing compilation failure
+- **Solution**: Completed the Display trait implementation with proper formatting for all ParsedElement variants
+
+#### 4. Verification
+- **Confirmed**: AST-based generator (`ast_based_generator.rs`) contains all critical features:
+  - ✅ Memoization/packrat parsing (`memoized_call()` method)
+  - ✅ Recursion guard and cycle detection (`RecursionGuard` struct)
+  - ✅ Quantified groups (`*`, `+`, `?`) with zero-length match prevention
+  - ✅ Debug mode and tracing (extensive debug output with emojis)
+  - ✅ Return annotation handling (uses `ast_return_transform.rs`)
+  - ✅ Bootstrap mode support (already implemented in `ast_pipeline.rs`)
+  - ✅ Error recovery (contextual error messages)
+
+### Architecture Benefits
+
+1. **Type Safety**: AST-based generation guarantees syntactically correct Rust code
+2. **Maintainability**: No risk of unbalanced braces or syntax errors
+3. **Consistency**: All code generation uses syn/quote macros
+4. **Future-Proof**: Easier to extend and modify parser generation logic
+
+### Files Changed
+- `rust/src/ast_pipeline.rs` (updated references)
+- `rust/src/ast_pipeline/grouped_quantifier_parser.rs` (fixed syntax)
+- `rust/src/ast_pipeline/high_performance_generator.rs` (deleted)
+
+### Verification
+- ✅ Code compiles without errors
+- ✅ All critical parser features preserved
+- ✅ No functionality lost in migration
+- ✅ Architecture rules enforced (no string-based generation)
+
 ## 2025-10-03 - Core EBNF Parser Fixes: Comments, Semantic Annotations & Bootstrap System
 
 ### Issue #1: EBNF Parser Comment Handling

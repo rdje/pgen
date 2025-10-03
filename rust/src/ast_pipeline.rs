@@ -32,9 +32,9 @@ use return_annotation_parser::Return_annotationParser;
 // ⚠️ FORBIDDEN: String-based generator - DO NOT UNCOMMENT!
 // This module uses string concatenation for code generation which is FORBIDDEN.
 // All code generation MUST use AST-based approach with syn/quote.
-// See docs/STRING_GENERATOR_FEATURES_TO_PORT.md for features to port.
-// mod high_performance_generator;  // CONTAINS compile_error! to prevent use
-// use high_performance_generator::HighPerformanceRustGenerator; // NEVER USE THIS
+// See docs/AST_GENERATOR_MIGRATION.md for features migration status.
+// mod high_performance_generator;  // DELETED - used string-based code generation (FORBIDDEN)
+// use high_performance_generator::HighPerformanceRustGenerator; // DELETED - never use string-based generation
 mod mutual_recursion_handler;
 mod return_annotation_handler;
 use return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
@@ -334,7 +334,7 @@ impl RustASTPipeline {
         
         // Determine the correct source file based on the context
         let source_file = if generator_contexts.contains(&context) {
-            "high_performance_generator.rs"
+            "ast_based_generator.rs"
         } else {
             "ast_pipeline.rs"
         };
@@ -380,6 +380,11 @@ impl RustASTPipeline {
     /// Write informational message to log
     fn log_info(&mut self, context: &str, message: &str) {
         self.log_debug(context, &format!("ℹ️  INFO: {}", message));
+    }
+    
+    /// Write error message to log
+    fn log_error(&mut self, context: &str, message: &str) {
+        self.log_debug(context, &format!("❌ ERROR: {}", message));
     }
     
     /// Write warning message to log
@@ -662,7 +667,7 @@ impl RustASTPipeline {
     
     
     /// Parse return annotation into the unified AST
-    fn parse_return_annotation(&self, annotation_value: &str) -> Result<UnifiedReturnAST> {
+    fn parse_return_annotation(&mut self, annotation_value: &str) -> Result<UnifiedReturnAST> {
         if self.config.debug {
             println!("[AST Pipeline] Parsing return annotation: '{}'", annotation_value);
         }
@@ -1138,7 +1143,6 @@ impl RustASTPipeline {
             _ => Err(anyhow!("Expected terminal for string extraction"))
         }
     }
-    */
     
     /* TEMPORARILY DISABLED: Depends on generated parsers
     /// Convert return annotation ParseNode to a serializable simplified representation
