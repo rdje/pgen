@@ -666,28 +666,55 @@ impl RustASTPipeline {
         if self.config.debug {
             println!("[AST Pipeline] Parsing return annotation: '{}'", annotation_value);
         }
-        
+
         // First try bootstrap mode
-        if let Ok(ast) = UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug) {
-            if self.config.debug {
-                println!("[AST Pipeline] Successfully parsed with bootstrap mode");
+        match UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug) {
+            Ok(ast) => {
+                if self.config.debug {
+                    println!("[AST Pipeline] Successfully parsed with bootstrap mode");
+                }
+                return Ok(ast);
             }
-            return Ok(ast);
+            Err(e) => {
+                // Bootstrap parsing failed - log this for debugging
+                self.log_warning("parse_return_annotation",
+                    &format!("Bootstrap parser failed for '{}': {}. Will try external parser.", annotation_value, e));
+
+                if self.config.debug {
+                    println!("[AST Pipeline] Bootstrap failed: {}", e);
+                    println!("[AST Pipeline] Attempting external parser fallback");
+                }
+            }
         }
-        
+
         // Bootstrap failed, try external parser
         if self.config.debug {
-            println!("[AST Pipeline] Bootstrap failed, trying external parser");
+            println!("[AST Pipeline] Trying external parser for: '{}'", annotation_value);
         }
-        
+
         let parse_result = {
             let mut parser = return_annotation_parser::Return_annotationParser::new(annotation_value);
-            parser.parse()
-                .map_err(|e| anyhow!("External parser error: {:?}", e))?
+            match parser.parse() {
+                Ok(result) => result,
+                Err(e) => {
+                    // Both parsers failed - this is a serious issue
+                    self.log_error("parse_return_annotation",
+                        &format!("Both bootstrap and external parsers failed for '{}'. Bootstrap error: {}. External error: {:?}",
+                                annotation_value, "previous error", e));
+                    return Err(anyhow!("Both bootstrap and external parsers failed for return annotation: {}", annotation_value));
+                }
+            }
         };
-        
+
         // Convert ParseNode to UnifiedReturnAST
-        self.convert_parse_node_to_unified_ast(&parse_result)
+        match self.convert_parse_node_to_unified_ast(&parse_result) {
+            Ok(ast) => Ok(ast),
+            Err(e) => {
+                self.log_error("parse_return_annotation",
+                    &format!("ParseNode conversion failed for '{}': {}", annotation_value, e));
+                Err(e)
+            }
+        }
     }
     
     /// Built-in bootstrap return annotation parser
@@ -1390,12 +1417,14 @@ impl RustASTPipeline {
         let mut total_branch_annotations = 0;
         
         for (rule_name, alternatives) in grouped_rules {
+            eprintln!("DEBUG: Processing rule '{}'", rule_name);
             let mut branch_annotations = Vec::new();
             let mut cleaned_alts = Vec::new();
             
             self.log_info("extract_branch_return_annotations", &format!("📌 Processing rule '{}' with {} alternatives", rule_name, alternatives.len()));
             
             for (branch_idx, alt) in alternatives.iter().enumerate() {
+                eprintln!("DEBUG: Processing branch {} of rule '{}'", branch_idx, rule_name);
                 let mut cleaned_alt = TokenSequence::new();
                 let mut branch_annotation: Option<ReturnAnnotation> = None;
                 

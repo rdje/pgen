@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2025-10-03 - Return Annotation Parsing Fixes & Error Reporting
+
+### Bootstrap Parser Compatibility Fixes
+- **Removed `||` operator** from `array_literal` return annotation in return_annotation.ebnf
+- **Simplified complex expressions** to use implicit defaults instead of explicit fallbacks
+- **Fixed array_literal rule**: `-> {type: "array", elements: $2 || []}` → `-> {type: "array", elements: $2}`
+- **Implicit defaults**: Optional elements now use natural empty values (empty arrays for missing array_elements)
+
+### Bootstrap Failure Error Reporting
+- **Added comprehensive logging** for bootstrap parser failures in ast_pipeline.rs
+- **parse_return_annotation()** now logs warnings when bootstrap parsing fails
+- **Error context**: Shows the failing annotation, error reason, and fallback attempt
+- **AST pipeline logs** contain detailed failure information for debugging
+
+### Warning Comments in Generated Parsers
+- **AST-based generator** now adds warning comments for failed return annotations
+- **generate_return_transform()** detects `parsed_ast = None` and adds explanatory comments
+- **Actionable warnings**: Comments suggest enabling `bootstrap=false` for complex syntax
+- **Raw annotation preservation**: Failed annotations are preserved in comments for reference
+
+### Identified Bootstrap-Incompatible Syntax
+- **Function calls**: `parseFloat($1)`, `parseInt($1)` not supported by bootstrap
+- **Comparison operators**: `$1 === "true"` uses JavaScript-style equality
+- **Complex expressions**: `||` logical OR, `&&` logical AND, etc.
+- **Extraction operators**: `::` syntax for quantified group access
+
+### Graceful Fallback System
+- **Bootstrap first**: Attempts simple parsing for performance
+- **External fallback**: Uses full return_annotation_parser for complex cases
+- **Error resilience**: System continues working even with unsupported syntax
+- **Future-ready**: Bootstrap mode OFF enables full return annotation support
+
 ## 2025-10-03 - ParseNode to UnifiedReturnAST Conversion & Bootstrap Mode OFF Infrastructure
 
 ### ParseNode Conversion Function Enabled

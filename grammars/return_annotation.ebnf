@@ -155,7 +155,7 @@ property_key := identifier | string_literal
 
 # Array literal: [], [$1], [$1, $2*]
 array_literal := '[' array_elements? ']'
--> {type: "array", elements: $2 || []}
+-> {type: "array", elements: $2}
 
 # Array elements (comma-separated)
 array_elements := array_element (',' array_element)*

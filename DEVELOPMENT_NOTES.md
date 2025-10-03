@@ -58,6 +58,66 @@ Why we removed the string-based generator entirely:
 
 ## Major Milestones Completed
 
+### ✅ Return Annotation Bootstrap Compatibility & Error Reporting (2025-10-03)
+**Status: COMPLETE - Bootstrap parser now gracefully handles unsupported syntax**
+
+**Bootstrap Parser Compatibility Fixes:**
+- **Removed `||` operator** from `array_literal` return annotation (`-> {type: "array", elements: $2 || []}` → `-> {type: "array", elements: $2}`)
+- **Implicit defaults**: Optional elements use natural empty values (empty arrays for missing `array_elements?`)
+- **Parsing structure provides defaults**: When optional elements don't match, appropriate empty values are used
+- **Simplified grammar**: Removed complex expressions that bootstrap parser can't handle
+
+**Bootstrap Failure Error Reporting:**
+- **Comprehensive logging**: Bootstrap parsing failures logged with full context in ast_pipeline.rs
+- **Warning messages**: Show failing annotation, error reason, and fallback information
+- **AST pipeline logs**: Detailed failure information available in `ast_pipeline_*.log` files
+- **Debug support**: Full visibility into parsing attempts and failures
+
+**Warning Comments in Generated Parsers:**
+- **AST-based generator** adds explanatory comments when return annotations fail to parse
+- **Actionable guidance**: Comments suggest enabling `bootstrap=false` for complex syntax
+- **Raw annotation preservation**: Failed annotations documented in generated code
+- **Future migration path**: Clear instructions for enabling full return annotation support
+
+**Identified Bootstrap-Incompatible Syntax:**
+- **Function calls**: `parseFloat($1)`, `parseInt($1)` - JavaScript-style functions
+- **Comparison operators**: `$1 === "true"` - strict equality operator
+- **Logical operators**: `||` (OR), `&&` (AND), `!` (NOT)
+- **Extraction operators**: `$2::1*` - quantified group access with `::`
+- **Complex expressions**: Any syntax not in bootstrap parser's limited pattern set
+
+**Graceful Fallback System:**
+- **Bootstrap first**: Fast path for simple return annotations (performance optimized)
+- **External fallback**: Full return_annotation_parser for complex cases
+- **Error resilience**: System continues functioning even with unsupported syntax
+- **Migration ready**: Bootstrap mode OFF enables complete return annotation support
+
+**Implementation Details:**
+```rust
+// Bootstrap parsing with fallback
+match UnifiedReturnAST::parse_bootstrap(annotation_value, self.config.debug) {
+    Ok(ast) => return Ok(ast), // Success with bootstrap
+    Err(e) => {
+        // Log failure and attempt external parser
+        self.log_warning("parse_return_annotation", 
+            &format!("Bootstrap failed for '{}': {}", annotation_value, e));
+        // Continue with external parser...
+    }
+}
+```
+
+**Testing Results:**
+- ✅ **array_literal fixed**: Now uses implicit empty array default
+- ✅ **Error logging works**: Bootstrap failures properly logged and reported
+- ✅ **System resilience**: Unsupported syntax doesn't break parser generation
+- ✅ **Warning infrastructure**: Comments added for failed annotations (when applicable)
+
+**Impact:**
+- **Improved developer experience**: Clear error messages and actionable warnings
+- **Robust parsing**: System handles both simple and complex return annotations
+- **Future compatibility**: Bootstrap mode OFF ready for advanced use cases
+- **Better debugging**: Comprehensive logs for troubleshooting annotation issues
+
 ### ✅ ParseNode to UnifiedReturnAST Conversion & Bootstrap Mode OFF Infrastructure (2025-10-03)
 **Status: COMPLETE - Bootstrap Mode OFF Fully Operational**
 

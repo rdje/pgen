@@ -893,10 +893,25 @@ impl AstBasedGenerator {
         rule_name: &str,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
+        eprintln!("DEBUG: generate_return_transform called for rule '{}', parsed_ast is {}", 
+                  rule_name, if annotation.parsed_ast.is_some() { "Some" } else { "None" });
+        
         if let Some(ref ast) = annotation.parsed_ast {
             AstReturnTransformer::generate_transform(ast, captured_vars, rule_name)
         } else {
-            Ok(quote! { result })
+            // Return annotation parsing failed - add comment explaining why
+            let comment = format!(
+                "/* WARNING: Return annotation '{}' for rule '{}' failed to parse.\n   \
+                 This may be due to complex syntax not supported by bootstrap parser.\n   \
+                 Enable bootstrap=false to use full external parser.\n   \
+                 Raw annotation: {} */",
+                annotation.annotation_content, rule_name, annotation.annotation_content
+            );
+            eprintln!("DEBUG: Adding warning comment for rule '{}' with annotation '{}'", rule_name, annotation.annotation_content);
+            Ok(quote! {
+                #comment
+                result
+            })
         }
     }
     
