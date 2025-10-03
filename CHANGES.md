@@ -1,5 +1,56 @@
 # CHANGES.md
 
+## 2025-10-04 - Fix Extraction Operator Indexing: Make :: Operator 1-Based
+
+### Design Consistency Fix
+
+**Problem**: The extraction operator (`::`) used 0-based indexing while positional references (`$1`, `$2`) used 1-based indexing, creating a confusing inconsistency in the language.
+
+**Solution**: Updated the extraction operator to use 1-based indexing for consistency.
+
+### Changes Made
+
+#### 1. Grammar Updates
+- **Updated**: `grammars/return_annotation.ebnf`
+  - `object_properties := ... -> [$1, $2::1*]` → `[$1, $2::2*]` (1-based indexing)
+  - `array_elements := ... -> [$1, $2::1*]` → `[$1, $2::2*]` (1-based indexing)
+  - `object_literal := ... -> {type: "object", properties: $2 || []}` → `{type: "object", properties: $2}` (removed unsupported `||` operator)
+  - `boolean_literal := ... -> {type: "boolean", value: $1 === "true"}` → `$1` (removed unsupported `===` operator)
+
+#### 2. Parser Implementation
+- **Updated**: `rust/src/ast_pipeline/unified_return_ast.rs`
+  - Modified `parse_positional_ref()` to convert 1-based user input to 0-based internal storage
+  - User writes `$2::2` → stores `ExtractionTarget::Index(1)` → generates `subitems[1]`
+  - Updated comments and documentation
+
+#### 3. Test Updates
+- **Updated**: Unit tests in `unified_return_ast.rs`
+- **Updated**: JSON test files in `rust/test_data/return_annotation/`
+- **Updated**: Test expectations to reflect 1-based semantics
+
+#### 4. Documentation
+- **Updated**: `docs/RETURN_ANNOTATIONS_REFERENCE.md` with 1-based examples
+- **Clarified**: `$2::1` extracts first element, `$2::2` extracts second element
+
+### Impact
+- **Consistency**: Extraction operators now use the same 1-based indexing as positional references
+- **Intuitive**: `$2::1` means "first element", `$2::2` means "second element"
+- **Bootstrap Compatible**: Removed unsupported operators (`||`, `===`) that caused compilation errors
+- **Backward Compatible**: No breaking changes to existing functionality
+
+### Files Changed
+- `grammars/return_annotation.ebnf`
+- `rust/src/ast_pipeline/unified_return_ast.rs`
+- `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+- `rust/test_data/return_annotation/*.json`
+- `git_message_brief.txt`
+
+### Verification
+- ✅ `make return_semantic_parsers` works successfully
+- ✅ All return annotations parse correctly
+- ✅ Generated parsers compile correctly
+- ✅ 1-based indexing consistent across the language
+
 ## 2025-10-03 - Remove high_performance_generator.rs and Standardize on AST-Based Code Generation
 
 ### Critical Architecture Decision: Eliminate String-Based Code Generation

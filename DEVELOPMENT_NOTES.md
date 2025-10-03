@@ -1,5 +1,112 @@
 # DEVELOPMENT_NOTES.md
 
+## 2025-10-04 - 1-Based Extraction Operator Implementation
+
+### Language Design Consistency Fix
+
+**Issue Identified**: The extraction operator (`::`) used 0-based indexing while positional references (`$1`, `$2`) used 1-based indexing, creating cognitive dissonance for users.
+
+**Root Cause**: Historical implementation used 0-based array indexing internally, but this created an inconsistent user experience.
+
+### Implementation Details
+
+#### 1. Grammar Updates
+**File**: `grammars/return_annotation.ebnf`
+
+For quantified groups like `(',' object_property)*`, each repetition contains 2 elements:
+- Index 0: comma `','`
+- Index 1: object_property
+
+**Before** (0-based extraction + unsupported operators):
+```ebnf
+object_properties := object_property (',' object_property)* -> [$1, $2::1*]
+object_literal := '{' object_properties? '}' -> {type: "object", properties: $2 || []}
+boolean_literal := 'true' | 'false' -> {type: "boolean", value: $1 === "true"}
+```
+
+**After** (1-based extraction + bootstrap compatible):
+```ebnf
+object_properties := object_property (',' object_property)* -> [$1, $2::2*]
+object_literal := '{' object_properties? '}' -> {type: "object", properties: $2}
+boolean_literal := 'true' | 'false' -> $1
+```
+
+#### 2. Parser Implementation
+**File**: `rust/src/ast_pipeline/unified_return_ast.rs`
+
+**Conversion Logic**:
+- User writes: `$2::2` (meaning "second element")
+- Parser converts: `2 - 1 = 1` → `ExtractionTarget::Index(1)`
+- Code generation: `subitems[1]` (accesses array index 1)
+
+**Key Changes**:
+```rust
+match s.parse::<usize>() {
+    Ok(user_idx) => {
+        if user_idx == 0 {
+            return Err(format!("Extraction index must be 1 or greater, got 0"));
+        }
+        ExtractionTarget::Index(user_idx - 1)  // Convert 1-based to 0-based
+    }
+    // ...
+}
+```
+
+#### 3. Test Updates
+**Files**: 
+- `rust/src/ast_pipeline/unified_return_ast.rs` (unit tests)
+- `rust/test_data/return_annotation/*.json` (integration tests)
+
+**Example Test Change**:
+```rust
+// Before: $2::2 meant extract index 2 (0-based)
+assert_eq!(target, ExtractionTarget::Index(2));
+
+// After: $2::2 means extract index 1 (0-based storage)
+assert_eq!(target, ExtractionTarget::Index(1));
+```
+
+#### 4. Documentation Updates
+**File**: `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+
+**Before**:
+- `$2::2` - Extract element at index 2 from each repetition
+
+**After**:
+- `$2::1` - Extract first element from each repetition (array index 0)
+- `$2::2` - Extract second element from each repetition (array index 1)
+
+### Technical Rationale
+
+#### Why 1-Based for User Experience
+1. **Consistency**: Matches positional references (`$1`, `$2`)
+2. **Intuitive**: `$2::1` naturally means "first element"
+3. **Domain Language**: Programming languages use 0-based arrays, but domain-specific languages can choose more intuitive indexing
+
+#### Internal 0-Based Storage
+- **Performance**: Rust arrays are 0-based
+- **Safety**: Direct array access without offset calculations
+- **Compatibility**: No changes needed to code generation logic
+
+### Verification Results
+- ✅ Grammar parsing: All return annotations parse successfully
+- ✅ Code generation: Generated parsers compile correctly
+- ✅ Make system: `make return_semantic_parsers` works
+- ✅ Test suite: All relevant tests updated and passing
+- ✅ Documentation: Consistent 1-based examples throughout
+
+### Impact on Existing Code
+- **Breaking Change**: Any existing grammars using `::0`, `::1`, etc. need updating
+- **Bootstrap Compatibility**: Removed unsupported operators that caused parser generation failures
+- **Migration Path**: Clear pattern - add 1 to existing extraction indices
+- **Future Proof**: Consistent indexing system prevents similar issues
+
+### Lessons Learned
+1. **Language Design**: User experience should prioritize consistency over implementation details
+2. **Domain Languages**: Can choose indexing schemes that match user expectations
+3. **Migration Planning**: Consider impact on existing code when changing fundamental language features
+4. **Documentation**: Keep examples and documentation synchronized with implementation
+
 ## 2025-10-03 - Architecture Decision: Remove high_performance_generator.rs
 
 ### Context and Rationale

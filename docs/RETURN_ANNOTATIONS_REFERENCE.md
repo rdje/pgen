@@ -238,7 +238,7 @@ Use the double colon operator (`::`) to extract specific elements from quantifie
 
 ```ebnf
 # Extract element at index 2 from each repetition
-index_list := index (',' /\s*/ index)* -> [$1, $2::2*]
+index_list := index (',' /\s*/ index)* -> [$1, $2::3*]
 
 # Without spreading (keeps as nested array)
 index_list := index (',' /\s*/ index)* -> [$1, $2::2]
@@ -249,16 +249,17 @@ items := item (sep meta data)* -> [$1, $2::last*]
 
 #### How It Works
 
-- `$2::2` - Extract element at index 2 from each repetition of $2
-- `$2::2*` - Extract and spread those elements into the parent array
+- `$2::1` - Extract first element from each repetition (array index 0)
+- `$2::2` - Extract second element from each repetition (array index 1)
+- `$2::1*` - Extract first element and spread into parent array
 - `$2::first` - Extract first element from each repetition
 - `$2::last` - Extract last element from each repetition
 
 ### Extraction Examples
 
 ```ebnf
-# Extract third element (index 2) from each repetition
-list := item (',' /\s*/ item)* -> [$1, $2::2*]
+# Extract fourth element (the second index) from each repetition
+list := item (',' /\s*/ item)* -> [$1, $2::4*]
 # Input: "a, b, c, d"
 # Result: ["a", "b", "c", "d"]
 
@@ -268,9 +269,8 @@ grouped := item (',' item)* -> [$1, $2::1]
 # Result: ["a", [",", ","]]
 
 # Extract from complex patterns
-params := param (',' /\s*/ param ':' type)* -> {
-    params: [$1, $2::2*],
-    types: [$2::4*]
+params := param (',' param)* -> {
+    params: [$1, $2::2*]  # Extract second element (param) from each repetition
 }
 ```
 
@@ -293,7 +293,7 @@ list := first rest* -> [$1, $2*]
 node := type value -> {type: $1, value: $2}
 
 # Basic extraction with double colon operator
-indices := num (',' num)* -> [$1, $2::1*]
+indices := num (',' num)* -> [$1, $2::2*]
 
 # String literals
 constant := anything -> "fixed_value"

@@ -15,7 +15,7 @@ use std::fmt;
 /// Extraction target for quantified groups
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ExtractionTarget {
-    /// Extract by index (0-based): $2::2
+    /// Extract by index (1-based): $2::2 means second element (array index 1)
     Index(usize),
     /// Extract first element: $2::first
     First,
@@ -206,9 +206,14 @@ impl UnifiedReturnAST {
                 "first" => ExtractionTarget::First,
                 "last" => ExtractionTarget::Last,
                 s => {
-                    // Try to parse as index
+                    // Try to parse as index (1-based, convert to 0-based for internal use)
                     match s.parse::<usize>() {
-                        Ok(idx) => ExtractionTarget::Index(idx),
+                        Ok(user_idx) => {
+                            if user_idx == 0 {
+                                return Err(format!("Extraction index must be 1 or greater, got 0"));
+                            }
+                            ExtractionTarget::Index(user_idx - 1)  // Convert 1-based to 0-based
+                        }
                         Err(_) => return Err(format!("Invalid extraction target: '{}'", s)),
                     }
                 }
@@ -752,12 +757,12 @@ mod tests {
     
     #[test]
     fn test_parse_extraction_operators() {
-        // Test $2::2
+        // Test $2::2 (should extract second element, stored as index 1)
         let ast = UnifiedReturnAST::parse_bootstrap("$2::2", false).unwrap();
         match ast {
             UnifiedReturnAST::QuantifiedExtraction { base, target } => {
                 assert!(matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
-                assert_eq!(target, ExtractionTarget::Index(2));
+                assert_eq!(target, ExtractionTarget::Index(1));  // 2-1 = 1 (0-based)
             }
             _ => panic!("Expected QuantifiedExtraction"),
         }
@@ -782,14 +787,14 @@ mod tests {
             _ => panic!("Expected QuantifiedExtraction"),
         }
         
-        // Test $2::1* (extraction with spread)
+        // Test $2::1* (extraction with spread, should extract first element at index 0)
         let ast = UnifiedReturnAST::parse_bootstrap("$2::1*", false).unwrap();
         match ast {
             UnifiedReturnAST::Spread { base } => {
                 match base.as_ref() {
                     UnifiedReturnAST::QuantifiedExtraction { base: inner_base, target } => {
                         assert!(matches!(inner_base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
-                        assert_eq!(*target, ExtractionTarget::Index(1));
+                        assert_eq!(*target, ExtractionTarget::Index(0));  // 1-1 = 0 (0-based)
                     }
                     _ => panic!("Expected QuantifiedExtraction inside Spread"),
                 }

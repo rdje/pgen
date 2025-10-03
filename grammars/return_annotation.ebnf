@@ -123,7 +123,7 @@ integer := /[-+]?[0-9]+/
 
 # Boolean literals
 boolean_literal := 'true' | 'false'
--> {type: "boolean", value: $1 === "true"}
+-> $1
 
 # Identifiers for properties
 identifier := /[a-zA-Z_][a-zA-Z0-9_]*/
@@ -135,11 +135,11 @@ identifier := /[a-zA-Z_][a-zA-Z0-9_]*/
 
 # Object literal: {}, {key: value}, {a: $1, b: $2}
 object_literal := '{' object_properties? '}'
--> {type: "object", properties: $2 || []}
+-> {type: "object", properties: $2}
 
 # Object properties (comma-separated)
 object_properties := object_property (',' object_property)*
--> [$1, ...$2::1*]
+-> [$1, $2::2*]
 
 # Single property: key: value
 object_property := property_key ':' expression
@@ -159,7 +159,7 @@ array_literal := '[' array_elements? ']'
 
 # Array elements (comma-separated)
 array_elements := array_element (',' array_element)*
--> [$1, ...$2::1*]
+-> [$1, $2::2*]
 
 # Single array element (may be spread)
 array_element := expression
