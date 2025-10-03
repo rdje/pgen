@@ -182,10 +182,10 @@ LX {
 -> comment
 
 grammar_rule: /(?m)^\s*[[:alpha:]_]\w*\s*:{,2}=/  I {return ["rule", ($IMATCH =~ /([[:alpha:]_]\w*)/o)[0]]}
-rule_name: /[[:alpha:]_]\w*/          I {return ["rule_reference", $IMATCH]}
+rule_name: /\b[[:alpha:]_]\w*/                    I {return ["rule_reference", $IMATCH]}
 
-quoted_string: /"[^"]*"|'[^']*'/    I {$IMATCH =~ s/'|"//g; return ["quoted_string", $IMATCH]}
-number: /\d+/                       I {return ["number", $IMATCH]}
+quoted_string: /"[^"]*"|'[^']*'/    I {$IMATCH =~ s/^(?:'|")|(?:'|")$//g; return ["quoted_string", $IMATCH]}
+number: /\b\d+\b/                   I {return ["number", $IMATCH]}
 quantifier: /\{\s*(?:\d+(?:\s*,\s*\d*)?|,\s*\d+)\s*\}/  I {$IMATCH =~ s/\{|\}//go; return ["quantifier", $IMATCH]}
 pipe_operator: /\|/                 I {return ["operator", $IMATCH]}
 plus_operator: /\+/                 I {return ["operator", $IMATCH]}

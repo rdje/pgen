@@ -1,5 +1,26 @@
 # CHANGES.md
 
+## 2025-10-03 - Core EBNF Parser Fixes: Comments, Semantic Annotations & Bootstrap System
+
+### Issue #1: EBNF Parser Comment Handling
+- **Root Cause**: EBNF parser incorrectly included comment text in token stream as rule references
+- **Solution**: Updated `fx/specs/ebnf.spec` with proper word boundaries (`\b`) and improved token matching
+- **Files Changed**: `fx/specs/ebnf.spec`, `grammars/regex.ebnf` (minor quote syntax cleanup)
+- **Impact**: Comments are now properly ignored during parsing, preventing false rule references
+
+### Issue #2: Semantic Annotation Processing
+- **Root Cause**: AST pipeline attempted to parse semantic annotations as grammar rules instead of metadata
+- **Solution**: Modified AST pipeline to store semantic annotations as raw metadata strings
+- **Files Changed**: `rust/src/ast_pipeline.rs` (annotation extraction logic)
+- **Impact**: Semantic annotations preserved for data generation, not processed as code
+
+### Issue #3: Bootstrap System Implementation
+- **Root Cause**: Bootstrap mode was hardcoded to always be enabled, preventing use of generated annotation parsers
+- **Solution**: Implemented proper bootstrap detection based on existence of generated parser files
+- **Files Changed**: `rust/src/ast_pipeline.rs` (bootstrap mode detection logic)
+- **Impact**: Bootstrap mode correctly used only for annotation parser generation, full pipeline uses generated parsers
+
+## 2025-10-03 - Return Annotation Parsing Fixes & Error Reporting
 ## 2025-10-03 - Return Annotation Parsing Fixes & Error Reporting
 
 ### Bootstrap Parser Compatibility Fixes

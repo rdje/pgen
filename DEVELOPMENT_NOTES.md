@@ -1,8 +1,39 @@
 # PGEN Development Notes - Technical Knowledge Base
 ## Project Overview
 PGEN is a sophisticated regex parser generator pipeline that converts EBNF grammars into high-performance Rust parsers with advanced semantic annotation support.
+# PGEN Development Notes - Technical Knowledge Base
+## Project Overview
+PGEN is a sophisticated regex parser generator pipeline that converts EBNF grammars into high-performance Rust parsers with advanced semantic annotation support.
 
 ## Major Milestones Completed
+
+### ✅ Core EBNF Parser Issues #1, #2, #3 Resolution (2025-10-03)
+**Status: COMPLETE - Foundation Solidified**
+
+#### Issue #1: EBNF Parser Comment Handling
+**Problem**: Comments interleaved with rule definitions were parsed as grammar rules, causing false references like `"participate"`, `"balancing"`, `"don't"`.
+**Root Cause**: Token matching in `ebnf.spec` lacked word boundaries, allowing partial matches within comments.
+**Solution**: Added `\b` word boundaries to `rule_name` and `number` patterns, improved quote handling.
+**Files**: `fx/specs/ebnf.spec` (token definitions), `grammars/regex.ebnf` (syntax cleanup).
+**Impact**: Comments now properly ignored, grammar parsing clean and accurate.
+
+#### Issue #2: Semantic Annotation Misinterpretation
+**Problem**: AST pipeline attempted to parse semantic annotations as grammar rules instead of metadata.
+**Root Cause**: Annotation processing logic treated all annotations as code to generate.
+**Solution**: Modified annotation extraction to store semantic annotations as raw strings for data generation.
+**Files**: `rust/src/ast_pipeline.rs` (annotation processing logic).
+**Impact**: Clear separation between code generation (return annotations) and data generation (semantic annotations).
+
+#### Issue #3: Bootstrap System Malfunction
+**Problem**: Bootstrap mode hardcoded to always enabled, preventing use of generated annotation parsers.
+**Root Cause**: `external_parsers_available()` always returned `false`, forcing bootstrap mode.
+**Solution**: Implemented proper detection based on existence of `generated/*_annotation_parser.rs` files.
+**Files**: `rust/src/ast_pipeline.rs` (bootstrap mode detection).
+**Impact**: Bootstrap system now works as designed - bootstrap for annotation parsers, full pipeline for regular grammars.
+
+**Technical Achievement**: Fixed the core parsing foundation while maintaining full backward compatibility.
+
+### ✅ AST-Based Generator Pretty Printing & UnifiedReturnAST Integration (2025-10-02)
 
 ### ✅ AST-Based Generator Pretty Printing & UnifiedReturnAST Integration (2025-10-02)
 **Status: COMPLETE - Critical Infrastructure Fixed**
