@@ -967,6 +967,11 @@ impl AstBasedGenerator {
             })
         }
     }
+    /// Utility function to unparse a ParseNode back to text for round-trip testing
+    pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {
+        format!("{:?}", node.content)
+    }
+
     
     fn generate_helper_methods(&self) -> TokenStream {
         quote! {

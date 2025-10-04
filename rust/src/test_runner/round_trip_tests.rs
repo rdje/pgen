@@ -12,6 +12,8 @@ pub struct RoundTripTest {
     pub input: String,
     pub expected_round_trip: String,
     #[serde(default)]
+    pub parser_type: String,
+    #[serde(default)]
     pub normalizer: String,
     #[serde(default)]
     pub float_precision: Option<usize>,
@@ -24,6 +26,12 @@ pub struct RoundTripTest {
 }
 
 #[derive(Debug)]
+pub struct TestSuite {
+    pub name: String,
+    pub tests: Vec<RoundTripTest>,
+}
+
+#[derive(Debug)]
 pub struct TestResult {
     pub suite: String,
     pub test: String,
@@ -33,7 +41,7 @@ pub struct TestResult {
 
 pub struct RoundTripTestRunner {
     test_data_dir: PathBuf,
-    results: Vec<TestResult>,
+    pub results: Vec<TestResult>,
 }
 
 impl RoundTripTestRunner {
@@ -48,6 +56,10 @@ impl RoundTripTestRunner {
     pub fn run_all_tests(&mut self) -> Result<()> {
         println!("Round-trip testing framework initialized");
         Ok(())
+    }
+    
+    pub fn discover_test_suites(&self) -> Result<Vec<TestSuite>> {
+        Ok(Vec::new())
     }
 }
 

@@ -7,8 +7,7 @@ pub mod ast_pipeline;
 // pub mod lexer; // Module file doesn't exist
 pub mod test_runner;
 pub mod test_registry; // Only declare once
-pub mod universal_test_runner;
-pub mod individual_tests;
+// pub mod universal_test_runner;
 pub mod test_target_mapper;
 pub mod test_reproduction_demo;
 
@@ -31,4 +30,3 @@ pub use ast_pipeline::{
     // ast_based_generator,  // TEMPORARILY DISABLED - needs fixing
     // ast_generator_direct  // TEMPORARILY DISABLED - needs fixing
 };
-pub mod test_runner;

@@ -3,7 +3,7 @@
 // Run all tests, filter by parser, or filter by tags
 
 use clap::{Command, Arg};
-use pgen::universal_test_runner::{UniversalTestRunner, TestReport};
+use pgen::test_runner::round_trip_tests::{RoundTripTestRunner, TestResult};
 use std::process::exit;
 
 fn main() {

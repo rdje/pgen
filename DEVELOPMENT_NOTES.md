@@ -105,7 +105,7 @@ enum Normalizer {
 - **Advanced Normalizers**: Regex-based, custom transformation normalizers
 
 #### **FILES MODIFIED**
-- `rust/src/test_runner/return_annotation_tests.rs` - Round-trip test framework
+- `rust/src/test_runner/round_trip_tests.rs` - Round-trip test framework
 - `rust/src/test_runner/normalization.rs` - Pluggable normalization system
 - `rust/src/ast_pipeline/ast_based_generator.rs` - Enhanced unparsing
 - `rust/src/bin/test_runner.rs` - Round-trip validation logic

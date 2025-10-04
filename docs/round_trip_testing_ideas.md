@@ -237,7 +237,7 @@ fn mock_parse(input: &str) -> Result<AST, String> {
 
 ## Key Files Created
 
-- `return_annotation_tests.rs` - Basic parser validation tests
+- `round_trip_tests.rs` - Basic parser validation tests
 - `round_trip_tests.rs` - Round-trip testing framework
 - `test_data/return_annotations/*.txt` - Test cases aligned with grammar
 - `Cargo.toml` - Updated with test target configuration
