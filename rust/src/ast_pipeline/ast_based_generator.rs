@@ -489,7 +489,6 @@ impl AstBasedGenerator {
                     }
                     
                     // Main parsing logic - produces the 'result' variable
-                    let result: ParseContent<'input>;
                     #parse_logic;
                     
                     let end_pos = parser.position;

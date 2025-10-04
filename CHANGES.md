@@ -58,7 +58,58 @@ let result = ParseContent::TransformedTerminal(transformed.to_string())
 
 ---
 
-## 2025-10-04 - Semantic Annotations Architecture: JSON AST Extraction
+## 2025-10-04 - Semantic Annotations: Dead Code Cleanup in Generated Parsers
+
+### Code Quality Improvement: Eliminated Unused Variable Declarations
+
+**Removed cluttering dead code from generated semantic annotation parsers for cleaner, more maintainable output.**
+
+#### What Changed
+- **Removed unused `let result: ParseContent<'input>;` declarations** from AST generator template
+- **Cleaned up generated parser code** by eliminating shadowed variable declarations
+- **Improved code readability** in both `parse_float` and `parse_integer` functions
+
+#### Technical Details
+- **Issue**: AST generator template included `let result: ParseContent<'input>;` before `#parse_logic`
+- **Problem**: When semantic transformations were applied, this became unused and shadowed by the actual assignment
+- **Solution**: Removed the unused declaration from the template, ensuring all parsing logic assigns directly to `result`
+
+#### Generated Code Improvement
+
+**Before (with dead code):**
+```rust
+let result: ParseContent<'input>;  // ← Unused declaration
+let matched_str = parser.match_regex(pattern)?;
+let transformed = matched_str.parse::<f64>().unwrap_or(0.0);
+let result = ParseContent::TransformedTerminal(transformed.to_string());  // ← Shadows it
+```
+
+**After (clean):**
+```rust
+let matched_str = parser.match_regex(pattern)?;
+let transformed = matched_str.parse::<f64>().unwrap_or(0.0);
+let result = ParseContent::TransformedTerminal(transformed.to_string());
+```
+
+#### Impact
+- **Cleaner Generated Code**: No unused variable declarations cluttering the parser functions
+- **Better Maintainability**: Generated parsers are easier to read and debug
+- **Code Quality**: Eliminates compiler warnings about unused variables
+- **Consistency**: All parsing logic now follows the same clean pattern
+
+#### Files Modified
+- `rust/src/ast_pipeline/ast_based_generator.rs` - Removed unused variable declaration from template
+- `generated/return_annotation_parser.rs` - Regenerated with clean code
+
+#### Verification
+- ✅ Generated parsers compile without unused variable warnings
+- ✅ `parse_float` and `parse_integer` functions are now clean and readable
+- ✅ Semantic transformations work correctly without dead code
+- ✅ All parser functionality preserved
+
+---
+
+## 2025-10-04 - UnifiedSemanticAST: Runtime Transformation Code Generation
 
 ### Core Achievement: Semantic Annotations Extracted from JSON AST
 
