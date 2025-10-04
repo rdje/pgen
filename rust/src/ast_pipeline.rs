@@ -43,6 +43,8 @@ mod return_annotation_handler;
 use return_annotation_handler::{ReturnAnnotationHandler, ReturnAnnotationMode};
 pub mod unified_return_ast;
 use unified_return_ast::UnifiedReturnAST;
+pub mod unified_semantic_ast;
+use unified_semantic_ast::UnifiedSemanticAST;
 
 // AST-based generator - Using syn/quote for guaranteed syntax correctness
 pub mod ast_based_generator;
@@ -164,7 +166,7 @@ pub struct ReturnAnnotation {
 /// Preserved annotations from raw AST
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Annotations {
-    pub semantic_annotations: HashMap<String, Vec<String>>,
+    pub semantic_annotations: HashMap<String, Vec<UnifiedSemanticAST>>,
     pub logging_annotations: HashMap<String, Vec<String>>,
     /// Branch-level return annotations: rule_name -> Vec[branch_index] -> Option<annotation>
     /// Each alternative/branch can have its own return annotation
@@ -1227,14 +1229,16 @@ impl RustASTPipeline {
                                         match token_type.as_str() {
                                             "semantic_annotation" => {
                                                 self.log_info("extract_annotations", &format!("🏷️  Parsing semantic annotation: '{}' = '{}' for rule '{}'", annotation_name_str, annotation_value_str, name));
-                                                // Use the semantic annotation parser for semantic annotations
-                                                let parsed_value = self.parse_semantic_annotation(&annotation_value_str)
-                                                    .unwrap_or_else(|_| format!("raw:{}", annotation_value_str));
-                                                let formatted_annotation = format!("{}:{}", annotation_name_str, parsed_value);
+                                                // Parse semantic annotation into UnifiedSemanticAST
+                                                let parsed_ast = UnifiedSemanticAST::parse_bootstrap(&annotation_value_str, self.config.debug)
+                                                    .unwrap_or_else(|e| {
+                                                        self.log_warning("extract_annotations", &format!("Failed to parse semantic annotation '{}': {}", annotation_value_str, e));
+                                                        UnifiedSemanticAST::Raw { content: annotation_value_str.clone() }
+                                                    });
                                                 self.annotations.semantic_annotations
                                                     .entry(name.clone())
                                                     .or_insert_with(Vec::new)
-                                                    .push(formatted_annotation);
+                                                    .push(parsed_ast);
                                                 self.log_success("extract_annotations", &format!("Semantic annotation processed: '{}'", annotation_name_str));
                                             }
                                             "logging_annotation" => {
@@ -1259,18 +1263,22 @@ impl RustASTPipeline {
                                             // Still try to parse string format semantic annotations
                                             if let TokenValue::String(value_str) = &token[1] {
                                                 self.log_info("extract_annotations", &format!("🔄 Fallback: Parsing string format semantic annotation for rule '{}'", name));
-                                                let parsed_value = self.parse_semantic_annotation(value_str)
-                                                    .unwrap_or_else(|_| format!("raw:{}", value_str));
+                                                let parsed_ast = UnifiedSemanticAST::parse_bootstrap(value_str, self.config.debug)
+                                                    .unwrap_or_else(|e| {
+                                                        self.log_warning("extract_annotations", &format!("Failed to parse fallback semantic annotation '{}': {}", value_str, e));
+                                                        UnifiedSemanticAST::Raw { content: value_str.clone() }
+                                                    });
                                                 self.annotations.semantic_annotations
                                                     .entry(name.clone())
                                                     .or_insert_with(Vec::new)
-                                                    .push(parsed_value);
+                                                    .push(parsed_ast);
                                             } else {
                                                 self.log_warning("extract_annotations", &format!("Storing raw semantic annotation for rule '{}'", name));
+                                                let raw_content = format!("raw:{:?}", token[1]);
                                                 self.annotations.semantic_annotations
                                                     .entry(name.clone())
                                                     .or_insert_with(Vec::new)
-                                                    .push(format!("raw:{:?}", token[1]));
+                                                    .push(UnifiedSemanticAST::Raw { content: raw_content });
                                             }
                                         }
                                         "logging_annotation" => {
@@ -1837,7 +1845,7 @@ impl RustASTPipeline {
     
     /// Get semantic annotations for a specific rule
     #[allow(dead_code)]
-    pub fn get_semantic_annotations(&self, rule_name: &str) -> Option<&Vec<String>> {
+    pub fn get_semantic_annotations(&self, rule_name: &str) -> Option<&Vec<UnifiedSemanticAST>> {
         self.annotations.semantic_annotations.get(rule_name)
     }
     

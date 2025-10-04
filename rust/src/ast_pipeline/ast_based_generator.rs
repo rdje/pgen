@@ -8,7 +8,7 @@ use proc_macro2::TokenStream;
 use std::collections::HashMap;
 use anyhow::Result;
 use prettyplease;
-use crate::ast_pipeline::{ASTNode, ASTValue, Annotations};
+use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, UnifiedSemanticAST};
 use crate::ast_pipeline::ast_return_transform::AstReturnTransformer;
 
 /// AST-based generator that produces guaranteed syntactically correct Rust code
@@ -160,6 +160,7 @@ impl AstBasedGenerator {
             #[derive(Debug, Clone, PartialEq)]
             pub enum ParseContent<'input> {
                 Terminal(&'input str),
+                TransformedTerminal(String),  // owned string for semantically transformed values
                 Sequence(Vec<ParseNode<'input>>),
                 Alternative(Box<ParseNode<'input>>),
                 Quantified(Vec<ParseNode<'input>>, &'static str),
@@ -732,6 +733,59 @@ impl AstBasedGenerator {
                         })
                     }
                     "regex" => {
+                        // Check for semantic annotations that should transform the matched string
+                        if let Some(annotations) = &self.annotations {
+                            if let Some(semantic_asts) = annotations.semantic_annotations.get(rule_name) {
+                                for ast in semantic_asts {
+                                    if let UnifiedSemanticAST::TransformExpr { expression } = ast {
+                                        // Parse transform expressions like "str::parse::<f64>().unwrap_or(0.0)"
+                                        if expression.starts_with("str::parse::<") && expression.contains(">().unwrap_or(") {
+                                            if let Some(type_end) = expression.find(">().unwrap_or(") {
+                                                let type_str = &expression["str::parse::<".len()..type_end];
+                                                let default_start = type_end + ">().unwrap_or(".len();
+                                                let default_end = expression.len() - 1; // remove closing )
+                                                let default_str = &expression[default_start..default_end];
+                                                
+                                                let type_ident = format_ident!("{}", type_str);
+                                                let default_expr: syn::Expr = syn::parse_str(default_str).unwrap_or(syn::parse_str("0").unwrap());
+                                                
+                                                // Generate transformation code
+                                                if self.enable_debug {
+                                                    return Ok(quote! {
+                                                        let matched_str = parser.match_regex(#token_value_str)?;
+                                                        let transformed = matched_str.parse::<#type_ident>().unwrap_or(#default_expr);
+                                                        parser.debug_output.push(format!("🎯 Applied semantic transform: parsed '{}' to {}={}", matched_str, stringify!(#type_ident), transformed));
+                                                        let result = ParseContent::TransformedTerminal(transformed.to_string())
+                                                    });
+                                                } else {
+                                                    return Ok(quote! {
+                                                        let matched_str = parser.match_regex(#token_value_str)?;
+                                                        let transformed = matched_str.parse::<#type_ident>().unwrap_or(#default_expr);
+                                                        let result = ParseContent::TransformedTerminal(transformed.to_string())
+                                                    });
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Fallback: treat as raw expression
+                                        if self.enable_debug {
+                                            return Ok(quote! {
+                                                let matched_str = parser.match_regex(#token_value_str)?;
+                                                parser.debug_output.push(format!("🎯 Applied semantic transform: raw expression '{}' to rule '{}': matched '{}'", #expression, #rule_name, matched_str));
+                                                let result = ParseContent::TransformedTerminal(#expression.to_string())
+                                            });
+                                        } else {
+                                            return Ok(quote! {
+                                                let matched_str = parser.match_regex(#token_value_str)?;
+                                                let result = ParseContent::TransformedTerminal(#expression.to_string())
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Default behavior: return matched string as terminal
                         Ok(quote! {
                             let result = ParseContent::Terminal(parser.match_regex(#token_value_str)?)
                         })

@@ -1,5 +1,63 @@
 # CHANGES.md
 
+## 2025-10-04 - UnifiedSemanticAST: Runtime Transformation Code Generation
+
+### Core Achievement: Semantic Annotations Execute Runtime Transformations
+
+**Successfully implemented complete semantic annotation system with runtime transformation code generation.**
+
+#### What Changed
+- **UnifiedSemanticAST**: Created unified AST representation for semantic annotations with bootstrap parsing
+- **Runtime Code Generation**: AST-based generator now generates actual transformation code that executes at runtime
+- **ParseContent Extension**: Added `TransformedTerminal(String)` variant for owned transformed strings
+- **Expression Parsing**: Implemented parsing of transform expressions like `"str::parse::<f64>().unwrap_or(0.0)"`
+- **Debug Enhancement**: Improved debug output to show actual transformation results instead of expression strings
+
+#### Technical Implementation
+- Created `unified_semantic_ast.rs` with `UnifiedSemanticAST` enum and bootstrap parsing
+- Extended `ParseContent` with `TransformedTerminal` for owned transformed values
+- Updated AST pipeline to extract and parse semantic annotations from JSON tokens
+- Modified AST-based generator to generate runtime transformation code with proper type handling
+- Enhanced debug output to display transformation results: `"🎯 Applied semantic transform: parsed '3.14' to f64=3.14"`
+
+#### Architecture Status
+- ✅ **AST Representation**: UnifiedSemanticAST provides consistent annotation handling
+- ✅ **Bootstrap Parsing**: Simple transform expressions parsed without external dependencies
+- ✅ **Runtime Execution**: Generated parsers actually apply transformations at runtime
+- ✅ **Type Safety**: Proper parsing of f64, i64, and other types with fallbacks
+- ✅ **Debug Output**: Informative debug messages showing input → output transformations
+
+#### Usage Examples
+```ebnf
+@transform: str::parse::<f64>().unwrap_or(0.0)
+float := /[-+]?[0-9]+\.[0-9]+(?:[eE][-+]?[0-9]+)?/
+```
+
+Generates runtime code:
+```rust
+let matched_str = parser.match_regex(pattern)?;
+let transformed = matched_str.parse::<f64>().unwrap_or(0.0);
+let result = ParseContent::TransformedTerminal(transformed.to_string())
+```
+
+#### Generated Parser Behavior
+- **Input**: `"3.14"`
+- **Matching**: Regex captures `"3.14"`
+- **Transformation**: `"3.14".parse::<f64>().unwrap_or(0.0)` → `3.14f64`
+- **Output**: `ParseContent::TransformedTerminal("3.14")`
+
+#### Build Commands
+- `cargo build --features bootstrap` - Bootstrap build with semantic annotations
+- `make return_annotation_parser` - Regenerates parsers with semantic transformations
+
+#### Files Modified
+- `rust/src/ast_pipeline/unified_semantic_ast.rs` - New unified AST for semantic annotations
+- `rust/src/ast_pipeline.rs` - Semantic annotation extraction and parsing
+- `rust/src/ast_pipeline/ast_based_generator.rs` - Runtime transformation code generation
+- `generated/return_annotation_parser.rs` - Regenerated with transformation logic
+
+---
+
 ## 2025-10-04 - Semantic Annotations Architecture: JSON AST Extraction
 
 ### Core Achievement: Semantic Annotations Extracted from JSON AST
