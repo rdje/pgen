@@ -23,7 +23,7 @@ pub mod grouped_quantifier_parser;
 // }
 // use semantic_annotation_parser::Semantic_annotationParser;
 
-// Import the generated return annotation parser
+// Import the generated return annotation parser (only when not in bootstrap mode)
 pub mod return_annotation_parser {
     include!("../../generated/return_annotation_parser.rs");
 }

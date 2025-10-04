@@ -356,7 +356,7 @@ impl AstBasedGenerator {
                 parser.debug_output.push(format!("Test: {}", test_name));
                 parser.debug_output.push(format!("Time: {}", timestamp));
                 parser.debug_output.push(format!("Input: {:?}", input));
-                parser.debug_output.push(format!("=".repeat(50)));
+                parser.debug_output.push("=".repeat(50));
                 parser.debug_output.push(String::new());
                 
                 parser

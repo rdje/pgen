@@ -59,11 +59,95 @@ rule_name := pattern -> return_annotation
 
 When no return annotation is specified, or when using branch alternatives, the default behavior is to pass through the entire matched content (implicit `-> $1`).
 
+**For regex patterns:**
 ```ebnf
 # These are equivalent:
-simple := "hello"
-simple := "hello" -> $1
+simple_token := /regex/
+simple_token := /regex/ -> $1
+
+# $1 returns the whole match or first capture group
 ```
+
+**For terminal alternatives:**
+```ebnf
+# These are equivalent:
+simple_choice := "option1" | "option2"
+simple_choice := ("option1" | "option2") -> $1
+
+# Both branches return their matched text
+```
+
+### Return Annotation Scoping Rules
+
+**CRITICAL**: Return annotations (`->`) attach to **branches**, not rules. Understanding this is essential for correct grammar writing.
+
+#### Branch-Level Attachment
+
+```ebnf
+# ❌ WRONG: Only the last branch (C) gets the annotation
+RULE := A | B | C -> annotation
+
+# ✅ CORRECT: All branches get the annotation  
+RULE := (A | B | C) -> annotation
+```
+
+#### Default Annotations
+
+**For terminal rules/simple patterns**: Each branch gets the default `-> $1` implicitly:
+```ebnf
+# These are ALL equivalent for terminals:
+RULE := "terminal1" | "terminal2"
+RULE := "terminal1" | "terminal2" -> $1
+RULE := ("terminal1" | "terminal2") -> $1
+
+# Regex patterns work the same way:
+RULE := /pattern1/ | /pattern2/
+RULE := /pattern1/ | /pattern2/ -> $1
+```
+
+**For complex sequences**: Each branch needs explicit annotation to specify collection behavior:
+```ebnf
+# Complex branches need explicit annotations:
+complex_rule := (A B C) -> [$1, $2, $3]     # Collect as array
+               | (X Y) -> {first: $1, second: $2}  # Collect as object
+               | Z -> $1                          # Simple passthrough
+```
+
+#### Per-Branch Annotations
+
+For different annotations per branch, specify them individually:
+
+```ebnf
+# Different behavior per branch
+RULE := A -> "branch_a"
+       | B -> {type: "branch_b", value: $1}  
+       | C -> [$1, $2, $3]
+```
+
+#### Common Mistakes
+
+```ebnf
+# ❌ Only C gets the annotation (A and B get default $1)
+RULE := A | B | C -> custom_annotation
+
+# ❌ Grouping branch with annotation is NOT supported
+RULE := A | B | (C -> annotation)
+
+# ✅ All branches get the same annotation
+RULE := (A | B | C) -> annotation
+
+# ✅ Only C gets the annotation (explicit)
+RULE := A | B | C -> annotation
+
+# ✅ Terminal rules work without any annotations (implicit -> $1)
+RULE := "terminal1" | "terminal2"
+```
+
+#### When Parentheses Are Needed
+
+- **Multiple branches with same annotation**: Use `(A | B | C) -> annotation`
+- **Complex sequences**: Use explicit annotations to control collection behavior
+- **Terminal alternatives**: Parentheses optional when using default `-> $1`
 
 ---
 
