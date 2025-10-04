@@ -31,3 +31,4 @@ pub use ast_pipeline::{
     // ast_based_generator,  // TEMPORARILY DISABLED - needs fixing
     // ast_generator_direct  // TEMPORARILY DISABLED - needs fixing
 };
+pub mod test_runner;

@@ -7,16 +7,17 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use anyhow::{Result, Context};
 use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST;
+use crate::test_runner::normalization::{Normalizer, apply_normalizer};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TestSuite {
-    pub test_suite: String,
+    pub name: String,
     pub description: String,
-    pub tests: Vec<TestCase>,
+    pub tests: Vec<RoundTripTest>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct TestCase {
+pub struct RoundTripTest {
     pub name: String,
     pub input: String,
     pub expected_ast: Option<serde_json::Value>,
@@ -50,12 +51,6 @@ impl ReturnAnnotationTestRunner {
     /// Load all test suites from JSON files
     pub fn load_test_suites(&self) -> Result<Vec<TestSuite>> {
         let mut suites = Vec::new();
-        
-        if !self.test_data_dir.exists() {
-            println!("Creating test data directory: {:?}", self.test_data_dir);
-            fs::create_dir_all(&self.test_data_dir)?;
-        }
-
         for entry in fs::read_dir(&self.test_data_dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -71,12 +66,35 @@ impl ReturnAnnotationTestRunner {
             }
         }
         
+//         if !self.test_data_dir.exists() {
+//             if path.extension().and_then(|s| s.to_str()) == Some("json") {
+//                 println!("Processing JSON file: {:?}", path);
+//                 println!("Found JSON file: {:?}", path);
+//                 let content = fs::read_to_string(&path);
+//                 println!("Content length: {:?}", content.as_ref().map(|s| s.len()));
+//             }
+//             let entry = entry?;
+//             let path = entry.path();
+//             
+//             if path.extension().and_then(|s| s.to_str()) == Some("json") {
+//                 println!("Processing JSON file: {:?}", path);
+//                 let content = fs::read_to_string(&path)
+//                     .with_context(|| format!("Failed to read {:?}", path))?;
+//                 
+//                 let suite: TestSuite = serde_json::from_str(&content)
+//                     .with_context(|| format!("Failed to parse JSON from {:?}", path))?;
+//                 
+//                 suites.push(suite);
+//             }
+//         }
+//         
         Ok(suites)
     }
 
     /// Run all test suites
     pub fn run_all_tests(&mut self) -> Result<()> {
         let suites = self.load_test_suites()?;
+        }
         
         for suite in suites {
             self.run_test_suite(&suite)?;
@@ -88,21 +106,24 @@ impl ReturnAnnotationTestRunner {
 
     /// Run a specific test suite
     pub fn run_test_suite(&mut self, suite: &TestSuite) -> Result<()> {
-        println!("\n📋 Running test suite: {}", suite.test_suite);
+        println!("\n📋 Running test suite: {}", suite.name);
         println!("   {}", suite.description);
         println!("   {} tests", suite.tests.len());
         
-        for test in &suite.tests {
-            let result = self.run_test(test);
+        for test in for test in &suite.tests {suite.tests {
+            let result = self.run_round_trip_test(test);
+            let result = self.run_round_trip_test(test);
             
             let test_result = TestResult {
-                suite: suite.test_suite.clone(),
+                suite: suite.name.clone(),
                 test: test.name.clone(),
                 passed: result.is_ok(),
                 message: result.unwrap_or_else(|e| e.to_string()),
             };
             
             if test_result.passed {
+            } else {
+            }
                 print!("✓");
             } else {
                 print!("✗");
@@ -144,103 +165,6 @@ impl ReturnAnnotationTestRunner {
         Ok("OK".to_string())
     }
 
-    /// Convert UnifiedReturnAST to JSON for comparison
-    fn ast_to_json(&self, ast: &UnifiedReturnAST) -> Result<serde_json::Value> {
-        // Convert the AST to a JSON representation that matches our test format
-        use crate::ast_pipeline::unified_return_ast::*;
-        
-        let json = match ast {
-            UnifiedReturnAST::PositionalRef { index } => {
-                serde_json::json!({
-                    "type": "PositionalRef",
-                    "index": index
-                })
-            }
-            UnifiedReturnAST::StringLiteral { value } => {
-                serde_json::json!({
-                    "type": "StringLiteral",
-                    "value": value
-                })
-            }
-            UnifiedReturnAST::NumberLiteral { value } => {
-                serde_json::json!({
-                    "type": "NumberLiteral",
-                    "value": value
-                })
-            }
-            UnifiedReturnAST::BooleanLiteral { value } => {
-                serde_json::json!({
-                    "type": "BooleanLiteral",
-                    "value": value
-                })
-            }
-            UnifiedReturnAST::Array { elements } => {
-                let elem_jsons: Result<Vec<_>> = elements.iter()
-                    .map(|e| self.ast_to_json(e))
-                    .collect();
-                
-                serde_json::json!({
-                    "type": "Array",
-                    "elements": elem_jsons?
-                })
-            }
-            UnifiedReturnAST::Object { properties } => {
-                let mut props = serde_json::Map::new();
-                for (key, value) in properties {
-                    props.insert(key.clone(), self.ast_to_json(value)?);
-                }
-                
-                serde_json::json!({
-                    "type": "Object",
-                    "properties": props
-                })
-            }
-            UnifiedReturnAST::Spread { base } => {
-                serde_json::json!({
-                    "type": "Spread",
-                    "base": self.ast_to_json(base)?
-                })
-            }
-            UnifiedReturnAST::PropertyAccess { base, property } => {
-                serde_json::json!({
-                    "type": "PropertyAccess",
-                    "base": self.ast_to_json(base)?,
-                    "property": property
-                })
-            }
-            UnifiedReturnAST::ArrayAccess { base, index } => {
-                serde_json::json!({
-                    "type": "ArrayAccess",
-                    "base": self.ast_to_json(base)?,
-                    "index": self.ast_to_json(index)?
-                })
-            }
-            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
-                use crate::ast_pipeline::unified_return_ast::ExtractionTarget;
-                let target_json = match target {
-                    ExtractionTarget::Index(idx) => serde_json::json!({
-                        "type": "Index",
-                        "value": idx
-                    }),
-                    ExtractionTarget::First => serde_json::json!("First"),
-                    ExtractionTarget::Last => serde_json::json!("Last"),
-                };
-                
-                serde_json::json!({
-                    "type": "QuantifiedExtraction",
-                    "base": self.ast_to_json(base)?,
-                    "target": target_json
-                })
-            }
-            UnifiedReturnAST::Passthrough => {
-                serde_json::json!({
-                    "type": "Passthrough"
-                })
-            }
-        };
-        
-        Ok(json)
-    }
 
     /// Compare two JSON values for equality
     fn compare_json(&self, a: &serde_json::Value, b: &serde_json::Value) -> bool {

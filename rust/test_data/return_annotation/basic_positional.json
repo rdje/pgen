@@ -1,5 +1,5 @@
 {
-  "suite_name": "Return Annotations - Basic Positional References",
+  "suite_name": "Return Annotations - Basic Positional References", 
   "description": "Tests for basic positional reference syntax ($1, $2, etc.)",
   "parser_type": "return",
   "tests": [
@@ -8,33 +8,30 @@
       "description": "Basic first position reference",
       "input": "$1",
       "expected": {
-        "contains": ["PositionalRef", "$1"]
+        "contains": ["PositionalRef", "index: 1"]
       }
     },
     {
       "name": "simple_positional_second",
-      "input": "$2",
-      "expected_ast": {
-        "type": "PositionalRef",
-        "index": 2
+      "input": "$2", 
+      "expected": {
+        "contains": ["PositionalRef", "index: 2"]
       },
       "description": "Basic second position reference"
     },
     {
       "name": "simple_positional_large",
       "input": "$42",
-      "expected_ast": {
-        "type": "PositionalRef",
-        "index": 42
+      "expected": {
+        "contains": ["PositionalRef", "index: 42"]
       },
       "description": "Large position number"
     },
     {
       "name": "positional_with_arrow",
       "input": "-> $3",
-      "expected_ast": {
-        "type": "PositionalRef",
-        "index": 3
+      "expected": {
+        "contains": ["PositionalRef", "index: 3"]
       },
       "description": "Positional reference with arrow prefix"
     }

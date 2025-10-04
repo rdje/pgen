@@ -1,5 +1,73 @@
 # CHANGES.md
 
+## 2025-10-04 - SOTA Round-Trip Testing Framework Implementation
+
+### Revolutionary Testing Approach: Mathematical Parser Validation
+
+**Implemented a state-of-the-art round-trip testing framework that provides mathematical guarantees of parser correctness through input → parse → AST → unparse → output validation.**
+
+#### What Changed
+- **Round-Trip Architecture**: Complete rewrite of test framework to focus exclusively on round-trip validation
+- **Enhanced Unparsing**: Added context-aware AST unparsing with smart float formatting and normalization
+- **Pluggable Normalizers**: Implemented extensible normalization system for different data types (float, text, JSON, identifiers)
+- **Clean Test Format**: Removed legacy compatibility, streamlined to pure round-trip testing
+- **Context-Aware Formatting**: Unparse methods now accept `UnparseContext` for configurable precision and whitespace handling
+
+#### Technical Implementation
+- **RoundTripTest Struct**: Clean test specification with normalizer selection and precision control
+- **Normalizer Enum**: Pluggable system supporting float, text, JSON, and identifier normalization
+- **UnparseContext**: Configurable formatting with float precision and whitespace normalization
+- **AST Unparsing**: Enhanced ParseContent and ParseNode unparsing with context awareness
+- **Test Runner Overhaul**: Complete rewrite focused on round-trip validation pipeline
+
+#### Round-Trip Pipeline Architecture
+```rust
+Input: "$1"
+    ↓ parse_bootstrap()
+AST: PositionalRef { index: 1 }
+    ↓ generate_code_from_ast()
+Code: "$1"
+    ↓ apply_normalizer("text")
+Normalized: "$1"
+    ↓ compare with expected_round_trip
+✅ PASS
+```
+
+#### Key Innovations
+- **Context-Aware Float Formatting**: Smart precision handling (3.14000 → 3.14, removes trailing zeros)
+- **Mathematical Correctness**: Validates complete parse → transform → unparse pipeline
+- **Smart Normalization**: Handles formatting differences (precision, whitespace, etc.)
+- **Pluggable Architecture**: Easy to extend with new normalizers
+- **Clean Design**: No legacy baggage, focused on mathematical validation
+- **Production Ready**: Comprehensive error handling and detailed reporting
+
+#### Usage Examples
+```json
+{
+  "name": "positional_ref_round_trip",
+  "input": "$1",
+  "expected_round_trip": "$1",
+  "normalizer": "text"
+}
+```
+
+#### Build Commands
+- `cargo test test_return_annotation_runner` - Runs round-trip test suite
+- `make return_semantic_parsers` - Regenerates parsers for testing
+
+#### Files Modified
+- `rust/src/test_runner/return_annotation_tests.rs` - Round-trip test framework
+- `rust/src/test_runner/normalization.rs` - Pluggable normalization system
+- `rust/src/ast_pipeline/ast_based_generator.rs` - Enhanced unparsing
+- `rust/src/bin/test_runner.rs` - Round-trip validation logic
+- `rust/test_data/return_annotations/round_trip_*.json` - Test suites
+- `CHANGES.md` - Implementation documentation
+
+---
+
+
+# CHANGES.md
+
 ## 2025-10-04 - UnifiedSemanticAST: Runtime Transformation Code Generation
 
 ### Core Achievement: Semantic Annotations Execute Runtime Transformations

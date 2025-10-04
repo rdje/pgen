@@ -1,0 +1,34 @@
+{
+  "name": "Return Annotations - Round-Trip Basic Tests",
+  "description": "Basic round-trip testing for return annotation parsing",
+  "tests": [
+    {
+      "name": "positional_ref_round_trip",
+      "description": "Positional reference round-trip",
+      "input": "$1",
+      "expected_round_trip": "$1",
+      "normalizer": "text"
+    },
+    {
+      "name": "boolean_true_round_trip",
+      "description": "Boolean true round-trip",
+      "input": "true",
+      "expected_round_trip": "true",
+      "normalizer": "text"
+    },
+    {
+      "name": "boolean_false_round_trip",
+      "description": "Boolean false round-trip", 
+      "input": "false",
+      "expected_round_trip": "false",
+      "normalizer": "text"
+    },
+    {
+      "name": "number_literal_round_trip",
+      "description": "Number literal round-trip",
+      "input": "42",
+      "expected_round_trip": "42",
+      "normalizer": "text"
+    }
+  ]
+}
