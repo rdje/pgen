@@ -86,7 +86,6 @@ accessor_base := positional_reference
 # =====================================
 # LITERALS AND REFERENCES
 # =====================================
-
 # Positional reference: $1, $2, $42
 positional_reference := '$' integer
 -> {type: "positional", index: $2}
@@ -96,22 +95,17 @@ string_literal := ('"' string_content_double '"'
                  | "'" string_content_single "'")
 -> {type: "string", value: $2}
 
-# String content (simplified - needs escape handling in real parser)
 string_content_double := /[^"]*/
-
 string_content_single := /[^']*/
 
 # Number literals
-number_literal := (float | integer)
--> {type: "number", value: $1}
+number_literal := float | integer
 
-# Floating point
+@transform: str::parse::<f64>().unwrap_or(0.0)
 float := /[-+]?[0-9]+\.[0-9]+(?:[eE][-+]?[0-9]+)?/
--> parseFloat($1)
 
-# Integer
+@transform: str::parse::<i64>().unwrap_or(0)  
 integer := /[-+]?[0-9]+/
--> parseInt($1)
 
 # Boolean literals
 boolean_literal := 'true' | 'false'

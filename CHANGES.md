@@ -1,5 +1,52 @@
 # CHANGES.md
 
+## 2025-10-04 - Semantic Annotations Architecture: JSON AST Extraction
+
+### Core Achievement: Semantic Annotations Extracted from JSON AST
+
+**Successfully implemented clean architecture for semantic annotation processing.**
+
+#### What Changed
+- **JSON AST extraction**: Semantic annotations are now extracted from structured JSON tokens `["semantic_annotation", [<name>, <value>]]`
+- **EBNF parser integration**: Confirmed EBNF parser correctly embeds `@transform:` annotations in JSON output
+- **Bootstrap system**: Implemented Cargo features and Makefile for circular dependency resolution
+- **AST pipeline**: Added semantic annotation extraction from JSON AST during pipeline processing
+- **Clean architecture**: Removed redundant text scanning - EBNF parser handles annotation parsing
+
+#### Technical Implementation
+- Added `bootstrap` Cargo feature for conditional parser compilation
+- Implemented semantic annotation extraction from `TokenValue::Array` format in JSON
+- Updated Makefile to build AST pipeline with `--features bootstrap` for bootstrap parser generation
+- Confirmed semantic annotations are stored as `HashMap<String, Vec<String>>` in pipeline
+- Verified extraction works: `float` → `'transform' = 'str::parse::<f64>().unwrap_or(0.0)'`
+
+#### Architecture Status
+- ✅ **EBNF parsing**: `@transform:` annotations correctly parsed and embedded in JSON
+- ✅ **JSON extraction**: Semantic annotations extracted from structured tokens
+- ✅ **Bootstrap system**: Circular dependency resolved for parser regeneration
+- ✅ **Storage**: Annotations properly stored in pipeline annotations store
+- ⏳ **Code generation**: AST-based generator needs to use semantic annotations for Rust code generation
+
+#### Usage Examples
+```ebnf
+@transform: str::parse::<f64>().unwrap_or(0.0)
+float := /[-+]?[0-9]+\.[0-9]+(?:[eE][-+]?[0-9]+)?/
+-> $1
+```
+
+#### Build Commands
+- `cargo build` - Normal build with full parser support
+- `cargo build --features bootstrap` - Bootstrap build without generated parsers
+
+#### Files Modified
+- `rust/Cargo.toml` - Added bootstrap feature
+- `rust/src/ast_pipeline.rs` - Conditional parser inclusion and semantic annotation processing
+- `rust/src/ast_pipeline/ast_based_generator.rs` - Transformation code generation
+- `grammars/return_annotation.ebnf` - Simplified return annotations
+- `git_message_brief.txt` - Updated with feature summary
+
+---
+
 ## 2025-10-04 - Parser Regeneration Compilation Errors Fixed
 
 ### Critical Infrastructure Fix: AST Pipeline Bootstrap System

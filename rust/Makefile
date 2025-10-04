@@ -97,7 +97,7 @@ create-placeholders:
 # Build Rust AST pipeline binary only (avoids circular dependency with generated parsers in lib.rs)
 $(RUST_AST_PIPELINE): $(AST_PIPELINE_SOURCES) create-placeholders
 	@echo "Building Rust AST pipeline binary only (avoiding circular dependency)..."
-	cd $(RUST_DIR) && cargo build --bin ast_pipeline
+	cd $(RUST_DIR) && cargo build --bin ast_pipeline --features bootstrap
 
 # Step 2: Generate Rust parsers from JSON files using bootstrap mode
 # These parsers are generated using bootstrap mode to avoid circular dependency

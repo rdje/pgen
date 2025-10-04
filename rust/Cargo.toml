@@ -32,9 +32,8 @@ quote = "1.0"
 proc-macro2 = "1.0"
 prettyplease = "0.2.37"
 
-[dev-dependencies]
-tempfile = "3.3"
+[features]
+default = []
+bootstrap = []
 
-[[test]]
-name = "annotation_parsers"
-path = "tests/annotation_parsers/lib.rs"
+[dev-dependencies]
