@@ -36,13 +36,6 @@ impl AstBasedGenerator {
             branch_return_annotations: HashMap::new(),
             enable_debug: true,
         }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     /// Main entry point: Generate complete parser from grammar tree
@@ -56,13 +49,6 @@ impl AstBasedGenerator {
         // Convert TokenStream to formatted string using prettyplease
         let formatted_code = prettyplease::unparse(&syn::parse2(parser_tokens)?);
         Ok(formatted_code)
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     /// Generate parser as TokenStream (the actual AST)
@@ -106,13 +92,6 @@ impl AstBasedGenerator {
             #parser_impl
             #tests
         })
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_imports(&self) -> TokenStream {
@@ -124,13 +103,6 @@ impl AstBasedGenerator {
             #[allow(dead_code)]
             #[allow(unused_variables)]
             #[allow(unused_mut)]
-        }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
         }
     }
     
@@ -277,13 +249,6 @@ impl AstBasedGenerator {
                 }
             }
         }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_parser_struct(&self, parser_name: &Ident) -> TokenStream {
@@ -299,13 +264,6 @@ impl AstBasedGenerator {
                 debug_mode: bool,
                 debug_output: Vec<String>,
             }
-        }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
         }
     }
     
@@ -344,13 +302,6 @@ impl AstBasedGenerator {
                 #helpers
             }
         })
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_rule_constants(&self, rule_order: &[String]) -> TokenStream {
@@ -364,13 +315,6 @@ impl AstBasedGenerator {
         
         quote! {
             #(#constants)*
-        }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
         }
     }
     
@@ -462,13 +406,6 @@ impl AstBasedGenerator {
                 }
             }
         }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_parse_method(&self, entry_rule: &str) -> TokenStream {
@@ -478,13 +415,6 @@ impl AstBasedGenerator {
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.#parse_method()
             }
-        }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
         }
     }
     
@@ -594,13 +524,6 @@ impl AstBasedGenerator {
                 result
             }
         })
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_node_parsing_logic(&self, ast_node: &ASTNode, rule_name: &str) -> Result<TokenStream> {
@@ -617,13 +540,6 @@ impl AstBasedGenerator {
             ASTNode::Quantified { element, quantifier } => {
                 self.generate_quantified_logic(element, quantifier, rule_name)
             }
-        }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
         }
     }
     
@@ -729,13 +645,6 @@ impl AstBasedGenerator {
                 #(#branch_attempts)*
             })
         }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_sequence_logic(&self, elements: &[ASTNode], rule_name: &str) -> Result<TokenStream> {
@@ -752,13 +661,6 @@ impl AstBasedGenerator {
             #(#element_parsers)*
             let result = ParseContent::Sequence(sequence_elements)
         })
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_sequence_element(
@@ -809,13 +711,6 @@ impl AstBasedGenerator {
                 });
             }
         })
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_atom_logic(&self, value: &ASTValue, rule_name: &str) -> Result<TokenStream> {
@@ -902,13 +797,6 @@ impl AstBasedGenerator {
             _ => Ok(quote! {
                 let result = ParseContent::Terminal("")
             })
-        }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
         }
     }
     
@@ -1050,13 +938,6 @@ impl AstBasedGenerator {
             }),
             _ => Err(anyhow::anyhow!("Unknown quantifier: {}", quantifier))
         }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_return_transform(
@@ -1084,13 +965,6 @@ impl AstBasedGenerator {
                 #comment
                 result
             })
-        }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
         }
     }
     
@@ -1228,13 +1102,6 @@ impl AstBasedGenerator {
                 result
             }
         }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
-        }
     }
     
     fn generate_tests(&self, parser_name: &Ident) -> TokenStream {
@@ -1251,13 +1118,6 @@ impl AstBasedGenerator {
                     assert!(result.is_ok());
                 }
             }
-        }
-        /// Utility function to unparse a ParseNode back to text for round-trip testing
-
-        pub fn unparse_node(        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {self, node:         pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {ParseNode<'input>, ctx: Option<        pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {UnparseContext>) -> String {
-
-            node.unparse(ctx)
-
         }
     }
 }
