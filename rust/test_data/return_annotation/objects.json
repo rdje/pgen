@@ -3,7 +3,7 @@
     "name": "simple_object",
     "description": "Simple object with positional references",
     "input": "{key: $1, value: $2}",
-    "expected_round_trip": "Object {\n  key: \nPositionalRef($1)\n  value: \nPositionalRef($2)\n}",
+    "expected_round_trip": "{key: $1, value: $2}",
     "parser_type": "return",
     "normalizer": "text"
   },
@@ -11,7 +11,7 @@
     "name": "object_with_literals",
     "description": "Object with string literal and positional reference",
     "input": "{type: \"array\", element: $3}",
-    "expected_round_trip": "Object {\n  element: \nPositionalRef($3)\n  type: \nStringLiteral(\"array\")\n}",
+    "expected_round_trip": "{type: \"array\", element: $3}",
     "parser_type": "return",
     "normalizer": "text"
   },
@@ -19,7 +19,7 @@
     "name": "empty_object",
     "description": "Empty object literal",
     "input": "{}",
-    "expected_round_trip": "Object {\n}",
+    "expected_round_trip": "{}",
     "parser_type": "return",
     "normalizer": "text"
   },
@@ -27,7 +27,7 @@
     "name": "object_with_extraction",
     "description": "Object with nested array containing extraction",
     "input": "{params: [$1, $2::2*], count: $3}",
-    "expected_round_trip": "Object {\n  count: \nPositionalRef($3)\n  params: \nArray [\n    [0]: \nPositionalRef($1)\n    [1]: \nQuantifiedExtraction {\n      base: \nPositionalRef($2)\n      target: Index(1)\n    }\n  ]\n}",
+    "expected_round_trip": "{params: [$1, $2::2*], count: $3}",
     "parser_type": "return",
     "normalizer": "text"
   }

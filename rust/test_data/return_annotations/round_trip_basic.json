@@ -18,7 +18,7 @@
     },
     {
       "name": "boolean_false_round_trip",
-      "description": "Boolean false round-trip", 
+      "description": "Boolean false round-trip",
       "input": "false",
       "expected_round_trip": "false",
       "normalizer": "text"

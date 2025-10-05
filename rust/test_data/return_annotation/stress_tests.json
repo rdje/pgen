@@ -3,7 +3,7 @@
     "name": "complex_nested_structure",
     "description": "Highly nested structure with multiple types",
     "input": "{data: [$1, {inner: $2::first, values: [$3*]}], meta: {count: $4, flags: [true, false]}}",
-    "expected_round_trip": "Object {\n  data: \nArray [\n    [0]: \nPositionalRef($1)\n    [1]: \nObject {\n      inner: \nQuantifiedExtraction {\n        base: \nPositionalRef($2)\n        target: First\n      }\n      values: \nArray [\n        [0]: \nSpread {\n          base: \nPositionalRef($3)\n        }\n      ]\n    }\n  ]\n  meta: \nObject {\n    count: \nPositionalRef($4)\n    flags: \nArray [\n      [0]: \nBooleanLiteral(true)\n      [1]: \nBooleanLiteral(false)\n    ]\n  }\n}",
+    "expected_round_trip": "{data: [$1, {inner: $2::first, values: [$3*]}], meta: {count: $4, flags: [true, false]}}",
     "parser_type": "return",
     "normalizer": "text"
   },
@@ -11,7 +11,7 @@
     "name": "deep_extraction_chains",
     "description": "Multiple levels of extraction and spreading",
     "input": "[$1::2*, $2::first, $3::3*]",
-    "expected_round_trip": "Array [\n  [0]: \nSpread {\n    base: \nQuantifiedExtraction {\n      base: \nPositionalRef($1)\n      target: Index(1)\n    }\n  }\n  [1]: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: First\n  }\n  [2]: \nSpread {\n    base: \nQuantifiedExtraction {\n      base: \nPositionalRef($3)\n      target: Index(2)\n    }\n  }\n]",
+    "expected_round_trip": "[$1::2*, $2::first, $3::3*]",
     "parser_type": "return",
     "normalizer": "text"
   }

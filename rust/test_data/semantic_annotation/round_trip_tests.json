@@ -3,7 +3,7 @@
     "name": "transform_parse_float",
     "description": "Transform expression for parsing float with default",
     "input": "str::parse::<f64>().unwrap_or(0.0)",
-    "expected_round_trip": "TransformExpr(str::parse::<f64>().unwrap_or(0.0))",
+    "expected_round_trip": "str::parse::<f64>().unwrap_or(0.0)",
     "parser_type": "semantic",
     "normalizer": "text"
   },
@@ -11,7 +11,7 @@
     "name": "transform_parse_int",
     "description": "Transform expression for parsing integer",
     "input": "str::parse::<i32>().unwrap_or_default()",
-    "expected_round_trip": "TransformExpr(str::parse::<i32>().unwrap_or_default())",
+    "expected_round_trip": "str::parse::<i32>().unwrap_or_default()",
     "parser_type": "semantic",
     "normalizer": "text"
   },
@@ -19,7 +19,7 @@
     "name": "complex_transform",
     "description": "Complex transform with multiple operations",
     "input": "str.trim().parse::<f64>().unwrap_or(0.0).round()",
-    "expected_round_trip": "Raw(str.trim().parse::<f64>().unwrap_or(0.0).round())",
+    "expected_round_trip": "str.trim().parse::<f64>().unwrap_or(0.0).round()",
     "parser_type": "semantic",
     "normalizer": "text"
   }

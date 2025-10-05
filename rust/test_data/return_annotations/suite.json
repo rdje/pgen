@@ -3,15 +3,15 @@
     "name": "real_return_annotation_test",
     "description": "Test real return annotation parser with round-trip validation",
     "input": "$1",
-    "expected_round_trip": "PositionalRef($1)",
+    "expected_round_trip": "$1",
     "parser_type": "return",
     "normalizer": "text"
   },
   {
-    "name": "real_semantic_annotation_test", 
+    "name": "real_semantic_annotation_test",
     "description": "Test real semantic annotation parser with round-trip validation",
     "input": "str::parse::<f64>().unwrap_or(0.0)",
-    "expected_round_trip": "TransformExpr(str::parse::<f64>().unwrap_or(0.0))",
+    "expected_round_trip": "str::parse::<f64>().unwrap_or(0.0)",
     "parser_type": "semantic",
     "normalizer": "text"
   }

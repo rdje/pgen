@@ -1,9 +1,9 @@
 [
   {
     "name": "simple_round_trip",
-    "description": "Basic round-trip test with text normalization", 
+    "description": "Basic round-trip test with text normalization",
     "input": "hello world",
-    "expected_round_trip": "parsed: hello world",
+    "expected_round_trip": "hello world",
     "parser_type": "mock",
     "normalizer": "text"
   },
@@ -11,7 +11,7 @@
     "name": "float_normalization_test",
     "description": "Test float normalization with precision",
     "input": "3.14000",
-    "expected_round_trip": "parsed: 3.14000", 
+    "expected_round_trip": "3.14000",
     "parser_type": "mock",
     "normalizer": "float",
     "float_precision": 2

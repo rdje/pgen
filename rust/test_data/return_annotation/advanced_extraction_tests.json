@@ -3,63 +3,91 @@
     "name": "extract_first_element",
     "description": "Extract first element from each repetition using ::1",
     "input": "$2::1*",
-    "expected_round_trip": "Spread {\n  base: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Index(0)\n  }\n}",
+    "expected_round_trip": "$2::1*",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["extraction", "index", "first"]
+    "tags": [
+      "extraction",
+      "index",
+      "first"
+    ]
   },
   {
     "name": "extract_second_element",
     "description": "Extract second element from each repetition using ::2",
     "input": "$2::2*",
-    "expected_round_trip": "Spread {\n  base: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Index(1)\n  }\n}",
+    "expected_round_trip": "$2::2*",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["extraction", "index", "second"]
+    "tags": [
+      "extraction",
+      "index",
+      "second"
+    ]
   },
   {
     "name": "extract_third_element",
     "description": "Extract third element (index 2) from each repetition",
     "input": "[$1, $2::3*]",
-    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nSpread {\n    base: \nQuantifiedExtraction {\n      base: \nPositionalRef($2)\n      target: Index(2)\n    }\n  }\n]",
+    "expected_round_trip": "[$1, $2::3*]",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["extraction", "index", "array"]
+    "tags": [
+      "extraction",
+      "index",
+      "array"
+    ]
   },
   {
     "name": "extract_last_element",
     "description": "Extract last element from each repetition using ::last",
     "input": "$2::last*",
-    "expected_round_trip": "Spread {\n  base: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Last\n  }\n}",
+    "expected_round_trip": "$2::last*",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["extraction", "special", "last"]
+    "tags": [
+      "extraction",
+      "special",
+      "last"
+    ]
   },
   {
     "name": "multiple_extractions",
     "description": "Multiple extraction operators in object",
     "input": "{params: [$1, $2::3*], types: [$2::5*]}",
-    "expected_round_trip": "Object {\n  params: \nArray [\n    [0]: \nPositionalRef($1)\n    [1]: \nSpread {\n      base: \nQuantifiedExtraction {\n        base: \nPositionalRef($2)\n        target: Index(2)\n      }\n    }\n  ]\n  types: \nArray [\n    [0]: \nSpread {\n      base: \nQuantifiedExtraction {\n        base: \nPositionalRef($2)\n        target: Index(4)\n      }\n    }\n  ]\n}",
+    "expected_round_trip": "{params: [$1, $2::3*], types: [$2::5*]}",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["extraction", "multiple", "object"]
+    "tags": [
+      "extraction",
+      "multiple",
+      "object"
+    ]
   },
   {
     "name": "extract_without_spread",
     "description": "Extraction operator without spread (single value)",
     "input": "$2::1",
-    "expected_round_trip": "QuantifiedExtraction {\n  base: \nPositionalRef($2)\n  target: Index(0)\n}",
+    "expected_round_trip": "$2::1",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["extraction", "single", "no-spread"]
+    "tags": [
+      "extraction",
+      "single",
+      "no-spread"
+    ]
   },
   {
     "name": "complex_nested_extraction",
     "description": "Extraction in nested structure",
     "input": "{outer: {inner: [$1, $2::2*], extracted: $2::4}}",
-    "expected_round_trip": "Object {\n  extracted: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Index(3)\n  }\n  outer: \nObject {\n    inner: \nArray [\n      [0]: \nPositionalRef($1)\n      [1]: \nSpread {\n        base: \nQuantifiedExtraction {\n          base: \nPositionalRef($2)\n          target: Index(1)\n        }\n      }\n    ]\n  }\n}",
+    "expected_round_trip": "{outer: {inner: [$1, $2::2*], extracted: $2::4}}",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["extraction", "nested", "complex"]
+    "tags": [
+      "extraction",
+      "nested",
+      "complex"
+    ]
   }
 ]

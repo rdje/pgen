@@ -3,27 +3,38 @@
     "name": "regex_capture_group",
     "description": "Regex capture group reference",
     "input": "$1",
-    "expected_round_trip": "PositionalRef($1)",
+    "expected_round_trip": "$1",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["regex", "capture"]
+    "tags": [
+      "regex",
+      "capture"
+    ]
   },
   {
     "name": "named_capture_group",
     "description": "Named capture group reference",
     "input": "$name",
-    "expected_round_trip": "PositionalRef($name)",
+    "expected_round_trip": "$name",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["regex", "named", "capture"]
+    "tags": [
+      "regex",
+      "named",
+      "capture"
+    ]
   },
   {
     "name": "multiple_capture_groups",
     "description": "Multiple capture group references",
     "input": "[$1, $2, $3]",
-    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nPositionalRef($2)\n  [2]: \nPositionalRef($3)\n]",
+    "expected_round_trip": "[$1, $2, $3]",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["regex", "multiple", "capture"]
+    "tags": [
+      "regex",
+      "multiple",
+      "capture"
+    ]
   }
 ]

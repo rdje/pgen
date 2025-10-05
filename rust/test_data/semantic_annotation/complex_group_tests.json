@@ -3,27 +3,39 @@
     "name": "complex_group_transform",
     "description": "Complex group transformation expression",
     "input": "process_group($1, transform_items($2))",
-    "expected_round_trip": "Raw(process_group($1, transform_items($2)))",
+    "expected_round_trip": "process_group($1, transform_items($2))",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": ["complex", "group", "transform"]
+    "tags": [
+      "complex",
+      "group",
+      "transform"
+    ]
   },
   {
     "name": "nested_function_calls",
     "description": "Nested function calls in semantic annotation",
     "input": "validate(flatten($1), check_constraints($2))",
-    "expected_round_trip": "Raw(validate(flatten($1), check_constraints($2)))",
+    "expected_round_trip": "validate(flatten($1), check_constraints($2))",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": ["nested", "function", "validation"]
+    "tags": [
+      "nested",
+      "function",
+      "validation"
+    ]
   },
   {
     "name": "array_processing",
     "description": "Array processing with lambda",
     "input": "map($1, item => process_item(item))",
-    "expected_round_trip": "Raw(map($1, item => process_item(item)))",
+    "expected_round_trip": "map($1, item => process_item(item))",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": ["array", "lambda", "processing"]
+    "tags": [
+      "array",
+      "lambda",
+      "processing"
+    ]
   }
 ]

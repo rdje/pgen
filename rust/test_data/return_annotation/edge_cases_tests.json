@@ -3,7 +3,7 @@
     "name": "empty_array",
     "description": "Empty array return annotation",
     "input": "[]",
-    "expected_round_trip": "Array [\n]",
+    "expected_round_trip": "[]",
     "parser_type": "return",
     "normalizer": "text",
     "tags": ["edge", "empty", "array"]
@@ -12,7 +12,7 @@
     "name": "empty_object",
     "description": "Empty object return annotation",
     "input": "{}",
-    "expected_round_trip": "Object {\n}",
+    "expected_round_trip": "{}",
     "parser_type": "return",
     "normalizer": "text",
     "tags": ["edge", "empty", "object"]
@@ -21,7 +21,7 @@
     "name": "very_large_index",
     "description": "Reference to very large index $999",
     "input": "$999",
-    "expected_round_trip": "PositionalRef($999)",
+    "expected_round_trip": "$999",
     "parser_type": "return",
     "normalizer": "text",
     "tags": ["edge", "large-index"]
@@ -30,7 +30,7 @@
     "name": "zero_index",
     "description": "Reference to $0 (full match)",
     "input": "$0",
-    "expected_round_trip": "PositionalRef($0)",
+    "expected_round_trip": "$0",
     "parser_type": "return",
     "normalizer": "text",
     "tags": ["edge", "zero-index"]
@@ -48,7 +48,7 @@
     "name": "string_with_escapes",
     "description": "String literal with escape sequences",
     "input": "\"hello\\nworld\\t!\"",
-    "expected_round_trip": "StringLiteral(\"hello\\nworld\\t!\")",
+    "expected_round_trip": ""hello\nworld\t!"",
     "parser_type": "return",
     "normalizer": "text",
     "tags": ["edge", "string", "escapes"]
@@ -57,7 +57,7 @@
     "name": "unicode_in_string",
     "description": "String with unicode characters",
     "input": "\"Hello 世界 🌍\"",
-    "expected_round_trip": "StringLiteral(\"Hello 世界 🌍\")",
+    "expected_round_trip": ""Hello 世界 ��"",
     "parser_type": "return",
     "normalizer": "text",
     "tags": ["edge", "unicode", "string"]

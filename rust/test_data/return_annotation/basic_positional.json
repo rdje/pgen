@@ -3,7 +3,7 @@
     "name": "simple_positional_first",
     "description": "Basic first position reference",
     "input": "$1",
-    "expected_round_trip": "PositionalRef($1)",
+    "expected_round_trip": "$1",
     "parser_type": "return",
     "normalizer": "text"
   },
@@ -11,7 +11,7 @@
     "name": "simple_positional_second",
     "description": "Basic second position reference",
     "input": "$2",
-    "expected_round_trip": "PositionalRef($2)",
+    "expected_round_trip": "$2",
     "parser_type": "return",
     "normalizer": "text"
   },
@@ -19,7 +19,7 @@
     "name": "simple_positional_large",
     "description": "Large position number",
     "input": "$42",
-    "expected_round_trip": "PositionalRef($42)",
+    "expected_round_trip": "$42",
     "parser_type": "return",
     "normalizer": "text"
   },
@@ -27,7 +27,7 @@
     "name": "positional_with_arrow",
     "description": "Positional reference with arrow prefix",
     "input": "-> $3",
-    "expected_round_trip": "PositionalRef($3)",
+    "expected_round_trip": "-> $3",
     "parser_type": "return",
     "normalizer": "text"
   }
