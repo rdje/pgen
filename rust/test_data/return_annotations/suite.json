@@ -1,10 +1,107 @@
 [
   {
-    "name": "test1",
-    "description": "dummy test",
-    "input": "1",
-    "expected_round_trip": "parsed: 1",
+    "name": "basic_text_normalization",
+    "description": "Test basic text normalization with whitespace trimming",
+    "input": "  hello world  ",
+    "expected_round_trip": "hello world",
     "parser_type": "mock",
     "normalizer": "text"
+  },
+  {
+    "name": "float_precision_handling",
+    "description": "Test float normalization with precision and special values",
+    "input": "3.14000",
+    "expected_round_trip": "3.14",
+    "parser_type": "mock",
+    "normalizer": "float",
+    "float_precision": 2
+  },
+  {
+    "name": "float_zero_precision",
+    "description": "Test float normalization with zero precision (integer conversion)",
+    "input": "3.000",
+    "expected_round_trip": "3",
+    "parser_type": "mock",
+    "normalizer": "float",
+    "float_precision": 0
+  },
+  {
+    "name": "float_special_values",
+    "description": "Test float normalization with special values",
+    "input": "NaN",
+    "expected_round_trip": "nan",
+    "parser_type": "mock",
+    "normalizer": "float"
+  },
+  {
+    "name": "json_canonical_sorting",
+    "description": "Test JSON normalization with key sorting",
+    "input": "{\"b\":2,\"a\":1,\"c\":{\"x\":3,\"y\":1}}",
+    "expected_round_trip": "{\"a\":1,\"b\":2,\"c\":{\"x\":3,\"y\":1}}",
+    "parser_type": "mock",
+    "normalizer": "json"
+  },
+  {
+    "name": "json_whitespace_removal",
+    "description": "Test JSON normalization removes whitespace",
+    "input": "{\n  \"key\": \"value\"\n}",
+    "expected_round_trip": "{\"key\":\"value\"}",
+    "parser_type": "mock",
+    "normalizer": "json"
+  },
+  {
+    "name": "complex_return_annotation",
+    "description": "Test complex return annotation parsing",
+    "input": "$1.extract().filter($2 > 5)",
+    "expected_round_trip": "parsed: $1.extract().filter($2 > 5)",
+    "parser_type": "mock",
+    "normalizer": "text"
+  },
+  {
+    "name": "array_extraction_syntax",
+    "description": "Test array extraction with spread operator",
+    "input": "[$1, $2::2*, $3]",
+    "expected_round_trip": "parsed: [$1, $2::2*, $3]",
+    "parser_type": "mock",
+    "normalizer": "text",
+    "tags": ["extraction", "array", "spread"]
+  },
+  {
+    "name": "object_transformation",
+    "description": "Test object transformation syntax",
+    "input": "{name: $1, value: $2.transform()}",
+    "expected_round_trip": "parsed: {name: $1, value: $2.transform()}",
+    "parser_type": "mock",
+    "normalizer": "text",
+    "tags": ["object", "transformation"]
+  },
+  {
+    "name": "nested_expressions",
+    "description": "Test deeply nested expressions",
+    "input": "$1.map($2.filter($3 > $4))",
+    "expected_round_trip": "parsed: $1.map($2.filter($3 > $4))",
+    "parser_type": "mock",
+    "normalizer": "text",
+    "tags": ["nested", "complex"]
+  },
+  {
+    "name": "skipped_test_example",
+    "description": "Example of a skipped test",
+    "input": "should be skipped",
+    "expected_round_trip": "parsed: should be skipped",
+    "parser_type": "mock",
+    "normalizer": "text",
+    "skip": true,
+    "tags": ["skip", "example"]
+  },
+  {
+    "name": "timeout_test_example",
+    "description": "Test with custom timeout",
+    "input": "quick test",
+    "expected_round_trip": "parsed: quick test",
+    "parser_type": "mock",
+    "normalizer": "text",
+    "timeout_ms": 1000,
+    "tags": ["timeout", "performance"]
   }
 ]
