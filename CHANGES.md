@@ -1,5 +1,51 @@
 # CHANGES.md
 
+## 2025-10-05 - Parser Trait Implementation: Real Parser Integration Complete
+
+### ✅ **PARSER TRAIT IMPLEMENTATION: Real Parser Integration**
+
+**Successfully implemented the Parser trait for semantic and return annotation parsers, enabling real mathematical validation in the round-trip testing framework.**
+
+#### **Parser Trait Implementation**
+- ✅ Created `parsers.rs` module with parser trait implementations
+- ✅ `ReturnAnnotationParser`: Implements `Parser` trait using `UnifiedReturnAST::parse_bootstrap()`
+- ✅ `SemanticAnnotationParser`: Implements `Parser` trait using `UnifiedSemanticAST::parse_bootstrap()`
+- ✅ Round-trip validation: `input → parse → AST → unparse → output` using real parsers
+- ✅ Error handling: Proper error propagation for parser failures
+
+#### **Framework Integration**
+- ✅ `RoundTripTestRunner` automatically selects parser based on `test.parser_type`
+- ✅ Support for `"return_annotation"`, `"semantic"`, and `"mock"` parser types
+- ✅ Builder pattern: `RoundTripTestRunner::new().with_parser(Box<dyn Parser>)`
+- ✅ Graceful fallback to mock implementations for testing
+
+#### **Mathematical Validation Pipeline**
+- ✅ **Return Annotations**: `$1`, `[$1, $2]`, `{type: "array", element: $3}`, etc.
+- ✅ **Semantic Annotations**: `str::parse::<f64>().unwrap_or(0.0)`, transform expressions
+- ✅ **Round-trip Accuracy**: Parse → AST representation → String reconstruction → Validation
+- ✅ **Error Detection**: Catches parsing inconsistencies and round-trip failures
+
+#### **Testing & Verification**
+- ✅ Unit tests for both parser implementations
+- ✅ Integration testing with real parser round-trip validation
+- ✅ Comprehensive test cases covering parser functionality
+- ✅ All existing tests continue to pass with mock fallbacks
+
+#### **Files Created & Modified**
+- **`rust/src/test_runner/parsers.rs`** - New module with Parser trait implementations
+- **`rust/src/test_runner/mod.rs`** - Added parsers module and exports
+- **`rust/src/test_runner/round_trip_tests.rs`** - Updated to use parser_type field for automatic selection
+- **`rust/test_data/return_annotations/suite.json`** - Test cases using real parsers
+
+#### **Framework Status: REAL PARSER INTEGRATION COMPLETE**
+
+**The round-trip testing framework now provides genuine mathematical validation using actual pgen parsers instead of mocks. The framework can validate that return annotations and semantic transformations parse correctly and round-trip accurately.**
+
+---
+
+
+# CHANGES.md
+
 ## 2025-10-05 - Round-Trip Testing Framework: All Core Priorities Successfully Implemented
 
 ### ✅ **FINAL IMPLEMENTATION: All Three Core Priorities Complete**
