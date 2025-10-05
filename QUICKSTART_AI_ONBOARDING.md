@@ -1,3 +1,108 @@
+# QUICKSTART: PGEn Round-Trip Testing Framework
+
+## 🚀 **Quick Start - Validate Parser Correctness**
+
+Get started with PGEn's mathematical parser validation in under 5 minutes.
+
+### **🎯 What You'll Learn:**
+- Run comprehensive round-trip tests
+- Validate parser mathematical correctness
+- Use professional testing CLI
+- Interpret test results
+
+### **📋 Prerequisites:**
+- Rust toolchain installed
+- PGEn repository cloned
+
+### **⚡ Quick Validation Commands:**
+
+#### **1. Build the Test Runner:**
+```bash
+cd rust
+cargo build --bin test_runner
+```
+
+#### **2. Run All Tests (Dashboard View):**
+```bash
+cargo run --bin test_runner -- --dashboard
+```
+**Expected Output:**
+```
+🎯 ROUND-TRIP TESTING DASHBOARD
+═══════════════════════════════════════════════════════════════
+📋 Test Suite Results:
+• return_annotations (return) - ✅ PASS (73 tests)
+• semantic_annotations (semantic) - ✅ PASS (10 tests)
+• unified & regex tests - ✅ PASS (3 tests)
+
+🎉 OVERALL RESULT: ✅ ALL 86 TESTS PASSED
+```
+
+#### **3. Run Specific Parser Tests:**
+```bash
+# Test only return annotations
+cargo run --bin test_runner -- --parser return
+
+# Test only semantic annotations  
+cargo run --bin test_runner -- --parser semantic
+```
+
+#### **4. Run Filtered Tests:**
+```bash
+# Test only basic cases
+cargo run --bin test_runner -- --tags basic
+
+# Test edge cases only
+cargo run --bin test_runner -- --tags edge
+```
+
+#### **5. Get Detailed Results:**
+```bash
+# Verbose output with individual test details
+cargo run --bin test_runner -- --verbose
+
+# Summary view
+cargo run --bin test_runner -- --summary
+```
+
+### **🔍 Understanding Results:**
+
+#### **✅ PASS**: Mathematical validation successful
+- Parser correctly parses input to AST
+- Unparser correctly converts AST back to original string
+- Input string equals output string
+
+#### **❌ FAIL**: Parser correctness issue detected
+- Either parsing or unparsing failed
+- Indicates parser implementation bug
+
+### **🎯 What Round-Trip Testing Validates:**
+
+**Mathematical Parser Correctness:**
+```
+∀ valid_input: unparse(parse(valid_input)) = valid_input
+```
+
+- **Parsing Works**: Input strings successfully convert to AST
+- **Unparsing Works**: AST successfully converts back to strings
+- **Reversibility**: Process is mathematically reversible
+- **No Data Loss**: No information lost in parse/unparse cycle
+
+### **📊 Test Coverage:**
+- **86 comprehensive test cases**
+- **Return annotations**: Arrays, objects, references, extractions
+- **Semantic annotations**: Transform expressions, function calls
+- **Edge cases**: Unicode, escapes, nested structures, large indices
+
+### **🚀 Next Steps:**
+1. **Add New Tests**: Extend test coverage in `rust/test_data/`
+2. **Custom Parsers**: Implement new parser types using `Parser` trait
+3. **CI/CD Integration**: Add to automated testing pipeline
+4. **Performance Testing**: Benchmark parser speed and memory usage
+
+---
+
+/
 # AI Quick-Start Onboarding Guide
 *Essential information for immediate productivity in the PGEN project*
 

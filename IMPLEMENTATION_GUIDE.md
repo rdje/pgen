@@ -1,3 +1,80 @@
+# IMPLEMENTATION GUIDE - PGEn Round-Trip Testing Framework
+
+## 🎯 **Latest Implementation: True Round-Trip Testing**
+
+This guide covers the implementation of PGEn's mathematical parser validation framework.
+
+### **🔄 Round-Trip Testing Architecture:**
+
+#### **Core Components:**
+1. **Parser Trait**: `src/test_runner/mod.rs` - Defines round-trip interface
+2. **Parser Implementations**: `src/test_runner/parsers.rs` - Real parser integration
+3. **Test Runner**: `src/bin/test_runner.rs` - CLI and execution framework
+4. **Test Data**: `test_data/` - 86 comprehensive test cases
+
+#### **Mathematical Validation Flow:**
+```
+Input String → Parser.parse() → AST → Parser.unparse() → Output String
+                                                        ↓
+                                               Input == Output ✅
+```
+
+#### **Key Implementation Details:**
+
+**Parser Trait:**
+```rust
+pub trait Parser {
+    fn round_trip(&self, input: &str) -> Result<String>;
+}
+```
+
+**Real Parser Integration:**
+```rust
+impl Parser for ReturnAnnotationParser {
+    fn round_trip(&self, input: &str) -> Result<String> {
+        let ast = UnifiedReturnAST::parse_bootstrap(input, false)?;
+        Ok(self.unparse_ast(&ast))  // True unparsing, not pretty-print
+    }
+}
+```
+
+### **📊 Test Framework Features:**
+
+#### **CLI Modes:**
+- `--dashboard`: High-level overview of all test suites
+- `--summary`: Detailed suite-by-suite breakdown
+- `--verbose`: Individual test case execution details
+- `--parser <type>`: Filter by parser type (return, semantic)
+- `--tags <tags>`: Filter by test categories
+
+#### **Test Data Organization:**
+- **17 JSON test files** across 3 parser types
+- **86 individual test cases** with comprehensive coverage
+- **Round-trip format**: `expected_round_trip` always equals `input`
+
+### **🔧 Technical Implementation:**
+
+#### **Unparsing Implementation:**
+The framework includes complete unparsers that convert AST back to original string format:
+
+**ReturnAnnotationParser.unparse_ast():**
+- Handles all 11 UnifiedReturnAST variants
+- Maintains exact original formatting
+- Supports complex nested structures
+
+**SemanticAnnotationParser.unparse_ast():**
+- Handles TransformExpr and Raw semantic annotations
+- Preserves semantic annotation syntax
+
+#### **Test Execution:**
+- **Real Parsing**: Uses actual bootstrap parsers
+- **AST Validation**: Proper AST construction and traversal
+- **String Reconstruction**: Faithful unparsing to original format
+- **Mathematical Verification**: Input ≡ Output validation
+
+---
+
+/
 # Implementation Guide: Multi-Language AST Pipeline
 
 ## Quick Start for New Developers
