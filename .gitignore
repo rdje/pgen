@@ -204,14 +204,12 @@ nytprof/
 # PARSER GENERATED FILES
 # =============================================================================
 # Generated parsers (preserve source grammars, ignore generated code)
-**/generated/
 **/target/
 generated_*.pm
 generated_*.jl
 generated_*.rs
 *_parser.pm
 *_parser.jl
-*_parser.rs
 
 # Parser test outputs
 parse_results/
@@ -233,9 +231,6 @@ test_outputs/
 *.un~
 Session.vim
 .netrwhist
-
-# Development notes and commit messages
-git_message_brief.txt
 
 # OS files
 .DS_Store

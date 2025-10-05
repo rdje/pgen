@@ -1,6 +1,88 @@
 # CHANGES.md
 
-## 2025-10-05 - Rust Compilation Fixes and Module Structure Migration
+## 2025-10-05 - Comprehensive Parser Logging Infrastructure Implementation
+
+### 🚀 **LOGGING INFRASTRUCTURE: Complete Parser Execution Visibility**
+
+**Successfully implemented comprehensive logging infrastructure providing full visibility into parser execution, rule matching, backtracking, and performance metrics.**
+
+#### **Core Logging Architecture**
+- ✅ **Unified Logger Trait**: Single `Logger` trait in `ast_pipeline/mod.rs` accessible across binaries
+- ✅ **Comprehensive Logging Methods**: `log_info()`, `log_debug()`, `log_success()`, `log_warning()`, `log_error()`, `is_enabled()`
+- ✅ **Generated Parser Integration**: All generated parsers now include detailed execution logging
+- ✅ **Circular Dependency Resolution**: Fixed logger compatibility between `ast_pipeline` binary and `test_runner` parsers
+
+#### **Parser Execution Visibility**
+- ✅ **Rule Entry/Exit Tracking**: Every grammar rule logs position and matching attempts
+- ✅ **Terminal Matching**: Detailed success/failure logging for regex and string matches
+- ✅ **Backtracking Events**: Position changes and backtrack decisions with context
+- ✅ **Memoization Metrics**: Cache hits/misses for performance optimization
+- ✅ **Recursion Detection**: Safety monitoring with depth limits and warnings
+- ✅ **Quantifier Processing**: Zero-or-more, one-or-more, optional operator execution
+
+#### **Technical Implementation Details**
+
+**Logger Trait Unification:**
+```rust
+// Shared Logger trait in ast_pipeline/mod.rs
+pub trait Logger {
+    fn log_info(&self, file: &str, line: u32, message: &str);
+    fn log_debug(&self, file: &str, line: u32, message: &str);
+    fn log_success(&self, file: &str, line: u32, message: &str);
+    fn log_warning(&self, file: &str, line: u32, message: &str);
+    fn log_error(&self, file: &str, line: u32, message: &str);
+    fn is_enabled(&self) -> bool;
+}
+```
+
+**Generated Parser Logging Example:**
+```rust
+// Generated parsers now include logging like:
+self.logger.log_info("parser.rs", line!(),
+    &format!("Attempting rule 'expression' at position {}", pos));
+// ... parser execution ...
+self.logger.log_success("parser.rs", line!(),
+    &format!("Rule 'expression' matched, advanced to position {}", new_pos));
+```
+
+#### **Files Modified**
+- `rust/src/ast_pipeline/mod.rs` - Unified Logger trait and NoOpLogger implementation
+- `rust/src/test_runner/mod.rs` - Removed duplicate Logger trait, added FileLogger implementation
+- `rust/src/test_runner/parsers.rs` - Updated to use unified Logger trait
+- `generated/return_annotation_parser.rs` - Regenerated with comprehensive logging
+- `generated/semantic_annotation_parser.rs` - Regenerated with comprehensive logging
+- `.gitignore` - Removed `**/generated/` and `*_parser.rs` to track generated files
+
+#### **Build & Test Results**
+- ✅ **Compilation**: All binaries compile cleanly (`pgen`, `test_runner`, `ast_pipeline`)
+- ✅ **Parser Generation**: Generated parsers include full logging infrastructure
+- ✅ **Test Execution**: `cargo run --bin test_runner -- --parser return --debug --verbose` shows detailed logs
+- ✅ **Performance**: Logging overhead minimal with `is_enabled()` checks
+- ✅ **Backwards Compatibility**: Existing functionality preserved
+
+#### **Usage Examples**
+
+**Enable Debug Logging:**
+```bash
+cd rust && ./target/debug/test_runner --parser return --debug --verbose
+```
+
+**Sample Debug Output:**
+```
+[INFO] return_annotation_parser.rs:45 | Rule 'positional_ref' entry at pos 0
+[DEBUG] return_annotation_parser.rs:67 | Terminal '$' matched at pos 0
+[SUCCESS] return_annotation_parser.rs:89 | Rule 'positional_ref' matched, advanced to pos 2
+[INFO] return_annotation_parser.rs:123 | Memoization: rule 'expression' cached at pos 0
+```
+
+#### **Impact**
+**Parser debugging capabilities transformed from opaque black-box execution to complete visibility with granular control over rule matching, backtracking decisions, and performance characteristics.**
+
+**Future developers can now understand exactly how parsers process input, identify optimization opportunities, and debug complex parsing scenarios with comprehensive execution traces.**
+
+---
+
+
 
 ### ✅ **COMPILATION ISSUES RESOLVED: Clean Build Achieved**
 

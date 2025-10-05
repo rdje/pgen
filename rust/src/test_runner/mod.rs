@@ -1,9 +1,72 @@
 // Test runner module for pgen
 // Provides infrastructure for running JSON-based tests
 
+use std::io::Write;
+
 pub mod round_trip_tests;
 pub mod parsers;
 pub mod normalization;
+
+// Re-export the shared Logger trait
+pub use crate::ast_pipeline::Logger;
+pub use crate::ast_pipeline::NoOpLogger;
+
+// File logger that writes to the test runner's log file
+pub struct FileLogger {
+    file: std::sync::Mutex<Option<std::fs::File>>,
+}
+
+impl FileLogger {
+    pub fn new(file: std::fs::File) -> Self {
+        Self {
+            file: std::sync::Mutex::new(Some(file)),
+        }
+    }
+}
+
+impl Logger for FileLogger {
+    fn log_info(&self, file: &str, line: u32, message: &str) {
+        if let Ok(mut guard) = self.file.lock() {
+            if let Some(ref mut f) = *guard {
+                let _ = writeln!(f, "[INFO] {}:{} | {}", file, line, message);
+            }
+        }
+    }
+
+    fn log_warning(&self, file: &str, line: u32, message: &str) {
+        if let Ok(mut guard) = self.file.lock() {
+            if let Some(ref mut f) = *guard {
+                let _ = writeln!(f, "[WARN] {}:{} | {}", file, line, message);
+            }
+        }
+    }
+
+    fn log_error(&self, file: &str, line: u32, message: &str) {
+        if let Ok(mut guard) = self.file.lock() {
+            if let Some(ref mut f) = *guard {
+                let _ = writeln!(f, "[ERROR] {}:{} | {}", file, line, message);
+            }
+        }
+    }
+
+    fn log_success(&self, file: &str, line: u32, message: &str) {
+        if let Ok(mut guard) = self.file.lock() {
+            if let Some(ref mut f) = *guard {
+                let _ = writeln!(f, "[SUCCESS] {}:{} | {}", file, line, message);
+            }
+        }
+    }
+
+    fn log_debug(&self, file: &str, line: u32, message: &str) {
+        if let Ok(mut guard) = self.file.lock() {
+            if let Some(ref mut f) = *guard {
+                let _ = writeln!(f, "[DEBUG] {}:{} | {}", file, line, message);
+            }
+        }
+    }
+
+    fn is_enabled(&self) -> bool { true }
+}
 
 pub use round_trip_tests::{RoundTripTestRunner, Report, TestSuite};
 pub use round_trip_tests::RoundTripTestRunner as UniversalTestRunner;
@@ -15,4 +78,10 @@ pub trait Parser {
     /// Perform a round-trip transformation: parse input to AST, then unparse back to string
     /// This enables mathematical validation that parsing is reversible
     fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>>;
+    
+    /// Set the logger for this parser
+    fn set_logger(&mut self, logger: Box<dyn Logger>);
+    
+    /// Get the current logger
+    fn get_logger(&self) -> &dyn Logger;
 }

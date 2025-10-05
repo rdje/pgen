@@ -108,6 +108,11 @@ impl RoundTripTestRunner {
         self
     }
 
+    pub fn with_parser(mut self, parser: Box<dyn Parser>) -> Self {
+        self.parser = Some(parser);
+        self
+    }
+
     pub fn with_parser_filter(mut self, filter: String) -> Self {
         self.parser_filter = Some(filter);
         self
@@ -123,26 +128,50 @@ impl RoundTripTestRunner {
         if !self.test_data_dir.exists() {
             fs::create_dir_all(&self.test_data_dir)?;
         }
+        
+        // Find all .json files in subdirectories
         for entry in fs::read_dir(&self.test_data_dir)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
-                let suite_name = path.file_name().unwrap().to_string_lossy().into_owned();
-                let mut tests = Vec::new();
-                // Assume one suite.json per dir
-                let json_path = path.join("suite.json");
-                if json_path.exists() {
-                    let json_str = fs::read_to_string(&json_path)?;
-                    let suite_tests: Vec<RoundTripTest> = serde_json::from_str(&json_str)?;
-                    tests = suite_tests;
+                let subdir_name = path.file_name().unwrap().to_string_lossy().into_owned();
+                
+                // Look for all .json files in this subdirectory
+                for json_entry in fs::read_dir(&path)? {
+                    let json_entry = json_entry?;
+                    let json_path = json_entry.path();
+                    
+                    if json_path.is_file() && json_path.extension() == Some(std::ffi::OsStr::new("json")) {
+                        let json_name = json_path.file_stem().unwrap().to_string_lossy();
+                        let suite_name = format!("{}_{}", subdir_name, json_name);
+                        
+                        match fs::read_to_string(&json_path) {
+                            Ok(json_str) => {
+                                // Skip if not starting with [ (not an array)
+                                if !json_str.trim_start().starts_with('[') {
+                                    continue;
+                                }
+                                
+                                match serde_json::from_str::<Vec<RoundTripTest>>(&json_str) {
+                                    Ok(tests) => {
+                                        suites.push(TestSuite { 
+                                            name: suite_name.clone(), 
+                                            suite_name, 
+                                            parser_type: "unknown".to_string(), 
+                                            description: format!("Tests from {}/{}", subdir_name, json_path.file_name().unwrap().to_string_lossy()),
+                                            tests 
+                                        });
+                                    }
+                                    Err(_) => {
+                                        // Skip invalid JSON files
+                                        continue;
+                                    }
+                                }
+                            }
+                            Err(_) => continue,
+                        }
+                    }
                 }
-                suites.push(TestSuite { 
-                    name: suite_name.clone(), 
-                    suite_name, 
-                    parser_type: "unknown".to_string(), 
-                    description: "Auto-discovered test suite".to_string(), 
-                    tests 
-                });
             }
         }
         Ok(suites)

@@ -2,19 +2,20 @@
 // This module replaces string concatenation with proper AST manipulation
 // GUARANTEES: No unbalanced braces, no syntax errors, type-safe code generation
 
-use syn::{parse_quote, Block, Expr, Ident, ItemFn, Stmt};
 use quote::{quote, format_ident, ToTokens};
 use proc_macro2::TokenStream;
+use syn::Ident;
 use std::collections::HashMap;
 use anyhow::Result;
 use prettyplease;
-use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, BranchAnnotation, TokenValue, UnifiedSemanticAST};
-use crate::ast_pipeline::ast_return_transform::AstReturnTransformer;
+use crate::ast_pipeline::Logger;
+use crate::ast_pipeline::{ASTNode, ASTValue, TokenValue, UnifiedSemanticAST, BranchAnnotation, ast_return_transform::AstReturnTransformer, Annotations};
 
 /// AST-based generator that produces guaranteed syntactically correct Rust code
 pub struct AstBasedGenerator {
     pub grammar_name: String,
     pub entry_rule: Option<String>,
+    pub logger: Option<Box<dyn Logger>>,
     pub annotations: Option<Annotations>,
     pub branch_return_annotations: HashMap<String, Vec<Option<BranchAnnotation>>>,
     pub enable_debug: bool,
@@ -25,6 +26,7 @@ impl AstBasedGenerator {
         Self {
             grammar_name,
             entry_rule: None,
+            logger: None,
             annotations: None,
             branch_return_annotations: HashMap::new(),
             enable_debug: true,
@@ -75,7 +77,7 @@ impl AstBasedGenerator {
         let parser_impl = self.generate_parser_impl(&parser_name, grammar_tree, rule_order, &entry_rule)?;
         
         // Generate tests
-        let tests = self.generate_tests(&parser_name);
+        let tests = generate_tests(&parser_name);
         
         // Combine everything
         Ok(quote! {
@@ -92,6 +94,7 @@ impl AstBasedGenerator {
             use std::collections::HashMap;
             use std::ops::Range;
             use regex::Regex;
+            use crate::Logger;
             
             #[allow(dead_code)]
             #[allow(unused_variables)]
@@ -254,8 +257,7 @@ impl AstBasedGenerator {
                 position: usize,
                 memo: HashMap<(RuleId, usize), Option<ParseNode<'input>>>,
                 recursion_guard: RecursionGuard,
-                debug_mode: bool,
-                debug_output: Vec<String>,
+                logger: Box<dyn Logger>,
             }
         }
     }
@@ -313,89 +315,13 @@ impl AstBasedGenerator {
     
     fn generate_constructor(&self) -> TokenStream {
         quote! {
-            pub fn new(input: &'input str) -> Self {
+            pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
                 Self {
                     input,
                     position: 0,
                     memo: HashMap::new(),
                     recursion_guard: RecursionGuard::new(100),
-                    debug_mode: false,
-                    debug_output: Vec::new(),
-                }
-            }
-            
-            pub fn with_debug(input: &'input str) -> Self {
-                Self {
-                    input,
-                    position: 0,
-                    memo: HashMap::new(),
-                    recursion_guard: RecursionGuard::new(100),
-                    debug_mode: true,
-                    debug_output: Vec::new(),
-                }
-            }
-            
-            pub fn with_debug_log(input: &'input str, test_name: &str) -> Self {
-                use std::fs::File;
-                use std::io::Write;
-                
-                let mut parser = Self::with_debug(input);
-                
-                // Create debug log file
-                let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-                let filename = format!("{}_{}.log", test_name, timestamp);
-                
-                // Write header to debug output
-                parser.debug_output.push(format!("==== Parser Debug Log ===="));
-                parser.debug_output.push(format!("Test: {}", test_name));
-                parser.debug_output.push(format!("Time: {}", timestamp));
-                parser.debug_output.push(format!("Input: {:?}", input));
-                parser.debug_output.push("=".repeat(50));
-                parser.debug_output.push(String::new());
-                
-                parser
-            }
-            
-            fn format_debug_indent(&self) -> String {
-                let depth = self.recursion_guard.parse_stack.len();
-                if depth == 0 {
-                    String::new()
-                } else {
-                    format!("{}├─ ", "│  ".repeat(depth.saturating_sub(1)))
-                }
-            }
-            
-            pub fn get_debug_trace(&self) -> String {
-                self.debug_output.join("\n")
-            }
-            
-            fn create_contextual_error(&self, message: &str) -> ParseError {
-                let rule_stack: Vec<String> = self.recursion_guard.parse_stack
-                    .iter()
-                    .map(|(rule, pos)| format!("{} @ {}", rule, pos))
-                    .collect();
-                
-                let context_start = self.position.saturating_sub(20);
-                let context_end = (self.position + 20).min(self.input.len());
-                let context = &self.input[context_start..context_end];
-                
-                let input_context = if context_start > 0 {
-                    format!("...{}", context)
-                } else {
-                    context.to_string()
-                };
-                
-                let input_context = if context_end < self.input.len() {
-                    format!("{}...", input_context)
-                } else {
-                    input_context
-                };
-                
-                ParseError::ContextualError {
-                    message: message.to_string(),
-                    position: self.position,
-                    rule_stack,
-                    input_context,
+                    logger,
                 }
             }
         }
@@ -432,8 +358,8 @@ impl AstBasedGenerator {
                 
                 match cycle_type {
                     CycleType::Infinite => {
-                        if self.debug_mode {
-                            self.debug_output.push(format!("🔄 INFINITE RECURSION: {} at {}", #rule_name, position));
+                        if self.logger.is_enabled() {
+                            self.logger.log_error("generated_parser.rs", 0, &format!("💥 Infinite recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
                             message: "Infinite recursion detected",
@@ -441,8 +367,8 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::LeftRecursive => {
-                        if self.debug_mode {
-                            self.debug_output.push(format!("↩️ LEFT RECURSION: {} at {}", #rule_name, position));
+                        if self.logger.is_enabled() {
+                            self.logger.log_error("generated_parser.rs", 0, &format!("🔄 Left recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
                             message: "Left recursion detected",
@@ -450,8 +376,8 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
-                        if self.debug_mode {
-                            self.debug_output.push(format!("🔃 RECURSION LIMIT: {} depth={}", #rule_name, depth));
+                        if self.logger.is_enabled() {
+                            self.logger.log_error("generated_parser.rs", 0, &format!("🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})", #rule_name, position, depth));
                         }
                         return Err(ParseError::RecursionDepthExceeded {
                             position,
@@ -466,19 +392,8 @@ impl AstBasedGenerator {
                 let result = self.memoized_call(Self::#rule_const, |parser| {
                     let start_pos = parser.position;
                     
-                    if parser.debug_mode {
-                        let indent = parser.format_debug_indent();
-                        let preview = if parser.position < parser.input.len() {
-                            let end = (parser.position + 20).min(parser.input.len());
-                            format!(" [{}...]", &parser.input[parser.position..end])
-                        } else {
-                            " [EOF]".to_string()
-                        };
-                        
-                        parser.debug_output.push(format!(
-                            "{}🚀 {} @ {}{}",
-                            indent, #rule_name, start_pos, preview
-                        ));
+                    if parser.logger.is_enabled() {
+                        parser.logger.log_info("generated_parser.rs", 0, &format!("🚀 Entering rule '{}' at position {}", #rule_name, start_pos));
                     }
                     
                     // Main parsing logic - produces the 'result' variable
@@ -486,24 +401,13 @@ impl AstBasedGenerator {
                     
                     let end_pos = parser.position;
                     
-                    if parser.debug_mode {
-                        let indent = parser.format_debug_indent();
+                    if parser.logger.is_enabled() {
                         let consumed = end_pos - start_pos;
-                        let status = if consumed > 0 {
-                            format!("✅ consumed {} chars", consumed)
+                        if consumed > 0 {
+                            parser.logger.log_success("generated_parser.rs", 0, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')", #rule_name, start_pos, end_pos, consumed, &parser.input[start_pos..end_pos]));
                         } else {
-                            "⚠️ zero-length match".to_string()
-                        };
-                        
-                        parser.debug_output.push(format!(
-                            "{}{} {} [{}.{}] {}",
-                            indent, status, #rule_name, start_pos, end_pos,
-                            if consumed > 0 {
-                                format!(" = {:?}", &parser.input[start_pos..end_pos])
-                            } else {
-                                String::new()
-                            }
-                        ));
+                            parser.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ Rule '{}' matched with zero length at position {}", #rule_name, start_pos));
+                        }
                     }
                     
                     Ok(ParseNode {
@@ -514,6 +418,20 @@ impl AstBasedGenerator {
                 });
                 
                 self.recursion_guard.exit();
+                
+                match &result {
+                    Ok(node) => {
+                        if self.logger.is_enabled() {
+                            self.logger.log_success("generated_parser.rs", 0, &format!("✅ Exiting rule '{}' successfully - advanced from {} to {}", #rule_name, start_pos, self.position));
+                        }
+                    }
+                    Err(e) => {
+                        if self.logger.is_enabled() {
+                            self.logger.log_error("generated_parser.rs", 0, &format!("❌ Exiting rule '{}' with error: {:?} - backtracked to {}", #rule_name, e, self.position));
+                        }
+                    }
+                }
+                
                 result
             }
         })
@@ -821,11 +739,8 @@ impl AstBasedGenerator {
                         
                         // Critical: Check for zero-length match
                         if current_position == last_position {
-                            if parser.debug_mode {
-                                parser.debug_output.push(format!(
-                                    "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                    #rule_name, current_position
-                                ));
+                            if self.logger.is_enabled() {
+                                self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}", #rule_name, current_position));
                             }
                             break;
                         }
@@ -838,11 +753,8 @@ impl AstBasedGenerator {
                     }
                 }
                 
-                if iteration_count >= MAX_ITERATIONS && parser.debug_mode {
-                    parser.debug_output.push(format!(
-                        "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                        MAX_ITERATIONS, #rule_name
-                    ));
+                if iteration_count >= MAX_ITERATIONS && self.logger.is_enabled() {
+                    self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ MAX ITERATIONS ({}) reached in {} quantifier", MAX_ITERATIONS, #rule_name));
                 }
                 
                 let result = ParseContent::Quantified(results, "*")
@@ -863,11 +775,8 @@ impl AstBasedGenerator {
                 
                 // Check if first match consumed any input
                 if parser.position == start_position {
-                    if parser.debug_mode {
-                        parser.debug_output.push(format!(
-                            "⚠️ ZERO-LENGTH FIRST MATCH in {}+ quantifier at position {}",
-                            #rule_name, start_position
-                        ));
+                    if self.logger.is_enabled() {
+                        self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH FIRST MATCH in {}+ quantifier at position {}", #rule_name, start_position));
                     }
                 }
                 
@@ -889,11 +798,8 @@ impl AstBasedGenerator {
                         
                         // Check for zero-length match
                         if current_position == last_position {
-                            if parser.debug_mode {
-                                parser.debug_output.push(format!(
-                                    "⚠️ ZERO-LENGTH MATCH in {}+: Breaking at position {}",
-                                    #rule_name, current_position
-                                ));
+                            if self.logger.is_enabled() {
+                                self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH MATCH in {}+: Breaking at position {}", #rule_name, current_position));
                             }
                             break;
                         }
@@ -906,11 +812,8 @@ impl AstBasedGenerator {
                     }
                 }
                 
-                if iteration_count >= MAX_ITERATIONS && parser.debug_mode {
-                    parser.debug_output.push(format!(
-                        "⚠️ MAX ITERATIONS ({}) reached in {}+ quantifier",
-                        MAX_ITERATIONS, #rule_name
-                    ));
+                if iteration_count >= MAX_ITERATIONS && self.logger.is_enabled() {
+                    self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ MAX ITERATIONS ({}) reached in {}+ quantifier", MAX_ITERATIONS, #rule_name));
                 }
                 
                 let result = ParseContent::Quantified(results, "+")
@@ -972,17 +875,19 @@ impl AstBasedGenerator {
                 let start = self.position;
                 let end = start + expected.len();
                 
+                if self.logger.is_enabled() {
+                    self.logger.log_debug("generated_parser.rs", 0, &format!("🔤 Attempting to match terminal '{}' at position {} (end: {})", expected, start, end));
+                }
+                
                 if end <= self.input.len() {
                     let slice = &self.input[start..end];
                     if slice == expected {
-                        if self.debug_mode {
-                            let indent = self.format_debug_indent();
-                            self.debug_output.push(format!(
-                                "{}🎯 matched {:?} at position {}",
-                                indent, expected, start
-                            ));
-                        }
                         self.position = end;
+                        
+                        if self.logger.is_enabled() {
+                            self.logger.log_success("generated_parser.rs", 0, &format!("✅ Terminal '{}' matched, advanced to position {}", expected, end));
+                        }
+                        
                         return Ok(slice);
                     }
                 }
@@ -995,12 +900,8 @@ impl AstBasedGenerator {
                     "<EOF>"
                 };
                 
-                if self.debug_mode {
-                    let indent = self.format_debug_indent();
-                    self.debug_output.push(format!(
-                        "{}❌ expected {:?}, found {:?} at position {}",
-                        indent, expected, found_str, start
-                    ));
+                if self.logger.is_enabled() {
+                    self.logger.log_error("generated_parser.rs", 0, &format!("❌ Terminal '{}' failed at position {} - found '{}'", expected, start, found_str));
                 }
                 
                 Err(self.create_contextual_error(&format!(
@@ -1021,12 +922,8 @@ impl AstBasedGenerator {
                         let matched = mat.as_str();
                         let start = self.position;
                         
-                        if self.debug_mode {
-                            let indent = self.format_debug_indent();
-                            self.debug_output.push(format!(
-                                "{}🎯 regex {:?} matched {:?} at position {}",
-                                indent, pattern, matched, start
-                            ));
+                        if self.logger.is_enabled() {
+                            self.logger.log_success("generated_parser.rs", 0, &format!("✅ Regex '{}' matched '{}' at position {}", pattern, matched, start));
                         }
                         
                         self.position += matched.len();
@@ -1034,18 +931,14 @@ impl AstBasedGenerator {
                     }
                 }
                 
-                if self.debug_mode {
-                    let indent = self.format_debug_indent();
+                if self.logger.is_enabled() {
                     let preview = if self.position < self.input.len() {
                         let end = (self.position + 10).min(self.input.len());
                         &self.input[self.position..end]
                     } else {
                         "<EOF>"
                     };
-                    self.debug_output.push(format!(
-                        "{}❌ regex {:?} no match at position {} (next: {:?})",
-                        indent, pattern, self.position, preview
-                    ));
+                    self.logger.log_error("generated_parser.rs", 0, &format!("❌ Regex '{}' no match at position {} (next: '{}')", pattern, self.position, preview));
                 }
                 
                 Err(self.create_contextual_error(&format!(
@@ -1061,11 +954,26 @@ impl AstBasedGenerator {
                 let saved_pos = self.position;
                 let saved_stack_len = self.recursion_guard.parse_stack.len();
                 
+                if self.logger.is_enabled() {
+                    self.logger.log_debug("generated_parser.rs", 0, &format!("🔄 Starting speculative parse at position {}", saved_pos));
+                }
+                
                 match f(self) {
-                    Ok(result) => Some(result),
-                    Err(_) => {
+                    Ok(result) => {
+                        if self.logger.is_enabled() {
+                            self.logger.log_success("generated_parser.rs", 0, &format!("🔄 Speculative parse succeeded, advanced to position {}", self.position));
+                        }
+                        Some(result)
+                    }
+                    Err(e) => {
+                        // Backtrack
                         self.position = saved_pos;
                         self.recursion_guard.parse_stack.truncate(saved_stack_len);
+                        
+                        if self.logger.is_enabled() {
+                            self.logger.log_warning("generated_parser.rs", 0, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {}", e, saved_pos));
+                        }
+                        
                         None
                     }
                 }
@@ -1080,42 +988,61 @@ impl AstBasedGenerator {
                 if let Some(cached) = self.memo.get(&key) {
                     if let Some(ref node) = cached {
                         self.position = node.span.end;
+                        
+                        if self.logger.is_enabled() {
+                            self.logger.log_info("generated_parser.rs", 0, &format!("💾 Memo hit for rule {} at position {} - reusing cached result", rule_id, self.position));
+                        }
+                        
                         return Ok(node.clone());
                     } else {
+                        if self.logger.is_enabled() {
+                            self.logger.log_warning("generated_parser.rs", 0, &format!("💾 Memo miss for rule {} at position {} - cached failure", rule_id, self.position));
+                        }
                         return Err(ParseError::Backtrack {
                             position: self.position,
                         });
                     }
                 }
                 
-                let start_pos = self.position;
+                if self.logger.is_enabled() {
+                    self.logger.log_debug("generated_parser.rs", 0, &format!("💾 Memo miss for rule {} at position {} - computing fresh result", rule_id, self.position));
+                }
+                
                 let result = f(self);
                 
                 if let Ok(ref node) = result {
                     self.memo.insert(key, Some(node.clone()));
+                    if self.logger.is_enabled() {
+                        self.logger.log_info("generated_parser.rs", 0, &format!("💾 Memoized successful result for rule {} at position {}", rule_id, self.position));
+                    }
                 } else {
                     self.memo.insert(key, None);
+                    if self.logger.is_enabled() {
+                        self.logger.log_warning("generated_parser.rs", 0, &format!("💾 Memoized failed result for rule {} at position {}", rule_id, self.position));
+                    }
                 }
                 
                 result
             }
         }
     }
-    
-    fn generate_tests(&self, parser_name: &Ident) -> TokenStream {
+}
+
+fn generate_tests(parser_name: &Ident) -> TokenStream {
         quote! {
             #[cfg(test)]
             mod tests {
                 use super::*;
+                use crate::Logger;
                 
                 #[test]
                 fn test_basic_parsing() {
                     let input = "$1";
-                    let mut parser = #parser_name::new(input);
+                    let logger = Box::new(crate::NoOpLogger);
+                    let mut parser = #parser_name::new(input, logger);
                     let result = parser.parse();
                     assert!(result.is_ok());
                 }
             }
         }
-    }
 }

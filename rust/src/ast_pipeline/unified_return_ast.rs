@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 
+use crate::ast_pipeline::Logger;
+
 /// Extraction target for quantified groups
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ExtractionTarget {
@@ -89,9 +91,9 @@ pub enum UnifiedReturnAST {
 impl UnifiedReturnAST {
     /// Parse a return annotation string into the unified AST
     /// This is the bootstrap parser used when the external parser isn't available
-    pub fn parse_bootstrap(annotation: &str, debug: bool) -> Result<UnifiedReturnAST, String> {
-        if debug {
-            println!("[UnifiedReturnAST::parse_bootstrap] Parsing: '{}'", annotation);
+    pub fn parse_bootstrap(annotation: &str, logger: &dyn Logger) -> Result<UnifiedReturnAST, String> {
+        if logger.is_enabled() {
+            logger.log_info("unified_return_ast.rs", line!(), &format!("Parsing return annotation: '{}'", annotation));
         }
         
         // Remove leading "-> " if present
@@ -108,25 +110,25 @@ impl UnifiedReturnAST {
             return Ok(UnifiedReturnAST::Passthrough);
         }
         
-        let result = Self::parse_value(cleaned, debug)?;
+        let result = Self::parse_value(cleaned, logger)?;
         
-        if debug {
-            println!("[UnifiedReturnAST::parse_bootstrap] Parsed AST:\n{}", result.pretty_print(2));
+        if logger.is_enabled() {
+            logger.log_success("unified_return_ast.rs", line!(), &format!("Parsed AST: {}", result.pretty_print(0).trim()));
         }
         
         Ok(result)
     }
     
-    fn parse_value(input: &str, debug: bool) -> Result<UnifiedReturnAST, String> {
+    fn parse_value(input: &str, logger: &dyn Logger) -> Result<UnifiedReturnAST, String> {
         let trimmed = input.trim();
         
-        if debug {
-            println!("[UnifiedReturnAST::parse_value] Parsing value: '{}'", trimmed);
+        if logger.is_enabled() {
+            logger.log_debug("unified_return_ast.rs", line!(), &format!("Parsing value: '{}'", trimmed));
         }
         
         // Check for positional reference $N (with potential modifiers)
         if trimmed.starts_with('$') {
-            return Self::parse_positional_ref(trimmed, debug);
+            return Self::parse_positional_ref(trimmed, logger);
         }
         
         // Check for string literal "..."
@@ -138,12 +140,12 @@ impl UnifiedReturnAST {
         
         // Check for object {...}
         if trimmed.starts_with('{') && trimmed.ends_with('}') {
-            return Self::parse_object(&trimmed[1..trimmed.len()-1], debug);
+            return Self::parse_object(&trimmed[1..trimmed.len()-1], logger);
         }
         
         // Check for array [...]
         if trimmed.starts_with('[') && trimmed.ends_with(']') {
-            return Self::parse_array(&trimmed[1..trimmed.len()-1], debug);
+            return Self::parse_array(&trimmed[1..trimmed.len()-1], logger);
         }
         
         // Check for number
@@ -161,9 +163,9 @@ impl UnifiedReturnAST {
         Err(format!("Unable to parse return value: '{}'", trimmed))
     }
     
-    fn parse_positional_ref(input: &str, debug: bool) -> Result<UnifiedReturnAST, String> {
-        if debug {
-            println!("[UnifiedReturnAST::parse_positional_ref] Parsing: '{}'", input);
+    fn parse_positional_ref(input: &str, logger: &dyn Logger) -> Result<UnifiedReturnAST, String> {
+        if logger.is_enabled() {
+            logger.log_debug("unified_return_ast.rs", line!(), &format!("Parsing positional reference: '{}'", input));
         }
         
         // Handle $N, $N*, $N.property, $N[index], $N::target, $N::target*
@@ -177,16 +179,20 @@ impl UnifiedReturnAST {
         let num_str = &without_dollar[..end_of_number];
         let remaining = &without_dollar[end_of_number..];
         
-        if debug {
-            println!("[UnifiedReturnAST::parse_positional_ref] Extracted number: '{}', remaining: '{}'", num_str, remaining);
+        if logger.is_enabled() {
+            logger.log_debug("unified_return_ast.rs", line!(), &format!("  Extracted number: '{}', remaining: '{}'", num_str, remaining));
         }
         
         if num_str.is_empty() {
+            logger.log_error("unified_return_ast.rs", line!(), &format!("Invalid positional reference: '{}'", input));
             return Err(format!("Invalid positional reference: '{}'", input));
         }
         
         let index = num_str.parse::<usize>()
-            .map_err(|_| format!("Invalid positional index: '{}'", num_str))?;
+            .map_err(|_| {
+                logger.log_error("unified_return_ast.rs", line!(), &format!("Invalid positional index: '{}'", num_str));
+                format!("Invalid positional index: '{}'", num_str)
+            })?;
         
         let mut base = UnifiedReturnAST::PositionalRef { index };
         
@@ -210,11 +216,15 @@ impl UnifiedReturnAST {
                     match s.parse::<usize>() {
                         Ok(user_idx) => {
                             if user_idx == 0 {
+                                logger.log_error("unified_return_ast.rs", line!(), "Extraction index must be 1 or greater, got 0");
                                 return Err(format!("Extraction index must be 1 or greater, got 0"));
                             }
                             ExtractionTarget::Index(user_idx - 1)  // Convert 1-based to 0-based
                         }
-                        Err(_) => return Err(format!("Invalid extraction target: '{}'", s)),
+                        Err(_) => {
+                            logger.log_error("unified_return_ast.rs", line!(), &format!("Invalid extraction target: '{}'", s));
+                            return Err(format!("Invalid extraction target: '{}'", s));
+                        }
                     }
                 }
             };
@@ -229,14 +239,15 @@ impl UnifiedReturnAST {
                 base = UnifiedReturnAST::Spread { base: Box::new(base) };
             }
         } else if remaining.starts_with('*') {
-            if debug {
-                println!("[UnifiedReturnAST::parse_positional_ref] Found spread operator '*'");
+            if logger.is_enabled() {
+                logger.log_debug("unified_return_ast.rs", line!(), "  Found spread operator '*'");
             }
             base = UnifiedReturnAST::Spread { base: Box::new(base) };
         } else if remaining.starts_with('.') {
             // Property access
             let property = remaining[1..].to_string();
             if property.is_empty() {
+                logger.log_error("unified_return_ast.rs", line!(), &format!("Invalid property access: '{}'", input));
                 return Err(format!("Invalid property access: '{}'", input));
             }
             base = UnifiedReturnAST::PropertyAccess {
@@ -248,28 +259,30 @@ impl UnifiedReturnAST {
             // TODO: Parse the index expression properly
             if let Some(end) = remaining.find(']') {
                 let index_str = &remaining[1..end];
-                let index = Self::parse_value(index_str, debug)?;
+                let index = Self::parse_value(index_str, logger)?;
                 base = UnifiedReturnAST::ArrayAccess {
                     base: Box::new(base),
                     index: Box::new(index),
                 };
             } else {
+                logger.log_error("unified_return_ast.rs", line!(), &format!("Unclosed array access: '{}'", input));
                 return Err(format!("Unclosed array access: '{}'", input));
             }
         } else if !remaining.is_empty() {
+            logger.log_error("unified_return_ast.rs", line!(), &format!("Invalid positional reference modifier: '{}'", remaining));
             return Err(format!("Invalid positional reference modifier: '{}'", remaining));
         }
         
-        if debug {
-            println!("[UnifiedReturnAST::parse_positional_ref] Returning: {:?}", base);
+        if logger.is_enabled() {
+            logger.log_debug("unified_return_ast.rs", line!(), &format!("  Returning: {}", base.pretty_print(0).trim()));
         }
         
         Ok(base)
     }
     
-    fn parse_object(content: &str, debug: bool) -> Result<UnifiedReturnAST, String> {
-        if debug {
-            println!("[UnifiedReturnAST::parse_object] Parsing object content: '{}'", content);
+    fn parse_object(content: &str, logger: &dyn Logger) -> Result<UnifiedReturnAST, String> {
+        if logger.is_enabled() {
+            logger.log_debug("unified_return_ast.rs", line!(), &format!("Parsing object content: '{}'", content));
         }
         
         let mut properties = HashMap::new();
@@ -280,6 +293,7 @@ impl UnifiedReturnAST {
         for pair in pairs {
             let parts = Self::split_respecting_nesting(&pair, ':');
             if parts.len() != 2 {
+                logger.log_error("unified_return_ast.rs", line!(), &format!("Invalid object property: '{}'", pair));
                 return Err(format!("Invalid object property: '{}'", pair));
             }
             
@@ -292,16 +306,16 @@ impl UnifiedReturnAST {
             };
             
             // Parse value
-            let value = Self::parse_value(parts[1].trim(), debug)?;
+            let value = Self::parse_value(parts[1].trim(), logger)?;
             properties.insert(key, Box::new(value));
         }
         
         Ok(UnifiedReturnAST::Object { properties })
     }
     
-    fn parse_array(content: &str, debug: bool) -> Result<UnifiedReturnAST, String> {
-        if debug {
-            println!("[UnifiedReturnAST::parse_array] Parsing array content: '{}'", content);
+    fn parse_array(content: &str, logger: &dyn Logger) -> Result<UnifiedReturnAST, String> {
+        if logger.is_enabled() {
+            logger.log_debug("unified_return_ast.rs", line!(), &format!("Parsing array content: '{}'", content));
         }
         
         let mut elements = Vec::new();
@@ -316,10 +330,10 @@ impl UnifiedReturnAST {
                 if trimmed.ends_with('*') && !trimmed.starts_with('"') {
                     // It's a spread, but only if not inside a string
                     let base_str = &trimmed[..trimmed.len()-1];
-                    let base = Self::parse_value(base_str, debug)?;
+                    let base = Self::parse_value(base_str, logger)?;
                     elements.push(UnifiedReturnAST::Spread { base: Box::new(base) });
                 } else {
-                    elements.push(Self::parse_value(trimmed, debug)?);
+                    elements.push(Self::parse_value(trimmed, logger)?);
                 }
             }
         }
@@ -431,10 +445,10 @@ impl UnifiedReturnAST {
     
     /// Generate Rust code from this return annotation AST
     /// This walks the AST and generates the appropriate code to build the parse result
-    pub fn generate_code(&self, captured_vars: &[String], indent: &str, debug: bool) -> Result<String, String> {
-        if debug {
-            println!("[UnifiedReturnAST::generate_code] Generating code for: {:?}", self);
-            println!("[UnifiedReturnAST::generate_code] Available captured vars: {:?}", captured_vars);
+    pub fn generate_code(&self, captured_vars: &[String], indent: &str, logger: &dyn Logger) -> Result<String, String> {
+        if logger.is_enabled() {
+            logger.log_debug("unified_return_ast.rs", line!(), &format!("Generating code for: {:?}", self));
+            logger.log_debug("unified_return_ast.rs", line!(), &format!("Available captured vars: {:?}", captured_vars));
         }
         
         match self {
@@ -443,8 +457,8 @@ impl UnifiedReturnAST {
                 if *index > 0 && *index <= captured_vars.len() {
                     // Use the captured variable (already references sequence_elements[N])
                     let var_ref = &captured_vars[index - 1];
-                    if debug {
-                        println!("[UnifiedReturnAST::generate_code] PositionalRef ${} -> '{}'", index, var_ref);
+                    if logger.is_enabled() {
+                        logger.log_debug("unified_return_ast.rs", line!(), &format!("PositionalRef ${} -> '{}'", index, var_ref));
                     }
                     // If it's a sequence element, get its content
                     if var_ref.starts_with("sequence_elements[") {
@@ -479,7 +493,7 @@ impl UnifiedReturnAST {
                     match element {
                         UnifiedReturnAST::Spread { base } => {
                             // Handle spread operator - unpack if it's a sequence
-                            let base_code = base.generate_code(captured_vars, &format!("{}    ", indent), debug)?;
+                            let base_code = base.generate_code(captured_vars, &format!("{}    ", indent), logger)?;
                             
                             // Generate code to spread the elements
                             code.push_str(&format!("\n{}    // Spread element\n", indent));
@@ -494,7 +508,7 @@ impl UnifiedReturnAST {
                                 code.push_str(",");
                             }
                             code.push_str("\n");
-                            let elem_code = element.generate_code(captured_vars, &format!("{}    ", indent), debug)?;
+                            let elem_code = element.generate_code(captured_vars, &format!("{}    ", indent), logger)?;
                             code.push_str(&format!("{}    ParseNode {{ rule_name: \"element_{}\", content: {}, span: 0..0 }}", 
                                 indent, i, elem_code));
                         }
@@ -562,7 +576,7 @@ impl UnifiedReturnAST {
                         }
                         _ => {
                             // For complex nested values, recursively generate code
-                            let nested_code = value.generate_code(captured_vars, &format!("{}        ", indent), debug)?;
+                            let nested_code = value.generate_code(captured_vars, &format!("{}        ", indent), logger)?;
                             code.push_str(&format!("{}    json_obj[r#\"{}\"#] = serde_json::json!({}); \n", 
                                 indent, key, nested_code));
                         }
@@ -578,12 +592,12 @@ impl UnifiedReturnAST {
             UnifiedReturnAST::Spread { base } => {
                 // Spread is typically used within arrays, handled above
                 // If used standalone, just return the base
-                base.generate_code(captured_vars, indent, debug)
+                base.generate_code(captured_vars, indent, logger)
             }
             
             UnifiedReturnAST::PropertyAccess { base, property } => {
                 // Generate property access code
-                let base_code = base.generate_code(captured_vars, indent, debug)?;
+                let base_code = base.generate_code(captured_vars, indent, logger)?;
                 // For now, this is a placeholder - would need runtime reflection
                 Ok(format!("{}// TODO: Property access .{} on {}\n{}ParseContent::Terminal(\"<property_access>\")", 
                     indent, property, base_code, indent))
@@ -591,8 +605,8 @@ impl UnifiedReturnAST {
             
             UnifiedReturnAST::ArrayAccess { base, index } => {
                 // Generate array access code
-                let base_code = base.generate_code(captured_vars, indent, debug)?;
-                let index_code = index.generate_code(captured_vars, indent, debug)?;
+                let base_code = base.generate_code(captured_vars, indent, logger)?;
+                let index_code = index.generate_code(captured_vars, indent, logger)?;
                 // For now, this is a placeholder - would need runtime indexing
                 Ok(format!("{}// TODO: Array access [{}] on {}\n{}ParseContent::Terminal(\"<array_access>\"",
                     indent, index_code, base_code, indent))
@@ -676,16 +690,18 @@ mod tests {
     
     #[test]
     fn test_parse_positional_ref() {
-        let ast = UnifiedReturnAST::parse_bootstrap("$1", false).unwrap();
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("$1", &logger).unwrap();
         assert_eq!(ast, UnifiedReturnAST::PositionalRef { index: 1 });
         
-        let ast = UnifiedReturnAST::parse_bootstrap("$42", false).unwrap();
+        let ast = UnifiedReturnAST::parse_bootstrap("$42", &logger).unwrap();
         assert_eq!(ast, UnifiedReturnAST::PositionalRef { index: 42 });
     }
     
     #[test]
     fn test_parse_spread() {
-        let ast = UnifiedReturnAST::parse_bootstrap("$3*", false).unwrap();
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("$3*", &logger).unwrap();
         assert_eq!(ast, UnifiedReturnAST::Spread {
             base: Box::new(UnifiedReturnAST::PositionalRef { index: 3 })
         });
@@ -693,7 +709,8 @@ mod tests {
     
     #[test]
     fn test_parse_array() {
-        let ast = UnifiedReturnAST::parse_bootstrap("[$1, $2]", false).unwrap();
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("[$1, $2]", &logger).unwrap();
         match ast {
             UnifiedReturnAST::Array { elements } => {
                 assert_eq!(elements.len(), 2);
@@ -706,7 +723,8 @@ mod tests {
     
     #[test]
     fn test_parse_array_with_spread() {
-        let ast = UnifiedReturnAST::parse_bootstrap("[$1, $3*]", false).unwrap();
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("[$1, $3*]", &logger).unwrap();
         match ast {
             UnifiedReturnAST::Array { elements } => {
                 assert_eq!(elements.len(), 2);
@@ -719,7 +737,8 @@ mod tests {
     
     #[test]
     fn test_parse_object() {
-        let ast = UnifiedReturnAST::parse_bootstrap(r#"{type: "array", element: $3}"#, false).unwrap();
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap(r#"{type: "array", element: $3}"#, &logger).unwrap();
         match ast {
             UnifiedReturnAST::Object { properties } => {
                 assert_eq!(properties.len(), 2);
@@ -742,23 +761,25 @@ mod tests {
     
     #[test]
     fn test_code_generation() {
+        let logger = crate::test_runner::NoOpLogger;
         let captured_vars = vec!["sequence_elements[0]".to_string(), "sequence_elements[1]".to_string()];
         
         // Test positional reference
         let ast = UnifiedReturnAST::PositionalRef { index: 1 };
-        let code = ast.generate_code(&captured_vars, "", false).unwrap();
+        let code = ast.generate_code(&captured_vars, "", &logger).unwrap();
         assert_eq!(code, "sequence_elements[0].content.clone()");
         
         // Test string literal
         let ast = UnifiedReturnAST::StringLiteral { value: "test".to_string() };
-        let code = ast.generate_code(&captured_vars, "", false).unwrap();
+        let code = ast.generate_code(&captured_vars, "", &logger).unwrap();
         assert_eq!(code, "ParseContent::Terminal(r#\"test\"#)");
     }
     
     #[test]
     fn test_parse_extraction_operators() {
+        let logger = crate::test_runner::NoOpLogger;
         // Test $2::2 (should extract second element, stored as index 1)
-        let ast = UnifiedReturnAST::parse_bootstrap("$2::2", false).unwrap();
+        let ast = UnifiedReturnAST::parse_bootstrap("$2::2", &logger).unwrap();
         match ast {
             UnifiedReturnAST::QuantifiedExtraction { base, target } => {
                 assert!(matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
@@ -768,7 +789,7 @@ mod tests {
         }
         
         // Test $2::first
-        let ast = UnifiedReturnAST::parse_bootstrap("$2::first", false).unwrap();
+        let ast = UnifiedReturnAST::parse_bootstrap("$2::first", &logger).unwrap();
         match ast {
             UnifiedReturnAST::QuantifiedExtraction { base, target } => {
                 assert!(matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
@@ -778,7 +799,7 @@ mod tests {
         }
         
         // Test $2::last
-        let ast = UnifiedReturnAST::parse_bootstrap("$2::last", false).unwrap();
+        let ast = UnifiedReturnAST::parse_bootstrap("$2::last", &logger).unwrap();
         match ast {
             UnifiedReturnAST::QuantifiedExtraction { base, target } => {
                 assert!(matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 2 }));
@@ -788,7 +809,7 @@ mod tests {
         }
         
         // Test $2::1* (extraction with spread, should extract first element at index 0)
-        let ast = UnifiedReturnAST::parse_bootstrap("$2::1*", false).unwrap();
+        let ast = UnifiedReturnAST::parse_bootstrap("$2::1*", &logger).unwrap();
         match ast {
             UnifiedReturnAST::Spread { base } => {
                 match base.as_ref() {

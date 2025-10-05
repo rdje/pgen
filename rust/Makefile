@@ -32,9 +32,16 @@ RUST_AST_PIPELINE = $(RUST_DIR)/target/debug/ast_pipeline
 # Source dependencies for AST pipeline - if any of these change, parsers need regeneration
 AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
                       $(RUST_DIR)/src/lib.rs \
-                      $(RUST_DIR)/src/ast_pipeline.rs \
+                      $(RUST_DIR)/src/ast_pipeline/mod.rs \
                       $(RUST_DIR)/src/ast_pipeline/ast_based_generator.rs \
+                      $(RUST_DIR)/src/ast_pipeline/ast_code_generator.rs \
                       $(RUST_DIR)/src/ast_pipeline/ast_generator_direct.rs \
+                      $(RUST_DIR)/src/ast_pipeline/ast_return_transform.rs \
+                      $(RUST_DIR)/src/ast_pipeline/grouped_quantifier_parser.rs \
+                      $(RUST_DIR)/src/ast_pipeline/mutual_recursion_handler.rs \
+                      $(RUST_DIR)/src/ast_pipeline/return_annotation_handler.rs \
+                      $(RUST_DIR)/src/ast_pipeline/unified_return_ast.rs \
+                      $(RUST_DIR)/src/ast_pipeline/unified_semantic_ast.rs \
                       $(RUST_DIR)/Cargo.toml
 
 # Tools

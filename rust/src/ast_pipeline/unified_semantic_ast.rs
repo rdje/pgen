@@ -8,6 +8,7 @@
 //!
 //! This eliminates the need for multiple parallel AST representations and parsers.
 
+use crate::ast_pipeline::Logger;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use anyhow::Result;
@@ -29,25 +30,25 @@ pub enum UnifiedSemanticAST {
 
 impl UnifiedSemanticAST {
     /// Parse a semantic annotation in bootstrap mode (minimal support)
-    pub fn parse_bootstrap(annotation_value: &str, debug: bool) -> Result<Self, String> {
+    pub fn parse_bootstrap(annotation_value: &str, logger: &dyn Logger) -> Result<Self, String> {
         let trimmed = annotation_value.trim();
 
-        if debug {
-            println!("[SEMANTIC_PARSE] Parsing semantic annotation in bootstrap mode: '{}'", trimmed);
+        if logger.is_enabled() {
+            logger.log_info("unified_semantic_ast.rs", line!(), &format!("Parsing semantic annotation in bootstrap mode: '{}'", trimmed));
         }
 
         // For now, we only support transform expressions as raw strings
         // TODO: Add proper AST parsing for function calls, type parameters, etc.
         if trimmed.contains("::parse::<") && trimmed.contains(">().unwrap_or(") {
-            if debug {
-                println!("[SEMANTIC_PARSE] Recognized as transform expression");
+            if logger.is_enabled() {
+                logger.log_success("unified_semantic_ast.rs", line!(), "Recognized as transform expression");
             }
             Ok(UnifiedSemanticAST::TransformExpr {
                 expression: trimmed.to_string(),
             })
         } else {
-            if debug {
-                println!("[SEMANTIC_PARSE] Unrecognized semantic annotation, storing as raw");
+            if logger.is_enabled() {
+                logger.log_info("unified_semantic_ast.rs", line!(), "Unrecognized semantic annotation, storing as raw");
             }
             Ok(UnifiedSemanticAST::Raw {
                 content: trimmed.to_string(),

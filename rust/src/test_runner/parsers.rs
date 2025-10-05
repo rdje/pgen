@@ -1,14 +1,20 @@
 use crate::ast_pipeline::unified_return_ast::{UnifiedReturnAST, ExtractionTarget};
 use crate::ast_pipeline::UnifiedSemanticAST;
-use crate::test_runner::Parser;
+use std::io::Write;
+
+use super::{Parser, Logger};
 use anyhow::Result;
 
 /// Return Annotation Parser implementation
-pub struct ReturnAnnotationParser;
+pub struct ReturnAnnotationParser {
+    logger: Box<dyn Logger>,
+}
 
 impl ReturnAnnotationParser {
     pub fn new() -> Self {
-        Self
+        Self {
+            logger: Box::new(crate::ast_pipeline::NoOpLogger),
+        }
     }
 
     /// Convert AST back to original string format for true round-trip validation
@@ -52,22 +58,44 @@ impl ReturnAnnotationParser {
 
 impl Parser for ReturnAnnotationParser {
     fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>> {
+        self.logger.log_info("parsers.rs", line!(), &format!("Starting return annotation parser round-trip for: '{}'", input));
+        
         // Parse the return annotation using the bootstrap parser
-        let ast = UnifiedReturnAST::parse_bootstrap(input, false)
-            .map_err(|e| anyhow::anyhow!("Failed to parse return annotation '{}': {}", input, e))?;
+        let ast = UnifiedReturnAST::parse_bootstrap(input, &*self.logger)
+            .map_err(|e| {
+                self.logger.log_error("parsers.rs", line!(), &format!("Failed to parse return annotation '{}': {}", input, e));
+                anyhow::anyhow!("Failed to parse return annotation '{}': {}", input, e)
+            })?;
+        
+        self.logger.log_success("parsers.rs", line!(), &format!("Successfully parsed return annotation AST: {:?}", ast));
         
         // Convert back to string representation for round-trip validation
         // Use proper unparsing that produces the original string format
-        Ok(self.unparse_ast(&ast))
+        let result = self.unparse_ast(&ast);
+        self.logger.log_info("parsers.rs", line!(), &format!("Return annotation round-trip result: '{}'", result));
+        
+        Ok(result)
+    }
+    
+    fn set_logger(&mut self, logger: Box<dyn Logger>) {
+        self.logger = logger;
+    }
+    
+    fn get_logger(&self) -> &dyn Logger {
+        &*self.logger
     }
 }
 
 /// Semantic Annotation Parser implementation  
-pub struct SemanticAnnotationParser;
+pub struct SemanticAnnotationParser {
+    logger: Box<dyn Logger>,
+}
 
 impl SemanticAnnotationParser {
     pub fn new() -> Self {
-        Self
+        Self {
+            logger: Box::new(crate::test_runner::NoOpLogger),
+        }
     }
 
     /// Convert AST back to original string format for round-trip validation
@@ -81,12 +109,30 @@ impl SemanticAnnotationParser {
 
 impl Parser for SemanticAnnotationParser {
     fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>> {
+        self.logger.log_info("parsers.rs", line!(), &format!("Starting semantic annotation parser round-trip for: '{}'", input));
+        
         // Parse the semantic annotation using the bootstrap parser
-        let ast = UnifiedSemanticAST::parse_bootstrap(input, false)
-            .map_err(|e| anyhow::anyhow!("Failed to parse semantic annotation '{}': {}", input, e))?;
+        let ast = UnifiedSemanticAST::parse_bootstrap(input, &*self.logger)
+            .map_err(|e| {
+                self.logger.log_error("parsers.rs", line!(), &format!("Failed to parse semantic annotation '{}': {}", input, e));
+                anyhow::anyhow!("Failed to parse semantic annotation '{}': {}", input, e)
+            })?;
+        
+        self.logger.log_success("parsers.rs", line!(), &format!("Successfully parsed semantic annotation AST: {:?}", ast));
         
         // Convert back to string representation for round-trip validation
-        Ok(self.unparse_ast(&ast))
+        let result = self.unparse_ast(&ast);
+        self.logger.log_info("parsers.rs", line!(), &format!("Semantic annotation round-trip result: '{}'", result));
+        
+        Ok(result)
+    }
+    
+    fn set_logger(&mut self, logger: Box<dyn Logger>) {
+        self.logger = logger;
+    }
+    
+    fn get_logger(&self) -> &dyn Logger {
+        &*self.logger
     }
 }
 
