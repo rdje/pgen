@@ -371,6 +371,9 @@ Desktop.ini
 !test_automation_demo.rs
 !Makefile.auto-sync
 
+# Keep grouped_quantifier_parser.rs (not generated)
+!rust/src/ast_pipeline/grouped_quantifier_parser.rs
+
 # Test runner logs
 test_runner_*.log
 universal_test_runner_*.log

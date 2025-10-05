@@ -2,8 +2,8 @@
 // No adapter layer needed - string-based generator has been removed
 
 use crate::ast_pipeline::{
-    ASTNode, Annotations, TransformedASTJson,
-    ast_based_generator::{AstBasedGenerator, BranchAnnotation},
+    ASTNode, Annotations, TransformedASTJson, BranchAnnotation,
+    ast_based_generator::AstBasedGenerator,
 };
 use std::collections::HashMap;
 use anyhow::{Result, Context};

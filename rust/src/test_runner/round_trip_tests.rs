@@ -1,8 +1,8 @@
 use crate::test_runner::Parser;
 use std::fs;
 use serde_json;
-//! Round-trip testing framework for mathematical parser validation
-//! Provides complete input → parse → AST → unparse → output validation
+/// Round-trip testing framework for mathematical parser validation
+/// Provides complete input → parse → AST → unparse → output validation
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -32,6 +32,9 @@ pub struct RoundTripTest {
 #[derive(Debug)]
 pub struct TestSuite {
     pub name: String,
+    pub suite_name: String,
+    pub parser_type: String,
+    pub description: String,
     pub tests: Vec<RoundTripTest>,
 }
 
@@ -70,6 +73,7 @@ impl Report {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct TestResult {
     pub suite: String,
     pub test: String,
@@ -81,22 +85,36 @@ pub struct RoundTripTestRunner {
     test_data_dir: PathBuf,
     pub results: Vec<TestResult>,
     parser: Option<Box<dyn Parser>>,
+    verbose: bool,
+    parser_filter: Option<String>,
+    tag_filter: Vec<String>,
 }
 
 impl RoundTripTestRunner {
     pub fn new() -> Self {
-        let test_data_dir = PathBuf::from("test_data/return_annotation/basic_return_tests.json");
+        let test_data_dir = PathBuf::from("test_data");
         Self {
             test_data_dir,
             results: Vec::new(),
             parser: None,
+            verbose: false,
+            parser_filter: None,
+            tag_filter: Vec::new(),
         }
     }
 
-    /// Configure the runner with a specific parser implementation
-    /// This allows testing real parsers instead of mock implementations
-    pub fn with_parser(mut self, parser: Box<dyn Parser>) -> Self {
-        self.parser = Some(parser);
+    pub fn with_verbose(mut self, verbose: bool) -> Self {
+        self.verbose = verbose;
+        self
+    }
+
+    pub fn with_parser_filter(mut self, filter: String) -> Self {
+        self.parser_filter = Some(filter);
+        self
+    }
+
+    pub fn with_tag_filter(mut self, tags: Vec<String>) -> Self {
+        self.tag_filter = tags;
         self
     }
 
@@ -118,18 +136,28 @@ impl RoundTripTestRunner {
                     let suite_tests: Vec<RoundTripTest> = serde_json::from_str(&json_str)?;
                     tests = suite_tests;
                 }
-                suites.push(TestSuite { name: suite_name, tests });
+                suites.push(TestSuite { 
+                    name: suite_name.clone(), 
+                    suite_name, 
+                    parser_type: "unknown".to_string(), 
+                    description: "Auto-discovered test suite".to_string(), 
+                    tests 
+                });
             }
         }
         Ok(suites)
     }
 
-    pub fn run_all_tests(&mut self, parser_filter: Option<String>, tag_filter: Vec<String>) -> Result<Report> {
+    pub fn run_all_tests(&mut self) -> Result<Report> {
+        self.run_all_tests_with_filters(self.parser_filter.clone(), self.tag_filter.clone())
+    }
+
+    pub fn run_all_tests_with_filters(&mut self, parser_filter: Option<String>, tag_filter: Vec<String>) -> Result<Report> {
         let suites = self.discover_test_suites()?;
         let mut report = Report::default();
         
         for suite in suites {
-            for test in suite.tests {
+            for test in &suite.tests {
                 if test.skip { continue; }
                 
                 // Filter by parser

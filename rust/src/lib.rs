@@ -17,16 +17,3 @@ pub mod test_reproduction_demo;
 // pub mod individual_tests_generator; // Module file doesn't exist
 // pub mod test_automation; // Depends on non-existent modules above
 
-// Re-export commonly used types for convenience
-pub use ast_pipeline::{
-    RustASTPipeline, 
-    PipelineConfig, 
-    ASTNode, 
-    ASTValue, 
-    TokenValue,
-    Annotations,
-    ReturnAnnotation,
-    unified_return_ast,
-    // ast_based_generator,  // TEMPORARILY DISABLED - needs fixing
-    // ast_generator_direct  // TEMPORARILY DISABLED - needs fixing
-};

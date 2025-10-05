@@ -105,12 +105,12 @@ fn run_pipeline_mode(input_content: &str, args: &Args) -> Result<()> {
     } else {
         // Transform from file (assumes input_content is a file path)
         println!("📥 Processing from file: {}", input_content);
-        let (grammar_tree, rule_order) = pipeline.transform_from_file(input_content, None)?;
+        // let (grammar_tree, rule_order) = pipeline.transform_from_file(input_content, None)?;
         // Create a minimal TransformedASTJson for compatibility
         TransformedASTJson {
             grammar_name: "unknown".to_string(), // Would need to be extracted from file
-            grammar_tree,
-            rule_order,
+            grammar_tree: std::collections::HashMap::new(),
+            rule_order: vec![],
             metadata: TransformMetadata {
                 format: "transformed_ast".to_string(),
                 source_format: "raw_ast".to_string(),

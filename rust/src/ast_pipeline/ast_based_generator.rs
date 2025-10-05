@@ -8,7 +8,7 @@ use proc_macro2::TokenStream;
 use std::collections::HashMap;
 use anyhow::Result;
 use prettyplease;
-use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, UnifiedSemanticAST};
+use crate::ast_pipeline::{ASTNode, ASTValue, Annotations, BranchAnnotation, TokenValue, UnifiedSemanticAST};
 use crate::ast_pipeline::ast_return_transform::AstReturnTransformer;
 
 /// AST-based generator that produces guaranteed syntactically correct Rust code
@@ -18,13 +18,6 @@ pub struct AstBasedGenerator {
     pub annotations: Option<Annotations>,
     pub branch_return_annotations: HashMap<String, Vec<Option<BranchAnnotation>>>,
     pub enable_debug: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct BranchAnnotation {
-    pub annotation_type: String,
-    pub annotation_content: String,
-    pub parsed_ast: Option<crate::ast_pipeline::UnifiedReturnAST>,
 }
 
 impl AstBasedGenerator {
@@ -716,8 +709,8 @@ impl AstBasedGenerator {
     fn generate_atom_logic(&self, value: &ASTValue, rule_name: &str) -> Result<TokenStream> {
         match value {
             ASTValue::Token(parts) if parts.len() >= 2 => {
-                let token_type_str = parts[0].as_str().unwrap_or("");
-                let token_value_str = parts[1].as_str().unwrap_or("");
+                let token_type_str = if let TokenValue::String(ref s) = parts[0] { s.as_str() } else { "" };
+                let token_value_str = if let TokenValue::String(ref s) = parts[1] { s.as_str() } else { "" };
                 
                 match token_type_str {
                     "quoted_string" => {
@@ -968,9 +961,9 @@ impl AstBasedGenerator {
         }
     }
     /// Utility function to unparse a ParseNode back to text for round-trip testing
-    pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {
-        format!("{:?}", node.content)
-    }
+    // pub fn unparse_node(&self, node: &ParseNode<'input>) -> String {
+    //     format!("{:?}", node.content)
+    // }
 
     
     fn generate_helper_methods(&self) -> TokenStream {
