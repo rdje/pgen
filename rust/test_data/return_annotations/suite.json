@@ -1,0 +1,10 @@
+[
+  {
+    "name": "test1",
+    "description": "dummy test",
+    "input": "1",
+    "expected_round_trip": "parsed: 1",
+    "parser_type": "mock",
+    "normalizer": "text"
+  }
+]

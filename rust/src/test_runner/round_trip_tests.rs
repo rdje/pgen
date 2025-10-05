@@ -1,3 +1,5 @@
+use std::fs;
+use serde_json;
 //! Round-trip testing framework for mathematical parser validation
 //! Provides complete input → parse → AST → unparse → output validation
 
@@ -72,4 +74,5 @@ mod tests {
         let mut runner = RoundTripTestRunner::new();
         assert!(runner.run_all_tests().is_ok());
     }
+}
 }
