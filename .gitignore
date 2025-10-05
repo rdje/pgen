@@ -208,6 +208,7 @@ nytprof/
 generated_*.pm
 generated_*.jl
 generated_*.rs
+perl/*parser.rs
 *_parser.pm
 *_parser.jl
 
@@ -365,9 +366,6 @@ Desktop.ini
 !sync_tests.rs
 !test_automation_demo.rs
 !Makefile.auto-sync
-
-# Keep grouped_quantifier_parser.rs (not generated)
-!rust/src/ast_pipeline/grouped_quantifier_parser.rs
 
 # Test runner logs
 test_runner_*.log
