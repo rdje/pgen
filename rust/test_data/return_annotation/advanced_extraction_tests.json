@@ -1,98 +1,65 @@
-{
-  "suite_name": "Return Annotations - Advanced Extraction Operators",
-  "description": "Tests for double colon extraction operators with quantified groups",
-  "parser_type": "return_annotation",
-  "tests": [
-    {
-      "name": "extract_first_element",
-      "description": "Extract first element from each repetition using ::1",
-      "input": "-> $2::1*",
-      "expected": {
-        "contains": ["Extraction", "index: 0", "Spread"]
-      },
-      "tags": ["extraction", "index", "first"]
-    },
-    {
-      "name": "extract_second_element",
-      "description": "Extract second element from each repetition using ::2",
-      "input": "-> $2::2*",
-      "expected": {
-        "contains": ["Extraction", "index: 1", "Spread"]
-      },
-      "tags": ["extraction", "index", "second"]
-    },
-    {
-      "name": "extract_third_element",
-      "description": "Extract third element (index 2) from each repetition",
-      "input": "-> [$1, $2::3*]",
-      "expected": {
-        "contains": ["Array", "ScalarRef(1)", "Extraction", "index: 2"]
-      },
-      "tags": ["extraction", "index", "array"]
-    },
-    {
-      "name": "extract_last_element",
-      "description": "Extract last element from each repetition using ::last",
-      "input": "-> $2::last*",
-      "expected": {
-        "contains": ["Extraction", "last", "Spread"]
-      },
-      "tags": ["extraction", "special", "last"]
-    },
-    {
-      "name": "multiple_extractions",
-      "description": "Multiple extraction operators in object",
-      "input": "-> {params: [$1, $2::3*], types: [$2::5*]}",
-      "expected": {
-        "contains": ["Object", "params", "Array", "Extraction", "index: 2", "types", "index: 4"]
-      },
-      "tags": ["extraction", "multiple", "object"]
-    },
-    {
-      "name": "extract_without_spread",
-      "description": "Extraction operator without spread (single value)",
-      "input": "-> $2::1",
-      "expected": {
-        "contains": ["Extraction", "index: 0"],
-        "not_contains": ["Spread"]
-      },
-      "tags": ["extraction", "single", "no-spread"]
-    },
-    {
-      "name": "complex_nested_extraction",
-      "description": "Extraction in nested structure",
-      "input": "-> {outer: {inner: [$1, $2::2*], extracted: $2::4}}",
-      "expected": {
-        "contains": ["Object", "outer", "inner", "Array", "Extraction", "extracted"]
-      },
-      "tags": ["extraction", "nested", "complex"]
-    },
-    {
-      "name": "extract_from_optional",
-      "description": "Extract from optional quantified group",
-      "input": "-> [$1, $2::1?]",
-      "expected": {
-        "contains": ["Array", "ScalarRef(1)", "Extraction", "Optional"]
-      },
-      "tags": ["extraction", "optional", "quantifier"]
-    },
-    {
-      "name": "extract_plus_quantifier",
-      "description": "Extract with plus quantifier",
-      "input": "-> $2::2+",
-      "expected": {
-        "contains": ["Extraction", "index: 1", "Plus"]
-      },
-      "tags": ["extraction", "plus", "quantifier"]
-    },
-    {
-      "name": "mixed_extraction_spreading",
-      "description": "Mix of extraction and regular spreading",
-      "input": "-> [$1, $2*, $3::3*]",
-      "expected": {
-        "contains": ["Array", "ScalarRef(1)", "ScalarRef(2)", "Spread", "Extraction"]
-      },
-      "tags": ["extraction", "mixed", "spreading"]
-    }
-  ]
-}
+[
+  {
+    "name": "extract_first_element",
+    "description": "Extract first element from each repetition using ::1",
+    "input": "$2::1*",
+    "expected_round_trip": "Spread {\n  base: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Index(0)\n  }\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["extraction", "index", "first"]
+  },
+  {
+    "name": "extract_second_element",
+    "description": "Extract second element from each repetition using ::2",
+    "input": "$2::2*",
+    "expected_round_trip": "Spread {\n  base: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Index(1)\n  }\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["extraction", "index", "second"]
+  },
+  {
+    "name": "extract_third_element",
+    "description": "Extract third element (index 2) from each repetition",
+    "input": "[$1, $2::3*]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nSpread {\n    base: \nQuantifiedExtraction {\n      base: \nPositionalRef($2)\n      target: Index(2)\n    }\n  }\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["extraction", "index", "array"]
+  },
+  {
+    "name": "extract_last_element",
+    "description": "Extract last element from each repetition using ::last",
+    "input": "$2::last*",
+    "expected_round_trip": "Spread {\n  base: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Last\n  }\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["extraction", "special", "last"]
+  },
+  {
+    "name": "multiple_extractions",
+    "description": "Multiple extraction operators in object",
+    "input": "{params: [$1, $2::3*], types: [$2::5*]}",
+    "expected_round_trip": "Object {\n  params: \nArray [\n    [0]: \nPositionalRef($1)\n    [1]: \nSpread {\n      base: \nQuantifiedExtraction {\n        base: \nPositionalRef($2)\n        target: Index(2)\n      }\n    }\n  ]\n  types: \nArray [\n    [0]: \nSpread {\n      base: \nQuantifiedExtraction {\n        base: \nPositionalRef($2)\n        target: Index(4)\n      }\n    }\n  ]\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["extraction", "multiple", "object"]
+  },
+  {
+    "name": "extract_without_spread",
+    "description": "Extraction operator without spread (single value)",
+    "input": "$2::1",
+    "expected_round_trip": "QuantifiedExtraction {\n  base: \nPositionalRef($2)\n  target: Index(0)\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["extraction", "single", "no-spread"]
+  },
+  {
+    "name": "complex_nested_extraction",
+    "description": "Extraction in nested structure",
+    "input": "{outer: {inner: [$1, $2::2*], extracted: $2::4}}",
+    "expected_round_trip": "Object {\n  extracted: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Index(3)\n  }\n  outer: \nObject {\n    inner: \nArray [\n      [0]: \nPositionalRef($1)\n      [1]: \nSpread {\n        base: \nQuantifiedExtraction {\n          base: \nPositionalRef($2)\n          target: Index(1)\n        }\n      }\n    ]\n  }\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["extraction", "nested", "complex"]
+  }
+]

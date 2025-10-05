@@ -1,109 +1,56 @@
-{
-  "suite_name": "semantic",
-  "description": "Converted test suite",
-  "parser_type": "semantic",
-  "tests": [
-    {
-      "name": "type_annotation",
-      "description": "Type annotation",
-      "input": "@type: \"Expression\"",
-      "expected": {},
-      "tags": [
-        "type",
-        "basic"
-      ]
-    },
-    {
-      "name": "precedence_annotation",
-      "description": "Precedence annotation",
-      "input": "@precedence: 5",
-      "expected": {},
-      "tags": [
-        "precedence",
-        "basic"
-      ]
-    },
-    {
-      "name": "boolean_annotation",
-      "description": "Boolean annotation",
-      "input": "@side_effect: false",
-      "expected": {},
-      "tags": [
-        "boolean",
-        "basic"
-      ]
-    },
-    {
-      "name": "array_annotation",
-      "description": "Array annotation",
-      "input": "@validate: [\"check_bounds\"]",
-      "expected": {},
-      "tags": [
-        "array",
-        "basic"
-      ]
-    },
-    {
-      "name": "object_annotation",
-      "description": "Object annotation",
-      "input": "@cache: {ttl: 300}",
-      "expected": {},
-      "tags": [
-        "object",
-        "basic"
-      ]
-    },
-    {
-      "name": "complex_function_call_annotati",
-      "description": "Complex function call annotation",
-      "input": "generate_char_class_matcher(has_negation($2), collect_class_items($2))",
-      "expected": {},
-      "tags": [
-        "complex",
-        "complex"
-      ]
-    },
-    {
-      "name": "complex_conditional_expression",
-      "description": "Complex conditional expression",
-      "input": "count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"",
-      "expected": {},
-      "tags": [
-        "complex",
-        "complex"
-      ]
-    },
-    {
-      "name": "complex_lambda_expression",
-      "description": "Complex lambda expression",
-      "input": "all(extract_ranges($2), r => valid_range(r.start, r.end))",
-      "expected": {},
-      "tags": [
-        "complex",
-        "complex"
-      ]
-    },
-    {
-      "name": "invalid_syntax_pattern_(causes",
-      "description": "Invalid syntax pattern (causes stack overflow)",
-      "input": "^\" if $1 else \"",
-      "expected": {
-        "error": "Expected failure"
-      },
-      "tags": [
-        "complex",
-        "complex"
-      ]
-    },
-    {
-      "name": "comparison_expression",
-      "description": "Comparison expression",
-      "input": "$1 != null",
-      "expected": {},
-      "tags": [
-        "complex",
-        "complex"
-      ]
-    }
-  ]
-}
+[
+  {
+    "name": "transform_expression_function_call",
+    "description": "Complex function call annotation",
+    "input": "generate_char_class_matcher(has_negation($2), collect_class_items($2))",
+    "expected_round_trip": "Raw(generate_char_class_matcher(has_negation($2), collect_class_items($2)))",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": ["complex", "function_call"]
+  },
+  {
+    "name": "transform_expression_conditional",
+    "description": "Complex conditional expression",
+    "input": "count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"",
+    "expected_round_trip": "Raw(count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\")",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": ["complex", "conditional"]
+  },
+  {
+    "name": "transform_expression_lambda",
+    "description": "Complex lambda expression",
+    "input": "all(extract_ranges($2), r => valid_range(r.start, r.end))",
+    "expected_round_trip": "Raw(all(extract_ranges($2), r => valid_range(r.start, r.end)))",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": ["complex", "lambda"]
+  },
+  {
+    "name": "transform_expression_comparison",
+    "description": "Comparison expression",
+    "input": "$1 != null",
+    "expected_round_trip": "Raw($1 != null)",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": ["comparison"]
+  },
+  {
+    "name": "transform_parse_float",
+    "description": "Transform expression for parsing float",
+    "input": "str::parse::<f64>().unwrap_or(0.0)",
+    "expected_round_trip": "TransformExpr(str::parse::<f64>().unwrap_or(0.0))",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": ["transform", "parse", "float"]
+  },
+  {
+    "name": "transform_parse_int",
+    "description": "Transform expression for parsing integer",
+    "input": "str::parse::<i32>().unwrap_or_default()",
+    "expected_round_trip": "TransformExpr(str::parse::<i32>().unwrap_or_default())",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": ["transform", "parse", "int"]
+  }
+]

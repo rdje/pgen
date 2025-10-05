@@ -1,63 +1,42 @@
-{
-  "suite_name": "Return Annotations - Arrays and Spreading",
-  "description": "Tests for array construction and spread operators",
-  "parser_type": "return",
-  "tests": [
-    {
-      "name": "simple_array",
-      "input": "[$1, $2]",
-      "expected": {
-        "contains": ["Array", "PositionalRef"]
-      },
-      "description": "Simple array with two elements"
-    },
-    {
-      "name": "empty_array",
-      "input": "[]",
-      "expected": {
-        "contains": ["Array"]
-      },
-      "description": "Empty array literal"
-    },
-    {
-      "name": "spread_operator",
-      "input": "$3*",
-      "expected_ast": {
-        "type": "Spread",
-        "base": {
-          "type": "PositionalRef",
-          "index": 3
-        }
-      },
-      "description": "Spread operator on positional reference"
-    },
-    {
-      "name": "array_with_spread",
-      "input": "[$1, $2*]",
-      "expected_ast": {
-        "type": "Array",
-        "elements": [
-          {"type": "PositionalRef", "index": 1},
-          {
-            "type": "Spread",
-            "base": {"type": "PositionalRef", "index": 2}
-          }
-        ]
-      },
-      "description": "Array with spread element"
-    },
-    {
-      "name": "array_with_literals",
-      "input": "[\"first\", $1, \"last\"]",
-      "expected_ast": {
-        "type": "Array",
-        "elements": [
-          {"type": "StringLiteral", "value": "first"},
-          {"type": "PositionalRef", "index": 1},
-          {"type": "StringLiteral", "value": "last"}
-        ]
-      },
-      "description": "Array with mixed literals and references"
-    }
-  ]
-}
+[
+  {
+    "name": "simple_array",
+    "description": "Simple array with two elements",
+    "input": "[$1, $2]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nPositionalRef($2)\n]",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "empty_array",
+    "description": "Empty array literal",
+    "input": "[]",
+    "expected_round_trip": "Array [\n]",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "spread_operator",
+    "description": "Spread operator on positional reference",
+    "input": "$3*",
+    "expected_round_trip": "Spread {\n  base: \nPositionalRef($3)\n}",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "array_with_spread",
+    "description": "Array with spread element",
+    "input": "[$1, $2*]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nSpread {\n    base: \nPositionalRef($2)\n  }\n]",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "array_with_literals",
+    "description": "Array with mixed literals and references",
+    "input": "[\"first\", $1, \"last\"]",
+    "expected_round_trip": "Array [\n  [0]: \nStringLiteral(\"first\")\n  [1]: \nPositionalRef($1)\n  [2]: \nStringLiteral(\"last\")\n]",
+    "parser_type": "return",
+    "normalizer": "text"
+  }
+]

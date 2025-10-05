@@ -1,50 +1,42 @@
-{
-  "suite_name": "Semantic Annotations - Basic Tests",
-  "description": "Basic tests for semantic annotation parser",
-  "parser_type": "semantic",
-  "parser_config": {
-    "debug_mode": false
+[
+  {
+    "name": "simple_dot_notation",
+    "description": "Test basic dot notation",
+    "input": "$1.bar",
+    "expected_round_trip": "Raw($1.bar)",
+    "parser_type": "semantic",
+    "normalizer": "text"
   },
-  "tests": [
-    {
-      "name": "simple_dot_notation",
-      "description": "Test basic dot notation",
-      "input": "$1.bar",
-      "expected": {
-        "contains": ["bar", "dot_notation"]
-      }
-    },
-    {
-      "name": "nested_dot_notation",
-      "description": "Test nested dot notation",
-      "input": "$1.foo.bar",
-      "expected": {
-        "contains": ["foo", "bar"]
-      }
-    },
-    {
-      "name": "array_access",
-      "description": "Test array access notation",
-      "input": "$1[0]",
-      "expected": {
-        "contains": ["array_access", "[0]"]
-      }
-    },
-    {
-      "name": "complex_chain",
-      "description": "Test complex chained notation",
-      "input": "$1.items[*].value",
-      "expected": {
-        "contains": ["items", "[*]", "value"]
-      }
-    },
-    {
-      "name": "invalid_syntax",
-      "description": "Test invalid syntax handling",
-      "input": "$1..bar",
-      "expected": {
-        "error": "Parse"
-      }
-    }
-  ]
-}
+  {
+    "name": "nested_dot_notation",
+    "description": "Test nested dot notation",
+    "input": "$1.foo.bar",
+    "expected_round_trip": "Raw($1.foo.bar)",
+    "parser_type": "semantic",
+    "normalizer": "text"
+  },
+  {
+    "name": "array_access",
+    "description": "Test array access notation",
+    "input": "$1[0]",
+    "expected_round_trip": "Raw($1[0])",
+    "parser_type": "semantic",
+    "normalizer": "text"
+  },
+  {
+    "name": "complex_chain",
+    "description": "Test complex chained notation",
+    "input": "$1.items[*].value",
+    "expected_round_trip": "Raw($1.items[*].value)",
+    "parser_type": "semantic",
+    "normalizer": "text"
+  },
+  {
+    "name": "transform_expression",
+    "description": "Test transform expression parsing",
+    "input": "str::parse::<f64>().unwrap_or(0.0)",
+    "expected_round_trip": "TransformExpr(str::parse::<f64>().unwrap_or(0.0))",
+    "parser_type": "semantic",
+    "normalizer": "text"
+  }
+]

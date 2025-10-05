@@ -4,7 +4,7 @@
     "description": "Test real return annotation parser with round-trip validation",
     "input": "$1",
     "expected_round_trip": "PositionalRef($1)",
-    "parser_type": "return_annotation",
+    "parser_type": "return",
     "normalizer": "text"
   },
   {

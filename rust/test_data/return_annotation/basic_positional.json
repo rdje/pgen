@@ -1,39 +1,34 @@
-{
-  "suite_name": "Return Annotations - Basic Positional References", 
-  "description": "Tests for basic positional reference syntax ($1, $2, etc.)",
-  "parser_type": "return",
-  "tests": [
-    {
-      "name": "simple_positional_first",
-      "description": "Basic first position reference",
-      "input": "$1",
-      "expected": {
-        "contains": ["PositionalRef", "index: 1"]
-      }
-    },
-    {
-      "name": "simple_positional_second",
-      "input": "$2", 
-      "expected": {
-        "contains": ["PositionalRef", "index: 2"]
-      },
-      "description": "Basic second position reference"
-    },
-    {
-      "name": "simple_positional_large",
-      "input": "$42",
-      "expected": {
-        "contains": ["PositionalRef", "index: 42"]
-      },
-      "description": "Large position number"
-    },
-    {
-      "name": "positional_with_arrow",
-      "input": "-> $3",
-      "expected": {
-        "contains": ["PositionalRef", "index: 3"]
-      },
-      "description": "Positional reference with arrow prefix"
-    }
-  ]
-}
+[
+  {
+    "name": "simple_positional_first",
+    "description": "Basic first position reference",
+    "input": "$1",
+    "expected_round_trip": "PositionalRef($1)",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "simple_positional_second",
+    "description": "Basic second position reference",
+    "input": "$2",
+    "expected_round_trip": "PositionalRef($2)",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "simple_positional_large",
+    "description": "Large position number",
+    "input": "$42",
+    "expected_round_trip": "PositionalRef($42)",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "positional_with_arrow",
+    "description": "Positional reference with arrow prefix",
+    "input": "-> $3",
+    "expected_round_trip": "PositionalRef($3)",
+    "parser_type": "return",
+    "normalizer": "text"
+  }
+]

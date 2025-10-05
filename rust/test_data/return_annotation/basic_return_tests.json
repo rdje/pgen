@@ -1,52 +1,47 @@
-{
-  "suite_name": "Return Annotation - Basic Tests",
-  "description": "Basic return annotation parser tests",
-  "parser_type": "return",
-  "tests": [
-    {
-      "name": "basic_scalar_$1",
-      "description": "Basic scalar reference $1",
-      "input": "$1",
-      "expected": {
-        "contains": ["ScalarRef", "1"]
-      },
-      "tags": ["basic", "scalar"]
-    },
-    {
-      "name": "basic_scalar_$2",
-      "description": "Basic scalar reference $2",
-      "input": "$2",
-      "expected": {
-        "contains": ["ScalarRef", "2"]
-      },
-      "tags": ["basic", "scalar"]
-    },
-    {
-      "name": "simple_array",
-      "description": "Simple array [$1, $2]",
-      "input": "[$1, $2]",
-      "expected": {
-        "contains": ["Array"]
-      },
-      "tags": ["basic", "array"]
-    },
-    {
-      "name": "simple_object",
-      "description": "Simple object {key: $1}",
-      "input": "{key: $1}",
-      "expected": {
-        "contains": ["Object", "key"]
-      },
-      "tags": ["basic", "object"]
-    },
-    {
-      "name": "string_literal",
-      "description": "String literal",
-      "input": "\"test\"",
-      "expected": {
-        "contains": ["StringLiteral", "test"]
-      },
-      "tags": ["basic", "literal"]
-    }
-  ]
-}
+[
+  {
+    "name": "basic_scalar_$1",
+    "description": "Basic scalar reference $1",
+    "input": "$1",
+    "expected_round_trip": "PositionalRef($1)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["basic", "scalar"]
+  },
+  {
+    "name": "basic_scalar_$2",
+    "description": "Basic scalar reference $2",
+    "input": "$2",
+    "expected_round_trip": "PositionalRef($2)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["basic", "scalar"]
+  },
+  {
+    "name": "simple_array",
+    "description": "Simple array [$1, $2]",
+    "input": "[$1, $2]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nPositionalRef($2)\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["basic", "array"]
+  },
+  {
+    "name": "simple_object",
+    "description": "Simple object {key: $1}",
+    "input": "{key: $1}",
+    "expected_round_trip": "Object {\n  key: \nPositionalRef($1)\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["basic", "object"]
+  },
+  {
+    "name": "string_literal",
+    "description": "String literal",
+    "input": "\"test\"",
+    "expected_round_trip": "StringLiteral(\"test\")",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["basic", "literal"]
+  }
+]

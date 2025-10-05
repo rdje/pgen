@@ -1,70 +1,42 @@
-{
-  "suite_name": "Return Annotations - Extraction Operators",
-  "description": "Tests for the new :: extraction operator syntax",
-  "parser_type": "return",
-  "tests": [
-    {
-      "name": "extract_by_index",
-      "description": "Extract element at index 2 from quantified group",
-      "input": "$2::2",
-      "expected": {
-        "contains": [
-          "QuantifiedExtraction",
-          "Index",
-          "PositionalRef"
-        ]
-      }
-    },
-    {
-      "name": "extract_first",
-      "description": "Extract first element from each repetition",
-      "input": "$3::first",
-      "expected": {
-        "contains": [
-          "QuantifiedExtraction",
-          "PositionalRef",
-          "First"
-        ]
-      }
-    },
-    {
-      "name": "extract_last",
-      "description": "Extract last element from each repetition",
-      "input": "$2::last",
-      "expected": {
-        "contains": [
-          "QuantifiedExtraction",
-          "Last",
-          "PositionalRef"
-        ]
-      }
-    },
-    {
-      "name": "extract_with_spread",
-      "description": "Extract and spread elements (second element from each repetition)",
-      "input": "$2::2*",
-      "expected": {
-        "contains": [
-          "QuantifiedExtraction",
-          "Index",
-          "PositionalRef",
-          "Spread"
-        ]
-      }
-    },
-    {
-      "name": "extract_in_array",
-      "description": "Extraction with spread inside array",
-      "input": "[$1, $2::2*]",
-      "expected": {
-        "contains": [
-          "Array",
-          "Index",
-          "PositionalRef",
-          "QuantifiedExtraction",
-          "Spread"
-        ]
-      }
-    }
-  ]
-}
+[
+  {
+    "name": "extract_by_index",
+    "description": "Extract element at index 2 from quantified group",
+    "input": "$2::2",
+    "expected_round_trip": "QuantifiedExtraction {\n  base: \nPositionalRef($2)\n  target: Index(1)\n}",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "extract_first",
+    "description": "Extract first element from each repetition",
+    "input": "$3::first",
+    "expected_round_trip": "QuantifiedExtraction {\n  base: \nPositionalRef($3)\n  target: First\n}",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "extract_last",
+    "description": "Extract last element from each repetition",
+    "input": "$2::last",
+    "expected_round_trip": "QuantifiedExtraction {\n  base: \nPositionalRef($2)\n  target: Last\n}",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "extract_with_spread",
+    "description": "Extract and spread elements (second element from each repetition)",
+    "input": "$2::2*",
+    "expected_round_trip": "Spread {\n  base: \nQuantifiedExtraction {\n    base: \nPositionalRef($2)\n    target: Index(1)\n  }\n}",
+    "parser_type": "return",
+    "normalizer": "text"
+  },
+  {
+    "name": "extract_in_array",
+    "description": "Extraction with spread inside array",
+    "input": "[$1, $2::2*]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nSpread {\n    base: \nQuantifiedExtraction {\n      base: \nPositionalRef($2)\n      target: Index(1)\n    }\n  }\n]",
+    "parser_type": "return",
+    "normalizer": "text"
+  }
+]

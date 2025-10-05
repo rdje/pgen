@@ -1,471 +1,146 @@
-{
-  "suite_name": "return_annotation",
-  "description": "Converted test suite",
-  "parser_type": "return",
-  "tests": [
-    {
-      "name": "basic_scalar_reference_$1",
-      "description": "Basic scalar reference $1",
-      "input": "-> $1",
-      "expected": {},
-      "tags": [
-        "scalar_reference",
-        "basic"
-      ]
-    },
-    {
-      "name": "basic_scalar_reference_$2",
-      "description": "Basic scalar reference $2",
-      "input": "-> $2",
-      "expected": {},
-      "tags": [
-        "scalar_reference",
-        "basic"
-      ]
-    },
-    {
-      "name": "multi-digit_scalar_reference",
-      "description": "Multi-digit scalar reference",
-      "input": "-> $10",
-      "expected": {},
-      "tags": [
-        "scalar_reference",
-        "basic"
-      ]
-    },
-    {
-      "name": "large_scalar_reference",
-      "description": "Large scalar reference",
-      "input": "-> $99",
-      "expected": {},
-      "tags": [
-        "scalar_reference",
-        "basic"
-      ]
-    },
-    {
-      "name": "string_literal",
-      "description": "String literal",
-      "input": "-> \"hello\"",
-      "expected": {},
-      "tags": [
-        "literal",
-        "basic"
-      ]
-    },
-    {
-      "name": "string_literal_with_space",
-      "description": "String literal with space",
-      "input": "-> \"test string\"",
-      "expected": {},
-      "tags": [
-        "literal",
-        "basic"
-      ]
-    },
-    {
-      "name": "integer_literal",
-      "description": "Integer literal",
-      "input": "-> 42",
-      "expected": {},
-      "tags": [
-        "literal",
-        "basic"
-      ]
-    },
-    {
-      "name": "multi-digit_integer_literal",
-      "description": "Multi-digit integer literal",
-      "input": "-> 123",
-      "expected": {},
-      "tags": [
-        "literal",
-        "basic"
-      ]
-    },
-    {
-      "name": "bare_identifier_-_should_fail",
-      "description": "Bare identifier - should fail",
-      "input": "-> true",
-      "expected": {
-        "error": "Expected failure"
-      },
-      "tags": [
-        "identifier",
-        "basic"
-      ]
-    },
-    {
-      "name": "bare_identifier_-_should_fail",
-      "description": "Bare identifier - should fail",
-      "input": "-> false",
-      "expected": {
-        "error": "Expected failure"
-      },
-      "tags": [
-        "identifier",
-        "basic"
-      ]
-    },
-    {
-      "name": "single_element_array_with_scal",
-      "description": "Single element array with scalar reference",
-      "input": "-> [$1]",
-      "expected": {},
-      "tags": [
-        "array",
-        "basic"
-      ]
-    },
-    {
-      "name": "single_element_array_with_scal",
-      "description": "Single element array with scalar reference",
-      "input": "-> [$2]",
-      "expected": {},
-      "tags": [
-        "array",
-        "basic"
-      ]
-    },
-    {
-      "name": "empty_array",
-      "description": "Empty array",
-      "input": "-> []",
-      "expected": {},
-      "tags": [
-        "array",
-        "basic"
-      ]
-    },
-    {
-      "name": "empty_object",
-      "description": "Empty object",
-      "input": "-> {}",
-      "expected": {},
-      "tags": [
-        "object",
-        "basic"
-      ]
-    },
-    {
-      "name": "multi-element_array_with_scala",
-      "description": "Multi-element array with scalar references",
-      "input": "-> [$1, $2]",
-      "expected": {},
-      "tags": [
-        "array",
-        "complex"
-      ]
-    },
-    {
-      "name": "string_array",
-      "description": "String array",
-      "input": "-> [\"item1\", \"item2\"]",
-      "expected": {},
-      "tags": [
-        "array",
-        "complex"
-      ]
-    },
-    {
-      "name": "integer_array",
-      "description": "Integer array",
-      "input": "-> [42, 100]",
-      "expected": {},
-      "tags": [
-        "array",
-        "complex"
-      ]
-    },
-    {
-      "name": "single_property_object",
-      "description": "Single property object",
-      "input": "-> {key: $1}",
-      "expected": {},
-      "tags": [
-        "object",
-        "complex"
-      ]
-    },
-    {
-      "name": "single_property_object_with_na",
-      "description": "Single property object with name key",
-      "input": "-> {name: $1}",
-      "expected": {},
-      "tags": [
-        "object",
-        "complex"
-      ]
-    },
-    {
-      "name": "single_property_object_with_va",
-      "description": "Single property object with value key",
-      "input": "-> {value: $2}",
-      "expected": {},
-      "tags": [
-        "object",
-        "complex"
-      ]
-    },
-    {
-      "name": "multi-property_object",
-      "description": "Multi-property object",
-      "input": "-> {name: $1, value: $2}",
-      "expected": {},
-      "tags": [
-        "object",
-        "complex"
-      ]
-    },
-    {
-      "name": "mixed_type_object",
-      "description": "Mixed type object",
-      "input": "-> {id: 42, name: \"test\"}",
-      "expected": {},
-      "tags": [
-        "object",
-        "complex"
-      ]
-    },
-    {
-      "name": "dot_notation_access",
-      "description": "Dot notation access",
-      "input": "-> $1.value",
-      "expected": {},
-      "tags": [
-        "accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "dot_notation_access_to_name_pr",
-      "description": "Dot notation access to name property",
-      "input": "-> $1.name",
-      "expected": {},
-      "tags": [
-        "accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "dot_notation_access_to_data_pr",
-      "description": "Dot notation access to data property",
-      "input": "-> $1.data",
-      "expected": {},
-      "tags": [
-        "accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "array_indexing_at_position_0",
-      "description": "Array indexing at position 0",
-      "input": "-> $1[0]",
-      "expected": {},
-      "tags": [
-        "accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "array_indexing_at_position_1",
-      "description": "Array indexing at position 1",
-      "input": "-> $1[1]",
-      "expected": {},
-      "tags": [
-        "accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "array_indexing_on_second_refer",
-      "description": "Array indexing on second reference",
-      "input": "-> $2[0]",
-      "expected": {},
-      "tags": [
-        "accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "bash-style_whole_array_access",
-      "description": "Bash-style whole array access",
-      "input": "-> $1[*]",
-      "expected": {},
-      "tags": [
-        "advanced_accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "python-style_whole_array_slice",
-      "description": "Python-style whole array slice",
-      "input": "-> $1[:]",
-      "expected": {},
-      "tags": [
-        "advanced_accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "perl-style_range",
-      "description": "Perl-style range",
-      "input": "-> $1[0..2]",
-      "expected": {},
-      "tags": [
-        "advanced_accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "python-style_slice",
-      "description": "Python-style slice",
-      "input": "-> $1[1:4]",
-      "expected": {},
-      "tags": [
-        "advanced_accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "python-style_slice_with_step",
-      "description": "Python-style slice with step",
-      "input": "-> $1[1:10:2]",
-      "expected": {},
-      "tags": [
-        "advanced_accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "nested_arrays",
-      "description": "Nested arrays",
-      "input": "-> [[$1, $2], [$3, $4]]",
-      "expected": {},
-      "tags": [
-        "nested_structures",
-        "complex"
-      ]
-    },
-    {
-      "name": "nested_objects",
-      "description": "Nested objects",
-      "input": "-> {outer: {inner: $1}}",
-      "expected": {},
-      "tags": [
-        "nested_structures",
-        "complex"
-      ]
-    },
-    {
-      "name": "quantified_array_element",
-      "description": "Quantified array element",
-      "input": "-> [$1*]",
-      "expected": {},
-      "tags": [
-        "quantified",
-        "complex"
-      ]
-    },
-    {
-      "name": "quantified_object",
-      "description": "Quantified object",
-      "input": "-> {key: $1}*",
-      "expected": {},
-      "tags": [
-        "quantified",
-        "complex"
-      ]
-    },
-    {
-      "name": "grouped_quantified_array",
-      "description": "Grouped quantified array",
-      "input": "-> [(element1 element2)*]",
-      "expected": {},
-      "tags": [
-        "grouped_quantified",
-        "complex"
-      ]
-    },
-    {
-      "name": "chained_accessors",
-      "description": "Chained accessors",
-      "input": "-> $1.property[2].subprop",
-      "expected": {},
-      "tags": [
-        "chained_accessor",
-        "complex"
-      ]
-    },
-    {
-      "name": "negative_indexing",
-      "description": "Negative indexing",
-      "input": "-> $1[-1]",
-      "expected": {},
-      "tags": [
-        "negative_index",
-        "complex"
-      ]
-    },
-    {
-      "name": "multiple_indices",
-      "description": "Multiple indices",
-      "input": "-> $1[1,3,5]",
-      "expected": {},
-      "tags": [
-        "multi_index",
-        "complex"
-      ]
-    },
-    {
-      "name": "optional_array",
-      "description": "Optional array",
-      "input": "-> [$1]?",
-      "expected": {},
-      "tags": [
-        "optional_quantifier",
-        "complex"
-      ]
-    },
-    {
-      "name": "one_or_more_quantifier_on_arra",
-      "description": "One or more quantifier on array",
-      "input": "-> [$1]+",
-      "expected": {},
-      "tags": [
-        "plus_quantifier",
-        "complex"
-      ]
-    },
-    {
-      "name": "exact_repetition_quantifier",
-      "description": "Exact repetition quantifier",
-      "input": "-> {count: $1}{3}",
-      "expected": {},
-      "tags": [
-        "exact_quantifier",
-        "complex"
-      ]
-    },
-    {
-      "name": "range_repetition_quantifier",
-      "description": "Range repetition quantifier",
-      "input": "-> {items: [$1]}{2,5}",
-      "expected": {},
-      "tags": [
-        "range_quantifier",
-        "complex"
-      ]
-    },
-    {
-      "name": "up_to_n_repetitions",
-      "description": "Up to n repetitions",
-      "input": "-> {data: $1}{,3}",
-      "expected": {},
-      "tags": [
-        "max_quantifier",
-        "complex"
-      ]
-    }
-  ]
-}
+[
+  {
+    "name": "basic_scalar_reference_$1",
+    "description": "Basic scalar reference $1",
+    "input": "$1",
+    "expected_round_trip": "PositionalRef($1)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["scalar_reference", "basic"]
+  },
+  {
+    "name": "basic_scalar_reference_$2",
+    "description": "Basic scalar reference $2",
+    "input": "$2",
+    "expected_round_trip": "PositionalRef($2)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["scalar_reference", "basic"]
+  },
+  {
+    "name": "multi-digit_scalar_reference",
+    "description": "Multi-digit scalar reference",
+    "input": "$10",
+    "expected_round_trip": "PositionalRef($10)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["scalar_reference", "basic"]
+  },
+  {
+    "name": "string_literal",
+    "description": "String literal",
+    "input": "\"hello\"",
+    "expected_round_trip": "StringLiteral(\"hello\")",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["literal", "basic"]
+  },
+  {
+    "name": "integer_literal",
+    "description": "Integer literal",
+    "input": "42",
+    "expected_round_trip": "NumberLiteral(42.0)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["literal", "basic"]
+  },
+  {
+    "name": "single_element_array",
+    "description": "Single element array with scalar reference",
+    "input": "[$1]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["array", "basic"]
+  },
+  {
+    "name": "empty_array",
+    "description": "Empty array",
+    "input": "[]",
+    "expected_round_trip": "Array [\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["array", "basic"]
+  },
+  {
+    "name": "empty_object",
+    "description": "Empty object",
+    "input": "{}",
+    "expected_round_trip": "Object {\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["object", "basic"]
+  },
+  {
+    "name": "multi-element_array",
+    "description": "Multi-element array with scalar references",
+    "input": "[$1, $2]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nPositionalRef($2)\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["array", "complex"]
+  },
+  {
+    "name": "string_array",
+    "description": "String array",
+    "input": "[\"item1\", \"item2\"]",
+    "expected_round_trip": "Array [\n  [0]: \nStringLiteral(\"item1\")\n  [1]: \nStringLiteral(\"item2\")\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["array", "complex"]
+  },
+  {
+    "name": "single_property_object",
+    "description": "Single property object",
+    "input": "{key: $1}",
+    "expected_round_trip": "Object {\n  key: \nPositionalRef($1)\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["object", "complex"]
+  },
+  {
+    "name": "multi-property_object",
+    "description": "Multi-property object",
+    "input": "{name: $1, value: $2}",
+    "expected_round_trip": "Object {\n  name: \nPositionalRef($1)\n  value: \nPositionalRef($2)\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["object", "complex"]
+  },
+  {
+    "name": "dot_notation_access",
+    "description": "Dot notation access",
+    "input": "$1.value",
+    "expected_round_trip": "PropertyAccess {\n  base: \nPositionalRef($1)\n  property: value\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["accessor", "complex"]
+  },
+  {
+    "name": "array_indexing",
+    "description": "Array indexing at position 0",
+    "input": "$1[0]",
+    "expected_round_trip": "ArrayAccess {\n  base: \nPositionalRef($1)\n  index: \nNumberLiteral(0.0)\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["accessor", "complex"]
+  },
+  {
+    "name": "nested_arrays",
+    "description": "Nested arrays",
+    "input": "[[$1, $2], [$3, $4]]",
+    "expected_round_trip": "Array [\n  [0]: \nArray [\n    [0]: \nPositionalRef($1)\n    [1]: \nPositionalRef($2)\n  ]\n  [1]: \nArray [\n    [0]: \nPositionalRef($3)\n    [1]: \nPositionalRef($4)\n  ]\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["nested_structures", "complex"]
+  },
+  {
+    "name": "nested_objects",
+    "description": "Nested objects",
+    "input": "{outer: {inner: $1}}",
+    "expected_round_trip": "Object {\n  outer: \nObject {\n    inner: \nPositionalRef($1)\n  }\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["nested_structures", "complex"]
+  }
+]

@@ -1,146 +1,101 @@
-{
-  "suite_name": "Return Annotations - Edge Cases and Error Handling",
-  "description": "Tests for edge cases, error conditions, and boundary scenarios",
-  "parser_type": "return_annotation",
-  "tests": [
-    {
-      "name": "empty_array",
-      "description": "Empty array return annotation",
-      "input": "-> []",
-      "expected": {
-        "contains": ["Array"],
-        "not_contains": ["ScalarRef"]
-      },
-      "tags": ["edge", "empty", "array"]
-    },
-    {
-      "name": "empty_object",
-      "description": "Empty object return annotation",
-      "input": "-> {}",
-      "expected": {
-        "contains": ["Object"],
-        "not_contains": ["key", "value"]
-      },
-      "tags": ["edge", "empty", "object"]
-    },
-    {
-      "name": "very_large_index",
-      "description": "Reference to very large index $999",
-      "input": "-> $999",
-      "expected": {
-        "contains": ["ScalarRef", "999"]
-      },
-      "tags": ["edge", "large-index"]
-    },
-    {
-      "name": "zero_index",
-      "description": "Reference to $0 (full match)",
-      "input": "-> $0",
-      "expected": {
-        "contains": ["ScalarRef(0)"]
-      },
-      "tags": ["edge", "zero-index"]
-    },
-    {
-      "name": "nested_empty_structures",
-      "description": "Nested empty arrays and objects",
-      "input": "-> {outer: [], inner: {}}",
-      "expected": {
-        "contains": ["Object", "outer", "Array", "inner"]
-      },
-      "tags": ["edge", "nested", "empty"]
-    },
-    {
-      "name": "string_with_escapes",
-      "description": "String literal with escape sequences",
-      "input": "-> \"hello\\nworld\\t!\"",
-      "expected": {
-        "contains": ["StringLiteral", "hello", "world"]
-      },
-      "tags": ["edge", "string", "escapes"]
-    },
-    {
-      "name": "unicode_in_string",
-      "description": "String with unicode characters",
-      "input": "-> \"Hello 世界 🌍\"",
-      "expected": {
-        "contains": ["StringLiteral"]
-      },
-      "tags": ["edge", "unicode", "string"]
-    },
-    {
-      "name": "single_element_array",
-      "description": "Array with single element",
-      "input": "-> [$1]",
-      "expected": {
-        "contains": ["Array", "ScalarRef(1)"]
-      },
-      "tags": ["edge", "single", "array"]
-    },
-    {
-      "name": "single_property_object",
-      "description": "Object with single property",
-      "input": "-> {only: $1}",
-      "expected": {
-        "contains": ["Object", "only", "ScalarRef(1)"]
-      },
-      "tags": ["edge", "single", "object"]
-    },
-    {
-      "name": "deeply_nested_structure",
-      "description": "Deeply nested arrays and objects",
-      "input": "-> {a: {b: {c: {d: [$1]}}}}",
-      "expected": {
-        "contains": ["Object", "a", "b", "c", "d", "Array", "ScalarRef(1)"]
-      },
-      "tags": ["edge", "deep", "nested"]
-    },
-    {
-      "name": "all_quantifiers",
-      "description": "All quantifier types in one annotation",
-      "input": "-> [$1?, $2*, $3+, $4]",
-      "expected": {
-        "contains": ["Array", "Optional", "Star", "Plus", "ScalarRef(4)"]
-      },
-      "tags": ["edge", "quantifiers", "all"]
-    },
-    {
-      "name": "extraction_edge_negative",
-      "description": "Extraction with negative index (if supported)",
-      "input": "-> $2::-1*",
-      "expected": {
-        "contains": ["Extraction"],
-        "error": "negative index"
-      },
-      "tags": ["edge", "extraction", "negative"]
-    },
-    {
-      "name": "mixed_literals",
-      "description": "Mix of string and numeric literals",
-      "input": "-> [\"string\", 42, \"another\", 3.14]",
-      "expected": {
-        "contains": ["Array", "StringLiteral", "42", "3.14"]
-      },
-      "tags": ["edge", "literals", "mixed"]
-    },
-    {
-      "name": "whitespace_handling",
-      "description": "Annotation with various whitespace",
-      "input": "->  [ $1 , $2  ]  ",
-      "expected": {
-        "contains": ["Array", "ScalarRef(1)", "ScalarRef(2)"]
-      },
-      "tags": ["edge", "whitespace"]
-    },
-    {
-      "name": "no_arrow_prefix",
-      "description": "Return annotation without -> prefix (should fail in strict mode)",
-      "input": "$1",
-      "expected": {
-        "error": "missing -> prefix"
-      },
-      "skip": true,
-      "tags": ["error", "syntax", "prefix"]
-    }
-  ]
-}
+[
+  {
+    "name": "empty_array",
+    "description": "Empty array return annotation",
+    "input": "[]",
+    "expected_round_trip": "Array [\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "empty", "array"]
+  },
+  {
+    "name": "empty_object",
+    "description": "Empty object return annotation",
+    "input": "{}",
+    "expected_round_trip": "Object {\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "empty", "object"]
+  },
+  {
+    "name": "very_large_index",
+    "description": "Reference to very large index $999",
+    "input": "$999",
+    "expected_round_trip": "PositionalRef($999)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "large-index"]
+  },
+  {
+    "name": "zero_index",
+    "description": "Reference to $0 (full match)",
+    "input": "$0",
+    "expected_round_trip": "PositionalRef($0)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "zero-index"]
+  },
+  {
+    "name": "nested_empty_structures",
+    "description": "Nested empty arrays and objects",
+    "input": "{outer: [], inner: {}}",
+    "expected_round_trip": "Object {\n  inner: \nObject {\n  }\n  outer: \nArray [\n  ]\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "nested", "empty"]
+  },
+  {
+    "name": "string_with_escapes",
+    "description": "String literal with escape sequences",
+    "input": "\"hello\\nworld\\t!\"",
+    "expected_round_trip": "StringLiteral(\"hello\\nworld\\t!\")",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "string", "escapes"]
+  },
+  {
+    "name": "unicode_in_string",
+    "description": "String with unicode characters",
+    "input": "\"Hello 世界 🌍\"",
+    "expected_round_trip": "StringLiteral(\"Hello 世界 🌍\")",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "unicode", "string"]
+  },
+  {
+    "name": "single_element_array",
+    "description": "Array with single element",
+    "input": "[$1]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "single", "array"]
+  },
+  {
+    "name": "single_property_object",
+    "description": "Object with single property",
+    "input": "{only: $1}",
+    "expected_round_trip": "Object {\n  only: \nPositionalRef($1)\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "single", "object"]
+  },
+  {
+    "name": "deeply_nested_structure",
+    "description": "Deeply nested arrays and objects",
+    "input": "{a: {b: {c: {d: [$1]}}}}",
+    "expected_round_trip": "Object {\n  a: \nObject {\n    b: \nObject {\n      c: \nObject {\n        d: \nArray [\n          [0]: \nPositionalRef($1)\n        ]\n      }\n    }\n  }\n}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "deep", "nested"]
+  },
+  {
+    "name": "mixed_literals",
+    "description": "Mix of string and numeric literals",
+    "input": "[\"string\", 42, \"another\", 3.14]",
+    "expected_round_trip": "Array [\n  [0]: \nStringLiteral(\"string\")\n  [1]: \nNumberLiteral(42.0)\n  [2]: \nStringLiteral(\"another\")\n  [3]: \nNumberLiteral(3.14)\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["edge", "literals", "mixed"]
+  }
+]

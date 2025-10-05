@@ -85,7 +85,7 @@ pub struct RoundTripTestRunner {
 
 impl RoundTripTestRunner {
     pub fn new() -> Self {
-        let test_data_dir = PathBuf::from("test_data/return_annotations");
+        let test_data_dir = PathBuf::from("test_data/return_annotation/basic_return_tests.json");
         Self {
             test_data_dir,
             results: Vec::new(),

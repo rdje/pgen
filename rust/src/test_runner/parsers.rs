@@ -1,3 +1,4 @@
+use pgen::ast_pipeline::unified_return_ast::{UnifiedReturnAST, ExtractionTarget};
 use crate::ast_pipeline::unified_return_ast::UnifiedReturnAST;
 use crate::ast_pipeline::unified_semantic_ast::UnifiedSemanticAST;
 use crate::test_runner::Parser;

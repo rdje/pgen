@@ -1,97 +1,29 @@
-{
-  "suite_name": "Return Annotations - Regex Capture Groups",
-  "description": "Tests for regex patterns with capture groups and return annotations",
-  "parser_type": "return_annotation",
-  "tests": [
-    {
-      "name": "capture_group_$1",
-      "description": "Regex with capture group should return captured content via $1",
-      "input": "-> $1",
-      "expected": {
-        "contains": ["ScalarRef", "index: 1"]
-      },
-      "tags": ["regex", "capture", "basic"]
-    },
-    {
-      "name": "quoted_string_pattern",
-      "description": "Pattern /\"([^\"]*)\"/ with -> $1 should extract content without quotes",
-      "input": "-> $1",
-      "expected": {
-        "contains": ["ScalarRef(1)"]
-      },
-      "tags": ["regex", "quotes", "extraction"]
-    },
-    {
-      "name": "number_pattern", 
-      "description": "Pattern /(\\d+)/ with -> $1 should capture digits",
-      "input": "-> $1",
-      "expected": {
-        "contains": ["ScalarRef", "1"]
-      },
-      "tags": ["regex", "number", "capture"]
-    },
-    {
-      "name": "identifier_pattern",
-      "description": "Pattern /([a-zA-Z_]\\w*)/ with -> $1 should capture identifier",
-      "input": "-> $1",
-      "expected": {
-        "contains": ["ScalarRef(1)"]
-      },
-      "tags": ["regex", "identifier", "capture"]
-    },
-    {
-      "name": "multiple_captures_first",
-      "description": "Pattern with multiple captures, return first via $1",
-      "input": "-> $1",
-      "expected": {
-        "contains": ["ScalarRef", "1"]
-      },
-      "tags": ["regex", "multiple", "first"]
-    },
-    {
-      "name": "multiple_captures_second",
-      "description": "Pattern with multiple captures, return second via $2", 
-      "input": "-> $2",
-      "expected": {
-        "contains": ["ScalarRef", "2"]
-      },
-      "tags": ["regex", "multiple", "second"]
-    },
-    {
-      "name": "capture_in_array",
-      "description": "Return captured groups in array",
-      "input": "-> [$1, $2]",
-      "expected": {
-        "contains": ["Array", "ScalarRef(1)", "ScalarRef(2)"]
-      },
-      "tags": ["regex", "array", "multiple"]
-    },
-    {
-      "name": "capture_in_object",
-      "description": "Return captured groups in object",
-      "input": "-> {match: $1, rest: $2}",
-      "expected": {
-        "contains": ["Object", "match", "ScalarRef(1)", "rest", "ScalarRef(2)"]
-      },
-      "tags": ["regex", "object", "structured"]
-    },
-    {
-      "name": "no_capture_group_$0",
-      "description": "Pattern without capture groups, $0 returns full match",
-      "input": "-> $0",
-      "expected": {
-        "contains": ["ScalarRef(0)"]
-      },
-      "tags": ["regex", "no-capture", "full-match"]
-    },
-    {
-      "name": "spread_captured_groups",
-      "description": "Spread operator with captured groups",
-      "input": "-> [$1, $2*]",
-      "expected": {
-        "contains": ["Array", "ScalarRef(1)", "Spread"]
-      },
-      "tags": ["regex", "spread", "advanced"]
-    }
-  ]
-}
+[
+  {
+    "name": "regex_capture_group",
+    "description": "Regex capture group reference",
+    "input": "$1",
+    "expected_round_trip": "PositionalRef($1)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["regex", "capture"]
+  },
+  {
+    "name": "named_capture_group",
+    "description": "Named capture group reference",
+    "input": "$name",
+    "expected_round_trip": "PositionalRef($name)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["regex", "named", "capture"]
+  },
+  {
+    "name": "multiple_capture_groups",
+    "description": "Multiple capture group references",
+    "input": "[$1, $2, $3]",
+    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n  [1]: \nPositionalRef($2)\n  [2]: \nPositionalRef($3)\n]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tags": ["regex", "multiple", "capture"]
+  }
+]

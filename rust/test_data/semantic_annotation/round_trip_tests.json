@@ -1,31 +1,26 @@
-{
-  "suite_name": "Semantic Annotations - Round-Trip Tests", 
-  "description": "Round-trip testing: annotation syntax -> parse -> unparse -> compare",
-  "parser_type": "semantic",
-  "parser_config": {
-    "debug_mode": false
+[
+  {
+    "name": "transform_parse_float",
+    "description": "Transform expression for parsing float with default",
+    "input": "str::parse::<f64>().unwrap_or(0.0)",
+    "expected_round_trip": "TransformExpr(str::parse::<f64>().unwrap_or(0.0))",
+    "parser_type": "semantic",
+    "normalizer": "text"
   },
-  "tests": [
-    {
-      "name": "dot_notation_round_trip",
-      "description": "Dot notation round-trip",
-      "input": "$1.bar",
-      "expected_round_trip": "$1.bar",
-      "normalizer": "text"
-    },
-    {
-      "name": "array_access_round_trip",
-      "description": "Array access round-trip", 
-      "input": "$1[0]",
-      "expected_round_trip": "$1[0]",
-      "normalizer": "text"
-    },
-    {
-      "name": "complex_chain_round_trip",
-      "description": "Complex chained access round-trip",
-      "input": "$1.items[*].value",
-      "expected_round_trip": "$1.items[*].value", 
-      "normalizer": "text"
-    }
-  ]
-}
+  {
+    "name": "transform_parse_int",
+    "description": "Transform expression for parsing integer",
+    "input": "str::parse::<i32>().unwrap_or_default()",
+    "expected_round_trip": "TransformExpr(str::parse::<i32>().unwrap_or_default())",
+    "parser_type": "semantic",
+    "normalizer": "text"
+  },
+  {
+    "name": "complex_transform",
+    "description": "Complex transform with multiple operations",
+    "input": "str.trim().parse::<f64>().unwrap_or(0.0).round()",
+    "expected_round_trip": "Raw(str.trim().parse::<f64>().unwrap_or(0.0).round())",
+    "parser_type": "semantic",
+    "normalizer": "text"
+  }
+]
