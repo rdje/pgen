@@ -21,6 +21,8 @@ impl Logger for NoOpLogger {
 }
 
 use serde;
+use std::collections::HashMap;
+use anyhow::Result;
 #[derive(Debug, Clone, serde::Deserialize)]
 pub enum ASTValue {
     Token(Vec<TokenValue>),
@@ -109,6 +111,126 @@ pub struct RustASTPipeline;
 impl RustASTPipeline {
     pub fn new(_config: PipelineConfig) -> Self {
         RustASTPipeline
+    }
+
+    /// Transform raw AST JSON into processed AST format
+    pub fn transform_from_raw_ast(&self, raw_ast_data: &[serde_json::Value]) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
+        let mut grammar_tree = HashMap::new();
+        let mut rule_order = Vec::new();
+
+        for rule_data in raw_ast_data {
+            if let Some(rule_array) = rule_data.as_array() {
+                if rule_array.is_empty() { continue; }
+
+                // First element should be ["rule", "rule_name"]
+                if let Some(first_elem) = rule_array.first() {
+                    if let Some(rule_name) = self.extract_rule_name(first_elem) {
+                        rule_order.push(rule_name.clone());
+
+                        // Parse the rule content (everything after the rule declaration)
+                        let rule_content = &rule_array[1..];
+                        let ast_node = self.parse_rule_content(rule_content)?;
+
+                        grammar_tree.insert(rule_name, ast_node);
+                    }
+                }
+            }
+        }
+
+        Ok((grammar_tree, rule_order))
+    }
+
+    fn extract_rule_name(&self, rule_decl: &serde_json::Value) -> Option<String> {
+        if let Some(arr) = rule_decl.as_array() {
+            if arr.len() >= 2 {
+                if let (Some(type_str), Some(name_str)) = (arr[0].as_str(), arr[1].as_str()) {
+                    if type_str == "rule" {
+                        return Some(name_str.to_string());
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn parse_rule_content(&self, content: &[serde_json::Value]) -> Result<ASTNode> {
+        if content.is_empty() {
+            return Ok(ASTNode::Sequence { elements: vec![] });
+        }
+
+        // For now, treat as a sequence - this is a simplified implementation
+        // In a full implementation, this would handle alternatives (|), quantifiers (*, +, ?), etc.
+        let mut elements = Vec::new();
+
+        for item in content {
+            if let Some(ast_node) = self.parse_single_element(item)? {
+                elements.push(ast_node);
+            }
+        }
+
+        if elements.len() == 1 {
+            Ok(elements.into_iter().next().unwrap())
+        } else {
+            Ok(ASTNode::Sequence { elements })
+        }
+    }
+
+    fn parse_single_element(&self, element: &serde_json::Value) -> Result<Option<ASTNode>> {
+        if let Some(arr) = element.as_array() {
+            if arr.len() >= 2 {
+                if let (Some(elem_type), Some(elem_value)) = (arr[0].as_str(), arr[1].as_str()) {
+                    match elem_type {
+                        "rule_reference" => {
+                            Ok(Some(ASTNode::Atom {
+                                value: ASTValue::Node(Box::new(ASTNode::Atom {
+                                    value: ASTValue::Token(vec![
+                                        TokenValue::String("rule_reference".to_string()),
+                                        TokenValue::String(elem_value.to_string()),
+                                    ])
+                                }))
+                            }))
+                        }
+                        "quoted_string" => {
+                            Ok(Some(ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String(elem_value.to_string()),
+                                ])
+                            }))
+                        }
+                        "operator" => {
+                            // Handle quantifiers
+                            match elem_value {
+                                "?" => Ok(Some(ASTNode::Quantified {
+                                    element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
+                                    quantifier: "?".to_string(),
+                                })),
+                                "*" => Ok(Some(ASTNode::Quantified {
+                                    element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
+                                    quantifier: "*".to_string(),
+                                })),
+                                "+" => Ok(Some(ASTNode::Quantified {
+                                    element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
+                                    quantifier: "+".to_string(),
+                                })),
+                                _ => Ok(None) // Skip unknown operators
+                            }
+                        }
+                        "return_scalar" | "return_array" | "return_object" => {
+                            // Skip return annotations for now
+                            Ok(None)
+                        }
+                        _ => Ok(None) // Skip unknown element types
+                    }
+                } else {
+                    Ok(None)
+                }
+            } else {
+                Ok(None)
+            }
+        } else {
+            Ok(None)
+        }
     }
 }
 
