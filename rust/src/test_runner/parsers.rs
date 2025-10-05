@@ -13,6 +13,45 @@ impl ReturnAnnotationParser {
     }
 }
 
+    /// Convert AST back to original string format for true round-trip validation
+    fn unparse_ast(&self, ast: &UnifiedReturnAST) -> String {
+        match ast {
+            UnifiedReturnAST::PositionalRef { index } => format!("${}", index),
+            UnifiedReturnAST::StringLiteral { value } => format!(""{}"", value.replace("\", "\\").replace(""", "\"").replace("
+", "\n").replace("	", "\t")),
+            UnifiedReturnAST::NumberLiteral { value } => {
+                if value.fract() == 0.0 {
+                    format!("{:.0}", value)
+                } else {
+                    format!("{}", value)
+                }
+            },
+            UnifiedReturnAST::BooleanLiteral { value } => format!("{}", value),
+            UnifiedReturnAST::Array { elements } => {
+                let elem_strs: Vec<String> = elements.iter().map(|e| self.unparse_ast(e)).collect();
+                format!("[{}]", elem_strs.join(", "))
+            },
+            UnifiedReturnAST::Object { properties } => {
+                let prop_strs: Vec<String> = properties.iter()
+                    .map(|(k, v)| format!("{}: {}", k, self.unparse_ast(v)))
+                    .collect();
+                format!("{{{}}}", prop_strs.join(", "))
+            },
+            UnifiedReturnAST::Spread { base } => format!("{}*", self.unparse_ast(base)),
+            UnifiedReturnAST::PropertyAccess { base, property } => format!("{}.{}", self.unparse_ast(base), property),
+            UnifiedReturnAST::ArrayAccess { base, index } => format!("{}[{}]", self.unparse_ast(base), self.unparse_ast(index)),
+            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+                let target_str = match target {
+                    ExtractionTarget::Index(idx) => format!("::{}", idx + 1),
+                    ExtractionTarget::First => "::first".to_string(),
+                    ExtractionTarget::Last => "::last".to_string(),
+                };
+                format!("{}{}", self.unparse_ast(base), target_str)
+            },
+            UnifiedReturnAST::Passthrough => "$1".to_string(),
+        }
+    }
+
 impl Parser for ReturnAnnotationParser {
     fn round_trip(&self, input: &str) -> Result<String> {
         // Parse the return annotation using the bootstrap parser
@@ -34,6 +73,14 @@ impl SemanticAnnotationParser {
         Self
     }
 }
+
+    /// Convert AST back to original string format for round-trip validation
+    fn unparse_ast(&self, ast: &UnifiedSemanticAST) -> String {
+        match ast {
+            UnifiedSemanticAST::TransformExpr(expr) => expr.clone(),
+            UnifiedSemanticAST::Raw(raw) => raw.clone(),
+        }
+    }
 
 impl Parser for SemanticAnnotationParser {
     fn round_trip(&self, input: &str) -> Result<String> {

@@ -6,7 +6,11 @@
     "expected_round_trip": "[]",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "empty", "array"]
+    "tags": [
+      "edge",
+      "empty",
+      "array"
+    ]
   },
   {
     "name": "empty_object",
@@ -15,7 +19,11 @@
     "expected_round_trip": "{}",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "empty", "object"]
+    "tags": [
+      "edge",
+      "empty",
+      "object"
+    ]
   },
   {
     "name": "very_large_index",
@@ -24,7 +32,10 @@
     "expected_round_trip": "$999",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "large-index"]
+    "tags": [
+      "edge",
+      "large-index"
+    ]
   },
   {
     "name": "zero_index",
@@ -33,69 +44,100 @@
     "expected_round_trip": "$0",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "zero-index"]
+    "tags": [
+      "edge",
+      "zero-index"
+    ]
   },
   {
     "name": "nested_empty_structures",
     "description": "Nested empty arrays and objects",
     "input": "{outer: [], inner: {}}",
-    "expected_round_trip": "Object {\n  inner: \nObject {\n  }\n  outer: \nArray [\n  ]\n}",
+    "expected_round_trip": "{outer: [], inner: {}}",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "nested", "empty"]
+    "tags": [
+      "edge",
+      "nested",
+      "empty"
+    ]
   },
   {
     "name": "string_with_escapes",
     "description": "String literal with escape sequences",
     "input": "\"hello\\nworld\\t!\"",
-    "expected_round_trip": ""hello\nworld\t!"",
+    "expected_round_trip": "\"hello\\nworld\\t!\"",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "string", "escapes"]
+    "tags": [
+      "edge",
+      "string",
+      "escapes"
+    ]
   },
   {
     "name": "unicode_in_string",
     "description": "String with unicode characters",
-    "input": "\"Hello 世界 🌍\"",
-    "expected_round_trip": ""Hello 世界 ��"",
+    "input": "\"Hello \u4e16\u754c \ud83c\udf0d\"",
+    "expected_round_trip": "\"Hello \u4e16\u754c \ud83c\udf0d\"",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "unicode", "string"]
+    "tags": [
+      "edge",
+      "unicode",
+      "string"
+    ]
   },
   {
     "name": "single_element_array",
     "description": "Array with single element",
     "input": "[$1]",
-    "expected_round_trip": "Array [\n  [0]: \nPositionalRef($1)\n]",
+    "expected_round_trip": "[$1]",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "single", "array"]
+    "tags": [
+      "edge",
+      "single",
+      "array"
+    ]
   },
   {
     "name": "single_property_object",
     "description": "Object with single property",
     "input": "{only: $1}",
-    "expected_round_trip": "Object {\n  only: \nPositionalRef($1)\n}",
+    "expected_round_trip": "{only: $1}",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "single", "object"]
+    "tags": [
+      "edge",
+      "single",
+      "object"
+    ]
   },
   {
     "name": "deeply_nested_structure",
     "description": "Deeply nested arrays and objects",
     "input": "{a: {b: {c: {d: [$1]}}}}",
-    "expected_round_trip": "Object {\n  a: \nObject {\n    b: \nObject {\n      c: \nObject {\n        d: \nArray [\n          [0]: \nPositionalRef($1)\n        ]\n      }\n    }\n  }\n}",
+    "expected_round_trip": "{a: {b: {c: {d: [$1]}}}}",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "deep", "nested"]
+    "tags": [
+      "edge",
+      "deep",
+      "nested"
+    ]
   },
   {
     "name": "mixed_literals",
     "description": "Mix of string and numeric literals",
     "input": "[\"string\", 42, \"another\", 3.14]",
-    "expected_round_trip": "Array [\n  [0]: \nStringLiteral(\"string\")\n  [1]: \nNumberLiteral(42.0)\n  [2]: \nStringLiteral(\"another\")\n  [3]: \nNumberLiteral(3.14)\n]",
+    "expected_round_trip": "[\"string\", 42, \"another\", 3.14]",
     "parser_type": "return",
     "normalizer": "text",
-    "tags": ["edge", "literals", "mixed"]
+    "tags": [
+      "edge",
+      "literals",
+      "mixed"
+    ]
   }
 ]
