@@ -8,8 +8,8 @@ pub mod ast_pipeline;
 pub mod test_runner;
 pub mod test_registry; // Only declare once
 // pub mod universal_test_runner;
-pub mod test_target_mapper;
-pub mod test_reproduction_demo;
+// pub mod test_target_mapper; // Obsolete - test-* targets removed
+// pub mod test_reproduction_demo; // Obsolete - depends on test_target_mapper
 
 // New automation modules
 // pub mod test_discovery; // Module file doesn't exist
