@@ -12,7 +12,7 @@ pub mod test_registry; // Only declare once
 // pub mod test_reproduction_demo; // Obsolete - depends on test_target_mapper
 
 // New automation modules
-// pub mod test_discovery; // Module file doesn't exist
+pub mod test_discovery;
 // pub mod makefile_generator; // Module file doesn't exist  
 // pub mod individual_tests_generator; // Module file doesn't exist
 // pub mod test_automation; // Depends on non-existent modules above
