@@ -1,14 +1,18 @@
 // Shared Logger trait that both binaries can access
-pub trait Logger {
+pub trait Logger: std::fmt::Debug {
     fn is_enabled(&self) -> bool;
     fn log_info(&self, file: &str, line: u32, message: &str);
     fn log_debug(&self, file: &str, line: u32, message: &str);
     fn log_success(&self, file: &str, line: u32, message: &str);
     fn log_warning(&self, file: &str, line: u32, message: &str);
     fn log_error(&self, file: &str, line: u32, message: &str);
+    
+    // Clone method for logger instances
+    fn clone_box(&self) -> Box<dyn Logger>;
 }
 
 // No-op logger implementation
+#[derive(Debug, Clone)]
 pub struct NoOpLogger;
 
 impl Logger for NoOpLogger {
@@ -18,6 +22,10 @@ impl Logger for NoOpLogger {
     fn log_success(&self, _file: &str, _line: u32, _message: &str) {}
     fn log_warning(&self, _file: &str, _line: u32, _message: &str) {}
     fn log_error(&self, _file: &str, _line: u32, _message: &str) {}
+    
+    fn clone_box(&self) -> Box<dyn Logger> {
+        Box::new(self.clone())
+    }
 }
 
 use serde;

@@ -12,14 +12,15 @@ pub use crate::Logger;
 pub use crate::NoOpLogger;
 
 // File logger that writes to the test runner's log file
+#[derive(Clone, Debug)]
 pub struct FileLogger {
-    file: std::sync::Mutex<Option<std::fs::File>>,
+    file: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
 }
 
 impl FileLogger {
     pub fn new(file: std::fs::File) -> Self {
         Self {
-            file: std::sync::Mutex::new(Some(file)),
+            file: std::sync::Arc::new(std::sync::Mutex::new(Some(file))),
         }
     }
 }
@@ -66,6 +67,11 @@ impl Logger for FileLogger {
     }
 
     fn is_enabled(&self) -> bool { true }
+    
+    fn clone_box(&self) -> Box<dyn Logger> {
+        // Now that FileLogger is Clone, we can clone it properly
+        Box::new(self.clone())
+    }
 }
 
 pub use round_trip_tests::{RoundTripTestRunner, Report, TestSuite};

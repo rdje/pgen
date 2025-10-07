@@ -43,6 +43,7 @@ impl AstGeneratorIntegration {
             &transformed_ast.grammar_tree,
             &transformed_ast.rule_order,
             transformed_ast.metadata.annotations.as_ref(),
+            &format!("{}_parser.rs", transformed_ast.grammar_name),
         )
     }
 }
@@ -53,6 +54,7 @@ pub fn generate_parser_ast_based(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
     annotations: Option<&Annotations>,
+    filename: &str,
 ) -> Result<String> {
     let parser_name = snake_to_pascal(grammar_name);
     let mut generator = AstBasedGenerator::new(parser_name);
@@ -79,7 +81,7 @@ pub fn generate_parser_ast_based(
             .collect();
     }
     
-    generator.generate_parser(grammar, rule_order)
+    generator.generate_parser(grammar, rule_order, filename)
         .context("Failed to generate parser using AST-based generator")
 }
 

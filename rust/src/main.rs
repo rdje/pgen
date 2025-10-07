@@ -93,7 +93,7 @@ fn main() -> Result<()> {
                         .to_string()
                 );
 
-                let parser_code = generator.generate_parser(&grammar_tree, &rule_order)?;
+                let parser_code = generator.generate_parser(&grammar_tree, &rule_order, output_rust.as_str())?;
                 std::fs::write(&output_rust, parser_code)?;
             } else {
                 return Err(anyhow::anyhow!("Invalid raw_ast format"));
@@ -115,7 +115,7 @@ fn main() -> Result<()> {
                     .to_string()
             );
 
-            let parser_code = generator.generate_parser(&grammar_tree, &rule_order)?;
+            let parser_code = generator.generate_parser(&grammar_tree, &rule_order, output_rust.as_str())?;
             std::fs::write(&output_rust, parser_code)?;
         } else {
             return Err(anyhow::anyhow!("Unknown JSON format - expected raw_ast or grammar_tree/rule_order"));

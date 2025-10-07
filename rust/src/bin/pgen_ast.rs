@@ -64,7 +64,7 @@ fn run_direct_mode(input_content: &str, args: &Args) -> Result<()> {
     
     // Generate parser using AST-based generator
     let parser_code = AstBasedGenerator::new(transformed_ast.grammar_name.clone())
-        .generate_parser(&transformed_ast.grammar_tree, &transformed_ast.rule_order)?;
+        .generate_parser(&transformed_ast.grammar_tree, &transformed_ast.rule_order, args.output.to_str().unwrap_or("unknown_parser.rs"))?;
     
     // Write output
     let parser_size = parser_code.len();
@@ -131,7 +131,7 @@ fn run_pipeline_mode(input_content: &str, args: &Args) -> Result<()> {
         generator.annotations = Some(annotations.clone());
     }
     
-    let parser_code = generator.generate_parser(&result.grammar_tree, &result.rule_order)?;
+    let parser_code = generator.generate_parser(&result.grammar_tree, &result.rule_order, args.output.to_str().unwrap_or("unknown_parser.rs"))?;
     
     // Write output
     let parser_size = parser_code.len();

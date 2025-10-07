@@ -1,7 +1,7 @@
 [package]
 name = "pgen"
 version = "1.0.0"
-edition = "2021"
+edition = "2024"
 authors = ["EBNF Parser Generator Project"]
 description = "Rust implementation of EBNF AST transformation pipeline"
 license = "MIT"

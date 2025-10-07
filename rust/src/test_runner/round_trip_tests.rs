@@ -226,16 +226,24 @@ impl RoundTripTestRunner {
     }
 
     fn run_single_test_with_timeout(&self, suite: &TestSuite, test: &RoundTripTest) -> TestResult {
+        // Log the start of this test case
+        println!("\n🧪 Testing: {}", test.input);
+        println!("{}", "─".repeat(60));
+        
         // Use real parser if available, otherwise fall back to mock
         let unparsed = if let Some(ref parser) = self.parser {
             match parser.round_trip(&test.input) {
                 Ok(result) => result,
-                Err(e) => return TestResult {
-                    suite: suite.name.clone(),
-                    test: test.name.clone(),
-                    passed: false,
-                    message: format!("PARSER ERROR: {}", e),
-                },
+                Err(e) => {
+                    println!("❌ Parser error: {}", e);
+                    println!(""); // Empty line before next test
+                    return TestResult {
+                        suite: suite.name.clone(),
+                        test: test.name.clone(),
+                        passed: false,
+                        message: format!("PARSER ERROR: {}", e),
+                    };
+                }
             }
         } else {
             // Mock round-trip for testing the framework
@@ -249,7 +257,14 @@ impl RoundTripTestRunner {
         let expected = crate::test_runner::normalization::apply_normalizer(normalizer, &test.expected_round_trip, test.float_precision);
         
         let passed = actual == expected;
-        let msg = if passed { "OK".to_string() } else { format!("Expected: '{}', Got: '{}'", expected, actual) };
+        let msg = if passed { 
+            "✅ PASSED".to_string() 
+        } else { 
+            format!("❌ FAILED - Expected: '{}', Got: '{}'", expected, actual) 
+        };
+        
+        println!("Result: {}", msg);
+        println!(""); // Empty line before next test
         
         TestResult {
             suite: suite.name.clone(),
