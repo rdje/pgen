@@ -13,10 +13,17 @@ path = "src/lib.rs"
 [[bin]]
 name = "ast_pipeline"
 path = "src/main.rs"
+required-features = ["normal"]
+
+[[bin]]
+name = "ast_pipeline_bootstrap"
+path = "src/main.rs"
+required-features = ["bootstrap"]
 
 [[bin]]
 name = "test_runner"
 path = "src/bin/test_runner.rs"
+required-features = ["generated_parsers"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -33,8 +40,10 @@ prettyplease = "0.2.37"
 lazy_static = "1.4"
 
 [features]
-default = []
+default = ["normal"]
+normal = []
 bootstrap = []
+generated_parsers = []
 
 [dev-dependencies]
 

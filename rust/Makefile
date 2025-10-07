@@ -1,5 +1,6 @@
 # Makefile for pgen - Regex Parser Generator Pipeline
 # This manages the complex build dependencies for generating Rust parsers from EBNF grammars
+SHELL=/opt/homebrew/bin/bash
 
 # Directories
 GRAMMARS_DIR = ../grammars
@@ -28,6 +29,7 @@ RETURN_ANNOTATION_EXE = $(GENERATED_DIR)/return_annotation_parser
 
 # Rust build artifacts
 RUST_AST_PIPELINE = $(RUST_DIR)/target/debug/ast_pipeline
+RUST_AST_PIPELINE_BOOTSTRAP = $(RUST_DIR)/target/debug/ast_pipeline_bootstrap
 
 # Source dependencies for AST pipeline - if any of these change, parsers need regeneration
 AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
@@ -46,8 +48,8 @@ AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
 
 # Tools
 EBNF_TO_JSON = $(TOOLS_DIR)/ebnf_to_json.pl
-RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --debug --trace
-RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion
+RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion
+RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion
 
 # Default target
 .PHONY: all
@@ -102,19 +104,26 @@ create-placeholders:
 	@[ -f $(RETURN_ANNOTATION_PARSER) ] || ./scripts/create_placeholder_parser.sh Return_annotationParser $(RETURN_ANNOTATION_PARSER)
 
 # Build Rust AST pipeline binary only (avoids circular dependency with generated parsers in lib.rs)
-$(RUST_AST_PIPELINE): $(AST_PIPELINE_SOURCES) create-placeholders
+$(RUST_AST_PIPELINE_BOOTSTRAP): $(AST_PIPELINE_SOURCES)
+	@echo "Ensuring parser placeholders exist to avoid circular dependency..."
+	@source ./scripts/create_placeholder_parser.sh Semantic_annotationParser $(SEMANTIC_ANNOTATION_PARSER)
+	@source ./scripts/create_placeholder_parser.sh Return_annotationParser $(RETURN_ANNOTATION_PARSER)
 	@echo "Building Rust AST pipeline binary only (avoiding circular dependency)..."
-	cd $(RUST_DIR) && cargo build --bin ast_pipeline --features bootstrap
+	cd $(RUST_DIR) && cargo build --bin ast_pipeline_bootstrap  --no-default-features --features bootstrap
+
+$(RUST_AST_PIPELINE): $(AST_PIPELINE_SOURCES)
+	@echo "Building Rust AST pipeline binary only (avoiding circular dependency)..."
+	cd $(RUST_DIR) && cargo build --bin ast_pipeline
 
 # Step 2: Generate Rust parsers from JSON files using bootstrap mode
 # These parsers are generated using bootstrap mode to avoid circular dependency
-$(SEMANTIC_ANNOTATION_PARSER): $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+$(SEMANTIC_ANNOTATION_PARSER): $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
 	@echo "Generating semantic annotation Rust parser from JSON (bootstrap mode)..."
 	@mkdir -p $(GENERATED_DIR)
 	@echo "Generating real parser (placeholder already exists from dependencies)..."
 	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER)
 
-$(RETURN_ANNOTATION_PARSER): $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+$(RETURN_ANNOTATION_PARSER): $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
 	@echo "Generating return annotation Rust parser from JSON (bootstrap mode)..."
 	@mkdir -p $(GENERATED_DIR)
 	@echo "Generating real parser (placeholder already exists from dependencies)..."
@@ -130,7 +139,7 @@ $(RETURN_ANNOTATION_EXE): $(RETURN_ANNOTATION_PARSER)
 	rustc --edition 2021 -g -o $(RETURN_ANNOTATION_EXE) $(RETURN_ANNOTATION_PARSER)
 
 # Generate regex JSON from EBNF (depends only on Rust pipeline - parsers are optional)
-$(REGEX_JSON): $(REGEX_EBNF) $(RUST_AST_PIPELINE)
+$(REGEX_JSON): $(REGEX_EBNF)
 	@echo "Generating regex JSON with debug output..."
 	@mkdir -p $(GENERATED_DIR)
 	$(EBNF_TO_JSON) --verbosity debug --pretty $(REGEX_EBNF) -o $(REGEX_JSON)
@@ -309,7 +318,7 @@ return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 
 # Semantic annotation parser complete flow
 .PHONY: semantic_annotation_parser
-semantic_annotation_parser: $(SEMANTIC_ANNOTATION_PARSER)
+semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 	@echo "🚀 Starting complete flow for semantic annotation parser..."
 	@echo "✅ Semantic annotation parser flow completed!"
 
@@ -330,6 +339,9 @@ return_parser: return_annotation_parser
 
 .PHONY: semantic_parser
 semantic_parser: semantic_annotation_parser
+
+.PHONY: annotation_parsers
+annotation_parsers: return_semantic_parsers
 
 .PHONY: regex_tests
 regex_tests: regex_parser
