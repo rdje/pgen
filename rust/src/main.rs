@@ -2,9 +2,7 @@
 //!
 //! Command-line interface for the Rust AST transformation pipeline.
 
-mod ast_pipeline;
-
-use ast_pipeline::{RustASTPipeline, PipelineConfig};
+use pgen::ast_pipeline::{RustASTPipeline, PipelineConfig};
 use clap::Parser;
 use anyhow::Result;
 
@@ -88,7 +86,7 @@ fn main() -> Result<()> {
                 let (grammar_tree, rule_order) = pipeline.transform_from_raw_ast(raw_ast_array)?;
 
                 // Generate parser using AST-based generator
-                let generator = ast_pipeline::ast_based_generator::AstBasedGenerator::new(
+                let generator = pgen::ast_pipeline::ast_based_generator::AstBasedGenerator::new(
                     json_value.get("grammar_name")
                         .and_then(|n| n.as_str())
                         .unwrap_or("unknown")
@@ -105,12 +103,12 @@ fn main() -> Result<()> {
             json_value.get("rule_order")
         ) {
             // Already transformed AST format
-            let grammar_tree: std::collections::HashMap<String, ast_pipeline::ASTNode> =
+            let grammar_tree: std::collections::HashMap<String, pgen::ast_pipeline::ASTNode> =
                 serde_json::from_value(grammar_tree.clone())?;
             let rule_order: Vec<String> = serde_json::from_value(rule_order.clone())?;
 
             // Generate parser using AST-based generator
-            let generator = ast_pipeline::ast_based_generator::AstBasedGenerator::new(
+            let generator = pgen::ast_pipeline::ast_based_generator::AstBasedGenerator::new(
                 json_value.get("grammar_name")
                     .and_then(|n| n.as_str())
                     .unwrap_or("unknown")

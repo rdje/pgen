@@ -23,6 +23,170 @@ impl Logger for NoOpLogger {
 use serde;
 use std::collections::HashMap;
 use anyhow::Result;
+
+// Shared parser types used by generated parsers
+/// Parse result type
+pub type ParseResult<T> = Result<T, ParseError>;
+
+/// Parse errors
+#[derive(Debug, Clone, PartialEq)]
+pub enum ParseError {
+    UnexpectedEof { position: usize },
+    UnexpectedToken { expected: &'static str, found: char, position: usize },
+    InvalidSyntax { message: &'static str, position: usize },
+    Backtrack { position: usize },
+    RecursionDepthExceeded { position: usize, depth: usize },
+    ContextualError {
+        message: String,
+        position: usize,
+        rule_stack: Vec<String>,
+        input_context: String,
+    },
+}
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ParseError::UnexpectedEof { position } => {
+                write!(f, "Unexpected EOF at position {}", position)
+            }
+            ParseError::UnexpectedToken { expected, found, position } => {
+                write!(
+                    f, "Expected '{}', found '{}' at position {}", expected, found,
+                    position
+                )
+            }
+            ParseError::InvalidSyntax { message, position } => {
+                write!(f, "{} at position {}", message, position)
+            }
+            ParseError::Backtrack { position } => {
+                write!(f, "Backtrack at position {}", position)
+            }
+            ParseError::RecursionDepthExceeded { position, depth } => {
+                write!(
+                    f, "Recursion depth exceeded ({} levels) at position {}", depth,
+                    position
+                )
+            }
+            ParseError::ContextualError {
+                message,
+                position,
+                rule_stack,
+                input_context,
+            } => {
+                writeln!(f, "Parse Error: {}\n", message)?;
+                writeln!(f, "Position: {}\n", position)?;
+                writeln!(f, "Context: {}\n", input_context)?;
+                writeln!(f, "Rule Stack:")?;
+                for (i, rule) in rule_stack.iter().enumerate() {
+                    writeln!(f, "  {}: {}", i, rule)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl std::error::Error for ParseError {}
+
+/// Parse content types
+#[derive(Debug, Clone, PartialEq)]
+pub enum ParseContent<'input> {
+    Terminal(&'input str),
+    TransformedTerminal(String),
+    Sequence(Vec<ParseNode<'input>>),
+    Alternative(Box<ParseNode<'input>>),
+    Quantified(Vec<ParseNode<'input>>, &'static str),
+}
+
+/// Parse node
+#[derive(Debug, Clone, PartialEq)]
+pub struct ParseNode<'input> {
+    pub rule_name: &'static str,
+    pub content: ParseContent<'input>,
+    pub span: std::ops::Range<usize>,
+}
+
+/// Memoization entry
+#[derive(Debug, Clone)]
+pub struct MemoEntry<'input> {
+    pub result: Option<ParseNode<'input>>,
+    pub end_pos: usize,
+}
+
+/// Rule ID type for memoization
+pub type RuleId = u16;
+
+/// Recursion cycle types
+#[derive(Debug, Clone, PartialEq)]
+pub enum CycleType {
+    None,
+    Infinite,
+    LeftRecursive,
+    MutualRecursive { depth: usize, rules: Vec<String> },
+}
+
+/// Recursion guard
+#[derive(Debug, Clone)]
+pub struct RecursionGuard {
+    pub parse_stack: Vec<(String, usize)>,
+    pub max_depth: usize,
+    pub cycle_cache: HashMap<(String, usize), CycleType>,
+}
+
+impl RecursionGuard {
+    pub fn new(max_depth: usize) -> Self {
+        Self {
+            parse_stack: Vec::new(),
+            max_depth,
+            cycle_cache: HashMap::new(),
+        }
+    }
+
+    pub fn check_cycle(&mut self, rule_name: &str, position: usize) -> CycleType {
+        if let Some(cached) = self.cycle_cache.get(&(rule_name.to_string(), position)) {
+            return cached.clone();
+        }
+        for (r, p) in self.parse_stack.iter() {
+            if r == rule_name && *p == position {
+                let cycle = CycleType::Infinite;
+                self.cycle_cache
+                    .insert((rule_name.to_string(), position), cycle.clone());
+                return cycle;
+            }
+            if r == rule_name && *p > position {
+                let cycle = CycleType::LeftRecursive;
+                self.cycle_cache
+                    .insert((rule_name.to_string(), position), cycle.clone());
+                return cycle;
+            }
+        }
+        if self.parse_stack.len() >= self.max_depth {
+            let rules: Vec<String> = self
+                .parse_stack
+                .iter()
+                .map(|(r, _)| r.clone())
+                .collect();
+            let cycle = CycleType::MutualRecursive {
+                depth: self.parse_stack.len(),
+                rules,
+            };
+            self.cycle_cache
+                .insert((rule_name.to_string(), position), cycle.clone());
+            return cycle;
+        }
+        CycleType::None
+    }
+
+    pub fn enter(&mut self, rule_name: &str, position: usize) {
+        self.parse_stack.push((rule_name.to_string(), position));
+    }
+
+    pub fn exit(&mut self) {
+        self.parse_stack.pop();
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize)]
 pub enum ASTValue {
     Token(Vec<TokenValue>),
@@ -78,7 +242,7 @@ pub struct TransformedASTJson {
 }
 
 // Type aliases for compatibility
-pub type ParseNode<'input> = ASTNode;
+// pub type ParseNode<'input> = ASTNode;  // Removed - now using full ParseNode struct
 
 pub struct PipelineConfig {
     pub debug: bool,

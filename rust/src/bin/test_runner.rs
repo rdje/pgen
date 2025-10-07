@@ -4,6 +4,12 @@
 
 use clap::{Command, Arg};
 use pgen::test_runner::{RoundTripTestRunner, TestSuite, Report, UniversalTestRunner, Parser, Logger, FileLogger};
+use pgen::NoOpLogger;
+#[cfg(feature = "generated_parsers")]
+use pgen::generated_parsers::return_annotation::Return_annotationParser;
+#[cfg(feature = "generated_parsers")]
+use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
+#[cfg(not(feature = "generated_parsers"))]
 use pgen::test_runner::parsers::{ReturnAnnotationParser, SemanticAnnotationParser};
 use std::process::exit;
 use std::fs::OpenOptions;
@@ -11,6 +17,88 @@ use std::io::Write;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 use chrono::Utc;
+
+#[cfg(feature = "generated_parsers")]
+/// Wrapper for generated Return_annotationParser to implement Parser trait
+pub struct GeneratedReturnAnnotationParser {
+    logger: Box<dyn Logger>,
+}
+
+#[cfg(feature = "generated_parsers")]
+impl GeneratedReturnAnnotationParser {
+    pub fn new(logger: Box<dyn Logger>) -> Self {
+        Self { logger }
+    }
+}
+
+#[cfg(feature = "generated_parsers")]
+impl Parser for GeneratedReturnAnnotationParser {
+    fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>> {
+        // Create a parser instance for this specific input
+        let mut parser = Return_annotationParser::new(input, Box::new(NoOpLogger));
+        
+        // Parse the input
+        match parser.parse_return_annotation() {
+            Ok(parse_node) => {
+                // For now, return a simple success indicator
+                // TODO: Implement proper unparsing from ParseNode to string
+                Ok(format!("Parsed successfully: {:?}", parse_node.rule_name))
+            }
+            Err(e) => {
+                Err(Box::new(e))
+            }
+        }
+    }
+    
+    fn set_logger(&mut self, logger: Box<dyn Logger>) {
+        self.logger = logger;
+    }
+    
+    fn get_logger(&self) -> &dyn Logger {
+        &*self.logger
+    }
+}
+
+#[cfg(feature = "generated_parsers")]
+/// Wrapper for generated Semantic_annotationParser to implement Parser trait
+pub struct GeneratedSemanticAnnotationParser {
+    logger: Box<dyn Logger>,
+}
+
+#[cfg(feature = "generated_parsers")]
+impl GeneratedSemanticAnnotationParser {
+    pub fn new(logger: Box<dyn Logger>) -> Self {
+        Self { logger }
+    }
+}
+
+#[cfg(feature = "generated_parsers")]
+impl Parser for GeneratedSemanticAnnotationParser {
+    fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>> {
+        // Create a parser instance for this specific input
+        let mut parser = Semantic_annotationParser::new(input, Box::new(NoOpLogger));
+        
+        // Parse the input
+        match parser.parse_semantic_annotation() {
+            Ok(parse_node) => {
+                // For now, return a simple success indicator
+                // TODO: Implement proper unparsing from ParseNode to string
+                Ok(format!("Parsed successfully: {:?}", parse_node.rule_name))
+            }
+            Err(e) => {
+                Err(Box::new(e))
+            }
+        }
+    }
+    
+    fn set_logger(&mut self, logger: Box<dyn Logger>) {
+        self.logger = logger;
+    }
+    
+    fn get_logger(&self) -> &dyn Logger {
+        &*self.logger
+    }
+}
 
 lazy_static! {
     static ref LOG_FILE: Mutex<Option<std::fs::File>> = Mutex::new(None);
@@ -149,30 +237,64 @@ fn main() {
     if let Some(parser_type) = matches.get_one::<String>("parser") {
         match parser_type.as_str() {
             "return" => {
-                let mut parser = ReturnAnnotationParser::new();
-                if debug_enabled {
-                    // Create a duplicate file handle for the parser logger
-                    if let Ok(log_file_path) = get_current_log_file_path() {
-                        if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
-                            let logger = Box::new(FileLogger::new(file));
-                            parser.set_logger(logger);
+                #[cfg(feature = "generated_parsers")]
+                {
+                    let mut parser = GeneratedReturnAnnotationParser::new(Box::new(NoOpLogger));
+                    if debug_enabled {
+                        // Create a duplicate file handle for the parser logger
+                        if let Ok(log_file_path) = get_current_log_file_path() {
+                            if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
+                                let logger = Box::new(FileLogger::new(file));
+                                parser.set_logger(logger);
+                            }
                         }
                     }
+                    runner = runner.with_parser(Box::new(parser));
                 }
-                runner = runner.with_parser(Box::new(parser));
+                #[cfg(not(feature = "generated_parsers"))]
+                {
+                    let mut parser = ReturnAnnotationParser::new();
+                    if debug_enabled {
+                        // Create a duplicate file handle for the parser logger
+                        if let Ok(log_file_path) = get_current_log_file_path() {
+                            if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
+                                let logger = Box::new(FileLogger::new(file));
+                                parser.set_logger(logger);
+                            }
+                        }
+                    }
+                    runner = runner.with_parser(Box::new(parser));
+                }
             }
             "semantic" => {
-                let mut parser = SemanticAnnotationParser::new();
-                if debug_enabled {
-                    // Create a duplicate file handle for the parser logger
-                    if let Ok(log_file_path) = get_current_log_file_path() {
-                        if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
-                            let logger = Box::new(FileLogger::new(file));
-                            parser.set_logger(logger);
+                #[cfg(feature = "generated_parsers")]
+                {
+                    let mut parser = GeneratedSemanticAnnotationParser::new(Box::new(NoOpLogger));
+                    if debug_enabled {
+                        // Create a duplicate file handle for the parser logger
+                        if let Ok(log_file_path) = get_current_log_file_path() {
+                            if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
+                                let logger = Box::new(FileLogger::new(file));
+                                parser.set_logger(logger);
+                            }
                         }
                     }
+                    runner = runner.with_parser(Box::new(parser));
                 }
-                runner = runner.with_parser(Box::new(parser));
+                #[cfg(not(feature = "generated_parsers"))]
+                {
+                    let mut parser = SemanticAnnotationParser::new();
+                    if debug_enabled {
+                        // Create a duplicate file handle for the parser logger
+                        if let Ok(log_file_path) = get_current_log_file_path() {
+                            if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
+                                let logger = Box::new(FileLogger::new(file));
+                                parser.set_logger(logger);
+                            }
+                        }
+                    }
+                    runner = runner.with_parser(Box::new(parser));
+                }
             }
             // For "all" or other values, use mock parser
             _ => {}

@@ -8,7 +8,7 @@ use syn::Ident;
 use std::collections::HashMap;
 use anyhow::Result;
 use prettyplease;
-use crate::ast_pipeline::Logger;
+use super::Logger;
 use crate::ast_pipeline::{ASTNode, ASTValue, TokenValue, UnifiedSemanticAST, BranchAnnotation, ast_return_transform::AstReturnTransformer, Annotations};
 
 /// AST-based generator that produces guaranteed syntactically correct Rust code
@@ -88,162 +88,22 @@ impl AstBasedGenerator {
             #tests
         })
     }
-    
     fn generate_imports(&self) -> TokenStream {
         quote! {
             use std::collections::HashMap;
             use std::ops::Range;
             use regex::Regex;
-            use crate::Logger;
-            
-            #[allow(dead_code)]
-            #[allow(unused_variables)]
-            #[allow(unused_mut)]
+            use crate::ast_pipeline::{
+                Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, RuleId, CycleType, RecursionGuard
+            };
         }
     }
     
     fn generate_types(&self) -> TokenStream {
         quote! {
-            /// Parse result type
-            pub type ParseResult<T> = Result<T, ParseError>;
-            
-            /// Parse errors
-            #[derive(Debug, Clone, PartialEq)]
-            pub enum ParseError {
-                UnexpectedEof { position: usize },
-                UnexpectedToken { expected: &'static str, found: char, position: usize },
-                InvalidSyntax { message: &'static str, position: usize },
-                Backtrack { position: usize },
-                RecursionDepthExceeded { position: usize, depth: usize },
-                ContextualError { 
-                    message: String,
-                    position: usize,
-                    rule_stack: Vec<String>,
-                    input_context: String,
-                },
-            }
-            
-            impl std::fmt::Display for ParseError {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                    match self {
-                        ParseError::UnexpectedEof { position } => 
-                            write!(f, "Unexpected EOF at position {}", position),
-                        ParseError::UnexpectedToken { expected, found, position } => 
-                            write!(f, "Expected '{}', found '{}' at position {}", expected, found, position),
-                        ParseError::InvalidSyntax { message, position } => 
-                            write!(f, "{} at position {}", message, position),
-                        ParseError::Backtrack { position } => 
-                            write!(f, "Backtrack at position {}", position),
-                        ParseError::RecursionDepthExceeded { position, depth } => 
-                            write!(f, "Recursion depth exceeded ({} levels) at position {}", depth, position),
-                        ParseError::ContextualError { message, position, rule_stack, input_context } => {
-                            writeln!(f, "Parse Error: {}\n", message)?;
-                            writeln!(f, "Position: {}\n", position)?;
-                            writeln!(f, "Context: {}\n", input_context)?;
-                            writeln!(f, "Rule Stack:")?;
-                            for (i, rule) in rule_stack.iter().enumerate() {
-                                writeln!(f, "  {}: {}", i, rule)?;
-                            }
-                            Ok(())
-                        }
-                    }
-                }
-            }
-            
-            impl std::error::Error for ParseError {}
-            
-            /// Parse content types
-            #[derive(Debug, Clone, PartialEq)]
-            pub enum ParseContent<'input> {
-                Terminal(&'input str),
-                TransformedTerminal(String),  // owned string for semantically transformed values
-                Sequence(Vec<ParseNode<'input>>),
-                Alternative(Box<ParseNode<'input>>),
-                Quantified(Vec<ParseNode<'input>>, &'static str),
-            }
-            
-            /// Parse node
-            #[derive(Debug, Clone, PartialEq)]
-            pub struct ParseNode<'input> {
-                pub rule_name: &'static str,
-                pub content: ParseContent<'input>,
-                pub span: Range<usize>,
-            }
-            
-            /// Memoization entry
-            #[derive(Debug, Clone)]
-            struct MemoEntry<'input> {
-                result: Option<ParseNode<'input>>,
-                end_pos: usize,
-            }
-            
-            /// Rule ID type for memoization
-            type RuleId = u16;
-            
-            /// Recursion cycle types
-            #[derive(Debug, Clone, PartialEq)]
-            pub enum CycleType {
-                None,
-                Infinite,
-                LeftRecursive,
-                MutualRecursive { depth: usize, rules: Vec<String> },
-            }
-            
-            /// Recursion guard
-            pub struct RecursionGuard {
-                parse_stack: Vec<(String, usize)>,
-                max_depth: usize,
-                cycle_cache: HashMap<(String, usize), CycleType>,
-            }
-            
-            impl RecursionGuard {
-                pub fn new(max_depth: usize) -> Self {
-                    Self {
-                        parse_stack: Vec::new(),
-                        max_depth,
-                        cycle_cache: HashMap::new(),
-                    }
-                }
-                
-                pub fn check_cycle(&mut self, rule_name: &str, position: usize) -> CycleType {
-                    if let Some(cached) = self.cycle_cache.get(&(rule_name.to_string(), position)) {
-                        return cached.clone();
-                    }
-                    
-                    for (r, p) in self.parse_stack.iter() {
-                        if r == rule_name && *p == position {
-                            let cycle = CycleType::Infinite;
-                            self.cycle_cache.insert((rule_name.to_string(), position), cycle.clone());
-                            return cycle;
-                        }
-                        if r == rule_name && *p > position {
-                            let cycle = CycleType::LeftRecursive;
-                            self.cycle_cache.insert((rule_name.to_string(), position), cycle.clone());
-                            return cycle;
-                        }
-                    }
-                    
-                    if self.parse_stack.len() >= self.max_depth {
-                        let rules: Vec<String> = self.parse_stack.iter()
-                            .map(|(r, _)| r.clone())
-                            .collect();
-                        return CycleType::MutualRecursive {
-                            depth: self.parse_stack.len(),
-                            rules,
-                        };
-                    }
-                    
-                    CycleType::None
-                }
-                
-                pub fn enter(&mut self, rule_name: &str, position: usize) {
-                    self.parse_stack.push((rule_name.to_string(), position));
-                }
-                
-                pub fn exit(&mut self) {
-                    self.parse_stack.pop();
-                }
-            }
+            // Types are now shared in crate::ast_pipeline
+            // ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, RuleId, CycleType, RecursionGuard
+            // are all defined in the parent module
         }
     }
     
@@ -351,7 +211,7 @@ impl AstBasedGenerator {
         
         // Build the complete method
         Ok(quote! {
-            fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+            pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
                 // Check for recursion cycles
                 let position = self.position;
                 let cycle_type = self.recursion_guard.check_cycle(#rule_name, position);
@@ -389,26 +249,14 @@ impl AstBasedGenerator {
                 
                 self.recursion_guard.enter(#rule_name, position);
                 
+                // Declare start_pos outside the closure so it can be used outside
+                let start_pos = self.position;
+                
                 let result = self.memoized_call(Self::#rule_const, |parser| {
-                    let start_pos = parser.position;
-                    
-                    if parser.logger.is_enabled() {
-                        parser.logger.log_info("generated_parser.rs", 0, &format!("🚀 Entering rule '{}' at position {}", #rule_name, start_pos));
-                    }
-                    
                     // Main parsing logic - produces the 'result' variable
                     #parse_logic;
                     
                     let end_pos = parser.position;
-                    
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser.logger.log_success("generated_parser.rs", 0, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')", #rule_name, start_pos, end_pos, consumed, &parser.input[start_pos..end_pos]));
-                        } else {
-                            parser.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ Rule '{}' matched with zero length at position {}", #rule_name, start_pos));
-                        }
-                    }
                     
                     Ok(ParseNode {
                         rule_name: #rule_name,
@@ -422,6 +270,12 @@ impl AstBasedGenerator {
                 match &result {
                     Ok(node) => {
                         if self.logger.is_enabled() {
+                            let consumed = node.span.end - start_pos;
+                            if consumed > 0 {
+                                self.logger.log_success("generated_parser.rs", 0, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')", #rule_name, start_pos, node.span.end, consumed, &self.input[start_pos..node.span.end]));
+                            } else {
+                                self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ Rule '{}' matched with zero length at position {}", #rule_name, start_pos));
+                            }
                             self.logger.log_success("generated_parser.rs", 0, &format!("✅ Exiting rule '{}' successfully - advanced from {} to {}", #rule_name, start_pos, self.position));
                         }
                     }
@@ -739,8 +593,8 @@ impl AstBasedGenerator {
                         
                         // Critical: Check for zero-length match
                         if current_position == last_position {
-                            if self.logger.is_enabled() {
-                                self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}", #rule_name, current_position));
+                            if parser.logger.is_enabled() {
+                                parser.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}", current_position));
                             }
                             break;
                         }
@@ -753,8 +607,8 @@ impl AstBasedGenerator {
                     }
                 }
                 
-                if iteration_count >= MAX_ITERATIONS && self.logger.is_enabled() {
-                    self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ MAX ITERATIONS ({}) reached in {} quantifier", MAX_ITERATIONS, #rule_name));
+                if iteration_count >= MAX_ITERATIONS && parser.logger.is_enabled() {
+                    parser.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ MAX ITERATIONS ({}) reached in quantifier", MAX_ITERATIONS));
                 }
                 
                 let result = ParseContent::Quantified(results, "*")
@@ -775,8 +629,8 @@ impl AstBasedGenerator {
                 
                 // Check if first match consumed any input
                 if parser.position == start_position {
-                    if self.logger.is_enabled() {
-                        self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH FIRST MATCH in {}+ quantifier at position {}", #rule_name, start_position));
+                    if parser.logger.is_enabled() {
+                        parser.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH FIRST MATCH in + quantifier at position {}", start_position));
                     }
                 }
                 
@@ -798,8 +652,8 @@ impl AstBasedGenerator {
                         
                         // Check for zero-length match
                         if current_position == last_position {
-                            if self.logger.is_enabled() {
-                                self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH MATCH in {}+: Breaking at position {}", #rule_name, current_position));
+                            if parser.logger.is_enabled() {
+                                parser.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ ZERO-LENGTH MATCH in + quantifier: Breaking at position {}", current_position));
                             }
                             break;
                         }
@@ -812,8 +666,8 @@ impl AstBasedGenerator {
                     }
                 }
                 
-                if iteration_count >= MAX_ITERATIONS && self.logger.is_enabled() {
-                    self.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ MAX ITERATIONS ({}) reached in {}+ quantifier", MAX_ITERATIONS, #rule_name));
+                if iteration_count >= MAX_ITERATIONS && parser.logger.is_enabled() {
+                    parser.logger.log_warning("generated_parser.rs", 0, &format!("⚠️ MAX ITERATIONS ({}) reached in + quantifier", MAX_ITERATIONS));
                 }
                 
                 let result = ParseContent::Quantified(results, "+")
@@ -1024,6 +878,31 @@ impl AstBasedGenerator {
                 
                 result
             }
+            
+            fn create_contextual_error(&self, message: &str) -> ParseError {
+                let position = self.position;
+                
+                // Gather rule stack
+                let rule_stack: Vec<String> = self.recursion_guard.parse_stack.iter()
+                    .map(|(rule, _)| rule.clone())
+                    .collect();
+                
+                // Get input context around the error position
+                let start = position.saturating_sub(20);
+                let end = (position + 20).min(self.input.len());
+                let input_context = if start < end {
+                    self.input[start..end].to_string()
+                } else {
+                    String::new()
+                };
+                
+                ParseError::ContextualError {
+                    message: message.to_string(),
+                    position,
+                    rule_stack,
+                    input_context,
+                }
+            }
         }
     }
 }
@@ -1033,7 +912,7 @@ fn generate_tests(parser_name: &Ident) -> TokenStream {
             #[cfg(test)]
             mod tests {
                 use super::*;
-                use crate::Logger;
+                use super::Logger;
                 
                 #[test]
                 fn test_basic_parsing() {

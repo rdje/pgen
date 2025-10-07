@@ -1,154 +1,10 @@
 use std::collections::HashMap;
 use std::ops::Range;
 use regex::Regex;
-use crate::Logger;
-#[allow(dead_code)]
-#[allow(unused_variables)]
-#[allow(unused_mut)]
-/// Parse result type
-pub type ParseResult<T> = Result<T, ParseError>;
-/// Parse errors
-#[derive(Debug, Clone, PartialEq)]
-pub enum ParseError {
-    UnexpectedEof { position: usize },
-    UnexpectedToken { expected: &'static str, found: char, position: usize },
-    InvalidSyntax { message: &'static str, position: usize },
-    Backtrack { position: usize },
-    RecursionDepthExceeded { position: usize, depth: usize },
-    ContextualError {
-        message: String,
-        position: usize,
-        rule_stack: Vec<String>,
-        input_context: String,
-    },
-}
-impl std::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ParseError::UnexpectedEof { position } => {
-                write!(f, "Unexpected EOF at position {}", position)
-            }
-            ParseError::UnexpectedToken { expected, found, position } => {
-                write!(
-                    f, "Expected '{}', found '{}' at position {}", expected, found,
-                    position
-                )
-            }
-            ParseError::InvalidSyntax { message, position } => {
-                write!(f, "{} at position {}", message, position)
-            }
-            ParseError::Backtrack { position } => {
-                write!(f, "Backtrack at position {}", position)
-            }
-            ParseError::RecursionDepthExceeded { position, depth } => {
-                write!(
-                    f, "Recursion depth exceeded ({} levels) at position {}", depth,
-                    position
-                )
-            }
-            ParseError::ContextualError {
-                message,
-                position,
-                rule_stack,
-                input_context,
-            } => {
-                writeln!(f, "Parse Error: {}\n", message)?;
-                writeln!(f, "Position: {}\n", position)?;
-                writeln!(f, "Context: {}\n", input_context)?;
-                writeln!(f, "Rule Stack:")?;
-                for (i, rule) in rule_stack.iter().enumerate() {
-                    writeln!(f, "  {}: {}", i, rule)?;
-                }
-                Ok(())
-            }
-        }
-    }
-}
-impl std::error::Error for ParseError {}
-/// Parse content types
-#[derive(Debug, Clone, PartialEq)]
-pub enum ParseContent<'input> {
-    Terminal(&'input str),
-    TransformedTerminal(String),
-    Sequence(Vec<ParseNode<'input>>),
-    Alternative(Box<ParseNode<'input>>),
-    Quantified(Vec<ParseNode<'input>>, &'static str),
-}
-/// Parse node
-#[derive(Debug, Clone, PartialEq)]
-pub struct ParseNode<'input> {
-    pub rule_name: &'static str,
-    pub content: ParseContent<'input>,
-    pub span: Range<usize>,
-}
-/// Memoization entry
-#[derive(Debug, Clone)]
-struct MemoEntry<'input> {
-    result: Option<ParseNode<'input>>,
-    end_pos: usize,
-}
-/// Rule ID type for memoization
-type RuleId = u16;
-/// Recursion cycle types
-#[derive(Debug, Clone, PartialEq)]
-pub enum CycleType {
-    None,
-    Infinite,
-    LeftRecursive,
-    MutualRecursive { depth: usize, rules: Vec<String> },
-}
-/// Recursion guard
-pub struct RecursionGuard {
-    parse_stack: Vec<(String, usize)>,
-    max_depth: usize,
-    cycle_cache: HashMap<(String, usize), CycleType>,
-}
-impl RecursionGuard {
-    pub fn new(max_depth: usize) -> Self {
-        Self {
-            parse_stack: Vec::new(),
-            max_depth,
-            cycle_cache: HashMap::new(),
-        }
-    }
-    pub fn check_cycle(&mut self, rule_name: &str, position: usize) -> CycleType {
-        if let Some(cached) = self.cycle_cache.get(&(rule_name.to_string(), position)) {
-            return cached.clone();
-        }
-        for (r, p) in self.parse_stack.iter() {
-            if r == rule_name && *p == position {
-                let cycle = CycleType::Infinite;
-                self.cycle_cache
-                    .insert((rule_name.to_string(), position), cycle.clone());
-                return cycle;
-            }
-            if r == rule_name && *p > position {
-                let cycle = CycleType::LeftRecursive;
-                self.cycle_cache
-                    .insert((rule_name.to_string(), position), cycle.clone());
-                return cycle;
-            }
-        }
-        if self.parse_stack.len() >= self.max_depth {
-            let rules: Vec<String> = self
-                .parse_stack
-                .iter()
-                .map(|(r, _)| r.clone())
-                .collect();
-            return CycleType::MutualRecursive {
-                depth: self.parse_stack.len(),
-                rules,
-            };
-        }
-        CycleType::None
-    }
-    pub fn enter(&mut self, rule_name: &str, position: usize) {
-        self.parse_stack.push((rule_name.to_string(), position));
-    }
-    pub fn exit(&mut self) {
-        self.parse_stack.pop();
-    }
-}
+use crate::ast_pipeline::{
+    Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, RuleId,
+    CycleType, RecursionGuard,
+};
 /// High-performance parser with memoization and zero-copy parsing
 pub struct Semantic_annotationParser<'input> {
     input: &'input str,
@@ -280,7 +136,7 @@ impl<'input> Semantic_annotationParser<'input> {
     pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
         self.parse_semantic_annotation()
     }
-    fn parse_semantic_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_semantic_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -340,23 +196,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("semantic_annotation", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SEMANTIC_ANNOTATION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "semantic_annotation", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -420,33 +264,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "semantic_annotation", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "semantic_annotation", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "semantic_annotation",
                         content: result,
@@ -458,6 +275,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "semantic_annotation", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "semantic_annotation", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -485,7 +325,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("annotation", position);
         match cycle_type {
@@ -543,23 +383,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("annotation", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ANNOTATION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "annotation",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -623,33 +451,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "annotation", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "annotation", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "annotation",
                         content: result,
@@ -661,6 +462,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "annotation", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "annotation", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -688,7 +512,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_annotation_name(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_annotation_name(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("annotation_name", position);
         match cycle_type {
@@ -746,23 +570,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("annotation_name", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ANNOTATION_NAME,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "annotation_name",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -794,33 +606,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "annotation_name", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "annotation_name", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "annotation_name",
                         content: result,
@@ -832,6 +617,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "annotation_name", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "annotation_name", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -859,7 +667,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_predefined_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_predefined_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -919,23 +727,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("predefined_annotation", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PREDEFINED_ANNOTATION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "predefined_annotation", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(125usize);
                     {
                         let element_start = parser.position;
@@ -2939,33 +2735,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "predefined_annotation", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "predefined_annotation", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "predefined_annotation",
                         content: result,
@@ -2977,6 +2746,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "predefined_annotation", start_pos, node.span.end, consumed,
+                                    & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "predefined_annotation", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -3004,7 +2796,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_custom_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_custom_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("custom_annotation", position);
         match cycle_type {
@@ -3062,53 +2854,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("custom_annotation", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_CUSTOM_ANNOTATION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "custom_annotation", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "custom_annotation", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "custom_annotation", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "custom_annotation",
                         content: result,
@@ -3120,6 +2873,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "custom_annotation", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "custom_annotation", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -3147,7 +2923,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_annotation_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_annotation_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("annotation_value", position);
         match cycle_type {
@@ -3205,23 +2981,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("annotation_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ANNOTATION_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "annotation_value", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -3281,33 +3045,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "annotation_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "annotation_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "annotation_value",
                         content: result,
@@ -3319,6 +3056,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "annotation_value", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "annotation_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -3346,7 +3106,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_primitive_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_primitive_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("primitive_value", position);
         match cycle_type {
@@ -3404,23 +3164,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("primitive_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PRIMITIVE_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "primitive_value",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(5usize);
                     {
                         let element_start = parser.position;
@@ -3494,33 +3242,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "primitive_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "primitive_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "primitive_value",
                         content: result,
@@ -3532,6 +3253,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "primitive_value", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "primitive_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -3559,7 +3303,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_structured_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_structured_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("structured_value", position);
         match cycle_type {
@@ -3617,23 +3361,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("structured_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_STRUCTURED_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "structured_value", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(5usize);
                     {
                         let element_start = parser.position;
@@ -3707,33 +3439,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "structured_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "structured_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "structured_value",
                         content: result,
@@ -3745,6 +3450,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "structured_value", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "structured_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -3772,7 +3500,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_expression_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_expression_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("expression_value", position);
         match cycle_type {
@@ -3830,23 +3558,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("expression_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_EXPRESSION_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "expression_value", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(6usize);
                     {
                         let element_start = parser.position;
@@ -3934,33 +3650,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "expression_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "expression_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "expression_value",
                         content: result,
@@ -3972,6 +3661,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "expression_value", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "expression_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -3999,7 +3711,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_reference_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_reference_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("reference_value", position);
         match cycle_type {
@@ -4057,23 +3769,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("reference_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_REFERENCE_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "reference_value",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(5usize);
                     {
                         let element_start = parser.position;
@@ -4147,33 +3847,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "reference_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "reference_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "reference_value",
                         content: result,
@@ -4185,6 +3858,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "reference_value", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "reference_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -4212,7 +3908,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_string_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_string_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("string_literal", position);
         match cycle_type {
@@ -4270,23 +3966,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("string_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_STRING_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "string_literal",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(5usize);
                     {
                         let element_start = parser.position;
@@ -4360,33 +4044,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "string_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "string_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "string_literal",
                         content: result,
@@ -4398,6 +4055,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "string_literal", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "string_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -4425,7 +4105,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_double_quoted_string(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_double_quoted_string(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -4485,53 +4165,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("double_quoted_string", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_DOUBLE_QUOTED_STRING,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "double_quoted_string", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "double_quoted_string", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "double_quoted_string", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "double_quoted_string",
                         content: result,
@@ -4543,6 +4184,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "double_quoted_string", start_pos, node.span.end, consumed,
+                                    & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "double_quoted_string", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -4570,7 +4234,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_single_quoted_string(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_single_quoted_string(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -4630,53 +4294,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("single_quoted_string", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SINGLE_QUOTED_STRING,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "single_quoted_string", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "single_quoted_string", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "single_quoted_string", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "single_quoted_string",
                         content: result,
@@ -4688,6 +4313,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "single_quoted_string", start_pos, node.span.end, consumed,
+                                    & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "single_quoted_string", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -4715,7 +4363,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_raw_string(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_raw_string(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("raw_string", position);
         match cycle_type {
@@ -4773,53 +4421,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("raw_string", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_RAW_STRING,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "raw_string",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "raw_string", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "raw_string", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "raw_string",
                         content: result,
@@ -4831,6 +4440,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "raw_string", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "raw_string", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -4858,7 +4490,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_multiline_string(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_multiline_string(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("multiline_string", position);
         match cycle_type {
@@ -4916,53 +4548,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("multiline_string", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_MULTILINE_STRING,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "multiline_string", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "multiline_string", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "multiline_string", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "multiline_string",
                         content: result,
@@ -4974,6 +4567,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "multiline_string", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "multiline_string", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -5001,7 +4617,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_template_string(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_template_string(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("template_string", position);
         match cycle_type {
@@ -5059,53 +4675,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("template_string", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_TEMPLATE_STRING,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "template_string",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "template_string", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "template_string", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "template_string",
                         content: result,
@@ -5117,6 +4694,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "template_string", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "template_string", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -5144,7 +4744,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_numeric_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_numeric_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("numeric_literal", position);
         match cycle_type {
@@ -5202,23 +4802,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("numeric_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_NUMERIC_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "numeric_literal",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(6usize);
                     {
                         let element_start = parser.position;
@@ -5306,33 +4894,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "numeric_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "numeric_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "numeric_literal",
                         content: result,
@@ -5344,6 +4905,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "numeric_literal", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "numeric_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -5371,7 +4955,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_integer_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_integer_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("integer_literal", position);
         match cycle_type {
@@ -5429,53 +5013,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("integer_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_INTEGER_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "integer_literal",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "integer_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "integer_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "integer_literal",
                         content: result,
@@ -5487,6 +5032,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "integer_literal", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "integer_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -5514,7 +5082,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_decimal_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_decimal_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("decimal_literal", position);
         match cycle_type {
@@ -5572,53 +5140,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("decimal_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_DECIMAL_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "decimal_literal",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "decimal_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "decimal_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "decimal_literal",
                         content: result,
@@ -5630,6 +5159,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "decimal_literal", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "decimal_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -5657,7 +5209,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_scientific_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_scientific_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -5717,53 +5269,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("scientific_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SCIENTIFIC_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "scientific_literal", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "scientific_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "scientific_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "scientific_literal",
                         content: result,
@@ -5775,6 +5288,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "scientific_literal", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "scientific_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -5802,7 +5338,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_hexadecimal_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_hexadecimal_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -5862,53 +5398,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("hexadecimal_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_HEXADECIMAL_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "hexadecimal_literal", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "hexadecimal_literal", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "hexadecimal_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "hexadecimal_literal",
                         content: result,
@@ -5920,6 +5417,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "hexadecimal_literal", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "hexadecimal_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -5947,7 +5467,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_binary_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_binary_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("binary_literal", position);
         match cycle_type {
@@ -6005,53 +5525,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("binary_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_BINARY_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "binary_literal",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "binary_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "binary_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "binary_literal",
                         content: result,
@@ -6063,6 +5544,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "binary_literal", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "binary_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -6090,7 +5594,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_octal_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_octal_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("octal_literal", position);
         match cycle_type {
@@ -6148,53 +5652,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("octal_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_OCTAL_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "octal_literal",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "octal_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "octal_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "octal_literal",
                         content: result,
@@ -6206,6 +5671,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "octal_literal", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "octal_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -6233,7 +5721,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_boolean_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_boolean_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("boolean_literal", position);
         match cycle_type {
@@ -6291,23 +5779,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("boolean_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_BOOLEAN_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "boolean_literal",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(10usize);
                     {
                         let element_start = parser.position;
@@ -6471,33 +5947,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "boolean_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "boolean_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "boolean_literal",
                         content: result,
@@ -6509,6 +5958,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "boolean_literal", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "boolean_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -6536,7 +6008,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_null_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_null_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("null_literal", position);
         match cycle_type {
@@ -6594,23 +6066,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("null_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_NULL_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "null_literal",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(5usize);
                     {
                         let element_start = parser.position;
@@ -6694,33 +6154,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "null_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "null_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "null_literal",
                         content: result,
@@ -6732,6 +6165,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "null_literal", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "null_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -6759,7 +6215,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_identifier_literal(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_identifier_literal(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -6819,53 +6275,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("identifier_literal", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_IDENTIFIER_LITERAL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "identifier_literal", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "identifier_literal", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "identifier_literal", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "identifier_literal",
                         content: result,
@@ -6877,6 +6294,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "identifier_literal", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "identifier_literal", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -6904,7 +6344,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_array_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_array_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_value", position);
         match cycle_type {
@@ -6962,23 +6402,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("array_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ARRAY_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "array_value",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(7usize);
                     {
                         let element_start = parser.position;
@@ -7061,14 +6489,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "array_value", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -7082,15 +6511,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "array_value"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -7144,33 +6574,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "array_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "array_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "array_value",
                         content: result,
@@ -7182,6 +6585,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "array_value", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "array_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -7209,7 +6635,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_array_element(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_array_element(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_element", position);
         match cycle_type {
@@ -7267,23 +6693,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("array_element", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ARRAY_ELEMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "array_element",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -7315,33 +6729,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "array_element", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "array_element", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "array_element",
                         content: result,
@@ -7353,6 +6740,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "array_element", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "array_element", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -7380,7 +6790,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_spread_element(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_spread_element(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("spread_element", position);
         match cycle_type {
@@ -7438,23 +6848,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("spread_element", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SPREAD_ELEMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "spread_element",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -7488,33 +6886,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "spread_element", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "spread_element", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "spread_element",
                         content: result,
@@ -7526,6 +6897,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "spread_element", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "spread_element", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -7553,7 +6947,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_object_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_object_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("object_value", position);
         match cycle_type {
@@ -7611,23 +7005,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("object_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_OBJECT_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "object_value",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(7usize);
                     {
                         let element_start = parser.position;
@@ -7710,14 +7092,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "object_value", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -7731,15 +7114,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "object_value"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -7793,33 +7177,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "object_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "object_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "object_value",
                         content: result,
@@ -7831,6 +7188,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "object_value", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "object_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -7858,7 +7238,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_object_property(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_object_property(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("object_property", position);
         match cycle_type {
@@ -7916,23 +7296,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("object_property", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_OBJECT_PROPERTY,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "object_property",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(6usize);
                     {
                         let element_start = parser.position;
@@ -8022,33 +7390,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "object_property", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "object_property", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "object_property",
                         content: result,
@@ -8060,6 +7401,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "object_property", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "object_property", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -8087,7 +7451,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_property_key(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_property_key(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("property_key", position);
         match cycle_type {
@@ -8145,23 +7509,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("property_key", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PROPERTY_KEY,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "property_key",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -8207,33 +7559,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "property_key", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "property_key", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "property_key",
                         content: result,
@@ -8245,6 +7570,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "property_key", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "property_key", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -8272,7 +7620,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_computed_key(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_computed_key(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("computed_key", position);
         match cycle_type {
@@ -8330,23 +7678,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("computed_key", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_COMPUTED_KEY,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "computed_key",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -8396,33 +7732,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "computed_key", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "computed_key", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "computed_key",
                         content: result,
@@ -8434,6 +7743,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "computed_key", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "computed_key", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -8461,7 +7793,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_computed_property(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_computed_property(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("computed_property", position);
         match cycle_type {
@@ -8519,23 +7851,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("computed_property", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_COMPUTED_PROPERTY,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "computed_property", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(5usize);
                     {
                         let element_start = parser.position;
@@ -8615,33 +7935,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "computed_property", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "computed_property", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "computed_property",
                         content: result,
@@ -8653,6 +7946,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "computed_property", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "computed_property", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -8680,7 +7996,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_shorthand_property(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_shorthand_property(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -8740,52 +8056,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("shorthand_property", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SHORTHAND_PROPERTY,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "shorthand_property", start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal("");
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "shorthand_property", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "shorthand_property", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "shorthand_property",
                         content: result,
@@ -8797,6 +8074,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "shorthand_property", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "shorthand_property", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -8824,7 +8124,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_spread_property(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_spread_property(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("spread_property", position);
         match cycle_type {
@@ -8882,23 +8182,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("spread_property", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SPREAD_PROPERTY,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "spread_property",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -8932,33 +8220,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "spread_property", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "spread_property", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "spread_property",
                         content: result,
@@ -8970,6 +8231,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "spread_property", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "spread_property", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -8997,7 +8281,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_tuple_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_tuple_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("tuple_value", position);
         match cycle_type {
@@ -9055,23 +8339,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("tuple_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_TUPLE_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "tuple_value",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(7usize);
                     {
                         let element_start = parser.position;
@@ -9154,14 +8426,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "tuple_value", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -9175,15 +8448,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "tuple_value"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -9237,33 +8511,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "tuple_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "tuple_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "tuple_value",
                         content: result,
@@ -9275,6 +8522,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "tuple_value", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "tuple_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -9302,7 +8572,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_tuple_element(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_tuple_element(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("tuple_element", position);
         match cycle_type {
@@ -9360,23 +8630,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("tuple_element", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_TUPLE_ELEMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "tuple_element",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -9408,33 +8666,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "tuple_element", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "tuple_element", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "tuple_element",
                         content: result,
@@ -9446,6 +8677,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "tuple_element", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "tuple_element", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -9473,7 +8727,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_named_tuple_element(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_named_tuple_element(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -9533,23 +8787,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("named_tuple_element", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_NAMED_TUPLE_ELEMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "named_tuple_element", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -9597,33 +8839,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "named_tuple_element", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "named_tuple_element", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "named_tuple_element",
                         content: result,
@@ -9635,6 +8850,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "named_tuple_element", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "named_tuple_element", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -9662,7 +8900,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_set_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_set_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("set_value", position);
         match cycle_type {
@@ -9720,23 +8958,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("set_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SET_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "set_value",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(7usize);
                     {
                         let element_start = parser.position;
@@ -9819,14 +9045,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "set_value", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -9840,15 +9067,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "set_value"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -9902,33 +9130,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "set_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "set_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "set_value",
                         content: result,
@@ -9940,6 +9141,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "set_value", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "set_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -9967,7 +9191,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_set_element(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_set_element(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("set_element", position);
         match cycle_type {
@@ -10025,52 +9249,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("set_element", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SET_ELEMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "set_element",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal("");
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "set_element", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "set_element", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "set_element",
                         content: result,
@@ -10082,6 +9267,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "set_element", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "set_element", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -10109,7 +9317,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_map_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_map_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("map_value", position);
         match cycle_type {
@@ -10167,23 +9375,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("map_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_MAP_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "map_value",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(7usize);
                     {
                         let element_start = parser.position;
@@ -10266,14 +9462,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "map_value", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -10287,15 +9484,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "map_value"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -10349,33 +9547,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "map_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "map_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "map_value",
                         content: result,
@@ -10387,6 +9558,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "map_value", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "map_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -10414,7 +9608,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_map_entry(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_map_entry(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("map_entry", position);
         match cycle_type {
@@ -10472,23 +9666,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("map_entry", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_MAP_ENTRY,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "map_entry",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -10536,33 +9718,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "map_entry", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "map_entry", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "map_entry",
                         content: result,
@@ -10574,6 +9729,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "map_entry", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "map_entry", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -10601,7 +9779,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_arithmetic_expression(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_arithmetic_expression(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -10661,23 +9839,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("arithmetic_expression", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ARITHMETIC_EXPRESSION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "arithmetic_expression", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -10742,14 +9908,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "arithmetic_expression", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -10763,15 +9930,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "arithmetic_expression"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -10788,33 +9956,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "arithmetic_expression", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "arithmetic_expression", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "arithmetic_expression",
                         content: result,
@@ -10826,6 +9967,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "arithmetic_expression", start_pos, node.span.end, consumed,
+                                    & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "arithmetic_expression", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -10853,7 +10017,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_multiplicative_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_multiplicative_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -10913,23 +10077,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("multiplicative_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_MULTIPLICATIVE_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "multiplicative_expr", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -10994,14 +10146,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "multiplicative_expr", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -11015,15 +10168,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "multiplicative_expr"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -11040,33 +10194,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "multiplicative_expr", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "multiplicative_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "multiplicative_expr",
                         content: result,
@@ -11078,6 +10205,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "multiplicative_expr", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "multiplicative_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -11105,7 +10255,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_power_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_power_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("power_expr", position);
         match cycle_type {
@@ -11163,23 +10313,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("power_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_POWER_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "power_expr",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -11248,33 +10386,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "power_expr", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "power_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "power_expr",
                         content: result,
@@ -11286,6 +10397,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "power_expr", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "power_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -11313,7 +10447,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_unary_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_unary_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("unary_expr", position);
         match cycle_type {
@@ -11371,23 +10505,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("unary_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_UNARY_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "unary_expr",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -11440,33 +10562,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "unary_expr", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "unary_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "unary_expr",
                         content: result,
@@ -11478,6 +10573,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "unary_expr", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "unary_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -11505,7 +10623,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_additive_op(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_additive_op(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("additive_op", position);
         match cycle_type {
@@ -11563,23 +10681,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("additive_op", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ADDITIVE_OP,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "additive_op",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -11615,33 +10721,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "additive_op", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "additive_op", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "additive_op",
                         content: result,
@@ -11653,6 +10732,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "additive_op", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "additive_op", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -11680,7 +10782,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_multiplicative_op(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_multiplicative_op(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("multiplicative_op", position);
         match cycle_type {
@@ -11738,23 +10840,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("multiplicative_op", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_MULTIPLICATIVE_OP,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "multiplicative_op", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -11822,33 +10912,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "multiplicative_op", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "multiplicative_op", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "multiplicative_op",
                         content: result,
@@ -11860,6 +10923,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "multiplicative_op", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "multiplicative_op", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -11887,7 +10973,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_unary_op(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_unary_op(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("unary_op", position);
         match cycle_type {
@@ -11945,23 +11031,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("unary_op", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_UNARY_OP,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "unary_op",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -12029,33 +11103,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "unary_op", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "unary_op", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "unary_op",
                         content: result,
@@ -12067,6 +11114,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "unary_op", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "unary_op", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -12094,7 +11164,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_primary_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_primary_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("primary_expr", position);
         match cycle_type {
@@ -12152,23 +11222,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("primary_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PRIMARY_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "primary_expr",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(6usize);
                     {
                         let element_start = parser.position;
@@ -12260,33 +11318,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "primary_expr", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "primary_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "primary_expr",
                         content: result,
@@ -12298,6 +11329,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "primary_expr", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "primary_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -12325,7 +11379,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_logical_expression(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_logical_expression(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -12385,52 +11439,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("logical_expression", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_LOGICAL_EXPRESSION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "logical_expression", start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal("");
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "logical_expression", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "logical_expression", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "logical_expression",
                         content: result,
@@ -12442,6 +11457,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "logical_expression", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "logical_expression", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -12469,7 +11507,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_logical_or_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_logical_or_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("logical_or_expr", position);
         match cycle_type {
@@ -12527,23 +11565,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("logical_or_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_LOGICAL_OR_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "logical_or_expr",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -12610,14 +11636,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "logical_or_expr", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -12631,15 +11658,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "logical_or_expr"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -12656,33 +11684,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "logical_or_expr", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "logical_or_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "logical_or_expr",
                         content: result,
@@ -12694,6 +11695,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "logical_or_expr", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "logical_or_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -12721,7 +11745,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_logical_and_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_logical_and_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("logical_and_expr", position);
         match cycle_type {
@@ -12779,23 +11803,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("logical_and_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_LOGICAL_AND_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "logical_and_expr", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -12862,14 +11874,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "logical_and_expr", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -12883,15 +11896,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "logical_and_expr"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -12908,33 +11922,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "logical_and_expr", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "logical_and_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "logical_and_expr",
                         content: result,
@@ -12946,6 +11933,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "logical_and_expr", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "logical_and_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -12973,7 +11983,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_logical_not_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_logical_not_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("logical_not_expr", position);
         match cycle_type {
@@ -13031,23 +12041,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("logical_not_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_LOGICAL_NOT_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "logical_not_expr", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -13102,33 +12100,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "logical_not_expr", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "logical_not_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "logical_not_expr",
                         content: result,
@@ -13140,6 +12111,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "logical_not_expr", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "logical_not_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -13167,7 +12161,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_comparison_expression(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_comparison_expression(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -13227,23 +12221,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("comparison_expression", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_COMPARISON_EXPRESSION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "comparison_expression", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -13310,33 +12292,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "comparison_expression", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "comparison_expression", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "comparison_expression",
                         content: result,
@@ -13348,6 +12303,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "comparison_expression", start_pos, node.span.end, consumed,
+                                    & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "comparison_expression", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -13375,7 +12353,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_additive_comparison_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_additive_comparison_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -13435,23 +12413,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("additive_comparison_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ADDITIVE_COMPARISON_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "additive_comparison_expr", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -13516,14 +12482,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "additive_comparison_expr", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -13537,15 +12504,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "additive_comparison_expr"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -13562,33 +12530,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "additive_comparison_expr", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "additive_comparison_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "additive_comparison_expr",
                         content: result,
@@ -13600,6 +12541,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "additive_comparison_expr", start_pos, node.span.end,
+                                    consumed, & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "additive_comparison_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -13627,7 +12591,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_comparison_op(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_comparison_op(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("comparison_op", position);
         match cycle_type {
@@ -13685,23 +12649,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("comparison_op", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_COMPARISON_OP,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "comparison_op",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(12usize);
                     {
                         let element_start = parser.position;
@@ -13897,33 +12849,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "comparison_op", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "comparison_op", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "comparison_op",
                         content: result,
@@ -13935,6 +12860,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "comparison_op", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "comparison_op", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -13962,7 +12910,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_conditional_expression(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_conditional_expression(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -14022,23 +12970,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("conditional_expression", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_CONDITIONAL_EXPRESSION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "conditional_expression", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(5usize);
                     {
                         let element_start = parser.position;
@@ -14116,33 +13052,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "conditional_expression", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "conditional_expression", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "conditional_expression",
                         content: result,
@@ -14154,6 +13063,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "conditional_expression", start_pos, node.span.end,
+                                    consumed, & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "conditional_expression", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -14181,7 +13113,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_function_call(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_function_call(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("function_call", position);
         match cycle_type {
@@ -14239,23 +13171,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("function_call", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_FUNCTION_CALL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "function_call",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(8usize);
                     {
                         let element_start = parser.position;
@@ -14352,14 +13272,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "function_call", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -14373,15 +13294,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "function_call"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -14435,33 +13357,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "function_call", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "function_call", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "function_call",
                         content: result,
@@ -14473,6 +13368,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "function_call", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "function_call", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -14500,7 +13418,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_function_name(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_function_name(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("function_name", position);
         match cycle_type {
@@ -14558,23 +13476,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("function_name", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_FUNCTION_NAME,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "function_name",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -14606,33 +13512,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "function_name", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "function_name", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "function_name",
                         content: result,
@@ -14644,6 +13523,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "function_name", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "function_name", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -14671,7 +13573,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_qualified_name(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_qualified_name(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("qualified_name", position);
         match cycle_type {
@@ -14729,23 +13631,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("qualified_name", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_QUALIFIED_NAME,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "qualified_name",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -14807,14 +13697,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                     });
                             }
                             if parser.position == start_position {
-                                if self.logger.is_enabled() {
-                                    self.logger
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
                                         .log_warning(
                                             "generated_parser.rs",
                                             0,
                                             &format!(
-                                                "⚠️ ZERO-LENGTH FIRST MATCH in {}+ quantifier at position {}",
-                                                "qualified_name", start_position
+                                                "⚠️ ZERO-LENGTH FIRST MATCH in + quantifier at position {}",
+                                                start_position
                                             ),
                                         );
                                 }
@@ -14836,14 +13727,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}+: Breaking at position {}",
-                                                        "qualified_name", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in + quantifier: Breaking at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -14857,15 +13749,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {}+ quantifier",
-                                            MAX_ITERATIONS, "qualified_name"
+                                            "⚠️ MAX ITERATIONS ({}) reached in + quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -14882,33 +13775,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "qualified_name", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "qualified_name", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "qualified_name",
                         content: result,
@@ -14920,6 +13786,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "qualified_name", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "qualified_name", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -14947,7 +13836,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_function_argument(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_function_argument(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("function_argument", position);
         match cycle_type {
@@ -15005,23 +13894,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("function_argument", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_FUNCTION_ARGUMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "function_argument", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -15067,33 +13944,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "function_argument", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "function_argument", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "function_argument",
                         content: result,
@@ -15105,6 +13955,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "function_argument", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "function_argument", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -15132,7 +14005,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_positional_argument(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_positional_argument(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -15192,52 +14065,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("positional_argument", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_POSITIONAL_ARGUMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "positional_argument", start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal("");
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "positional_argument", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "positional_argument", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "positional_argument",
                         content: result,
@@ -15249,6 +14083,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "positional_argument", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "positional_argument", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -15276,7 +14133,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_named_argument(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_named_argument(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("named_argument", position);
         match cycle_type {
@@ -15334,23 +14191,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("named_argument", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_NAMED_ARGUMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "named_argument",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -15398,33 +14243,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "named_argument", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "named_argument", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "named_argument",
                         content: result,
@@ -15436,6 +14254,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "named_argument", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "named_argument", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -15463,7 +14304,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_spread_argument(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_spread_argument(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("spread_argument", position);
         match cycle_type {
@@ -15521,23 +14362,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("spread_argument", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SPREAD_ARGUMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "spread_argument",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -15571,33 +14400,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "spread_argument", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "spread_argument", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "spread_argument",
                         content: result,
@@ -15609,6 +14411,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "spread_argument", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "spread_argument", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -15636,7 +14461,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_lambda_expression(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_lambda_expression(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("lambda_expression", position);
         match cycle_type {
@@ -15694,23 +14519,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("lambda_expression", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_LAMBDA_EXPRESSION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "lambda_expression", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(12usize);
                     {
                         let element_start = parser.position;
@@ -15793,14 +14606,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "lambda_expression", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -15814,15 +14628,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "lambda_expression"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -15950,33 +14765,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "lambda_expression", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "lambda_expression", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "lambda_expression",
                         content: result,
@@ -15988,6 +14776,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "lambda_expression", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "lambda_expression", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -16015,7 +14826,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_lambda_parameter(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_lambda_parameter(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("lambda_parameter", position);
         match cycle_type {
@@ -16073,23 +14884,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("lambda_parameter", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_LAMBDA_PARAMETER,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "lambda_parameter", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -16121,33 +14920,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "lambda_parameter", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "lambda_parameter", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "lambda_parameter",
                         content: result,
@@ -16159,6 +14931,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "lambda_parameter", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "lambda_parameter", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -16186,7 +14981,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_destructuring_parameter(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_destructuring_parameter(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -16246,23 +15041,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("destructuring_parameter", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_DESTRUCTURING_PARAMETER,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "destructuring_parameter", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(14usize);
                     {
                         let element_start = parser.position;
@@ -16345,14 +15128,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "destructuring_parameter", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -16366,15 +15150,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "destructuring_parameter"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -16507,14 +15292,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "destructuring_parameter", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -16528,15 +15314,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "destructuring_parameter"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -16590,33 +15377,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "destructuring_parameter", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "destructuring_parameter", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "destructuring_parameter",
                         content: result,
@@ -16628,6 +15388,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "destructuring_parameter", start_pos, node.span.end,
+                                    consumed, & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "destructuring_parameter", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -16655,7 +15438,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_type_reference(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_type_reference(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("type_reference", position);
         match cycle_type {
@@ -16713,23 +15496,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("type_reference", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_TYPE_REFERENCE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "type_reference",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(7usize);
                     {
                         let element_start = parser.position;
@@ -16831,33 +15602,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "type_reference", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "type_reference", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "type_reference",
                         content: result,
@@ -16869,6 +15613,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "type_reference", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "type_reference", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -16896,7 +15663,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_primitive_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_primitive_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("primitive_type", position);
         match cycle_type {
@@ -16954,53 +15721,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("primitive_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PRIMITIVE_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "primitive_type",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "primitive_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "primitive_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "primitive_type",
                         content: result,
@@ -17012,6 +15740,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "primitive_type", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "primitive_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -17039,7 +15790,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_generic_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_generic_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("generic_type", position);
         match cycle_type {
@@ -17097,23 +15848,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("generic_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_GENERIC_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "generic_type",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(8usize);
                     {
                         let element_start = parser.position;
@@ -17210,14 +15949,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "generic_type", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -17231,15 +15971,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "generic_type"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -17293,33 +16034,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "generic_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "generic_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "generic_type",
                         content: result,
@@ -17331,6 +16045,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "generic_type", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "generic_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -17358,7 +16095,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_union_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_union_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("union_type", position);
         match cycle_type {
@@ -17416,23 +16153,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("union_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_UNION_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "union_type",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -17494,14 +16219,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                     });
                             }
                             if parser.position == start_position {
-                                if self.logger.is_enabled() {
-                                    self.logger
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
                                         .log_warning(
                                             "generated_parser.rs",
                                             0,
                                             &format!(
-                                                "⚠️ ZERO-LENGTH FIRST MATCH in {}+ quantifier at position {}",
-                                                "union_type", start_position
+                                                "⚠️ ZERO-LENGTH FIRST MATCH in + quantifier at position {}",
+                                                start_position
                                             ),
                                         );
                                 }
@@ -17523,14 +16249,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}+: Breaking at position {}",
-                                                        "union_type", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in + quantifier: Breaking at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -17544,15 +16271,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {}+ quantifier",
-                                            MAX_ITERATIONS, "union_type"
+                                            "⚠️ MAX ITERATIONS ({}) reached in + quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -17569,33 +16297,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "union_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "union_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "union_type",
                         content: result,
@@ -17607,6 +16308,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "union_type", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "union_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -17634,7 +16358,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_intersection_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_intersection_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("intersection_type", position);
         match cycle_type {
@@ -17692,23 +16416,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("intersection_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_INTERSECTION_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "intersection_type", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -17770,14 +16482,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                     });
                             }
                             if parser.position == start_position {
-                                if self.logger.is_enabled() {
-                                    self.logger
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
                                         .log_warning(
                                             "generated_parser.rs",
                                             0,
                                             &format!(
-                                                "⚠️ ZERO-LENGTH FIRST MATCH in {}+ quantifier at position {}",
-                                                "intersection_type", start_position
+                                                "⚠️ ZERO-LENGTH FIRST MATCH in + quantifier at position {}",
+                                                start_position
                                             ),
                                         );
                                 }
@@ -17799,14 +16512,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}+: Breaking at position {}",
-                                                        "intersection_type", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in + quantifier: Breaking at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -17820,15 +16534,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {}+ quantifier",
-                                            MAX_ITERATIONS, "intersection_type"
+                                            "⚠️ MAX ITERATIONS ({}) reached in + quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -17845,33 +16560,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "intersection_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "intersection_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "intersection_type",
                         content: result,
@@ -17883,6 +16571,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "intersection_type", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "intersection_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -17910,7 +16621,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_function_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_function_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("function_type", position);
         match cycle_type {
@@ -17968,23 +16679,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("function_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_FUNCTION_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "function_type",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(9usize);
                     {
                         let element_start = parser.position;
@@ -18067,14 +16766,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "function_type", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -18088,15 +16788,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "function_type"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -18180,33 +16881,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "function_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "function_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "function_type",
                         content: result,
@@ -18218,6 +16892,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "function_type", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "function_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -18245,7 +16942,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_array_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_array_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("array_type", position);
         match cycle_type {
@@ -18303,23 +17000,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("array_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ARRAY_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "array_type",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -18369,33 +17054,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "array_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "array_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "array_type",
                         content: result,
@@ -18407,6 +17065,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "array_type", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "array_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -18434,7 +17115,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_optional_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_optional_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("optional_type", position);
         match cycle_type {
@@ -18492,23 +17173,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("optional_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_OPTIONAL_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "optional_type",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -18542,33 +17211,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "optional_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "optional_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "optional_type",
                         content: result,
@@ -18580,6 +17222,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "optional_type", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "optional_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -18607,7 +17272,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_rule_reference(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_rule_reference(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("rule_reference", position);
         match cycle_type {
@@ -18665,23 +17330,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("rule_reference", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_RULE_REFERENCE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "rule_reference",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -18715,33 +17368,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "rule_reference", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "rule_reference", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "rule_reference",
                         content: result,
@@ -18753,6 +17379,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "rule_reference", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "rule_reference", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -18780,7 +17429,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_symbol_reference(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_symbol_reference(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("symbol_reference", position);
         match cycle_type {
@@ -18838,23 +17487,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("symbol_reference", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SYMBOL_REFERENCE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "symbol_reference", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -18888,33 +17525,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "symbol_reference", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "symbol_reference", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "symbol_reference",
                         content: result,
@@ -18926,6 +17536,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "symbol_reference", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "symbol_reference", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -18953,7 +17586,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_path_reference(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_path_reference(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("path_reference", position);
         match cycle_type {
@@ -19011,23 +17644,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("path_reference", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PATH_REFERENCE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "path_reference",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -19073,33 +17694,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "path_reference", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "path_reference", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "path_reference",
                         content: result,
@@ -19111,6 +17705,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "path_reference", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "path_reference", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -19138,7 +17755,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_absolute_path(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_absolute_path(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("absolute_path", position);
         match cycle_type {
@@ -19196,53 +17813,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("absolute_path", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_ABSOLUTE_PATH,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "absolute_path",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "absolute_path", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "absolute_path", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "absolute_path",
                         content: result,
@@ -19254,6 +17832,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "absolute_path", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "absolute_path", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -19281,7 +17882,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_relative_path(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_relative_path(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("relative_path", position);
         match cycle_type {
@@ -19339,53 +17940,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("relative_path", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_RELATIVE_PATH,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "relative_path",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "relative_path", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "relative_path", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "relative_path",
                         content: result,
@@ -19397,6 +17959,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "relative_path", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "relative_path", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -19424,7 +18009,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_home_path(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_home_path(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("home_path", position);
         match cycle_type {
@@ -19482,53 +18067,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("home_path", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_HOME_PATH,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "home_path",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "home_path", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "home_path", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "home_path",
                         content: result,
@@ -19540,6 +18086,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "home_path", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "home_path", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -19567,7 +18136,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_url_reference(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_url_reference(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("url_reference", position);
         match cycle_type {
@@ -19625,53 +18194,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("url_reference", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_URL_REFERENCE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "url_reference",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "url_reference", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "url_reference", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "url_reference",
                         content: result,
@@ -19683,6 +18213,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "url_reference", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "url_reference", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -19710,7 +18263,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_precedence_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_precedence_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("precedence_value", position);
         match cycle_type {
@@ -19768,23 +18321,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("precedence_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PRECEDENCE_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "precedence_value", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -19837,33 +18378,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "precedence_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "precedence_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "precedence_value",
                         content: result,
@@ -19875,6 +18389,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "precedence_value", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "precedence_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -19902,7 +18439,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_precedence_level(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_precedence_level(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("precedence_level", position);
         match cycle_type {
@@ -19960,52 +18497,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("precedence_level", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PRECEDENCE_LEVEL,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "precedence_level", start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal("");
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "precedence_level", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "precedence_level", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "precedence_level",
                         content: result,
@@ -20017,6 +18515,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "precedence_level", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "precedence_level", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -20044,7 +18565,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_precedence_associativity(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_precedence_associativity(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -20104,23 +18625,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("precedence_associativity", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PRECEDENCE_ASSOCIATIVITY,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "precedence_associativity", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
@@ -20188,33 +18697,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "precedence_associativity", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "precedence_associativity", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "precedence_associativity",
                         content: result,
@@ -20226,6 +18708,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "precedence_associativity", start_pos, node.span.end,
+                                    consumed, & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "precedence_associativity", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -20253,7 +18758,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_constraint_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_constraint_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("constraint_value", position);
         match cycle_type {
@@ -20311,23 +18816,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("constraint_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_CONSTRAINT_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "constraint_value", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -20359,33 +18852,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "constraint_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "constraint_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "constraint_value",
                         content: result,
@@ -20397,6 +18863,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "constraint_value", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "constraint_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -20424,7 +18913,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_constraint_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_constraint_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("constraint_type", position);
         match cycle_type {
@@ -20482,23 +18971,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("constraint_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_CONSTRAINT_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "constraint_type",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(5usize);
                     {
                         let element_start = parser.position;
@@ -20582,33 +19059,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "constraint_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "constraint_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "constraint_type",
                         content: result,
@@ -20620,6 +19070,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "constraint_type", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "constraint_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -20647,7 +19120,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_constraint_expression(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_constraint_expression(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self
             .recursion_guard
@@ -20707,23 +19180,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("constraint_expression", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_CONSTRAINT_EXPRESSION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "constraint_expression", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -20755,33 +19216,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "constraint_expression", start_pos, end_pos, consumed, &
-                                        parser.input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "constraint_expression", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "constraint_expression",
                         content: result,
@@ -20793,6 +19227,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "constraint_expression", start_pos, node.span.end, consumed,
+                                    & self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "constraint_expression", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -20820,7 +19277,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_performance_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_performance_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("performance_value", position);
         match cycle_type {
@@ -20878,23 +19335,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("performance_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PERFORMANCE_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "performance_value", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -20940,33 +19385,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "performance_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "performance_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "performance_value",
                         content: result,
@@ -20978,6 +19396,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "performance_value", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "performance_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -21005,7 +19446,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_complexity_spec(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_complexity_spec(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("complexity_spec", position);
         match cycle_type {
@@ -21063,23 +19504,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("complexity_spec", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_COMPLEXITY_SPEC,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "complexity_spec",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -21129,33 +19558,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "complexity_spec", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "complexity_spec", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "complexity_spec",
                         content: result,
@@ -21167,6 +19569,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "complexity_spec", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "complexity_spec", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -21194,7 +19619,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_complexity_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_complexity_expr(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("complexity_expr", position);
         match cycle_type {
@@ -21252,53 +19677,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("complexity_expr", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_COMPLEXITY_EXPR,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "complexity_expr",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "complexity_expr", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "complexity_expr", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "complexity_expr",
                         content: result,
@@ -21310,6 +19696,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "complexity_expr", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "complexity_expr", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -21337,7 +19746,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_memory_spec(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_memory_spec(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("memory_spec", position);
         match cycle_type {
@@ -21395,23 +19804,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("memory_spec", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_MEMORY_SPEC,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "memory_spec",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -21464,33 +19861,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "memory_spec", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "memory_spec", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "memory_spec",
                         content: result,
@@ -21502,6 +19872,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "memory_spec", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "memory_spec", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -21529,7 +19922,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_memory_amount(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_memory_amount(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("memory_amount", position);
         match cycle_type {
@@ -21587,52 +19980,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("memory_amount", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_MEMORY_AMOUNT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "memory_amount",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal("");
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "memory_amount", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "memory_amount", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "memory_amount",
                         content: result,
@@ -21644,6 +19998,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "memory_amount", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "memory_amount", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -21671,7 +20048,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_memory_unit(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_memory_unit(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("memory_unit", position);
         match cycle_type {
@@ -21729,23 +20106,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("memory_unit", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_MEMORY_UNIT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "memory_unit",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(8usize);
                     {
                         let element_start = parser.position;
@@ -21877,33 +20242,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "memory_unit", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "memory_unit", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "memory_unit",
                         content: result,
@@ -21915,6 +20253,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "memory_unit", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "memory_unit", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -21942,7 +20303,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_timing_spec(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_timing_spec(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("timing_spec", position);
         match cycle_type {
@@ -22000,23 +20361,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("timing_spec", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_TIMING_SPEC,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "timing_spec",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
@@ -22069,33 +20418,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "timing_spec", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "timing_spec", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "timing_spec",
                         content: result,
@@ -22107,6 +20429,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "timing_spec", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "timing_spec", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -22134,7 +20479,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_time_amount(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_time_amount(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("time_amount", position);
         match cycle_type {
@@ -22192,52 +20537,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("time_amount", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_TIME_AMOUNT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "time_amount",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal("");
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "time_amount", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "time_amount", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "time_amount",
                         content: result,
@@ -22249,6 +20555,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "time_amount", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "time_amount", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -22276,7 +20605,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_time_unit(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_time_unit(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("time_unit", position);
         match cycle_type {
@@ -22334,23 +20663,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("time_unit", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_TIME_UNIT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "time_unit",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(12usize);
                     {
                         let element_start = parser.position;
@@ -22546,33 +20863,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "time_unit", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "time_unit", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "time_unit",
                         content: result,
@@ -22584,6 +20874,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "time_unit", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "time_unit", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -22611,7 +20924,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_version_value(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_version_value(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("version_value", position);
         match cycle_type {
@@ -22669,23 +20982,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("version_value", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_VERSION_VALUE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "version_value",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -22717,33 +21018,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "version_value", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "version_value", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "version_value",
                         content: result,
@@ -22755,6 +21029,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "version_value", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "version_value", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -22782,7 +21079,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_semantic_version(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_semantic_version(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("semantic_version", position);
         match cycle_type {
@@ -22840,53 +21137,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("semantic_version", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_SEMANTIC_VERSION,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}",
-                                    "semantic_version", start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "semantic_version", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "semantic_version", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "semantic_version",
                         content: result,
@@ -22898,6 +21156,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "semantic_version", start_pos, node.span.end, consumed, &
+                                    self.input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "semantic_version", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -22925,7 +21206,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_version_range(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_version_range(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("version_range", position);
         match cycle_type {
@@ -22983,23 +21264,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("version_range", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_VERSION_RANGE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "version_range",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(15usize);
                     {
                         let element_start = parser.position;
@@ -23227,33 +21496,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "version_range", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "version_range", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "version_range",
                         content: result,
@@ -23265,6 +21507,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "version_range", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "version_range", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -23292,7 +21557,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_exception_spec(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_exception_spec(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("exception_spec", position);
         match cycle_type {
@@ -23350,23 +21615,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("exception_spec", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_EXCEPTION_SPEC,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "exception_spec",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(7usize);
                     {
                         let element_start = parser.position;
@@ -23449,14 +21702,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "exception_spec", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -23470,15 +21724,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "exception_spec"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -23532,33 +21787,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "exception_spec", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "exception_spec", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "exception_spec",
                         content: result,
@@ -23570,6 +21798,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "exception_spec", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "exception_spec", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -23597,7 +21848,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_exception_type(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_exception_type(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("exception_type", position);
         match cycle_type {
@@ -23655,23 +21906,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("exception_type", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_EXCEPTION_TYPE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "exception_type",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -23703,33 +21942,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "exception_type", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "exception_type", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "exception_type",
                         content: result,
@@ -23741,6 +21953,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "exception_type", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "exception_type", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -23768,7 +22003,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_platform_spec(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_platform_spec(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("platform_spec", position);
         match cycle_type {
@@ -23826,23 +22061,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("platform_spec", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PLATFORM_SPEC,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "platform_spec",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(7usize);
                     {
                         let element_start = parser.position;
@@ -23925,14 +22148,15 @@ impl<'input> Semantic_annotationParser<'input> {
                                 {
                                     let current_position = parser.position;
                                     if current_position == last_position {
-                                        if self.logger.is_enabled() {
-                                            self.logger
+                                        if parser.logger.is_enabled() {
+                                            parser
+                                                .logger
                                                 .log_warning(
                                                     "generated_parser.rs",
                                                     0,
                                                     &format!(
-                                                        "⚠️ ZERO-LENGTH MATCH in {}: Breaking to prevent infinite loop at position {}",
-                                                        "platform_spec", current_position
+                                                        "⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}",
+                                                        current_position
                                                     ),
                                                 );
                                         }
@@ -23946,15 +22170,16 @@ impl<'input> Semantic_annotationParser<'input> {
                                 }
                             }
                             if iteration_count >= MAX_ITERATIONS
-                                && self.logger.is_enabled()
+                                && parser.logger.is_enabled()
                             {
-                                self.logger
+                                parser
+                                    .logger
                                     .log_warning(
                                         "generated_parser.rs",
                                         0,
                                         &format!(
-                                            "⚠️ MAX ITERATIONS ({}) reached in {} quantifier",
-                                            MAX_ITERATIONS, "platform_spec"
+                                            "⚠️ MAX ITERATIONS ({}) reached in quantifier",
+                                            MAX_ITERATIONS
                                         ),
                                     );
                             }
@@ -24008,33 +22233,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "platform_spec", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "platform_spec", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "platform_spec",
                         content: result,
@@ -24046,6 +22244,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "platform_spec", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "platform_spec", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -24073,7 +22294,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_platform_name(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_platform_name(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("platform_name", position);
         match cycle_type {
@@ -24131,23 +22352,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("platform_name", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_PLATFORM_NAME,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "platform_name",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -24179,33 +22388,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "platform_name", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "platform_name", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "platform_name",
                         content: result,
@@ -24217,6 +22399,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "platform_name", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "platform_name", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -24244,7 +22449,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_whitespace(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_whitespace(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("whitespace", position);
         match cycle_type {
@@ -24302,53 +22507,14 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("whitespace", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_WHITESPACE,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "whitespace",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(0usize);
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "whitespace", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "whitespace", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "whitespace",
                         content: result,
@@ -24360,6 +22526,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "whitespace", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "whitespace", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -24387,7 +22576,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_line_comment(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_line_comment(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("line_comment", position);
         match cycle_type {
@@ -24445,52 +22634,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("line_comment", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_LINE_COMMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "line_comment",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal(parser.match_string("//")?);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "line_comment", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "line_comment", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "line_comment",
                         content: result,
@@ -24502,6 +22652,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "line_comment", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "line_comment", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -24529,7 +22702,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_block_comment(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_block_comment(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("block_comment", position);
         match cycle_type {
@@ -24587,23 +22760,11 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("block_comment", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_BLOCK_COMMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "block_comment",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
@@ -24639,33 +22800,6 @@ impl<'input> Semantic_annotationParser<'input> {
                     }
                     let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "block_comment", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "block_comment", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "block_comment",
                         content: result,
@@ -24677,6 +22811,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "block_comment", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "block_comment", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -24704,7 +22861,7 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
-    fn parse_doc_comment(&mut self) -> ParseResult<ParseNode<'input>> {
+    pub fn parse_doc_comment(&mut self) -> ParseResult<ParseNode<'input>> {
         let position = self.position;
         let cycle_type = self.recursion_guard.check_cycle("doc_comment", position);
         match cycle_type {
@@ -24762,52 +22919,13 @@ impl<'input> Semantic_annotationParser<'input> {
             _ => {}
         }
         self.recursion_guard.enter("doc_comment", position);
+        let start_pos = self.position;
         let result = self
             .memoized_call(
                 Self::RULE_DOC_COMMENT,
                 |parser| {
-                    let start_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        parser
-                            .logger
-                            .log_info(
-                                "generated_parser.rs",
-                                0,
-                                &format!(
-                                    "🚀 Entering rule '{}' at position {}", "doc_comment",
-                                    start_pos
-                                ),
-                            );
-                    }
                     let result = ParseContent::Terminal(parser.match_string("///")?);
                     let end_pos = parser.position;
-                    if parser.logger.is_enabled() {
-                        let consumed = end_pos - start_pos;
-                        if consumed > 0 {
-                            parser
-                                .logger
-                                .log_success(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
-                                        "doc_comment", start_pos, end_pos, consumed, & parser
-                                        .input[start_pos..end_pos]
-                                    ),
-                                );
-                        } else {
-                            parser
-                                .logger
-                                .log_warning(
-                                    "generated_parser.rs",
-                                    0,
-                                    &format!(
-                                        "⚠️ Rule '{}' matched with zero length at position {}",
-                                        "doc_comment", start_pos
-                                    ),
-                                );
-                        }
-                    }
                     Ok(ParseNode {
                         rule_name: "doc_comment",
                         content: result,
@@ -24819,6 +22937,29 @@ impl<'input> Semantic_annotationParser<'input> {
         match &result {
             Ok(node) => {
                 if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        self.logger
+                            .log_success(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')",
+                                    "doc_comment", start_pos, node.span.end, consumed, & self
+                                    .input[start_pos..node.span.end]
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "generated_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "doc_comment", start_pos
+                                ),
+                            );
+                    }
                     self.logger
                         .log_success(
                             "generated_parser.rs",
@@ -25082,11 +23223,33 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
+    fn create_contextual_error(&self, message: &str) -> ParseError {
+        let position = self.position;
+        let rule_stack: Vec<String> = self
+            .recursion_guard
+            .parse_stack
+            .iter()
+            .map(|(rule, _)| rule.clone())
+            .collect();
+        let start = position.saturating_sub(20);
+        let end = (position + 20).min(self.input.len());
+        let input_context = if start < end {
+            self.input[start..end].to_string()
+        } else {
+            String::new()
+        };
+        ParseError::ContextualError {
+            message: message.to_string(),
+            position,
+            rule_stack,
+            input_context,
+        }
+    }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Logger;
+    use super::Logger;
     #[test]
     fn test_basic_parsing() {
         let input = "$1";

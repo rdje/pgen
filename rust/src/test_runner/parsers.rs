@@ -13,7 +13,7 @@ pub struct ReturnAnnotationParser {
 impl ReturnAnnotationParser {
     pub fn new() -> Self {
         Self {
-            logger: Box::new(crate::ast_pipeline::NoOpLogger),
+            logger: Box::new(crate::NoOpLogger),
         }
     }
 

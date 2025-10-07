@@ -8,8 +8,8 @@ pub mod parsers;
 pub mod normalization;
 
 // Re-export the shared Logger trait
-pub use crate::ast_pipeline::Logger;
-pub use crate::ast_pipeline::NoOpLogger;
+pub use crate::Logger;
+pub use crate::NoOpLogger;
 
 // File logger that writes to the test runner's log file
 pub struct FileLogger {

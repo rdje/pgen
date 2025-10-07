@@ -8,7 +8,7 @@
 //!
 //! This eliminates the need for multiple parallel AST representations and parsers.
 
-use crate::ast_pipeline::Logger;
+use super::Logger;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use anyhow::Result;

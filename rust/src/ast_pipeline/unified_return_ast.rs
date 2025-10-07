@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::ast_pipeline::Logger;
+use super::Logger;
 
 /// Extraction target for quantified groups
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
