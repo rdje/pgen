@@ -70,18 +70,28 @@ RULE METHOD GENERATION
 - ✅ **🔍** for AST node type analysis
 - ✅ Removed excessive decorative emojis that added visual noise
 
-##### **Refined Logging Format & Spacing**
-- ✅ **File-First Token Logging**: Changed from `"Token type: 'X', value: 'Y' - File: path:line"` to `"File: path:line: Token type: 'X', value: 'Y'"`
-- ✅ **Enhanced Rule Separation**: Increased from 1 to 2 empty lines between rule processing blocks
-- ✅ **Improved Visual Grouping**: Better separation makes rule boundaries clearer
-- ✅ **Consistent File Information**: File info now consistently appears first in token-related messages
+##### **Enhanced Readability with Strategic Spacing**
+- ✅ **Blank Lines Before Sub-Element Processing**: Added empty lines before "🔍 Generating parsing logic..." messages for sub-elements
+- ✅ **Reduced Visual Density**: Complex rule processing blocks now have proper breathing room
+- ✅ **Clearer Visual Organization**: Sub-element processing steps are now clearly separated
+- ✅ **Improved Debugging Experience**: Easier to follow the flow of AST processing within rules
 
 ```rust
-// BEFORE: Message then file info
-eprintln!("        Token type: '{}', value: '{}' - File: {}:{}", token_type_str, token_value_str, file!(), line!());
+// BEFORE: Dense, hard to read blocks
+   🔍  Generating parsing logic for rule 'array_elements'... - File: ...
+        Processing sequence node with 4 elements - File: ...
+   🔍  Generating parsing logic for rule 'array_elements'... - File: ...
+        Processing atom node - File: ...
+   🔍  Generating parsing logic for rule 'array_elements'... - File: ...
 
-// AFTER: File info then message
-eprintln!("        File: {}:{}: Token type: '{}', value: '{}'", file!(), line!(), token_type_str, token_value_str);
+// AFTER: Spaced out, easy to follow
+   🔍  Generating parsing logic for rule 'array_elements'... - File: ...
+        Processing sequence node with 4 elements - File: ...
+
+   🔍  Generating parsing logic for rule 'array_elements'... - File: ...
+        Processing atom node - File: ...
+
+   🔍  Generating parsing logic for rule 'array_elements'... - File: ...
 ```
 
 ##### **Professional Section Headers**
@@ -168,9 +178,9 @@ eprintln!("        ✓   Completed");
 **From cluttered logging to professional debugging infrastructure!** 🚀✨
 
 #### **📝 FILES MODIFIED**
-- `rust/src/ast_pipeline/ast_based_generator.rs` - Refined logging with file-first token format and enhanced rule separation
+- `rust/src/ast_pipeline/ast_based_generator.rs` - Added strategic blank lines before sub-element processing for improved readability
 - `git_message_brief.txt` - Updated commit message
-- `CHANGES.md` - Documentation of refined logging improvements
+- `CHANGES.md` - Documentation of readability improvements
 
 ---
 

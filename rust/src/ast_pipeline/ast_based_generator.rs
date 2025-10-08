@@ -378,6 +378,7 @@ impl AstBasedGenerator {
         if branch_count == 1 {
             // Single branch - simpler logic without try_parse
             let branch = &alternatives[0];
+            eprintln!();
             let branch_logic = self.generate_node_parsing_logic(branch, rule_name, filename)?;
             
             // Check for return annotations for this rule
@@ -422,8 +423,9 @@ impl AstBasedGenerator {
             // Multi-branch - use try_parse for each alternative
             let mut branch_attempts = Vec::new();
             
-            for (idx, alternative) in alternatives.iter().enumerate() {
-                let branch_logic = self.generate_node_parsing_logic(alternative, rule_name, filename)?;
+        for (idx, alternative) in alternatives.iter().enumerate() {
+            eprintln!();
+            let branch_logic = self.generate_node_parsing_logic(alternative, rule_name, filename)?;
                 
                 // Check for branch-specific return annotation
                 let transform = if let Some(branches) = self.branch_return_annotations.get(rule_name) {
@@ -531,6 +533,7 @@ impl AstBasedGenerator {
         let element_logic = match element {
             ASTNode::Quantified { element, quantifier } if quantifier == "?" => {
                 // Optional element
+                eprintln!();
                 let inner_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
                 quote! {
                     if let Some(content) = parser.try_parse(|p| {
@@ -544,6 +547,7 @@ impl AstBasedGenerator {
                 }
             }
             _ => {
+                eprintln!();
                 let inner_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
                 quote! {
                     {
@@ -672,6 +676,7 @@ impl AstBasedGenerator {
         rule_name: &str,
         filename: &str,
     ) -> Result<TokenStream> {
+        eprintln!();
         let element_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
         
         match quantifier {
