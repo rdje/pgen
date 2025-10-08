@@ -50,14 +50,17 @@ impl AstBasedGenerator {
 
         let parser_tokens = self.generate_parser_tokens(grammar_tree, rule_order, filename)?;
         
+        eprintln!();
         eprintln!("✅  TokenStream generation complete ({} tokens)", parser_tokens.to_string().len());
         eprintln!("📂  File: {}:{}", file!(), line!());
         
+        eprintln!();
         // Convert TokenStream to formatted string using prettyplease
         eprintln!("🎨  Converting TokenStream to formatted Rust code...");
         let formatted_code = prettyplease::unparse(&syn::parse2(parser_tokens)?);
         eprintln!("✨  Code formatting complete ({} characters)", formatted_code.len());
         eprintln!("📂  File: {}:{}", file!(), line!());
+        eprintln!();
         Ok(formatted_code)
     }
     
@@ -263,7 +266,8 @@ impl AstBasedGenerator {
         // Generate the parsing logic based on AST node type
         let parse_logic = self.generate_node_parsing_logic(ast_node, rule_name, filename)?;
         
-        eprintln!("            Exiting rule processing block - File: {}:{}", file!(), line!());
+        eprintln!();
+        eprintln!("            File: {}:{}: Exiting rule processing block", file!(), line!());
         
         // Build the complete method
         Ok(quote! {
@@ -276,8 +280,7 @@ impl AstBasedGenerator {
                 match cycle_type {
                     CycleType::Infinite => {
                         if self.logger.is_enabled() {
-                            self.logger.log_error(#filename, 0, &format!("💥 Infinite recursion detected in rule '{}' at position {}", 
-#rule_name, position));
+                            self.logger.log_error(#filename, 0, &format!("💥 Infinite recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
                             message: "Infinite recursion detected",
@@ -584,7 +587,7 @@ impl AstBasedGenerator {
                 let token_type_str = if let TokenValue::String(ref s) = parts[0] { s.as_str() } else { "" };
                 let token_value_str = if let TokenValue::String(ref s) = parts[1] { s.as_str() } else { "" };
                 
-                eprintln!("        File: {}:{}: Token type: '{}', value: '{}'", file!(), line!(), token_type_str, token_value_str);
+                eprintln!("        Token type: '{}', value: '{}' - File: {}:{}", token_type_str, token_value_str, file!(), line!());
                 
                 match token_type_str {
                     "quoted_string" => {
