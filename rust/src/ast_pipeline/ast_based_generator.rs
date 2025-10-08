@@ -190,6 +190,7 @@ impl AstBasedGenerator {
                 rule_methods.push(method);
                 eprintln!("        ✓   Completed - File: {}:{}", file!(), line!());
                 eprintln!();
+                eprintln!();
             }
         }
         eprintln!("All rule methods generated ({}) - File: {}:{}", rule_methods.len(), file!(), line!());
@@ -578,7 +579,7 @@ impl AstBasedGenerator {
                 let token_type_str = if let TokenValue::String(ref s) = parts[0] { s.as_str() } else { "" };
                 let token_value_str = if let TokenValue::String(ref s) = parts[1] { s.as_str() } else { "" };
                 
-                eprintln!("        Token type: '{}', value: '{}' - File: {}:{}", token_type_str, token_value_str, file!(), line!());
+                eprintln!("        File: {}:{}: Token type: '{}', value: '{}'", file!(), line!(), token_type_str, token_value_str);
                 
                 match token_type_str {
                     "quoted_string" => {

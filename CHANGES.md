@@ -70,19 +70,18 @@ RULE METHOD GENERATION
 - ✅ **🔍** for AST node type analysis
 - ✅ Removed excessive decorative emojis that added visual noise
 
-##### **Inline File Information Display**
-- ✅ **Same-Line File Info**: File:line information now appears on the same line as messages
-- ✅ **Eliminated Separate Lines**: Removed distracting separate "File: ..." lines
-- ✅ **Improved Readability**: Cleaner, more compact logging output
-- ✅ **Consistent Format**: Uniform "Message - File: path:line" structure throughout
+##### **Refined Logging Format & Spacing**
+- ✅ **File-First Token Logging**: Changed from `"Token type: 'X', value: 'Y' - File: path:line"` to `"File: path:line: Token type: 'X', value: 'Y'"`
+- ✅ **Enhanced Rule Separation**: Increased from 1 to 2 empty lines between rule processing blocks
+- ✅ **Improved Visual Grouping**: Better separation makes rule boundaries clearer
+- ✅ **Consistent File Information**: File info now consistently appears first in token-related messages
 
 ```rust
-// BEFORE: Separate lines
-eprintln!("   📋  Rule: {}", rule_name);
-eprintln!("        File: {}:{}", file!(), line!());
+// BEFORE: Message then file info
+eprintln!("        Token type: '{}', value: '{}' - File: {}:{}", token_type_str, token_value_str, file!(), line!());
 
-// AFTER: Inline format
-eprintln!("   📋  Rule: {} - File: {}:{}", rule_name, file!(), line!());
+// AFTER: File info then message
+eprintln!("        File: {}:{}: Token type: '{}', value: '{}'", file!(), line!(), token_type_str, token_value_str);
 ```
 
 ##### **Professional Section Headers**
@@ -169,9 +168,9 @@ eprintln!("        ✓   Completed");
 **From cluttered logging to professional debugging infrastructure!** 🚀✨
 
 #### **📝 FILES MODIFIED**
-- `rust/src/ast_pipeline/ast_based_generator.rs` - Complete logging reformatting with inline file information and professional structure
+- `rust/src/ast_pipeline/ast_based_generator.rs` - Refined logging with file-first token format and enhanced rule separation
 - `git_message_brief.txt` - Updated commit message
-- `CHANGES.md` - Documentation of professional logging improvements
+- `CHANGES.md` - Documentation of refined logging improvements
 
 ---
 
