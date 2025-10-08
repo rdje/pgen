@@ -184,18 +184,15 @@ impl AstBasedGenerator {
         eprintln!("{}", "-".repeat(60));
         let mut rule_methods = Vec::new();
         for rule_name in rule_order {
-            eprintln!("   📋  Rule: {}", rule_name);
-            eprintln!("        File: {}:{}", file!(), line!());
+            eprintln!("   📋  Rule: {} - File: {}:{}", rule_name, file!(), line!());
             if let Some(ast_node) = grammar_tree.get(rule_name) {
                 let method = self.generate_rule_method(rule_name, ast_node, rule_order, filename)?;
                 rule_methods.push(method);
-                eprintln!("        ✓   Completed");
-                eprintln!("        File: {}:{}", file!(), line!());
+                eprintln!("        ✓   Completed - File: {}:{}", file!(), line!());
                 eprintln!();
             }
         }
-        eprintln!("All rule methods generated ({})", rule_methods.len());
-        eprintln!("File: {}:{}", file!(), line!());
+        eprintln!("All rule methods generated ({}) - File: {}:{}", rule_methods.len(), file!(), line!());
         
         // Generate helper methods
         let helpers = self.generate_helper_methods(filename);
@@ -259,14 +256,12 @@ impl AstBasedGenerator {
         let method_name = format_ident!("parse_{}", rule_name);
         let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
         
-        eprintln!("        ↳   Entering rule processing block");
-        eprintln!("            File: {}:{}", file!(), line!());
+        eprintln!("        ↳   Entering rule processing block - File: {}:{}", file!(), line!());
         
         // Generate the parsing logic based on AST node type
         let parse_logic = self.generate_node_parsing_logic(ast_node, rule_name, filename)?;
         
-        eprintln!("            Exiting rule processing block");
-        eprintln!("            File: {}:{}", file!(), line!());
+        eprintln!("            Exiting rule processing block - File: {}:{}", file!(), line!());
         
         // Build the complete method
         Ok(quote! {
@@ -353,28 +348,23 @@ impl AstBasedGenerator {
     }
     
     fn generate_node_parsing_logic(&self, ast_node: &ASTNode, rule_name: &str, filename: &str) -> Result<TokenStream> {
-        eprintln!("   🔍  Generating parsing logic for rule '{}' with AST node type: {:?}", rule_name, ast_node);
-        eprintln!("        File: {}:{}", file!(), line!());
+        eprintln!("   🔍  Generating parsing logic for rule '{}' with AST node type: {:?} - File: {}:{}", rule_name, ast_node, file!(), line!());
         
         match ast_node {
             ASTNode::Or { alternatives } => {
-                eprintln!("        Processing OR node with {} alternatives", alternatives.len());
-                eprintln!("        File: {}:{}", file!(), line!());
+                eprintln!("        Processing OR node with {} alternatives - File: {}:{}", alternatives.len(), file!(), line!());
                 self.generate_or_logic(alternatives, rule_name, filename)
             }
             ASTNode::Sequence { elements } => {
-                eprintln!("        Processing sequence node with {} elements", elements.len());
-                eprintln!("        File: {}:{}", file!(), line!());
+                eprintln!("        Processing sequence node with {} elements - File: {}:{}", elements.len(), file!(), line!());
                 self.generate_sequence_logic(elements, rule_name, filename)
             }
             ASTNode::Atom { value } => {
-                eprintln!("        Processing atom node");
-                eprintln!("        File: {}:{}", file!(), line!());
+                eprintln!("        Processing atom node - File: {}:{}", file!(), line!());
                 self.generate_atom_logic(value, rule_name, filename)
             }
             ASTNode::Quantified { element, quantifier } => {
-                eprintln!("        Processing quantified node with '{}' quantifier", quantifier);
-                eprintln!("        File: {}:{}", file!(), line!());
+                eprintln!("        Processing quantified node with '{}' quantifier - File: {}:{}", quantifier, file!(), line!());
                 self.generate_quantified_logic(element, quantifier, rule_name, filename)
             }
         }
@@ -581,36 +571,31 @@ impl AstBasedGenerator {
     }
     
     fn generate_atom_logic(&self, value: &ASTValue, rule_name: &str, filename: &str) -> Result<TokenStream> {
-        eprintln!("        Processing atom value: {:?}", value);
-        eprintln!("        File: {}:{}", file!(), line!());
+        eprintln!("        Processing atom value: {:?} - File: {}:{}", value, file!(), line!());
         
         match value {
             ASTValue::Token(parts) if parts.len() >= 2 => {
                 let token_type_str = if let TokenValue::String(ref s) = parts[0] { s.as_str() } else { "" };
                 let token_value_str = if let TokenValue::String(ref s) = parts[1] { s.as_str() } else { "" };
                 
-                eprintln!("        Token type: '{}', value: '{}'", token_type_str, token_value_str);
-                eprintln!("        File: {}:{}", file!(), line!());
+                eprintln!("        Token type: '{}', value: '{}' - File: {}:{}", token_type_str, token_value_str, file!(), line!());
                 
                 match token_type_str {
                     "quoted_string" => {
-                        eprintln!("        Generating string terminal matcher for '{}'", token_value_str);
-                        eprintln!("        File: {}:{}", file!(), line!());
+                        eprintln!("        Generating string terminal matcher for '{}' - File: {}:{}", token_value_str, file!(), line!());
                         Ok(quote! {
                             let result = ParseContent::Terminal(parser.match_string(#token_value_str)?)
                         })
                     }
                     "rule_reference" => {
-                        eprintln!("        Generating rule reference call to '{}'", token_value_str);
-                        eprintln!("        File: {}:{}", file!(), line!());
+                        eprintln!("        Generating rule reference call to '{}' - File: {}:{}", token_value_str, file!(), line!());
                         let method = format_ident!("parse_{}", token_value_str);
                         Ok(quote! {
                             let result = ParseContent::Alternative(Box::new(parser.#method()?))
                         })
                     }
                     "regex" => {
-                        eprintln!("        Generating regex matcher for pattern '{}'", token_value_str);
-                        eprintln!("        File: {}:{}", file!(), line!());
+                        eprintln!("        Generating regex matcher for pattern '{}' - File: {}:{}", token_value_str, file!(), line!());
                         // Check for semantic annotations that should transform the matched string
                         if let Some(annotations) = &self.annotations {
                             if let Some(semantic_asts) = annotations.semantic_annotations.get(rule_name) {

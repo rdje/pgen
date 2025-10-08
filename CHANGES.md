@@ -70,11 +70,20 @@ RULE METHOD GENERATION
 - ✅ **🔍** for AST node type analysis
 - ✅ Removed excessive decorative emojis that added visual noise
 
-##### **Logical Paragraph Breaks**
-- ✅ **Empty lines** between logical blocks for readability
-- ✅ **Consistent spacing** between related operations
-- ✅ **Visual separation** between different phases of generation
-- ✅ **Clear section boundaries** with ASCII separators
+##### **Inline File Information Display**
+- ✅ **Same-Line File Info**: File:line information now appears on the same line as messages
+- ✅ **Eliminated Separate Lines**: Removed distracting separate "File: ..." lines
+- ✅ **Improved Readability**: Cleaner, more compact logging output
+- ✅ **Consistent Format**: Uniform "Message - File: path:line" structure throughout
+
+```rust
+// BEFORE: Separate lines
+eprintln!("   📋  Rule: {}", rule_name);
+eprintln!("        File: {}:{}", file!(), line!());
+
+// AFTER: Inline format
+eprintln!("   📋  Rule: {} - File: {}:{}", rule_name, file!(), line!());
+```
 
 ##### **Professional Section Headers**
 ```rust
@@ -160,7 +169,7 @@ eprintln!("        ✓   Completed");
 **From cluttered logging to professional debugging infrastructure!** 🚀✨
 
 #### **📝 FILES MODIFIED**
-- `rust/src/ast_pipeline/ast_based_generator.rs` - Complete logging reformatting with professional structure
+- `rust/src/ast_pipeline/ast_based_generator.rs` - Complete logging reformatting with inline file information and professional structure
 - `git_message_brief.txt` - Updated commit message
 - `CHANGES.md` - Documentation of professional logging improvements
 
