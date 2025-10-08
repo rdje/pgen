@@ -68,41 +68,52 @@ impl AstBasedGenerator {
         rule_order: &[String],
         filename: &str,
     ) -> Result<TokenStream> {
-        eprintln!("🔧 [AST Generator] Starting parser code generation for {} rules using AST-based approach", rule_order.len());
+        eprintln!("   🔧  Starting parser code generation for {} rules using AST-based approach", rule_order.len());
+        eprintln!("        File: {}:{}", file!(), line!());
+
         // Determine entry rule
         let entry_rule = self.entry_rule.as_ref()
             .map(|s| s.clone())
             .or_else(|| rule_order.first().cloned())
             .ok_or_else(|| anyhow::anyhow!("No entry rule found"))?;
         
-        eprintln!("🎯 [AST Generator] Entry rule determined: '{}'", entry_rule);
+        eprintln!("        Entry rule determined: '{}'", entry_rule);
+        eprintln!("        File: {}:{}", file!(), line!());
         
         let parser_name = format_ident!("{}Parser", 
             self.grammar_name.chars()
                 .next().unwrap().to_uppercase().collect::<String>() + 
             &self.grammar_name[1..]);
         
-        eprintln!("🏷️ [AST Generator] Generated parser struct name: '{}'", parser_name);
-        
+        eprintln!("        Generated parser struct name: '{}'", parser_name);
+        eprintln!("        File: {}:{}", file!(), line!());
+        eprintln!();
+
         // Generate imports
         let imports = self.generate_imports();
-        eprintln!("📦 [AST Generator] Generated import statements");
+        eprintln!("        Generated import statements");
+        eprintln!("        File: {}:{}", file!(), line!());
         
         // Generate types
         let types = self.generate_types();
-        eprintln!("🏗️ [AST Generator] Generated type definitions");
+        eprintln!("        Generated type definitions");
+        eprintln!("        File: {}:{}", file!(), line!());
         
         // Generate parser struct
         let parser_struct = self.generate_parser_struct(&parser_name);
-        eprintln!("🏛️ [AST Generator] Generated parser struct definition");
+        eprintln!("        Generated parser struct definition");
+        eprintln!("        File: {}:{}", file!(), line!());
         
         // Generate parser implementation
         let parser_impl = self.generate_parser_impl(&parser_name, grammar_tree, rule_order, &entry_rule, filename)?;
-        eprintln!("⚙️ [AST Generator] Generated parser implementation with all rule methods");
+        eprintln!("        Generated parser implementation with all rule methods");
+        eprintln!("        File: {}:{}", file!(), line!());
         
         // Generate tests
         let tests = generate_tests(&parser_name);
-        eprintln!("🧪 [AST Generator] Generated test module");
+        eprintln!("        Generated test module");
+        eprintln!("        File: {}:{}", file!(), line!());
+        eprintln!();
         
         // Combine everything
         let result = quote! {
@@ -113,7 +124,8 @@ impl AstBasedGenerator {
             #tests
         };
         
-        eprintln!("📋 [AST Generator] Combined all components into final TokenStream ({} chars)", result.to_string().len());
+        eprintln!("        Combined all components into final TokenStream ({} chars)", result.to_string().len());
+        eprintln!("        File: {}:{}", file!(), line!());
         Ok(result)
     }
     
@@ -167,13 +179,23 @@ impl AstBasedGenerator {
         let parse_method = self.generate_parse_method(entry_rule);
         
         // Generate rule methods
+        eprintln!("\n{}", "-".repeat(60));
+        eprintln!("RULE METHOD GENERATION");
+        eprintln!("{}", "-".repeat(60));
         let mut rule_methods = Vec::new();
         for rule_name in rule_order {
+            eprintln!("   📋  Rule: {}", rule_name);
+            eprintln!("        File: {}:{}", file!(), line!());
             if let Some(ast_node) = grammar_tree.get(rule_name) {
                 let method = self.generate_rule_method(rule_name, ast_node, rule_order, filename)?;
                 rule_methods.push(method);
+                eprintln!("        ✓   Completed");
+                eprintln!("        File: {}:{}", file!(), line!());
+                eprintln!();
             }
         }
+        eprintln!("All rule methods generated ({})", rule_methods.len());
+        eprintln!("File: {}:{}", file!(), line!());
         
         // Generate helper methods
         let helpers = self.generate_helper_methods(filename);
@@ -237,8 +259,14 @@ impl AstBasedGenerator {
         let method_name = format_ident!("parse_{}", rule_name);
         let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
         
+        eprintln!("        ↳   Entering rule processing block");
+        eprintln!("            File: {}:{}", file!(), line!());
+        
         // Generate the parsing logic based on AST node type
         let parse_logic = self.generate_node_parsing_logic(ast_node, rule_name, filename)?;
+        
+        eprintln!("            Exiting rule processing block");
+        eprintln!("            File: {}:{}", file!(), line!());
         
         // Build the complete method
         Ok(quote! {
@@ -325,23 +353,28 @@ impl AstBasedGenerator {
     }
     
     fn generate_node_parsing_logic(&self, ast_node: &ASTNode, rule_name: &str, filename: &str) -> Result<TokenStream> {
-        eprintln!("🔍 [AST Generator] Generating parsing logic for rule '{}' with AST node type: {:?}", rule_name, ast_node);
+        eprintln!("   🔍  Generating parsing logic for rule '{}' with AST node type: {:?}", rule_name, ast_node);
+        eprintln!("        File: {}:{}", file!(), line!());
         
         match ast_node {
             ASTNode::Or { alternatives } => {
-                eprintln!("🔀 [AST Generator] Processing OR node with {} alternatives for rule '{}'", alternatives.len(), rule_name);
+                eprintln!("        Processing OR node with {} alternatives", alternatives.len());
+                eprintln!("        File: {}:{}", file!(), line!());
                 self.generate_or_logic(alternatives, rule_name, filename)
             }
             ASTNode::Sequence { elements } => {
-                eprintln!("📋 [AST Generator] Processing sequence node with {} elements for rule '{}'", elements.len(), rule_name);
+                eprintln!("        Processing sequence node with {} elements", elements.len());
+                eprintln!("        File: {}:{}", file!(), line!());
                 self.generate_sequence_logic(elements, rule_name, filename)
             }
             ASTNode::Atom { value } => {
-                eprintln!("⚛️ [AST Generator] Processing atom node for rule '{}'", rule_name);
+                eprintln!("        Processing atom node");
+                eprintln!("        File: {}:{}", file!(), line!());
                 self.generate_atom_logic(value, rule_name, filename)
             }
             ASTNode::Quantified { element, quantifier } => {
-                eprintln!("🔄 [AST Generator] Processing quantified node with '{}' quantifier for rule '{}'", quantifier, rule_name);
+                eprintln!("        Processing quantified node with '{}' quantifier", quantifier);
+                eprintln!("        File: {}:{}", file!(), line!());
                 self.generate_quantified_logic(element, quantifier, rule_name, filename)
             }
         }
@@ -548,31 +581,36 @@ impl AstBasedGenerator {
     }
     
     fn generate_atom_logic(&self, value: &ASTValue, rule_name: &str, filename: &str) -> Result<TokenStream> {
-        eprintln!("🔤 [AST Generator] Processing atom value for rule '{}': {:?}", rule_name, value);
+        eprintln!("        Processing atom value: {:?}", value);
+        eprintln!("        File: {}:{}", file!(), line!());
         
         match value {
             ASTValue::Token(parts) if parts.len() >= 2 => {
                 let token_type_str = if let TokenValue::String(ref s) = parts[0] { s.as_str() } else { "" };
                 let token_value_str = if let TokenValue::String(ref s) = parts[1] { s.as_str() } else { "" };
                 
-                eprintln!("🏷️ [AST Generator] Token type: '{}', value: '{}'", token_type_str, token_value_str);
+                eprintln!("        Token type: '{}', value: '{}'", token_type_str, token_value_str);
+                eprintln!("        File: {}:{}", file!(), line!());
                 
                 match token_type_str {
                     "quoted_string" => {
-                        eprintln!("💬 [AST Generator] Generating string terminal matcher for '{}'", token_value_str);
+                        eprintln!("        Generating string terminal matcher for '{}'", token_value_str);
+                        eprintln!("        File: {}:{}", file!(), line!());
                         Ok(quote! {
                             let result = ParseContent::Terminal(parser.match_string(#token_value_str)?)
                         })
                     }
                     "rule_reference" => {
-                        eprintln!("🔗 [AST Generator] Generating rule reference call to '{}'", token_value_str);
+                        eprintln!("        Generating rule reference call to '{}'", token_value_str);
+                        eprintln!("        File: {}:{}", file!(), line!());
                         let method = format_ident!("parse_{}", token_value_str);
                         Ok(quote! {
                             let result = ParseContent::Alternative(Box::new(parser.#method()?))
                         })
                     }
                     "regex" => {
-                        eprintln!("🔍 [AST Generator] Generating regex matcher for pattern '{}'", token_value_str);
+                        eprintln!("        Generating regex matcher for pattern '{}'", token_value_str);
+                        eprintln!("        File: {}:{}", file!(), line!());
                         // Check for semantic annotations that should transform the matched string
                         if let Some(annotations) = &self.annotations {
                             if let Some(semantic_asts) = annotations.semantic_annotations.get(rule_name) {

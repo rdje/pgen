@@ -5,7 +5,7 @@
       "documentation" : "See docs/ast_transformation_pipeline.md for detailed transformation algorithms",
       "ebnf_version" : "1.0",
       "format" : "raw_ast",
-      "generated_at" : "2025-10-08T16:30:09Z",
+      "generated_at" : "2025-10-08T18:04:44Z",
       "generator" : "ebnf_to_json.pl",
       "next_step" : "Apply transformation pipeline: step2_group_by_or → step2_5_handle_parentheses → step3_parse_sequences → step4_handle_quantifiers → step5_build_tree_structure",
       "source_file" : "../grammars/semantic_annotation.ebnf"
