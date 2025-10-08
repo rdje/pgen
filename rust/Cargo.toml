@@ -38,6 +38,7 @@ quote = "1.0"
 proc-macro2 = "1.0"
 prettyplease = "0.2.37"
 lazy_static = "1.4"
+rustfmt-wrapper = "0.2.1"
 
 [features]
 default = ["normal"]

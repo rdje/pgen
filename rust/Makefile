@@ -320,7 +320,12 @@ return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 .PHONY: semantic_annotation_parser
 semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 	@echo "🚀 Starting complete flow for semantic annotation parser..."
-	@echo "✅ Semantic annotation parser flow completed!"
+	@echo "📄 Step 1: EBNF -> JSON (already done: $(SEMANTIC_ANNOTATION_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER)
+	@echo "✅ Generated: $(SEMANTIC_ANNOTATION_PARSER)"
+	@echo "✅ Semantic annotation parser generated successfully!"
 
 # Regex parser complete flow
 .PHONY: regex_parser

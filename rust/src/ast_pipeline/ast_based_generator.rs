@@ -40,6 +40,8 @@ impl AstBasedGenerator {
         rule_order: &[String],
         filename: &str,
     ) -> Result<String> {
+        eprintln!("INFO: Parser generation started for '{}' with {} rules", self.grammar_name, rule_order.len());
+        
         let parser_tokens = self.generate_parser_tokens(grammar_tree, rule_order, filename)?;
         
         // Convert TokenStream to formatted string using prettyplease
@@ -215,8 +217,8 @@ impl AstBasedGenerator {
         
         // Build the complete method
         Ok(quote! {
-            let filename_str = #filename;
             pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+                let filename_str = #filename;
                 // Check for recursion cycles
                 let position = self.position;
                 let cycle_type = self.recursion_guard.check_cycle(#rule_name, position);
@@ -612,7 +614,6 @@ impl AstBasedGenerator {
         
         match quantifier {
             "*" => Ok(quote! {
-                let filename_str = #filename;
                 let mut results = Vec::new();
                 let mut last_position = parser.position;
                 let mut iteration_count = 0;
@@ -652,7 +653,6 @@ impl AstBasedGenerator {
                 let result = ParseContent::Quantified(results, "*")
             }),
             "+" => Ok(quote! {
-                let filename_str = #filename;
                 let mut results = Vec::new();
                 let start_position = parser.position;
                 
@@ -764,7 +764,6 @@ impl AstBasedGenerator {
     
     fn generate_helper_methods(&self, filename: &str) -> TokenStream {
         quote! {
-            let filename_str = #filename;
             fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
                 let start = self.position;
                 let end = start + expected.len();
