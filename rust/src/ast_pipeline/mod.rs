@@ -287,28 +287,75 @@ impl RustASTPipeline {
 
     /// Transform raw AST JSON into processed AST format
     pub fn transform_from_raw_ast(&self, raw_ast_data: &[serde_json::Value]) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
+        eprintln!("\n{}", "=".repeat(80));
+        eprintln!("🔄  AST PIPELINE TRANSFORMATION STARTED");
+        eprintln!("{}", "=".repeat(80));
+        eprintln!("📊  Processing {} raw AST elements into structured grammar", raw_ast_data.len());
+        eprintln!("📂  File: {}:{}", file!(), line!());
+        eprintln!();
+
         let mut grammar_tree = HashMap::new();
         let mut rule_order = Vec::new();
 
-        for rule_data in raw_ast_data {
+        for (rule_idx, rule_data) in raw_ast_data.iter().enumerate() {
+            eprintln!("   📋  Rule {}/{}", rule_idx + 1, raw_ast_data.len());
+            eprintln!("       Raw JSON: {}", rule_data.to_string().chars().take(80).collect::<String>() + 
+                     if rule_data.to_string().len() > 80 { "..." } else { "" });
+            eprintln!("       File: {}:{}", file!(), line!());
+
             if let Some(rule_array) = rule_data.as_array() {
-                if rule_array.is_empty() { continue; }
+                if rule_array.is_empty() {
+                    eprintln!("       ⚠️   WARNING: Skipping empty rule array");
+                    eprintln!("       File: {}:{}", file!(), line!());
+                    eprintln!();
+                    continue;
+                }
 
                 // First element should be ["rule", "rule_name"]
                 if let Some(first_elem) = rule_array.first() {
                     if let Some(rule_name) = self.extract_rule_name(first_elem) {
+                        eprintln!("       ✅  Rule declaration found: '{}' ", rule_name);
+                        eprintln!("       File: {}:{}", file!(), line!());
                         rule_order.push(rule_name.clone());
 
                         // Parse the rule content (everything after the rule declaration)
                         let rule_content = &rule_array[1..];
+                        eprintln!("       🔍  Parsing {} content elements for rule '{}'", rule_content.len(), rule_name);
+                        eprintln!("       File: {}:{}", file!(), line!());
+
                         let ast_node = self.parse_rule_content(rule_content)?;
 
+                        eprintln!("       🎯  Rule '{}' successfully transformed to AST", rule_name);
+                        eprintln!("       Result: {:?}", ast_node);
+                        eprintln!("       File: {}:{}", file!(), line!());
                         grammar_tree.insert(rule_name, ast_node);
+                        eprintln!();
+                    } else {
+                        eprintln!("       ❌  ERROR: Failed to extract rule name from element");
+                        eprintln!("       Element: {:?}", first_elem);
+                        eprintln!("       File: {}:{}", file!(), line!());
+                        eprintln!();
                     }
+                } else {
+                    eprintln!("       ❌  ERROR: Rule array has no first element");
+                    eprintln!("       File: {}:{}", file!(), line!());
+                    eprintln!();
                 }
+            } else {
+                eprintln!("       ❌  ERROR: Rule data is not an array");
+                eprintln!("       Data type: {}", std::any::type_name::<serde_json::Value>());
+                eprintln!("       File: {}:{}", file!(), line!());
+                eprintln!();
             }
         }
 
+        eprintln!("🎉  TRANSFORMATION COMPLETE");
+        eprintln!("📊  Generated grammar with {} rules", grammar_tree.len());
+        eprintln!("📋  Rule execution order: {:?}", rule_order);
+        eprintln!("📂  File: {}:{}", file!(), line!());
+        eprintln!("{}", "=".repeat(80));
+        eprintln!();
+        
         Ok((grammar_tree, rule_order))
     }
 
@@ -327,32 +374,67 @@ impl RustASTPipeline {
 
     fn parse_rule_content(&self, content: &[serde_json::Value]) -> Result<ASTNode> {
         if content.is_empty() {
+            eprintln!("   📝  Rule content is empty - creating empty sequence node");
+            eprintln!("   File: {}:{}", file!(), line!());
             return Ok(ASTNode::Sequence { elements: vec![] });
         }
+
+        eprintln!("   🏗️   RULE CONTENT PARSING");
+        eprintln!("        Elements to process: {}", content.len());
+        eprintln!("        File: {}:{}", file!(), line!());
 
         // For now, treat as a sequence - this is a simplified implementation
         // In a full implementation, this would handle alternatives (|), quantifiers (*, +, ?), etc.
         let mut elements = Vec::new();
 
-        for item in content {
+        for (elem_idx, item) in content.iter().enumerate() {
+            eprintln!("        🔧  Element {}/{}", elem_idx + 1, content.len());
+            eprintln!("            Raw data: {:?}", item);
+            eprintln!("            File: {}:{}", file!(), line!());
+
             if let Some(ast_node) = self.parse_single_element(item)? {
+                eprintln!("            ✅  Successfully parsed to AST node");
+                eprintln!("            Result type: {:?}", std::any::type_name_of_val(&ast_node));
+                eprintln!("            File: {}:{}", file!(), line!());
                 elements.push(ast_node);
+            } else {
+                eprintln!("            ⚠️   Element skipped (return annotation or unknown type)");
+                eprintln!("            File: {}:{}", file!(), line!());
             }
+            eprintln!();
         }
 
-        if elements.len() == 1 {
-            Ok(elements.into_iter().next().unwrap())
+        let result = if elements.len() == 1 {
+            eprintln!("        🎯  SINGLE ELEMENT RULE");
+            eprintln!("            Returning element directly (no sequence wrapper)");
+            eprintln!("            File: {}:{}", file!(), line!());
+            elements.into_iter().next().unwrap()
         } else {
-            Ok(ASTNode::Sequence { elements })
-        }
+            eprintln!("        🎯  MULTI-ELEMENT SEQUENCE RULE");
+            eprintln!("            Creating sequence with {} elements", elements.len());
+            eprintln!("            File: {}:{}", file!(), line!());
+            ASTNode::Sequence { elements }
+        };
+
+        eprintln!("   🏆  Rule content parsing complete");
+        eprintln!("       Final AST: {:?}", result);
+        eprintln!("       File: {}:{}", file!(), line!());
+        
+        Ok(result)
     }
 
     fn parse_single_element(&self, element: &serde_json::Value) -> Result<Option<ASTNode>> {
         if let Some(arr) = element.as_array() {
             if arr.len() >= 2 {
                 if let (Some(elem_type), Some(elem_value)) = (arr[0].as_str(), arr[1].as_str()) {
+                    eprintln!("            🔍  \x1b[34mELEMENT ANALYSIS\x1b[0m");
+                    eprintln!("                Type: '{}' | Value: '{}'", elem_type, elem_value);
+                    eprintln!("                File: {}:{}", file!(), line!());
+
                     match elem_type {
                         "rule_reference" => {
+                            eprintln!("                📋  RULE REFERENCE - Creating call to rule '{}'", elem_value);
+                            eprintln!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Node(Box::new(ASTNode::Atom {
                                     value: ASTValue::Token(vec![
@@ -363,6 +445,8 @@ impl RustASTPipeline {
                             }))
                         }
                         "quoted_string" => {
+                            eprintln!("                💬  \x1b[32mSTRING TERMINAL\x1b[0m - Creating matcher for '{}'", elem_value);
+                            eprintln!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("quoted_string".to_string()),
@@ -371,36 +455,69 @@ impl RustASTPipeline {
                             }))
                         }
                         "operator" => {
+                            eprintln!("                🔄  \x1b[33mQUANTIFIER OPERATOR\x1b[0m - Processing '{}'", elem_value);
+                            eprintln!("                File: {}:{}", file!(), line!());
                             // Handle quantifiers
                             match elem_value {
-                                "?" => Ok(Some(ASTNode::Quantified {
-                                    element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
-                                    quantifier: "?".to_string(),
-                                })),
-                                "*" => Ok(Some(ASTNode::Quantified {
-                                    element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
-                                    quantifier: "*".to_string(),
-                                })),
-                                "+" => Ok(Some(ASTNode::Quantified {
-                                    element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
-                                    quantifier: "+".to_string(),
-                                })),
-                                _ => Ok(None) // Skip unknown operators
+                                "?" => {
+                                    eprintln!("                    ❓  \x1b[32mOPTIONAL QUANTIFIER\x1b[0m (?) - Zero or one occurrence");
+                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    Ok(Some(ASTNode::Quantified {
+                                        element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
+                                        quantifier: "?".to_string(),
+                                    }))
+                                }
+                                "*" => {
+                                    eprintln!("                    🔁  \x1b[32mZERO-OR-MORE QUANTIFIER\x1b[0m (*) - Zero or more occurrences");
+                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    Ok(Some(ASTNode::Quantified {
+                                        element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
+                                        quantifier: "*".to_string(),
+                                    }))
+                                }
+                                "+" => {
+                                    eprintln!("                    ➕  \x1b[32mONE-OR-MORE QUANTIFIER\x1b[0m (+) - One or more occurrences");
+                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    Ok(Some(ASTNode::Quantified {
+                                        element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
+                                        quantifier: "+".to_string(),
+                                    }))
+                                }
+                                _ => {
+                                    eprintln!("                    ⚠️   \x1b[33mUNKNOWN OPERATOR\x1b[0m '{}' - Skipping", elem_value);
+                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    Ok(None) // Skip unknown operators
+                                }
                             }
                         }
                         "return_scalar" | "return_array" | "return_object" => {
+                            eprintln!("                🔙  \x1b[33mRETURN ANNOTATION\x1b[0m '{}' - Skipping (semantic annotation)", elem_type);
+                            eprintln!("                File: {}:{}", file!(), line!());
                             // Skip return annotations for now
                             Ok(None)
                         }
-                        _ => Ok(None) // Skip unknown element types
+                        _ => {
+                            eprintln!("                ❓  \x1b[33mUNKNOWN ELEMENT TYPE\x1b[0m '{}' - Skipping", elem_type);
+                            eprintln!("                File: {}:{}", file!(), line!());
+                            Ok(None) // Skip unknown element types
+                        }
                     }
                 } else {
+                    eprintln!("            ❌  \x1b[31mERROR: Invalid element structure\x1b[0m");
+                    eprintln!("                Expected [string, string] but got: [{:?}, {:?}]", arr[0], arr[1]);
+                    eprintln!("                File: {}:{}", file!(), line!());
                     Ok(None)
                 }
             } else {
+                eprintln!("            ❌  \x1b[31mERROR: Element array too short\x1b[0m");
+                eprintln!("                Need at least 2 elements, got {}", arr.len());
+                eprintln!("                File: {}:{}", file!(), line!());
                 Ok(None)
             }
         } else {
+            eprintln!("            ❌  \x1b[31mERROR: Element is not an array\x1b[0m");
+            eprintln!("                Type: {} | Value: {:?}", std::any::type_name::<serde_json::Value>(), element);
+            eprintln!("                File: {}:{}", file!(), line!());
             Ok(None)
         }
     }

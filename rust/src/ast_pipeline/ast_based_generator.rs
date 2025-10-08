@@ -40,12 +40,24 @@ impl AstBasedGenerator {
         rule_order: &[String],
         filename: &str,
     ) -> Result<String> {
-        eprintln!("INFO: Parser generation started for '{}' with {} rules", self.grammar_name, rule_order.len());
-        
+        eprintln!("\n{}", "=".repeat(80));
+        eprintln!("🚀  AST-BASED PARSER GENERATION STARTED");
+        eprintln!("{}", "=".repeat(80));
+        eprintln!("📊  Grammar: '{}' with {} rules", self.grammar_name, rule_order.len());
+        eprintln!("🎯  Target: {}", filename);
+        eprintln!("📂  File: {}:{}", file!(), line!());
+        eprintln!();
+
         let parser_tokens = self.generate_parser_tokens(grammar_tree, rule_order, filename)?;
         
+        eprintln!("✅  TokenStream generation complete ({} tokens)", parser_tokens.to_string().len());
+        eprintln!("📂  File: {}:{}", file!(), line!());
+        
         // Convert TokenStream to formatted string using prettyplease
+        eprintln!("🎨  Converting TokenStream to formatted Rust code...");
         let formatted_code = prettyplease::unparse(&syn::parse2(parser_tokens)?);
+        eprintln!("✨  Code formatting complete ({} characters)", formatted_code.len());
+        eprintln!("📂  File: {}:{}", file!(), line!());
         Ok(formatted_code)
     }
     
@@ -56,42 +68,55 @@ impl AstBasedGenerator {
         rule_order: &[String],
         filename: &str,
     ) -> Result<TokenStream> {
+        eprintln!("🔧 [AST Generator] Starting parser code generation for {} rules using AST-based approach", rule_order.len());
         // Determine entry rule
         let entry_rule = self.entry_rule.as_ref()
             .map(|s| s.clone())
             .or_else(|| rule_order.first().cloned())
             .ok_or_else(|| anyhow::anyhow!("No entry rule found"))?;
         
-        // Generate parser name
+        eprintln!("🎯 [AST Generator] Entry rule determined: '{}'", entry_rule);
+        
         let parser_name = format_ident!("{}Parser", 
             self.grammar_name.chars()
                 .next().unwrap().to_uppercase().collect::<String>() + 
             &self.grammar_name[1..]);
         
+        eprintln!("🏷️ [AST Generator] Generated parser struct name: '{}'", parser_name);
+        
         // Generate imports
         let imports = self.generate_imports();
+        eprintln!("📦 [AST Generator] Generated import statements");
         
         // Generate types
         let types = self.generate_types();
+        eprintln!("🏗️ [AST Generator] Generated type definitions");
         
         // Generate parser struct
         let parser_struct = self.generate_parser_struct(&parser_name);
+        eprintln!("🏛️ [AST Generator] Generated parser struct definition");
         
         // Generate parser implementation
         let parser_impl = self.generate_parser_impl(&parser_name, grammar_tree, rule_order, &entry_rule, filename)?;
+        eprintln!("⚙️ [AST Generator] Generated parser implementation with all rule methods");
         
         // Generate tests
         let tests = generate_tests(&parser_name);
+        eprintln!("🧪 [AST Generator] Generated test module");
         
         // Combine everything
-        Ok(quote! {
+        let result = quote! {
             #imports
             #types
             #parser_struct
             #parser_impl
             #tests
-        })
+        };
+        
+        eprintln!("📋 [AST Generator] Combined all components into final TokenStream ({} chars)", result.to_string().len());
+        Ok(result)
     }
+    
     fn generate_imports(&self) -> TokenStream {
         quote! {
             use std::collections::HashMap;
@@ -300,17 +325,23 @@ impl AstBasedGenerator {
     }
     
     fn generate_node_parsing_logic(&self, ast_node: &ASTNode, rule_name: &str, filename: &str) -> Result<TokenStream> {
+        eprintln!("🔍 [AST Generator] Generating parsing logic for rule '{}' with AST node type: {:?}", rule_name, ast_node);
+        
         match ast_node {
             ASTNode::Or { alternatives } => {
+                eprintln!("🔀 [AST Generator] Processing OR node with {} alternatives for rule '{}'", alternatives.len(), rule_name);
                 self.generate_or_logic(alternatives, rule_name, filename)
             }
             ASTNode::Sequence { elements } => {
+                eprintln!("📋 [AST Generator] Processing sequence node with {} elements for rule '{}'", elements.len(), rule_name);
                 self.generate_sequence_logic(elements, rule_name, filename)
             }
             ASTNode::Atom { value } => {
+                eprintln!("⚛️ [AST Generator] Processing atom node for rule '{}'", rule_name);
                 self.generate_atom_logic(value, rule_name, filename)
             }
             ASTNode::Quantified { element, quantifier } => {
+                eprintln!("🔄 [AST Generator] Processing quantified node with '{}' quantifier for rule '{}'", quantifier, rule_name);
                 self.generate_quantified_logic(element, quantifier, rule_name, filename)
             }
         }
@@ -517,24 +548,31 @@ impl AstBasedGenerator {
     }
     
     fn generate_atom_logic(&self, value: &ASTValue, rule_name: &str, filename: &str) -> Result<TokenStream> {
+        eprintln!("🔤 [AST Generator] Processing atom value for rule '{}': {:?}", rule_name, value);
+        
         match value {
             ASTValue::Token(parts) if parts.len() >= 2 => {
                 let token_type_str = if let TokenValue::String(ref s) = parts[0] { s.as_str() } else { "" };
                 let token_value_str = if let TokenValue::String(ref s) = parts[1] { s.as_str() } else { "" };
                 
+                eprintln!("🏷️ [AST Generator] Token type: '{}', value: '{}'", token_type_str, token_value_str);
+                
                 match token_type_str {
                     "quoted_string" => {
+                        eprintln!("💬 [AST Generator] Generating string terminal matcher for '{}'", token_value_str);
                         Ok(quote! {
                             let result = ParseContent::Terminal(parser.match_string(#token_value_str)?)
                         })
                     }
                     "rule_reference" => {
+                        eprintln!("🔗 [AST Generator] Generating rule reference call to '{}'", token_value_str);
                         let method = format_ident!("parse_{}", token_value_str);
                         Ok(quote! {
                             let result = ParseContent::Alternative(Box::new(parser.#method()?))
                         })
                     }
                     "regex" => {
+                        eprintln!("🔍 [AST Generator] Generating regex matcher for pattern '{}'", token_value_str);
                         // Check for semantic annotations that should transform the matched string
                         if let Some(annotations) = &self.annotations {
                             if let Some(semantic_asts) = annotations.semantic_annotations.get(rule_name) {
