@@ -259,6 +259,7 @@ impl AstBasedGenerator {
         
         eprintln!("        ↳   Entering rule processing block - File: {}:{}", file!(), line!());
         
+        eprintln!();
         // Generate the parsing logic based on AST node type
         let parse_logic = self.generate_node_parsing_logic(ast_node, rule_name, filename)?;
         
