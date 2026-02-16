@@ -4,10 +4,16 @@
 
 use anyhow::Result;
 use clap::Parser;
+#[cfg(feature = "generated_parsers")]
+use pgen::NoOpLogger;
 use pgen::ast_pipeline::stimuli_generator::{StimuliConfig, StimuliGenerator};
 use pgen::ast_pipeline::{
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
 };
+#[cfg(feature = "generated_parsers")]
+use pgen::generated_parsers::return_annotation::Return_annotationParser;
+#[cfg(feature = "generated_parsers")]
+use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
 use std::collections::HashMap;
 
 #[derive(Parser)]
@@ -66,6 +72,10 @@ struct Args {
     #[arg(long, default_value_t = 4)]
     max_repeat: usize,
 
+    /// Validate generated stimuli by parsing each sample with the matching generated parser
+    #[arg(long, requires = "generate_stimuli")]
+    validate_parseability: bool,
+
     /// Enable trace mode in generated parser (detailed debug logging)
     #[arg(long)]
     trace: bool,
@@ -83,6 +93,14 @@ struct LoadedGrammar {
     grammar_tree: HashMap<String, ASTNode>,
     rule_order: Vec<String>,
     annotations: Option<Annotations>,
+}
+
+#[derive(Debug, Clone)]
+struct ParseabilitySummary {
+    requested: usize,
+    accepted: usize,
+    rejected: usize,
+    attempts: usize,
 }
 
 fn main() -> Result<()> {
@@ -139,7 +157,16 @@ fn main() -> Result<()> {
             },
         );
 
-        let samples = generator.generate_many(args.count, args.entry_rule.as_deref())?;
+        let samples = if args.validate_parseability {
+            generate_parseable_stimuli(
+                &grammar.grammar_name,
+                &mut generator,
+                args.count,
+                args.entry_rule.as_deref(),
+            )?
+        } else {
+            generator.generate_many(args.count, args.entry_rule.as_deref())?
+        };
 
         if let Some(output_file) = args.output {
             let mut content = String::new();
@@ -215,5 +242,139 @@ fn load_grammar_bundle(
         Err(anyhow::anyhow!(
             "Unknown JSON format - expected raw_ast or grammar_tree/rule_order"
         ))
+    }
+}
+
+fn supports_generated_parseability(grammar_name: &str) -> bool {
+    matches!(grammar_name, "return_annotation" | "semantic_annotation")
+}
+
+fn generate_parseable_stimuli(
+    grammar_name: &str,
+    generator: &mut StimuliGenerator<'_>,
+    requested_count: usize,
+    entry_rule: Option<&str>,
+) -> Result<Vec<String>> {
+    ensure_parseability_support(grammar_name)?;
+
+    let max_attempts = requested_count.saturating_mul(50).max(requested_count);
+    let mut accepted = Vec::with_capacity(requested_count);
+    let mut attempts = 0usize;
+    let mut rejected = 0usize;
+
+    while accepted.len() < requested_count && attempts < max_attempts {
+        attempts += 1;
+        let sample = match generator.generate_many(1, entry_rule) {
+            Ok(mut samples) => match samples.pop() {
+                Some(sample) => sample,
+                None => {
+                    rejected += 1;
+                    continue;
+                }
+            },
+            Err(_) => {
+                rejected += 1;
+                continue;
+            }
+        };
+
+        if is_sample_parseable_by_generated_parser(grammar_name, &sample)? {
+            accepted.push(sample);
+        } else {
+            rejected += 1;
+        }
+    }
+
+    let summary = ParseabilitySummary {
+        requested: requested_count,
+        accepted: accepted.len(),
+        rejected,
+        attempts,
+    };
+
+    if accepted.len() < requested_count {
+        return Err(anyhow::anyhow!(
+            "Unable to produce {} parseable stimuli for grammar '{}' after {} attempts (accepted {}, rejected {}). Try increasing --max-depth/--max-repeat or lowering --count",
+            summary.requested,
+            grammar_name,
+            summary.attempts,
+            summary.accepted,
+            summary.rejected
+        ));
+    }
+
+    println!(
+        "Parseability validation accepted {}/{} samples ({} rejected over {} attempts)",
+        summary.accepted, summary.requested, summary.rejected, summary.attempts
+    );
+
+    Ok(accepted)
+}
+
+#[cfg(feature = "generated_parsers")]
+fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
+    if !supports_generated_parseability(grammar_name) {
+        return Err(anyhow::anyhow!(
+            "No matching compiled generated parser is available for grammar '{}'. Supported grammars: return_annotation, semantic_annotation",
+            grammar_name
+        ));
+    }
+    Ok(())
+}
+#[cfg(feature = "generated_parsers")]
+fn is_sample_parseable_by_generated_parser(grammar_name: &str, sample: &str) -> Result<bool> {
+    match grammar_name {
+        "return_annotation" => {
+            let mut parser = Return_annotationParser::new(sample, Box::new(NoOpLogger));
+            match parser.parse_full_return_annotation() {
+                Ok(_) => Ok(true),
+                Err(_) => Ok(false),
+            }
+        }
+        "semantic_annotation" => {
+            let mut parser = Semantic_annotationParser::new(sample, Box::new(NoOpLogger));
+            match parser.parse_full_semantic_annotation() {
+                Ok(_) => Ok(true),
+                Err(_) => Ok(false),
+            }
+        }
+        _ => Err(anyhow::anyhow!(
+            "Unsupported grammar '{}' for generated parseability validation",
+            grammar_name
+        )),
+    }
+}
+
+#[cfg(not(feature = "generated_parsers"))]
+fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
+    if supports_generated_parseability(grammar_name) {
+        Err(anyhow::anyhow!(
+            "Parseability validation requires building ast_pipeline with generated parsers enabled: cargo run --features generated_parsers --bin ast_pipeline -- ... --validate-parseability"
+        ))
+    } else {
+        Err(anyhow::anyhow!(
+            "No matching generated parser validation path exists for grammar '{}'. Supported grammars: return_annotation, semantic_annotation",
+            grammar_name
+        ))
+    }
+}
+
+#[cfg(not(feature = "generated_parsers"))]
+fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -> Result<bool> {
+    Err(anyhow::anyhow!(
+        "Generated parser parseability checks are unavailable without --features generated_parsers"
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::supports_generated_parseability;
+
+    #[test]
+    fn supports_known_generated_parseability_grammars() {
+        assert!(supports_generated_parseability("return_annotation"));
+        assert!(supports_generated_parseability("semantic_annotation"));
+        assert!(!supports_generated_parseability("regex"));
+        assert!(!supports_generated_parseability("unknown"));
     }
 }

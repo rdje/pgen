@@ -32,7 +32,7 @@ impl Logger for NoOpLogger {
 
 use anyhow::Result;
 use serde;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 // Shared parser types used by generated parsers
 /// Parse result type
@@ -305,7 +305,18 @@ impl Default for PipelineConfig {
     }
 }
 
-pub struct RustASTPipeline;
+pub struct RustASTPipeline {
+    config: PipelineConfig,
+}
+
+#[derive(Debug, Clone)]
+struct LeftRecursiveChainPlan {
+    base_rule: String,
+    helper_base_rule: String,
+    base_alternatives: Vec<ASTNode>,
+    wrapper_rules: Vec<(String, ASTNode)>,
+    suffix_alternative: ASTNode,
+}
 
 #[derive(Debug, Clone)]
 enum RawRuleElement {
@@ -317,8 +328,8 @@ enum RawRuleElement {
 }
 
 impl RustASTPipeline {
-    pub fn new(_config: PipelineConfig) -> Self {
-        RustASTPipeline
+    pub fn new(config: PipelineConfig) -> Self {
+        RustASTPipeline { config }
     }
 
     /// Transform raw AST JSON into processed AST format
@@ -408,6 +419,14 @@ impl RustASTPipeline {
             }
         }
 
+        if self.config.eliminate_left_recursion {
+            self.eliminate_left_recursive_patterns(&mut grammar_tree, &mut rule_order);
+        } else {
+            eprintln!(
+                "[mod.rs][transform_from_raw_ast()] ⏭️  Left-recursion elimination disabled by configuration"
+            );
+        }
+
         eprintln!("🎉  TRANSFORMATION COMPLETE");
         eprintln!("📊  Generated grammar with {} rules", grammar_tree.len());
         eprintln!("📋  Rule execution order: {:?}", rule_order);
@@ -416,6 +435,261 @@ impl RustASTPipeline {
         eprintln!();
 
         Ok((grammar_tree, rule_order))
+    }
+
+    fn eliminate_left_recursive_patterns(
+        &self,
+        grammar_tree: &mut HashMap<String, ASTNode>,
+        rule_order: &mut Vec<String>,
+    ) {
+        eprintln!(
+            "[mod.rs][eliminate_left_recursive_patterns()] 🔧 Starting left-recursion elimination pass"
+        );
+        let original_order = rule_order.clone();
+        let mut transformed_rules = HashSet::new();
+        let mut transformation_count = 0usize;
+
+        for rule_name in original_order {
+            if transformed_rules.contains(&rule_name) {
+                continue;
+            }
+
+            let Some(plan) = self.detect_left_recursive_chain_plan(&rule_name, grammar_tree) else {
+                continue;
+            };
+
+            eprintln!(
+                "[mod.rs][eliminate_left_recursive_patterns()] ✅ Rewriting left-recursive chain for rule '{}' via helper '{}' ({} wrapper rules)",
+                plan.base_rule,
+                plan.helper_base_rule,
+                plan.wrapper_rules.len()
+            );
+
+            self.apply_left_recursive_chain_plan(&plan, grammar_tree, rule_order);
+            transformation_count += 1;
+            transformed_rules.insert(plan.base_rule.clone());
+            for (wrapper_rule, _) in &plan.wrapper_rules {
+                transformed_rules.insert(wrapper_rule.clone());
+            }
+            transformed_rules.insert(plan.helper_base_rule.clone());
+        }
+
+        eprintln!(
+            "[mod.rs][eliminate_left_recursive_patterns()] 🏁 Completed left-recursion elimination pass ({} transformations)",
+            transformation_count
+        );
+    }
+
+    fn detect_left_recursive_chain_plan(
+        &self,
+        rule_name: &str,
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> Option<LeftRecursiveChainPlan> {
+        let rule_node = grammar_tree.get(rule_name)?;
+        let rule_alternatives = Self::as_alternatives(rule_node);
+        if rule_alternatives.is_empty() {
+            return None;
+        }
+
+        let mut base_alternatives = Vec::new();
+        let mut wrapper_rules: Vec<(String, ASTNode)> = Vec::new();
+
+        for alternative in &rule_alternatives {
+            if let Some(wrapper_rule) = Self::extract_rule_reference_name(alternative) {
+                if let Some(wrapper_suffix) =
+                    Self::extract_wrapper_suffix(rule_name, &wrapper_rule, grammar_tree)
+                {
+                    wrapper_rules.push((wrapper_rule, wrapper_suffix));
+                    continue;
+                }
+            }
+            base_alternatives.push(alternative.clone());
+        }
+
+        if wrapper_rules.is_empty() || base_alternatives.is_empty() {
+            return None;
+        }
+
+        let suffix_alternative = Self::build_or_node(
+            wrapper_rules
+                .iter()
+                .map(|(_, suffix)| suffix.clone())
+                .collect(),
+        );
+
+        let helper_base_rule =
+            Self::allocate_synthetic_rule_name(format!("{}_lr_base", rule_name), grammar_tree);
+
+        Some(LeftRecursiveChainPlan {
+            base_rule: rule_name.to_string(),
+            helper_base_rule,
+            base_alternatives,
+            wrapper_rules,
+            suffix_alternative,
+        })
+    }
+
+    fn apply_left_recursive_chain_plan(
+        &self,
+        plan: &LeftRecursiveChainPlan,
+        grammar_tree: &mut HashMap<String, ASTNode>,
+        rule_order: &mut Vec<String>,
+    ) {
+        let helper_base_ref = Self::make_rule_reference_node(&plan.helper_base_rule);
+        let suffix_repetition = ASTNode::Quantified {
+            element: Box::new(plan.suffix_alternative.clone()),
+            quantifier: "*".to_string(),
+        };
+
+        let rewritten_base_rule =
+            Self::build_sequence_node(vec![helper_base_ref.clone(), suffix_repetition.clone()]);
+        grammar_tree.insert(plan.base_rule.clone(), rewritten_base_rule);
+
+        for (wrapper_rule, wrapper_suffix) in &plan.wrapper_rules {
+            let rewritten_wrapper = Self::build_sequence_node(vec![
+                helper_base_ref.clone(),
+                wrapper_suffix.clone(),
+                suffix_repetition.clone(),
+            ]);
+            grammar_tree.insert(wrapper_rule.clone(), rewritten_wrapper);
+        }
+
+        let helper_base_ast = Self::build_or_node(plan.base_alternatives.clone());
+        grammar_tree.insert(plan.helper_base_rule.clone(), helper_base_ast);
+
+        if !rule_order.contains(&plan.helper_base_rule) {
+            if let Some(base_pos) = rule_order.iter().position(|name| name == &plan.base_rule) {
+                rule_order.insert(base_pos, plan.helper_base_rule.clone());
+            } else {
+                rule_order.push(plan.helper_base_rule.clone());
+            }
+        }
+    }
+
+    fn as_alternatives(node: &ASTNode) -> Vec<ASTNode> {
+        match node {
+            ASTNode::Or { alternatives } => alternatives.clone(),
+            _ => vec![node.clone()],
+        }
+    }
+
+    fn build_or_node(mut alternatives: Vec<ASTNode>) -> ASTNode {
+        if alternatives.len() == 1 {
+            alternatives.remove(0)
+        } else {
+            ASTNode::Or { alternatives }
+        }
+    }
+
+    fn build_sequence_node(mut elements: Vec<ASTNode>) -> ASTNode {
+        if elements.len() == 1 {
+            elements.remove(0)
+        } else {
+            ASTNode::Sequence { elements }
+        }
+    }
+
+    fn make_rule_reference_node(rule_name: &str) -> ASTNode {
+        ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("rule_reference".to_string()),
+                TokenValue::String(rule_name.to_string()),
+            ]),
+        }
+    }
+
+    fn allocate_synthetic_rule_name(
+        base_name: String,
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> String {
+        if !grammar_tree.contains_key(&base_name) {
+            return base_name;
+        }
+
+        let mut index = 1usize;
+        loop {
+            let candidate = format!("{}_{}", base_name, index);
+            if !grammar_tree.contains_key(&candidate) {
+                return candidate;
+            }
+            index += 1;
+        }
+    }
+
+    fn extract_rule_reference_name(node: &ASTNode) -> Option<String> {
+        match node {
+            ASTNode::Atom {
+                value: ASTValue::Token(parts),
+            } => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                let TokenValue::String(token_type) = &parts[0] else {
+                    return None;
+                };
+                let TokenValue::String(token_value) = &parts[1] else {
+                    return None;
+                };
+                if token_type == "rule_reference" {
+                    Some(token_value.clone())
+                } else {
+                    None
+                }
+            }
+            ASTNode::Sequence { elements } if elements.len() == 1 => {
+                Self::extract_rule_reference_name(&elements[0])
+            }
+            _ => None,
+        }
+    }
+
+    fn sequence_suffix_if_prefixed_with_rule(
+        elements: &[ASTNode],
+        base_rule: &str,
+    ) -> Option<ASTNode> {
+        if elements.is_empty() {
+            return None;
+        }
+        if Self::extract_rule_reference_name(&elements[0]).as_deref() != Some(base_rule) {
+            return None;
+        }
+        if elements.len() < 2 {
+            return None;
+        }
+        Some(Self::build_sequence_node(elements[1..].to_vec()))
+    }
+
+    fn extract_wrapper_suffix(
+        base_rule: &str,
+        wrapper_rule: &str,
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> Option<ASTNode> {
+        let wrapper_node = grammar_tree.get(wrapper_rule)?;
+        match wrapper_node {
+            ASTNode::Sequence { elements } => {
+                Self::sequence_suffix_if_prefixed_with_rule(elements, base_rule)
+            }
+            ASTNode::Or { alternatives } => {
+                let mut suffixes = Vec::new();
+                for alternative in alternatives {
+                    let ASTNode::Sequence { elements } = alternative else {
+                        return None;
+                    };
+                    let Some(suffix) =
+                        Self::sequence_suffix_if_prefixed_with_rule(elements, base_rule)
+                    else {
+                        return None;
+                    };
+                    suffixes.push(suffix);
+                }
+                if suffixes.is_empty() {
+                    None
+                } else {
+                    Some(Self::build_or_node(suffixes))
+                }
+            }
+            _ => None,
+        }
     }
 
     fn extract_rule_name(&self, rule_decl: &serde_json::Value) -> Option<String> {

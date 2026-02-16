@@ -285,10 +285,27 @@ impl AstBasedGenerator {
 
     fn generate_parse_method(&self, entry_rule: &str) -> TokenStream {
         let parse_method = format_ident!("parse_{}", entry_rule);
+        let parse_full_method = format_ident!("parse_full_{}", entry_rule);
 
         quote! {
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.#parse_method()
+            }
+
+            pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
+                let parsed = self.#parse_method()?;
+                if parsed.span.end == self.input.len() {
+                    Ok(parsed)
+                } else {
+                    Err(ParseError::InvalidSyntax {
+                        message: "Parser did not consume full input",
+                        position: parsed.span.end,
+                    })
+                }
+            }
+
+            pub fn #parse_full_method(&mut self) -> ParseResult<ParseNode<'input>> {
+                self.parse_full()
             }
         }
     }
@@ -522,9 +539,8 @@ impl AstBasedGenerator {
                 })
             }
         } else {
-            // Multi-branch - try all but last branch with try_parse, then fallback to last
-            let mut guarded_attempts = Vec::new();
-            let mut fallback_last_branch = None;
+            // Multi-branch - evaluate all branches and keep the longest successful match
+            let mut branch_attempts = Vec::new();
 
             for (idx, alternative) in alternatives.iter().enumerate() {
                 eprintln!();
@@ -548,59 +564,56 @@ impl AstBasedGenerator {
                     };
 
                 let branch_num = idx + 1;
-                if idx < branch_count - 1 {
-                    guarded_attempts.push(quote! {
-                        if !branch_matched {
-                            if let Some(content) = parser.try_parse(|p| {
-                                let parser = p;
-                                if parser.logger.is_enabled() {
-                                    parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
-                                }
-                                #branch_logic;
-                                if parser.logger.is_enabled() {
-                                    parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
-                                }
-                                Ok(result)
-                            }) {
-                                result = #transform;
-                                branch_matched = true;
-                            } else if parser.logger.is_enabled() {
-                                parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
-                            }
+                branch_attempts.push(quote! {
+                    parser.position = parse_start;
+                    if let Some(content) = parser.try_parse(|p| {
+                        let parser = p;
+                        if parser.logger.is_enabled() {
+                            parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                         }
-                    });
-                } else {
-                    fallback_last_branch = Some(quote! {
-                        if !branch_matched {
-                            if parser.logger.is_enabled() {
-                                parser.logger.log_info(#filename, 0, &format!("🚪 Entering fallback branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
-                            }
-                            let content = {
-                                #branch_logic;
-                                result
-                            };
-                            if parser.logger.is_enabled() {
-                                parser.logger.log_info(#filename, 0, &format!("✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
-                            }
-                            result = #transform;
-                            branch_matched = true;
+                        #branch_logic;
+                        if parser.logger.is_enabled() {
+                            parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
                         }
-                    });
-                }
+                        Ok(result)
+                    }) {
+                        let candidate_end = parser.position;
+                        parser.position = parse_start;
+                        let transformed = {
+                            let content = content;
+                            #transform
+                        };
+                        if best_content.is_none() || candidate_end > best_end {
+                            best_end = candidate_end;
+                            best_branch = #branch_num;
+                            best_content = Some(transformed);
+                        }
+                    } else if parser.logger.is_enabled() {
+                        parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
+                    }
+                });
             }
 
-            let fallback_last_branch = fallback_last_branch.unwrap_or_else(|| {
-                quote! {
-                    // no fallback branch available
-                }
-            });
-
             Ok(quote! {
-                // Multi-branch parsing logic
+                // Multi-branch parsing logic (longest-match winner)
+                let parse_start = parser.position;
+                let mut best_content: Option<ParseContent<'input>> = None;
+                let mut best_end = parse_start;
+                let mut best_branch = 0usize;
                 let mut result = ParseContent::Sequence(Vec::new());
-                let mut branch_matched = false;
-                #(#guarded_attempts)*
-                #fallback_last_branch
+                #(#branch_attempts)*
+
+                if let Some(content) = best_content {
+                    parser.position = best_end;
+                    if parser.logger.is_enabled() {
+                        parser.logger.log_info(#filename, 0, &format!("🏁 Rule '{}' selected branch {}/{} consuming {} chars", #rule_name, best_branch, #branch_count, best_end.saturating_sub(parse_start)));
+                    }
+                    result = content;
+                } else {
+                    return Err(ParseError::Backtrack {
+                        position: parse_start,
+                    });
+                }
             })
         }
     }

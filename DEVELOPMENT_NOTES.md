@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-16 - Parser Hardening Pattern: Structural Rewrite + Longest-Match + Full-Consumption Contracts
+### Context
+The observed regression (`generated parser consumed prefix only`) was not an EBNF validity issue. It was a generated-parser behavior issue under recursive chain alternatives.
+### Key Architecture Decisions
+#### 1) Keep grammar source stable; harden in pipeline/codegen
+- Source EBNF remains authoritative and unchanged.
+- Correctness hardening is implemented in:
+  - AST transformation layer (`RustASTPipeline`)
+  - generated parser strategy (`AstBasedGenerator`)
+#### 2) Left-recursion option must be functional, not declarative
+- `PipelineConfig.eliminate_left_recursion` is now active behavior.
+- `RustASTPipeline` now owns config and runs a pre-codegen AST rewrite pass.
+- Current rewrite pattern:
+  - detect recursive chain cluster
+  - split base alternatives into synthetic helper base rule
+  - represent chain continuation with suffix repetition
+  - preserve original rule names externally
+This allows structural mitigation without touching EBNF source files.
+#### 3) OR-branch semantics should prefer maximal valid consumption
+- First-success branch selection is unsafe for ambiguous/recursive chain grammars because it can lock in short prefixes.
+- Generator now evaluates candidate branches and commits the longest successful parse branch.
+- This is a safer default for parser correctness in recursive expression grammars.
+#### 4) Full-consumption must be explicit API contract
+- Generated parsers now expose:
+  - `parse_full()`
+  - `parse_full_<entry_rule>()`
+- Validation infrastructure (`main.rs`, generated parser test-runner adapters) uses full-consumption APIs by default.
+- This prevents silent prefix acceptance from being treated as success.
+### Testing/Validation Guidance
+- Regression cases that validate parse completeness should be added as universal runner JSON data, not ad-hoc scripts.
+- For cases where bootstrap and generated parsers intentionally differ, use explicit per-target expectations:
+  - bootstrap: `expected_fail`
+  - generated: `pass` (or vice versa when justified)
+### Practical Implication for Future Bugs
+When a sample is EBNF-valid but fails parseability:
+1. check consumed span vs input length first,
+2. inspect branch-selection behavior before changing grammar,
+3. only adjust EBNF if semantics are truly wrong.
+This avoids unnecessary grammar churn and keeps fixes localized to parser engine behavior.
 ## 2026-02-16 - Parser Stabilization Notes: Bootstrap Contracts, Generated Strictness, and Normalized Validation
 ### Architecture Insight: Two Valid Semantics Must Coexist
 The current system intentionally has two parser personalities that are both correct for their role:

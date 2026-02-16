@@ -3,6 +3,7 @@ use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use regex_syntax::hir::{Class, Hir, HirKind, Literal, Repetition};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -475,94 +476,87 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         let trimmed = pattern.trim();
-        if trimmed.is_empty() || trimmed == r"\s*" {
+        if trimmed.is_empty() {
             return String::new();
         }
-        if trimmed == r"\s+" || trimmed.contains(r"\s+") {
-            return " ".to_string();
-        }
-        if trimmed.contains(r"\d") || trimmed.contains("[0-9]") {
-            return self.regex_repeat("1", trimmed);
-        }
-        if trimmed.contains(r"\w")
-            || trimmed.contains("[a-zA-Z_]")
-            || trimmed.contains("[a-zA-Z0-9_]")
-        {
-            return self.regex_repeat("a", trimmed);
-        }
-        if trimmed.contains("[A-Z]") {
-            return self.regex_repeat("A", trimmed);
-        }
-        if trimmed.contains("[a-z]") {
-            return self.regex_repeat("a", trimmed);
-        }
-        if trimmed.contains("[01]") {
-            return self.regex_repeat("0", trimmed);
-        }
-        if trimmed.contains("[^") {
-            return self.regex_repeat("x", trimmed);
-        }
 
-        if let Some(literal) = self.extract_literal_from_regex(trimmed) {
-            return literal;
+        match regex_syntax::parse(trimmed) {
+            Ok(hir) => self.generate_from_regex_hir(&hir),
+            Err(_) => "x".to_string(),
         }
-
-        "x".to_string()
     }
 
-    fn regex_repeat(&mut self, symbol: &str, pattern: &str) -> String {
-        let (min_repeat, max_repeat) = self.regex_quantifier_bounds(pattern);
-        let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
-        let count = if min_repeat == bounded_max {
-            min_repeat
-        } else {
-            self.rng.gen_range(min_repeat..=bounded_max)
-        };
-        symbol.repeat(count)
-    }
-
-    fn regex_quantifier_bounds(&self, pattern: &str) -> (usize, usize) {
-        let trimmed = pattern.trim();
-        if trimmed.ends_with('+') {
-            return (1, self.config.max_repeat.max(1));
-        }
-        if trimmed.ends_with('*') {
-            return (0, self.config.max_repeat);
-        }
-        if trimmed.ends_with('?') {
-            return (0, 1);
-        }
-
-        if let Some(open) = trimmed.rfind('{') {
-            if let Some(close) = trimmed[open + 1..].find('}') {
-                let bounds = &trimmed[open + 1..open + 1 + close];
-                let parts: Vec<&str> = bounds.split(',').collect();
-                if parts.len() == 1 {
-                    if let Ok(exact) = parts[0].trim().parse::<usize>() {
-                        return (exact, exact);
-                    }
-                } else if parts.len() == 2 {
-                    let min = if parts[0].trim().is_empty() {
-                        0
-                    } else {
-                        parts[0].trim().parse::<usize>().unwrap_or(1)
-                    };
-                    let max = if parts[1].trim().is_empty() {
-                        self.config.max_repeat.max(min)
-                    } else {
-                        parts[1]
-                            .trim()
-                            .parse::<usize>()
-                            .unwrap_or(self.config.max_repeat.max(min))
-                    };
-                    if min <= max {
-                        return (min, max);
-                    }
+    fn generate_from_regex_hir(&mut self, hir: &Hir) -> String {
+        match hir.kind() {
+            HirKind::Empty => String::new(),
+            HirKind::Literal(Literal(bytes)) => String::from_utf8_lossy(bytes).into_owned(),
+            HirKind::Class(class) => self.generate_from_regex_class(class),
+            HirKind::Look(_) => String::new(),
+            HirKind::Repetition(rep) => self.generate_from_regex_repetition(rep),
+            HirKind::Capture(capture) => self.generate_from_regex_hir(&capture.sub),
+            HirKind::Concat(parts) => {
+                let mut out = String::new();
+                for part in parts {
+                    out.push_str(&self.generate_from_regex_hir(part));
                 }
+                out
+            }
+            HirKind::Alternation(parts) => {
+                if parts.is_empty() {
+                    return String::new();
+                }
+                let idx = if parts.len() == 1 {
+                    0
+                } else {
+                    self.rng.gen_range(0..parts.len())
+                };
+                self.generate_from_regex_hir(&parts[idx])
             }
         }
+    }
 
-        (1, 1)
+    fn generate_from_regex_repetition(&mut self, rep: &Repetition) -> String {
+        let min = usize::try_from(rep.min).unwrap_or(0);
+        let max = rep
+            .max
+            .and_then(|m| usize::try_from(m).ok())
+            .unwrap_or(self.config.max_repeat.max(min));
+        let bounded_max = max.min(self.config.max_repeat.max(min));
+
+        let count = if min == bounded_max {
+            min
+        } else {
+            self.rng.gen_range(min..=bounded_max)
+        };
+
+        let unit = self.generate_from_regex_hir(&rep.sub);
+        let mut out = String::new();
+        for _ in 0..count {
+            out.push_str(&unit);
+        }
+        out
+    }
+
+    fn generate_from_regex_class(&mut self, class: &Class) -> String {
+        match class {
+            Class::Unicode(unicode_class) => unicode_class
+                .ranges()
+                .first()
+                .map(|range| range.start().to_string())
+                .unwrap_or_default(),
+            Class::Bytes(bytes_class) => bytes_class
+                .ranges()
+                .first()
+                .map(|range| {
+                    let b = range.start();
+                    if b.is_ascii() {
+                        char::from(b).to_string()
+                    } else {
+                        "a".to_string()
+                    }
+                })
+                .unwrap_or_default(),
+        }
     }
 
     fn semantic_hint_for_rule(&self, rule_name: &str) -> Option<String> {
@@ -599,28 +593,6 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
-        None
-    }
-
-    fn extract_literal_from_regex(&self, pattern: &str) -> Option<String> {
-        let mut chars = pattern.chars().peekable();
-        while let Some(ch) = chars.next() {
-            match ch {
-                '\\' => {
-                    if let Some(escaped) = chars.next() {
-                        let mapped = match escaped {
-                            'n' => '\n',
-                            't' => '\t',
-                            'r' => '\r',
-                            other => other,
-                        };
-                        return Some(mapped.to_string());
-                    }
-                }
-                '(' | ')' | '[' | ']' | '{' | '}' | '^' | '$' | '+' | '*' | '?' | '|' | '.' => {}
-                _ => return Some(ch.to_string()),
-            }
-        }
         None
     }
 

@@ -39,7 +39,7 @@ impl Parser for GeneratedReturnAnnotationParser {
         let mut parser = Return_annotationParser::new(input, self.logger.clone_box());
 
         // Parse the input
-        match parser.parse_return_annotation() {
+        match parser.parse_full_return_annotation() {
             Ok(_parse_node) => {
                 // For now, return the input as-is since the generated parser
                 // successfully parsed the grammar structure
@@ -81,18 +81,26 @@ impl Parser for GeneratedSemanticAnnotationParser {
         eprintln!("   Length: {}", input.len());
         eprintln!("   Bytes: {:?}", input.as_bytes());
         if !input.is_empty() {
-            eprintln!("   First char: {:?} (byte: {})", input.chars().next().unwrap(), input.as_bytes()[0]);
+            eprintln!(
+                "   First char: {:?} (byte: {})",
+                input.chars().next().unwrap(),
+                input.as_bytes()[0]
+            );
             if input.len() > 1 {
-                eprintln!("   Second char: {:?} (byte: {})", input.chars().nth(1).unwrap(), input.as_bytes()[1]);
+                eprintln!(
+                    "   Second char: {:?} (byte: {})",
+                    input.chars().nth(1).unwrap(),
+                    input.as_bytes()[1]
+                );
             }
         }
         eprintln!();
-        
+
         // Create a parser instance for this specific input
         let mut parser = Semantic_annotationParser::new(input, self.logger.clone_box());
 
         // Parse the input
-        match parser.parse_semantic_annotation() {
+        match parser.parse_full_semantic_annotation() {
             Ok(_parse_node) => {
                 // For now, return the input as-is since the generated parser
                 // successfully parsed the grammar structure

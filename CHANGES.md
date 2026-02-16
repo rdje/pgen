@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-02-16 - Parser Generator Hardening (No EBNF Changes): Left-Recursion Rewrite + Full-Consumption Parsing
+### ✅ Achievement Summary
+Hardened the Rust AST pipeline and generated parser behavior to eliminate prefix-only parse acceptance on legitimate return-annotation samples, while keeping source EBNF unchanged.
+### Scope of Changes
+- Pipeline/config wiring:
+  - `rust/src/ast_pipeline/mod.rs`
+  - `RustASTPipeline` now stores `PipelineConfig` and actively honors `eliminate_left_recursion`.
+- Left-recursion rewrite pass:
+  - Added AST rewrite logic that detects recursive chain patterns and rewrites them using a synthetic helper base rule (e.g. `accessor_base_lr_base`) before parser generation.
+  - Rewrite preserves grammar intent while avoiding direct recursive chain consumption issues in generated code.
+- Generated parser hardening:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - OR-branch generation changed from first-success to longest-success branch selection.
+  - Added full-consumption APIs in generated parsers:
+    - `parse_full()`
+    - `parse_full_<entry_rule>()`
+- Runtime validation and test adapters:
+  - `rust/src/main.rs`: parseability validation switched to `parse_full_return_annotation()` / `parse_full_semantic_annotation()`.
+  - `rust/src/bin/test_runner.rs`: generated parser round-trip adapters now enforce full consumption via `parse_full_*`.
+- Regression coverage:
+  - Added universal test data file:
+    - `rust/test_data/return_annotation/full_consumption_regression.json`
+  - Case:
+    - `"$+0.A.A000[($0::first)[$00]]"`
+  - Expectations:
+    - bootstrap target: `expected_fail`
+    - generated target: `pass`
+- Regenerated parser artifacts:
+  - `generated/return_annotation_parser.rs`
+  - `generated/semantic_annotation_parser.rs`
+### Root Cause and Resolution
+#### Root Cause
+Generated parser behavior for recursive accessor-chain patterns could accept a valid prefix branch too early, leaving unconsumed trailing input. This surfaced as parseability rejection under full-consumption checks (e.g., previously consumed only `"$+0.A"` from a longer valid sample).
+#### Resolution
+1. Enabled real pre-codegen left-recursion structural rewriting in the AST pipeline.
+2. Switched generated OR-branch resolution to longest successful match.
+3. Added explicit full-consumption parser entry points and used them in parseability/test paths.
+### Validation Results
+- Build validation:
+  - `cargo build --features generated_parsers --bin ast_pipeline --bin test_runner` ✅
+- Regression test (universal test runner):
+  - Bootstrap target:
+    - `cargo run --bin test_runner -- --parser return --suite return_annotation_full_consumption_regression --verbose` ✅
+    - Observed expected bootstrap failure for sample.
+  - Generated target:
+    - `cargo run --features generated_parsers --bin test_runner -- --parser return --suite return_annotation_full_consumption_regression --verbose` ✅
+    - Sample fully accepted.
+- Stimuli parseability smoke checks:
+  - Without generated parser feature:
+    - `cargo run --bin ast_pipeline -- ... --validate-parseability` ❌ (expected feature-gate error)
+  - With generated parser feature:
+    - return annotation flow ✅
+    - semantic annotation flow ✅
+### Operational Notes
+- No grammar source (`grammars/*.ebnf`) changes were made in this hardening cycle.
+- Full-consumption semantics are now first-class in generated parser APIs and should be used for validator/round-trip correctness gates.
 ## 2026-02-16 - Parser Pipeline Stabilization Milestone (Bootstrap + Generated Paths Green)
 ### ✅ Achievement Summary
 Closed the active regression cycle for return/semantic parser flows by aligning parser-target expectations, fixing bootstrap parser edge behavior, removing a generated parser codegen blocker, and validating final green status across all requested suites.
