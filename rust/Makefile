@@ -307,7 +307,7 @@ debug-semantic-annotations: $(SEMANTIC_ANNOTATION_EXE) $(RETURN_ANNOTATION_EXE)
 
 # Return annotation parser complete flow
 .PHONY: return_annotation_parser
-return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
 	@echo "🚀 Starting complete flow for return annotation parser..."
 	@echo "📄 Step 1: EBNF -> JSON (already done: $(RETURN_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
@@ -318,7 +318,7 @@ return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
 
 # Semantic annotation parser complete flow
 .PHONY: semantic_annotation_parser
-semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE)
+semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
 	@echo "🚀 Starting complete flow for semantic annotation parser..."
 	@echo "📄 Step 1: EBNF -> JSON (already done: $(SEMANTIC_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"

@@ -2,11 +2,11 @@
 // No adapter layer needed - string-based generator has been removed
 
 use crate::ast_pipeline::{
-    ASTNode, Annotations, TransformedASTJson, BranchAnnotation,
+    ASTNode, Annotations, BranchAnnotation, TransformedASTJson,
     ast_based_generator::AstBasedGenerator,
 };
+use anyhow::{Context, Result};
 use std::collections::HashMap;
-use anyhow::{Result, Context};
 
 /// Direct integration point for AST-based parser generation
 pub struct AstGeneratorIntegration {
@@ -18,18 +18,15 @@ impl AstGeneratorIntegration {
     pub fn new() -> Self {
         Self { debug: false }
     }
-    
+
     /// Enable debug output
     pub fn with_debug(mut self, debug: bool) -> Self {
         self.debug = debug;
         self
     }
-    
+
     /// Generate parser from transformed AST using AST-based generator
-    pub fn generate_parser(
-        &self,
-        transformed_ast: &TransformedASTJson,
-    ) -> Result<String> {
+    pub fn generate_parser(&self, transformed_ast: &TransformedASTJson) -> Result<String> {
         if self.debug {
             eprintln!(
                 "[ast_generator] Generating parser '{}' with {} rules",
@@ -37,7 +34,7 @@ impl AstGeneratorIntegration {
                 transformed_ast.grammar_tree.len()
             );
         }
-        
+
         generate_parser_ast_based(
             &transformed_ast.grammar_name,
             &transformed_ast.grammar_tree,
@@ -58,12 +55,13 @@ pub fn generate_parser_ast_based(
 ) -> Result<String> {
     let parser_name = snake_to_pascal(grammar_name);
     let mut generator = AstBasedGenerator::new(parser_name);
-    
+
     // Transfer annotations if provided
     if let Some(annotations) = annotations {
         // The AST generator stores annotations as Option<Annotations>
         generator.annotations = Some(annotations.clone());
-        generator.branch_return_annotations = annotations.branch_return_annotations
+        generator.branch_return_annotations = annotations
+            .branch_return_annotations
             .iter()
             .map(|(rule, branches)| {
                 let converted_branches = branches
@@ -80,8 +78,9 @@ pub fn generate_parser_ast_based(
             })
             .collect();
     }
-    
-    generator.generate_parser(grammar, rule_order, filename)
+
+    generator
+        .generate_parser(grammar, rule_order, filename)
         .context("Failed to generate parser using AST-based generator")
 }
 

@@ -3,9 +3,9 @@
 
 use std::io::Write;
 
-pub mod round_trip_tests;
-pub mod parsers;
 pub mod normalization;
+pub mod parsers;
+pub mod round_trip_tests;
 
 // Re-export the shared Logger trait
 pub use crate::Logger;
@@ -66,17 +66,19 @@ impl Logger for FileLogger {
         }
     }
 
-    fn is_enabled(&self) -> bool { true }
-    
+    fn is_enabled(&self) -> bool {
+        true
+    }
+
     fn clone_box(&self) -> Box<dyn Logger> {
         // Now that FileLogger is Clone, we can clone it properly
         Box::new(self.clone())
     }
 }
 
-pub use round_trip_tests::{RoundTripTestRunner, Report, TestSuite};
-pub use round_trip_tests::RoundTripTestRunner as UniversalTestRunner;
 pub use crate::test_runner::parsers::{ReturnAnnotationParser, SemanticAnnotationParser};
+pub use round_trip_tests::RoundTripTestRunner as UniversalTestRunner;
+pub use round_trip_tests::{Report, RoundTripTestRunner, TestSuite};
 
 /// Trait for parser integration with round-trip testing
 /// Implement this trait to plug real parsers into the testing framework
@@ -84,10 +86,10 @@ pub trait Parser {
     /// Perform a round-trip transformation: parse input to AST, then unparse back to string
     /// This enables mathematical validation that parsing is reversible
     fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>>;
-    
+
     /// Set the logger for this parser
     fn set_logger(&mut self, logger: Box<dyn Logger>);
-    
+
     /// Get the current logger
     fn get_logger(&self) -> &dyn Logger;
 }

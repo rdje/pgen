@@ -399,8 +399,12 @@ optional_type := type_reference /\s*/ "?"
     -> {type: "optional_type", base_type: $1}
 
 # Rule references (references to other grammar rules)
-rule_reference := "$" identifier_literal
+# Supports both named refs ($rule_name) and positional refs ($1, $2, ...)
+rule_reference := "$" rule_reference_name
     -> {type: "rule_reference", name: $2}
+
+rule_reference_name := /([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+)/
+    -> $1
 
 # Symbol references (references to tokens/symbols)
 symbol_reference := "%" identifier_literal  

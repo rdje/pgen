@@ -1,0 +1,116 @@
+[
+  {
+    "name": "complex_object_annotation",
+    "description": "Test complex object value annotation - Tier B (Full Language Power)",
+    "input": "@config: {mode: \"strict\", validation: true, timeout: 5000}",
+    "expected_round_trip": "@config: {mode: \"strict\", validation: true, timeout: 5000}",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "B",
+    "tags": ["advanced", "object", "structured_value"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    },
+    "note": "Complex object structures require full grammar support"
+  },
+  {
+    "name": "array_annotation",
+    "description": "Test array value annotation - Tier B (Full Language Power)",
+    "input": "@throws: [\"IOException\", \"ParseException\", \"RuntimeException\"]",
+    "expected_round_trip": "@throws: [\"IOException\", \"ParseException\", \"RuntimeException\"]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "B",
+    "tags": ["advanced", "array", "structured_value"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "rule_reference_in_annotation",
+    "description": "Test rule reference within semantic annotation - Tier B (Full Language Power)",
+    "input": "@transform: $1",
+    "expected_round_trip": "@transform: $1",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "B",
+    "tags": ["advanced", "rule_reference", "reference_value"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    },
+    "note": "Bootstrap parser currently accepts this as raw content in bootstrap mode"
+  },
+  {
+    "name": "function_call_annotation",
+    "description": "Test function call expression in annotation - Tier B (Full Language Power)",
+    "input": "@transform: generate_matcher(has_negation($2), collect_items($2))",
+    "expected_round_trip": "@transform: generate_matcher(has_negation($2), collect_items($2))",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "B",
+    "tags": ["advanced", "function_call", "expression_value"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "conditional_expression_annotation",
+    "description": "Test conditional expression in annotation - Tier B (Full Language Power)",
+    "input": "@strategy: count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"",
+    "expected_round_trip": "@strategy: count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "B",
+    "tags": ["advanced", "conditional", "expression_value"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "lambda_expression_annotation",
+    "description": "Test lambda expression in annotation - Tier B (Full Language Power)",
+    "input": "@validator: all(extract_ranges($2), r => valid_range(r.start, r.end))",
+    "expected_round_trip": "@validator: all(extract_ranges($2), r => valid_range(r.start, r.end))",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "B",
+    "tags": ["advanced", "lambda", "expression_value"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "custom_annotation_name",
+    "description": "Test custom annotation name - Tier B (Full Language Power)",
+    "input": "@my_custom_annotation: \"special_value\"",
+    "expected_round_trip": "@my_custom_annotation: \"special_value\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "B",
+    "tags": ["advanced", "custom_annotation"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "null_value_annotation",
+    "description": "Test null value annotation - Tier B (Full Language Power)",
+    "input": "@optional_config: null",
+    "expected_round_trip": "@optional_config: null",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "B",
+    "tags": ["advanced", "null_literal"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  }
+]

@@ -1,75 +1,87 @@
 [
   {
-    "name": "transform_expression_function_call",
-    "description": "Complex function call annotation",
+    "name": "bare_function_call_bootstrap_compat",
+    "description": "Bare function call (bootstrap compatibility) - Tier A (Core/Bootstrap Contract)",
     "input": "generate_char_class_matcher(has_negation($2), collect_class_items($2))",
     "expected_round_trip": "generate_char_class_matcher(has_negation($2), collect_class_items($2))",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": [
-      "complex",
-      "function_call"
-    ]
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "function_call"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Bootstrap parser accepts bare expressions for backward compatibility"
   },
   {
-    "name": "transform_expression_conditional",
-    "description": "Complex conditional expression",
+    "name": "bare_conditional_bootstrap_compat",
+    "description": "Bare conditional expression (bootstrap compatibility) - Tier A (Core/Bootstrap Contract)",
     "input": "count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"",
     "expected_round_trip": "count(flatten($2)) > 8 ? \"lookup_table\" : \"linear_checks\"",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": [
-      "complex",
-      "conditional"
-    ]
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "conditional"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    }
   },
   {
-    "name": "transform_expression_lambda",
-    "description": "Complex lambda expression",
+    "name": "bare_lambda_bootstrap_compat",
+    "description": "Bare lambda expression (bootstrap compatibility) - Tier A (Core/Bootstrap Contract)",
     "input": "all(extract_ranges($2), r => valid_range(r.start, r.end))",
     "expected_round_trip": "all(extract_ranges($2), r => valid_range(r.start, r.end))",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": [
-      "complex",
-      "lambda"
-    ]
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "lambda"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    }
   },
   {
-    "name": "transform_expression_comparison",
-    "description": "Comparison expression",
+    "name": "bare_comparison_bootstrap_compat",
+    "description": "Bare comparison expression (bootstrap compatibility) - Tier A (Core/Bootstrap Contract)",
     "input": "$1 != null",
     "expected_round_trip": "$1 != null",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": [
-      "comparison"
-    ]
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "comparison"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    }
   },
   {
-    "name": "transform_parse_float",
-    "description": "Transform expression for parsing float",
+    "name": "bare_method_call_bootstrap_compat",
+    "description": "Bare method call expression (bootstrap compatibility) - Tier A (Core/Bootstrap Contract)",
     "input": "str::parse::<f64>().unwrap_or(0.0)",
     "expected_round_trip": "str::parse::<f64>().unwrap_or(0.0)",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": [
-      "transform",
-      "parse",
-      "float"
-    ]
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "method_call"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    }
   },
   {
-    "name": "transform_parse_int",
-    "description": "Transform expression for parsing integer",
+    "name": "bare_generic_call_bootstrap_compat",
+    "description": "Bare generic method call (bootstrap compatibility) - Tier A (Core/Bootstrap Contract)",
     "input": "str::parse::<i32>().unwrap_or_default()",
     "expected_round_trip": "str::parse::<i32>().unwrap_or_default()",
     "parser_type": "semantic",
     "normalizer": "text",
-    "tags": [
-      "transform",
-      "parse",
-      "int"
-    ]
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "generic_call"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    }
   }
 ]

@@ -6,11 +6,17 @@
     "expected_round_trip": "process_group($1, transform_items($2))",
     "parser_type": "semantic",
     "normalizer": "text",
+    "tier": "A",
     "tags": [
       "complex",
       "group",
       "transform"
-    ]
+    ],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Bootstrap parser accepts bare expressions; generated parser entrypoint expects @annotation: value form"
   },
   {
     "name": "nested_function_calls",
@@ -19,11 +25,17 @@
     "expected_round_trip": "validate(flatten($1), check_constraints($2))",
     "parser_type": "semantic",
     "normalizer": "text",
+    "tier": "A",
     "tags": [
       "nested",
       "function",
       "validation"
-    ]
+    ],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Bootstrap parser accepts bare expressions; generated parser entrypoint expects @annotation: value form"
   },
   {
     "name": "array_processing",
@@ -32,10 +44,16 @@
     "expected_round_trip": "map($1, item => process_item(item))",
     "parser_type": "semantic",
     "normalizer": "text",
+    "tier": "A",
     "tags": [
       "array",
       "lambda",
       "processing"
-    ]
+    ],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Bootstrap parser accepts bare expressions; generated parser entrypoint expects @annotation: value form"
   }
 ]

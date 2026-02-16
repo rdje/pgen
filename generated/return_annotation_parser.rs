@@ -119,12 +119,21 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_RETURN_ANNOTATION,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(3usize);
+                    let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
+                        let element_content = if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_arrow()?),
+                                );
+                                Ok(result)
+                            })
+                        {
+                            content
+                        } else {
+                            ParseContent::Sequence(Vec::new())
                         };
                         let element_end = parser.position;
                         sequence_elements
@@ -136,35 +145,16 @@ impl<'input> Return_annotationParser<'input> {
                     }
                     {
                         let element_start = parser.position;
-                        let element_content = if let Some(content) = parser
-                            .try_parse(|p| {
-                                let mut sequence_elements = Vec::with_capacity(0usize);
-                                let result = ParseContent::Sequence(sequence_elements);
-                                Ok(result)
-                            })
-                        {
-                            content
-                        } else {
-                            ParseContent::Sequence(Vec::new())
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_expression()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_2",
+                                rule_name: "element_1",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -423,78 +413,238 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_EXPRESSION,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(5usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 5usize, "expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_spread_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 5usize, "expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 5usize, "expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                2usize, 5usize, "expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_extraction_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                2usize, 5usize, "expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        2usize, 5usize, "expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                3usize, 5usize, "expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_property_access_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                3usize, 5usize, "expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        3usize, 5usize, "expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                4usize, 5usize, "expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_array_access_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                4usize, 5usize, "expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        4usize, 5usize, "expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        5usize, 5usize, "expression", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_primary_expression()?),
+                            );
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        5usize, 5usize, "expression", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_2",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_3",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_4",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "expression",
@@ -623,152 +773,432 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_PRIMARY_EXPRESSION,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(10usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_object_literal()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                2usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_array_literal()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                2usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        2usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                3usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_positional_reference()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                3usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        3usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                4usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_string_literal()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                4usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        4usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                5usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_number_literal()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                5usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        5usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                6usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_boolean_literal()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                6usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        6usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                7usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_identifier()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                7usize, 8usize, "primary_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        7usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        8usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
+                            let mut sequence_elements = Vec::with_capacity(3usize);
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Terminal(
+                                        parser.match_string("(")?,
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_0",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Alternative(
+                                        Box::new(parser.parse_expression()?),
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_1",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Terminal(
+                                        parser.match_string(")")?,
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_2",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            let result = ParseContent::Sequence(sequence_elements);
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        8usize, 8usize, "primary_expression", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_2",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_3",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_4",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_5",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_6",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("(")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_7",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_8",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string(")")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_9",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "primary_expression",
@@ -897,11 +1327,13 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_EXTRACTION_EXPRESSION,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(5usize);
+                    let mut sequence_elements = Vec::with_capacity(4usize);
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_positional_reference()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -931,7 +1363,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_extraction_target()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -944,24 +1378,12 @@ impl<'input> Return_annotationParser<'input> {
                     }
                     {
                         let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_3",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
                         let element_content = if let Some(content) = parser
                             .try_parse(|p| {
-                                let mut sequence_elements = Vec::with_capacity(0usize);
-                                let result = ParseContent::Sequence(sequence_elements);
+                                let parser = p;
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_spread_suffix()?),
+                                );
                                 Ok(result)
                             })
                         {
@@ -972,7 +1394,7 @@ impl<'input> Return_annotationParser<'input> {
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_4",
+                                rule_name: "element_3",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -1104,54 +1526,140 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_EXTRACTION_TARGET,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(3usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 3usize, "extraction_target", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_integer()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 3usize, "extraction_target", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 3usize, "extraction_target", parser.position
+                                    ),
+                                );
+                        }
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("first")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                2usize, 3usize, "extraction_target", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Terminal(
+                                    parser.match_string("first")?,
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                2usize, 3usize, "extraction_target", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        2usize, 3usize, "extraction_target", parser.position
+                                    ),
+                                );
+                        }
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        3usize, 3usize, "extraction_target", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
                             let result = ParseContent::Terminal(
                                 parser.match_string("last")?,
                             );
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_2",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        3usize, 3usize, "extraction_target", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "extraction_target",
@@ -1282,7 +1790,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_spreadable_expression()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -1438,110 +1948,285 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_SPREADABLE_EXPRESSION,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(7usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 5usize, "spreadable_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_extraction_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 5usize, "spreadable_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 5usize, "spreadable_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                2usize, 5usize, "spreadable_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_positional_reference()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                2usize, 5usize, "spreadable_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        2usize, 5usize, "spreadable_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                3usize, 5usize, "spreadable_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_property_access_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                3usize, 5usize, "spreadable_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        3usize, 5usize, "spreadable_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                4usize, 5usize, "spreadable_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_array_access_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                4usize, 5usize, "spreadable_expression", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        4usize, 5usize, "spreadable_expression", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        5usize, 5usize, "spreadable_expression", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
+                            let mut sequence_elements = Vec::with_capacity(3usize);
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Terminal(
+                                        parser.match_string("(")?,
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_0",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Alternative(
+                                        Box::new(parser.parse_expression()?),
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_1",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Terminal(
+                                        parser.match_string(")")?,
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_2",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            let result = ParseContent::Sequence(sequence_elements);
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        5usize, 5usize, "spreadable_expression", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_2",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_3",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("(")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_4",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_5",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string(")")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_6",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "spreadable_expression",
@@ -1668,38 +2353,7 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_SPREAD_SUFFIX,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(2usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("*")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    let result = ParseContent::Sequence(sequence_elements);
+                    let result = ParseContent::Terminal(parser.match_string("*")?);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "spread_suffix",
@@ -1834,7 +2488,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_accessor_base()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -1864,7 +2520,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_identifier()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -2008,7 +2666,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_accessor_base()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -2038,7 +2698,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_expression()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -2192,96 +2854,236 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_ACCESSOR_BASE,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(6usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 4usize, "accessor_base", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_positional_reference()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 4usize, "accessor_base", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 4usize, "accessor_base", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                2usize, 4usize, "accessor_base", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_property_access_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                2usize, 4usize, "accessor_base", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        2usize, 4usize, "accessor_base", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                3usize, 4usize, "accessor_base", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_array_access_expression()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                3usize, 4usize, "accessor_base", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        3usize, 4usize, "accessor_base", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        4usize, 4usize, "accessor_base", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
+                            let mut sequence_elements = Vec::with_capacity(3usize);
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Terminal(
+                                        parser.match_string("(")?,
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_0",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Alternative(
+                                        Box::new(parser.parse_expression()?),
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_1",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Terminal(
+                                        parser.match_string(")")?,
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_2",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            let result = ParseContent::Sequence(sequence_elements);
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        4usize, 4usize, "accessor_base", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_2",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("(")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_3",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_4",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string(")")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_5",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "accessor_base",
@@ -2430,7 +3232,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_integer()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -2568,100 +3372,185 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_STRING_LITERAL,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(6usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("\"")?,
-                            );
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 2usize, "string_literal", parser.position
+                                            ),
+                                        );
+                                }
+                                let mut sequence_elements = Vec::with_capacity(3usize);
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let result = ParseContent::Terminal(
+                                            parser.match_string("\"")?,
+                                        );
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_0",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let result = ParseContent::Alternative(
+                                            Box::new(parser.parse_string_content_double()?),
+                                        );
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_1",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let result = ParseContent::Terminal(
+                                            parser.match_string("\"")?,
+                                        );
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_2",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                let result = ParseContent::Sequence(sequence_elements);
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 2usize, "string_literal", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 2usize, "string_literal", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        2usize, 2usize, "string_literal", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
+                            let mut sequence_elements = Vec::with_capacity(3usize);
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Terminal(
+                                        parser.match_string("'")?,
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_0",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Alternative(
+                                        Box::new(parser.parse_string_content_single()?),
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_1",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            {
+                                let element_start = parser.position;
+                                let element_content = {
+                                    let result = ParseContent::Terminal(
+                                        parser.match_string("'")?,
+                                    );
+                                    result
+                                };
+                                let element_end = parser.position;
+                                sequence_elements
+                                    .push(ParseNode {
+                                        rule_name: "element_2",
+                                        content: element_content,
+                                        span: element_start..element_end,
+                                    });
+                            }
+                            let result = ParseContent::Sequence(sequence_elements);
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        2usize, 2usize, "string_literal", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("\"")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_2",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("'")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_3",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_4",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("'")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_5",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "string_literal",
@@ -2790,8 +3679,7 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_STRING_CONTENT_DOUBLE,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(0usize);
-                    let result = ParseContent::Sequence(sequence_elements);
+                    let result = ParseContent::Terminal(parser.match_regex("[^\"]*")?);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "string_content_double",
@@ -2920,8 +3808,7 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_STRING_CONTENT_SINGLE,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(0usize);
-                    let result = ParseContent::Sequence(sequence_elements);
+                    let result = ParseContent::Terminal(parser.match_regex("[^']*")?);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "string_content_single",
@@ -3048,36 +3935,91 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_NUMBER_LITERAL,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(2usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 2usize, "number_literal", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_float()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 2usize, "number_literal", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 2usize, "number_literal", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        2usize, 2usize, "number_literal", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_integer()?),
+                            );
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        2usize, 2usize, "number_literal", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "number_literal",
@@ -3204,8 +4146,9 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_FLOAT,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(0usize);
-                    let result = ParseContent::Sequence(sequence_elements);
+                    let result = ParseContent::Terminal(
+                        parser.match_regex("[-+]?[0-9]+\\.[0-9]+(?:[eE][-+]?[0-9]+)?")?,
+                    );
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "float",
@@ -3332,8 +4275,9 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_INTEGER,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(0usize);
-                    let result = ParseContent::Sequence(sequence_elements);
+                    let result = ParseContent::Terminal(
+                        parser.match_regex("[-+]?[0-9]+")?,
+                    );
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "integer",
@@ -3460,40 +4404,91 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_BOOLEAN_LITERAL,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(2usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string("true")?,
-                            );
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 2usize, "boolean_literal", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Terminal(
+                                    parser.match_string("true")?,
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 2usize, "boolean_literal", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 2usize, "boolean_literal", parser.position
+                                    ),
+                                );
+                        }
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        2usize, 2usize, "boolean_literal", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
                             let result = ParseContent::Terminal(
                                 parser.match_string("false")?,
                             );
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        2usize, 2usize, "boolean_literal", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "boolean_literal",
@@ -3620,8 +4615,9 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_IDENTIFIER,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(0usize);
-                    let result = ParseContent::Sequence(sequence_elements);
+                    let result = ParseContent::Terminal(
+                        parser.match_regex("[a-zA-Z_][a-zA-Z0-9_]*")?,
+                    );
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "identifier",
@@ -3748,7 +4744,7 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_OBJECT_LITERAL,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(4usize);
+                    let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
                         let element_content = {
@@ -3767,24 +4763,12 @@ impl<'input> Return_annotationParser<'input> {
                     }
                     {
                         let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
                         let element_content = if let Some(content) = parser
                             .try_parse(|p| {
-                                let mut sequence_elements = Vec::with_capacity(0usize);
-                                let result = ParseContent::Sequence(sequence_elements);
+                                let parser = p;
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_object_properties()?),
+                                );
                                 Ok(result)
                             })
                         {
@@ -3795,7 +4779,7 @@ impl<'input> Return_annotationParser<'input> {
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_2",
+                                rule_name: "element_1",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -3811,7 +4795,7 @@ impl<'input> Return_annotationParser<'input> {
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_3",
+                                rule_name: "element_2",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -3943,47 +4927,19 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_OBJECT_PROPERTIES,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(4usize);
+                    let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string(",")?,
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_object_property()?),
                             );
                             result
                         };
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_2",
+                                rule_name: "element_0",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -3998,7 +4954,40 @@ impl<'input> Return_annotationParser<'input> {
                             while iteration_count < MAX_ITERATIONS {
                                 if let Some(node) = parser
                                     .try_parse(|p| {
-                                        let mut sequence_elements = Vec::with_capacity(0usize);
+                                        let parser = p;
+                                        let mut sequence_elements = Vec::with_capacity(2usize);
+                                        {
+                                            let element_start = parser.position;
+                                            let element_content = {
+                                                let result = ParseContent::Terminal(
+                                                    parser.match_string(",")?,
+                                                );
+                                                result
+                                            };
+                                            let element_end = parser.position;
+                                            sequence_elements
+                                                .push(ParseNode {
+                                                    rule_name: "element_0",
+                                                    content: element_content,
+                                                    span: element_start..element_end,
+                                                });
+                                        }
+                                        {
+                                            let element_start = parser.position;
+                                            let element_content = {
+                                                let result = ParseContent::Alternative(
+                                                    Box::new(parser.parse_object_property()?),
+                                                );
+                                                result
+                                            };
+                                            let element_end = parser.position;
+                                            sequence_elements
+                                                .push(ParseNode {
+                                                    rule_name: "element_1",
+                                                    content: element_content,
+                                                    span: element_start..element_end,
+                                                });
+                                        }
                                         let result = ParseContent::Sequence(sequence_elements);
                                         Ok(ParseNode {
                                             rule_name: "quantified",
@@ -4050,7 +5039,7 @@ impl<'input> Return_annotationParser<'input> {
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_3",
+                                rule_name: "element_1",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -4186,7 +5175,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_property_key()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -4216,7 +5207,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_expression()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -4354,36 +5347,91 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_PROPERTY_KEY,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(2usize);
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
+                    let mut result = ParseContent::Sequence(Vec::new());
+                    let mut branch_matched = false;
+                    if !branch_matched {
+                        if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                1usize, 2usize, "property_key", parser.position
+                                            ),
+                                        );
+                                }
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_identifier()?),
+                                );
+                                if parser.logger.is_enabled() {
+                                    parser
+                                        .logger
+                                        .log_info(
+                                            "../generated/return_annotation_parser.rs",
+                                            0,
+                                            &format!(
+                                                "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                1usize, 2usize, "property_key", parser.position
+                                            ),
+                                        );
+                                }
+                                Ok(result)
+                            })
+                        {
+                            result = content;
+                            branch_matched = true;
+                        } else if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                        1usize, 2usize, "property_key", parser.position
+                                    ),
+                                );
+                        }
+                    }
+                    if !branch_matched {
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "🚪 Entering fallback branch {}/{} for rule '{}' at position {}",
+                                        2usize, 2usize, "property_key", parser.position
+                                    ),
+                                );
+                        }
+                        let content = {
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_string_literal()?),
+                            );
                             result
                         };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
+                        if parser.logger.is_enabled() {
+                            parser
+                                .logger
+                                .log_info(
+                                    "../generated/return_annotation_parser.rs",
+                                    0,
+                                    &format!(
+                                        "✅ Leaving fallback branch {}/{} for rule '{}' at position {} (success)",
+                                        2usize, 2usize, "property_key", parser.position
+                                    ),
+                                );
+                        }
+                        result = content;
+                        branch_matched = true;
                     }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    let result = ParseContent::Sequence(sequence_elements);
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "property_key",
@@ -4510,7 +5558,7 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_ARRAY_LITERAL,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(4usize);
+                    let mut sequence_elements = Vec::with_capacity(3usize);
                     {
                         let element_start = parser.position;
                         let element_content = {
@@ -4529,24 +5577,12 @@ impl<'input> Return_annotationParser<'input> {
                     }
                     {
                         let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
                         let element_content = if let Some(content) = parser
                             .try_parse(|p| {
-                                let mut sequence_elements = Vec::with_capacity(0usize);
-                                let result = ParseContent::Sequence(sequence_elements);
+                                let parser = p;
+                                let result = ParseContent::Alternative(
+                                    Box::new(parser.parse_array_elements()?),
+                                );
                                 Ok(result)
                             })
                         {
@@ -4557,7 +5593,7 @@ impl<'input> Return_annotationParser<'input> {
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_2",
+                                rule_name: "element_1",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -4573,7 +5609,7 @@ impl<'input> Return_annotationParser<'input> {
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_3",
+                                rule_name: "element_2",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -4705,47 +5741,19 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_ARRAY_ELEMENTS,
                 |parser| {
-                    let mut sequence_elements = Vec::with_capacity(4usize);
+                    let mut sequence_elements = Vec::with_capacity(2usize);
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_0",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal(
-                                parser.match_string(",")?,
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_array_element()?),
                             );
                             result
                         };
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_1",
-                                content: element_content,
-                                span: element_start..element_end,
-                            });
-                    }
-                    {
-                        let element_start = parser.position;
-                        let element_content = {
-                            let result = ParseContent::Terminal("");
-                            result
-                        };
-                        let element_end = parser.position;
-                        sequence_elements
-                            .push(ParseNode {
-                                rule_name: "element_2",
+                                rule_name: "element_0",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -4760,7 +5768,40 @@ impl<'input> Return_annotationParser<'input> {
                             while iteration_count < MAX_ITERATIONS {
                                 if let Some(node) = parser
                                     .try_parse(|p| {
-                                        let mut sequence_elements = Vec::with_capacity(0usize);
+                                        let parser = p;
+                                        let mut sequence_elements = Vec::with_capacity(2usize);
+                                        {
+                                            let element_start = parser.position;
+                                            let element_content = {
+                                                let result = ParseContent::Terminal(
+                                                    parser.match_string(",")?,
+                                                );
+                                                result
+                                            };
+                                            let element_end = parser.position;
+                                            sequence_elements
+                                                .push(ParseNode {
+                                                    rule_name: "element_0",
+                                                    content: element_content,
+                                                    span: element_start..element_end,
+                                                });
+                                        }
+                                        {
+                                            let element_start = parser.position;
+                                            let element_content = {
+                                                let result = ParseContent::Alternative(
+                                                    Box::new(parser.parse_array_element()?),
+                                                );
+                                                result
+                                            };
+                                            let element_end = parser.position;
+                                            sequence_elements
+                                                .push(ParseNode {
+                                                    rule_name: "element_1",
+                                                    content: element_content,
+                                                    span: element_start..element_end,
+                                                });
+                                        }
                                         let result = ParseContent::Sequence(sequence_elements);
                                         Ok(ParseNode {
                                             rule_name: "quantified",
@@ -4812,7 +5853,7 @@ impl<'input> Return_annotationParser<'input> {
                         let element_end = parser.position;
                         sequence_elements
                             .push(ParseNode {
-                                rule_name: "element_3",
+                                rule_name: "element_1",
                                 content: element_content,
                                 span: element_start..element_end,
                             });
@@ -4944,7 +5985,9 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_ARRAY_ELEMENT,
                 |parser| {
-                    let result = ParseContent::Terminal("");
+                    let result = ParseContent::Alternative(
+                        Box::new(parser.parse_expression()?),
+                    );
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "array_element",
@@ -5091,7 +6134,9 @@ impl<'input> Return_annotationParser<'input> {
                     {
                         let element_start = parser.position;
                         let element_content = {
-                            let result = ParseContent::Terminal("");
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_expression()?),
+                            );
                             result
                         };
                         let element_end = parser.position;
@@ -5345,7 +6390,7 @@ impl<'input> Return_annotationParser<'input> {
     {
         let key = (rule_id, self.position);
         if let Some(cached) = self.memo.get(&key) {
-            if let Some(ref node) = cached {
+            if let Some(node) = cached {
                 self.position = node.span.end;
                 if self.logger.is_enabled() {
                     self.logger

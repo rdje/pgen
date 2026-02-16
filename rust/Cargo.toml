@@ -23,7 +23,6 @@ required-features = ["bootstrap"]
 [[bin]]
 name = "test_runner"
 path = "src/bin/test_runner.rs"
-required-features = ["generated_parsers"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

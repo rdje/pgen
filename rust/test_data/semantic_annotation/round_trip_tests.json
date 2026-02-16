@@ -5,7 +5,14 @@
     "input": "str::parse::<f64>().unwrap_or(0.0)",
     "expected_round_trip": "str::parse::<f64>().unwrap_or(0.0)",
     "parser_type": "semantic",
-    "normalizer": "text"
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "transform"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Bootstrap parser accepts bare expressions; generated parser entrypoint expects @annotation: value form"
   },
   {
     "name": "transform_parse_int",
@@ -13,7 +20,14 @@
     "input": "str::parse::<i32>().unwrap_or_default()",
     "expected_round_trip": "str::parse::<i32>().unwrap_or_default()",
     "parser_type": "semantic",
-    "normalizer": "text"
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "transform"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Bootstrap parser accepts bare expressions; generated parser entrypoint expects @annotation: value form"
   },
   {
     "name": "complex_transform",
@@ -21,6 +35,13 @@
     "input": "str.trim().parse::<f64>().unwrap_or(0.0).round()",
     "expected_round_trip": "str.trim().parse::<f64>().unwrap_or(0.0).round()",
     "parser_type": "semantic",
-    "normalizer": "text"
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "transform", "complex"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Bootstrap parser accepts bare expressions; generated parser entrypoint expects @annotation: value form"
   }
 ]

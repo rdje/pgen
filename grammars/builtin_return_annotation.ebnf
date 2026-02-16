@@ -1,0 +1,132 @@
+# builtin_return_annotation.ebnf
+# Inferred EBNF for the hand-written bootstrap return parser.
+# Source of truth for this spec is implementation behavior in:
+#   rust/src/ast_pipeline/unified_return_ast.rs
+#
+# IMPORTANT:
+# - This grammar is intentionally implementation-accurate (not idealized).
+# - It documents accepted syntax + known parser quirks.
+
+# ============================================================================
+# ENTRY / NORMALIZATION
+# ============================================================================
+
+# The parser first applies this normalization:
+# 1) If input starts with "-> " or "->" at byte 0, strip that prefix.
+# 2) Trim leading/trailing whitespace.
+# 3) If result is empty, return Passthrough.
+#
+# This is procedural behavior, represented here as two accepted forms.
+bootstrap_return_annotation := arrow_form | bare_form
+
+# Arrow form is recognized only when "->" is the first bytes of the raw input.
+arrow_form := "->" ws* return_value?
+
+# Bare form is fully trimmed before parsing.
+bare_form := ws* return_value? ws*
+
+# ============================================================================
+# VALUE DISPATCH (matches parse_value order)
+# ============================================================================
+
+return_value := positional_reference
+              | string_literal
+              | object_literal
+              | array_literal
+              | number_literal
+              | boolean_literal
+
+# ============================================================================
+# POSITIONAL REFERENCES
+# ============================================================================
+
+positional_reference := "$" unsigned_integer positional_suffix?
+
+positional_suffix := extraction_suffix
+                   | spread_suffix
+                   | property_suffix
+                   | array_index_suffix
+
+# Extraction: $2::2, $2::first, $2::last, $2::2*
+extraction_suffix := "::" extraction_target spread_suffix?
+extraction_target := positive_integer | "first" | "last"
+positive_integer := /[1-9][0-9]*/
+
+# Spread: $2*
+spread_suffix := "*"
+
+# Property access: $1.value
+# Implementation accepts any non-empty tail after '.'
+property_suffix := "." property_text
+property_text := /.+/
+
+# Array access: $1[0], $1[$2], etc.
+# Implementation parses up to first ']' and does not validate trailing text.
+array_index_suffix := "[" return_value "]" trailing_text?
+trailing_text := /.*/
+
+# ============================================================================
+# OBJECTS
+# ============================================================================
+
+object_literal := "{" ws* object_properties? ws* "}"
+object_properties := object_property (ws* "," ws* object_property)*
+object_property := object_key ws* ":" ws* return_value
+
+# Object keys:
+# - quoted key: "name"
+# - raw key: unquoted text segment (trimmed by parser)
+object_key := quoted_key | raw_key
+quoted_key := "\"" dq_char* "\""
+raw_key := /[^,]*/
+
+# ============================================================================
+# ARRAYS
+# ============================================================================
+
+array_literal := "[" ws* array_elements? ws* "]"
+array_elements := array_element (ws* "," ws* array_element)*
+
+# Array spread behavior is implementation-specific:
+# if raw element text ends with '*' and does NOT start with '"',
+# parser treats it as spread(base_without_star).
+array_element := array_spread_element | return_value
+array_spread_element := spread_base "*"
+spread_base := return_value
+
+# ============================================================================
+# LITERALS
+# ============================================================================
+
+# Double-quoted only (single-quoted strings are not parsed as strings here).
+# Content is taken verbatim; no escape validation is performed.
+string_literal := "\"" dq_char* "\""
+dq_char := /./
+
+# Delegated to Rust f64::from_str on the fully-trimmed token.
+# This includes standard float/integer formats accepted by Rust.
+number_literal := rust_f64_number
+rust_f64_number := /[-+0-9eE.]+/
+
+boolean_literal := "true" | "false"
+unsigned_integer := /[0-9]+/
+
+ws := /[ \t\r\n]*/
+
+# ============================================================================
+# IMPLEMENTATION NOTES (QUIRKS TO PRESERVE)
+# ============================================================================
+#
+# 1) Leading whitespace before "->" is NOT treated as arrow form.
+#    Example: "  -> $1" does not strip arrow and fails.
+#
+# 2) In positional spread form, "$1*anything" is accepted as "$1*"
+#    (trailing characters are not validated).
+#
+# 3) In array access, "$1[0]anything" is accepted as "$1[0]"
+#    (trailing characters are not validated).
+#
+# 4) Top-level comma/colon splitting is nesting-aware only for:
+#      - {} and []
+#      - double-quoted strings
+#    It does not track parentheses depth.

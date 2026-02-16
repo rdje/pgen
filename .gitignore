@@ -242,6 +242,7 @@ Thumbs.db
 debug.log
 error.log
 parser.log
+rust/regression_logs/
 
 # Parser debug and trace logs
 parser_debug_*.log

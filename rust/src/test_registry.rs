@@ -38,7 +38,7 @@ impl TestRegistry {
             last_updated: chrono::Utc::now().to_rfc3339(),
         }
     }
-    
+
     fn default_return_tests() -> Vec<TestCase> {
         vec![
             TestCase {
@@ -141,7 +141,7 @@ impl TestRegistry {
             },
         ]
     }
-    
+
     fn default_semantic_tests() -> Vec<TestCase> {
         vec![
             TestCase {
@@ -181,7 +181,7 @@ impl TestRegistry {
             },
         ]
     }
-    
+
     fn default_regex_tests() -> Vec<TestCase> {
         vec![
             TestCase {
@@ -242,7 +242,7 @@ impl TestRegistry {
             },
         ]
     }
-    
+
     /// Get all test cases for a specific parser type
     pub fn get_tests_for_parser(&self, parser_type: &str) -> Vec<&TestCase> {
         match parser_type {
@@ -252,21 +252,24 @@ impl TestRegistry {
             _ => vec![],
         }
     }
-    
+
     /// Generate a unique make target name for a test case
     pub fn generate_make_target(&self, test: &TestCase) -> String {
         let category_part = test.category.replace("_", "-");
         let input_part = self.sanitize_for_target(&test.input);
         format!("test-{}-{}-{}", test.parser_type, category_part, input_part)
     }
-    
+
     /// Generate a unique function name for a test case
     pub fn generate_function_name(&self, test: &TestCase) -> String {
         let category_part = test.category.replace("-", "_");
         let input_part = self.sanitize_for_function(&test.input);
-        format!("test_{}_{}__{}", test.parser_type, category_part, input_part)
+        format!(
+            "test_{}_{}__{}",
+            test.parser_type, category_part, input_part
+        )
     }
-    
+
     fn sanitize_for_target(&self, input: &str) -> String {
         input
             .chars()
@@ -286,7 +289,7 @@ impl TestRegistry {
             .trim_matches('_')
             .to_lowercase()
     }
-    
+
     fn sanitize_for_function(&self, input: &str) -> String {
         input
             .chars()
@@ -306,7 +309,7 @@ impl TestRegistry {
             .trim_matches('_')
             .to_lowercase()
     }
-    
+
     /// Add a new test case
     pub fn add_test(&mut self, test: TestCase) {
         match test.parser_type.as_str() {
@@ -317,7 +320,7 @@ impl TestRegistry {
         }
         self.last_updated = chrono::Utc::now().to_rfc3339();
     }
-    
+
     /// Remove a test case by input and parser type
     pub fn remove_test(&mut self, parser_type: &str, input: &str) -> bool {
         let removed = match parser_type {
@@ -338,14 +341,14 @@ impl TestRegistry {
             }
             _ => false,
         };
-        
+
         if removed {
             self.last_updated = chrono::Utc::now().to_rfc3339();
         }
-        
+
         removed
     }
-    
+
     /// Get all test cases across all parser types
     pub fn get_all_tests(&self) -> Vec<&TestCase> {
         let mut all_tests = Vec::new();
@@ -354,14 +357,14 @@ impl TestRegistry {
         all_tests.extend(&self.regex_tests);
         all_tests
     }
-    
+
     /// Save registry to JSON file
     pub fn save_to_file(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let json = serde_json::to_string_pretty(self)?;
         std::fs::write(path, json)?;
         Ok(())
     }
-    
+
     /// Load registry from JSON file
     pub fn load_from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let json = std::fs::read_to_string(path)?;

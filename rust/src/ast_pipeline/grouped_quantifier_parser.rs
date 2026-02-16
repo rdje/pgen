@@ -2,15 +2,15 @@ use super::ASTNode;
 // Robust SOTA implementation for parsing grouped and quantified elements in EBNF
 // Handles arbitrary nesting levels and complex patterns
 
-use anyhow::{Result, Context};
-use std::fmt;
 use crate::ast_pipeline::TokenValue;
+use anyhow::{Context, Result};
+use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
-    GroupOpen,      // (
-    GroupClose,     // )
-    Quantifier(String), // ?, *, +
+    GroupOpen,               // (
+    GroupClose,              // )
+    Quantifier(String),      // ?, *, +
     Element(String, String), // (type, value) for actual content
 }
 
@@ -22,34 +22,33 @@ pub enum ParsedElement {
         token_value: String,
     },
     /// A sequence of elements
-    Sequence {
-        elements: Vec<ParsedElement>,
-    },
+    Sequence { elements: Vec<ParsedElement> },
     /// An alternative (a | b | c)
-    Alternative {
-        branches: Vec<ParsedElement>,
-    },
+    Alternative { branches: Vec<ParsedElement> },
     /// A quantified element with ?, *, or +
     Quantified {
         element: Box<ParsedElement>,
         quantifier: String,
     },
     /// A grouped element without quantifier
-    Group {
-        element: Box<ParsedElement>,
-    },
+    Group { element: Box<ParsedElement> },
 }
 
 impl fmt::Display for ParsedElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ParsedElement::Simple { token_type, token_value } => {
+            ParsedElement::Simple {
+                token_type,
+                token_value,
+            } => {
                 write!(f, "{}:{}", token_type, token_value)
             }
             ParsedElement::Sequence { elements } => {
                 write!(f, "(")?;
                 for (i, elem) in elements.iter().enumerate() {
-                    if i > 0 { write!(f, " ")?; }
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
                     write!(f, "{}", elem)?;
                 }
                 write!(f, ")")
@@ -57,12 +56,17 @@ impl fmt::Display for ParsedElement {
             ParsedElement::Alternative { branches } => {
                 write!(f, "(")?;
                 for (i, branch) in branches.iter().enumerate() {
-                    if i > 0 { write!(f, " | ")?; }
+                    if i > 0 {
+                        write!(f, " | ")?;
+                    }
                     write!(f, "{}", branch)?;
                 }
                 write!(f, ")")
             }
-            ParsedElement::Quantified { element, quantifier } => {
+            ParsedElement::Quantified {
+                element,
+                quantifier,
+            } => {
                 write!(f, "{}{}", element, quantifier)
             }
             ParsedElement::Group { element } => {
@@ -81,10 +85,10 @@ impl GroupedQuantifierParser {
     pub fn new(debug_mode: bool) -> Self {
         Self { debug_mode }
     }
-    
+
     pub fn tokenize_from_raw_tokens(&self, tokens: &[Vec<TokenValue>]) -> Result<Vec<Token>> {
         let mut result = Vec::new();
-        
+
         for token in tokens {
             if token.len() >= 2 {
                 // Convert TokenValue to String for processing
@@ -94,23 +98,26 @@ impl GroupedQuantifierParser {
                 let token_value = match &token[1] {
                     TokenValue::String(s) => s.as_str(),
                 };
-                
+
                 match token_type {
                     "group_open" => result.push(Token::GroupOpen),
                     "group_close" => result.push(Token::GroupClose),
                     "quantifier" => result.push(Token::Quantifier(token_value.to_string())),
-                    _ => result.push(Token::Element(token_type.to_string(), token_value.to_string())),
+                    _ => result.push(Token::Element(
+                        token_type.to_string(),
+                        token_value.to_string(),
+                    )),
                 }
             }
         }
-        
+
         Ok(result)
     }
-    
+
     pub fn parse_sequence(&self, tokens: &[Token]) -> Result<Vec<ParsedElement>> {
         // Simple implementation for now - just convert each token to a ParsedElement
         let mut result = Vec::new();
-        
+
         for token in tokens {
             match token {
                 Token::Element(token_type, token_value) => {
@@ -124,29 +131,39 @@ impl GroupedQuantifierParser {
                 }
             }
         }
-        
+
         Ok(result)
     }
-    
+
     pub fn to_ast_node(&self, element: ParsedElement) -> ASTNode {
         match element {
-            ParsedElement::Simple { token_type, token_value } => {
-                ASTNode::Atom {
-                    value: crate::ast_pipeline::ASTValue::Token(vec![
-                        crate::ast_pipeline::TokenValue::String(token_type),
-                        crate::ast_pipeline::TokenValue::String(token_value),
-                    ])
+            ParsedElement::Simple {
+                token_type,
+                token_value,
+            } => ASTNode::Atom {
+                value: crate::ast_pipeline::ASTValue::Token(vec![
+                    crate::ast_pipeline::TokenValue::String(token_type),
+                    crate::ast_pipeline::TokenValue::String(token_value),
+                ]),
+            },
+            ParsedElement::Sequence { elements } => {
+                let ast_elements: Vec<ASTNode> =
+                    elements.into_iter().map(|e| self.to_ast_node(e)).collect();
+                ASTNode::Sequence {
+                    elements: ast_elements,
                 }
             }
-            ParsedElement::Sequence { elements } => {
-                let ast_elements: Vec<ASTNode> = elements.into_iter().map(|e| self.to_ast_node(e)).collect();
-                ASTNode::Sequence { elements: ast_elements }
-            }
             ParsedElement::Alternative { branches } => {
-                let ast_branches: Vec<ASTNode> = branches.into_iter().map(|e| self.to_ast_node(e)).collect();
-                ASTNode::Or { alternatives: ast_branches }
+                let ast_branches: Vec<ASTNode> =
+                    branches.into_iter().map(|e| self.to_ast_node(e)).collect();
+                ASTNode::Or {
+                    alternatives: ast_branches,
+                }
             }
-            ParsedElement::Quantified { element, quantifier } => {
+            ParsedElement::Quantified {
+                element,
+                quantifier,
+            } => {
                 let ast_element = self.to_ast_node(*element);
                 ASTNode::Quantified {
                     element: Box::new(ast_element),
@@ -156,7 +173,7 @@ impl GroupedQuantifierParser {
             ParsedElement::Group { element } => {
                 let ast_element = self.to_ast_node(*element);
                 ASTNode::Atom {
-                    value: crate::ast_pipeline::ASTValue::Node(Box::new(ast_element))
+                    value: crate::ast_pipeline::ASTValue::Node(Box::new(ast_element)),
                 }
             }
         }
@@ -166,7 +183,7 @@ impl GroupedQuantifierParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_display_simple() {
         let element = ParsedElement::Simple {
@@ -175,7 +192,7 @@ mod tests {
         };
         assert_eq!(format!("{}", element), "rule_reference:expression");
     }
-    
+
     #[test]
     fn test_display_sequence() {
         let element = ParsedElement::Sequence {

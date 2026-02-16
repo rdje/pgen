@@ -4,8 +4,8 @@
 //! including semantic annotation parsing and high-performance parser generation.
 
 pub mod ast_pipeline;
-pub mod test_runner;
-pub mod test_registry; // Only declare once
+pub mod test_registry;
+pub mod test_runner; // Only declare once
 
 // New automation modules
 pub mod test_discovery;
@@ -24,4 +24,3 @@ pub mod generated_parsers {
         include!("../../generated/semantic_annotation_parser.rs");
     }
 }
-

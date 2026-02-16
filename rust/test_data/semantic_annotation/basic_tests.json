@@ -1,42 +1,87 @@
 [
   {
-    "name": "simple_dot_notation",
-    "description": "Test basic dot notation",
+    "name": "simple_type_annotation",
+    "description": "Test basic type annotation - Tier A (Core/Bootstrap Contract)",
+    "input": "@type: \"Expression\"",
+    "expected_round_trip": "@type: \"Expression\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "string_literal"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "predefined_annotation",
+    "description": "Test predefined annotation type - Tier A (Core/Bootstrap Contract)",
+    "input": "@effect: \"pure\"",
+    "expected_round_trip": "@effect: \"pure\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "predefined", "string_literal"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "boolean_annotation",
+    "description": "Test boolean value annotation - Tier A (Core/Bootstrap Contract)",
+    "input": "@deprecated: true",
+    "expected_round_trip": "@deprecated: true",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "boolean"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "numeric_annotation",
+    "description": "Test numeric value annotation - Tier A (Core/Bootstrap Contract)",
+    "input": "@precedence: 5",
+    "expected_round_trip": "@precedence: 5",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "numeric"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "identifier_annotation",
+    "description": "Test identifier value annotation - Tier A (Core/Bootstrap Contract)",
+    "input": "@category: statement",
+    "expected_round_trip": "@category: statement",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "identifier"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "bare_expression_bootstrap_compatibility",
+    "description": "Test bare expression (bootstrap parser compatibility) - Tier A (Core/Bootstrap Contract)",
     "input": "$1.bar",
     "expected_round_trip": "$1.bar",
     "parser_type": "semantic",
-    "normalizer": "text"
-  },
-  {
-    "name": "nested_dot_notation",
-    "description": "Test nested dot notation",
-    "input": "$1.foo.bar",
-    "expected_round_trip": "$1.foo.bar",
-    "parser_type": "semantic",
-    "normalizer": "text"
-  },
-  {
-    "name": "array_access",
-    "description": "Test array access notation",
-    "input": "$1[0]",
-    "expected_round_trip": "$1[0]",
-    "parser_type": "semantic",
-    "normalizer": "text"
-  },
-  {
-    "name": "complex_chain",
-    "description": "Test complex chained notation",
-    "input": "$1.items[*].value",
-    "expected_round_trip": "$1.items[*].value",
-    "parser_type": "semantic",
-    "normalizer": "text"
-  },
-  {
-    "name": "transform_expression",
-    "description": "Test transform expression parsing",
-    "input": "str::parse::<f64>().unwrap_or(0.0)",
-    "expected_round_trip": "str::parse::<f64>().unwrap_or(0.0)",
-    "parser_type": "semantic",
-    "normalizer": "text"
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["core", "bootstrap", "bare_expression", "rule_reference"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Bootstrap parser accepts bare expressions for backward compatibility"
   }
 ]

@@ -5,7 +5,11 @@
     "input": "$1",
     "expected_round_trip": "$1",
     "parser_type": "return",
-    "normalizer": "text"
+    "normalizer": "text",
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
   },
   {
     "name": "real_semantic_annotation_test",
@@ -13,6 +17,11 @@
     "input": "str::parse::<f64>().unwrap_or(0.0)",
     "expected_round_trip": "str::parse::<f64>().unwrap_or(0.0)",
     "parser_type": "semantic",
-    "normalizer": "text"
+    "normalizer": "text",
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "fail"
+    },
+    "note": "Generated semantic parser entrypoint expects @annotation: value form"
   }
 ]

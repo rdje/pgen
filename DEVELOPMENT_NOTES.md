@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-16 - Parser Stabilization Notes: Bootstrap Contracts, Generated Strictness, and Normalized Validation
+### Architecture Insight: Two Valid Semantics Must Coexist
+The current system intentionally has two parser personalities that are both correct for their role:
+- **Bootstrap (hand-written) parsers**: permissive and survival-focused for chicken-and-egg bootstrapping.
+- **Generated parsers**: strict to the concrete grammar entry rule.
+The main source of false regressions was treating these personalities as if they should accept exactly the same surface language in all suites.
+### Key Design Decisions Captured
+#### 1) Parser-target expectations must be explicit, not implicit
+Round-trip test files now need per-target expectations whenever behavior differs:
+- `bootstrap_parser`: pass/fail/expected_fail/skip
+- `generated_parser`: pass/fail/expected_fail/skip
+This avoids cross-target ambiguity and prevents regressions from being “fixed” by changing parser behavior when only metadata was wrong.
+#### 2) Generated semantic parser entrypoint is annotation-shaped
+Generated semantic parser target starts at `semantic_annotation` and therefore expects `@name: value`.
+Bare expressions (e.g. `str::parse::<f64>().unwrap_or(0.0)`) are valid bootstrap payloads but not valid generated-entry inputs unless wrapped as annotations.
+#### 3) Bootstrap semantic parser permissiveness is intentional
+Bootstrap semantic parser currently treats most unrecognized annotation payloads as raw content. This is acceptable for bootstrap goals and should not be interpreted as a generated grammar contract.
+### Deep Root-Cause Notes
+#### A) Return object parsing and extraction operator interaction
+`::` inside values (e.g. `$2::first`) was colliding with naive key/value colon splitting in object parsing.
+Fix required a dedicated object-property splitter that:
+- respects nesting and quoted strings,
+- splits only at the first top-level key/value colon,
+- ignores extraction delimiter colons.
+#### B) Text comparison is insufficient for return annotations
+Several return-suite failures were semantic matches but textual mismatches:
+- key order differences,
+- quoted vs bare key canonicalization,
+- escape rendering differences.
+AST-based normalization for return tests is now the durable path, because it compares canonical structure rather than unstable text formatting details.
+#### C) Grammar action literals can leak into codegen assumptions
+Return grammar action `-> true` produced a generated-code path trying to call `parse_true`.
+Changing to `-> "true"` removed the method-call ambiguity and stabilized generated return parser compilation under feature-enabled builds.
+#### D) Rule-reference coverage needed positional support
+Semantic grammar `rule_reference` originally accepted only identifier-like names; test input `@transform: $1` required positional support.
+Extended grammar with `rule_reference_name := /([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+)/`.
+### Validation Pattern That Worked
+Reliable closure sequence used in this cycle:
+1. fix parser behavior or grammar bug,
+2. regenerate parser artifacts,
+3. align per-target expectations where behavior difference is by design,
+4. rerun the three requested regression categories,
+5. classify each remaining failure as parser bug vs expectation bug before making further code changes.
+### Final Known-Good Regression Baseline
+- Built-in return: `72/72`
+- Built-in semantic: `24/24`
+- Generated semantic: `28/28`
+### Operational Guidance for Future Work
+- Keep `rust/regression_logs/**` local-only (diagnostic artifact, not source of truth).
+- Keep inferred bootstrap EBNFs in `grammars/` as documentation of implementation reality:
+  - `builtin_return_annotation.ebnf`
+  - `builtin_semantic_annotation.ebnf`
+- When suites mix both parser targets, always set explicit per-target expectations instead of relying on default `pass`.
+---
 
 ## 2025-10-06 - AST-Based Code Generator: Final Restoration and Validation Complete
 

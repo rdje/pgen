@@ -1,11 +1,11 @@
 // AST-based Return Annotation Transformer
 // Uses syn/quote to generate proper return value transformations
 
-use quote::{quote, ToTokens};
-use proc_macro2::TokenStream;
-use syn::parse_quote;
+use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use anyhow::Result;
-use crate::ast_pipeline::unified_return_ast::{UnifiedReturnAST, ExtractionTarget};
+use proc_macro2::TokenStream;
+use quote::{ToTokens, quote};
+use syn::parse_quote;
 
 /// Generate AST-based return transformation code
 pub struct AstReturnTransformer;
@@ -50,12 +50,10 @@ impl AstReturnTransformer {
             UnifiedReturnAST::QuantifiedExtraction { base, target } => {
                 Self::generate_quantified_extraction(base, target, captured_vars)
             }
-            UnifiedReturnAST::Passthrough => {
-                Self::generate_passthrough(captured_vars)
-            }
+            UnifiedReturnAST::Passthrough => Self::generate_passthrough(captured_vars),
         }
     }
-    
+
     /// Generate code for positional reference ($1, $2, etc.)
     fn generate_positional_ref(index: usize, captured_vars: &[String]) -> Result<TokenStream> {
         // Special case: if we have a single "result" variable, assume it might be a sequence
@@ -71,15 +69,15 @@ impl AstReturnTransformer {
                 }
             });
         }
-        
+
         if index == 0 || index > captured_vars.len() {
-            return Ok(quote! { 
-                ParseContent::Terminal("<invalid_positional_ref>") 
+            return Ok(quote! {
+                ParseContent::Terminal("<invalid_positional_ref>")
             });
         }
-        
+
         let var_ref = &captured_vars[index - 1];
-        
+
         // Check if this is a sequence element reference
         if var_ref.starts_with("sequence_elements[") {
             // Extract from sequence element
@@ -108,14 +106,14 @@ impl AstReturnTransformer {
             })
         }
     }
-    
+
     /// Generate array transformation
     fn generate_array_transform(
         elements: &[UnifiedReturnAST],
         captured_vars: &[String],
     ) -> Result<TokenStream> {
         let mut element_codes = Vec::new();
-        
+
         for (idx, element) in elements.iter().enumerate() {
             match element {
                 UnifiedReturnAST::Spread { base } => {
@@ -158,7 +156,7 @@ impl AstReturnTransformer {
                 }
             }
         }
-        
+
         Ok(quote! {
             {
                 let mut array_elements = Vec::new();
@@ -167,21 +165,21 @@ impl AstReturnTransformer {
             }
         })
     }
-    
+
     /// Generate object transformation using JSON
     fn generate_object_transform(
         properties: &std::collections::HashMap<String, Box<UnifiedReturnAST>>,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
         let mut field_assignments = Vec::new();
-        
+
         for (key, value_ast) in properties {
             let value_code = Self::generate_value_extraction(value_ast, captured_vars)?;
             field_assignments.push(quote! {
                 json_obj[#key] = serde_json::json!(#value_code);
             });
         }
-        
+
         Ok(quote! {
             {
                 let mut json_obj = serde_json::json!({});
@@ -192,7 +190,7 @@ impl AstReturnTransformer {
             }
         })
     }
-    
+
     /// Generate code to extract value for object property
     fn generate_value_extraction(
         ast: &UnifiedReturnAST,
@@ -221,14 +219,15 @@ impl AstReturnTransformer {
                         }
                     });
                 }
-                
+
                 if *index > 0 && *index <= captured_vars.len() {
                     let var_ref = &captured_vars[index - 1];
-                    
+
                     // Check for complex match expression
                     if var_ref.starts_with("match &branch_result") {
                         // This is a complex extraction - use it as-is
-                        let var_tokens: TokenStream = var_ref.parse()
+                        let var_tokens: TokenStream = var_ref
+                            .parse()
                             .map_err(|e| anyhow::anyhow!("Failed to parse var ref: {}", e))?;
                         Ok(quote! {
                             match #var_tokens {
@@ -269,15 +268,9 @@ impl AstReturnTransformer {
                     Ok(quote! { format!("<invalid_ref_{}>", #index) })
                 }
             }
-            UnifiedReturnAST::StringLiteral { value } => {
-                Ok(quote! { #value })
-            }
-            UnifiedReturnAST::NumberLiteral { value } => {
-                Ok(quote! { #value })
-            }
-            UnifiedReturnAST::BooleanLiteral { value } => {
-                Ok(quote! { #value })
-            }
+            UnifiedReturnAST::StringLiteral { value } => Ok(quote! { #value }),
+            UnifiedReturnAST::NumberLiteral { value } => Ok(quote! { #value }),
+            UnifiedReturnAST::BooleanLiteral { value } => Ok(quote! { #value }),
             _ => {
                 // For complex nested values
                 let nested = Self::generate_transform(ast, captured_vars, "")?;
@@ -290,14 +283,14 @@ impl AstReturnTransformer {
             }
         }
     }
-    
+
     /// Generate spread operator transformation
     fn generate_spread_transform(
         base: &Box<UnifiedReturnAST>,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
         let base_code = Self::generate_transform(base, captured_vars, "")?;
-        
+
         Ok(quote! {
             match #base_code {
                 ParseContent::Sequence(elements) => ParseContent::Sequence(elements),
@@ -310,7 +303,7 @@ impl AstReturnTransformer {
             }
         })
     }
-    
+
     /// Generate property access transformation
     fn generate_property_access(
         base: &Box<UnifiedReturnAST>,
@@ -318,7 +311,7 @@ impl AstReturnTransformer {
         captured_vars: &[String],
     ) -> Result<TokenStream> {
         let base_code = Self::generate_transform(base, captured_vars, "")?;
-        
+
         // For now, return a placeholder - would need runtime reflection
         Ok(quote! {
             {
@@ -341,7 +334,7 @@ impl AstReturnTransformer {
             }
         })
     }
-    
+
     /// Generate array access transformation
     fn generate_array_access(
         base: &Box<UnifiedReturnAST>,
@@ -349,7 +342,7 @@ impl AstReturnTransformer {
         captured_vars: &[String],
     ) -> Result<TokenStream> {
         let base_code = Self::generate_transform(base, captured_vars, "")?;
-        
+
         // Get index value
         let index_code = match index.as_ref() {
             UnifiedReturnAST::NumberLiteral { value } => {
@@ -361,7 +354,7 @@ impl AstReturnTransformer {
                 quote! { 0usize }
             }
         };
-        
+
         Ok(quote! {
             match #base_code {
                 ParseContent::Sequence(ref elements) if elements.len() > #index_code => {
@@ -374,7 +367,7 @@ impl AstReturnTransformer {
             }
         })
     }
-    
+
     /// Generate quantified extraction ($1*, $2+, etc.)
     fn generate_quantified_extraction(
         base: &Box<UnifiedReturnAST>,
@@ -383,12 +376,14 @@ impl AstReturnTransformer {
     ) -> Result<TokenStream> {
         // Get the base reference
         let base_ref = match base.as_ref() {
-            UnifiedReturnAST::PositionalRef { index } if *index > 0 && *index <= captured_vars.len() => {
+            UnifiedReturnAST::PositionalRef { index }
+                if *index > 0 && *index <= captured_vars.len() =>
+            {
                 &captured_vars[index - 1]
             }
-            _ => return Ok(quote! { ParseContent::Terminal("<invalid_extraction_base>") })
+            _ => return Ok(quote! { ParseContent::Terminal("<invalid_extraction_base>") }),
         };
-        
+
         // Determine extraction index
         let extraction_idx = match target {
             ExtractionTarget::Index(idx) => *idx,
@@ -405,7 +400,7 @@ impl AstReturnTransformer {
                 });
             }
         };
-        
+
         Ok(quote! {
             match &#base_ref {
                 ParseContent::Quantified(elements, _) => {
@@ -425,20 +420,20 @@ impl AstReturnTransformer {
             }
         })
     }
-    
+
     /// Generate passthrough transformation (default behavior)
     fn generate_passthrough(captured_vars: &[String]) -> Result<TokenStream> {
         if captured_vars.is_empty() {
             return Ok(quote! { ParseContent::Terminal("") });
         }
-        
+
         // Return the last captured element or first if only one
         let var_ref = if captured_vars.len() == 1 {
             &captured_vars[0]
         } else {
             captured_vars.last().unwrap()
         };
-        
+
         if var_ref.starts_with("sequence_elements[") {
             Ok(quote! { #var_ref.content.clone() })
         } else {

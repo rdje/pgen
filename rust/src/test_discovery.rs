@@ -1,9 +1,9 @@
 //! Test Discovery System
 //! Automatically scans and extracts test cases from stress test files
 
-use std::path::Path;
-use std::fs;
 use crate::test_registry::{TestCase, TestExpectation, TestRegistry};
+use std::fs;
+use std::path::Path;
 
 pub struct TestDiscovery {
     root_path: String,
@@ -15,16 +15,16 @@ impl TestDiscovery {
             root_path: root_path.to_string(),
         }
     }
-    
+
     /// Discover all test cases by reading JSON test data files
     pub fn discover_all_tests(&self) -> Result<TestRegistry, Box<dyn std::error::Error>> {
         let mut registry = TestRegistry::default();
-        
+
         // Clear existing tests since we're rediscovering
         registry.return_tests.clear();
         registry.semantic_tests.clear();
         registry.regex_tests.clear();
-        
+
         // Read test data from JSON files
         let test_data_dir = format!("{}/test_data", self.root_path);
         if let Ok(entries) = fs::read_dir(&test_data_dir) {
@@ -42,18 +42,22 @@ impl TestDiscovery {
                 }
             }
         }
-        
+
         registry.last_updated = chrono::Utc::now().to_rfc3339();
         Ok(registry)
     }
-    
+
     /// Read test cases from a JSON file
-    fn read_json_test_file(&self, registry: &mut TestRegistry, file_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    fn read_json_test_file(
+        &self,
+        registry: &mut TestRegistry,
+        file_path: &Path,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let content = fs::read_to_string(file_path)?;
         let json_data: serde_json::Value = serde_json::from_str(&content)?;
-        
+
         let parser_type = json_data["parser_type"].as_str().unwrap_or("unknown");
-        
+
         // Read basic tests
         if let Some(basic_tests) = json_data["basic_tests"].as_array() {
             for test in basic_tests {
@@ -62,8 +66,8 @@ impl TestDiscovery {
                 }
             }
         }
-        
-        // Read complex tests  
+
+        // Read complex tests
         if let Some(complex_tests) = json_data["complex_tests"].as_array() {
             for test in complex_tests {
                 if let Some(test_case) = self.json_to_test_case(test, parser_type) {
@@ -71,23 +75,33 @@ impl TestDiscovery {
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Convert JSON test object to TestCase
-    fn json_to_test_case(&self, json_test: &serde_json::Value, parser_type: &str) -> Option<TestCase> {
+    fn json_to_test_case(
+        &self,
+        json_test: &serde_json::Value,
+        parser_type: &str,
+    ) -> Option<TestCase> {
         let input = json_test["input"].as_str()?.to_string();
-        let description = json_test["description"].as_str().unwrap_or("No description").to_string();
-        let category = json_test["category"].as_str().unwrap_or("general").to_string();
+        let description = json_test["description"]
+            .as_str()
+            .unwrap_or("No description")
+            .to_string();
+        let category = json_test["category"]
+            .as_str()
+            .unwrap_or("general")
+            .to_string();
         let expected = json_test["expected"].as_str().unwrap_or("success");
-        
+
         let expected_result = match expected {
             "success" => TestExpectation::Success,
             "failure" => TestExpectation::Failure("Expected to fail".to_string()),
             _ => TestExpectation::Success,
         };
-        
+
         Some(TestCase {
             input,
             description,
@@ -96,20 +110,23 @@ impl TestDiscovery {
             expected_result,
         })
     }
-    
+
     /// Add test case to the appropriate registry list
     fn add_test_to_registry(&self, registry: &mut TestRegistry, test_case: TestCase) {
         match test_case.parser_type.as_str() {
             "return" => registry.return_tests.push(test_case),
-            "semantic" => registry.semantic_tests.push(test_case), 
+            "semantic" => registry.semantic_tests.push(test_case),
             "regex" => registry.regex_tests.push(test_case),
             _ => {
-                println!("Warning: Unknown parser type '{}', defaulting to semantic", test_case.parser_type);
+                println!(
+                    "Warning: Unknown parser type '{}', defaulting to semantic",
+                    test_case.parser_type
+                );
                 registry.semantic_tests.push(test_case);
             }
         }
     }
-    
+
     /// Generate a human-readable description for a test input
     #[allow(dead_code)]
     fn generate_description_for_input(&self, input: &str, parser_type: &str) -> String {
@@ -147,7 +164,10 @@ impl TestDiscovery {
                 } else if input.contains("cache") {
                     "Cache annotation".to_string()
                 } else {
-                    format!("Semantic annotation: {}", input.split(':').next().unwrap_or(input))
+                    format!(
+                        "Semantic annotation: {}",
+                        input.split(':').next().unwrap_or(input)
+                    )
                 }
             }
             "regex" => {
@@ -170,7 +190,7 @@ impl TestDiscovery {
             _ => format!("Test input: {}", input),
         }
     }
-    
+
     /// Categorize a test input into a logical category
     #[allow(dead_code)]
     fn categorize_input(&self, input: &str, parser_type: &str) -> String {
@@ -178,7 +198,11 @@ impl TestDiscovery {
             "return" => {
                 if input.starts_with('$') && input.chars().skip(1).all(|c| c.is_ascii_digit()) {
                     "scalar".to_string()
-                } else if input.starts_with('"') || input.parse::<i32>().is_ok() || input == "true" || input == "false" {
+                } else if input.starts_with('"')
+                    || input.parse::<i32>().is_ok()
+                    || input == "true"
+                    || input == "false"
+                {
                     "literal".to_string()
                 } else if input.starts_with('[') && input.ends_with(']') {
                     "array".to_string()
@@ -195,7 +219,10 @@ impl TestDiscovery {
                     "type".to_string()
                 } else if input.starts_with("@precedence") {
                     "precedence".to_string()
-                } else if input.contains("boolean") || input.contains("true") || input.contains("false") {
+                } else if input.contains("boolean")
+                    || input.contains("true")
+                    || input.contains("false")
+                {
                     "boolean".to_string()
                 } else if input.contains('[') && input.contains(']') {
                     "array".to_string()

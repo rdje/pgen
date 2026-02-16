@@ -9,9 +9,9 @@
 //! This eliminates the need for multiple parallel AST representations and parsers.
 
 use super::Logger;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use anyhow::Result;
 
 /// The unified AST representation of a semantic annotation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -19,13 +19,11 @@ pub enum UnifiedSemanticAST {
     /// Transform expression: str::parse::<f64>().unwrap_or(0.0)
     /// These map to transformation functions applied to matched terminals
     TransformExpr {
-        expression: String,  // The raw transform expression for now
+        expression: String, // The raw transform expression for now
     },
 
     /// Raw annotation that couldn't be parsed
-    Raw {
-        content: String,
-    },
+    Raw { content: String },
 }
 
 impl UnifiedSemanticAST {
@@ -34,21 +32,36 @@ impl UnifiedSemanticAST {
         let trimmed = annotation_value.trim();
 
         if logger.is_enabled() {
-            logger.log_info("unified_semantic_ast.rs", line!(), &format!("Parsing semantic annotation in bootstrap mode: '{}'", trimmed));
+            logger.log_info(
+                "unified_semantic_ast.rs",
+                line!(),
+                &format!(
+                    "Parsing semantic annotation in bootstrap mode: '{}'",
+                    trimmed
+                ),
+            );
         }
 
         // For now, we only support transform expressions as raw strings
         // TODO: Add proper AST parsing for function calls, type parameters, etc.
         if trimmed.contains("::parse::<") && trimmed.contains(">().unwrap_or(") {
             if logger.is_enabled() {
-                logger.log_success("unified_semantic_ast.rs", line!(), "Recognized as transform expression");
+                logger.log_success(
+                    "unified_semantic_ast.rs",
+                    line!(),
+                    "Recognized as transform expression",
+                );
             }
             Ok(UnifiedSemanticAST::TransformExpr {
                 expression: trimmed.to_string(),
             })
         } else {
             if logger.is_enabled() {
-                logger.log_info("unified_semantic_ast.rs", line!(), "Unrecognized semantic annotation, storing as raw");
+                logger.log_info(
+                    "unified_semantic_ast.rs",
+                    line!(),
+                    "Unrecognized semantic annotation, storing as raw",
+                );
             }
             Ok(UnifiedSemanticAST::Raw {
                 content: trimmed.to_string(),

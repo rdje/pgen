@@ -1,15 +1,14 @@
 //! CLI for AST-based parser generation
 //! All parser generation now uses AST-based approach (string-based removed)
 
+use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::{
-    RustASTPipeline, PipelineConfig, TransformedASTJson,
+    Annotations, PipelineConfig, RustASTPipeline, TransformMetadata, TransformedASTJson,
     ast_based_generator::AstBasedGenerator,
-    TransformMetadata, Annotations,
 };
 use std::fs;
 use std::path::PathBuf;
-use anyhow::{Result, Context};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "AST-based EBNF parser generator", long_about = None)]
@@ -57,29 +56,33 @@ fn main() -> Result<()> {
 
 fn run_direct_mode(input_content: &str, args: &Args) -> Result<()> {
     println!("🚀 Running in DIRECT mode - using AST generator directly");
-    
+
     // Parse the transformed AST JSON directly
     let transformed_ast: TransformedASTJson = serde_json::from_str(input_content)
         .context("Failed to parse input as transformed AST JSON")?;
-    
+
     // Generate parser using AST-based generator
     let parser_code = AstBasedGenerator::new(transformed_ast.grammar_name.clone())
-        .generate_parser(&transformed_ast.grammar_tree, &transformed_ast.rule_order, args.output.to_str().unwrap_or("unknown_parser.rs"))?;
-    
+        .generate_parser(
+            &transformed_ast.grammar_tree,
+            &transformed_ast.rule_order,
+            args.output.to_str().unwrap_or("unknown_parser.rs"),
+        )?;
+
     // Write output
     let parser_size = parser_code.len();
     fs::write(&args.output, parser_code)
         .context(format!("Failed to write output file: {:?}", args.output))?;
-    
+
     println!("✅ Successfully generated parser: {:?}", args.output);
     println!("📊 Parser size: {} bytes", parser_size);
-    
+
     Ok(())
 }
 
 fn run_pipeline_mode(input_content: &str, args: &Args) -> Result<()> {
     println!("🔄 Running in PIPELINE mode - full AST transformation");
-    
+
     // Configure pipeline
     let config = PipelineConfig {
         debug: args.debug,
@@ -91,10 +94,10 @@ fn run_pipeline_mode(input_content: &str, args: &Args) -> Result<()> {
         max_recursion_depth: 100,
         eliminate_left_recursion: true,
     };
-    
+
     // Create pipeline
     let mut pipeline = RustASTPipeline::new(config);
-    
+
     // Process the input
     let result = if input_content.trim_start().starts_with('[') {
         // Raw AST format - transform from JSON string
@@ -122,26 +125,30 @@ fn run_pipeline_mode(input_content: &str, args: &Args) -> Result<()> {
             },
         }
     };
-    
+
     // Generate parser using AST-based generator
     let mut generator = AstBasedGenerator::new(result.grammar_name.clone());
     generator.enable_debug = args.debug;
-    
+
     if let Some(annotations) = result.metadata.annotations.as_ref() {
         generator.annotations = Some(annotations.clone());
     }
-    
-    let parser_code = generator.generate_parser(&result.grammar_tree, &result.rule_order, args.output.to_str().unwrap_or("unknown_parser.rs"))?;
-    
+
+    let parser_code = generator.generate_parser(
+        &result.grammar_tree,
+        &result.rule_order,
+        args.output.to_str().unwrap_or("unknown_parser.rs"),
+    )?;
+
     // Write output
     let parser_size = parser_code.len();
     fs::write(&args.output, parser_code)
         .context(format!("Failed to write output file: {:?}", args.output))?;
-    
+
     println!("✅ Successfully generated parser: {:?}", args.output);
     println!("📊 Rules processed: {}", result.grammar_tree.len());
     println!("📊 Parser size: {} bytes", parser_size);
     println!("🔧 Backend used: AST-based (syn/quote)");
-    
+
     Ok(())
 }

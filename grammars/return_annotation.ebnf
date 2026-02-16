@@ -63,7 +63,7 @@ spreadable_expression := extraction_expression
 
 # Optional spread suffix for extractions
 spread_suffix := '*'
--> true
+-> "true"
 
 # =====================================
 # PROPERTY AND ARRAY ACCESS

@@ -1,0 +1,59 @@
+# builtin_semantic_annotation.ebnf
+# Inferred EBNF/behavioral spec for the hand-written bootstrap semantic parser.
+# Source of truth for this spec is implementation behavior in:
+#   rust/src/ast_pipeline/unified_semantic_ast.rs
+#
+# IMPORTANT:
+# - This parser is intentionally permissive (bootstrap/chicken-egg breaker).
+# - It is not equivalent to grammars/semantic_annotation.ebnf.
+# - It never hard-fails on syntax in current implementation.
+
+# ============================================================================
+# ENTRY / NORMALIZATION
+# ============================================================================
+
+# Parser trims outer whitespace first:
+#   trimmed = input.trim()
+# Then classifies trimmed text into TransformExpr or Raw.
+builtin_semantic_annotation := ws* semantic_payload ws*
+
+semantic_payload := transform_candidate | raw_payload
+
+# ============================================================================
+# TRANSFORM CANDIDATE CLASSIFICATION
+# ============================================================================
+
+# A payload is classified as TransformExpr iff BOTH substring checks succeed:
+#   contains("::parse::<")
+#   contains(">().unwrap_or(")
+#
+# This is a procedural predicate, not strict context-free parsing.
+transform_candidate := text_with_parse_marker_and_unwrap_marker
+
+# Approximation of accepted transform-like text
+text_with_parse_marker_and_unwrap_marker :=
+    any_text "::parse::<" any_text ">().unwrap_or(" any_text
+  | any_text ">().unwrap_or(" any_text "::parse::<" any_text
+
+# ============================================================================
+# RAW FALLBACK
+# ============================================================================
+
+# Any trimmed payload not classified as transform_candidate is Raw.
+# Empty payload is also accepted and classified as Raw.
+raw_payload := any_text
+
+# ============================================================================
+# LEXICAL HELPERS
+# ============================================================================
+
+any_text := /(.|\n)*/
+ws := /[ \t\r\n]*/
+
+# ============================================================================
+# IMPLEMENTATION NOTES (QUIRKS TO PRESERVE)
+# ============================================================================
+#
+# 1) No syntactic validation beyond the two substring checks above.
+# 2) No parse errors are emitted by parse_bootstrap in current behavior.
+# 3) Round-trip canonical form uses the trimmed input (outer whitespace removed).

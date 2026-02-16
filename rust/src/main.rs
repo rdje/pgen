@@ -2,15 +2,17 @@
 //!
 //! Command-line interface for the Rust AST transformation pipeline.
 
-use pgen::ast_pipeline::{RustASTPipeline, PipelineConfig};
-use clap::Parser;
 use anyhow::Result;
+use clap::Parser;
+use pgen::ast_pipeline::{PipelineConfig, RustASTPipeline};
 
 #[derive(Parser)]
 #[command(name = "ast_pipeline")]
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
-#[command(long_about = "Transform AST JSON files or generate high-performance Rust parsers.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Parser generation: ast_pipeline INPUT.json --generate-parser [--output PARSER.rs]")]
+#[command(
+    long_about = "Transform AST JSON files or generate high-performance Rust parsers.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Parser generation: ast_pipeline INPUT.json --generate-parser [--output PARSER.rs]"
+)]
 struct Args {
     /// Raw AST JSON input file
     input_json: String,
@@ -60,7 +62,7 @@ fn main() -> Result<()> {
     config.trace = args.trace;
     config.validate_input = !args.no_validate;
     config.bootstrap_mode = args.bootstrap_mode;
-    
+
     // Only override left recursion elimination if explicitly specified
     if args.eliminate_left_recursion {
         config.eliminate_left_recursion = true;
@@ -71,9 +73,9 @@ fn main() -> Result<()> {
 
     let result = if args.generate_parser {
         // Generate high-performance Rust parser using AST-based generator
-        let output_rust = args.output.unwrap_or_else(|| {
-            args.input_json.replace(".json", "_parser.rs")
-        });
+        let output_rust = args
+            .output
+            .unwrap_or_else(|| args.input_json.replace(".json", "_parser.rs"));
 
         // Read the JSON file
         let json_content = std::fs::read_to_string(&args.input_json)?;
@@ -87,21 +89,22 @@ fn main() -> Result<()> {
 
                 // Generate parser using AST-based generator
                 let generator = pgen::ast_pipeline::ast_based_generator::AstBasedGenerator::new(
-                    json_value.get("grammar_name")
+                    json_value
+                        .get("grammar_name")
                         .and_then(|n| n.as_str())
                         .unwrap_or("unknown")
-                        .to_string()
+                        .to_string(),
                 );
 
-                let parser_code = generator.generate_parser(&grammar_tree, &rule_order, output_rust.as_str())?;
+                let parser_code =
+                    generator.generate_parser(&grammar_tree, &rule_order, output_rust.as_str())?;
                 std::fs::write(&output_rust, parser_code)?;
             } else {
                 return Err(anyhow::anyhow!("Invalid raw_ast format"));
             }
-        } else if let (Some(grammar_tree), Some(rule_order)) = (
-            json_value.get("grammar_tree"),
-            json_value.get("rule_order")
-        ) {
+        } else if let (Some(grammar_tree), Some(rule_order)) =
+            (json_value.get("grammar_tree"), json_value.get("rule_order"))
+        {
             // Already transformed AST format
             let grammar_tree: std::collections::HashMap<String, pgen::ast_pipeline::ASTNode> =
                 serde_json::from_value(grammar_tree.clone())?;
@@ -109,16 +112,20 @@ fn main() -> Result<()> {
 
             // Generate parser using AST-based generator
             let generator = pgen::ast_pipeline::ast_based_generator::AstBasedGenerator::new(
-                json_value.get("grammar_name")
+                json_value
+                    .get("grammar_name")
                     .and_then(|n| n.as_str())
                     .unwrap_or("unknown")
-                    .to_string()
+                    .to_string(),
             );
 
-            let parser_code = generator.generate_parser(&grammar_tree, &rule_order, output_rust.as_str())?;
+            let parser_code =
+                generator.generate_parser(&grammar_tree, &rule_order, output_rust.as_str())?;
             std::fs::write(&output_rust, parser_code)?;
         } else {
-            return Err(anyhow::anyhow!("Unknown JSON format - expected raw_ast or grammar_tree/rule_order"));
+            return Err(anyhow::anyhow!(
+                "Unknown JSON format - expected raw_ast or grammar_tree/rule_order"
+            ));
         }
 
         println!("SOTA regex parser generated: {}", output_rust);
@@ -129,7 +136,7 @@ fn main() -> Result<()> {
         println!("Transformed AST saved to: {}", output_file);
         (0, Vec::<String>::new()) // (rule_count, rule_order)
     } else {
-        // Same-language mode: JSON → In-memory  
+        // Same-language mode: JSON → In-memory
         // let (grammar_tree, rule_order) = pipeline.transform_from_file(&args.input_json, None)?;
         println!("Transformed AST loaded in-memory: {} rules", 0);
         println!("Rule order: {}", "");

@@ -53,14 +53,16 @@ impl RecursionGuard {
             if r == rule_name && *p == position {
                 // Exact same rule at same position = infinite loop
                 let cycle = CycleType::Infinite;
-                self.cycle_cache.insert((rule_name.to_string(), position), cycle.clone());
+                self.cycle_cache
+                    .insert((rule_name.to_string(), position), cycle.clone());
                 return cycle;
             }
-            
+
             if r == rule_name && *p > position {
                 // Same rule but consumed input = left recursion
                 let cycle = CycleType::LeftRecursive;
-                self.cycle_cache.insert((rule_name.to_string(), position), cycle.clone());
+                self.cycle_cache
+                    .insert((rule_name.to_string(), position), cycle.clone());
                 return cycle;
             }
         }
@@ -69,7 +71,7 @@ impl RecursionGuard {
         if self.parse_stack.len() >= 2 {
             let mut rules_in_cycle = HashSet::new();
             let mut found_repeat = false;
-            
+
             for (r, _p) in self.parse_stack.iter().rev() {
                 rules_in_cycle.insert(r.clone());
                 if r == rule_name {
@@ -77,14 +79,15 @@ impl RecursionGuard {
                     break;
                 }
             }
-            
+
             if found_repeat && rules_in_cycle.len() > 1 {
                 // Mutual recursion detected
                 let cycle = CycleType::MutualRecursive {
                     depth: self.parse_stack.len(),
                     rules: rules_in_cycle.into_iter().collect(),
                 };
-                self.cycle_cache.insert((rule_name.to_string(), position), cycle.clone());
+                self.cycle_cache
+                    .insert((rule_name.to_string(), position), cycle.clone());
                 return cycle;
             }
         }
@@ -118,7 +121,12 @@ impl RecursionGuard {
     }
 
     /// Check if we should allow this parse attempt based on cycle type
-    pub fn should_continue(&self, cycle_type: &CycleType, position: usize, input_len: usize) -> bool {
+    pub fn should_continue(
+        &self,
+        cycle_type: &CycleType,
+        position: usize,
+        input_len: usize,
+    ) -> bool {
         match cycle_type {
             CycleType::None => true,
             CycleType::Infinite => false, // Never continue on infinite loops
@@ -138,7 +146,8 @@ pub fn generate_mutual_recursion_safe_parser_method(
     rule_name: &str,
     original_body: &str,
 ) -> String {
-    format!(r#"
+    format!(
+        r#"
     /// Parse {rule_name} with mutual recursion protection
     #[inline]
     fn parse_{rule_name}(&mut self) -> ParseResult<ParseNode<'input>> {{
@@ -209,10 +218,7 @@ pub fn generate_mutual_recursion_safe_parser_method(
 #[allow(dead_code)]
 pub enum ParseContinuation<'input> {
     Done(Result<ParseNode<'input>, ParseError>),
-    Continue {
-        rule: String,
-        position: usize,
-    },
+    Continue { rule: String, position: usize },
 }
 
 // Parse with trampolining will be integrated directly into generated parsers
