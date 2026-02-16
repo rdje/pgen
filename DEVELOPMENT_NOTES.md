@@ -1069,3 +1069,95 @@ Generated Parser → Input "3.14" → Parse f64 → Output TransformedTerminal("
 - `generated/return_annotation_parser.rs` - Clean regenerated parsers
 - `CHANGES.md` - Implementation documentation
 - `git_message_brief.txt` - Commit summary
+
+---
+
+## 2026-02-16 - Stimuli Backend in Rust AST Pipeline (First Pass Complete)
+
+### Scope
+Implemented a first-pass stimuli generation backend in Rust that walks the same grammar AST used for parser generation and emits grammar-valid candidate inputs. This introduces deterministic generation controls, probability-driven branch choice, and recursion/quantifier safeguards suitable for automated parser validation loops.
+
+### Architectural Decisions
+
+#### 1) Reuse Existing AST IR Instead of New Intermediate Form
+The generator consumes:
+- `grammar_tree: HashMap<String, ASTNode>`
+- `rule_order: Vec<String>`
+- optional `metadata.annotations`
+
+This keeps parser and stimuli generation bound to the same source-of-truth IR and avoids drift from maintaining a separate stimuli grammar representation.
+
+#### 2) Probability Semantics Bound to Existing `probability` Tokens
+Branch probabilities are interpreted from leading `probability` atoms in OR alternatives.
+
+Policy implemented:
+- all branches explicit: sum must be exactly 100,
+- no branches explicit: equal weighting,
+- mixed explicit/implicit: leftover percentage is distributed across implicit branches.
+
+Invalid configurations (e.g., explicit sum > 100, explicit-only sum != 100, all-zero effective weights) return hard errors instead of silently normalizing to ambiguous behavior.
+
+#### 3) Determinism + Safety as First-Class Requirements
+Generation now has explicit controls:
+- seed-driven deterministic RNG (`StdRng`),
+- max depth,
+- max repeats,
+- max active visits per rule.
+
+At depth boundary, OR-branch selection is biased toward alternatives with lower self-reference count to improve termination probability in recursive grammars.
+
+### Implementation Details
+
+#### New Module
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+  - `StimuliConfig`
+  - `StimuliGenerator<'a>`
+  - AST traversal over `Or / Sequence / Atom / Quantified`
+  - branch-weight builder + probability validation
+  - quantifier bound parser (`?`, `*`, `+`, exact, bounded strings)
+  - regex sampling heuristics + semantic-hint fallback
+
+#### CLI Integration
+Updated `rust/src/main.rs`:
+- added `--generate-stimuli`,
+- added `--count`, `--seed`, `--entry-rule`, `--max-depth`, `--max-repeat`,
+- `--output` now supports writing newline-delimited stimuli,
+- introduced shared `load_grammar_bundle(...)` for both raw AST JSON and transformed AST JSON paths.
+
+Updated `rust/src/ast_pipeline/mod.rs`:
+- exported `pub mod stimuli_generator;`.
+
+### Regex + Semantic Strategy (Current)
+Regex synthesis is intentionally heuristic in first pass:
+- handles common classes/escapes (`\d`, `\w`, `[a-z]`, `[A-Z]`, whitespace, etc.),
+- handles quantifier-derived repeat estimates,
+- falls back to simple safe literals where pattern-specific generation is unavailable.
+
+If semantic annotations indicate typed transform intent (e.g. parse float/int/bool), the generator biases emitted token shape (`"1.0"`, `"1"`, `"true"`).
+
+This keeps generation practical now while reserving full regex derivation for a subsequent refinement phase.
+
+### Tests and Validation
+Unit tests added directly in `stimuli_generator.rs`:
+1. deterministic weighted sequence with fixed seed,
+2. equal-weight fallback when no probabilities are provided,
+3. hard failure when explicit probabilities do not sum to 100,
+4. recursive-rule termination behavior under depth constraints.
+
+Validation run:
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
+  - result: 4 passed, 0 failed.
+
+CLI smoke validation run:
+- stdout generation mode
+- file output mode with seeded generation
+
+### Operational Notes
+- The temporary smoke-test output file (`rust/tmp_stimuli_output.txt`) is a local artifact and should remain untracked.
+- Current implementation is first pass focused on generation correctness, determinism, and bounded behavior; not yet coverage-guided.
+
+### Recommended Next Increment
+1. Add parser-validation loop: generate stimuli and immediately parse with the corresponding generated parser for same grammar.
+2. Introduce optional coverage-guided branch steering (hit unobserved alternatives/rules first).
+3. Expand regex synthesis toward structural derivation from regex AST (or constrained subset parser) instead of heuristics.
+4. Add dedicated universal test-runner JSON suites for stimuli-mode contract validation.

@@ -5584,3 +5584,136 @@ The quantified group functions DON'T need their own memoization because:
 
 ### Validation
 The changes compile successfully and the quantified group functions now seamlessly integrate with the existing memoization and backtracking infrastructure, as requested by the user.
+
+---
+
+## 2026-02-16: Added AST-Based Stimuli Generation Backend (`--generate-stimuli`) with Branch Probability Semantics
+
+### Problem Statement
+The Rust pipeline could generate parser code from the same grammar/JSON source of truth, but it had no first-pass backend to synthesize grammar-valid stimuli for parser validation. The immediate goal was to add a stimuli generator that:
+- reuses the transformed AST pipeline representation,
+- supports branch probability semantics from `@<n>%` (parsed as `probability` tokens),
+- provides deterministic runs via seed control,
+- avoids runaway recursion/quantifier explosion,
+- and is callable from the main `ast_pipeline` CLI.
+
+### Root Cause Analysis
+1. **No stimuli backend existed in Rust AST pipeline**: there was no module traversing `ASTNode` trees to emit valid input strings.
+2. **Probability tokens were parsed but not consumed by generation logic**: tokens of type `probability` were preserved as grammar atoms but only treated as parser terminals in codegen pathways.
+3. **No generation-mode CLI contract**: the CLI only supported parser generation and transformation-oriented flows.
+4. **No deterministic/stability controls for generation**: seeded RNG, max depth, repetition caps, and recursion visit limits were not available for stimuli.
+
+### Implementation Summary
+
+#### 1) New Stimuli Engine Module
+Added new module:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+Core structures:
+- `StimuliConfig`:
+  - `seed: Option<u64>`
+  - `max_depth: usize`
+  - `max_repeat: usize`
+  - `max_rule_visits: usize`
+- `StimuliGenerator<'a>`:
+  - walks `ASTNode::{Or, Sequence, Atom, Quantified}`
+  - emits one or many samples (`generate_from_entry`, `generate_many`)
+  - supports transformed-AST annotations for semantic-guided regex defaults
+
+#### 2) Branch Probability Semantics (`@<n>%`)
+Implemented weighted branch choice via `rand::distributions::WeightedIndex`:
+- branch-level probabilities are extracted from leading `probability` atoms in alternatives,
+- all-explicit probabilities must sum to **100** (hard error otherwise),
+- no-explicit probabilities => equal weighting,
+- mixed explicit/implicit probabilities => remaining percentage distributed across implicit branches,
+- zero-total weights are rejected with explicit error.
+
+#### 3) Recursion and Growth Guardrails
+Implemented multiple safety controls:
+- depth ceiling (`max_depth`),
+- per-rule active visit ceiling (`max_rule_visits`),
+- quantifier repetition cap (`max_repeat`),
+- depth-aware branch bias toward lower self-reference count to encourage termination near depth limits.
+
+#### 4) Quantifier Semantics in Stimuli
+Implemented handling for:
+- `?`, `*`, `+`,
+- numeric exact quantifiers (`{n}` represented internally as `n` in this pipeline),
+- bounded quantifier strings (`{n,m}`-style internal string payloads represented as `n,m`).
+
+Generation respects:
+- lower/upper bounds,
+- configured `max_repeat` clamp,
+- minimal-repeat fallback as depth boundary approaches.
+
+#### 5) Regex Sampling Heuristics + Semantic Hints
+Added pragmatic regex sample synthesis:
+- handles common patterns (`\d`, `\w`, `[a-z]`, `[A-Z]`, whitespace, binary classes, simple literals),
+- quantifier-aware repeat counts from pattern suffixes and `{n,m}` patterns,
+- semantic fallback hints from `semantic_annotations` for typed transforms:
+  - float-like transform expressions -> `"1.0"`
+  - int-like transform expressions -> `"1"`
+  - bool-like transform expressions -> `"true"`
+
+#### 6) CLI Mode Integration (`src/main.rs`)
+Extended `ast_pipeline` CLI with a new generation mode:
+- `--generate-stimuli` (mutually exclusive with `--generate-parser`)
+- `--count`
+- `--seed`
+- `--entry-rule`
+- `--max-depth`
+- `--max-repeat`
+- reuses `--output` for newline-delimited stimuli output file
+
+Also refactored input loading into shared helper:
+- `load_grammar_bundle(...)` now supports both:
+  - raw AST JSON (`raw_ast`) transformed through pipeline stages, and
+  - transformed AST JSON (`grammar_tree` + `rule_order` + metadata annotations).
+
+#### 7) Module Wiring
+Registered the new backend module in:
+- `rust/src/ast_pipeline/mod.rs` (`pub mod stimuli_generator;`)
+
+### Tests Added
+Added unit tests in `rust/src/ast_pipeline/stimuli_generator.rs`:
+1. `weighted_probabilities_are_deterministic_with_seed`
+2. `missing_probabilities_fallback_to_equal_weights`
+3. `explicit_probabilities_must_sum_to_100`
+4. `recursion_guard_prefers_terminating_branch_at_depth_limit`
+
+### Validation Executed
+
+#### Unit tests
+Command:
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
+
+Result:
+- **4 passed, 0 failed**
+
+#### CLI smoke test (stdout mode)
+Command:
+- `cargo run --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --bin ast_pipeline -- /Users/richarddje/Documents/github/pgen/generated/return_annotation.json --generate-stimuli --count 3 --seed 7 --entry-rule return_annotation`
+
+Result:
+- command completed successfully (exit code 0),
+- generation path executed over transformed grammar rules.
+
+#### CLI smoke test (file output mode)
+Command:
+- `cargo run --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --bin ast_pipeline -- /Users/richarddje/Documents/github/pgen/generated/return_annotation.json --generate-stimuli --count 5 --seed 7 --entry-rule return_annotation --output /Users/richarddje/Documents/github/pgen/rust/tmp_stimuli_output.txt`
+
+Result:
+- file output path written successfully,
+- 5 newline-delimited stimuli samples generated.
+
+### Files Modified
+- `rust/src/main.rs`
+  - new CLI mode and options for stimuli generation
+  - shared grammar-loading helper for raw/transformed JSON
+- `rust/src/ast_pipeline/mod.rs`
+  - exported new `stimuli_generator` module
+- `rust/src/ast_pipeline/stimuli_generator.rs` (new)
+  - full AST traversal backend, weighting semantics, guards, tests
+
+### Notes
+- Temporary smoke-test artifact `rust/tmp_stimuli_output.txt` was used for runtime validation and is not part of core implementation.

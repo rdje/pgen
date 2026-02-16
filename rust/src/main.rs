@@ -4,23 +4,26 @@
 
 use anyhow::Result;
 use clap::Parser;
-use pgen::ast_pipeline::{PipelineConfig, RustASTPipeline};
+use pgen::ast_pipeline::stimuli_generator::{StimuliConfig, StimuliGenerator};
+use pgen::ast_pipeline::{
+    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
+};
+use std::collections::HashMap;
 
 #[derive(Parser)]
 #[command(name = "ast_pipeline")]
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
 #[command(
-    long_about = "Transform AST JSON files or generate high-performance Rust parsers.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Parser generation: ast_pipeline INPUT.json --generate-parser [--output PARSER.rs]"
+    long_about = "Transform AST JSON files, generate high-performance Rust parsers, or generate grammar-valid stimuli.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Parser generation: ast_pipeline INPUT.json --generate-parser [--output PARSER.rs]\n  3. Stimuli generation: ast_pipeline INPUT.json --generate-stimuli [--count N] [--seed SEED]"
 )]
 struct Args {
     /// Raw AST JSON input file
     input_json: String,
 
-    /// Transformed AST JSON output file (optional, ignored when --generate-parser is used)
+    /// Transformed AST JSON output file (optional, ignored when generation modes are used)
     output_json: Option<String>,
-
-    /// Output file path for generated parser (when --generate-parser is used)
+    /// Output file path for generated artifact (parser source or newline-delimited stimuli)
     #[arg(short, long)]
     output: Option<String>,
 
@@ -39,6 +42,29 @@ struct Args {
     /// Generate high-performance Rust parser instead of JSON output
     #[arg(long)]
     generate_parser: bool,
+    /// Generate random grammar-valid stimuli from AST JSON
+    #[arg(long, conflicts_with = "generate_parser")]
+    generate_stimuli: bool,
+
+    /// Number of stimuli samples to generate (stimuli mode)
+    #[arg(long, default_value_t = 1)]
+    count: usize,
+
+    /// Seed for deterministic stimuli generation (stimuli mode)
+    #[arg(long)]
+    seed: Option<u64>,
+
+    /// Override grammar entry rule for generation
+    #[arg(long)]
+    entry_rule: Option<String>,
+
+    /// Maximum recursive depth during stimuli generation
+    #[arg(long, default_value_t = 24)]
+    max_depth: usize,
+
+    /// Maximum repetitions generated for quantifiers (*, +, {n,m})
+    #[arg(long, default_value_t = 4)]
+    max_repeat: usize,
 
     /// Enable trace mode in generated parser (detailed debug logging)
     #[arg(long)]
@@ -51,6 +77,12 @@ struct Args {
     /// Enable left recursion elimination (helps resolve stack overflow issues)
     #[arg(long)]
     eliminate_left_recursion: bool,
+}
+struct LoadedGrammar {
+    grammar_name: String,
+    grammar_tree: HashMap<String, ASTNode>,
+    rule_order: Vec<String>,
+    annotations: Option<Annotations>,
 }
 
 fn main() -> Result<()> {
@@ -77,59 +109,53 @@ fn main() -> Result<()> {
             .output
             .unwrap_or_else(|| args.input_json.replace(".json", "_parser.rs"));
 
-        // Read the JSON file
-        let json_content = std::fs::read_to_string(&args.input_json)?;
-        let json_value: serde_json::Value = serde_json::from_str(&json_content)?;
+        let grammar = load_grammar_bundle(&args.input_json, &mut pipeline)?;
 
-        // Check if it's raw AST or transformed AST
-        if let Some(raw_ast) = json_value.get("raw_ast") {
-            // Raw AST format - transform it first
-            if let Some(raw_ast_array) = raw_ast.as_array() {
-                let (grammar_tree, rule_order) = pipeline.transform_from_raw_ast(raw_ast_array)?;
-
-                // Generate parser using AST-based generator
-                let generator = pgen::ast_pipeline::ast_based_generator::AstBasedGenerator::new(
-                    json_value
-                        .get("grammar_name")
-                        .and_then(|n| n.as_str())
-                        .unwrap_or("unknown")
-                        .to_string(),
-                );
-
-                let parser_code =
-                    generator.generate_parser(&grammar_tree, &rule_order, output_rust.as_str())?;
-                std::fs::write(&output_rust, parser_code)?;
-            } else {
-                return Err(anyhow::anyhow!("Invalid raw_ast format"));
-            }
-        } else if let (Some(grammar_tree), Some(rule_order)) =
-            (json_value.get("grammar_tree"), json_value.get("rule_order"))
-        {
-            // Already transformed AST format
-            let grammar_tree: std::collections::HashMap<String, pgen::ast_pipeline::ASTNode> =
-                serde_json::from_value(grammar_tree.clone())?;
-            let rule_order: Vec<String> = serde_json::from_value(rule_order.clone())?;
-
-            // Generate parser using AST-based generator
-            let generator = pgen::ast_pipeline::ast_based_generator::AstBasedGenerator::new(
-                json_value
-                    .get("grammar_name")
-                    .and_then(|n| n.as_str())
-                    .unwrap_or("unknown")
-                    .to_string(),
-            );
-
-            let parser_code =
-                generator.generate_parser(&grammar_tree, &rule_order, output_rust.as_str())?;
-            std::fs::write(&output_rust, parser_code)?;
-        } else {
-            return Err(anyhow::anyhow!(
-                "Unknown JSON format - expected raw_ast or grammar_tree/rule_order"
-            ));
-        }
+        // Generate parser using AST-based generator
+        let generator =
+            pgen::ast_pipeline::ast_based_generator::AstBasedGenerator::new(grammar.grammar_name);
+        let parser_code = generator.generate_parser(
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            output_rust.as_str(),
+        )?;
+        std::fs::write(&output_rust, parser_code)?;
 
         println!("SOTA regex parser generated: {}", output_rust);
         (0, Vec::<String>::new())
+    } else if args.generate_stimuli {
+        let grammar = load_grammar_bundle(&args.input_json, &mut pipeline)?;
+
+        let mut generator = StimuliGenerator::new(
+            grammar.grammar_name.clone(),
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            grammar.annotations.as_ref(),
+            StimuliConfig {
+                seed: args.seed,
+                max_depth: args.max_depth,
+                max_repeat: args.max_repeat,
+                max_rule_visits: args.max_depth.max(2),
+            },
+        );
+
+        let samples = generator.generate_many(args.count, args.entry_rule.as_deref())?;
+
+        if let Some(output_file) = args.output {
+            let mut content = String::new();
+            for sample in &samples {
+                content.push_str(sample);
+                content.push('\n');
+            }
+            std::fs::write(&output_file, content)?;
+            println!("Generated {} stimuli into {}", samples.len(), output_file);
+        } else {
+            for sample in &samples {
+                println!("{}", sample);
+            }
+        }
+
+        (samples.len(), grammar.rule_order)
     } else if let Some(output_file) = args.output_json {
         // Cross-language mode: JSON → JSON
         // pipeline.transform_to_json(&args.input_json, &output_file)?;
@@ -151,4 +177,43 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn load_grammar_bundle(
+    input_json_path: &str,
+    pipeline: &mut RustASTPipeline,
+) -> Result<LoadedGrammar> {
+    let json_content = std::fs::read_to_string(input_json_path)?;
+    let json_value: serde_json::Value = serde_json::from_str(&json_content)?;
+
+    if let Some(raw_ast) = json_value.get("raw_ast") {
+        let raw_ast_array = raw_ast
+            .as_array()
+            .ok_or_else(|| anyhow::anyhow!("Invalid raw_ast format"))?;
+        let (grammar_tree, rule_order) = pipeline.transform_from_raw_ast(raw_ast_array)?;
+        let grammar_name = json_value
+            .get("grammar_name")
+            .and_then(|n| n.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        Ok(LoadedGrammar {
+            grammar_name,
+            grammar_tree,
+            rule_order,
+            annotations: None,
+        })
+    } else if json_value.get("grammar_tree").is_some() && json_value.get("rule_order").is_some() {
+        let transformed: TransformedASTJson = serde_json::from_value(json_value)?;
+        Ok(LoadedGrammar {
+            grammar_name: transformed.grammar_name,
+            grammar_tree: transformed.grammar_tree,
+            rule_order: transformed.rule_order,
+            annotations: transformed.metadata.annotations,
+        })
+    } else {
+        Err(anyhow::anyhow!(
+            "Unknown JSON format - expected raw_ast or grammar_tree/rule_order"
+        ))
+    }
 }

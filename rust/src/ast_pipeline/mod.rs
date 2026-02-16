@@ -433,7 +433,9 @@ impl RustASTPipeline {
 
     fn parse_rule_content(&self, content: &[serde_json::Value]) -> Result<ASTNode> {
         if content.is_empty() {
-            eprintln!("[mod.rs][parse_rule_content()] 📝 Rule content is empty - creating empty sequence node");
+            eprintln!(
+                "[mod.rs][parse_rule_content()] 📝 Rule content is empty - creating empty sequence node"
+            );
             eprintln!("   File: {}:{}", file!(), line!());
             return Ok(ASTNode::Sequence { elements: vec![] });
         }
@@ -443,10 +445,16 @@ impl RustASTPipeline {
         eprintln!("        File: {}:{}", file!(), line!());
         eprintln!("        Stage-1: normalize raw elements");
         let normalized = self.step1_normalize_raw_elements(content)?;
-        eprintln!("        Stage-1 result: {} normalized elements", normalized.len());
+        eprintln!(
+            "        Stage-1 result: {} normalized elements",
+            normalized.len()
+        );
         eprintln!("        Stage-2: group top-level alternatives (|)");
         let branches = self.step2_group_by_or(&normalized);
-        eprintln!("        Stage-2 result: {} top-level branches", branches.len());
+        eprintln!(
+            "        Stage-2 result: {} top-level branches",
+            branches.len()
+        );
         eprintln!("        Stage-2.5: handle parentheses/groups per branch");
         let mut branch_asts = Vec::with_capacity(branches.len());
         for (branch_idx, branch) in branches.iter().enumerate() {
@@ -494,9 +502,7 @@ impl RustASTPipeline {
                 );
                 normalized.push(parsed);
             } else {
-                eprintln!(
-                    "            ⚠️   Element skipped (return annotation or unknown type)"
-                );
+                eprintln!("            ⚠️   Element skipped (return annotation or unknown type)");
             }
             eprintln!();
         }
@@ -583,30 +589,28 @@ impl RustASTPipeline {
                 );
                 Some(RawRuleElement::Quantifier(elem_value.to_string()))
             }
-            "operator" => {
-                match elem_value {
-                    "|" => {
-                        eprintln!(
-                            "                🔀  \x1b[32mALTERNATIVE OPERATOR\x1b[0m (|) - Split branches"
-                        );
-                        Some(RawRuleElement::OrOperator)
-                    }
-                    "?" | "*" | "+" => {
-                        eprintln!(
-                            "                🔁  \x1b[32mQUANTIFIER OPERATOR\x1b[0m '{}' - Bind to previous primary",
-                            elem_value
-                        );
-                        Some(RawRuleElement::Quantifier(elem_value.to_string()))
-                    }
-                    _ => {
-                        eprintln!(
-                            "                ⚙️   \x1b[33mNON-STRUCTURAL OPERATOR\x1b[0m '{}' - treat as terminal",
-                            elem_value
-                        );
-                        Some(atom_from("quoted_string", elem_value))
-                    }
+            "operator" => match elem_value {
+                "|" => {
+                    eprintln!(
+                        "                🔀  \x1b[32mALTERNATIVE OPERATOR\x1b[0m (|) - Split branches"
+                    );
+                    Some(RawRuleElement::OrOperator)
                 }
-            }
+                "?" | "*" | "+" => {
+                    eprintln!(
+                        "                🔁  \x1b[32mQUANTIFIER OPERATOR\x1b[0m '{}' - Bind to previous primary",
+                        elem_value
+                    );
+                    Some(RawRuleElement::Quantifier(elem_value.to_string()))
+                }
+                _ => {
+                    eprintln!(
+                        "                ⚙️   \x1b[33mNON-STRUCTURAL OPERATOR\x1b[0m '{}' - treat as terminal",
+                        elem_value
+                    );
+                    Some(atom_from("quoted_string", elem_value))
+                }
+            },
             "number" => {
                 eprintln!(
                     "                🔢  \x1b[32mNUMBER\x1b[0m - treat as terminal '{}'",
@@ -1132,6 +1136,7 @@ pub mod ast_return_transform;
 pub mod grouped_quantifier_parser;
 pub mod mutual_recursion_handler;
 pub mod return_annotation_handler;
+pub mod stimuli_generator;
 pub mod unified_return_ast;
 pub mod unified_semantic_ast;
 
