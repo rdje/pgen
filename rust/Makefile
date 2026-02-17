@@ -203,6 +203,7 @@ help:
 	@echo "🛠️  Utility targets:"
 	@echo "  clean        - Remove generated files"
 	@echo "  clean-all    - Remove all build artifacts"
+	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
 	@echo "  help         - Show this help"
 	@echo "  status       - Show current build status"
 	@echo ""
@@ -350,6 +351,15 @@ annotation_parsers: return_semantic_parsers
 
 .PHONY: regex_tests
 regex_tests: regex_parser
+
+.PHONY: regression_gate
+regression_gate:
+	@echo "🔒 Running regression gate (whitespace + dotted identifiers) across bootstrap and generated parsers..."
+	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_generated_whitespace_regression
+	cd $(RUST_DIR) && cargo run --features generated_parsers --bin test_runner -- --parser return --suite return_annotation_generated_whitespace_regression
+	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression
+	cd $(RUST_DIR) && cargo run --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression
+	@echo "✅ Regression gate passed."
 
 # Convenience aliases for *-with-log targets
 .PHONY: return-parser-with-log

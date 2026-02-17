@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-17 - Regression Lock-In Pattern: Dedicated JSON Suites + Single Gate Target
+### Context
+After fixing generated-parser behavior, the durable safeguard is explicit regression data and one repeatable command that validates both bootstrap and generated targets.
+### Practical Pattern
+1. Add focused JSON suites under parser-specific directories in `rust/test_data/`.
+2. Encode parser-target differences directly using `expectations.bootstrap_parser` and `expectations.generated_parser`.
+3. Wire one Makefile gate target so the same matrix can be rerun quickly (`make regression_gate`).
+### Why This Matters
+- Prevents silent reintroduction of generated-only regressions.
+- Keeps bootstrap-vs-generated behavior differences intentional and documented.
+- Preserves the “tests are data, not ad-hoc scripts” rule by using only universal test runner inputs.
 ## 2026-02-17 - Generated Parser Matching Policy: Controlled Whitespace and Rule-Scoped Regex Semantics
 ### Context
 After enabling full-consumption enforcement and longest-success alternative selection, the next instability source was not grammar validity but generated matcher behavior at token boundaries (especially around leading whitespace and expression-style identifiers in semantic annotations).

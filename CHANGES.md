@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-02-17 - Regression Gate Added for Whitespace and Dotted-Identifier Stability
+### ✅ Achievement Summary
+Added dedicated universal-test-runner regression suites plus a single Makefile gate target to lock in generated-parser fixes for whitespace handling and semantic dotted identifiers.
+### Scope of Changes
+- Added return regression suite:
+  - `rust/test_data/return_annotation/generated_whitespace_regression.json`
+  - Covers leading-whitespace handling on chained accessor input.
+  - Expectations:
+    - `bootstrap_parser`: `expected_fail`
+    - `generated_parser`: `pass`
+- Added semantic regression suite:
+  - `rust/test_data/semantic_annotation/generated_whitespace_and_dotted_regression.json`
+  - Covers:
+    - whitespace-heavy conditional expression annotations
+    - dotted member references in lambda expression arguments
+  - Expectations:
+    - `bootstrap_parser`: `pass`
+    - `generated_parser`: `pass`
+- Added one-command regression gate:
+  - `rust/Makefile` target: `regression_gate`
+  - Executes the new suites in both bootstrap and generated modes.
+  - Added target description to `make help`.
+### Validation Results
+- New regression gate:
+  - `make -C rust regression_gate` ✅
+- Full matrix revalidation after test additions:
+  - bootstrap return: `74/74 passed`
+  - generated return: `74/74 passed`
+  - bootstrap semantic: `26/26 passed`
+  - generated semantic: `30/30 passed`
+### Operational Notes
+- Test coverage is now explicit for the whitespace/dotted-identifier behavior that previously regressed in generated mode.
+- No EBNF edits were required.
 ## 2026-02-17 - Generated Parser Regression Closure (Whitespace-Aware Matching + Dotted Identifier Support)
 ### ✅ Achievement Summary
 Closed the post-hardening generated-parser regression cycle without changing EBNF sources by fixing codegen/runtime matching behavior and revalidating both bootstrap and generated parser targets.

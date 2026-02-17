@@ -1,0 +1,36 @@
+[
+  {
+    "name": "conditional_expression_with_extra_operator_whitespace",
+    "description": "Regression: semantic annotation with extra whitespace around comparison and ternary operators should parse and fully consume.",
+    "input": "@strategy: count(flatten($2))   >   8   ?   \"lookup_table\"   :   \"linear_checks\"",
+    "expected_round_trip": "@strategy: count(flatten($2))   >   8   ?   \"lookup_table\"   :   \"linear_checks\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": [
+      "regression",
+      "whitespace",
+      "semantic"
+    ],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "lambda_expression_with_dotted_member_references",
+    "description": "Regression: dotted member references inside lambda call arguments should be accepted by generated semantic parser.",
+    "input": "@validator: all(extract_ranges($2), r => valid_range(r.start, r.end))",
+    "expected_round_trip": "@validator: all(extract_ranges($2), r => valid_range(r.start, r.end))",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": [
+      "regression",
+      "dotted_identifier",
+      "semantic"
+    ],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]
