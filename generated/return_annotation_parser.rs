@@ -5064,7 +5064,9 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_STRING_CONTENT_DOUBLE,
                 |parser| {
-                    let result = ParseContent::Terminal(parser.match_regex("[^\"]*")?);
+                    let result = ParseContent::Terminal(
+                        parser.match_regex("[^\"]*", false)?,
+                    );
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "string_content_double",
@@ -5193,7 +5195,9 @@ impl<'input> Return_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_STRING_CONTENT_SINGLE,
                 |parser| {
-                    let result = ParseContent::Terminal(parser.match_regex("[^']*")?);
+                    let result = ParseContent::Terminal(
+                        parser.match_regex("[^']*", false)?,
+                    );
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "string_content_single",
@@ -5587,7 +5591,11 @@ impl<'input> Return_annotationParser<'input> {
                 Self::RULE_FLOAT,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("[-+]?[0-9]+\\.[0-9]+(?:[eE][-+]?[0-9]+)?")?,
+                        parser
+                            .match_regex(
+                                "[-+]?[0-9]+\\.[0-9]+(?:[eE][-+]?[0-9]+)?",
+                                true,
+                            )?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -5716,7 +5724,7 @@ impl<'input> Return_annotationParser<'input> {
                 Self::RULE_INTEGER,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("[-+]?[0-9]+")?,
+                        parser.match_regex("[-+]?[0-9]+", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -6111,7 +6119,7 @@ impl<'input> Return_annotationParser<'input> {
                 Self::RULE_IDENTIFIER,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("[a-zA-Z_][a-zA-Z0-9_]*")?,
+                        parser.match_regex("[a-zA-Z_][a-zA-Z0-9_]*", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -7776,7 +7784,18 @@ impl<'input> Return_annotationParser<'input> {
         }
         result
     }
+    fn consume_optional_whitespace(&mut self) {
+        while self.position < self.input.len() {
+            let b = self.input.as_bytes()[self.position];
+            if matches!(b, b' ' | b'\t' | b'\n' | b'\r') {
+                self.position += 1;
+            } else {
+                break;
+            }
+        }
+    }
     fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
+        self.consume_optional_whitespace();
         let start = self.position;
         let end = start + expected.len();
         if self.logger.is_enabled() {
@@ -7832,7 +7851,14 @@ impl<'input> Return_annotationParser<'input> {
                 ),
         )
     }
-    fn match_regex(&mut self, pattern: &str) -> ParseResult<&'input str> {
+    fn match_regex(
+        &mut self,
+        pattern: &str,
+        skip_leading_whitespace: bool,
+    ) -> ParseResult<&'input str> {
+        if skip_leading_whitespace {
+            self.consume_optional_whitespace();
+        }
         let re = regex::Regex::new(pattern)
             .map_err(|e| {
                 self

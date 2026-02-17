@@ -466,8 +466,10 @@ impl RoundTripTestRunner {
                 // Expected pass path: validate normalized round-trip output
                 let mut normalizer =
                     crate::test_runner::normalization::Normalizer::from_str(&test.normalizer);
-                if matches!(normalizer, crate::test_runner::normalization::Normalizer::Text)
-                    && Self::canonical_parser_type(&test.parser_type) == "return"
+                if matches!(
+                    normalizer,
+                    crate::test_runner::normalization::Normalizer::Text
+                ) && Self::canonical_parser_type(&test.parser_type) == "return"
                 {
                     normalizer = crate::test_runner::normalization::Normalizer::ReturnAst;
                 }

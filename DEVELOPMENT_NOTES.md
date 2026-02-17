@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-17 - Generated Parser Matching Policy: Controlled Whitespace and Rule-Scoped Regex Semantics
+### Context
+After enabling full-consumption enforcement and longest-success alternative selection, the next instability source was not grammar validity but generated matcher behavior at token boundaries (especially around leading whitespace and expression-style identifiers in semantic annotations).
+### Key Engineering Decisions
+#### 1) Whitespace handling should be centralized in parser helpers
+- Leading whitespace normalization belongs in generated helper methods (`match_string` / `match_regex`) rather than scattered across rule-specific logic.
+- `match_regex` now accepts `skip_leading_whitespace` so call-sites can preserve strict behavior where required.
+#### 2) String content rules are semantic islands
+- For `string_content_double` and `string_content_single`, regex matching must not auto-skip whitespace.
+- This prevents accidental mutation of string literal payload semantics while still allowing broad whitespace tolerance elsewhere.
+#### 3) Grammar-specific compatibility can be applied at codegen boundary
+- Semantic annotation expressions may contain dotted member references (`r.start`, `r.end`).
+- Instead of editing EBNF, a targeted codegen-time override for `semantic_annotation.identifier_literal` is acceptable when it preserves intended language behavior and avoids destabilizing shared grammar sources.
+### Validation Principle Reinforced
+Use full suite parity checks across both targets after each generator change:
+- bootstrap return + semantic
+- generated return + semantic
+If generated-only regressions appear while bootstrap remains green, prioritize generator/helper behavior review before considering grammar edits.
 ## 2026-02-16 - Parser Hardening Pattern: Structural Rewrite + Longest-Match + Full-Consumption Contracts
 ### Context
 The observed regression (`generated parser consumed prefix only`) was not an EBNF validity issue. It was a generated-parser behavior issue under recursive chain alternatives.

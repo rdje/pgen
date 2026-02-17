@@ -101,6 +101,9 @@ struct ParseabilitySummary {
     accepted: usize,
     rejected: usize,
     attempts: usize,
+    generation_errors: usize,
+    empty_generations: usize,
+    parser_rejections: usize,
 }
 
 fn main() -> Result<()> {
@@ -261,6 +264,9 @@ fn generate_parseable_stimuli(
     let mut accepted = Vec::with_capacity(requested_count);
     let mut attempts = 0usize;
     let mut rejected = 0usize;
+    let mut generation_errors = 0usize;
+    let mut empty_generations = 0usize;
+    let mut parser_rejections = 0usize;
 
     while accepted.len() < requested_count && attempts < max_attempts {
         attempts += 1;
@@ -268,11 +274,13 @@ fn generate_parseable_stimuli(
             Ok(mut samples) => match samples.pop() {
                 Some(sample) => sample,
                 None => {
+                    empty_generations += 1;
                     rejected += 1;
                     continue;
                 }
             },
             Err(_) => {
+                generation_errors += 1;
                 rejected += 1;
                 continue;
             }
@@ -281,6 +289,7 @@ fn generate_parseable_stimuli(
         if is_sample_parseable_by_generated_parser(grammar_name, &sample)? {
             accepted.push(sample);
         } else {
+            parser_rejections += 1;
             rejected += 1;
         }
     }
@@ -290,22 +299,46 @@ fn generate_parseable_stimuli(
         accepted: accepted.len(),
         rejected,
         attempts,
+        generation_errors,
+        empty_generations,
+        parser_rejections,
     };
 
     if accepted.len() < requested_count {
         return Err(anyhow::anyhow!(
-            "Unable to produce {} parseable stimuli for grammar '{}' after {} attempts (accepted {}, rejected {}). Try increasing --max-depth/--max-repeat or lowering --count",
+            "Unable to produce {} parseable stimuli for grammar '{}' after {} attempts (accepted {}, rejected {}; parse_rejections={}, generation_errors={}, empty_generations={}). Try increasing --max-depth/--max-repeat or lowering --count",
             summary.requested,
             grammar_name,
             summary.attempts,
             summary.accepted,
-            summary.rejected
+            summary.rejected,
+            summary.parser_rejections,
+            summary.generation_errors,
+            summary.empty_generations
         ));
     }
+    let acceptance_rate = if summary.attempts == 0 {
+        0.0
+    } else {
+        (summary.accepted as f64 * 100.0) / summary.attempts as f64
+    };
+    let rejection_rate = if summary.attempts == 0 {
+        0.0
+    } else {
+        (summary.rejected as f64 * 100.0) / summary.attempts as f64
+    };
 
     println!(
-        "Parseability validation accepted {}/{} samples ({} rejected over {} attempts)",
-        summary.accepted, summary.requested, summary.rejected, summary.attempts
+        "Parseability validation accepted {}/{} samples ({} rejected over {} attempts | acceptance {:.2}% / rejection {:.2}% | parse_rejections={} generation_errors={} empty_generations={})",
+        summary.accepted,
+        summary.requested,
+        summary.rejected,
+        summary.attempts,
+        acceptance_rate,
+        rejection_rate,
+        summary.parser_rejections,
+        summary.generation_errors,
+        summary.empty_generations
     );
 
     Ok(accepted)

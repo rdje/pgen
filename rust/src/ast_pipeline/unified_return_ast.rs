@@ -485,7 +485,8 @@ impl UnifiedReturnAST {
                 ':' if !in_string && depth == 0 => {
                     // Skip extraction operator (::) delimiters in values like "$2::first"
                     let prev_is_colon = idx > 0 && input.as_bytes()[idx - 1] == b':';
-                    let next_is_colon = (idx + 1) < input.len() && input.as_bytes()[idx + 1] == b':';
+                    let next_is_colon =
+                        (idx + 1) < input.len() && input.as_bytes()[idx + 1] == b':';
                     if prev_is_colon || next_is_colon {
                         continue;
                     }

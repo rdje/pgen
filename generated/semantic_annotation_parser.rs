@@ -239,7 +239,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -271,7 +271,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -303,7 +303,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -479,7 +479,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -511,7 +511,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -543,7 +543,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -8244,7 +8244,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_CUSTOM_ANNOTATION,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("([a-zA-Z_][a-zA-Z0-9_]*)")?,
+                        parser.match_regex("([a-zA-Z_][a-zA-Z0-9_]*)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -10997,7 +10997,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_DOUBLE_QUOTED_STRING,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("\"([^\"\\\\]|\\\\.)*\"")?,
+                        parser.match_regex("\"([^\"\\\\]|\\\\.)*\"", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -11128,7 +11128,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_SINGLE_QUOTED_STRING,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("'([^'\\\\]|\\\\.)*")?,
+                        parser.match_regex("'([^'\\\\]|\\\\.)*", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -11257,7 +11257,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_RAW_STRING,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("r\"([^\"]*)\"")?,
+                        parser.match_regex("r\"([^\"]*)\"", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -11386,7 +11386,11 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_MULTILINE_STRING,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("\"\"\"([^\"]*(?:\"(?!\"\")[^\"]*)*?)\"\"\"")?,
+                        parser
+                            .match_regex(
+                                "\"\"\"([^\"]*(?:\"(?!\"\")[^\"]*)*?)\"\"\"",
+                                true,
+                            )?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -11515,7 +11519,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_TEMPLATE_STRING,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("`([^`\\\\]|\\\\.)*`")?,
+                        parser.match_regex("`([^`\\\\]|\\\\.)*`", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -12138,7 +12142,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_INTEGER_LITERAL,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("([+-]?\\d+)")?,
+                        parser.match_regex("([+-]?\\d+)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -12267,7 +12271,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_DECIMAL_LITERAL,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("([+-]?\\d*\\.\\d+)")?,
+                        parser.match_regex("([+-]?\\d*\\.\\d+)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -12398,7 +12402,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_SCIENTIFIC_LITERAL,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("([+-]?\\d+(?:\\.\\d+)?[eE][+-]?\\d+)")?,
+                        parser.match_regex("([+-]?\\d+(?:\\.\\d+)?[eE][+-]?\\d+)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -12529,7 +12533,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_HEXADECIMAL_LITERAL,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("(0[xX][0-9a-fA-F]+)")?,
+                        parser.match_regex("(0[xX][0-9a-fA-F]+)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -12658,7 +12662,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_BINARY_LITERAL,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("(0[bB][01]+)")?,
+                        parser.match_regex("(0[bB][01]+)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -12787,7 +12791,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_OCTAL_LITERAL,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("(0[oO][0-7]+)")?,
+                        parser.match_regex("(0[oO][0-7]+)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -14077,7 +14081,11 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_IDENTIFIER_LITERAL,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("([a-zA-Z_][a-zA-Z0-9_]*)")?,
+                        parser
+                            .match_regex(
+                                "([a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)*)",
+                                true,
+                            )?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -14226,7 +14234,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -14276,7 +14284,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -14308,7 +14316,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -14412,7 +14420,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -14854,7 +14862,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -15030,7 +15038,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -15080,7 +15088,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -15112,7 +15120,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -15216,7 +15224,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -15413,7 +15421,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -15445,7 +15453,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -16174,7 +16182,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -16206,7 +16214,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -16382,7 +16390,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -16414,7 +16422,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -16446,7 +16454,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -16478,7 +16486,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -16785,7 +16793,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -16961,7 +16969,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -17011,7 +17019,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -17043,7 +17051,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -17147,7 +17155,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -17591,7 +17599,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -17623,7 +17631,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -17799,7 +17807,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -17849,7 +17857,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -17881,7 +17889,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -17985,7 +17993,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -18290,7 +18298,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -18340,7 +18348,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -18372,7 +18380,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -18476,7 +18484,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -18652,7 +18660,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -18684,7 +18692,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -23240,7 +23248,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -23272,7 +23280,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -23304,7 +23312,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -23336,7 +23344,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -23512,7 +23520,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -23544,7 +23552,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -23594,7 +23602,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -23626,7 +23634,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -23730,7 +23738,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -24179,7 +24187,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                     let element_start = parser.position;
                                     let element_content = {
                                         let result = ParseContent::Terminal(
-                                            parser.match_regex("\\s*")?,
+                                            parser.match_regex("\\s*", true)?,
                                         );
                                         result
                                     };
@@ -24211,7 +24219,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                     let element_start = parser.position;
                                     let element_content = {
                                         let result = ParseContent::Terminal(
-                                            parser.match_regex("\\s*")?,
+                                            parser.match_regex("\\s*", true)?,
                                         );
                                         result
                                     };
@@ -24273,7 +24281,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                             let element_start = parser.position;
                                             let element_content = {
                                                 let result = ParseContent::Terminal(
-                                                    parser.match_regex("\\s*")?,
+                                                    parser.match_regex("\\s*", true)?,
                                                 );
                                                 result
                                             };
@@ -24305,7 +24313,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                             let element_start = parser.position;
                                             let element_content = {
                                                 let result = ParseContent::Terminal(
-                                                    parser.match_regex("\\s*")?,
+                                                    parser.match_regex("\\s*", true)?,
                                                 );
                                                 result
                                             };
@@ -24991,7 +24999,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -25023,7 +25031,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -25199,7 +25207,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -25396,7 +25404,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -25446,7 +25454,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -25478,7 +25486,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -25582,7 +25590,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -25614,7 +25622,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -25646,7 +25654,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -25750,7 +25758,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -25782,7 +25790,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -26306,7 +26314,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -26356,7 +26364,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -26388,7 +26396,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -26492,7 +26500,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -26596,7 +26604,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -26646,7 +26654,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -26678,7 +26686,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -26782,7 +26790,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -27378,7 +27386,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -27410,7 +27418,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -27472,7 +27480,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -27504,7 +27512,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -27640,7 +27648,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -27672,7 +27680,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -27734,7 +27742,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -27766,7 +27774,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -27899,7 +27907,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -27931,7 +27939,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -28019,7 +28027,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -28290,7 +28298,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_PRIMITIVE_TYPE,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("([A-Z][a-zA-Z0-9_]*)")?,
+                        parser.match_regex("([A-Z][a-zA-Z0-9_]*)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -28439,7 +28447,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -28471,7 +28479,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -28521,7 +28529,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -28553,7 +28561,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -28657,7 +28665,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -28840,7 +28848,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                     let element_start = parser.position;
                                     let element_content = {
                                         let result = ParseContent::Terminal(
-                                            parser.match_regex("\\s*")?,
+                                            parser.match_regex("\\s*", true)?,
                                         );
                                         result
                                     };
@@ -28872,7 +28880,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                     let element_start = parser.position;
                                     let element_content = {
                                         let result = ParseContent::Terminal(
-                                            parser.match_regex("\\s*")?,
+                                            parser.match_regex("\\s*", true)?,
                                         );
                                         result
                                     };
@@ -28934,7 +28942,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                             let element_start = parser.position;
                                             let element_content = {
                                                 let result = ParseContent::Terminal(
-                                                    parser.match_regex("\\s*")?,
+                                                    parser.match_regex("\\s*", true)?,
                                                 );
                                                 result
                                             };
@@ -28966,7 +28974,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                             let element_start = parser.position;
                                             let element_content = {
                                                 let result = ParseContent::Terminal(
-                                                    parser.match_regex("\\s*")?,
+                                                    parser.match_regex("\\s*", true)?,
                                                 );
                                                 result
                                             };
@@ -29090,7 +29098,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -29122,7 +29130,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -29184,7 +29192,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -29216,7 +29224,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -29352,7 +29360,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -29384,7 +29392,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -29446,7 +29454,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -29478,7 +29486,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -29611,7 +29619,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -29643,7 +29651,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -29731,7 +29739,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -30029,7 +30037,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                     let element_start = parser.position;
                                     let element_content = {
                                         let result = ParseContent::Terminal(
-                                            parser.match_regex("\\s*")?,
+                                            parser.match_regex("\\s*", true)?,
                                         );
                                         result
                                     };
@@ -30061,7 +30069,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                     let element_start = parser.position;
                                     let element_content = {
                                         let result = ParseContent::Terminal(
-                                            parser.match_regex("\\s*")?,
+                                            parser.match_regex("\\s*", true)?,
                                         );
                                         result
                                     };
@@ -30123,7 +30131,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                             let element_start = parser.position;
                                             let element_content = {
                                                 let result = ParseContent::Terminal(
-                                                    parser.match_regex("\\s*")?,
+                                                    parser.match_regex("\\s*", true)?,
                                                 );
                                                 result
                                             };
@@ -30155,7 +30163,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                             let element_start = parser.position;
                                             let element_content = {
                                                 let result = ParseContent::Terminal(
-                                                    parser.match_regex("\\s*")?,
+                                                    parser.match_regex("\\s*", true)?,
                                                 );
                                                 result
                                             };
@@ -30279,7 +30287,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -30311,7 +30319,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -30373,7 +30381,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -30405,7 +30413,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -30541,7 +30549,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -30573,7 +30581,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -30635,7 +30643,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -30667,7 +30675,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -30800,7 +30808,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -30832,7 +30840,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -30920,7 +30928,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -31211,7 +31219,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -31261,7 +31269,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -31293,7 +31301,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -31397,7 +31405,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -31429,7 +31437,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -31461,7 +31469,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -31641,7 +31649,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -31673,7 +31681,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -31752,7 +31760,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -31784,7 +31792,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -31846,7 +31854,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -31878,7 +31886,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -32014,7 +32022,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -32046,7 +32054,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -32108,7 +32116,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -32140,7 +32148,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -32273,7 +32281,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -32305,7 +32313,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -32393,7 +32401,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -32688,7 +32696,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                 let element_start = parser.position;
                                 let element_content = {
                                     let result = ParseContent::Terminal(
-                                        parser.match_regex("\\s*")?,
+                                        parser.match_regex("\\s*", true)?,
                                     );
                                     result
                                 };
@@ -32767,7 +32775,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -32799,7 +32807,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -32861,7 +32869,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -32893,7 +32901,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -33029,7 +33037,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -33061,7 +33069,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -33123,7 +33131,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -33155,7 +33163,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                                 let element_start = parser.position;
                                                                 let element_content = {
                                                                     let result = ParseContent::Terminal(
-                                                                        parser.match_regex("\\s*")?,
+                                                                        parser.match_regex("\\s*", true)?,
                                                                     );
                                                                     result
                                                                 };
@@ -33288,7 +33296,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -33320,7 +33328,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -33408,7 +33416,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                     let element_start = parser.position;
                                                     let element_content = {
                                                         let result = ParseContent::Terminal(
-                                                            parser.match_regex("\\s*")?,
+                                                            parser.match_regex("\\s*", true)?,
                                                         );
                                                         result
                                                     };
@@ -33841,7 +33849,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_RULE_REFERENCE_NAME,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+)")?,
+                        parser.match_regex("([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+)", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -34453,7 +34461,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_ABSOLUTE_PATH,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("\\/[^\\s]*")?,
+                        parser.match_regex("\\/[^\\s]*", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -34582,7 +34590,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_RELATIVE_PATH,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("\\.\\.?\\/[^\\s]*")?,
+                        parser.match_regex("\\.\\.?\\/[^\\s]*", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -34711,7 +34719,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_HOME_PATH,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("~\\/[^\\s]*")?,
+                        parser.match_regex("~\\/[^\\s]*", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -34840,7 +34848,7 @@ impl<'input> Semantic_annotationParser<'input> {
                 Self::RULE_URL_REFERENCE,
                 |parser| {
                     let result = ParseContent::Terminal(
-                        parser.match_regex("(https?|ftp|file):\\/\\/[^\\s]+")?,
+                        parser.match_regex("(https?|ftp|file):\\/\\/[^\\s]+", true)?,
                     );
                     let end_pos = parser.position;
                     Ok(ParseNode {
@@ -34989,7 +34997,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s+")?,
+                                parser.match_regex("\\s+", true)?,
                             );
                             result
                         };
@@ -35683,7 +35691,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s+")?,
+                                parser.match_regex("\\s+", true)?,
                             );
                             result
                         };
@@ -36887,7 +36895,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -36919,7 +36927,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -37074,7 +37082,9 @@ impl<'input> Semantic_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_COMPLEXITY_EXPR,
                 |parser| {
-                    let result = ParseContent::Terminal(parser.match_regex("([^)]+)")?);
+                    let result = ParseContent::Terminal(
+                        parser.match_regex("([^)]+)", true)?,
+                    );
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "complexity_expr",
@@ -37222,7 +37232,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -38142,7 +38152,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -39539,6 +39549,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         parser
                             .match_regex(
                                 "(\\d+)\\.(\\d+)\\.(\\d+)(-[a-zA-Z0-9.-]+)?(\\+[a-zA-Z0-9.-]+)?",
+                                true,
                             )?,
                     );
                     let end_pos = parser.position;
@@ -40472,7 +40483,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -40522,7 +40533,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -40554,7 +40565,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -40658,7 +40669,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -41100,7 +41111,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -41150,7 +41161,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -41182,7 +41193,7 @@ impl<'input> Semantic_annotationParser<'input> {
                                                         let element_start = parser.position;
                                                         let element_content = {
                                                             let result = ParseContent::Terminal(
-                                                                parser.match_regex("\\s*")?,
+                                                                parser.match_regex("\\s*", true)?,
                                                             );
                                                             result
                                                         };
@@ -41286,7 +41297,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("\\s*")?,
+                                parser.match_regex("\\s*", true)?,
                             );
                             result
                         };
@@ -41707,7 +41718,9 @@ impl<'input> Semantic_annotationParser<'input> {
             .memoized_call(
                 Self::RULE_WHITESPACE,
                 |parser| {
-                    let result = ParseContent::Terminal(parser.match_regex("\\s+")?);
+                    let result = ParseContent::Terminal(
+                        parser.match_regex("\\s+", true)?,
+                    );
                     let end_pos = parser.position;
                     Ok(ParseNode {
                         rule_name: "whitespace",
@@ -41855,7 +41868,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("[^\\r\\n]*")?,
+                                parser.match_regex("[^\\r\\n]*", true)?,
                             );
                             result
                         };
@@ -42015,7 +42028,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("(?:[^*]|\\*(?!\\/))*")?,
+                                parser.match_regex("(?:[^*]|\\*(?!\\/))*", true)?,
                             );
                             result
                         };
@@ -42191,7 +42204,7 @@ impl<'input> Semantic_annotationParser<'input> {
                         let element_start = parser.position;
                         let element_content = {
                             let result = ParseContent::Terminal(
-                                parser.match_regex("[^\\r\\n]*")?,
+                                parser.match_regex("[^\\r\\n]*", true)?,
                             );
                             result
                         };
@@ -42266,7 +42279,18 @@ impl<'input> Semantic_annotationParser<'input> {
         }
         result
     }
+    fn consume_optional_whitespace(&mut self) {
+        while self.position < self.input.len() {
+            let b = self.input.as_bytes()[self.position];
+            if matches!(b, b' ' | b'\t' | b'\n' | b'\r') {
+                self.position += 1;
+            } else {
+                break;
+            }
+        }
+    }
     fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
+        self.consume_optional_whitespace();
         let start = self.position;
         let end = start + expected.len();
         if self.logger.is_enabled() {
@@ -42322,7 +42346,14 @@ impl<'input> Semantic_annotationParser<'input> {
                 ),
         )
     }
-    fn match_regex(&mut self, pattern: &str) -> ParseResult<&'input str> {
+    fn match_regex(
+        &mut self,
+        pattern: &str,
+        skip_leading_whitespace: bool,
+    ) -> ParseResult<&'input str> {
+        if skip_leading_whitespace {
+            self.consume_optional_whitespace();
+        }
         let re = regex::Regex::new(pattern)
             .map_err(|e| {
                 self

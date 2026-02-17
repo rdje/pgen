@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-02-17 - Generated Parser Regression Closure (Whitespace-Aware Matching + Dotted Identifier Support)
+### ✅ Achievement Summary
+Closed the post-hardening generated-parser regression cycle without changing EBNF sources by fixing codegen/runtime matching behavior and revalidating both bootstrap and generated parser targets.
+### Scope of Changes
+- Generator/runtime matching hardening:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - Added `consume_optional_whitespace()` helper in generated parser methods.
+  - `match_string()` now consumes optional leading whitespace before terminal matching.
+  - `match_regex()` now takes `skip_leading_whitespace: bool` so regex terminals can opt into whitespace skipping.
+  - Regex call-sites now pass `skip_leading_whitespace` with rule-aware behavior:
+    - disabled for `string_content_double` / `string_content_single` to avoid changing string literal payload semantics.
+- Semantic generated-parser compatibility fix:
+  - In codegen, for `semantic_annotation` rule `identifier_literal`, regex is widened from identifier-only to dotted-member compatible form so inputs like `r.start`/`r.end` are fully consumed.
+- Parseability reporting improvements:
+  - `rust/src/main.rs`
+  - Added parseability counters and reporting fields:
+    - `parser_rejections`
+    - `generation_errors`
+    - `empty_generations`
+  - Final parseability summary now prints acceptance/rejection percentages and rejection breakdown.
+- Minor return parser robustness update:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+  - `split_object_property()` colon handling explicitly skips extraction delimiter contexts (`::`) when splitting key/value.
+- Regenerated parser artifacts:
+  - `generated/return_annotation_parser.rs`
+  - `generated/semantic_annotation_parser.rs`
+### Root Cause and Resolution
+#### Root Cause
+- Generated parser matching behavior was too strict around leading whitespace and operator-adjacent contexts in several branches.
+- Semantic identifier regex was too narrow for dotted references used in annotation expressions.
+#### Resolution
+1. Made generated matching whitespace-aware in a controlled way.
+2. Preserved literal-string behavior by disabling regex whitespace skipping in string-content rules.
+3. Expanded semantic identifier handling for dotted references at codegen time.
+4. Regenerated parsers and reran full requested regression targets.
+### Validation Results
+- Generated return suite: `73/73 passed`
+- Generated semantic suite: `28/28 passed`
+- Bootstrap return suite: `73/73 passed`
+- Bootstrap semantic suite: `24/24 passed`
+### Operational Notes
+- No EBNF source updates were needed for this closure cycle.
+- Regression status now includes both strict full-consumption parser behavior and richer parseability telemetry.
 ## 2026-02-16 - Parser Generator Hardening (No EBNF Changes): Left-Recursion Rewrite + Full-Consumption Parsing
 ### ✅ Achievement Summary
 Hardened the Rust AST pipeline and generated parser behavior to eliminate prefix-only parse acceptance on legitimate return-annotation samples, while keeping source EBNF unchanged.

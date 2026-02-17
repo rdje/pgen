@@ -762,6 +762,16 @@ impl AstBasedGenerator {
                             file!(),
                             line!()
                         );
+                        let skip_leading_whitespace =
+                            !matches!(rule_name, "string_content_double" | "string_content_single");
+                        let effective_regex_pattern = if self.grammar_name == "semantic_annotation"
+                            && rule_name == "identifier_literal"
+                            && token_value_str == "([a-zA-Z_][a-zA-Z0-9_]*)"
+                        {
+                            "([a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)*)".to_string()
+                        } else {
+                            token_value_str.to_string()
+                        };
                         // Check for semantic annotations that should transform the matched string
                         if let Some(annotations) = &self.annotations {
                             if let Some(semantic_asts) =
@@ -792,14 +802,14 @@ impl AstBasedGenerator {
                                                 // Generate transformation code
                                                 if self.enable_debug {
                                                     return Ok(quote! {
-                                                        let matched_str = parser.match_regex(#token_value_str)?;
+                                                        let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                         let transformed = matched_str.parse::<#type_ident>().unwrap_or(#default_expr);
                                                         parser.debug_output.push(format!("🎯 Applied semantic transform: parsed '{}' to {}={}", matched_str, stringify!(#type_ident), transformed));
                                                         let result = ParseContent::TransformedTerminal(transformed.to_string())
                                                     });
                                                 } else {
                                                     return Ok(quote! {
-                                                        let matched_str = parser.match_regex(#token_value_str)?;
+                                                        let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                         let transformed = matched_str.parse::<#type_ident>().unwrap_or(#default_expr);
                                                         let result = ParseContent::TransformedTerminal(transformed.to_string())
                                                     });
@@ -810,13 +820,13 @@ impl AstBasedGenerator {
                                         // Fallback: treat as raw expression
                                         if self.enable_debug {
                                             return Ok(quote! {
-                                                let matched_str = parser.match_regex(#token_value_str)?;
+                                                let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                 parser.debug_output.push(format!("🎯 Applied semantic transform: raw expression '{}' to rule '{}': matched '{}'", #expression, #rule_name, matched_str));
                                                 let result = ParseContent::TransformedTerminal(#expression.to_string())
                                             });
                                         } else {
                                             return Ok(quote! {
-                                                let matched_str = parser.match_regex(#token_value_str)?;
+                                                let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                 let result = ParseContent::TransformedTerminal(#expression.to_string())
                                             });
                                         }
@@ -827,7 +837,7 @@ impl AstBasedGenerator {
 
                         // Default behavior: return matched string as terminal
                         Ok(quote! {
-                            let result = ParseContent::Terminal(parser.match_regex(#token_value_str)?)
+                            let result = ParseContent::Terminal(parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?)
                         })
                     }
                     "number" | "probability" | "include_dir" | "include_file" | "rule" => {
@@ -1027,7 +1037,18 @@ impl AstBasedGenerator {
 
     fn generate_helper_methods(&self, filename: &str) -> TokenStream {
         quote! {
+            fn consume_optional_whitespace(&mut self) {
+                while self.position < self.input.len() {
+                    let b = self.input.as_bytes()[self.position];
+                    if matches!(b, b' ' | b'\t' | b'\n' | b'\r') {
+                        self.position += 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
             fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
+                self.consume_optional_whitespace();
                 let start = self.position;
                 let end = start + expected.len();
 
@@ -1066,7 +1087,10 @@ impl AstBasedGenerator {
                 )))
             }
 
-            fn match_regex(&mut self, pattern: &str) -> ParseResult<&'input str> {
+            fn match_regex(&mut self, pattern: &str, skip_leading_whitespace: bool) -> ParseResult<&'input str> {
+                if skip_leading_whitespace {
+                    self.consume_optional_whitespace();
+                }
                 let re = regex::Regex::new(pattern)
                     .map_err(|e| self.create_contextual_error(&format!(
                         "Invalid regex pattern '{}': {}",
