@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-02-17 - Semantic Regression Expansion + Regex Stimuli Printable-Class Hardening
+### ✅ Achievement Summary
+Expanded semantic regression coverage for string-content/escape edge cases and hardened regex stimuli generation to prefer printable samples instead of control characters.
+### Scope of Changes
+- Semantic regression suite expanded:
+  - `rust/test_data/semantic_annotation/generated_whitespace_and_dotted_regression.json`
+  - Added:
+    - `string_literal_with_leading_spaces_in_content`
+    - `escaped_string_with_dotted_identifier_arguments`
+- Regex stimuli robustness hardening:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Improved class sampling policy for `Class::Unicode` and `Class::Bytes`:
+    - prefer printable candidates (`a`, `A`, `0`, `_`, `-`, space, `.`, `/`, `x`) when available,
+    - avoid control-character fallbacks where possible.
+  - Added helpers:
+    - `unicode_class_contains(...)`
+    - `bytes_class_contains(...)`
+- New unit tests for regex robustness:
+  - `regex_negated_class_avoids_control_character_samples`
+  - `regex_whitespace_class_prefers_space`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml stimuli_generator` ✅ (`6/6` passed)
+- bootstrap semantic regression suite:
+  - `cargo run --manifest-path rust/Cargo.toml --bin test_runner -- --parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression` ✅ (`4/4` passed)
+- generated semantic regression suite:
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression` ✅ (`4/4` passed)
+### Operational Notes
+- No EBNF source changes were required.
+- This hardening round targets generation quality (stimuli readability/parseability) while preserving parser behavior.
 ## 2026-02-17 - Regression Gate Added for Whitespace and Dotted-Identifier Stability
 ### ✅ Achievement Summary
 Added dedicated universal-test-runner regression suites plus a single Makefile gate target to lock in generated-parser fixes for whitespace handling and semantic dotted identifiers.

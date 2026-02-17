@@ -32,5 +32,41 @@
       "bootstrap_parser": "pass",
       "generated_parser": "pass"
     }
+  },
+  {
+    "name": "string_literal_with_leading_spaces_in_content",
+    "description": "Regression: leading spaces inside a quoted string literal should parse correctly across parser targets.",
+    "input": "@description: \"   keep leading spaces in string\"",
+    "expected_round_trip": "@description: \"   keep leading spaces in string\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": [
+      "regression",
+      "string_content",
+      "whitespace",
+      "semantic"
+    ],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "escaped_string_with_dotted_identifier_arguments",
+    "description": "Regression: escaped quotes in string arguments plus dotted identifiers should parse and fully consume.",
+    "input": "@validator: check_message(\"prefix \\\"quoted\\\" value\", r.start, r.end)",
+    "expected_round_trip": "@validator: check_message(\"prefix \\\"quoted\\\" value\", r.start, r.end)",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tags": [
+      "regression",
+      "escaped_string",
+      "dotted_identifier",
+      "semantic"
+    ],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
   }
 ]

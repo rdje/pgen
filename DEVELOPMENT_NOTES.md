@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-17 - Regex Stimuli Robustness Policy: Prefer Printable Class Samples
+### Context
+Regex-driven stimuli generation can produce syntactically valid but operationally poor samples when class selection falls back to control characters (especially from broad/negated classes).
+### Policy Update
+- For regex class sampling in stimuli generation, prefer printable ASCII candidates first.
+- Keep fallback behavior deterministic and safe if preferred candidates are unavailable.
+### Implementation Notes
+- `rust/src/ast_pipeline/stimuli_generator.rs` now checks class containment and prioritizes:
+  - `a`, `A`, `0`, `_`, `-`, space, `.`, `/`, `x`
+- Added helper methods:
+  - `unicode_class_contains(...)`
+  - `bytes_class_contains(...)`
+- Added focused unit tests to guard behavior:
+  - `regex_negated_class_avoids_control_character_samples`
+  - `regex_whitespace_class_prefers_space`
+### Why This Matters
+- Improves readability and debuggability of generated stimuli.
+- Reduces flaky parseability outcomes caused by non-printable sample characters.
+- Keeps robustness improvements in generation layer without changing grammar semantics.
+## 2026-02-17 - Semantic Regression Coverage Extension for String/Escape Edge Cases
+### Context
+After fixing whitespace and dotted-identifier handling, two edge patterns remained important to freeze in regression data:
+1. leading spaces inside quoted annotation strings,
+2. escaped-quote string arguments combined with dotted identifiers.
+### Added Regression Cases
+- `string_literal_with_leading_spaces_in_content`
+- `escaped_string_with_dotted_identifier_arguments`
+Both live in `rust/test_data/semantic_annotation/generated_whitespace_and_dotted_regression.json` and are expected to pass in both bootstrap and generated parser targets.
+### Validation Guidance
+Re-run the targeted suite in both modes whenever touching semantic parser/generator code:
+- bootstrap: `--parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression`
+- generated: same with `--features generated_parsers`
 ## 2026-02-17 - Regression Lock-In Pattern: Dedicated JSON Suites + Single Gate Target
 ### Context
 After fixing generated-parser behavior, the durable safeguard is explicit regression data and one repeatable command that validates both bootstrap and generated targets.

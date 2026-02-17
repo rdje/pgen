@@ -3,7 +3,7 @@ use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use regex_syntax::hir::{Class, Hir, HirKind, Literal, Repetition};
+use regex_syntax::hir::{Class, ClassBytes, ClassUnicode, Hir, HirKind, Literal, Repetition};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -539,24 +539,56 @@ impl<'a> StimuliGenerator<'a> {
 
     fn generate_from_regex_class(&mut self, class: &Class) -> String {
         match class {
-            Class::Unicode(unicode_class) => unicode_class
-                .ranges()
-                .first()
-                .map(|range| range.start().to_string())
-                .unwrap_or_default(),
-            Class::Bytes(bytes_class) => bytes_class
-                .ranges()
-                .first()
-                .map(|range| {
-                    let b = range.start();
-                    if b.is_ascii() {
-                        char::from(b).to_string()
-                    } else {
-                        "a".to_string()
+            Class::Unicode(unicode_class) => {
+                const PREFERRED: [char; 9] = ['a', 'A', '0', '_', '-', ' ', '.', '/', 'x'];
+                for ch in PREFERRED {
+                    if Self::unicode_class_contains(unicode_class, ch) {
+                        return ch.to_string();
                     }
-                })
-                .unwrap_or_default(),
+                }
+
+                unicode_class
+                    .ranges()
+                    .first()
+                    .map(|range| range.start().to_string())
+                    .unwrap_or_else(|| "a".to_string())
+            }
+            Class::Bytes(bytes_class) => {
+                const PREFERRED: [u8; 9] = [b'a', b'A', b'0', b'_', b'-', b' ', b'.', b'/', b'x'];
+                for b in PREFERRED {
+                    if Self::bytes_class_contains(bytes_class, b) {
+                        return char::from(b).to_string();
+                    }
+                }
+
+                bytes_class
+                    .ranges()
+                    .first()
+                    .map(|range| {
+                        let b = range.start();
+                        if b.is_ascii() && !b.is_ascii_control() {
+                            char::from(b).to_string()
+                        } else {
+                            "a".to_string()
+                        }
+                    })
+                    .unwrap_or_else(|| "a".to_string())
+            }
         }
+    }
+
+    fn unicode_class_contains(class: &ClassUnicode, ch: char) -> bool {
+        class
+            .ranges()
+            .iter()
+            .any(|range| range.start() <= ch && ch <= range.end())
+    }
+
+    fn bytes_class_contains(class: &ClassBytes, b: u8) -> bool {
+        class
+            .ranges()
+            .iter()
+            .any(|range| range.start() <= b && b <= range.end())
     }
 
     fn semantic_hint_for_rule(&self, rule_name: &str) -> Option<String> {
@@ -763,5 +795,48 @@ mod tests {
             .generate_many(1, None)
             .expect("depth-limited generation should terminate");
         assert_eq!(value[0], "x");
+    }
+
+    #[test]
+    fn regex_negated_class_avoids_control_character_samples() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "[^\"\\\\]+"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 99);
+        let value = generator
+            .generate_many(1, None)
+            .expect("negated-class regex generation should succeed");
+
+        assert!(!value[0].is_empty(), "regex sample should not be empty");
+        assert!(
+            !value[0].chars().any(|c| c == '\0'),
+            "regex sample should not include NUL characters: {:?}",
+            value[0]
+        );
+        assert!(
+            value[0].chars().all(|c| !c.is_ascii_control()),
+            "regex sample should avoid ASCII control characters: {:?}",
+            value[0]
+        );
+    }
+
+    #[test]
+    fn regex_whitespace_class_prefers_space() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "\\s+"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 101);
+        let value = generator
+            .generate_many(1, None)
+            .expect("whitespace regex generation should succeed");
+
+        assert!(!value[0].is_empty(), "whitespace sample should not be empty");
+        assert!(
+            value[0].chars().all(|c| c == ' '),
+            "whitespace sample should prefer printable spaces over control chars: {:?}",
+            value[0]
+        );
     }
 }
