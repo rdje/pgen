@@ -45,7 +45,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add strict-mode failure policy into standard CI gates (not only env-triggered mode).
 
 ### Phase C
-- [ ] Add coverage-guided semantic fuzzing loop with seed replay and corpus minimization.
+- [x] Add coverage-guided semantic fuzzing loop with seed replay and corpus minimization.
 - [ ] Add shrinking for failing stimuli and parseability counterexamples.
 - [ ] Add gap-driven generator priorities (rule/branch/annotation coverage targets).
 
@@ -61,7 +61,6 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 
 ### Remaining for Pillar 1 completion
 - Branch protection rule should require the `fixed-point-gate` check before merge.
-- Failure artifact upload and retention policy in CI for drift investigation.
 
 ## Risks and Mitigations
 - Risk: Non-deterministic codegen details (ordering, paths, timestamps) can create false drifts.
@@ -76,3 +75,5 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Added GitHub Actions `fixed-point-gate` workflow and started Phase B validator implementation with structured diagnostics.
 - 2026-02-18: Extended annotation validator with grammar-aware branch/capture checks and integrated grammar-aware validation into parser generation.
 - 2026-02-18: Enforced strict annotation validation policy in standard CI gate path and switched CI fixed-point runs to 3 cycles by default.
+- 2026-02-18: Added fixed-point drift artifact upload/retention policy in CI (failure-only upload of `rust/target/fixed_point_gate` snapshots and diffs).
+- 2026-02-18: Added coverage-guided fuzz loop mode with deterministic per-seed replay and greedy corpus minimization for stimuli generation.

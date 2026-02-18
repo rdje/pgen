@@ -17,7 +17,8 @@ use pgen::ast_pipeline::{
 use pgen::generated_parsers::return_annotation::Return_annotationParser;
 #[cfg(feature = "generated_parsers")]
 use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Parser)]
 #[command(name = "ast_pipeline")]
@@ -107,6 +108,23 @@ struct Args {
     #[arg(long, default_value_t = 5000, requires = "generate_stimuli")]
     target_max_attempts: usize,
 
+    /// Coverage-guided fuzz rounds (deterministic per-round seeds with replay metadata)
+    #[arg(
+        long,
+        default_value_t = 0,
+        requires = "generate_stimuli",
+        conflicts_with = "target_report_input"
+    )]
+    coverage_guided_fuzz_rounds: usize,
+
+    /// Starting seed for coverage-guided fuzz rounds (defaults to --seed, then 1)
+    #[arg(long, requires = "generate_stimuli")]
+    coverage_guided_fuzz_seed_start: Option<u64>,
+
+    /// Write coverage-guided fuzz replay report JSON
+    #[arg(long, requires = "generate_stimuli")]
+    coverage_guided_fuzz_replay_output: Option<String>,
+
     /// Enable trace mode in generated parser (detailed debug logging)
     #[arg(long)]
     trace: bool,
@@ -135,6 +153,58 @@ struct ParseabilitySummary {
     generation_errors: usize,
     empty_generations: usize,
     parser_rejections: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CoverageGuidedFuzzReplayCase {
+    round: usize,
+    seed: u64,
+    sample: Option<String>,
+    generation_error: Option<String>,
+    parseable: Option<bool>,
+    accepted: bool,
+    new_rule_hits: Vec<String>,
+    new_branch_hits: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CoverageGuidedFuzzReplayReport {
+    grammar_name: String,
+    entry_rule: String,
+    rounds: usize,
+    accepted_cases: usize,
+    rejected_cases: usize,
+    minimized_cases: usize,
+    unique_rule_hits: usize,
+    unique_branch_hits: usize,
+    cases: Vec<CoverageGuidedFuzzReplayCase>,
+}
+
+impl CoverageGuidedFuzzReplayReport {
+    fn summary_line(&self) -> String {
+        format!(
+            "Coverage-guided fuzz loop: rounds={} accepted={} rejected={} minimized={} unique_rule_hits={} unique_branch_hits={}",
+            self.rounds,
+            self.accepted_cases,
+            self.rejected_cases,
+            self.minimized_cases,
+            self.unique_rule_hits,
+            self.unique_branch_hits
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
+struct CoverageGuidedFuzzOutcome {
+    minimized_samples: Vec<String>,
+    merged_coverage: StimuliCoverageMetrics,
+    replay_report: CoverageGuidedFuzzReplayReport,
+}
+
+#[derive(Debug, Clone)]
+struct FuzzCorpusCandidate {
+    sample: String,
+    coverage_tokens: HashSet<String>,
 }
 
 fn main() -> Result<()> {
@@ -178,18 +248,19 @@ fn main() -> Result<()> {
         (0, Vec::<String>::new())
     } else if args.generate_stimuli {
         let grammar = load_grammar_bundle(&args.input_json, &mut pipeline)?;
+        let stimuli_config = StimuliConfig {
+            seed: args.seed,
+            max_depth: args.max_depth,
+            max_repeat: args.max_repeat,
+            max_rule_visits: args.max_depth.max(2),
+        };
 
         let mut generator = StimuliGenerator::new(
             grammar.grammar_name.clone(),
             &grammar.grammar_tree,
             &grammar.rule_order,
             grammar.annotations.as_ref(),
-            StimuliConfig {
-                seed: args.seed,
-                max_depth: args.max_depth,
-                max_repeat: args.max_repeat,
-                max_rule_visits: args.max_depth.max(2),
-            },
+            stimuli_config.clone(),
         );
 
         if let Some(coverage_input_path) = args.coverage_input.as_deref() {
@@ -197,9 +268,37 @@ fn main() -> Result<()> {
             generator.merge_coverage_metrics(&existing_coverage)?;
         }
 
-        let mut samples = if let Some(target_report_input_path) =
-            args.target_report_input.as_deref()
+        if args.coverage_guided_fuzz_rounds == 0
+            && (args.coverage_guided_fuzz_seed_start.is_some()
+                || args.coverage_guided_fuzz_replay_output.is_some())
         {
+            return Err(anyhow::anyhow!(
+                "--coverage-guided-fuzz-seed-start/--coverage-guided-fuzz-replay-output require --coverage-guided-fuzz-rounds > 0"
+            ));
+        }
+
+        let mut merged_coverage = generator.coverage_metrics().clone();
+        let mut replay_report: Option<CoverageGuidedFuzzReplayReport> = None;
+
+        let mut samples = if args.coverage_guided_fuzz_rounds > 0 {
+            let seed_start = args.coverage_guided_fuzz_seed_start.or(args.seed).unwrap_or(1);
+            let fuzz_outcome = run_coverage_guided_fuzz_loop(
+                &grammar.grammar_name,
+                &grammar.grammar_tree,
+                &grammar.rule_order,
+                grammar.annotations.as_ref(),
+                &stimuli_config,
+                args.entry_rule.as_deref(),
+                args.coverage_guided_fuzz_rounds,
+                seed_start,
+                args.validate_parseability,
+                merged_coverage.clone(),
+            )?;
+            println!("{}", fuzz_outcome.replay_report.summary_line());
+            merged_coverage = fuzz_outcome.merged_coverage.clone();
+            replay_report = Some(fuzz_outcome.replay_report);
+            fuzz_outcome.minimized_samples
+        } else if let Some(target_report_input_path) = args.target_report_input.as_deref() {
             let target_report = load_gap_report(target_report_input_path)?;
             if target_report.grammar_name != grammar.grammar_name {
                 return Err(anyhow::anyhow!(
@@ -242,16 +341,21 @@ fn main() -> Result<()> {
                     );
                 }
             }
+            merged_coverage = generator.coverage_metrics().clone();
             generated_samples
         } else if args.validate_parseability {
-            generate_parseable_stimuli(
+            let generated_samples = generate_parseable_stimuli(
                 &grammar.grammar_name,
                 &mut generator,
                 args.count,
                 args.entry_rule.as_deref(),
-            )?
+            )?;
+            merged_coverage = generator.coverage_metrics().clone();
+            generated_samples
         } else {
-            generator.generate_many(args.count, args.entry_rule.as_deref())?
+            let generated_samples = generator.generate_many(args.count, args.entry_rule.as_deref())?;
+            merged_coverage = generator.coverage_metrics().clone();
+            generated_samples
         };
 
         if args.validate_parseability && args.target_report_input.is_some() {
@@ -279,15 +383,37 @@ fn main() -> Result<()> {
             }
         }
 
-        println!("{}", generator.coverage_metrics().summary_line());
+        println!("{}", merged_coverage.summary_line());
         if let Some(coverage_output_path) = args.coverage_output.as_deref() {
-            let coverage_json = serde_json::to_string_pretty(generator.coverage_metrics())?;
+            let coverage_json = serde_json::to_string_pretty(&merged_coverage)?;
             std::fs::write(coverage_output_path, coverage_json)?;
             println!("Wrote stimuli coverage metrics to {}", coverage_output_path);
         }
 
+        if let Some(replay_output_path) = args.coverage_guided_fuzz_replay_output.as_deref() {
+            let Some(report) = replay_report.as_ref() else {
+                return Err(anyhow::anyhow!(
+                    "No replay report available. Set --coverage-guided-fuzz-rounds > 0 to emit replay data."
+                ));
+            };
+            let replay_json = serde_json::to_string_pretty(report)?;
+            std::fs::write(replay_output_path, replay_json)?;
+            println!(
+                "Wrote coverage-guided fuzz replay report to {}",
+                replay_output_path
+            );
+        }
+
         if args.gap_report_json.is_some() || args.gap_report_text.is_some() {
-            let gap_report = generator
+            let mut gap_generator = StimuliGenerator::new(
+                grammar.grammar_name.clone(),
+                &grammar.grammar_tree,
+                &grammar.rule_order,
+                grammar.annotations.as_ref(),
+                stimuli_config.clone(),
+            );
+            gap_generator.merge_coverage_metrics(&merged_coverage)?;
+            let gap_report = gap_generator
                 .generate_gap_report(args.entry_rule.as_deref(), args.gap_report_threshold)?;
             if let Some(gap_report_json_path) = args.gap_report_json.as_deref() {
                 let report_json = serde_json::to_string_pretty(&gap_report)?;
@@ -373,6 +499,275 @@ fn load_gap_report(path: &str) -> Result<StimuliCoverageGapReport> {
     let content = std::fs::read_to_string(path)?;
     let report: StimuliCoverageGapReport = serde_json::from_str(&content)?;
     Ok(report)
+}
+
+fn run_coverage_guided_fuzz_loop(
+    grammar_name: &str,
+    grammar_tree: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    annotations: Option<&Annotations>,
+    base_config: &StimuliConfig,
+    entry_rule: Option<&str>,
+    rounds: usize,
+    seed_start: u64,
+    validate_parseability: bool,
+    initial_coverage: StimuliCoverageMetrics,
+) -> Result<CoverageGuidedFuzzOutcome> {
+    if rounds == 0 {
+        return Ok(CoverageGuidedFuzzOutcome {
+            minimized_samples: Vec::new(),
+            merged_coverage: initial_coverage,
+            replay_report: CoverageGuidedFuzzReplayReport {
+                grammar_name: grammar_name.to_string(),
+                entry_rule: resolve_stimuli_entry_rule(grammar_tree, rule_order, entry_rule)?,
+                rounds: 0,
+                accepted_cases: 0,
+                rejected_cases: 0,
+                minimized_cases: 0,
+                unique_rule_hits: 0,
+                unique_branch_hits: 0,
+                cases: Vec::new(),
+            },
+        });
+    }
+
+    if validate_parseability {
+        ensure_parseability_support(grammar_name)?;
+    }
+
+    let resolved_entry = resolve_stimuli_entry_rule(grammar_tree, rule_order, entry_rule)?;
+    let mut merged_coverage = initial_coverage;
+    let mut replay_cases = Vec::with_capacity(rounds);
+    let mut corpus_candidates = Vec::new();
+    let mut unique_rule_hits = HashSet::new();
+    let mut unique_branch_hits = HashSet::new();
+
+    for round_idx in 0..rounds {
+        let offset = u64::try_from(round_idx).map_err(|_| {
+            anyhow::anyhow!("Coverage-guided fuzz round index overflow at round {}", round_idx)
+        })?;
+        let seed = seed_start.checked_add(offset).ok_or_else(|| {
+            anyhow::anyhow!(
+                "Coverage-guided fuzz seed overflow: start={} round={}",
+                seed_start,
+                round_idx
+            )
+        })?;
+
+        let mut seed_config = base_config.clone();
+        seed_config.seed = Some(seed);
+        let mut round_generator = StimuliGenerator::new(
+            grammar_name.to_string(),
+            grammar_tree,
+            rule_order,
+            annotations,
+            seed_config,
+        );
+        round_generator.merge_coverage_metrics(&merged_coverage)?;
+
+        let coverage_before = round_generator.coverage_metrics().clone();
+        let generation_result = round_generator.generate_many(1, Some(resolved_entry.as_str()));
+        let coverage_after = round_generator.coverage_metrics().clone();
+        merged_coverage = coverage_after.clone();
+
+        let (sample, generation_error) = match generation_result {
+            Ok(mut samples) => (samples.pop(), None),
+            Err(err) => (None, Some(err.to_string())),
+        };
+
+        let mut parseable = None;
+        let mut accepted = sample.is_some();
+        if let Some(sample_text) = sample.as_deref() {
+            if validate_parseability {
+                let is_parseable = is_sample_parseable_by_generated_parser(grammar_name, sample_text)?;
+                parseable = Some(is_parseable);
+                accepted = is_parseable;
+            }
+        } else {
+            accepted = false;
+        }
+
+        let new_rule_hits = coverage_rule_hit_delta(&coverage_before, &coverage_after);
+        let new_branch_hits = coverage_branch_hit_delta(&coverage_before, &coverage_after);
+        for rule in &new_rule_hits {
+            unique_rule_hits.insert(rule.clone());
+        }
+        for branch in &new_branch_hits {
+            unique_branch_hits.insert(branch.clone());
+        }
+
+        if accepted {
+            if let Some(sample_text) = sample.as_ref() {
+                let mut coverage_tokens = HashSet::new();
+                for rule in &new_rule_hits {
+                    coverage_tokens.insert(format!("rule::{}", rule));
+                }
+                for branch in &new_branch_hits {
+                    coverage_tokens.insert(branch.clone());
+                }
+                corpus_candidates.push(FuzzCorpusCandidate {
+                    sample: sample_text.clone(),
+                    coverage_tokens,
+                });
+            }
+        }
+
+        replay_cases.push(CoverageGuidedFuzzReplayCase {
+            round: round_idx + 1,
+            seed,
+            sample,
+            generation_error,
+            parseable,
+            accepted,
+            new_rule_hits,
+            new_branch_hits,
+        });
+    }
+
+    let minimized_indices = minimize_fuzz_corpus_cases(&corpus_candidates);
+    let minimized_samples = minimized_indices
+        .into_iter()
+        .map(|idx| corpus_candidates[idx].sample.clone())
+        .collect::<Vec<String>>();
+    let minimized_case_count = minimized_samples.len();
+    let accepted_cases = replay_cases.iter().filter(|case| case.accepted).count();
+    let rejected_cases = replay_cases.len().saturating_sub(accepted_cases);
+
+    Ok(CoverageGuidedFuzzOutcome {
+        minimized_samples,
+        merged_coverage,
+        replay_report: CoverageGuidedFuzzReplayReport {
+            grammar_name: grammar_name.to_string(),
+            entry_rule: resolved_entry,
+            rounds,
+            accepted_cases,
+            rejected_cases,
+            minimized_cases: minimized_case_count,
+            unique_rule_hits: unique_rule_hits.len(),
+            unique_branch_hits: unique_branch_hits.len(),
+            cases: replay_cases,
+        },
+    })
+}
+
+fn resolve_stimuli_entry_rule(
+    grammar_tree: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    entry_rule: Option<&str>,
+) -> Result<String> {
+    if let Some(rule_name) = entry_rule {
+        if grammar_tree.contains_key(rule_name) {
+            return Ok(rule_name.to_string());
+        }
+        return Err(anyhow::anyhow!("Entry rule '{}' not found in grammar", rule_name));
+    }
+
+    rule_order.first().cloned().ok_or_else(|| {
+        anyhow::anyhow!("No entry rule available for stimuli generation (empty rule_order)")
+    })
+}
+
+fn coverage_rule_hit_delta(
+    before: &StimuliCoverageMetrics,
+    after: &StimuliCoverageMetrics,
+) -> Vec<String> {
+    let mut delta = Vec::new();
+    for (rule_name, after_hits) in &after.rule_success_hits {
+        let before_hits = before.rule_success_hits.get(rule_name).copied().unwrap_or(0);
+        if *after_hits > before_hits {
+            delta.push(rule_name.clone());
+        }
+    }
+    delta.sort();
+    delta
+}
+
+fn coverage_branch_hit_delta(
+    before: &StimuliCoverageMetrics,
+    after: &StimuliCoverageMetrics,
+) -> Vec<String> {
+    let mut delta = Vec::new();
+    for (group_key, after_group) in &after.branch_groups {
+        let before_group = before.branch_groups.get(group_key);
+        for idx in 0..after_group.total_branches {
+            let after_hits = after_group.success_counts.get(idx).copied().unwrap_or(0);
+            let before_hits = before_group
+                .and_then(|group| group.success_counts.get(idx).copied())
+                .unwrap_or(0);
+            if after_hits > before_hits {
+                delta.push(format!(
+                    "branch::{}::{}#{}",
+                    after_group.rule_name, after_group.node_path, idx
+                ));
+            }
+        }
+    }
+    delta.sort();
+    delta
+}
+
+fn minimize_fuzz_corpus_cases(cases: &[FuzzCorpusCandidate]) -> Vec<usize> {
+    if cases.is_empty() {
+        return Vec::new();
+    }
+
+    let mut uncovered = HashSet::new();
+    for case in cases {
+        for token in &case.coverage_tokens {
+            uncovered.insert(token.clone());
+        }
+    }
+
+    if uncovered.is_empty() {
+        let shortest = cases
+            .iter()
+            .enumerate()
+            .min_by_key(|(idx, case)| (case.sample.len(), *idx))
+            .map(|(idx, _)| idx)
+            .unwrap_or(0);
+        return vec![shortest];
+    }
+
+    let mut selected = Vec::new();
+    let mut used = HashSet::new();
+    while !uncovered.is_empty() {
+        let mut best_idx = None;
+        let mut best_gain = 0usize;
+        let mut best_len = usize::MAX;
+        for (idx, case) in cases.iter().enumerate() {
+            if used.contains(&idx) {
+                continue;
+            }
+            let gain = case
+                .coverage_tokens
+                .iter()
+                .filter(|token| uncovered.contains(*token))
+                .count();
+            if gain == 0 {
+                continue;
+            }
+            if gain > best_gain || (gain == best_gain && case.sample.len() < best_len) {
+                best_idx = Some(idx);
+                best_gain = gain;
+                best_len = case.sample.len();
+            }
+        }
+
+        let Some(best) = best_idx else {
+            break;
+        };
+        used.insert(best);
+        selected.push(best);
+        for token in &cases[best].coverage_tokens {
+            uncovered.remove(token);
+        }
+    }
+
+    if selected.is_empty() {
+        selected.push(0);
+    }
+    selected.sort_unstable();
+    selected
 }
 
 fn filter_parseable_samples<I>(grammar_name: &str, samples: I) -> Result<(Vec<String>, usize)>
@@ -545,7 +940,12 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 
 #[cfg(test)]
 mod tests {
-    use super::supports_generated_parseability;
+    use super::{
+        coverage_branch_hit_delta, minimize_fuzz_corpus_cases, supports_generated_parseability,
+        FuzzCorpusCandidate, StimuliCoverageMetrics,
+    };
+    use pgen::ast_pipeline::stimuli_generator::BranchCoverageGroup;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn supports_known_generated_parseability_grammars() {
@@ -553,5 +953,107 @@ mod tests {
         assert!(supports_generated_parseability("semantic_annotation"));
         assert!(!supports_generated_parseability("regex"));
         assert!(!supports_generated_parseability("unknown"));
+    }
+
+    #[test]
+    fn corpus_minimization_prefers_max_coverage_candidate() {
+        let mut c0_tokens = HashSet::new();
+        c0_tokens.insert("rule::a".to_string());
+        let mut c1_tokens = HashSet::new();
+        c1_tokens.insert("rule::b".to_string());
+        let mut c2_tokens = HashSet::new();
+        c2_tokens.insert("rule::a".to_string());
+        c2_tokens.insert("rule::b".to_string());
+
+        let cases = vec![
+            FuzzCorpusCandidate {
+                sample: "alpha".to_string(),
+                coverage_tokens: c0_tokens,
+            },
+            FuzzCorpusCandidate {
+                sample: "beta".to_string(),
+                coverage_tokens: c1_tokens,
+            },
+            FuzzCorpusCandidate {
+                sample: "both".to_string(),
+                coverage_tokens: c2_tokens,
+            },
+        ];
+
+        let selected = minimize_fuzz_corpus_cases(&cases);
+        assert_eq!(selected, vec![2]);
+    }
+
+    #[test]
+    fn corpus_minimization_falls_back_to_shortest_when_no_coverage_delta() {
+        let cases = vec![
+            FuzzCorpusCandidate {
+                sample: "longer".to_string(),
+                coverage_tokens: HashSet::new(),
+            },
+            FuzzCorpusCandidate {
+                sample: "x".to_string(),
+                coverage_tokens: HashSet::new(),
+            },
+            FuzzCorpusCandidate {
+                sample: "mid".to_string(),
+                coverage_tokens: HashSet::new(),
+            },
+        ];
+
+        let selected = minimize_fuzz_corpus_cases(&cases);
+        assert_eq!(selected, vec![1]);
+    }
+
+    #[test]
+    fn branch_hit_delta_reports_new_successes_only() {
+        let mut before_groups = HashMap::new();
+        before_groups.insert(
+            "root::group".to_string(),
+            BranchCoverageGroup {
+                rule_name: "root".to_string(),
+                node_path: "root".to_string(),
+                total_branches: 2,
+                selected_counts: vec![1, 1],
+                success_counts: vec![0, 1],
+            },
+        );
+        let before = StimuliCoverageMetrics {
+            grammar_name: "g".to_string(),
+            total_rules: 1,
+            total_branch_groups: 1,
+            total_branches: 2,
+            sample_attempts: 1,
+            sample_successes: 1,
+            sample_errors: 0,
+            rule_success_hits: HashMap::new(),
+            branch_groups: before_groups,
+        };
+
+        let mut after_groups = HashMap::new();
+        after_groups.insert(
+            "root::group".to_string(),
+            BranchCoverageGroup {
+                rule_name: "root".to_string(),
+                node_path: "root".to_string(),
+                total_branches: 2,
+                selected_counts: vec![2, 2],
+                success_counts: vec![1, 1],
+            },
+        );
+        let after = StimuliCoverageMetrics {
+            grammar_name: "g".to_string(),
+            total_rules: 1,
+            total_branch_groups: 1,
+            total_branches: 2,
+            sample_attempts: 2,
+            sample_successes: 2,
+            sample_errors: 0,
+            rule_success_hits: HashMap::new(),
+            branch_groups: after_groups,
+        };
+
+        let delta = coverage_branch_hit_delta(&before, &after);
+        assert_eq!(delta, vec!["branch::root::root#0".to_string()]);
     }
 }

@@ -73,6 +73,44 @@ This gives an actionable pre-merge CI check surface for fixed-point bootstrap de
   - strict validation failures are now wired into the standard pre-merge gate path,
   - CI determinism runs are stricter (`>=3` cycles) without making local iteration slower by default.
 
+### Fixed-Point Drift Artifact Retention (Pillar 1 closure item)
+- Verified existing gate script behavior:
+  - `rust/scripts/fixed_point_bootstrap_gate.sh` already leaves `rust/target/fixed_point_gate` intact on mismatch/failure paths (cleanup happens only on success by default).
+- Added CI failure artifact preservation:
+  - `.github/workflows/fixed-point-gate.yml`
+  - New failure-only upload step:
+    - `actions/upload-artifact@v4`
+    - path: `rust/target/fixed_point_gate`
+    - retention: `14` days
+    - artifact name includes run id and attempt for traceability.
+- Result:
+  - deterministic drift failures now retain snapshots + unified diffs for post-failure triage without requiring reruns.
+
+### Phase C Kickoff: Coverage-Guided Fuzz Loop + Seed Replay + Corpus Minimization
+- Added deterministic fuzz-loop mode in `ast_pipeline` stimuli path:
+  - `rust/src/main.rs`
+  - New CLI controls:
+    - `--coverage-guided-fuzz-rounds`
+    - `--coverage-guided-fuzz-seed-start`
+    - `--coverage-guided-fuzz-replay-output`
+- Behavior:
+  - For each round, create a seeded generator instance, merge prior cumulative coverage, generate a sample, and record incremental coverage deltas.
+  - Optional parseability filtering is supported via existing `--validate-parseability` path.
+  - Replay report captures:
+    - round/seed
+    - generated sample or generation error
+    - parseability result (if enabled)
+    - new rule and branch hits contributed in that round
+- Corpus minimization:
+  - Implemented greedy set-cover style minimization over accepted samples using coverage tokens:
+    - `rule::<name>`
+    - `branch::<rule>::<node_path>#<index>`
+  - Deterministic tie-breakers favor shortest samples; if no delta coverage tokens exist, keep the shortest accepted sample.
+- Validation:
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline` passed (added fuzz helper tests).
+  - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/semantic_annotation.json --generate-stimuli --coverage-guided-fuzz-rounds 5 --coverage-guided-fuzz-replay-output /tmp/pgen_fuzz_replay.json --output /tmp/pgen_fuzz_corpus.txt` passed.
+  - `make -C rust fixed_point_gate` passed.
+
 ## 2026-02-18 - SOTA Roadmap Kickoff: Fixed-Point Bootstrap Gate
 ### Context
 Given the SOTA objective for PGEN, the first implementation priority is bootstrap reproducibility: repeated generation from the same annotation EBNFs must produce stable artifacts. This is especially important because annotation parser stability directly impacts downstream parser generation, roundtrip testing, and automated stimuli validation loops.

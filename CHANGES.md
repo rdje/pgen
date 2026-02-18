@@ -57,6 +57,30 @@ Wired `fixed_point_gate` into CI and started Phase B by adding typed return/sema
   - `.github/workflows/fixed-point-gate.yml`:
     - exports `PGEN_STRICT_ANNOTATION_VALIDATION=1` for gate runs.
 
+### Follow-up (failure artifact retention policy)
+- Added failure-only drift artifact upload in CI:
+  - `.github/workflows/fixed-point-gate.yml`
+  - Uses `actions/upload-artifact@v4` when the gate job fails.
+  - Uploads `rust/target/fixed_point_gate` snapshots/diffs for triage.
+  - Retention policy set to `14` days.
+
+### Follow-up (Phase C kickoff: coverage-guided fuzz replay + corpus minimization)
+- Extended stimuli CLI with deterministic coverage-guided fuzz loop mode:
+  - `rust/src/main.rs`
+  - New flags:
+    - `--coverage-guided-fuzz-rounds`
+    - `--coverage-guided-fuzz-seed-start`
+    - `--coverage-guided-fuzz-replay-output`
+- Implemented seed replay reporting:
+  - Per-round capture of seed, sample, generation error, parseability result, and incremental rule/branch coverage deltas.
+- Implemented greedy corpus minimization:
+  - Keeps only accepted samples that contribute coverage tokens needed to cover the observed fuzz-coverage universe.
+  - Deterministic fallback to shortest sample when no incremental coverage tokens exist.
+- Added unit coverage in `rust/src/main.rs`:
+  - `corpus_minimization_prefers_max_coverage_candidate`
+  - `corpus_minimization_falls_back_to_shortest_when_no_coverage_delta`
+  - `branch_hit_delta_reports_new_successes_only`
+
 ## 2026-02-18 - Fixed-Point Bootstrap Reproducibility Gate (Phase A Kickoff)
 ### ✅ Achievement Summary
 Implemented the first execution item from the SOTA roadmap: a fixed-point bootstrap gate that verifies deterministic generation for return/semantic annotation artifacts.

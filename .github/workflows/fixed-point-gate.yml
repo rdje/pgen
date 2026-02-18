@@ -31,3 +31,12 @@ jobs:
         env:
           PGEN_STRICT_ANNOTATION_VALIDATION: "1"
         run: make -C rust SHELL=/bin/bash fixed_point_gate
+
+      - name: Upload fixed-point drift artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixed-point-gate-drift-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/fixed_point_gate
+          if-no-files-found: warn
+          retention-days: 14
