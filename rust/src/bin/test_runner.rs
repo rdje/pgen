@@ -23,7 +23,9 @@ use pgen::test_runner::parsers::{
 use pgen::test_runner::round_trip_tests::{RoundTripTest, TestSuite};
 use pgen::test_runner::{FileLogger, Parser, UniversalTestRunner};
 #[cfg(feature = "generated_parsers")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "generated_parsers")]
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::process::exit;
@@ -226,10 +228,38 @@ enum DifferentialOutcome {
 }
 
 #[cfg(feature = "generated_parsers")]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+struct DifferentialMismatchKey {
+    suite: String,
+    test: String,
+}
+
+#[cfg(feature = "generated_parsers")]
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum DifferentialMismatchCategory {
+    BaselineSuccessCandidateFailure,
+    BaselineFailureCandidateSuccess,
+    NormalizedOutputMismatch,
+}
+
+#[cfg(feature = "generated_parsers")]
+impl DifferentialMismatchCategory {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::BaselineSuccessCandidateFailure => "baseline_success_candidate_failure",
+            Self::BaselineFailureCandidateSuccess => "baseline_failure_candidate_success",
+            Self::NormalizedOutputMismatch => "normalized_output_mismatch",
+        }
+    }
+}
+
+#[cfg(feature = "generated_parsers")]
 #[derive(Debug, Serialize)]
 struct DifferentialMismatch {
     suite: String,
     test: String,
+    category: DifferentialMismatchCategory,
     input: String,
     normalizer: String,
     expected_round_trip: String,
@@ -248,11 +278,28 @@ struct DifferentialReport {
     total_cases: usize,
     matched_cases: usize,
     mismatched_cases: usize,
+    mismatch_category_counts: BTreeMap<String, usize>,
+    baseline_path: Option<String>,
+    baseline_allowed_mismatches: Option<usize>,
+    baseline_new_mismatches: Option<usize>,
+    baseline_resolved_mismatches: Option<usize>,
+    baseline_new_mismatch_cases: Vec<DifferentialMismatchKey>,
+    baseline_resolved_mismatch_cases: Vec<DifferentialMismatchKey>,
     mismatches: Vec<DifferentialMismatch>,
 }
 
 #[cfg(feature = "generated_parsers")]
-fn outcomes_match(baseline: &DifferentialOutcome, candidate: &DifferentialOutcome) -> bool {
+#[derive(Debug, Deserialize, Serialize)]
+struct DifferentialBaselineFile {
+    parser: String,
+    allowed_mismatches: Vec<DifferentialMismatchKey>,
+}
+
+#[cfg(feature = "generated_parsers")]
+fn classify_outcome_mismatch(
+    baseline: &DifferentialOutcome,
+    candidate: &DifferentialOutcome,
+) -> Option<DifferentialMismatchCategory> {
     match (baseline, candidate) {
         (
             DifferentialOutcome::Success {
@@ -263,9 +310,20 @@ fn outcomes_match(baseline: &DifferentialOutcome, candidate: &DifferentialOutcom
                 normalized: candidate,
                 ..
             },
-        ) => baseline == candidate,
-        (DifferentialOutcome::Failure { .. }, DifferentialOutcome::Failure { .. }) => true,
-        _ => false,
+        ) => {
+            if baseline == candidate {
+                None
+            } else {
+                Some(DifferentialMismatchCategory::NormalizedOutputMismatch)
+            }
+        }
+        (DifferentialOutcome::Failure { .. }, DifferentialOutcome::Failure { .. }) => None,
+        (DifferentialOutcome::Success { .. }, DifferentialOutcome::Failure { .. }) => {
+            Some(DifferentialMismatchCategory::BaselineSuccessCandidateFailure)
+        }
+        (DifferentialOutcome::Failure { .. }, DifferentialOutcome::Success { .. }) => {
+            Some(DifferentialMismatchCategory::BaselineFailureCandidateSuccess)
+        }
     }
 }
 
@@ -276,6 +334,9 @@ fn run_differential_mode(
     tag_filter: Vec<String>,
     debug_enabled: bool,
     fail_fast: bool,
+    baseline_json_path: Option<&str>,
+    write_baseline_json_path: Option<&str>,
+    regression_only: bool,
     report_json_path: Option<&str>,
 ) -> Result<i32, Box<dyn std::error::Error>> {
     let canonical = canonical_parser_type(parser_type);
@@ -317,6 +378,13 @@ fn run_differential_mode(
         total_cases: 0,
         matched_cases: 0,
         mismatched_cases: 0,
+        mismatch_category_counts: BTreeMap::new(),
+        baseline_path: baseline_json_path.map(|s| s.to_string()),
+        baseline_allowed_mismatches: None,
+        baseline_new_mismatches: None,
+        baseline_resolved_mismatches: None,
+        baseline_new_mismatch_cases: Vec::new(),
+        baseline_resolved_mismatch_cases: Vec::new(),
         mismatches: Vec::new(),
     };
 
@@ -359,15 +427,22 @@ fn run_differential_mode(
                 },
             };
 
-            if outcomes_match(&baseline_outcome, &candidate_outcome) {
+            let mismatch_category = classify_outcome_mismatch(&baseline_outcome, &candidate_outcome);
+            if mismatch_category.is_none() {
                 report.matched_cases += 1;
                 continue;
             }
 
             report.mismatched_cases += 1;
+            let category = mismatch_category.expect("category already checked for mismatch");
+            *report
+                .mismatch_category_counts
+                .entry(category.as_str().to_string())
+                .or_insert(0) += 1;
             report.mismatches.push(DifferentialMismatch {
                 suite: suite.name.clone(),
                 test: test.name.clone(),
+                category,
                 input: test.input.clone(),
                 normalizer: test.normalizer.clone(),
                 expected_round_trip: test.expected_round_trip.clone(),
@@ -384,6 +459,52 @@ fn run_differential_mode(
         }
     }
 
+    if let Some(path) = baseline_json_path {
+        let baseline_json = std::fs::read_to_string(path).map_err(|e| {
+            format!(
+                "Failed to read differential baseline JSON '{}': {}",
+                path, e
+            )
+        })?;
+        let baseline: DifferentialBaselineFile = serde_json::from_str(&baseline_json).map_err(|e| {
+            format!(
+                "Failed to parse differential baseline JSON '{}': {}",
+                path, e
+            )
+        })?;
+        let baseline_parser = canonical_parser_type(&baseline.parser);
+        if baseline_parser != canonical {
+            return Err(format!(
+                "Differential baseline parser mismatch: baseline='{}' current='{}'",
+                baseline_parser, canonical
+            )
+            .into());
+        }
+
+        let current_set: BTreeSet<DifferentialMismatchKey> = report
+            .mismatches
+            .iter()
+            .map(|m| DifferentialMismatchKey {
+                suite: m.suite.clone(),
+                test: m.test.clone(),
+            })
+            .collect();
+        let baseline_set: BTreeSet<DifferentialMismatchKey> =
+            baseline.allowed_mismatches.into_iter().collect();
+
+        report.baseline_allowed_mismatches = Some(baseline_set.len());
+        report.baseline_new_mismatch_cases = current_set
+            .difference(&baseline_set)
+            .cloned()
+            .collect::<Vec<_>>();
+        report.baseline_resolved_mismatch_cases = baseline_set
+            .difference(&current_set)
+            .cloned()
+            .collect::<Vec<_>>();
+        report.baseline_new_mismatches = Some(report.baseline_new_mismatch_cases.len());
+        report.baseline_resolved_mismatches = Some(report.baseline_resolved_mismatch_cases.len());
+    }
+
     log_output("🧪 Differential Harness (generated vs bootstrap)");
     log_output(&"=".repeat(60));
     log_output(&format!("Parser: {}", report.parser));
@@ -397,17 +518,68 @@ fn run_differential_mode(
         "Compared {} case(s): matched={} mismatched={}",
         report.total_cases, report.matched_cases, report.mismatched_cases
     ));
+    if !report.mismatch_category_counts.is_empty() {
+        log_output("Mismatch categories:");
+        for (category, count) in &report.mismatch_category_counts {
+            log_output(&format!("  - {}: {}", category, count));
+        }
+    }
+    if let Some(path) = baseline_json_path {
+        log_output(&format!("Baseline comparison: {}", path));
+        log_output(&format!(
+            "  allowed={} new={} resolved={}",
+            report.baseline_allowed_mismatches.unwrap_or(0),
+            report.baseline_new_mismatches.unwrap_or(0),
+            report.baseline_resolved_mismatches.unwrap_or(0)
+        ));
+    }
+
+    if let Some(path) = write_baseline_json_path {
+        let baseline_output = DifferentialBaselineFile {
+            parser: canonical.clone(),
+            allowed_mismatches: report
+                .mismatches
+                .iter()
+                .map(|m| DifferentialMismatchKey {
+                    suite: m.suite.clone(),
+                    test: m.test.clone(),
+                })
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect(),
+        };
+        std::fs::write(path, serde_json::to_string_pretty(&baseline_output)?)?;
+        log_output(&format!("Wrote differential baseline JSON: {}", path));
+    }
 
     if let Some(path) = report_json_path {
         std::fs::write(path, serde_json::to_string_pretty(&report)?)?;
         log_output(&format!("Wrote differential report JSON: {}", path));
     }
 
+    if regression_only {
+        if baseline_json_path.is_none() {
+            return Err(
+                "--differential-regression-only requires --differential-baseline-json".into(),
+            );
+        }
+        if report.baseline_new_mismatches.unwrap_or(0) > 0 {
+            for mismatch in report.baseline_new_mismatch_cases.iter().take(20) {
+                log_output(&format!("  - NEW mismatch: {} / {}", mismatch.suite, mismatch.test));
+            }
+            return Ok(1);
+        }
+        return Ok(0);
+    }
+
     if report.mismatched_cases > 0 {
         for mismatch in report.mismatches.iter().take(20) {
             log_output(&format!(
-                "  - {} / {} (normalizer: {})",
-                mismatch.suite, mismatch.test, mismatch.normalizer
+                "  - {} / {} [{}] (normalizer: {})",
+                mismatch.suite,
+                mismatch.test,
+                mismatch.category.as_str(),
+                mismatch.normalizer
             ));
         }
         return Ok(1);
@@ -423,6 +595,9 @@ fn run_differential_mode(
     _tag_filter: Vec<String>,
     _debug_enabled: bool,
     _fail_fast: bool,
+    _baseline_json_path: Option<&str>,
+    _write_baseline_json_path: Option<&str>,
+    _regression_only: bool,
     _report_json_path: Option<&str>,
 ) -> Result<i32, Box<dyn std::error::Error>> {
     Err("Differential mode requires `cargo run --features generated_parsers --bin test_runner -- --differential ...`".into())
@@ -518,6 +693,27 @@ fn main() {
                 .help("Write machine-readable differential mismatch report JSON")
                 .requires("differential")
         )
+        .arg(
+            Arg::new("differential_baseline_json")
+                .long("differential-baseline-json")
+                .value_name("PATH")
+                .help("Read baseline mismatch set and compute new/resolved mismatch closure metrics")
+                .requires("differential")
+        )
+        .arg(
+            Arg::new("differential_write_baseline_json")
+                .long("differential-write-baseline-json")
+                .value_name("PATH")
+                .help("Write current mismatch set as baseline JSON for future regression checks")
+                .requires("differential")
+        )
+        .arg(
+            Arg::new("differential_regression_only")
+                .long("differential-regression-only")
+                .help("Exit non-zero only for mismatches that are NEW vs baseline")
+                .requires("differential_baseline_json")
+                .action(clap::ArgAction::SetTrue)
+        )
         .get_matches();
 
     let verbose = matches.get_flag("verbose");
@@ -547,12 +743,22 @@ fn main() {
         let report_path = matches
             .get_one::<String>("differential_report_json")
             .map(|s| s.as_str());
+        let baseline_path = matches
+            .get_one::<String>("differential_baseline_json")
+            .map(|s| s.as_str());
+        let write_baseline_path = matches
+            .get_one::<String>("differential_write_baseline_json")
+            .map(|s| s.as_str());
+        let regression_only = matches.get_flag("differential_regression_only");
         match run_differential_mode(
             parser_type,
             suite_filter,
             tag_filter,
             debug_enabled,
             fail_fast,
+            baseline_path,
+            write_baseline_path,
+            regression_only,
             report_path,
         ) {
             Ok(code) => exit(code),

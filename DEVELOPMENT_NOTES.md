@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase E Kickoff: Differential Closure Tracking and Regression-Only Gate
+### Context
+After Phase D completion, differential harnessing existed but closure management still required manual inspection. There was no native way to:
+1. classify mismatch types for triage,
+2. track known mismatch debt as a baseline,
+3. fail CI/local checks only on newly introduced drift while existing mismatch debt is being reduced.
+
+At the same time, product documentation needs were raised for a full end-user onboarding guide. That requirement was added to roadmap backlog while implementation moved forward on the next technical item.
+### Differential Harness Enhancements
+- Extended `test_runner` differential mode in:
+  - `rust/src/bin/test_runner.rs`
+- Added mismatch taxonomy classification:
+  - `baseline_success_candidate_failure`
+  - `baseline_failure_candidate_success`
+  - `normalized_output_mismatch`
+- Differential report now includes:
+  - mismatch category counts,
+  - optional baseline comparison metadata:
+    - baseline path,
+    - allowed mismatch count,
+    - new mismatch count/cases,
+    - resolved mismatch count/cases.
+- Added baseline JSON I/O:
+  - read baseline:
+    - `--differential-baseline-json <path>`
+  - write current baseline snapshot:
+    - `--differential-write-baseline-json <path>`
+- Added regression-only policy mode:
+  - `--differential-regression-only`
+  - when enabled with baseline input, exit code is non-zero only if new mismatches are detected.
+  - known baseline mismatches no longer block this gate mode.
+### Makefile Workflow Integration
+- Updated `rust/Makefile` with:
+  - `differential_refresh_baseline`
+    - regenerates tracked baseline snapshots from current differential mismatch set.
+    - tolerates expected mismatch exit code (`1`) while still failing on unexpected harness errors (`>1`).
+  - `differential_regression_gate`
+    - runs differential mode for `return` and `semantic`,
+    - compares against tracked baseline snapshots,
+    - fails only for new mismatch regressions.
+### Baseline Artifacts Added
+- `rust/test_data/differential_baseline/return_annotation_baseline.json`
+- `rust/test_data/differential_baseline/semantic_annotation_baseline.json`
+
+These files intentionally track known mismatch debt as structured suite/test identifiers to make closure progress measurable and automatable.
+### Validation
+- `cargo check --manifest-path rust/Cargo.toml --bin test_runner` passed.
+- `cargo check --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner` passed.
+- `make -C rust differential_refresh_baseline` passed and wrote baseline snapshots.
+- `make -C rust differential_regression_gate` passed:
+  - return: `allowed=2`, `new=0`, `resolved=0`
+  - semantic: `allowed=15`, `new=0`, `resolved=0`
+### Why This Matters
+- Converts differential drift management from passive reporting to an explicit closure loop.
+- Enables “no new regressions” gating immediately without requiring full historical mismatch elimination first.
+- Provides a concrete bridge toward stricter eventual differential gates once baseline mismatch debt is retired.
+- Separately, the roadmap now tracks delivery of a comprehensive user-focused PGEN guide as a dedicated backlog task.
+
 ## 2026-02-18 - Phase D Completion: Performance Gate and Embedding API Stability
 ### Context
 Phase D still had two open execution items:

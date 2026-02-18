@@ -54,6 +54,10 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add performance benchmark suite and CI thresholds.
 - [x] Finalize embedding API stability and versioning policy.
 
+### Phase E
+- [x] Add differential mismatch taxonomy + baseline regression gate (`new mismatch only`) with tracked baseline snapshots.
+- [ ] Author and maintain comprehensive PGEN User Guide (EBNF, return/semantic annotations, coverage flows, stimuli generation, automation workflows, troubleshooting).
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -82,3 +86,5 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Started Phase D by adding generated-vs-bootstrap differential harness mode in `test_runner` with JSON mismatch reports and Makefile automation (`make differential_report`).
 - 2026-02-18: Completed Phase D performance gate by adding `perf_bench`, `make performance_gate`, threshold policy (`rust/perf/thresholds.json`), and CI workflow wiring (`performance-gate`).
 - 2026-02-18: Completed Phase D embedding API stabilization with versioned `pgen::embedding_api` contracts, deterministic structured parse outcomes, and `make embedding_api_gate`.
+- 2026-02-18: Started Phase E by adding mismatch taxonomy + baseline closure tracking in differential mode and a regression-only gate (`make differential_regression_gate`) backed by tracked baseline snapshots under `rust/test_data/differential_baseline/`.
+- 2026-02-18: Added backlog task for a full end-user PGEN User Guide covering onboarding and all major feature areas.

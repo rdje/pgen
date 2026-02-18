@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-02-18 - Phase E Kickoff: Differential Baseline Regression Gate + User Guide Backlog Task
+### ✅ Achievement Summary
+Started the next execution task after Phase D by adding baseline-aware differential closure tracking and a regression-only gate that fails only on newly introduced mismatches.
+### Scope of Changes
+- Extended differential harness in:
+  - `rust/src/bin/test_runner.rs`
+  - New differential capabilities:
+    - mismatch taxonomy categories in report/log output:
+      - `baseline_success_candidate_failure`
+      - `baseline_failure_candidate_success`
+      - `normalized_output_mismatch`
+    - baseline comparison mode:
+      - `--differential-baseline-json <path>`
+      - computes `allowed/new/resolved` mismatch counts and case lists
+    - regression-only exit policy:
+      - `--differential-regression-only`
+      - exits non-zero only when **new** mismatches are found vs baseline
+    - baseline snapshot writer:
+      - `--differential-write-baseline-json <path>`
+- Added Makefile workflows in:
+  - `rust/Makefile`
+  - New targets:
+    - `differential_refresh_baseline`
+    - `differential_regression_gate`
+- Added tracked baseline snapshots:
+  - `rust/test_data/differential_baseline/return_annotation_baseline.json`
+  - `rust/test_data/differential_baseline/semantic_annotation_baseline.json`
+- Roadmap updates:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Added Phase E kickoff item for differential closure gate.
+  - Added explicit backlog task for a comprehensive end-user PGEN User Guide.
+### Validation Results
+- `cargo check --manifest-path rust/Cargo.toml --bin test_runner` ✅
+- `cargo check --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner` ✅
+- `make -C rust differential_refresh_baseline` ✅
+- `make -C rust differential_regression_gate` ✅ (`new=0` for return and semantic vs tracked baselines)
+
 ## 2026-02-18 - Phase D Completion: Performance Gate + Embedding API Contract
 ### ✅ Achievement Summary
 Completed the remaining Phase D items by shipping a CI-enforced benchmark threshold gate and a versioned/stable embedding API contract for annotation parsing.

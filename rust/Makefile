@@ -39,6 +39,7 @@ RETURN_ANNOTATION_EXE = $(GENERATED_DIR)/return_annotation_parser
 RUST_AST_PIPELINE = $(RUST_DIR)/target/debug/ast_pipeline
 RUST_AST_PIPELINE_BOOTSTRAP = $(RUST_DIR)/target/debug/ast_pipeline_bootstrap
 DIFFERENTIAL_REPORT_DIR = $(RUST_DIR)/target/differential_harness
+DIFFERENTIAL_BASELINE_DIR = $(RUST_DIR)/test_data/differential_baseline
 
 # Differential harness policy:
 # - default reports mismatches without failing local flows
@@ -224,6 +225,8 @@ help:
 	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
 	@echo "  performance_gate - Run benchmark thresholds for bootstrap vs generated parsers"
 	@echo "  differential_report - Compare generated vs bootstrap parser behavior and emit JSON reports"
+	@echo "  differential_refresh_baseline - Refresh tracked differential mismatch baselines"
+	@echo "  differential_regression_gate - Fail only on NEW mismatches vs tracked differential baselines"
 	@echo "  help         - Show this help"
 	@echo "  status       - Show current build status"
 	@echo ""
@@ -406,6 +409,30 @@ differential_report:
 	else \
 		echo "✅ Differential harness found no mismatches."; \
 	fi
+
+.PHONY: differential_refresh_baseline
+differential_refresh_baseline:
+	@echo "🧷 Refreshing differential mismatch baseline snapshots..."
+	@mkdir -p $(DIFFERENTIAL_BASELINE_DIR)
+	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
+	@set +e; \
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-write-baseline-json test_data/differential_baseline/return_annotation_baseline.json; rc_return=$$?; \
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-write-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json; rc_semantic=$$?; \
+	set -e; \
+	if [ $$rc_return -gt 1 ] || [ $$rc_semantic -gt 1 ]; then \
+		echo "❌ differential_refresh_baseline failed (unexpected harness error)."; \
+		exit 1; \
+	fi
+	@echo "✅ Differential baselines refreshed in $(DIFFERENTIAL_BASELINE_DIR)."
+
+.PHONY: differential_regression_gate
+differential_regression_gate:
+	@echo "🚧 Running differential regression gate (new mismatches only)..."
+	@mkdir -p $(DIFFERENTIAL_REPORT_DIR)
+	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-baseline-json test_data/differential_baseline/return_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/return_annotation_diff_report.json
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/semantic_annotation_diff_report.json
+	@echo "✅ Differential regression gate passed (no new mismatches vs baseline)."
 
 .PHONY: performance_gate
 performance_gate:
