@@ -34,6 +34,29 @@ Wired `fixed_point_gate` into CI and started Phase B by adding typed return/sema
 - `make -C rust fixed_point_gate` ✅
 - `cargo test --manifest-path rust/Cargo.toml annotation_validator` ✅
 
+### Follow-up (Phase B extension)
+- Extended validator with grammar-aware checks:
+  - branch index mismatch diagnostics (`W_RET_BRANCH_INDEX_OOB`)
+  - non-sequence branch positional use diagnostics (`W_RET_BRANCH_NOT_SEQUENCE`)
+  - positional reference vs branch capture bound diagnostics (`W_RET_POS_RULE_BOUND`)
+- Validator now uses grammar context during generation:
+  - `validate_annotations_with_grammar(...)` integration in `ast_generator_direct.rs`
+
+### Follow-up (strict CI policy + generator path fix)
+- Fixed parser generation path so CLI generation now uses validator-integrated AST generator:
+  - `rust/src/main.rs` now calls `ast_generator_direct::generate_parser_ast_based(...)`
+  - This closes a gap where strict annotation validation could be bypassed.
+- Tightened strict-mode policy:
+  - `rust/src/ast_pipeline/ast_generator_direct.rs`
+  - Strict validation now defaults to `ON` in CI (`CI=true`) unless explicitly overridden.
+  - Explicit override remains available through `PGEN_STRICT_ANNOTATION_VALIDATION`.
+- Promoted fixed-point gate strictness and CI defaults:
+  - `rust/Makefile`:
+    - `fixed_point_gate` now enforces strict annotation validation by default.
+    - CI runs use `3` cycles by default (`FIXED_POINT_CYCLES=3` when `CI=true`).
+  - `.github/workflows/fixed-point-gate.yml`:
+    - exports `PGEN_STRICT_ANNOTATION_VALIDATION=1` for gate runs.
+
 ## 2026-02-18 - Fixed-Point Bootstrap Reproducibility Gate (Phase A Kickoff)
 ### ✅ Achievement Summary
 Implemented the first execution item from the SOTA roadmap: a fixed-point bootstrap gate that verifies deterministic generation for return/semantic annotation artifacts.

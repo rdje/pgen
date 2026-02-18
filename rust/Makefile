@@ -8,6 +8,14 @@ GENERATED_DIR = ../generated
 TOOLS_DIR = ../tools
 RUST_DIR = .
 
+# Gate defaults:
+# - local runs keep faster 2-cycle checks
+# - CI enforces >=3 cycles
+FIXED_POINT_CYCLES ?= 2
+ifeq ($(CI),true)
+FIXED_POINT_CYCLES := 3
+endif
+
 # Input EBNF files
 SEMANTIC_ANNOTATION_EBNF = $(GRAMMARS_DIR)/semantic_annotation.ebnf
 RETURN_ANNOTATION_EBNF = $(GRAMMARS_DIR)/return_annotation.ebnf
@@ -356,7 +364,7 @@ regex_tests: regex_parser
 .PHONY: fixed_point_gate
 fixed_point_gate:
 	@echo "🔁 Running fixed-point bootstrap reproducibility gate..."
-	cd $(RUST_DIR) && ./scripts/fixed_point_bootstrap_gate.sh --cycles 2
+	cd $(RUST_DIR) && PGEN_STRICT_ANNOTATION_VALIDATION=$${PGEN_STRICT_ANNOTATION_VALIDATION:-1} ./scripts/fixed_point_bootstrap_gate.sh --cycles $(FIXED_POINT_CYCLES)
 	@echo "✅ Fixed-point gate passed."
 
 .PHONY: regression_gate

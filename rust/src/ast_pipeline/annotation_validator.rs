@@ -1,7 +1,8 @@
 use super::{
-    Annotations, BranchAnnotation, ExtractionTarget, UnifiedReturnAST, UnifiedSemanticAST,
+    ASTNode, Annotations, BranchAnnotation, ExtractionTarget, UnifiedReturnAST, UnifiedSemanticAST,
 };
 use regex::Regex;
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,6 +103,99 @@ impl AnnotationValidator {
         for (rule_name, semantic_annotations) in &annotations.semantic_annotations {
             for (idx, annotation_ast) in semantic_annotations.iter().enumerate() {
                 self.validate_semantic_annotation(rule_name, idx + 1, annotation_ast, &mut report);
+            }
+        }
+
+        report
+    }
+
+    pub fn validate_annotations_with_grammar(
+        &self,
+        annotations: &Annotations,
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> AnnotationValidationReport {
+        let mut report = self.validate_annotations(annotations);
+
+        for (rule_name, branch_annotations) in &annotations.branch_return_annotations {
+            let Some(rule_ast) = grammar_tree.get(rule_name) else {
+                report.diagnostics.push(AnnotationDiagnostic {
+                    code: "W_RET_RULE_NOT_FOUND",
+                    severity: AnnotationSeverity::Warning,
+                    kind: AnnotationKind::Return,
+                    rule_name: rule_name.clone(),
+                    annotation_index: None,
+                    message: "Return annotation references rule that is missing from grammar tree."
+                        .to_string(),
+                    annotation: None,
+                });
+                continue;
+            };
+
+            let branches = self.top_level_branches(rule_ast);
+            for (idx, branch_annotation) in branch_annotations.iter().enumerate() {
+                let Some(annotation) = branch_annotation else {
+                    continue;
+                };
+                let Some(parsed_ast) = annotation.parsed_ast.as_ref() else {
+                    continue;
+                };
+
+                let max_positional_ref = self.max_positional_ref(parsed_ast);
+                if max_positional_ref == 0 {
+                    continue;
+                }
+
+                let Some(branch_ast) = branches.get(idx) else {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_RET_BRANCH_INDEX_OOB",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Return,
+                        rule_name: rule_name.clone(),
+                        annotation_index: Some(idx + 1),
+                        message: format!(
+                            "Return annotation targets branch {} but rule has only {} branch(es).",
+                            idx + 1,
+                            branches.len()
+                        ),
+                        annotation: Some(annotation.annotation_content.clone()),
+                    });
+                    continue;
+                };
+
+                let bound = self.positional_capture_bound(branch_ast);
+                if bound == 0 {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_RET_BRANCH_NOT_SEQUENCE",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Return,
+                        rule_name: rule_name.clone(),
+                        annotation_index: Some(idx + 1),
+                        message: format!(
+                            "Return annotation uses positional references up to ${}, but branch {} does not expose sequence captures.",
+                            max_positional_ref,
+                            idx + 1
+                        ),
+                        annotation: Some(annotation.annotation_content.clone()),
+                    });
+                    continue;
+                }
+
+                if max_positional_ref > bound {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_RET_POS_RULE_BOUND",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Return,
+                        rule_name: rule_name.clone(),
+                        annotation_index: Some(idx + 1),
+                        message: format!(
+                            "Return annotation references ${}, but branch {} has only {} top-level capture slot(s).",
+                            max_positional_ref,
+                            idx + 1,
+                            bound
+                        ),
+                        annotation: Some(annotation.annotation_content.clone()),
+                    });
+                }
             }
         }
 
@@ -433,11 +527,52 @@ impl AnnotationValidator {
             AnnotationSeverity::Warning
         }
     }
+
+    fn top_level_branches<'a>(&self, rule_ast: &'a ASTNode) -> Vec<&'a ASTNode> {
+        match rule_ast {
+            ASTNode::Or { alternatives } => alternatives.iter().collect(),
+            _ => vec![rule_ast],
+        }
+    }
+
+    fn positional_capture_bound(&self, branch_ast: &ASTNode) -> usize {
+        match branch_ast {
+            ASTNode::Sequence { elements } => elements.len(),
+            _ => 0,
+        }
+    }
+
+    fn max_positional_ref(&self, ast: &UnifiedReturnAST) -> usize {
+        match ast {
+            UnifiedReturnAST::PositionalRef { index } => *index,
+            UnifiedReturnAST::Spread { base }
+            | UnifiedReturnAST::PropertyAccess { base, .. }
+            | UnifiedReturnAST::QuantifiedExtraction { base, .. } => self.max_positional_ref(base),
+            UnifiedReturnAST::ArrayAccess { base, index } => {
+                self.max_positional_ref(base).max(self.max_positional_ref(index))
+            }
+            UnifiedReturnAST::Object { properties } => properties
+                .values()
+                .map(|value| self.max_positional_ref(value))
+                .max()
+                .unwrap_or(0),
+            UnifiedReturnAST::Array { elements } => elements
+                .iter()
+                .map(|value| self.max_positional_ref(value))
+                .max()
+                .unwrap_or(0),
+            UnifiedReturnAST::StringLiteral { .. }
+            | UnifiedReturnAST::NumberLiteral { .. }
+            | UnifiedReturnAST::BooleanLiteral { .. }
+            | UnifiedReturnAST::Passthrough => 0,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast_pipeline::{ASTValue, TokenValue};
 
     #[test]
     fn return_validator_flags_zero_positional_reference() {
@@ -540,5 +675,75 @@ mod tests {
             .diagnostics
             .iter()
             .any(|d| d.code == "E_RET_POS_OUT_OF_RANGE"));
+    }
+
+    #[test]
+    fn grammar_aware_validation_warns_when_positional_ref_exceeds_branch_bound() {
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "rule".to_string(),
+            vec![Some(BranchAnnotation {
+                annotation_type: "return_scalar".to_string(),
+                annotation_content: "$3".to_string(),
+                parsed_ast: Some(UnifiedReturnAST::PositionalRef { index: 3 }),
+            })],
+        );
+
+        let grammar_tree = HashMap::from([(
+            "rule".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Atom {
+                        value: ASTValue::Token(vec![
+                            TokenValue::String("quoted_string".to_string()),
+                            TokenValue::String("a".to_string()),
+                        ]),
+                    },
+                    ASTNode::Atom {
+                        value: ASTValue::Token(vec![
+                            TokenValue::String("quoted_string".to_string()),
+                            TokenValue::String("b".to_string()),
+                        ]),
+                    },
+                ],
+            },
+        )]);
+
+        let report = AnnotationValidator::default()
+            .validate_annotations_with_grammar(&annotations, &grammar_tree);
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_RET_POS_RULE_BOUND"));
+    }
+
+    #[test]
+    fn grammar_aware_validation_warns_on_non_sequence_branch_positional_ref() {
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "rule".to_string(),
+            vec![Some(BranchAnnotation {
+                annotation_type: "return_scalar".to_string(),
+                annotation_content: "$1".to_string(),
+                parsed_ast: Some(UnifiedReturnAST::PositionalRef { index: 1 }),
+            })],
+        );
+
+        let grammar_tree = HashMap::from([(
+            "rule".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![
+                    TokenValue::String("quoted_string".to_string()),
+                    TokenValue::String("x".to_string()),
+                ]),
+            },
+        )]);
+
+        let report = AnnotationValidator::default()
+            .validate_annotations_with_grammar(&annotations, &grammar_tree);
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_RET_BRANCH_NOT_SEQUENCE"));
     }
 }

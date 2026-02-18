@@ -28,4 +28,6 @@ jobs:
         run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
 
       - name: Run fixed-point bootstrap reproducibility gate
+        env:
+          PGEN_STRICT_ANNOTATION_VALIDATION: "1"
         run: make -C rust SHELL=/bin/bash fixed_point_gate

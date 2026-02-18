@@ -35,14 +35,14 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add fixed-point bootstrap gate script for return/semantic parser artifacts.
 - [x] Add `make fixed_point_gate` target for local and CI usage.
 - [x] Wire `fixed_point_gate` into CI as required pre-merge gate.
-- [ ] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
+- [x] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
 
 ### Phase B (Next)
 - [x] Implement typed return annotation validator (`$n`, extraction, spread, object/array shape checks).
 - [x] Implement typed semantic annotation validator (transform function signatures and argument checks).
 - [x] Emit structured diagnostics with stable error codes.
-- [ ] Extend validator coverage to include rule-aware capture bounds and branch-shape compatibility.
-- [ ] Add strict-mode failure policy into standard CI gates (not only env-triggered mode).
+- [x] Extend validator coverage to include rule-aware capture bounds and branch-shape compatibility.
+- [x] Add strict-mode failure policy into standard CI gates (not only env-triggered mode).
 
 ### Phase C
 - [ ] Add coverage-guided semantic fuzzing loop with seed replay and corpus minimization.
@@ -62,7 +62,6 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 ### Remaining for Pillar 1 completion
 - Branch protection rule should require the `fixed-point-gate` check before merge.
 - Failure artifact upload and retention policy in CI for drift investigation.
-- Escalate default gate cycles in CI (>=3) once runtime cost is acceptable.
 
 ## Risks and Mitigations
 - Risk: Non-deterministic codegen details (ordering, paths, timestamps) can create false drifts.
@@ -75,3 +74,5 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 ## Change Log (Roadmap Updates)
 - 2026-02-18: Initialized roadmap and marked Pillar 1 implementation started.
 - 2026-02-18: Added GitHub Actions `fixed-point-gate` workflow and started Phase B validator implementation with structured diagnostics.
+- 2026-02-18: Extended annotation validator with grammar-aware branch/capture checks and integrated grammar-aware validation into parser generation.
+- 2026-02-18: Enforced strict annotation validation policy in standard CI gate path and switched CI fixed-point runs to 3 cycles by default.

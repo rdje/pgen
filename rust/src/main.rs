@@ -10,6 +10,7 @@ use pgen::ast_pipeline::stimuli_generator::{
     StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics, StimuliGenerator,
 };
 use pgen::ast_pipeline::{
+    ast_generator_direct::generate_parser_ast_based,
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
 };
 #[cfg(feature = "generated_parsers")]
@@ -162,12 +163,13 @@ fn main() -> Result<()> {
 
         let grammar = load_grammar_bundle(&args.input_json, &mut pipeline)?;
 
-        // Generate parser using AST-based generator
-        let generator =
-            pgen::ast_pipeline::ast_based_generator::AstBasedGenerator::new(grammar.grammar_name);
-        let parser_code = generator.generate_parser(
+        // Generate parser through the direct AST integration path so typed annotation
+        // validation and strict CI policies apply to normal CLI generation as well.
+        let parser_code = generate_parser_ast_based(
+            &grammar.grammar_name,
             &grammar.grammar_tree,
             &grammar.rule_order,
+            grammar.annotations.as_ref(),
             output_rust.as_str(),
         )?;
         std::fs::write(&output_rust, parser_code)?;

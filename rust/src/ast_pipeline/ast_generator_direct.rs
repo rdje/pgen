@@ -59,18 +59,13 @@ pub fn generate_parser_ast_based(
 
     // Transfer annotations if provided
     if let Some(annotations) = annotations {
-        let strict_validation = std::env::var("PGEN_STRICT_ANNOTATION_VALIDATION")
-            .map(|value| {
-                let normalized = value.trim().to_ascii_lowercase();
-                normalized == "1" || normalized == "true" || normalized == "yes"
-            })
-            .unwrap_or(false);
+        let strict_validation = strict_annotation_validation_enabled();
 
         let validator = AnnotationValidator::new(AnnotationValidatorConfig {
             max_capture_index: None,
             strict_semantic_transforms: strict_validation,
         });
-        let validation_report = validator.validate_annotations(annotations);
+        let validation_report = validator.validate_annotations_with_grammar(annotations, grammar);
 
         for diagnostic in &validation_report.diagnostics {
             eprintln!(
@@ -90,7 +85,7 @@ pub fn generate_parser_ast_based(
 
         if strict_validation && validation_report.has_errors() {
             return Err(anyhow::anyhow!(
-                "Annotation validation failed: {} error(s), {} warning(s). Set PGEN_STRICT_ANNOTATION_VALIDATION=0 to keep non-blocking diagnostics.",
+                "Annotation validation failed: {} error(s), {} warning(s). Strict mode is enabled by CI default or PGEN_STRICT_ANNOTATION_VALIDATION=1; set PGEN_STRICT_ANNOTATION_VALIDATION=0 to keep non-blocking diagnostics.",
                 validation_report.error_count(),
                 validation_report.warning_count()
             ));
@@ -135,6 +130,26 @@ pub fn generate_parser_ast_based(
     generator
         .generate_parser(grammar, rule_order, filename)
         .context("Failed to generate parser using AST-based generator")
+}
+
+fn strict_annotation_validation_enabled() -> bool {
+    if let Some(explicit) = parse_bool_env("PGEN_STRICT_ANNOTATION_VALIDATION") {
+        return explicit;
+    }
+
+    // In CI, strict annotation validation is the default unless CI is explicitly false-ish.
+    parse_bool_env("CI").unwrap_or(false)
+}
+
+fn parse_bool_env(var_name: &str) -> Option<bool> {
+    std::env::var(var_name).ok().map(|value| {
+        let normalized = value.trim().to_ascii_lowercase();
+        !(normalized.is_empty()
+            || normalized == "0"
+            || normalized == "false"
+            || normalized == "no"
+            || normalized == "off")
+    })
 }
 
 /// Convert snake_case to PascalCase

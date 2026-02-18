@@ -44,6 +44,35 @@ This gives an actionable pre-merge CI check surface for fixed-point bootstrap de
 - `make -C rust fixed_point_gate` passed.
 - `cargo test --manifest-path rust/Cargo.toml annotation_validator` passed.
 
+### Phase B Extension (Grammar-Aware Return Validation)
+- Added grammar-aware validation path:
+  - `validate_annotations_with_grammar(...)`
+- Additional diagnostics now include:
+  - `W_RET_BRANCH_INDEX_OOB` when annotation branch index exceeds available rule branches,
+  - `W_RET_BRANCH_NOT_SEQUENCE` when positional references are used on non-sequence branches,
+  - `W_RET_POS_RULE_BOUND` when positional index exceeds branch top-level sequence arity.
+- Integrated into generation entry path so validation uses real rule AST context, not only annotation payload shape.
+
+### Strict CI Policy Closure (Phase B + Phase A strictness)
+- Found and fixed a generation-path gap:
+  - `ast_pipeline` CLI parser generation in `rust/src/main.rs` previously instantiated `AstBasedGenerator` directly.
+  - That bypassed `rust/src/ast_pipeline/ast_generator_direct.rs`, so annotation validation diagnostics and strict policy were not enforced on the normal CLI path.
+  - Updated `main.rs` to generate parsers via `generate_parser_ast_based(...)`.
+- Tightened strictness semantics in generator integration:
+  - `rust/src/ast_pipeline/ast_generator_direct.rs`
+  - Added centralized strictness resolution:
+    - explicit `PGEN_STRICT_ANNOTATION_VALIDATION` still wins,
+    - otherwise strict mode defaults to enabled in CI (`CI=true`).
+  - This makes strict validation part of normal CI behavior, not a purely opt-in local environment mode.
+- CI gate defaults upgraded:
+  - `rust/Makefile`:
+    - `fixed_point_gate` now defaults to strict annotation validation (`PGEN_STRICT_ANNOTATION_VALIDATION=1` unless explicitly overridden),
+    - `FIXED_POINT_CYCLES` defaults to `3` in CI and `2` locally.
+  - `.github/workflows/fixed-point-gate.yml` explicitly exports `PGEN_STRICT_ANNOTATION_VALIDATION=1`.
+- Net effect:
+  - strict validation failures are now wired into the standard pre-merge gate path,
+  - CI determinism runs are stricter (`>=3` cycles) without making local iteration slower by default.
+
 ## 2026-02-18 - SOTA Roadmap Kickoff: Fixed-Point Bootstrap Gate
 ### Context
 Given the SOTA objective for PGEN, the first implementation priority is bootstrap reproducibility: repeated generation from the same annotation EBNFs must produce stable artifacts. This is especially important because annotation parser stability directly impacts downstream parser generation, roundtrip testing, and automated stimuli validation loops.
