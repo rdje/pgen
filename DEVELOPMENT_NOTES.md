@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase F Start: Normative Annotation Specification Contractization
+### Context
+With Phase E completed, the next roadmap item is Pillar 2 (Normative Annotation Specification). We already had inferred built-in EBNFs and parser-specific behavior notes, but there was no single normative contract that:
+- explicitly layered bootstrap vs generated grammar semantics,
+- codified stable validator diagnostic policy,
+- and tied these to executable conformance checks.
+
+Given PGEN’s bootstrap architecture constraints (annotation parsers must exist before fully self-hosted annotation parser generation), the built-in parser contracts must remain explicit and test-enforced.
+### Implementation
+- Added a living normative contract document:
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- Document content structure:
+  - contract layer model:
+    - bootstrap parser layer,
+    - full generated grammar layer,
+    - typed validator layer.
+  - bootstrap return contract:
+    - byte-0 arrow normalization requirement,
+    - passthrough normalization behavior,
+    - accepted syntax classes (`$N`, extraction, spread, accessors, objects/arrays),
+    - preserved permissive quirks (`$1*trailing`, `$1[0]trailing`, extra commas, duplicate key overwrite).
+  - bootstrap semantic contract:
+    - trim-first classification,
+    - marker-based transform detection only,
+    - raw fallback for all other payloads,
+    - no hard parse failures in current behavior.
+  - typed validator contract:
+    - enumerated stable diagnostic codes for return and semantic categories,
+    - strict-mode severity promotion semantics.
+  - maintenance rules:
+    - update code + built-in EBNF + normative doc + contract suites together,
+    - preserve `generated/` as regeneration-owned artifacts (no manual edits).
+- Added executable contract suites (round-trip framework):
+  - `rust/test_data/return_annotation/builtin_contract.json`
+  - `rust/test_data/semantic_annotation/builtin_contract.json`
+- Suite design details:
+  - return suite asserts implementation-accurate bootstrap behavior, including expected-fail cases (`leading whitespace before ->`, `::0` extraction).
+  - semantic suite asserts trim + marker classification + permissive raw fallback behavior.
+  - both suites mark generated-parser expectation as `skip` to avoid incorrectly binding generated-parser grammar evolution to bootstrap-only compatibility quirks.
+- Added local enforcement gate:
+  - `rust/Makefile` target `annotation_contract_gate`
+  - runs:
+    - `cargo test --lib annotation_validator`
+    - `test_runner --parser return --suite return_annotation_builtin_contract`
+    - `test_runner --parser semantic --suite semantic_annotation_builtin_contract`
+- Updated discoverability and roadmap:
+  - `README.md` docs list now links normative spec.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+    - Pillar 2 set to `In Progress`,
+    - Phase F checklist added and marked complete for this contractization step.
+### Validation
+- Ran:
+  - `make -C rust annotation_contract_gate`
+- Result:
+  - validator unit tests passed,
+  - bootstrap return builtin contract suite passed,
+  - bootstrap semantic builtin contract suite passed.
+### Why This Matters
+- Moves annotation behavior from implied implementation details to explicit normative contracts.
+- Protects bootstrap-mode compatibility guarantees that unblock self-hosting without freezing generated-parser evolution.
+- Establishes a concrete enforcement loop for future annotation semantics changes, reducing accidental drift.
+
 ## 2026-02-18 - Phase E Completion: End-User Guide Publication
 ### Context
 The roadmap had one remaining Phase E item: publish a comprehensive user guide for onboarding and practical feature usage. Existing docs were fragmented and often contributor- or subsystem-focused.

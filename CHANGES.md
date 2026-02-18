@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-18 - Phase F Kickoff: Normative Annotation Spec + Executable Built-In Contracts
+### ✅ Achievement Summary
+Started Pillar 2 (Normative Annotation Specification) by adding a living normative annotation contract and wiring executable bootstrap conformance checks into the Rust Make gate surface.
+### Scope of Changes
+- Added new normative spec:
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - Defines:
+    - bootstrap return contract (`grammars/builtin_return_annotation.ebnf` + `unified_return_ast` behavior),
+    - bootstrap semantic contract (`grammars/builtin_semantic_annotation.ebnf` + `unified_semantic_ast` behavior),
+    - typed validator contract and stable diagnostic codes,
+    - maintenance rules and generated-artifact boundary (`generated/` remains regen-owned).
+- Added executable bootstrap contract suites:
+  - `rust/test_data/return_annotation/builtin_contract.json`
+  - `rust/test_data/semantic_annotation/builtin_contract.json`
+  - Coverage includes implementation-accurate quirks (arrow byte-0 normalization, permissive trailing text handling, comma tolerance, marker-based semantic classification, never-hard-fail semantic bootstrap behavior).
+- Added local gate target:
+  - `rust/Makefile`: `annotation_contract_gate`
+  - Runs:
+    - `cargo test --lib annotation_validator`
+    - bootstrap return contract suite
+    - bootstrap semantic contract suite
+- Updated roadmap and docs discoverability:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `README.md`
+### Validation Results
+- `make -C rust annotation_contract_gate` ✅
+  - validator tests passed
+  - return builtin contract suite passed
+  - semantic builtin contract suite passed
+
 ## 2026-02-18 - Phase E Completion: Comprehensive PGEN User Guide (Living)
 ### ✅ Achievement Summary
 Completed the Phase E User Guide task by publishing a single end-user document that consolidates onboarding and feature usage across EBNF, annotation systems, stimuli generation, coverage/gap workflows, and quality gates.

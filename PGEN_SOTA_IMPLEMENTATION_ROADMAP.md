@@ -16,7 +16,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 | Pillar | Current Status | Target Outcome |
 |---|---|---|
 | 1. Bootstrap Trust and Fixed-Point Reproducibility | In Progress | Repeated bootstrap cycles are byte-identical for annotation grammars. |
-| 2. Normative Annotation Specification | Not Started | One normative spec for return/semantic annotation syntax + semantics. |
+| 2. Normative Annotation Specification | In Progress | One normative spec for return/semantic annotation syntax + semantics. |
 | 3. Typed Annotation Validation | In Progress | Compile-time validation of references/transforms with precise diagnostics. |
 | 4. Bootstrap vs Generated Behavioral Contract | In Progress | Explicitly tracked differences with required tests and closure plan. |
 | 5. Industrial Frontend Support (SV/VHDL Readiness) | Not Started | Preprocess/lex/parse pipeline robust for real-world HDL sources. |
@@ -59,6 +59,11 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Wire `differential_regression_gate` into CI as required pre-merge check with report artifact retention.
 - [x] Author and maintain comprehensive PGEN User Guide (EBNF, return/semantic annotations, coverage flows, stimuli generation, automation workflows, troubleshooting).
 
+### Phase F (Current)
+- [x] Publish living normative annotation specification with explicit bootstrap/full/validator contracts.
+- [x] Add executable bootstrap contract suites for inferred built-in return/semantic parser behaviors.
+- [x] Add `make annotation_contract_gate` to enforce validator + built-in contract suites.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -90,3 +95,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Started Phase E by adding mismatch taxonomy + baseline closure tracking in differential mode and a regression-only gate (`make differential_regression_gate`) backed by tracked baseline snapshots under `rust/test_data/differential_baseline/`.
 - 2026-02-18: Added CI workflow `differential-regression-gate` to enforce `make differential_regression_gate` on PR/main and retain differential report artifacts.
 - 2026-02-18: Published initial comprehensive end-user guide in `PGEN_USER_GUIDE.md` and linked it from `README.md` (living document for onboarding + full feature usage).
+- 2026-02-18: Started Pillar 2 by publishing `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, adding bootstrap contract suites (`builtin_contract.json`), and wiring `make annotation_contract_gate`.

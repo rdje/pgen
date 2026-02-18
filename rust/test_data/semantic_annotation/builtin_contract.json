@@ -1,0 +1,100 @@
+[
+  {
+    "name": "raw_payload_is_outer_trimmed",
+    "description": "Bootstrap semantic parser trims outer whitespace and keeps raw payload.",
+    "input": "   value   ",
+    "expected_round_trip": "value",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "canonical_transform_marker_pattern_is_transform_expr",
+    "description": "Payload containing both parse and unwrap markers is classified as TransformExpr.",
+    "input": "str::parse::<u32>().unwrap_or(0)",
+    "expected_round_trip": "str::parse::<u32>().unwrap_or(0)",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic", "transform_marker"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "marker_detection_is_not_structural",
+    "description": "Bootstrap semantic parser uses substring markers only; non-structural payload still parses as transform.",
+    "input": "x>().unwrap_or(0) ... ::parse::<u8>",
+    "expected_round_trip": "x>().unwrap_or(0) ... ::parse::<u8>",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic", "quirk"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "missing_unwrap_marker_falls_back_to_raw",
+    "description": "Payload without unwrap marker is accepted and classified as Raw.",
+    "input": "str::parse::<u32>()",
+    "expected_round_trip": "str::parse::<u32>()",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "nonsensical_payload_is_still_raw",
+    "description": "Bootstrap semantic parser never hard-fails on syntax and keeps raw payload.",
+    "input": "(()",
+    "expected_round_trip": "(()",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic", "permissive"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "empty_payload_is_valid_raw",
+    "description": "Empty payload is accepted and round-trips as empty text.",
+    "input": "",
+    "expected_round_trip": "",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "whitespace_only_payload_normalizes_to_empty",
+    "description": "Whitespace-only payload trims to empty and remains valid.",
+    "input": "    ",
+    "expected_round_trip": "",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  }
+]
