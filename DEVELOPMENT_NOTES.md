@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase F Extension: Shared Bootstrap/Generated Contract Coverage
+### Context
+The initial normative contract gate focused on bootstrap behavior plus validator diagnostics. That protected chicken-and-egg bootstrap semantics, but it did not explicitly enforce a positive shared compatibility subset that both bootstrap and generated parsers must continue to parse.
+### Implementation
+- Added shared return contract suite:
+  - `rust/test_data/return_annotation/normative_shared_contract.json`
+  - Cases selected from already stable generated coverage:
+    - scalar positional,
+    - simple arrays/objects,
+    - extraction by index,
+    - spread extraction in array context.
+  - All cases require:
+    - `bootstrap_parser: pass`
+    - `generated_parser: pass`
+- Added shared semantic contract suite:
+  - `rust/test_data/semantic_annotation/normative_shared_contract.json`
+  - Includes stable `@annotation: value` forms that both parser families already accept.
+  - All cases require pass in both parser families.
+- Added new Makefile gate:
+  - `annotation_shared_contract_gate`
+  - Runs contract suites in both modes:
+    - bootstrap (`cargo run --bin test_runner ...`)
+    - generated (`cargo run --features generated_parsers --bin test_runner ...`)
+- Extended existing gate:
+  - `annotation_contract_gate` now invokes `annotation_shared_contract_gate` after validator + bootstrap-specific contract checks.
+- Updated contract docs/roadmap:
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` now distinguishes bootstrap-only and shared bootstrap/generated suites.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated with completed shared-contract enforcement step.
+### Validation
+- Ran:
+  - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust annotation_contract_gate`
+- Result:
+  - both gates passed with shared suites succeeding in both bootstrap and generated parser modes.
+### Why This Matters
+- Adds an explicit compatibility floor between bootstrap and generated parsers.
+- Prevents accidental regressions where one parser family drifts away from core shared syntax.
+- Strengthens Pillar 2 from “documented contract” to “cross-backend enforced contract.”
+
 ## 2026-02-18 - Phase F Follow-Up: CI Enforcement for Annotation Normative Contract
 ### Context
 After introducing `annotation_contract_gate` locally, the gate still depended on local execution. To make annotation contract drift prevention auditable and pre-merge enforced, it needed to be wired into repository CI like the other production gates.

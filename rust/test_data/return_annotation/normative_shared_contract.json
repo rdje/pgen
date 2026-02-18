@@ -1,0 +1,72 @@
+[
+  {
+    "name": "shared_scalar_positional",
+    "description": "Shared contract: simple positional reference must parse in bootstrap and generated parsers.",
+    "input": "$1",
+    "expected_round_trip": "$1",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "return"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "shared_array_literal",
+    "description": "Shared contract: simple array literal must parse in bootstrap and generated parsers.",
+    "input": "[$1, $2]",
+    "expected_round_trip": "[$1, $2]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "return"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "shared_object_literal",
+    "description": "Shared contract: simple object literal must parse in bootstrap and generated parsers.",
+    "input": "{key: $1}",
+    "expected_round_trip": "{key: $1}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "return"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "shared_extraction_index",
+    "description": "Shared contract: extraction by index must parse in bootstrap and generated parsers.",
+    "input": "$2::2",
+    "expected_round_trip": "$2::2",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "return", "extraction"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "shared_spread_extraction_in_array",
+    "description": "Shared contract: spread extraction in array context must parse in bootstrap and generated parsers.",
+    "input": "[$1, $2::2*]",
+    "expected_round_trip": "[$1, $2::2*]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "return", "extraction", "spread"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

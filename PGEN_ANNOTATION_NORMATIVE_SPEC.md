@@ -95,13 +95,20 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/return_annotation/builtin_contract.json`
 - Bootstrap semantic contract suite:
   - `rust/test_data/semantic_annotation/builtin_contract.json`
+- Shared bootstrap/generated return contract suite:
+  - `rust/test_data/return_annotation/normative_shared_contract.json`
+- Shared bootstrap/generated semantic contract suite:
+  - `rust/test_data/semantic_annotation/normative_shared_contract.json`
 - Gate target:
   - `make -C rust annotation_contract_gate`
+  - `make -C rust annotation_shared_contract_gate`
 
 The gate runs:
 - typed validator unit coverage
 - bootstrap return contract suite
 - bootstrap semantic contract suite
+- shared return contract suite (bootstrap + generated)
+- shared semantic contract suite (bootstrap + generated)
 
 ## Maintenance Rules
 When annotation behavior changes intentionally:
@@ -109,5 +116,5 @@ When annotation behavior changes intentionally:
 1. Update code first.
 2. Update corresponding built-in EBNF (`grammars/builtin_*.ebnf`) when bootstrap behavior changed.
 3. Update this normative spec.
-4. Update contract suites under `rust/test_data/*/builtin_contract.json`.
+4. Update contract suites under `rust/test_data/*/builtin_contract.json` and `rust/test_data/*/normative_shared_contract.json`.
 5. Keep generated artifacts under `generated/` out of manual edits (they are regenerated from EBNF).

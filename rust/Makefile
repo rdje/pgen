@@ -222,6 +222,7 @@ help:
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
+	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
 	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
 	@echo "  performance_gate - Run benchmark thresholds for bootstrap vs generated parsers"
@@ -397,7 +398,17 @@ annotation_contract_gate:
 	cd $(RUST_DIR) && cargo test --lib annotation_validator
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_builtin_contract
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract
+	@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate
 	@echo "✅ Annotation normative contract gate passed."
+
+.PHONY: annotation_shared_contract_gate
+annotation_shared_contract_gate:
+	@echo "🤝 Running shared bootstrap/generated annotation contract gate..."
+	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_normative_shared_contract
+	cd $(RUST_DIR) && cargo run --features generated_parsers --bin test_runner -- --parser return --suite return_annotation_normative_shared_contract
+	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_normative_shared_contract
+	cd $(RUST_DIR) && cargo run --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_normative_shared_contract
+	@echo "✅ Shared annotation contract gate passed."
 
 .PHONY: differential_report
 differential_report:

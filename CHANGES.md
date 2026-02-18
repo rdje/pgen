@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-02-18 - Phase F Extension: Shared Bootstrap/Generated Annotation Contracts
+### ✅ Achievement Summary
+Extended annotation contract enforcement by adding explicit shared contract suites for syntax that must succeed in both bootstrap and generated parsers.
+### Scope of Changes
+- Added shared return annotation contract suite:
+  - `rust/test_data/return_annotation/normative_shared_contract.json`
+  - Covers stable shared forms (`$1`, array/object basics, extraction/spread extraction).
+- Added shared semantic annotation contract suite:
+  - `rust/test_data/semantic_annotation/normative_shared_contract.json`
+  - Covers stable shared `@name: value` forms for string/boolean/numeric/identifier values.
+- Extended gate automation:
+  - `rust/Makefile`
+  - New target:
+    - `annotation_shared_contract_gate`
+  - `annotation_contract_gate` now invokes shared-contract checks in both modes:
+    - bootstrap parser runs
+    - generated parser runs (`--features generated_parsers`)
+- Updated normative spec + roadmap:
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+### Validation Results
+- `make -C rust annotation_shared_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-18 - Phase F Follow-Up: CI Wiring for Annotation Contract Gate
 ### ✅ Achievement Summary
 Wired the new annotation normative contract gate into CI so pull requests and `main` pushes enforce bootstrap annotation contract conformance plus typed validator checks.
