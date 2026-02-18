@@ -38,6 +38,14 @@ RETURN_ANNOTATION_EXE = $(GENERATED_DIR)/return_annotation_parser
 # Rust build artifacts
 RUST_AST_PIPELINE = $(RUST_DIR)/target/debug/ast_pipeline
 RUST_AST_PIPELINE_BOOTSTRAP = $(RUST_DIR)/target/debug/ast_pipeline_bootstrap
+DIFFERENTIAL_REPORT_DIR = $(RUST_DIR)/target/differential_harness
+
+# Differential harness policy:
+# - default reports mismatches without failing local flows
+# - set DIFFERENTIAL_STRICT=1 to make mismatches fail the target
+DIFFERENTIAL_STRICT ?= 0
+
+PERFORMANCE_GATE_REPORT_DIR = $(RUST_DIR)/target/performance_gate
 
 # Source dependencies for AST pipeline - if any of these change, parsers need regeneration
 AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
@@ -213,6 +221,9 @@ help:
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
+	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
+	@echo "  performance_gate - Run benchmark thresholds for bootstrap vs generated parsers"
+	@echo "  differential_report - Compare generated vs bootstrap parser behavior and emit JSON reports"
 	@echo "  help         - Show this help"
 	@echo "  status       - Show current build status"
 	@echo ""
@@ -375,6 +386,40 @@ regression_gate:
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression
 	cd $(RUST_DIR) && cargo run --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression
 	@echo "✅ Regression gate passed."
+
+.PHONY: differential_report
+differential_report:
+	@echo "🧪 Running differential harness (generated vs bootstrap)..."
+	@mkdir -p $(DIFFERENTIAL_REPORT_DIR)
+	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
+	@set +e; \
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-report-json target/differential_harness/return_annotation_diff_report.json; rc_return=$$?; \
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-report-json target/differential_harness/semantic_annotation_diff_report.json; rc_semantic=$$?; \
+	set -e; \
+	echo "Differential report exit codes: return=$$rc_return semantic=$$rc_semantic"; \
+	if [ $$rc_return -ne 0 ] || [ $$rc_semantic -ne 0 ]; then \
+		echo "⚠️ Differential mismatches detected. Reports in $(DIFFERENTIAL_REPORT_DIR)."; \
+		if [ "$(DIFFERENTIAL_STRICT)" = "1" ]; then \
+			echo "❌ DIFFERENTIAL_STRICT=1: failing due to mismatches."; \
+			exit 1; \
+		fi; \
+	else \
+		echo "✅ Differential harness found no mismatches."; \
+	fi
+
+.PHONY: performance_gate
+performance_gate:
+	@echo "⚡ Running performance benchmark threshold gate..."
+	@mkdir -p $(PERFORMANCE_GATE_REPORT_DIR)
+	cd $(RUST_DIR) && ./scripts/performance_gate.sh
+	@echo "✅ Performance gate passed."
+
+.PHONY: embedding_api_gate
+embedding_api_gate:
+	@echo "🔌 Running embedding API stability gate..."
+	cd $(RUST_DIR) && cargo test --lib embedding_api
+	cd $(RUST_DIR) && cargo test --features generated_parsers --lib embedding_api
+	@echo "✅ Embedding API gate passed."
 
 # Convenience aliases for *-with-log targets
 .PHONY: return-parser-with-log

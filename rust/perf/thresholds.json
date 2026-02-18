@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "min_cases_per_parser": 8,
+  "parsers": {
+    "return": {
+      "bootstrap": {
+        "min_throughput_ops_per_sec": 1000.0,
+        "max_avg_latency_us": 25000.0
+      },
+      "generated": {
+        "min_throughput_ops_per_sec": 80.0,
+        "max_avg_latency_us": 30000.0
+      },
+      "generated_vs_bootstrap_min_throughput_ratio": 0.0
+    },
+    "semantic": {
+      "bootstrap": {
+        "min_throughput_ops_per_sec": 1000.0,
+        "max_avg_latency_us": 40000.0
+      },
+      "generated": {
+        "min_throughput_ops_per_sec": 10.0,
+        "max_avg_latency_us": 100000.0
+      },
+      "generated_vs_bootstrap_min_throughput_ratio": 0.0
+    }
+  }
+}

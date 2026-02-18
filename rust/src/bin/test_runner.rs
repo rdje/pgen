@@ -11,9 +11,19 @@ use pgen::NoOpLogger;
 use pgen::generated_parsers::return_annotation::Return_annotationParser;
 #[cfg(feature = "generated_parsers")]
 use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
-#[cfg(not(feature = "generated_parsers"))]
-use pgen::test_runner::parsers::{ReturnAnnotationParser, SemanticAnnotationParser};
-use pgen::test_runner::{FileLogger, Logger, Parser, UniversalTestRunner};
+#[cfg(feature = "generated_parsers")]
+use pgen::test_runner::Logger;
+#[cfg(feature = "generated_parsers")]
+use pgen::test_runner::normalization::{Normalizer, apply_normalizer};
+use pgen::test_runner::parsers::{
+    ReturnAnnotationParser as BootstrapReturnAnnotationParser,
+    SemanticAnnotationParser as BootstrapSemanticAnnotationParser,
+};
+#[cfg(feature = "generated_parsers")]
+use pgen::test_runner::round_trip_tests::{RoundTripTest, TestSuite};
+use pgen::test_runner::{FileLogger, Parser, UniversalTestRunner};
+#[cfg(feature = "generated_parsers")]
+use serde::Serialize;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::process::exit;
@@ -75,27 +85,6 @@ impl GeneratedSemanticAnnotationParser {
 #[cfg(feature = "generated_parsers")]
 impl Parser for GeneratedSemanticAnnotationParser {
     fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>> {
-        // DEBUG: Show exact input being parsed
-        eprintln!("🔍 DEBUG: Generated semantic parser received input:");
-        eprintln!("   Raw string: {:?}", input);
-        eprintln!("   Length: {}", input.len());
-        eprintln!("   Bytes: {:?}", input.as_bytes());
-        if !input.is_empty() {
-            eprintln!(
-                "   First char: {:?} (byte: {})",
-                input.chars().next().unwrap(),
-                input.as_bytes()[0]
-            );
-            if input.len() > 1 {
-                eprintln!(
-                    "   Second char: {:?} (byte: {})",
-                    input.chars().nth(1).unwrap(),
-                    input.as_bytes()[1]
-                );
-            }
-        }
-        eprintln!();
-
         // Create a parser instance for this specific input
         let mut parser = Semantic_annotationParser::new(input, self.logger.clone_box());
 
@@ -107,12 +96,7 @@ impl Parser for GeneratedSemanticAnnotationParser {
                 // TODO: Implement proper AST conversion and unparsing
                 Ok(input.to_string())
             }
-            Err(e) => {
-                eprintln!("🚨 DEBUG: Parser error details:");
-                eprintln!("   Error: {:?}", e);
-                eprintln!();
-                Err(Box::new(e))
-            }
+            Err(e) => Err(Box::new(e)),
         }
     }
 
@@ -192,6 +176,258 @@ fn canonical_parser_type(parser_type: &str) -> String {
     }
 }
 
+fn configure_parser_logger(parser: &mut dyn Parser, debug_enabled: bool) {
+    if !debug_enabled {
+        return;
+    }
+    if let Ok(log_file_path) = get_current_log_file_path() {
+        if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
+            parser.set_logger(Box::new(FileLogger::new(file)));
+        }
+    }
+}
+
+#[cfg(feature = "generated_parsers")]
+fn suite_matches_filter(suite: &TestSuite, suite_filter: &str) -> bool {
+    let name = suite.name.to_lowercase();
+    let suite_name = suite.suite_name.to_lowercase();
+    let description = suite.description.to_lowercase();
+    name == suite_filter
+        || suite_name == suite_filter
+        || name.contains(suite_filter)
+        || suite_name.contains(suite_filter)
+        || description.contains(suite_filter)
+}
+
+#[cfg(feature = "generated_parsers")]
+fn test_matches_tag_filter(test: &RoundTripTest, tag_filter: &[String]) -> bool {
+    tag_filter.is_empty()
+        || test
+            .tags
+            .iter()
+            .any(|tag| tag_filter.iter().any(|f| f == tag))
+}
+
+#[cfg(feature = "generated_parsers")]
+fn normalize_round_trip_output(parser_type: &str, test: &RoundTripTest, unparsed: &str) -> String {
+    let mut normalizer = Normalizer::from_str(&test.normalizer);
+    if matches!(normalizer, Normalizer::Text) && parser_type == "return" {
+        normalizer = Normalizer::ReturnAst;
+    }
+    apply_normalizer(normalizer, unparsed, test.float_precision)
+}
+
+#[cfg(feature = "generated_parsers")]
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+enum DifferentialOutcome {
+    Success { raw: String, normalized: String },
+    Failure { error: String },
+}
+
+#[cfg(feature = "generated_parsers")]
+#[derive(Debug, Serialize)]
+struct DifferentialMismatch {
+    suite: String,
+    test: String,
+    input: String,
+    normalizer: String,
+    expected_round_trip: String,
+    baseline: DifferentialOutcome,
+    candidate: DifferentialOutcome,
+}
+
+#[cfg(feature = "generated_parsers")]
+#[derive(Debug, Serialize)]
+struct DifferentialReport {
+    parser: String,
+    baseline: String,
+    candidate: String,
+    suite_filter: Option<String>,
+    tag_filter: Vec<String>,
+    total_cases: usize,
+    matched_cases: usize,
+    mismatched_cases: usize,
+    mismatches: Vec<DifferentialMismatch>,
+}
+
+#[cfg(feature = "generated_parsers")]
+fn outcomes_match(baseline: &DifferentialOutcome, candidate: &DifferentialOutcome) -> bool {
+    match (baseline, candidate) {
+        (
+            DifferentialOutcome::Success {
+                normalized: baseline,
+                ..
+            },
+            DifferentialOutcome::Success {
+                normalized: candidate,
+                ..
+            },
+        ) => baseline == candidate,
+        (DifferentialOutcome::Failure { .. }, DifferentialOutcome::Failure { .. }) => true,
+        _ => false,
+    }
+}
+
+#[cfg(feature = "generated_parsers")]
+fn run_differential_mode(
+    parser_type: &str,
+    suite_filter: Option<String>,
+    tag_filter: Vec<String>,
+    debug_enabled: bool,
+    fail_fast: bool,
+    report_json_path: Option<&str>,
+) -> Result<i32, Box<dyn std::error::Error>> {
+    let canonical = canonical_parser_type(parser_type);
+    if canonical != "return" && canonical != "semantic" {
+        return Err(format!(
+            "Differential mode requires --parser return|semantic, got '{}'",
+            parser_type
+        )
+        .into());
+    }
+
+    let (baseline_parser, candidate_parser): (Box<dyn Parser>, Box<dyn Parser>) =
+        match canonical.as_str() {
+            "return" => {
+                let mut baseline = BootstrapReturnAnnotationParser::new();
+                configure_parser_logger(&mut baseline, debug_enabled);
+                let mut candidate = GeneratedReturnAnnotationParser::new(Box::new(NoOpLogger));
+                configure_parser_logger(&mut candidate, debug_enabled);
+                (Box::new(baseline), Box::new(candidate))
+            }
+            "semantic" => {
+                let mut baseline = BootstrapSemanticAnnotationParser::new();
+                configure_parser_logger(&mut baseline, debug_enabled);
+                let mut candidate = GeneratedSemanticAnnotationParser::new(Box::new(NoOpLogger));
+                configure_parser_logger(&mut candidate, debug_enabled);
+                (Box::new(baseline), Box::new(candidate))
+            }
+            _ => unreachable!(),
+        };
+
+    let suites = UniversalTestRunner::new().discover_test_suites()?;
+    let normalized_suite_filter = suite_filter.as_ref().map(|s| s.trim().to_lowercase());
+    let mut report = DifferentialReport {
+        parser: canonical.clone(),
+        baseline: "bootstrap".to_string(),
+        candidate: "generated".to_string(),
+        suite_filter: suite_filter.clone(),
+        tag_filter: tag_filter.clone(),
+        total_cases: 0,
+        matched_cases: 0,
+        mismatched_cases: 0,
+        mismatches: Vec::new(),
+    };
+
+    'suite_loop: for suite in suites {
+        if let Some(ref suite_filter_value) = normalized_suite_filter {
+            if !suite_matches_filter(&suite, suite_filter_value) {
+                continue;
+            }
+        }
+
+        for test in &suite.tests {
+            if test.skip {
+                continue;
+            }
+            if canonical_parser_type(&test.parser_type) != canonical {
+                continue;
+            }
+            if !test_matches_tag_filter(test, &tag_filter) {
+                continue;
+            }
+
+            report.total_cases += 1;
+
+            let baseline_outcome = match baseline_parser.round_trip(&test.input) {
+                Ok(raw) => DifferentialOutcome::Success {
+                    normalized: normalize_round_trip_output(&canonical, test, &raw),
+                    raw,
+                },
+                Err(err) => DifferentialOutcome::Failure {
+                    error: err.to_string(),
+                },
+            };
+            let candidate_outcome = match candidate_parser.round_trip(&test.input) {
+                Ok(raw) => DifferentialOutcome::Success {
+                    normalized: normalize_round_trip_output(&canonical, test, &raw),
+                    raw,
+                },
+                Err(err) => DifferentialOutcome::Failure {
+                    error: err.to_string(),
+                },
+            };
+
+            if outcomes_match(&baseline_outcome, &candidate_outcome) {
+                report.matched_cases += 1;
+                continue;
+            }
+
+            report.mismatched_cases += 1;
+            report.mismatches.push(DifferentialMismatch {
+                suite: suite.name.clone(),
+                test: test.name.clone(),
+                input: test.input.clone(),
+                normalizer: test.normalizer.clone(),
+                expected_round_trip: test.expected_round_trip.clone(),
+                baseline: baseline_outcome,
+                candidate: candidate_outcome,
+            });
+            log_output(&format!(
+                "❌ Differential mismatch: {} / {}",
+                suite.name, test.name
+            ));
+            if fail_fast {
+                break 'suite_loop;
+            }
+        }
+    }
+
+    log_output("🧪 Differential Harness (generated vs bootstrap)");
+    log_output(&"=".repeat(60));
+    log_output(&format!("Parser: {}", report.parser));
+    if let Some(ref suite_filter_value) = report.suite_filter {
+        log_output(&format!("Suite filter: {}", suite_filter_value));
+    }
+    if !report.tag_filter.is_empty() {
+        log_output(&format!("Tag filter: {}", report.tag_filter.join(",")));
+    }
+    log_output(&format!(
+        "Compared {} case(s): matched={} mismatched={}",
+        report.total_cases, report.matched_cases, report.mismatched_cases
+    ));
+
+    if let Some(path) = report_json_path {
+        std::fs::write(path, serde_json::to_string_pretty(&report)?)?;
+        log_output(&format!("Wrote differential report JSON: {}", path));
+    }
+
+    if report.mismatched_cases > 0 {
+        for mismatch in report.mismatches.iter().take(20) {
+            log_output(&format!(
+                "  - {} / {} (normalizer: {})",
+                mismatch.suite, mismatch.test, mismatch.normalizer
+            ));
+        }
+        return Ok(1);
+    }
+
+    Ok(0)
+}
+
+#[cfg(not(feature = "generated_parsers"))]
+fn run_differential_mode(
+    _parser_type: &str,
+    _suite_filter: Option<String>,
+    _tag_filter: Vec<String>,
+    _debug_enabled: bool,
+    _fail_fast: bool,
+    _report_json_path: Option<&str>,
+) -> Result<i32, Box<dyn std::error::Error>> {
+    Err("Differential mode requires `cargo run --features generated_parsers --bin test_runner -- --differential ...`".into())
+}
+
 fn main() {
     let matches = Command::new("test_runner")
         .about("Universal Test Runner for pgen")
@@ -269,12 +505,26 @@ fn main() {
                 .help("Stop after first failure (best for focused debugging)")
                 .action(clap::ArgAction::SetTrue)
         )
+        .arg(
+            Arg::new("differential")
+                .long("differential")
+                .help("Run differential harness: generated parser vs bootstrap baseline")
+                .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
+            Arg::new("differential_report_json")
+                .long("differential-report-json")
+                .value_name("PATH")
+                .help("Write machine-readable differential mismatch report JSON")
+                .requires("differential")
+        )
         .get_matches();
 
     let verbose = matches.get_flag("verbose");
     let list_only = matches.get_flag("list");
     let debug_enabled = matches.get_flag("debug");
     let fail_fast = matches.get_flag("fail_fast");
+    let differential_mode = matches.get_flag("differential");
 
     // Setup logging
     let log_file_path = matches.get_one::<String>("log_file").map(|s| s.as_str());
@@ -283,12 +533,39 @@ fn main() {
         exit(1);
     }
 
-    // Create runner with options
-    let mut runner = UniversalTestRunner::new().with_verbose(verbose);
-    runner = runner.with_fail_fast(fail_fast);
     let selected_parser = matches
         .get_one::<String>("parser")
         .map(|parser| canonical_parser_type(parser));
+    let tag_filter: Vec<String> = matches
+        .get_one::<String>("tags")
+        .map(|tags_str| tags_str.split(',').map(|s| s.trim().to_string()).collect())
+        .unwrap_or_default();
+
+    if differential_mode {
+        let parser_type = selected_parser.as_deref().unwrap_or("all");
+        let suite_filter = matches.get_one::<String>("suite").cloned();
+        let report_path = matches
+            .get_one::<String>("differential_report_json")
+            .map(|s| s.as_str());
+        match run_differential_mode(
+            parser_type,
+            suite_filter,
+            tag_filter,
+            debug_enabled,
+            fail_fast,
+            report_path,
+        ) {
+            Ok(code) => exit(code),
+            Err(e) => {
+                log_error(&format!("Differential harness error: {}", e));
+                exit(2);
+            }
+        }
+    }
+
+    // Create runner with options
+    let mut runner = UniversalTestRunner::new().with_verbose(verbose);
+    runner = runner.with_fail_fast(fail_fast);
 
     // Select parser based on filter if specified
     if let Some(ref parser_type) = selected_parser {
@@ -297,29 +574,13 @@ fn main() {
                 #[cfg(feature = "generated_parsers")]
                 {
                     let mut parser = GeneratedReturnAnnotationParser::new(Box::new(NoOpLogger));
-                    if debug_enabled {
-                        // Create a duplicate file handle for the parser logger
-                        if let Ok(log_file_path) = get_current_log_file_path() {
-                            if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
-                                let logger = Box::new(FileLogger::new(file));
-                                parser.set_logger(logger);
-                            }
-                        }
-                    }
+                    configure_parser_logger(&mut parser, debug_enabled);
                     runner = runner.with_parser(Box::new(parser));
                 }
                 #[cfg(not(feature = "generated_parsers"))]
                 {
-                    let mut parser = ReturnAnnotationParser::new();
-                    if debug_enabled {
-                        // Create a duplicate file handle for the parser logger
-                        if let Ok(log_file_path) = get_current_log_file_path() {
-                            if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
-                                let logger = Box::new(FileLogger::new(file));
-                                parser.set_logger(logger);
-                            }
-                        }
-                    }
+                    let mut parser = BootstrapReturnAnnotationParser::new();
+                    configure_parser_logger(&mut parser, debug_enabled);
                     runner = runner.with_parser(Box::new(parser));
                 }
             }
@@ -327,29 +588,13 @@ fn main() {
                 #[cfg(feature = "generated_parsers")]
                 {
                     let mut parser = GeneratedSemanticAnnotationParser::new(Box::new(NoOpLogger));
-                    if debug_enabled {
-                        // Create a duplicate file handle for the parser logger
-                        if let Ok(log_file_path) = get_current_log_file_path() {
-                            if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
-                                let logger = Box::new(FileLogger::new(file));
-                                parser.set_logger(logger);
-                            }
-                        }
-                    }
+                    configure_parser_logger(&mut parser, debug_enabled);
                     runner = runner.with_parser(Box::new(parser));
                 }
                 #[cfg(not(feature = "generated_parsers"))]
                 {
-                    let mut parser = SemanticAnnotationParser::new();
-                    if debug_enabled {
-                        // Create a duplicate file handle for the parser logger
-                        if let Ok(log_file_path) = get_current_log_file_path() {
-                            if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
-                                let logger = Box::new(FileLogger::new(file));
-                                parser.set_logger(logger);
-                            }
-                        }
-                    }
+                    let mut parser = BootstrapSemanticAnnotationParser::new();
+                    configure_parser_logger(&mut parser, debug_enabled);
                     runner = runner.with_parser(Box::new(parser));
                 }
             }
@@ -365,9 +610,8 @@ fn main() {
         }
     }
 
-    if let Some(tags_str) = matches.get_one::<String>("tags") {
-        let tags: Vec<String> = tags_str.split(',').map(|s| s.trim().to_string()).collect();
-        runner = runner.with_tag_filter(tags);
+    if !tag_filter.is_empty() {
+        runner = runner.with_tag_filter(tag_filter.clone());
     }
     if let Some(suite) = matches.get_one::<String>("suite") {
         runner = runner.with_suite_filter(suite.to_string());

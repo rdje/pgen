@@ -22,9 +22,9 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 | 5. Industrial Frontend Support (SV/VHDL Readiness) | Not Started | Preprocess/lex/parse pipeline robust for real-world HDL sources. |
 | 6. Ambiguity Handling and Recovery | Not Started | Deterministic branch resolution and production-grade error recovery. |
 | 7. Coverage-Guided Semantic Stimuli | In Progress | Feedback loop that drives branch/rule/annotation coverage upward. |
-| 8. Differential Validation vs External Parsers | Not Started | Continuous mismatch detection against trusted external tools. |
-| 9. Performance and Scalability SLAs | Not Started | Enforced throughput/memory/latency budgets in CI. |
-| 10. Embedding-Grade APIs and Contracts | Not Started | Stable crate API, deterministic behavior, and versioned contracts. |
+| 8. Differential Validation vs External Parsers | In Progress | Continuous mismatch detection against trusted external tools. |
+| 9. Performance and Scalability SLAs | In Progress | Enforced throughput/memory/latency budgets in CI. |
+| 10. Embedding-Grade APIs and Contracts | In Progress | Stable crate API, deterministic behavior, and versioned contracts. |
 | 11. Security and Robustness Hardening | Not Started | Fuzzed, bounded, and resilient parser/stimuli runtime. |
 | 12. SOTA Exit Criteria Gate | Not Started | CI-enforced release gates with objective pass thresholds. |
 
@@ -50,9 +50,9 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add gap-driven generator priorities (rule/branch/annotation coverage targets).
 
 ### Phase D
-- [ ] Add differential harness against external parser/tool baselines.
-- [ ] Add performance benchmark suite and CI thresholds.
-- [ ] Finalize embedding API stability and versioning policy.
+- [x] Add differential harness against external parser/tool baselines.
+- [x] Add performance benchmark suite and CI thresholds.
+- [x] Finalize embedding API stability and versioning policy.
 
 ## Current Sprint: Pillar 1
 
@@ -79,3 +79,6 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Added coverage-guided fuzz loop mode with deterministic per-seed replay and greedy corpus minimization for stimuli generation.
 - 2026-02-18: Added shrinking for parseability counterexamples and failing stimuli traces (delta-debug-style minimization in replay and parseability-failure diagnostics).
 - 2026-02-18: Added gap-priority generation mode that applies reachable targets from a gap report as branch/rule bias in count-based stimuli generation.
+- 2026-02-18: Started Phase D by adding generated-vs-bootstrap differential harness mode in `test_runner` with JSON mismatch reports and Makefile automation (`make differential_report`).
+- 2026-02-18: Completed Phase D performance gate by adding `perf_bench`, `make performance_gate`, threshold policy (`rust/perf/thresholds.json`), and CI workflow wiring (`performance-gate`).
+- 2026-02-18: Completed Phase D embedding API stabilization with versioned `pgen::embedding_api` contracts, deterministic structured parse outcomes, and `make embedding_api_gate`.

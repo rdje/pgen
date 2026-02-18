@@ -4,6 +4,7 @@
 //! including semantic annotation parsing and high-performance parser generation.
 
 pub mod ast_pipeline;
+pub mod embedding_api;
 pub mod test_registry;
 pub mod test_runner; // Only declare once
 
