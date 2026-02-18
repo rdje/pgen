@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-02-18 - Fixed-Point Bootstrap Reproducibility Gate (Phase A Kickoff)
+### ✅ Achievement Summary
+Implemented the first execution item from the SOTA roadmap: a fixed-point bootstrap gate that verifies deterministic generation for return/semantic annotation artifacts.
+### Scope of Changes
+- Added living roadmap tracker:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Added reproducibility gate script:
+  - `rust/scripts/fixed_point_bootstrap_gate.sh`
+  - Runs multi-cycle generation for:
+    - `semantic_annotation` (`.json`, `_parser.rs`)
+    - `return_annotation` (`.json`, `_parser.rs`)
+  - Compares cycle-1 outputs against subsequent cycles.
+  - Uses canonical JSON comparison with volatile `metadata.generated_at` removed.
+  - Preserves strict byte-level comparisons for generated parser `.rs` files.
+- Added build integration:
+  - `rust/Makefile` target: `fixed_point_gate`
+  - Added help text entry for the new gate target.
+### Validation Results
+- `make -C rust fixed_point_gate` ✅
+- Determinism root cause discovered and handled:
+  - raw JSON timestamps (`metadata.generated_at`) vary by cycle and are normalized out in gate comparisons.
+
 ## 2026-02-18 - Builtin Bootstrap Annotation Conformance Tightening
 ### ✅ Achievement Summary
 Tightened inferred bootstrap return EBNF accuracy against the hand-written parser and added explicit conformance tests to freeze bootstrap quirks that impact roundtrip/automation flows.

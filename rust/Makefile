@@ -203,6 +203,7 @@ help:
 	@echo "🛠️  Utility targets:"
 	@echo "  clean        - Remove generated files"
 	@echo "  clean-all    - Remove all build artifacts"
+	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
 	@echo "  help         - Show this help"
 	@echo "  status       - Show current build status"
@@ -351,6 +352,12 @@ annotation_parsers: return_semantic_parsers
 
 .PHONY: regex_tests
 regex_tests: regex_parser
+
+.PHONY: fixed_point_gate
+fixed_point_gate:
+	@echo "🔁 Running fixed-point bootstrap reproducibility gate..."
+	cd $(RUST_DIR) && ./scripts/fixed_point_bootstrap_gate.sh --cycles 2
+	@echo "✅ Fixed-point gate passed."
 
 .PHONY: regression_gate
 regression_gate:

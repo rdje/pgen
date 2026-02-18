@@ -1,0 +1,74 @@
+# PGEN SOTA Implementation Roadmap (Living)
+
+Last updated: 2026-02-18
+
+## Mission
+Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
+
+## Status Legend
+- `Not Started`
+- `In Progress`
+- `Blocked`
+- `Done`
+
+## Pillar Tracker
+
+| Pillar | Current Status | Target Outcome |
+|---|---|---|
+| 1. Bootstrap Trust and Fixed-Point Reproducibility | In Progress | Repeated bootstrap cycles are byte-identical for annotation grammars. |
+| 2. Normative Annotation Specification | Not Started | One normative spec for return/semantic annotation syntax + semantics. |
+| 3. Typed Annotation Validation | Not Started | Compile-time validation of references/transforms with precise diagnostics. |
+| 4. Bootstrap vs Generated Behavioral Contract | In Progress | Explicitly tracked differences with required tests and closure plan. |
+| 5. Industrial Frontend Support (SV/VHDL Readiness) | Not Started | Preprocess/lex/parse pipeline robust for real-world HDL sources. |
+| 6. Ambiguity Handling and Recovery | Not Started | Deterministic branch resolution and production-grade error recovery. |
+| 7. Coverage-Guided Semantic Stimuli | In Progress | Feedback loop that drives branch/rule/annotation coverage upward. |
+| 8. Differential Validation vs External Parsers | Not Started | Continuous mismatch detection against trusted external tools. |
+| 9. Performance and Scalability SLAs | Not Started | Enforced throughput/memory/latency budgets in CI. |
+| 10. Embedding-Grade APIs and Contracts | Not Started | Stable crate API, deterministic behavior, and versioned contracts. |
+| 11. Security and Robustness Hardening | Not Started | Fuzzed, bounded, and resilient parser/stimuli runtime. |
+| 12. SOTA Exit Criteria Gate | Not Started | CI-enforced release gates with objective pass thresholds. |
+
+## Execution Plan (Ordered)
+
+### Phase A (Now)
+- [x] Create living roadmap document and track implementation status here.
+- [x] Add fixed-point bootstrap gate script for return/semantic parser artifacts.
+- [x] Add `make fixed_point_gate` target for local and CI usage.
+- [ ] Wire `fixed_point_gate` into CI as required pre-merge gate.
+- [ ] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
+
+### Phase B (Next)
+- [ ] Implement typed return annotation validator (`$n`, extraction, spread, object/array shape checks).
+- [ ] Implement typed semantic annotation validator (transform function signatures and argument checks).
+- [ ] Emit structured diagnostics with stable error codes.
+
+### Phase C
+- [ ] Add coverage-guided semantic fuzzing loop with seed replay and corpus minimization.
+- [ ] Add shrinking for failing stimuli and parseability counterexamples.
+- [ ] Add gap-driven generator priorities (rule/branch/annotation coverage targets).
+
+### Phase D
+- [ ] Add differential harness against external parser/tool baselines.
+- [ ] Add performance benchmark suite and CI thresholds.
+- [ ] Finalize embedding API stability and versioning policy.
+
+## Current Sprint: Pillar 1
+
+### Completed in this sprint
+- Added a reproducibility gate that regenerates return/semantic annotation JSON and parser outputs for multiple cycles and asserts byte-identical outputs between cycle 1 and subsequent cycles.
+
+### Remaining for Pillar 1 completion
+- CI wiring and required status checks.
+- Failure artifact upload and retention policy in CI for drift investigation.
+- Escalate default gate cycles in CI (>=3) once runtime cost is acceptable.
+
+## Risks and Mitigations
+- Risk: Non-deterministic codegen details (ordering, paths, timestamps) can create false drifts.
+  - Mitigation: Fixed output paths per cycle, byte-level comparisons, and explicit diff output on mismatch.
+- Risk: Gate bypass in local workflows.
+  - Mitigation: Add Make target now; enforce in CI next.
+- Risk: Bootstrap/generated behavior drifts without visibility.
+  - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
+
+## Change Log (Roadmap Updates)
+- 2026-02-18: Initialized roadmap and marked Pillar 1 implementation started.

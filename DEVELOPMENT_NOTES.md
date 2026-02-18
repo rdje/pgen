@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - SOTA Roadmap Kickoff: Fixed-Point Bootstrap Gate
+### Context
+Given the SOTA objective for PGEN, the first implementation priority is bootstrap reproducibility: repeated generation from the same annotation EBNFs must produce stable artifacts. This is especially important because annotation parser stability directly impacts downstream parser generation, roundtrip testing, and automated stimuli validation loops.
+### Implementation
+- Added living roadmap document:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Tracks 12 major pillars, statuses, and phased execution.
+- Added fixed-point gate script:
+  - `rust/scripts/fixed_point_bootstrap_gate.sh`
+  - Performs configurable multi-cycle generation (`--cycles`, default `2`) for:
+    - `grammars/semantic_annotation.ebnf` -> `semantic_annotation.json` -> `semantic_annotation_parser.rs`
+    - `grammars/return_annotation.ebnf` -> `return_annotation.json` -> `return_annotation_parser.rs`
+  - Stores per-cycle snapshots and compares cycle-1 artifacts against later cycles.
+  - Fails fast with diff artifacts when non-determinism is detected.
+- Added Makefile integration:
+  - `rust/Makefile` target `fixed_point_gate`
+  - Discoverable via `make help`.
+### Determinism Detail
+Initial implementation revealed expected drift in raw JSON due to volatile metadata timestamps:
+- `metadata.generated_at` differs per run.
+
+To preserve a meaningful determinism contract:
+- gate now compares canonicalized JSON snapshots with only `metadata.generated_at` removed,
+- generated parser `.rs` outputs remain strict byte-level comparisons.
+
+This keeps the gate sensitive to structural/codegen changes while ignoring intentional runtime timestamp metadata.
+### Validation
+- Ran: `make -C rust fixed_point_gate`
+- Result: pass after canonicalization of volatile JSON timestamp field.
+### Why This Matters
+- Establishes a concrete reproducibility baseline for self-hosting/bootstrapping.
+- Provides immediate drift detection before regressions leak into annotation parsing, roundtrip checks, or stimuli generation workflows.
+- Creates a CI-ready enforcement point for Pillar 1 completion.
+
 ## 2026-02-18 - Builtin Return Parser vs Inferred EBNF: Comma-Segment and Duplicate-Key Conformance
 ### Context
 The inferred bootstrap grammars are intended to be implementation-accurate references for the hand-written chicken/egg parsers. During review, one remaining mismatch was found in list strictness: the inferred return EBNF modeled object/array comma lists as strict, while the bootstrap parser intentionally tolerates extra commas by dropping empty top-level segments.
