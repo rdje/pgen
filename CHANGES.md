@@ -81,6 +81,33 @@ Wired `fixed_point_gate` into CI and started Phase B by adding typed return/sema
   - `corpus_minimization_falls_back_to_shortest_when_no_coverage_delta`
   - `branch_hit_delta_reports_new_successes_only`
 
+### Follow-up (Phase C extension: shrinking for failures/counterexamples)
+- Added delta-debug-style shrinking helpers in `rust/src/main.rs`:
+  - `minimize_failing_input(...)`
+  - `shrink_parseability_counterexample(...)`
+- Coverage-guided fuzz replay now captures per-case shrunk counterexamples when parseability validation fails:
+  - `CoverageGuidedFuzzReplayCase.shrunk_counterexample`
+  - summary counters for parseability counterexamples and shrunk outputs.
+- Parseability generation failure path now reports:
+  - last parseability-rejected sample,
+  - shrunk counterexample variant for faster triage.
+- Added tests:
+  - `failing_input_minimizer_reduces_to_core_token`
+  - `failing_input_minimizer_keeps_input_when_not_failing`
+
+### Follow-up (Phase C completion: gap-driven generator priorities)
+- Added count-based gap-priority generation mode:
+  - `rust/src/main.rs`
+  - New flag:
+    - `--gap-priority-report-input <report.json>`
+  - Behavior:
+    - Loads `StimuliCoverageGapReport`,
+    - applies reachable targets via existing `StimuliGenerator::apply_targets(...)`,
+    - generates regular count-based stimuli with target-biased branch/rule weighting,
+    - clears target plan after generation.
+- Keeps target-driven resolution mode intact:
+  - `--target-report-input` remains dedicated to `generate_until_targets(...)`.
+
 ## 2026-02-18 - Fixed-Point Bootstrap Reproducibility Gate (Phase A Kickoff)
 ### ✅ Achievement Summary
 Implemented the first execution item from the SOTA roadmap: a fixed-point bootstrap gate that verifies deterministic generation for return/semantic annotation artifacts.

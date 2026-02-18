@@ -111,6 +111,44 @@ This gives an actionable pre-merge CI check surface for fixed-point bootstrap de
   - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/semantic_annotation.json --generate-stimuli --coverage-guided-fuzz-rounds 5 --coverage-guided-fuzz-replay-output /tmp/pgen_fuzz_replay.json --output /tmp/pgen_fuzz_corpus.txt` passed.
   - `make -C rust fixed_point_gate` passed.
 
+### Phase C Extension: Shrinking Failing Stimuli and Parseability Counterexamples
+- Added generic minimization primitive:
+  - `minimize_failing_input(...)`
+  - Implements iterative chunk-removal minimization (delta-debug style) while preserving failing predicate.
+- Added parseability-specific shrink wrapper:
+  - `shrink_parseability_counterexample(...)`
+  - Predicate: generated parser still rejects candidate sample.
+- Integrated shrinker into two operational paths:
+  - Coverage-guided fuzz replay:
+    - each parseability-rejected replay case records `shrunk_counterexample`.
+    - replay summary now reports both raw parseability counterexample count and shrunk counterexample count.
+  - Parseability generation failure (`generate_parseable_stimuli`):
+    - final error now includes last rejected sample plus shrunk variant for quick reproduction.
+- Added and passed new unit coverage:
+  - `failing_input_minimizer_reduces_to_core_token`
+  - `failing_input_minimizer_keeps_input_when_not_failing`
+- Revalidation:
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline` passed.
+  - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/semantic_annotation.json --generate-stimuli --coverage-guided-fuzz-rounds 2 --coverage-guided-fuzz-replay-output /tmp/pgen_fuzz_replay_shrink.json --output /tmp/pgen_fuzz_corpus_shrink.txt` passed.
+  - `make -C rust fixed_point_gate` passed.
+
+### Phase C Completion: Gap-Driven Priority Sampling Mode
+- Added a non-terminal target-bias mode for standard count-based generation:
+  - `--gap-priority-report-input <gap_report.json>`
+- Implementation path:
+  - load existing gap report (`StimuliCoverageGapReport`),
+  - apply reachable targets into active target plan using `StimuliGenerator::apply_targets(...)`,
+  - run normal `generate_many(...)` / parseability generation with target-aware weighting already present in generator heuristics,
+  - clear target plan after generation.
+- This complements, not replaces, existing target-resolution mode:
+  - `--target-report-input` still drives generation until targets are resolved or attempt budget is exhausted.
+- Validation:
+  - generated gap report: `--gap-report-json /tmp/pgen_gap_priority.json`
+  - applied gap-priority mode:
+    - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/semantic_annotation.json --generate-stimuli --count 5 --gap-priority-report-input /tmp/pgen_gap_priority.json --output /tmp/pgen_gap_priority_samples.txt`
+  - observed runtime confirmation:
+    - `Gap-priority mode: applied 262 reachable target(s) ...`
+
 ## 2026-02-18 - SOTA Roadmap Kickoff: Fixed-Point Bootstrap Gate
 ### Context
 Given the SOTA objective for PGEN, the first implementation priority is bootstrap reproducibility: repeated generation from the same annotation EBNFs must produce stable artifacts. This is especially important because annotation parser stability directly impacts downstream parser generation, roundtrip testing, and automated stimuli validation loops.

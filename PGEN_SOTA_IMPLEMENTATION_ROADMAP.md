@@ -46,8 +46,8 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 
 ### Phase C
 - [x] Add coverage-guided semantic fuzzing loop with seed replay and corpus minimization.
-- [ ] Add shrinking for failing stimuli and parseability counterexamples.
-- [ ] Add gap-driven generator priorities (rule/branch/annotation coverage targets).
+- [x] Add shrinking for failing stimuli and parseability counterexamples.
+- [x] Add gap-driven generator priorities (rule/branch/annotation coverage targets).
 
 ### Phase D
 - [ ] Add differential harness against external parser/tool baselines.
@@ -77,3 +77,5 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Enforced strict annotation validation policy in standard CI gate path and switched CI fixed-point runs to 3 cycles by default.
 - 2026-02-18: Added fixed-point drift artifact upload/retention policy in CI (failure-only upload of `rust/target/fixed_point_gate` snapshots and diffs).
 - 2026-02-18: Added coverage-guided fuzz loop mode with deterministic per-seed replay and greedy corpus minimization for stimuli generation.
+- 2026-02-18: Added shrinking for parseability counterexamples and failing stimuli traces (delta-debug-style minimization in replay and parseability-failure diagnostics).
+- 2026-02-18: Added gap-priority generation mode that applies reachable targets from a gap report as branch/rule bias in count-based stimuli generation.

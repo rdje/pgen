@@ -104,6 +104,14 @@ struct Args {
     #[arg(long, requires = "generate_stimuli")]
     target_report_input: Option<String>,
 
+    /// Load a prior gap report JSON and apply its targets as generation priorities for count-based sampling
+    #[arg(
+        long,
+        requires = "generate_stimuli",
+        conflicts_with = "target_report_input"
+    )]
+    gap_priority_report_input: Option<String>,
+
     /// Max generation attempts for target-driven mode
     #[arg(long, default_value_t = 5000, requires = "generate_stimuli")]
     target_max_attempts: usize,
@@ -163,6 +171,7 @@ struct CoverageGuidedFuzzReplayCase {
     generation_error: Option<String>,
     parseable: Option<bool>,
     accepted: bool,
+    shrunk_counterexample: Option<String>,
     new_rule_hits: Vec<String>,
     new_branch_hits: Vec<String>,
 }
@@ -175,6 +184,8 @@ struct CoverageGuidedFuzzReplayReport {
     accepted_cases: usize,
     rejected_cases: usize,
     minimized_cases: usize,
+    parseability_counterexamples: usize,
+    shrunk_counterexamples: usize,
     unique_rule_hits: usize,
     unique_branch_hits: usize,
     cases: Vec<CoverageGuidedFuzzReplayCase>,
@@ -183,11 +194,13 @@ struct CoverageGuidedFuzzReplayReport {
 impl CoverageGuidedFuzzReplayReport {
     fn summary_line(&self) -> String {
         format!(
-            "Coverage-guided fuzz loop: rounds={} accepted={} rejected={} minimized={} unique_rule_hits={} unique_branch_hits={}",
+            "Coverage-guided fuzz loop: rounds={} accepted={} rejected={} minimized={} parseability_counterexamples={} shrunk_counterexamples={} unique_rule_hits={} unique_branch_hits={}",
             self.rounds,
             self.accepted_cases,
             self.rejected_cases,
             self.minimized_cases,
+            self.parseability_counterexamples,
+            self.shrunk_counterexamples,
             self.unique_rule_hits,
             self.unique_branch_hits
         )
@@ -298,6 +311,34 @@ fn main() -> Result<()> {
             merged_coverage = fuzz_outcome.merged_coverage.clone();
             replay_report = Some(fuzz_outcome.replay_report);
             fuzz_outcome.minimized_samples
+        } else if let Some(priority_report_input_path) = args.gap_priority_report_input.as_deref()
+        {
+            let priority_report = load_gap_report(priority_report_input_path)?;
+            if priority_report.grammar_name != grammar.grammar_name {
+                return Err(anyhow::anyhow!(
+                    "Gap-priority report grammar '{}' does not match input grammar '{}'",
+                    priority_report.grammar_name,
+                    grammar.grammar_name
+                ));
+            }
+            let applied_targets = generator.apply_targets(&priority_report.targets);
+            println!(
+                "Gap-priority mode: applied {} reachable target(s) from '{}'",
+                applied_targets, priority_report_input_path
+            );
+            let generated_samples = if args.validate_parseability {
+                generate_parseable_stimuli(
+                    &grammar.grammar_name,
+                    &mut generator,
+                    args.count,
+                    args.entry_rule.as_deref(),
+                )?
+            } else {
+                generator.generate_many(args.count, args.entry_rule.as_deref())?
+            };
+            generator.clear_targets();
+            merged_coverage = generator.coverage_metrics().clone();
+            generated_samples
         } else if let Some(target_report_input_path) = args.target_report_input.as_deref() {
             let target_report = load_gap_report(target_report_input_path)?;
             if target_report.grammar_name != grammar.grammar_name {
@@ -501,6 +542,102 @@ fn load_gap_report(path: &str) -> Result<StimuliCoverageGapReport> {
     Ok(report)
 }
 
+fn summarize_sample(sample: &str, max_chars: usize) -> String {
+    if max_chars == 0 {
+        return String::new();
+    }
+
+    let total_chars = sample.chars().count();
+    if total_chars <= max_chars {
+        return sample.to_string();
+    }
+
+    let keep = max_chars.saturating_sub(1);
+    let truncated: String = sample.chars().take(keep).collect();
+    format!("{}...", truncated)
+}
+
+fn shrink_parseability_counterexample(grammar_name: &str, sample: &str) -> Result<String> {
+    minimize_failing_input(sample, |candidate| {
+        Ok(!is_sample_parseable_by_generated_parser(
+            grammar_name,
+            candidate,
+        )?)
+    })
+}
+
+fn minimize_failing_input<F>(input: &str, mut still_fails: F) -> Result<String>
+where
+    F: FnMut(&str) -> Result<bool>,
+{
+    if input.is_empty() {
+        return Ok(String::new());
+    }
+    if !still_fails(input)? {
+        return Ok(input.to_string());
+    }
+
+    let mut candidate = input.to_string();
+    let mut granularity = 2usize;
+
+    loop {
+        let char_len = candidate.chars().count();
+        if char_len <= 1 {
+            break;
+        }
+
+        let chunk = ((char_len + granularity - 1) / granularity).max(1);
+        let mut start = 0usize;
+        let mut reduced = false;
+
+        while start < char_len {
+            let end = (start + chunk).min(char_len);
+            let trial = remove_chars_range(&candidate, start, end);
+            if still_fails(&trial)? {
+                candidate = trial;
+                granularity = granularity.saturating_sub(1).max(2);
+                reduced = true;
+                break;
+            }
+            start = end;
+        }
+
+        if reduced {
+            continue;
+        }
+
+        if granularity >= char_len {
+            break;
+        }
+        granularity = (granularity * 2).min(char_len);
+    }
+
+    Ok(candidate)
+}
+
+fn remove_chars_range(input: &str, start_char: usize, end_char: usize) -> String {
+    if start_char >= end_char {
+        return input.to_string();
+    }
+
+    let start_byte = char_to_byte_idx(input, start_char);
+    let end_byte = char_to_byte_idx(input, end_char);
+    let mut output = String::with_capacity(input.len().saturating_sub(end_byte - start_byte));
+    output.push_str(&input[..start_byte]);
+    output.push_str(&input[end_byte..]);
+    output
+}
+
+fn char_to_byte_idx(input: &str, char_idx: usize) -> usize {
+    if char_idx == 0 {
+        return 0;
+    }
+    match input.char_indices().nth(char_idx) {
+        Some((byte_idx, _)) => byte_idx,
+        None => input.len(),
+    }
+}
+
 fn run_coverage_guided_fuzz_loop(
     grammar_name: &str,
     grammar_tree: &HashMap<String, ASTNode>,
@@ -524,6 +661,8 @@ fn run_coverage_guided_fuzz_loop(
                 accepted_cases: 0,
                 rejected_cases: 0,
                 minimized_cases: 0,
+                parseability_counterexamples: 0,
+                shrunk_counterexamples: 0,
                 unique_rule_hits: 0,
                 unique_branch_hits: 0,
                 cases: Vec::new(),
@@ -577,11 +716,16 @@ fn run_coverage_guided_fuzz_loop(
 
         let mut parseable = None;
         let mut accepted = sample.is_some();
+        let mut shrunk_counterexample = None;
         if let Some(sample_text) = sample.as_deref() {
             if validate_parseability {
                 let is_parseable = is_sample_parseable_by_generated_parser(grammar_name, sample_text)?;
                 parseable = Some(is_parseable);
                 accepted = is_parseable;
+                if !is_parseable {
+                    shrunk_counterexample =
+                        Some(shrink_parseability_counterexample(grammar_name, sample_text)?);
+                }
             }
         } else {
             accepted = false;
@@ -619,6 +763,7 @@ fn run_coverage_guided_fuzz_loop(
             generation_error,
             parseable,
             accepted,
+            shrunk_counterexample,
             new_rule_hits,
             new_branch_hits,
         });
@@ -632,6 +777,14 @@ fn run_coverage_guided_fuzz_loop(
     let minimized_case_count = minimized_samples.len();
     let accepted_cases = replay_cases.iter().filter(|case| case.accepted).count();
     let rejected_cases = replay_cases.len().saturating_sub(accepted_cases);
+    let parseability_counterexamples = replay_cases
+        .iter()
+        .filter(|case| case.parseable == Some(false))
+        .count();
+    let shrunk_counterexamples = replay_cases
+        .iter()
+        .filter(|case| case.shrunk_counterexample.is_some())
+        .count();
 
     Ok(CoverageGuidedFuzzOutcome {
         minimized_samples,
@@ -643,6 +796,8 @@ fn run_coverage_guided_fuzz_loop(
             accepted_cases,
             rejected_cases,
             minimized_cases: minimized_case_count,
+            parseability_counterexamples,
+            shrunk_counterexamples,
             unique_rule_hits: unique_rule_hits.len(),
             unique_branch_hits: unique_branch_hits.len(),
             cases: replay_cases,
@@ -806,6 +961,7 @@ fn generate_parseable_stimuli(
     let mut generation_errors = 0usize;
     let mut empty_generations = 0usize;
     let mut parser_rejections = 0usize;
+    let mut last_parser_rejected_sample: Option<String> = None;
 
     while accepted.len() < requested_count && attempts < max_attempts {
         attempts += 1;
@@ -830,6 +986,7 @@ fn generate_parseable_stimuli(
         } else {
             parser_rejections += 1;
             rejected += 1;
+            last_parser_rejected_sample = Some(sample);
         }
     }
 
@@ -844,8 +1001,19 @@ fn generate_parseable_stimuli(
     };
 
     if accepted.len() < requested_count {
+        let counterexample_note = if let Some(sample) = last_parser_rejected_sample {
+            let shrunk = shrink_parseability_counterexample(grammar_name, &sample)
+                .unwrap_or_else(|_| sample.clone());
+            format!(
+                " Last parseability counterexample: '{}' (shrunk='{}').",
+                summarize_sample(&sample, 160),
+                summarize_sample(&shrunk, 160)
+            )
+        } else {
+            String::new()
+        };
         return Err(anyhow::anyhow!(
-            "Unable to produce {} parseable stimuli for grammar '{}' after {} attempts (accepted {}, rejected {}; parse_rejections={}, generation_errors={}, empty_generations={}). Try increasing --max-depth/--max-repeat or lowering --count",
+            "Unable to produce {} parseable stimuli for grammar '{}' after {} attempts (accepted {}, rejected {}; parse_rejections={}, generation_errors={}, empty_generations={}). Try increasing --max-depth/--max-repeat or lowering --count.{}",
             summary.requested,
             grammar_name,
             summary.attempts,
@@ -853,7 +1021,8 @@ fn generate_parseable_stimuli(
             summary.rejected,
             summary.parser_rejections,
             summary.generation_errors,
-            summary.empty_generations
+            summary.empty_generations,
+            counterexample_note
         ));
     }
     let acceptance_rate = if summary.attempts == 0 {
@@ -941,7 +1110,8 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 #[cfg(test)]
 mod tests {
     use super::{
-        coverage_branch_hit_delta, minimize_fuzz_corpus_cases, supports_generated_parseability,
+        coverage_branch_hit_delta, minimize_failing_input, minimize_fuzz_corpus_cases,
+        supports_generated_parseability,
         FuzzCorpusCandidate, StimuliCoverageMetrics,
     };
     use pgen::ast_pipeline::stimuli_generator::BranchCoverageGroup;
@@ -1055,5 +1225,21 @@ mod tests {
 
         let delta = coverage_branch_hit_delta(&before, &after);
         assert_eq!(delta, vec!["branch::root::root#0".to_string()]);
+    }
+
+    #[test]
+    fn failing_input_minimizer_reduces_to_core_token() {
+        let minimized = minimize_failing_input("zzabyy", |candidate| {
+            Ok(candidate.contains("ab"))
+        })
+        .expect("minimizer should succeed");
+        assert_eq!(minimized, "ab");
+    }
+
+    #[test]
+    fn failing_input_minimizer_keeps_input_when_not_failing() {
+        let minimized = minimize_failing_input("stable", |_candidate| Ok(false))
+            .expect("minimizer should succeed");
+        assert_eq!(minimized, "stable");
     }
 }
