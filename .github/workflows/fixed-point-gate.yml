@@ -1,0 +1,31 @@
+name: fixed-point-gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  fixed-point-gate:
+    name: fixed-point-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Verify Perl runtime
+        run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
+
+      - name: Run fixed-point bootstrap reproducibility gate
+        run: make -C rust SHELL=/bin/bash fixed_point_gate

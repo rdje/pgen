@@ -1407,6 +1407,7 @@ pub mod ast_based_generator;
 pub mod ast_code_generator;
 pub mod ast_generator_direct;
 pub mod ast_return_transform;
+pub mod annotation_validator;
 pub mod grouped_quantifier_parser;
 pub mod mutual_recursion_handler;
 pub mod return_annotation_handler;
@@ -1415,5 +1416,9 @@ pub mod unified_return_ast;
 pub mod unified_semantic_ast;
 
 // Re-export key types
+pub use annotation_validator::{
+    AnnotationDiagnostic, AnnotationKind, AnnotationSeverity, AnnotationValidationReport,
+    AnnotationValidator, AnnotationValidatorConfig,
+};
 pub use unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 pub use unified_semantic_ast::UnifiedSemanticAST;

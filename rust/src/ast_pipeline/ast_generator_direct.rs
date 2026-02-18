@@ -3,6 +3,7 @@
 
 use crate::ast_pipeline::{
     ASTNode, Annotations, BranchAnnotation, TransformedASTJson,
+    annotation_validator::{AnnotationSeverity, AnnotationValidator, AnnotationValidatorConfig},
     ast_based_generator::AstBasedGenerator,
 };
 use anyhow::{Context, Result};
@@ -58,6 +59,58 @@ pub fn generate_parser_ast_based(
 
     // Transfer annotations if provided
     if let Some(annotations) = annotations {
+        let strict_validation = std::env::var("PGEN_STRICT_ANNOTATION_VALIDATION")
+            .map(|value| {
+                let normalized = value.trim().to_ascii_lowercase();
+                normalized == "1" || normalized == "true" || normalized == "yes"
+            })
+            .unwrap_or(false);
+
+        let validator = AnnotationValidator::new(AnnotationValidatorConfig {
+            max_capture_index: None,
+            strict_semantic_transforms: strict_validation,
+        });
+        let validation_report = validator.validate_annotations(annotations);
+
+        for diagnostic in &validation_report.diagnostics {
+            eprintln!(
+                "[annotation-validator][{}][{}][{}][rule='{}'][annotation={}] {}",
+                diagnostic.severity.as_str(),
+                diagnostic.code,
+                diagnostic.kind.as_str(),
+                diagnostic.rule_name,
+                diagnostic.annotation_index.map(|i| i.to_string()).unwrap_or_else(|| "-".to_string()),
+                diagnostic.message
+            );
+
+            if let Some(annotation_text) = &diagnostic.annotation {
+                eprintln!("  -> {}", annotation_text);
+            }
+        }
+
+        if strict_validation && validation_report.has_errors() {
+            return Err(anyhow::anyhow!(
+                "Annotation validation failed: {} error(s), {} warning(s). Set PGEN_STRICT_ANNOTATION_VALIDATION=0 to keep non-blocking diagnostics.",
+                validation_report.error_count(),
+                validation_report.warning_count()
+            ));
+        } else if !validation_report.diagnostics.is_empty() {
+            let error_count = validation_report
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == AnnotationSeverity::Error)
+                .count();
+            let warning_count = validation_report
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == AnnotationSeverity::Warning)
+                .count();
+            eprintln!(
+                "[annotation-validator] Completed with {} error(s), {} warning(s).",
+                error_count, warning_count
+            );
+        }
+
         // The AST generator stores annotations as Option<Annotations>
         generator.annotations = Some(annotations.clone());
         generator.branch_return_annotations = annotations

@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-02-18 - CI Wiring + Phase B Annotation Validator Bootstrap
+### ✅ Achievement Summary
+Wired `fixed_point_gate` into CI and started Phase B by adding typed return/semantic annotation validation with structured diagnostics.
+### Scope of Changes
+- Added CI workflow:
+  - `.github/workflows/fixed-point-gate.yml`
+  - Runs on `pull_request` and `push` to `main`.
+  - Executes `make -C rust SHELL=/bin/bash fixed_point_gate`.
+- Added typed annotation validator module:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - Structured diagnostics:
+    - `AnnotationDiagnostic`
+    - `AnnotationSeverity`
+    - `AnnotationKind`
+    - `AnnotationValidationReport`
+  - Return checks (initial set):
+    - positional `$0` invalidation,
+    - optional capture-bound overflow check,
+    - empty property/object key checks,
+    - suspicious spread/extraction patterns.
+  - Semantic checks (initial set):
+    - canonical transform form validation (`str::parse::<T>().unwrap_or(default)`),
+    - target type/default compatibility heuristics,
+    - raw-marker mismatch warnings,
+    - strict mode promotion (`PGEN_STRICT_ANNOTATION_VALIDATION`).
+- Integrated validator into parser generation path:
+  - `rust/src/ast_pipeline/ast_generator_direct.rs`
+  - Emits diagnostics during generation.
+  - Strict mode can fail generation when validation errors are present.
+- Exported validator APIs through:
+  - `rust/src/ast_pipeline/mod.rs`
+### Validation Results
+- `make -C rust fixed_point_gate` ✅
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator` ✅
+
 ## 2026-02-18 - Fixed-Point Bootstrap Reproducibility Gate (Phase A Kickoff)
 ### ✅ Achievement Summary
 Implemented the first execution item from the SOTA roadmap: a fixed-point bootstrap gate that verifies deterministic generation for return/semantic annotation artifacts.

@@ -17,7 +17,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 |---|---|---|
 | 1. Bootstrap Trust and Fixed-Point Reproducibility | In Progress | Repeated bootstrap cycles are byte-identical for annotation grammars. |
 | 2. Normative Annotation Specification | Not Started | One normative spec for return/semantic annotation syntax + semantics. |
-| 3. Typed Annotation Validation | Not Started | Compile-time validation of references/transforms with precise diagnostics. |
+| 3. Typed Annotation Validation | In Progress | Compile-time validation of references/transforms with precise diagnostics. |
 | 4. Bootstrap vs Generated Behavioral Contract | In Progress | Explicitly tracked differences with required tests and closure plan. |
 | 5. Industrial Frontend Support (SV/VHDL Readiness) | Not Started | Preprocess/lex/parse pipeline robust for real-world HDL sources. |
 | 6. Ambiguity Handling and Recovery | Not Started | Deterministic branch resolution and production-grade error recovery. |
@@ -34,13 +34,15 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Create living roadmap document and track implementation status here.
 - [x] Add fixed-point bootstrap gate script for return/semantic parser artifacts.
 - [x] Add `make fixed_point_gate` target for local and CI usage.
-- [ ] Wire `fixed_point_gate` into CI as required pre-merge gate.
+- [x] Wire `fixed_point_gate` into CI as required pre-merge gate.
 - [ ] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
 
 ### Phase B (Next)
-- [ ] Implement typed return annotation validator (`$n`, extraction, spread, object/array shape checks).
-- [ ] Implement typed semantic annotation validator (transform function signatures and argument checks).
-- [ ] Emit structured diagnostics with stable error codes.
+- [x] Implement typed return annotation validator (`$n`, extraction, spread, object/array shape checks).
+- [x] Implement typed semantic annotation validator (transform function signatures and argument checks).
+- [x] Emit structured diagnostics with stable error codes.
+- [ ] Extend validator coverage to include rule-aware capture bounds and branch-shape compatibility.
+- [ ] Add strict-mode failure policy into standard CI gates (not only env-triggered mode).
 
 ### Phase C
 - [ ] Add coverage-guided semantic fuzzing loop with seed replay and corpus minimization.
@@ -58,7 +60,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - Added a reproducibility gate that regenerates return/semantic annotation JSON and parser outputs for multiple cycles and asserts byte-identical outputs between cycle 1 and subsequent cycles.
 
 ### Remaining for Pillar 1 completion
-- CI wiring and required status checks.
+- Branch protection rule should require the `fixed-point-gate` check before merge.
 - Failure artifact upload and retention policy in CI for drift investigation.
 - Escalate default gate cycles in CI (>=3) once runtime cost is acceptable.
 
@@ -72,3 +74,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 
 ## Change Log (Roadmap Updates)
 - 2026-02-18: Initialized roadmap and marked Pillar 1 implementation started.
+- 2026-02-18: Added GitHub Actions `fixed-point-gate` workflow and started Phase B validator implementation with structured diagnostics.

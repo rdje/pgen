@@ -83,8 +83,8 @@ generate_cycle() {
     mkdir -p "$generated_dir"
 
     echo "==> [cycle ${cycle}/${CYCLES}] EBNF -> JSON"
-    perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty "$SEMANTIC_GRAMMAR" -o "$generated_dir/semantic_annotation.json"
-    perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty "$RETURN_GRAMMAR" -o "$generated_dir/return_annotation.json"
+    perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$SEMANTIC_GRAMMAR" -o "$generated_dir/semantic_annotation.json"
+    perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$RETURN_GRAMMAR" -o "$generated_dir/return_annotation.json"
 
     echo "==> [cycle ${cycle}/${CYCLES}] JSON -> parser.rs (bootstrap mode)"
     "$BOOTSTRAP_BIN" --generate-parser --bootstrap-mode --eliminate-left-recursion \

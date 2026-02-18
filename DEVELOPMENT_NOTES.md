@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - CI Gate Wiring and Phase B Typed Annotation Validation Start
+### Context
+Phase A reproducibility gate existed locally via Makefile, but no repository CI workflow enforced it on pull requests. In parallel, Phase B required a first concrete typed validation layer for return and semantic annotations with structured diagnostics.
+### CI Wiring Completed
+- Added GitHub Actions workflow:
+  - `.github/workflows/fixed-point-gate.yml`
+- Trigger policy:
+  - `pull_request`
+  - `push` on `main`
+- Gate execution:
+  - `make -C rust SHELL=/bin/bash fixed_point_gate`
+
+This gives an actionable pre-merge CI check surface for fixed-point bootstrap determinism.
+### Phase B Initial Implementation
+- Added validator module:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+- Added structured diagnostics model:
+  - severity (`error` / `warning`)
+  - kind (`return` / `semantic`)
+  - stable diagnostic code
+  - rule name + annotation index
+  - message + optional raw annotation text
+- Implemented initial typed checks for return annotations:
+  - positional index `$0` flagged as invalid for typed validation
+  - optional configured capture bound enforcement
+  - empty property/object-key checks
+  - suspicious spread/extraction shape warnings
+- Implemented initial typed checks for semantic annotations:
+  - canonical transform form validation (`str::parse::<T>().unwrap_or(default)`)
+  - target type/default compatibility heuristics (integer/float/bool/string families)
+  - marker mismatch warnings when transform-like markers appear in `Raw`
+  - strict-mode promotion of semantic warnings to errors
+- Integrated validation into AST parser generation path:
+  - `rust/src/ast_pipeline/ast_generator_direct.rs`
+  - diagnostics are emitted during parser generation
+  - strict-mode blocking enabled via env:
+    - `PGEN_STRICT_ANNOTATION_VALIDATION=1`
+### Why This Matters
+- CI now enforces fixed-point reproducibility continuously rather than only by local convention.
+- Annotation validation is now explicit, structured, and machine-friendly, which is a prerequisite for stronger compile-time annotation contracts and richer downstream tooling.
+- Strict validation can be rolled out incrementally without breaking permissive bootstrap workflows immediately.
+### Validation
+- `make -C rust fixed_point_gate` passed.
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator` passed.
+
 ## 2026-02-18 - SOTA Roadmap Kickoff: Fixed-Point Bootstrap Gate
 ### Context
 Given the SOTA objective for PGEN, the first implementation priority is bootstrap reproducibility: repeated generation from the same annotation EBNFs must produce stable artifacts. This is especially important because annotation parser stability directly impacts downstream parser generation, roundtrip testing, and automated stimuli validation loops.
