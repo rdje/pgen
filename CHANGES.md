@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-02-18 - Phase F Follow-Up: Semantic Annotation Leverage Contract Gate
+### ✅ Achievement Summary
+Made semantic-annotation runtime leverage explicit and test-enforced for both parser generation and stimuli generation.
+### Scope of Changes
+- Added semantic leverage tests in stimuli generator:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - New `semantic_usage_*` coverage confirms:
+    - regex sampling is overridden by semantic transform hints,
+    - float/int/bool transform hints map to deterministic sample shapes,
+    - raw quoted semantic payloads emit literal hints.
+- Existing parser codegen semantic leverage tests are now part of the same enforced gate:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - Confirms canonical `TransformExpr` drives transformed terminal generation on regex atoms, while raw semantics do not.
+- Gate wiring:
+  - `rust/Makefile`
+  - Added `semantic_usage_gate` (`cargo test --lib semantic_usage_`)
+  - `annotation_contract_gate` now invokes `semantic_usage_gate`.
+- Documentation/spec updates:
+  - `PGEN_USER_GUIDE.md` updated with current semantic leverage profile and limits.
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` updated with normative parser/stimuli semantic leverage contract.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated to track semantic leverage gate completion in Phase F.
+### Validation Results
+- `make -C rust semantic_usage_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-18 - Phase G Start: Embedding API Input-Bound Hardening
 ### ✅ Achievement Summary
 Started Pillar 11 hardening by adding bounded-input parsing controls to the stable embedding API with deterministic, structured diagnostics.

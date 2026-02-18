@@ -57,6 +57,22 @@ Source contract references:
 - `grammars/builtin_semantic_annotation.ebnf`
 - `rust/src/ast_pipeline/unified_semantic_ast.rs`
 
+## Semantic Leverage Contract (Parser + Stimuli)
+Normative runtime leverage behavior for semantic annotations:
+
+- Parser generation (`rust/src/ast_pipeline/ast_based_generator.rs`):
+  - `TransformExpr` currently steers regex atom code generation for matching rule names.
+  - Canonical parse transforms (`str::parse::<T>().unwrap_or(default)`) emit `TransformedTerminal` code paths.
+  - `Raw` semantic annotations do not alter regex atom parser generation behavior.
+- Stimuli generation (`rust/src/ast_pipeline/stimuli_generator.rs`):
+  - Regex sample generation checks semantic hints before regex-HIR sampling.
+  - Current hint mapping is implementation-defined but contract-enforced:
+    - parse float targets -> `"1.0"`
+    - parse integer/unsigned/isize/usize targets -> `"1"`
+    - parse bool targets -> `"true"`
+    - raw quoted payloads -> unquoted literal output
+- Annotation names are not yet a first-class steering key in these leverage paths; current contract is AST-shape + transform-expression driven.
+
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.
 
@@ -99,9 +115,12 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/return_annotation/normative_shared_contract.json`
 - Shared bootstrap/generated semantic contract suite:
   - `rust/test_data/semantic_annotation/normative_shared_contract.json`
+- Semantic leverage usage suite:
+  - parser/stimuli unit tests prefixed `semantic_usage_`
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust semantic_usage_gate`
 
 The gate runs:
 - typed validator unit coverage
@@ -109,6 +128,7 @@ The gate runs:
 - bootstrap semantic contract suite
 - shared return contract suite (bootstrap + generated)
 - shared semantic contract suite (bootstrap + generated)
+- semantic leverage unit contract suite (parser + stimuli)
 
 ## Maintenance Rules
 When annotation behavior changes intentionally:

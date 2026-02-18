@@ -2246,6 +2246,26 @@ mod tests {
         )
     }
 
+    fn annotated_generator<'a>(
+        grammar_tree: &'a HashMap<String, ASTNode>,
+        rule_order: &'a [String],
+        annotations: &'a Annotations,
+        seed: u64,
+    ) -> StimuliGenerator<'a> {
+        StimuliGenerator::new(
+            "test".to_string(),
+            grammar_tree,
+            rule_order,
+            Some(annotations),
+            StimuliConfig {
+                seed: Some(seed),
+                max_depth: 8,
+                max_repeat: 4,
+                max_rule_visits: 4,
+            },
+        )
+    }
+
     #[test]
     fn weighted_probabilities_are_deterministic_with_seed() {
         let mut grammar_tree = HashMap::new();
@@ -2668,5 +2688,85 @@ mod tests {
             summary.unresolved_targets.is_empty(),
             "no unresolved targets expected"
         );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_transformexpr_hint_overrides_regex_sampling() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{6}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9090);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("semantic-driven generation should succeed");
+        assert_eq!(
+            values[0], "1",
+            "semantic parse::<i*> hint should override regex sampling"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_transformexpr_hints_cover_float_and_bool() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("float_rule".to_string(), token("regex", "^[0-9]+(\\.[0-9]+)?$"));
+        grammar_tree.insert("bool_rule".to_string(), token("regex", "^(true|false)$"));
+        let rule_order = vec!["float_rule".to_string(), "bool_rule".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "float_rule".to_string(),
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
+            }],
+        );
+        annotations.semantic_annotations.insert(
+            "bool_rule".to_string(),
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
+            }],
+        );
+
+        let mut float_generator =
+            annotated_generator(&grammar_tree, &rule_order, &annotations, 9091);
+        let float_values = float_generator
+            .generate_many(1, Some("float_rule"))
+            .expect("float semantic-driven generation should succeed");
+        assert_eq!(float_values[0], "1.0");
+
+        let mut bool_generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9092);
+        let bool_values = bool_generator
+            .generate_many(1, Some("bool_rule"))
+            .expect("bool semantic-driven generation should succeed");
+        assert_eq!(bool_values[0], "true");
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_raw_quoted_content_returns_literal_hint() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{4}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![UnifiedSemanticAST::Raw {
+                content: "\"literal-token\"".to_string(),
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9093);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("raw-semantic-driven generation should succeed");
+        assert_eq!(values[0], "literal-token");
     }
 }

@@ -1251,3 +1251,95 @@ fn generate_tests(parser_name: &Ident) -> TokenStream {
         }
     }
 }
+
+#[cfg(test)]
+mod semantic_usage_tests {
+    use super::*;
+    use crate::ast_pipeline::{Annotations, ASTNode, ASTValue, TokenValue, UnifiedSemanticAST};
+    use std::collections::HashMap;
+
+    fn regex_atom(pattern: &str) -> ASTNode {
+        ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("regex".to_string()),
+                TokenValue::String(pattern.to_string()),
+            ]),
+        }
+    }
+
+    fn generator_with_semantic(
+        rule_name: &str,
+        semantic_asts: Vec<UnifiedSemanticAST>,
+    ) -> AstBasedGenerator {
+        let mut annotations = Annotations::default();
+        annotations
+            .semantic_annotations
+            .insert(rule_name.to_string(), semantic_asts);
+
+        AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        }
+    }
+
+    #[test]
+    fn semantic_usage_codegen_applies_canonical_transform_on_regex_atom() {
+        let generator = generator_with_semantic(
+            "number",
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
+            }],
+        );
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[0-9]+"), "number", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("ParseContent :: TransformedTerminal"),
+            "expected transformed terminal output, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("parse :: < i64 >"),
+            "expected canonical parse target in generated code, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("unwrap_or (0)"),
+            "expected unwrap_or default in generated code, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_ignores_raw_annotations_for_regex_atom() {
+        let generator = generator_with_semantic(
+            "number",
+            vec![UnifiedSemanticAST::Raw {
+                content: "\"Number\"".to_string(),
+            }],
+        );
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[0-9]+"), "number", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("ParseContent :: Terminal"),
+            "raw semantic annotations should keep default terminal behavior, got: {}",
+            rendered
+        );
+        assert!(
+            !rendered.contains("ParseContent :: TransformedTerminal"),
+            "raw semantic annotations should not force transformed terminal output, got: {}",
+            rendered
+        );
+    }
+}

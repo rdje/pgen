@@ -65,6 +65,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add `make annotation_contract_gate` to enforce validator + built-in contract suites.
 - [x] Wire `annotation_contract_gate` into CI as required pre-merge check.
 - [x] Add shared bootstrap/generated annotation contract suites and enforce them in gate paths.
+- [x] Add semantic leverage contract gate (`semantic_usage_gate`) for parser/stimuli steering behavior.
 
 ### Phase G (Current)
 - [x] Add embedding API input bounds (`ParseLimits`) with stable diagnostics for oversized/invalid inputs.
@@ -104,4 +105,5 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Started Pillar 2 by publishing `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, adding bootstrap contract suites (`builtin_contract.json`), and wiring `make annotation_contract_gate`.
 - 2026-02-18: Added CI workflow `annotation-contract-gate` to enforce `make annotation_contract_gate` on PR/main.
 - 2026-02-18: Added shared bootstrap/generated contract suites (`normative_shared_contract.json`) and extended `annotation_contract_gate` with `annotation_shared_contract_gate`.
+- 2026-02-18: Added semantic leverage contract coverage (`semantic_usage_*` tests) and wired `semantic_usage_gate` into `annotation_contract_gate`.
 - 2026-02-18: Started Pillar 11 by hardening embedding API parsing with bounded input limits (`ParseLimits`, `E_INPUT_TOO_LARGE`, `E_INVALID_LIMITS`) and updated contract docs.

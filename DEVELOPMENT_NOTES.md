@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase F Follow-Up: Semantic Leverage Contract Hardening (Parser + Stimuli)
+### Context
+There was ambiguity about whether semantic annotations currently steer parser generation and/or stimuli generation in practical flows. The code had partial leverage paths, but without an explicit gate this could silently drift and weaken confidence for annotation-heavy grammar use cases.
+### Implementation
+- Confirmed and codified current parser leverage path:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - `TransformExpr` semantic ASTs are used on regex atom generation for matching rule names.
+  - Canonical parse transform expressions (`str::parse::<T>().unwrap_or(default)`) generate `ParseContent::TransformedTerminal(...)` paths.
+  - Raw semantic ASTs are intentionally non-steering in this regex atom path.
+- Added explicit stimuli leverage tests:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Added `semantic_usage_*` tests covering:
+    - regex sample override from semantic transform hints,
+    - typed hint mapping behavior (`float -> "1.0"`, `int/uint/isize/usize -> "1"`, `bool -> "true"`),
+    - raw quoted semantic payloads mapping to unquoted literal outputs.
+- Gate integration:
+  - `rust/Makefile`
+  - Added:
+    - `semantic_usage_gate` target running `cargo test --lib semantic_usage_`.
+  - Updated:
+    - `annotation_contract_gate` now includes `semantic_usage_gate` so semantic leverage checks run with normative annotation checks.
+- Specification/documentation contractization:
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+    - Added a dedicated "Semantic Leverage Contract (Parser + Stimuli)" section documenting current steering behavior and boundaries.
+  - `PGEN_USER_GUIDE.md`
+    - Expanded semantic section to state exactly what semantic annotations steer today and what remains non-steering.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - Marked semantic leverage gate completion under Phase F.
+### Validation
+- Ran:
+  - `make -C rust semantic_usage_gate`
+  - `make -C rust annotation_contract_gate`
+- Result:
+  - semantic usage tests passed (parser + stimuli),
+  - normative validator/bootstrap/shared gates remained green with new semantic leverage enforcement included.
+### Why This Matters
+- Converts semantic-steering behavior from implicit implementation detail into a maintained contract.
+- Reduces regression risk for annotation-driven parser/stimuli flows used by downstream HDL and regex initiatives.
+- Creates a clear baseline for next-phase semantic annotation extensibility work (name-based steering and richer transform semantics).
+
 ## 2026-02-18 - Phase G Start: Embedding API Input Boundaries and Stable Limit Diagnostics
 ### Context
 The embedding API was stable and versioned but accepted unbounded input payloads. For embedding into high-rigor systems (HDL tooling and regex engines), explicit bounded behavior is required so accidental oversized payloads fail predictably instead of flowing into parser internals unchecked.

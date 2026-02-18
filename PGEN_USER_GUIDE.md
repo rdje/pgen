@@ -229,6 +229,22 @@ Bootstrap behavior notes:
   - `grammars/builtin_semantic_annotation.ebnf`
   - `rust/src/ast_pipeline/unified_semantic_ast.rs`
 
+Current leverage contract (parser + stimuli):
+- Parser codegen leverage:
+  - `TransformExpr` is currently applied on regex atom generation paths for the annotated rule.
+  - Canonical parse transforms (`str::parse::<T>().unwrap_or(default)`) produce transformed terminal output in generated parser code.
+  - `Raw` semantic annotations do not currently alter parser regex atom behavior.
+- Stimuli generation leverage:
+  - For regex-token sampling, semantic hints are checked first for the current rule.
+  - Current typed hints:
+    - `parse::<f*>` -> `"1.0"`
+    - `parse::<i*>`, `parse::<u*>`, `parse::<isize>`, `parse::<usize>` -> `"1"`
+    - `parse::<bool>` -> `"true"`
+  - Raw quoted semantic payloads (for example `"literal"`) are unquoted and emitted as the sample.
+- Gate/test coverage:
+  - `make -C rust semantic_usage_gate`
+  - This enforces targeted `semantic_usage_*` unit tests in parser codegen and stimuli generator paths.
+
 ## 9) Differential Testing and Drift Management
 
 Reference help:
