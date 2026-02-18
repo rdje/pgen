@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-02-18 - Phase E Completion: Comprehensive PGEN User Guide (Living)
+### ✅ Achievement Summary
+Completed the Phase E User Guide task by publishing a single end-user document that consolidates onboarding and feature usage across EBNF, annotation systems, stimuli generation, coverage/gap workflows, and quality gates.
+### Scope of Changes
+- Added new guide:
+  - `PGEN_USER_GUIDE.md`
+  - Coverage includes:
+    - full EBNF -> JSON -> parser flow,
+    - `ast_pipeline` usage modes and key flags,
+    - return annotation usage and bootstrap notes,
+    - semantic annotation usage and bootstrap notes,
+    - stimuli generation with coverage load/merge/gap/target/fuzz workflows,
+    - differential baseline/regression workflows,
+    - CI gate map and troubleshooting guidance.
+- Linked guide in:
+  - `README.md` documentation section.
+- Updated roadmap status:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Marked comprehensive User Guide task complete in Phase E.
+### Validation Notes
+- Guide command examples were aligned against current CLI/help and Make targets:
+  - `ast_pipeline --help`
+  - `test_runner --help`
+  - `rust/Makefile` gate/utility targets.
+
 ## 2026-02-18 - Phase E Follow-Up: CI Wiring for Differential Regression Gate
 ### ✅ Achievement Summary
 Wired the differential regression gate into CI so pull requests are blocked only by newly introduced generated-vs-bootstrap mismatches (not existing tracked mismatch debt).

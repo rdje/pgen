@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase E Completion: End-User Guide Publication
+### Context
+The roadmap had one remaining Phase E item: publish a comprehensive user guide for onboarding and practical feature usage. Existing docs were fragmented and often contributor- or subsystem-focused.
+
+User feedback also highlighted specific feature areas needing first-class onboarding coverage:
+- return and semantic annotation usage,
+- coverage workflows (load/merge/gap/target/fuzz),
+- differential workflow and closure expectations.
+### Implementation
+- Added a new living guide:
+  - `PGEN_USER_GUIDE.md`
+- Structured content includes:
+  - platform mental model and artifact boundaries (`grammars/` vs `generated/` vs `rust/target/`),
+  - quick-start gate commands for daily use,
+  - end-to-end EBNF -> JSON -> parser commands,
+  - `ast_pipeline` operational modes with high-value flags and parseability requirements,
+  - return/semantic annotation practical examples plus bootstrap-vs-generated notes,
+  - coverage and gap workflows:
+    - baseline generation,
+    - coverage merge,
+    - gap report generation,
+    - target-driven closure,
+    - gap-priority sampling,
+    - coverage-guided fuzz replay/minimization,
+  - differential baseline refresh/regression gate workflows,
+  - CI gate inventory and troubleshooting playbook.
+- Added discoverability link:
+  - `README.md` documentation section now references `PGEN_USER_GUIDE.md`.
+- Marked roadmap task complete:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase E checklist updated.
+### Validation
+- Verified command/flag accuracy against current interfaces:
+  - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- --help`
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --help`
+  - `rust/Makefile` utility/gate targets.
+### Why This Matters
+- Establishes one canonical onboarding document for users integrating PGEN into external projects.
+- Reduces ambiguity between generated source artifacts and ephemeral analysis reports.
+- Makes advanced features discoverable without requiring readers to piece together multiple internal notes.
+
 ## 2026-02-18 - Phase E Follow-Up: CI Enforcement for Differential New-Mismatch Gate
 ### Context
 Differential baseline closure tooling was available locally (`differential_regression_gate`), but it was not yet enforced in repository CI. That left a gap where local discipline could drift and new mismatches might slip into PRs.

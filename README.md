@@ -277,6 +277,7 @@ number := /(\d+)/
 
 ## 📚 Documentation
 
+- **[PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)**: Comprehensive end-user guide for EBNF, annotations, stimuli/coverage flows, differential gates, and embedding workflows
 - **[QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md)**: **NEW** - Rapid onboarding guide for AI contributors 🚀
 - **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)**: Complete technical architecture
 - **[IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md)**: Developer guide with implementation details  
