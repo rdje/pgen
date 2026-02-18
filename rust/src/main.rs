@@ -7,7 +7,7 @@ use clap::Parser;
 #[cfg(feature = "generated_parsers")]
 use pgen::NoOpLogger;
 use pgen::ast_pipeline::stimuli_generator::{
-    StimuliConfig, StimuliCoverageMetrics, StimuliGenerator,
+    StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics, StimuliGenerator,
 };
 use pgen::ast_pipeline::{
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
@@ -85,6 +85,26 @@ struct Args {
     /// Write merged stimuli coverage metrics JSON to this path
     #[arg(long, requires = "generate_stimuli")]
     coverage_output: Option<String>,
+
+    /// Write detailed coverage gap report JSON (reachable/unreachable rules+branches and target plan)
+    #[arg(long, requires = "generate_stimuli")]
+    gap_report_json: Option<String>,
+
+    /// Write human-readable detailed coverage gap report text
+    #[arg(long, requires = "generate_stimuli")]
+    gap_report_text: Option<String>,
+
+    /// Required successful hits per rule/branch target when building gap report debt/targets
+    #[arg(long, default_value_t = 1, requires = "generate_stimuli")]
+    gap_report_threshold: u64,
+
+    /// Load a prior gap report JSON and drive generation until its targets hit threshold (or attempt budget)
+    #[arg(long, requires = "generate_stimuli")]
+    target_report_input: Option<String>,
+
+    /// Max generation attempts for target-driven mode
+    #[arg(long, default_value_t = 5000, requires = "generate_stimuli")]
+    target_max_attempts: usize,
 
     /// Enable trace mode in generated parser (detailed debug logging)
     #[arg(long)]
@@ -175,7 +195,53 @@ fn main() -> Result<()> {
             generator.merge_coverage_metrics(&existing_coverage)?;
         }
 
-        let samples = if args.validate_parseability {
+        let mut samples = if let Some(target_report_input_path) =
+            args.target_report_input.as_deref()
+        {
+            let target_report = load_gap_report(target_report_input_path)?;
+            if target_report.grammar_name != grammar.grammar_name {
+                return Err(anyhow::anyhow!(
+                    "Target report grammar '{}' does not match input grammar '{}'",
+                    target_report.grammar_name,
+                    grammar.grammar_name
+                ));
+            }
+            let (generated_samples, target_summary) = generator.generate_until_targets(
+                args.entry_rule.as_deref(),
+                &target_report.targets,
+                args.target_max_attempts,
+            )?;
+            println!("{}", target_summary.summary_line());
+            if !target_summary.unresolved_targets.is_empty() {
+                println!(
+                    "Unresolved targets after target-driven generation: {}",
+                    target_summary.unresolved_targets.len()
+                );
+                println!(
+                    "Top unresolved targets (id | type | location | current/required | remaining | reason):"
+                );
+                for status in target_summary.unresolved_targets.iter().take(20) {
+                    let location = if let (Some(node_path), Some(branch_index)) =
+                        (status.node_path.as_deref(), status.branch_index)
+                    {
+                        format!("{}::{}#{}", status.rule_name, node_path, branch_index)
+                    } else {
+                        status.rule_name.clone()
+                    };
+                    println!(
+                        "- {} | {:?} | {} | {}/{} | {} | {}",
+                        status.id,
+                        status.target_type,
+                        location,
+                        status.current_successes,
+                        status.required_successes,
+                        status.remaining_successes,
+                        status.reason
+                    );
+                }
+            }
+            generated_samples
+        } else if args.validate_parseability {
             generate_parseable_stimuli(
                 &grammar.grammar_name,
                 &mut generator,
@@ -185,6 +251,17 @@ fn main() -> Result<()> {
         } else {
             generator.generate_many(args.count, args.entry_rule.as_deref())?
         };
+
+        if args.validate_parseability && args.target_report_input.is_some() {
+            let (accepted, rejected) =
+                filter_parseable_samples(&grammar.grammar_name, samples.into_iter())?;
+            samples = accepted;
+            println!(
+                "Target-driven parseability filter accepted {} samples and rejected {}",
+                samples.len(),
+                rejected
+            );
+        }
 
         if let Some(output_file) = args.output {
             let mut content = String::new();
@@ -204,10 +281,21 @@ fn main() -> Result<()> {
         if let Some(coverage_output_path) = args.coverage_output.as_deref() {
             let coverage_json = serde_json::to_string_pretty(generator.coverage_metrics())?;
             std::fs::write(coverage_output_path, coverage_json)?;
-            println!(
-                "Wrote stimuli coverage metrics to {}",
-                coverage_output_path
-            );
+            println!("Wrote stimuli coverage metrics to {}", coverage_output_path);
+        }
+
+        if args.gap_report_json.is_some() || args.gap_report_text.is_some() {
+            let gap_report = generator
+                .generate_gap_report(args.entry_rule.as_deref(), args.gap_report_threshold)?;
+            if let Some(gap_report_json_path) = args.gap_report_json.as_deref() {
+                let report_json = serde_json::to_string_pretty(&gap_report)?;
+                std::fs::write(gap_report_json_path, report_json)?;
+                println!("Wrote coverage gap report JSON to {}", gap_report_json_path);
+            }
+            if let Some(gap_report_text_path) = args.gap_report_text.as_deref() {
+                std::fs::write(gap_report_text_path, gap_report.to_pretty_text())?;
+                println!("Wrote coverage gap report text to {}", gap_report_text_path);
+            }
         }
 
         (samples.len(), grammar.rule_order)
@@ -277,6 +365,29 @@ fn load_coverage_metrics(path: &str) -> Result<StimuliCoverageMetrics> {
     let content = std::fs::read_to_string(path)?;
     let metrics: StimuliCoverageMetrics = serde_json::from_str(&content)?;
     Ok(metrics)
+}
+
+fn load_gap_report(path: &str) -> Result<StimuliCoverageGapReport> {
+    let content = std::fs::read_to_string(path)?;
+    let report: StimuliCoverageGapReport = serde_json::from_str(&content)?;
+    Ok(report)
+}
+
+fn filter_parseable_samples<I>(grammar_name: &str, samples: I) -> Result<(Vec<String>, usize)>
+where
+    I: IntoIterator<Item = String>,
+{
+    ensure_parseability_support(grammar_name)?;
+    let mut accepted = Vec::new();
+    let mut rejected = 0usize;
+    for sample in samples {
+        if is_sample_parseable_by_generated_parser(grammar_name, &sample)? {
+            accepted.push(sample);
+        } else {
+            rejected = rejected.saturating_add(1);
+        }
+    }
+    Ok((accepted, rejected))
 }
 
 fn supports_generated_parseability(grammar_name: &str) -> bool {

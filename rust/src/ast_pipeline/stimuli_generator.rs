@@ -146,7 +146,10 @@ impl StimuliCoverageMetrics {
     }
 
     fn record_rule_success(&mut self, rule_name: &str) {
-        *self.rule_success_hits.entry(rule_name.to_string()).or_insert(0) += 1;
+        *self
+            .rule_success_hits
+            .entry(rule_name.to_string())
+            .or_insert(0) += 1;
     }
 
     fn ensure_group_entry(
@@ -214,13 +217,22 @@ impl StimuliCoverageMetrics {
     }
 
     pub fn covered_rules(&self) -> usize {
-        self.rule_success_hits.values().filter(|hits| **hits > 0).count()
+        self.rule_success_hits
+            .values()
+            .filter(|hits| **hits > 0)
+            .count()
     }
 
     pub fn covered_branches(&self) -> usize {
         self.branch_groups
             .values()
-            .map(|group| group.success_counts.iter().filter(|hits| **hits > 0).count())
+            .map(|group| {
+                group
+                    .success_counts
+                    .iter()
+                    .filter(|hits| **hits > 0)
+                    .count()
+            })
             .sum()
     }
 
@@ -255,6 +267,277 @@ impl StimuliCoverageMetrics {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StimuliCoverageTargetType {
+    Rule,
+    Branch,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RuleCoverageDebt {
+    pub rule_name: String,
+    pub reachable: bool,
+    pub success_hits: u64,
+    pub required_successes: u64,
+    pub deficit: u64,
+    pub priority_score: u64,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BranchCoverageDebt {
+    pub branch_id: String,
+    pub group_key: String,
+    pub rule_name: String,
+    pub node_path: String,
+    pub branch_index: usize,
+    pub reachable: bool,
+    pub selected_hits: u64,
+    pub success_hits: u64,
+    pub required_successes: u64,
+    pub deficit: u64,
+    pub priority_score: u64,
+    pub reason: String,
+    pub rule_references: Vec<String>,
+    pub uncovered_rule_references: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StimuliCoverageTarget {
+    pub id: String,
+    pub target_type: StimuliCoverageTargetType,
+    pub rule_name: String,
+    pub node_path: Option<String>,
+    pub branch_index: Option<usize>,
+    pub reachable: bool,
+    pub required_successes: u64,
+    pub current_successes: u64,
+    pub deficit: u64,
+    pub priority_score: u64,
+    pub reason: String,
+    #[serde(default)]
+    pub depends_on: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CoverageDebtSummary {
+    pub required_successes_per_target: u64,
+    pub sample_attempts: u64,
+    pub sample_successes: u64,
+    pub sample_errors: u64,
+    pub total_rules: usize,
+    pub reachable_rules: usize,
+    pub unreachable_rules: usize,
+    pub covered_rules: usize,
+    pub covered_reachable_rules: usize,
+    pub reachable_rules_at_threshold: usize,
+    pub total_branches: usize,
+    pub reachable_branches: usize,
+    pub unreachable_branches: usize,
+    pub covered_branches: usize,
+    pub covered_reachable_branches: usize,
+    pub reachable_branches_at_threshold: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StimuliCoverageGapReport {
+    pub grammar_name: String,
+    pub entry_rule: String,
+    pub summary: CoverageDebtSummary,
+    pub reachable_rule_debt: Vec<RuleCoverageDebt>,
+    pub unreachable_rule_debt: Vec<RuleCoverageDebt>,
+    pub reachable_branch_debt: Vec<BranchCoverageDebt>,
+    pub unreachable_branch_debt: Vec<BranchCoverageDebt>,
+    pub targets: Vec<StimuliCoverageTarget>,
+}
+
+impl StimuliCoverageGapReport {
+    pub fn to_pretty_text(&self) -> String {
+        let mut out = String::new();
+        out.push_str("=== Stimuli Coverage Gap Report ===\n");
+        out.push_str(&format!("Grammar: {}\n", self.grammar_name));
+        out.push_str(&format!("Entry rule: {}\n", self.entry_rule));
+        out.push_str(&format!(
+            "Threshold: {} successful hits per target\n\n",
+            self.summary.required_successes_per_target
+        ));
+
+        out.push_str("Summary\n");
+        out.push_str(&format!(
+            "- Samples: attempts={} successes={} errors={}\n",
+            self.summary.sample_attempts, self.summary.sample_successes, self.summary.sample_errors
+        ));
+        out.push_str(&format!(
+            "- Rules: covered {}/{} | reachable {} (at-threshold {}) | unreachable {}\n",
+            self.summary.covered_rules,
+            self.summary.total_rules,
+            self.summary.reachable_rules,
+            self.summary.reachable_rules_at_threshold,
+            self.summary.unreachable_rules
+        ));
+        out.push_str(&format!(
+            "- Branches: covered {}/{} | reachable {} (at-threshold {}) | unreachable {}\n",
+            self.summary.covered_branches,
+            self.summary.total_branches,
+            self.summary.reachable_branches,
+            self.summary.reachable_branches_at_threshold,
+            self.summary.unreachable_branches
+        ));
+        out.push_str(&format!("- Actionable targets: {}\n\n", self.targets.len()));
+
+        out.push_str("Reachable Rule Debt\n");
+        if self.reachable_rule_debt.is_empty() {
+            out.push_str("- none\n");
+        } else {
+            for debt in &self.reachable_rule_debt {
+                out.push_str(&format!(
+                    "- {} | hits={} required={} deficit={} priority={} reason={}\n",
+                    debt.rule_name,
+                    debt.success_hits,
+                    debt.required_successes,
+                    debt.deficit,
+                    debt.priority_score,
+                    debt.reason
+                ));
+            }
+        }
+        out.push('\n');
+
+        out.push_str("Reachable Branch Debt\n");
+        if self.reachable_branch_debt.is_empty() {
+            out.push_str("- none\n");
+        } else {
+            for debt in &self.reachable_branch_debt {
+                out.push_str(&format!(
+                    "- {} | selected={} success={} required={} deficit={} priority={} reason={} refs=[{}] uncovered_refs=[{}]\n",
+                    debt.branch_id,
+                    debt.selected_hits,
+                    debt.success_hits,
+                    debt.required_successes,
+                    debt.deficit,
+                    debt.priority_score,
+                    debt.reason,
+                    debt.rule_references.join(","),
+                    debt.uncovered_rule_references.join(",")
+                ));
+            }
+        }
+        out.push('\n');
+
+        out.push_str("Unreachable Rule Debt\n");
+        if self.unreachable_rule_debt.is_empty() {
+            out.push_str("- none\n");
+        } else {
+            for debt in &self.unreachable_rule_debt {
+                out.push_str(&format!(
+                    "- {} | hits={} required={} deficit={} reason={}\n",
+                    debt.rule_name,
+                    debt.success_hits,
+                    debt.required_successes,
+                    debt.deficit,
+                    debt.reason
+                ));
+            }
+        }
+        out.push('\n');
+
+        out.push_str("Unreachable Branch Debt\n");
+        if self.unreachable_branch_debt.is_empty() {
+            out.push_str("- none\n");
+        } else {
+            for debt in &self.unreachable_branch_debt {
+                out.push_str(&format!(
+                    "- {} | selected={} success={} required={} deficit={} reason={}\n",
+                    debt.branch_id,
+                    debt.selected_hits,
+                    debt.success_hits,
+                    debt.required_successes,
+                    debt.deficit,
+                    debt.reason
+                ));
+            }
+        }
+        out.push('\n');
+
+        out.push_str("Target Plan\n");
+        if self.targets.is_empty() {
+            out.push_str("- none\n");
+        } else {
+            for target in &self.targets {
+                let location = if let (Some(node_path), Some(branch_index)) =
+                    (&target.node_path, target.branch_index)
+                {
+                    format!("{}::{}#{}", target.rule_name, node_path, branch_index)
+                } else {
+                    target.rule_name.clone()
+                };
+                out.push_str(&format!(
+                    "- {} | type={:?} location={} current={} required={} deficit={} priority={} reason={} depends_on=[{}]\n",
+                    target.id,
+                    target.target_type,
+                    location,
+                    target.current_successes,
+                    target.required_successes,
+                    target.deficit,
+                    target.priority_score,
+                    target.reason,
+                    target.depends_on.join(",")
+                ));
+            }
+        }
+
+        out
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TargetCoverageStatus {
+    pub id: String,
+    pub target_type: StimuliCoverageTargetType,
+    pub rule_name: String,
+    pub node_path: Option<String>,
+    pub branch_index: Option<usize>,
+    pub current_successes: u64,
+    pub required_successes: u64,
+    pub remaining_successes: u64,
+    pub priority_score: u64,
+    pub reason: String,
+    #[serde(default)]
+    pub depends_on: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TargetDriveSummary {
+    pub entry_rule: String,
+    pub attempts: usize,
+    pub generation_successes: usize,
+    pub generation_errors: usize,
+    pub total_targets: usize,
+    pub applied_targets: usize,
+    pub resolved_targets: usize,
+    pub unresolved_targets: Vec<TargetCoverageStatus>,
+}
+
+impl TargetDriveSummary {
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Target-driven generation: resolved {}/{} targets in {} attempts (generation_successes={}, generation_errors={})",
+            self.resolved_targets,
+            self.total_targets,
+            self.attempts,
+            self.generation_successes,
+            self.generation_errors
+        )
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct ActiveTargetPlan {
+    rule_thresholds: HashMap<String, u64>,
+    branch_thresholds: HashMap<String, HashMap<usize, u64>>,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -263,6 +546,7 @@ pub struct StimuliGenerator<'a> {
     config: StimuliConfig,
     rng: StdRng,
     coverage: StimuliCoverageMetrics,
+    target_plan: ActiveTargetPlan,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -314,6 +598,7 @@ impl<'a> StimuliGenerator<'a> {
             config,
             rng,
             coverage,
+            target_plan: ActiveTargetPlan::default(),
         }
     }
 
@@ -323,6 +608,680 @@ impl<'a> StimuliGenerator<'a> {
 
     pub fn merge_coverage_metrics(&mut self, other: &StimuliCoverageMetrics) -> Result<()> {
         self.coverage.merge_from(other)
+    }
+
+    pub fn generate_gap_report(
+        &self,
+        entry_rule: Option<&str>,
+        required_successes: u64,
+    ) -> Result<StimuliCoverageGapReport> {
+        let threshold = required_successes.max(1);
+        let resolved_entry = self.resolve_entry_rule(entry_rule)?;
+        let reachable_rules = self.compute_reachable_rules(&resolved_entry);
+
+        let mut all_rule_names: HashSet<String> =
+            self.coverage.rule_success_hits.keys().cloned().collect();
+        for rule_name in self.grammar_tree.keys() {
+            all_rule_names.insert(rule_name.clone());
+        }
+        for rule_name in self.rule_order {
+            all_rule_names.insert(rule_name.clone());
+        }
+        let mut all_rules: Vec<String> = all_rule_names.into_iter().collect();
+        all_rules.sort();
+
+        let mut reachable_rule_debt = Vec::new();
+        let mut unreachable_rule_debt = Vec::new();
+        let mut reachable_branch_debt = Vec::new();
+        let mut unreachable_branch_debt = Vec::new();
+        let mut targets = Vec::new();
+
+        let total_rules = all_rules.len();
+        let reachable_rules_count = all_rules
+            .iter()
+            .filter(|rule_name| reachable_rules.contains(rule_name.as_str()))
+            .count();
+        let unreachable_rules_count = total_rules.saturating_sub(reachable_rules_count);
+        let covered_rules = all_rules
+            .iter()
+            .filter(|rule_name| {
+                self.coverage
+                    .rule_success_hits
+                    .get(*rule_name)
+                    .copied()
+                    .unwrap_or(0)
+                    > 0
+            })
+            .count();
+        let covered_reachable_rules = all_rules
+            .iter()
+            .filter(|rule_name| {
+                reachable_rules.contains(rule_name.as_str())
+                    && self
+                        .coverage
+                        .rule_success_hits
+                        .get(*rule_name)
+                        .copied()
+                        .unwrap_or(0)
+                        > 0
+            })
+            .count();
+        let reachable_rules_at_threshold = all_rules
+            .iter()
+            .filter(|rule_name| {
+                reachable_rules.contains(rule_name.as_str())
+                    && self
+                        .coverage
+                        .rule_success_hits
+                        .get(*rule_name)
+                        .copied()
+                        .unwrap_or(0)
+                        >= threshold
+            })
+            .count();
+
+        for rule_name in &all_rules {
+            let success_hits = self
+                .coverage
+                .rule_success_hits
+                .get(rule_name)
+                .copied()
+                .unwrap_or(0);
+            let deficit = threshold.saturating_sub(success_hits);
+            if deficit == 0 {
+                continue;
+            }
+
+            let reachable = reachable_rules.contains(rule_name.as_str());
+            let reason = if reachable {
+                if success_hits == 0 {
+                    "never_hit"
+                } else {
+                    "below_threshold"
+                }
+            } else {
+                "unreachable_from_entry"
+            };
+            let mut priority_score = 0u64;
+            if reachable {
+                priority_score = 800u64
+                    .saturating_add(deficit.saturating_mul(100))
+                    .saturating_add(if success_hits == 0 { 160 } else { 0 });
+            }
+
+            let debt = RuleCoverageDebt {
+                rule_name: rule_name.clone(),
+                reachable,
+                success_hits,
+                required_successes: threshold,
+                deficit,
+                priority_score,
+                reason: reason.to_string(),
+            };
+
+            if reachable {
+                targets.push(StimuliCoverageTarget {
+                    id: Self::rule_target_id(rule_name),
+                    target_type: StimuliCoverageTargetType::Rule,
+                    rule_name: rule_name.clone(),
+                    node_path: None,
+                    branch_index: None,
+                    reachable: true,
+                    required_successes: threshold,
+                    current_successes: success_hits,
+                    deficit,
+                    priority_score,
+                    reason: reason.to_string(),
+                    depends_on: Vec::new(),
+                });
+                reachable_rule_debt.push(debt);
+            } else {
+                unreachable_rule_debt.push(debt);
+            }
+        }
+
+        let mut group_keys: Vec<String> = self.coverage.branch_groups.keys().cloned().collect();
+        group_keys.sort();
+
+        let mut total_branches = 0usize;
+        let mut reachable_branches = 0usize;
+        let mut covered_branches = 0usize;
+        let mut covered_reachable_branches = 0usize;
+        let mut reachable_branches_at_threshold = 0usize;
+
+        for group_key in group_keys {
+            let Some(group) = self.coverage.branch_groups.get(&group_key) else {
+                continue;
+            };
+            let reachable = reachable_rules.contains(group.rule_name.as_str());
+            total_branches = total_branches.saturating_add(group.total_branches);
+            if reachable {
+                reachable_branches = reachable_branches.saturating_add(group.total_branches);
+            }
+            let branch_nodes =
+                self.or_alternatives_for_group_path(&group.rule_name, &group.node_path);
+
+            for branch_idx in 0..group.total_branches {
+                let selected_hits = group.selected_counts.get(branch_idx).copied().unwrap_or(0);
+                let success_hits = group.success_counts.get(branch_idx).copied().unwrap_or(0);
+                let deficit = threshold.saturating_sub(success_hits);
+
+                if success_hits > 0 {
+                    covered_branches = covered_branches.saturating_add(1);
+                    if reachable {
+                        covered_reachable_branches = covered_reachable_branches.saturating_add(1);
+                    }
+                }
+                if reachable && success_hits >= threshold {
+                    reachable_branches_at_threshold =
+                        reachable_branches_at_threshold.saturating_add(1);
+                }
+                if deficit == 0 {
+                    continue;
+                }
+
+                let mut rule_refs = Vec::new();
+                let mut uncovered_rule_refs = Vec::new();
+                if let Some(alternatives) = branch_nodes {
+                    if let Some(branch_node) = alternatives.get(branch_idx) {
+                        let mut refs = HashSet::new();
+                        self.collect_rule_references(branch_node, &mut refs);
+                        rule_refs = refs.into_iter().collect();
+                        rule_refs.sort();
+                        uncovered_rule_refs = rule_refs
+                            .iter()
+                            .filter(|rule_name| {
+                                self.coverage
+                                    .rule_success_hits
+                                    .get(rule_name.as_str())
+                                    .copied()
+                                    .unwrap_or(0)
+                                    < threshold
+                            })
+                            .cloned()
+                            .collect();
+                    }
+                }
+
+                let reason = if reachable {
+                    if selected_hits == 0 {
+                        "never_selected"
+                    } else if success_hits == 0 {
+                        "selected_but_failed"
+                    } else {
+                        "below_threshold"
+                    }
+                } else {
+                    "unreachable_from_entry"
+                };
+
+                let mut priority_score = 0u64;
+                if reachable {
+                    priority_score = 1000u64
+                        .saturating_add(deficit.saturating_mul(120))
+                        .saturating_add(if selected_hits == 0 { 200 } else { 0 })
+                        .saturating_add(if success_hits == 0 { 120 } else { 0 })
+                        .saturating_add(
+                            u64::try_from(uncovered_rule_refs.len())
+                                .unwrap_or(0)
+                                .saturating_mul(24),
+                        );
+                }
+
+                let branch_id =
+                    Self::branch_target_id(&group.rule_name, &group.node_path, branch_idx);
+                let debt = BranchCoverageDebt {
+                    branch_id: branch_id.clone(),
+                    group_key: group_key.clone(),
+                    rule_name: group.rule_name.clone(),
+                    node_path: group.node_path.clone(),
+                    branch_index: branch_idx,
+                    reachable,
+                    selected_hits,
+                    success_hits,
+                    required_successes: threshold,
+                    deficit,
+                    priority_score,
+                    reason: reason.to_string(),
+                    rule_references: rule_refs.clone(),
+                    uncovered_rule_references: uncovered_rule_refs.clone(),
+                };
+
+                if reachable {
+                    targets.push(StimuliCoverageTarget {
+                        id: branch_id,
+                        target_type: StimuliCoverageTargetType::Branch,
+                        rule_name: group.rule_name.clone(),
+                        node_path: Some(group.node_path.clone()),
+                        branch_index: Some(branch_idx),
+                        reachable: true,
+                        required_successes: threshold,
+                        current_successes: success_hits,
+                        deficit,
+                        priority_score,
+                        reason: reason.to_string(),
+                        depends_on: uncovered_rule_refs,
+                    });
+                    reachable_branch_debt.push(debt);
+                } else {
+                    unreachable_branch_debt.push(debt);
+                }
+            }
+        }
+
+        let unreachable_branches = total_branches.saturating_sub(reachable_branches);
+        reachable_rule_debt.sort_by(|a, b| {
+            b.priority_score
+                .cmp(&a.priority_score)
+                .then_with(|| a.rule_name.cmp(&b.rule_name))
+        });
+        unreachable_rule_debt.sort_by(|a, b| a.rule_name.cmp(&b.rule_name));
+        reachable_branch_debt.sort_by(|a, b| {
+            b.priority_score
+                .cmp(&a.priority_score)
+                .then_with(|| a.branch_id.cmp(&b.branch_id))
+        });
+        unreachable_branch_debt.sort_by(|a, b| a.branch_id.cmp(&b.branch_id));
+        targets.sort_by(|a, b| {
+            b.priority_score
+                .cmp(&a.priority_score)
+                .then_with(|| a.id.cmp(&b.id))
+        });
+
+        Ok(StimuliCoverageGapReport {
+            grammar_name: self.grammar_name.clone(),
+            entry_rule: resolved_entry,
+            summary: CoverageDebtSummary {
+                required_successes_per_target: threshold,
+                sample_attempts: self.coverage.sample_attempts,
+                sample_successes: self.coverage.sample_successes,
+                sample_errors: self.coverage.sample_errors,
+                total_rules,
+                reachable_rules: reachable_rules_count,
+                unreachable_rules: unreachable_rules_count,
+                covered_rules,
+                covered_reachable_rules,
+                reachable_rules_at_threshold,
+                total_branches,
+                reachable_branches,
+                unreachable_branches,
+                covered_branches,
+                covered_reachable_branches,
+                reachable_branches_at_threshold,
+            },
+            reachable_rule_debt,
+            unreachable_rule_debt,
+            reachable_branch_debt,
+            unreachable_branch_debt,
+            targets,
+        })
+    }
+
+    pub fn apply_targets(&mut self, targets: &[StimuliCoverageTarget]) -> usize {
+        self.clear_targets();
+        let mut applied = 0usize;
+
+        for target in targets.iter().filter(|target| target.reachable) {
+            let threshold = target.required_successes.max(1);
+            match target.target_type {
+                StimuliCoverageTargetType::Rule => {
+                    if self.grammar_tree.contains_key(target.rule_name.as_str()) {
+                        self.target_plan
+                            .rule_thresholds
+                            .entry(target.rule_name.clone())
+                            .and_modify(|existing| *existing = (*existing).max(threshold))
+                            .or_insert(threshold);
+                        applied = applied.saturating_add(1);
+                    }
+                }
+                StimuliCoverageTargetType::Branch => {
+                    let Some(node_path) = target.node_path.as_ref() else {
+                        continue;
+                    };
+                    let Some(branch_index) = target.branch_index else {
+                        continue;
+                    };
+                    let group_key = Self::branch_group_key(target.rule_name.as_str(), node_path);
+                    if let Some(group) = self.coverage.branch_groups.get(&group_key) {
+                        if branch_index < group.total_branches {
+                            self.target_plan
+                                .branch_thresholds
+                                .entry(group_key)
+                                .or_default()
+                                .entry(branch_index)
+                                .and_modify(|existing| *existing = (*existing).max(threshold))
+                                .or_insert(threshold);
+                            applied = applied.saturating_add(1);
+                        }
+                    }
+                }
+            }
+        }
+
+        applied
+    }
+
+    pub fn clear_targets(&mut self) {
+        self.target_plan = ActiveTargetPlan::default();
+    }
+
+    pub fn evaluate_target_statuses(
+        &self,
+        targets: &[StimuliCoverageTarget],
+    ) -> Vec<TargetCoverageStatus> {
+        let mut statuses = Vec::new();
+        for target in targets.iter().filter(|target| target.reachable) {
+            let current_successes = self.current_target_successes(target);
+            let required_successes = target.required_successes.max(1);
+            let remaining_successes = required_successes.saturating_sub(current_successes);
+            if remaining_successes == 0 {
+                continue;
+            }
+            statuses.push(TargetCoverageStatus {
+                id: target.id.clone(),
+                target_type: target.target_type.clone(),
+                rule_name: target.rule_name.clone(),
+                node_path: target.node_path.clone(),
+                branch_index: target.branch_index,
+                current_successes,
+                required_successes,
+                remaining_successes,
+                priority_score: target.priority_score,
+                reason: target.reason.clone(),
+                depends_on: target.depends_on.clone(),
+            });
+        }
+
+        statuses.sort_by(|a, b| {
+            b.priority_score
+                .cmp(&a.priority_score)
+                .then_with(|| a.id.cmp(&b.id))
+        });
+        statuses
+    }
+
+    pub fn generate_until_targets(
+        &mut self,
+        entry_rule: Option<&str>,
+        targets: &[StimuliCoverageTarget],
+        max_attempts: usize,
+    ) -> Result<(Vec<String>, TargetDriveSummary)> {
+        let resolved_entry = self.resolve_entry_rule(entry_rule)?;
+        let applicable_targets: Vec<StimuliCoverageTarget> = targets
+            .iter()
+            .filter(|target| target.reachable)
+            .cloned()
+            .collect();
+        let applied_targets = self.apply_targets(&applicable_targets);
+
+        let mut outputs = Vec::new();
+        let mut attempts = 0usize;
+        let mut generation_successes = 0usize;
+        let mut generation_errors = 0usize;
+        let mut best_remaining = applicable_targets.len();
+        let mut stagnant_iterations = 0usize;
+        let probe_threshold = 32usize;
+
+        while attempts < max_attempts {
+            let pending = self.evaluate_target_statuses(&applicable_targets);
+            if pending.is_empty() {
+                break;
+            }
+
+            if pending.len() < best_remaining {
+                best_remaining = pending.len();
+                stagnant_iterations = 0;
+            } else {
+                stagnant_iterations = stagnant_iterations.saturating_add(1);
+            }
+
+            let generation_entry = if stagnant_iterations >= probe_threshold {
+                self.select_target_probe_rule(&pending, &resolved_entry)
+                    .unwrap_or_else(|| resolved_entry.clone())
+            } else {
+                resolved_entry.clone()
+            };
+
+            attempts = attempts.saturating_add(1);
+            match self.generate_from_entry(&generation_entry) {
+                Ok(sample) => {
+                    generation_successes = generation_successes.saturating_add(1);
+                    if generation_entry == resolved_entry {
+                        outputs.push(sample);
+                    }
+                }
+                Err(_) => {
+                    generation_errors = generation_errors.saturating_add(1);
+                }
+            }
+        }
+
+        let unresolved_targets = self.evaluate_target_statuses(&applicable_targets);
+        let total_targets = applicable_targets.len();
+        let resolved_targets = total_targets.saturating_sub(unresolved_targets.len());
+        self.clear_targets();
+
+        Ok((
+            outputs,
+            TargetDriveSummary {
+                entry_rule: resolved_entry,
+                attempts,
+                generation_successes,
+                generation_errors,
+                total_targets,
+                applied_targets,
+                resolved_targets,
+                unresolved_targets,
+            },
+        ))
+    }
+
+    fn select_target_probe_rule(
+        &self,
+        pending: &[TargetCoverageStatus],
+        resolved_entry: &str,
+    ) -> Option<String> {
+        pending
+            .iter()
+            .find_map(|status| {
+                if matches!(status.target_type, StimuliCoverageTargetType::Branch)
+                    && status.rule_name != resolved_entry
+                    && self.grammar_tree.contains_key(status.rule_name.as_str())
+                {
+                    Some(status.rule_name.clone())
+                } else {
+                    None
+                }
+            })
+            .or_else(|| {
+                pending.iter().find_map(|status| {
+                    if status.rule_name != resolved_entry
+                        && self.grammar_tree.contains_key(status.rule_name.as_str())
+                    {
+                        Some(status.rule_name.clone())
+                    } else {
+                        None
+                    }
+                })
+            })
+    }
+
+    fn rule_target_id(rule_name: &str) -> String {
+        format!("rule::{}", rule_name)
+    }
+
+    fn branch_group_key(rule_name: &str, node_path: &str) -> String {
+        format!("{}::{}", rule_name, node_path)
+    }
+
+    fn branch_target_id(rule_name: &str, node_path: &str, branch_index: usize) -> String {
+        format!("branch::{}::{}#{}", rule_name, node_path, branch_index)
+    }
+
+    fn branch_success_hits(&self, group_key: &str, branch_index: usize) -> u64 {
+        self.coverage
+            .branch_groups
+            .get(group_key)
+            .and_then(|group| group.success_counts.get(branch_index).copied())
+            .unwrap_or(0)
+    }
+
+    fn current_target_successes(&self, target: &StimuliCoverageTarget) -> u64 {
+        match target.target_type {
+            StimuliCoverageTargetType::Rule => self
+                .coverage
+                .rule_success_hits
+                .get(target.rule_name.as_str())
+                .copied()
+                .unwrap_or(0),
+            StimuliCoverageTargetType::Branch => {
+                let Some(node_path) = target.node_path.as_ref() else {
+                    return 0;
+                };
+                let Some(branch_index) = target.branch_index else {
+                    return 0;
+                };
+                let group_key = Self::branch_group_key(target.rule_name.as_str(), node_path);
+                self.branch_success_hits(&group_key, branch_index)
+            }
+        }
+    }
+
+    fn rule_target_deficit(&self, rule_name: &str) -> u64 {
+        let Some(required) = self.target_plan.rule_thresholds.get(rule_name).copied() else {
+            return 0;
+        };
+        let current = self
+            .coverage
+            .rule_success_hits
+            .get(rule_name)
+            .copied()
+            .unwrap_or(0);
+        required.saturating_sub(current)
+    }
+
+    fn branch_target_deficit(&self, group_key: &str, branch_index: usize) -> u64 {
+        let Some(required) = self
+            .target_plan
+            .branch_thresholds
+            .get(group_key)
+            .and_then(|targets| targets.get(&branch_index))
+            .copied()
+        else {
+            return 0;
+        };
+        required.saturating_sub(self.branch_success_hits(group_key, branch_index))
+    }
+
+    fn compute_reachable_rules(&self, entry_rule: &str) -> HashSet<String> {
+        let mut reachable = HashSet::new();
+        let mut pending = vec![entry_rule.to_string()];
+
+        while let Some(rule_name) = pending.pop() {
+            if !reachable.insert(rule_name.clone()) {
+                continue;
+            }
+            let Some(rule_node) = self.grammar_tree.get(rule_name.as_str()) else {
+                continue;
+            };
+            let mut refs = HashSet::new();
+            self.collect_rule_references(rule_node, &mut refs);
+            for referenced_rule in refs {
+                if self.grammar_tree.contains_key(referenced_rule.as_str())
+                    && !reachable.contains(referenced_rule.as_str())
+                {
+                    pending.push(referenced_rule);
+                }
+            }
+        }
+
+        reachable
+    }
+
+    fn collect_rule_references(&self, node: &ASTNode, out: &mut HashSet<String>) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for alternative in alternatives {
+                    self.collect_rule_references(alternative, out);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for element in elements {
+                    self.collect_rule_references(element, out);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                self.collect_rule_references(element, out);
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(node) => self.collect_rule_references(node, out),
+                ASTValue::Token(parts) => {
+                    if let Some((token_type, token_value)) = Self::extract_token_pair(parts) {
+                        if token_type == "rule_reference" {
+                            out.insert(token_value.to_string());
+                        }
+                    }
+                }
+            },
+        }
+    }
+
+    fn node_at_path<'b>(&self, node: &'b ASTNode, node_path: &str) -> Option<&'b ASTNode> {
+        let mut current = node;
+        for segment in node_path.split('/') {
+            if segment.is_empty() || segment == "root" {
+                continue;
+            }
+            if segment == "q" {
+                let ASTNode::Quantified { element, .. } = current else {
+                    return None;
+                };
+                current = element.as_ref();
+                continue;
+            }
+            if segment == "a" {
+                let ASTNode::Atom { value } = current else {
+                    return None;
+                };
+                let ASTValue::Node(node) = value else {
+                    return None;
+                };
+                current = node.as_ref();
+                continue;
+            }
+
+            if let Some(index_str) = segment.strip_prefix('s') {
+                let index = index_str.parse::<usize>().ok()?;
+                let ASTNode::Sequence { elements } = current else {
+                    return None;
+                };
+                current = elements.get(index)?;
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('o') {
+                let index = index_str.parse::<usize>().ok()?;
+                let ASTNode::Or { alternatives } = current else {
+                    return None;
+                };
+                current = alternatives.get(index)?;
+                continue;
+            }
+            return None;
+        }
+        Some(current)
+    }
+
+    fn or_alternatives_for_group_path(
+        &self,
+        rule_name: &str,
+        node_path: &str,
+    ) -> Option<&Vec<ASTNode>> {
+        let rule_node = self.grammar_tree.get(rule_name)?;
+        let group_node = self.node_at_path(rule_node, node_path)?;
+        let ASTNode::Or { alternatives } = group_node else {
+            return None;
+        };
+        Some(alternatives)
     }
 
     fn collect_branch_groups(
@@ -531,7 +1490,10 @@ impl<'a> StimuliGenerator<'a> {
                     *global_idx,
                     &prepared[*global_idx].1,
                 );
-                u64::from(base_weights[local_idx]).saturating_mul(multiplier.max(1))
+                let recursion_penalty =
+                    self.recursion_pressure_penalty(&prepared[*global_idx].1, call_stack, depth);
+                let adjusted_multiplier = (multiplier / recursion_penalty).max(1);
+                u64::from(base_weights[local_idx]).saturating_mul(adjusted_multiplier)
             })
             .collect();
 
@@ -651,26 +1613,56 @@ impl<'a> StimuliGenerator<'a> {
     ) -> Result<String> {
         let (min_repeat, max_repeat) = self.parse_quantifier_bounds(quantifier)?;
         let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
-        let repeats = if depth >= self.config.max_depth.saturating_sub(1) {
-            min_repeat
-        } else if min_repeat == bounded_max {
-            min_repeat
+        let repeat_candidates: Vec<usize> = if min_repeat == bounded_max {
+            vec![min_repeat]
+        } else if depth >= self.config.max_depth.saturating_sub(1) {
+            vec![min_repeat]
         } else {
-            self.rng.gen_range(min_repeat..=bounded_max)
+            let preferred = self.rng.gen_range(min_repeat..=bounded_max);
+            let mut candidates = Vec::with_capacity(bounded_max.saturating_sub(min_repeat) + 1);
+            candidates.push(preferred);
+            for repeat in min_repeat..=bounded_max {
+                if repeat != preferred {
+                    candidates.push(repeat);
+                }
+            }
+            candidates
         };
 
-        let mut output = String::new();
-        for _ in 0..repeats {
-            let quantified_path = format!("{}/q", node_path);
-            output.push_str(&self.generate_node(
-                element,
-                current_rule,
-                depth + 1,
-                call_stack,
-                &quantified_path,
-            )?);
+        let quantified_path = format!("{}/q", node_path);
+        let mut last_error: Option<anyhow::Error> = None;
+
+        for repeats in repeat_candidates {
+            let mut output = String::new();
+            let mut failed = false;
+            for _ in 0..repeats {
+                match self.generate_node(
+                    element,
+                    current_rule,
+                    depth + 1,
+                    call_stack,
+                    &quantified_path,
+                ) {
+                    Ok(generated) => output.push_str(&generated),
+                    Err(err) => {
+                        failed = true;
+                        last_error = Some(err);
+                        break;
+                    }
+                }
+            }
+            if !failed {
+                return Ok(output);
+            }
         }
-        Ok(output)
+
+        Err(last_error.unwrap_or_else(|| {
+            anyhow!(
+                "Failed to generate quantified element for rule '{}' with quantifier '{}'",
+                current_rule,
+                quantifier
+            )
+        }))
     }
 
     fn parse_quantifier_bounds(&self, quantifier: &str) -> Result<(usize, usize)> {
@@ -867,6 +1859,51 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    fn recursion_pressure_penalty(
+        &self,
+        branch_node: &ASTNode,
+        call_stack: &[String],
+        depth: usize,
+    ) -> u64 {
+        let mut refs = HashSet::new();
+        self.collect_rule_references(branch_node, &mut refs);
+        if refs.is_empty() {
+            return 1;
+        }
+
+        let mut max_active = 0usize;
+        let mut total_active = 0usize;
+        for rule_name in refs {
+            let active = call_stack
+                .iter()
+                .filter(|active_rule| active_rule.as_str() == rule_name.as_str())
+                .count();
+            max_active = max_active.max(active);
+            total_active = total_active.saturating_add(active);
+        }
+
+        if max_active == 0 {
+            return 1;
+        }
+
+        let mut penalty = 1u64
+            .saturating_add(u64::try_from(max_active.min(8)).unwrap_or(1))
+            .saturating_add(u64::try_from(total_active.min(8)).unwrap_or(1));
+
+        let remaining_depth = self.config.max_depth.saturating_sub(depth);
+        if remaining_depth <= 8 {
+            penalty = penalty.saturating_mul(4);
+        }
+        if remaining_depth <= 4 {
+            penalty = penalty.saturating_mul(6);
+        }
+        if remaining_depth <= 2 {
+            penalty = penalty.saturating_mul(8);
+        }
+
+        penalty.max(1)
+    }
+
     fn coverage_guidance_multiplier(
         &self,
         current_rule: &str,
@@ -884,6 +1921,7 @@ impl<'a> StimuliGenerator<'a> {
             } else {
                 (0, 0)
             };
+        let branch_target_deficit = self.branch_target_deficit(&group_key, branch_idx);
 
         let mut multiplier = 1u64;
         if success_hits == 0 {
@@ -900,53 +1938,96 @@ impl<'a> StimuliGenerator<'a> {
 
         let uncovered_rule_refs = self.count_uncovered_rule_references(branch_node);
         if uncovered_rule_refs > 0 {
-            multiplier =
-                multiplier.saturating_mul(1 + u64::try_from(uncovered_rule_refs.min(4)).unwrap_or(1));
+            multiplier = multiplier
+                .saturating_mul(1 + u64::try_from(uncovered_rule_refs.min(4)).unwrap_or(1));
+        }
+
+        multiplier = multiplier.saturating_mul(self.target_guidance_multiplier(
+            current_rule,
+            node_path,
+            branch_idx,
+            branch_node,
+        ));
+
+        // Prevent target-driven mode from over-selecting a branch that has repeatedly failed.
+        if branch_target_deficit > 0 && success_hits == 0 && selected_hits > 0 {
+            let throttle = Self::failing_target_branch_throttle(selected_hits);
+            multiplier = (multiplier / throttle).max(1);
         }
 
         multiplier
     }
 
-    fn count_uncovered_rule_references(&self, node: &ASTNode) -> usize {
-        let mut names = HashSet::new();
-        self.collect_uncovered_rule_references(node, &mut names);
-        names.len()
+    fn failing_target_branch_throttle(selected_hits: u64) -> u64 {
+        if selected_hits >= 2048 {
+            256
+        } else if selected_hits >= 1024 {
+            128
+        } else if selected_hits >= 512 {
+            96
+        } else if selected_hits >= 256 {
+            64
+        } else if selected_hits >= 128 {
+            32
+        } else if selected_hits >= 64 {
+            16
+        } else if selected_hits >= 32 {
+            8
+        } else {
+            4
+        }
     }
 
-    fn collect_uncovered_rule_references(&self, node: &ASTNode, names: &mut HashSet<String>) {
-        match node {
-            ASTNode::Or { alternatives } => {
-                for alternative in alternatives {
-                    self.collect_uncovered_rule_references(alternative, names);
-                }
-            }
-            ASTNode::Sequence { elements } => {
-                for element in elements {
-                    self.collect_uncovered_rule_references(element, names);
-                }
-            }
-            ASTNode::Quantified { element, .. } => {
-                self.collect_uncovered_rule_references(element, names);
-            }
-            ASTNode::Atom { value } => match value {
-                ASTValue::Node(node) => self.collect_uncovered_rule_references(node, names),
-                ASTValue::Token(parts) => {
-                    if let Some((token_type, token_value)) = Self::extract_token_pair(parts) {
-                        if token_type == "rule_reference"
-                            && self
-                                .coverage
-                                .rule_success_hits
-                                .get(token_value)
-                                .copied()
-                                .unwrap_or(0)
-                                == 0
-                        {
-                            names.insert(token_value.to_string());
-                        }
-                    }
-                }
-            },
+    fn count_uncovered_rule_references(&self, node: &ASTNode) -> usize {
+        let mut names = HashSet::new();
+        self.collect_rule_references(node, &mut names);
+        names.retain(|rule_name| {
+            self.coverage
+                .rule_success_hits
+                .get(rule_name)
+                .copied()
+                .unwrap_or(0)
+                == 0
+        });
+        names.len()
+    }
+    fn target_guidance_multiplier(
+        &self,
+        current_rule: &str,
+        node_path: &str,
+        branch_idx: usize,
+        branch_node: &ASTNode,
+    ) -> u64 {
+        let group_key = Self::branch_group_key(current_rule, node_path);
+        let branch_deficit = self.branch_target_deficit(&group_key, branch_idx);
+        let mut multiplier = 1u64;
+
+        if branch_deficit > 0 {
+            multiplier =
+                multiplier.saturating_mul(16u64.saturating_mul(branch_deficit.min(8)).max(16));
         }
+
+        let current_rule_deficit = self.rule_target_deficit(current_rule);
+        if current_rule_deficit > 0 {
+            multiplier =
+                multiplier.saturating_mul(3u64.saturating_mul(current_rule_deficit.min(8)).max(3));
+        }
+
+        let mut refs = HashSet::new();
+        self.collect_rule_references(branch_node, &mut refs);
+        let targeted_refs = refs
+            .iter()
+            .filter(|rule_name| self.rule_target_deficit(rule_name.as_str()) > 0)
+            .count();
+        if targeted_refs > 0 {
+            multiplier = multiplier.saturating_mul(
+                1 + u64::try_from(targeted_refs.min(8))
+                    .unwrap_or(1)
+                    .saturating_mul(4),
+            );
+        }
+
+        multiplier.max(1)
     }
 
     fn generate_regex_sample(&mut self, pattern: &str, current_rule: &str) -> String {
@@ -1323,7 +2404,10 @@ mod tests {
             .generate_many(1, None)
             .expect("whitespace regex generation should succeed");
 
-        assert!(!value[0].is_empty(), "whitespace sample should not be empty");
+        assert!(
+            !value[0].is_empty(),
+            "whitespace sample should not be empty"
+        );
         assert!(
             value[0].chars().all(|c| c == ' '),
             "whitespace sample should prefer printable spaces over control chars: {:?}",
@@ -1507,5 +2591,82 @@ mod tests {
         assert_eq!(merged.sample_errors, 0);
         assert_eq!(merged.total_rules, 1);
         assert_eq!(merged.total_branches, 2);
+    }
+
+    #[test]
+    fn gap_report_separates_reachable_and_unreachable_debt() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("rule_reference", "reachable"));
+        grammar_tree.insert("reachable".to_string(), token("quoted_string", "R"));
+        grammar_tree.insert(
+            "unreachable".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "U1"), token("quoted_string", "U2")],
+            },
+        );
+        let rule_order = vec![
+            "start".to_string(),
+            "reachable".to_string(),
+            "unreachable".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 777);
+        let _ = generator
+            .generate_many(8, Some("start"))
+            .expect("reachable-only generation should succeed");
+
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+
+        assert!(
+            report
+                .unreachable_rule_debt
+                .iter()
+                .any(|debt| debt.rule_name == "unreachable")
+        );
+        assert!(
+            report
+                .unreachable_branch_debt
+                .iter()
+                .any(|debt| debt.rule_name == "unreachable")
+        );
+        assert!(
+            report
+                .targets
+                .iter()
+                .all(|target| target.rule_name != "unreachable")
+        );
+    }
+
+    #[test]
+    fn target_driven_generation_resolves_branch_targets() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 888);
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        assert!(!report.targets.is_empty(), "expected actionable targets");
+
+        let (_samples, summary) = generator
+            .generate_until_targets(Some("start"), &report.targets, 200)
+            .expect("target-driven generation should succeed");
+
+        assert_eq!(
+            summary.resolved_targets, summary.total_targets,
+            "all reachable targets should resolve within attempt budget"
+        );
+        assert!(
+            summary.unresolved_targets.is_empty(),
+            "no unresolved targets expected"
+        );
     }
 }

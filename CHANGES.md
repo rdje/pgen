@@ -5956,3 +5956,105 @@ Observed uplift:
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
 - `git_message_brief.txt`
+
+---
+
+## 2026-02-18: Target-Drive Stall Recovery + Semantic Coverage Gap Closure
+
+### Problem Statement
+Target-driven stimuli generation could stall on a small unresolved set in `semantic_annotation` even with large attempt budgets. The recurring unresolved set was:
+- `rule::logical_expression`
+- `rule::logical_or_expr`
+- `rule::logical_and_expr`
+- `rule::logical_not_expr`
+- `rule::conditional_expression`
+- `branch::expression_value::root#1`
+- `branch::expression_value::root#3`
+- `branch::primary_expr::root#2`
+
+Observed symptom: very high `selected_hits` with zero `success_hits` on several branch targets (repeated branch selection without closure), while total generation remained successful (`generation_errors=0`).
+
+### Root Cause
+1. Target guidance multipliers could over-amplify branch selection for already repeatedly failing branch targets.
+2. Quantified subtrees had one-shot repeat count choice; failure at one repeat shape caused full branch failure without trying nearby repeat counts.
+3. Recursion-heavy branches could keep winning branch selection in deep call-stack contexts.
+4. `generate_until_targets(...)` always generated from one entry rule, so when a small target set stalled, there was no built-in probe strategy to force local target-space progress.
+
+### Implementation
+
+#### 1) Quantifier Retry Fallback
+`rust/src/ast_pipeline/stimuli_generator.rs`
+- `generate_quantified(...)` now builds repeat candidates and retries alternate repeat counts on failure before returning error.
+- Behavior:
+  - keeps preferred random repeat choice first,
+  - then tries other legal counts (`min_repeat..=bounded_max`),
+  - returns first successful expansion.
+
+#### 2) Recursion-Pressure Penalty in OR Selection
+`rust/src/ast_pipeline/stimuli_generator.rs`
+- Added `recursion_pressure_penalty(...)`.
+- `generate_or(...)` now divides branch guidance multiplier by this penalty.
+- Penalty scales with:
+  - active call-stack references to branch-referenced rules,
+  - remaining depth budget (`max_depth - depth`).
+
+#### 3) Target Guidance Retuning + Failing-Branch Throttle
+`rust/src/ast_pipeline/stimuli_generator.rs`
+- Added `failing_target_branch_throttle(...)` and applied it in `coverage_guidance_multiplier(...)` when:
+  - branch target still has deficit,
+  - success hits are still zero,
+  - selected hits are already non-zero.
+- Reduced target multiplier aggressiveness in `target_guidance_multiplier(...)`:
+  - branch deficit boost reduced (`64x` scale -> `16x` scale),
+  - rule deficit boost reduced and floored,
+  - targeted-reference boost reduced (`*8` -> `*4` slope).
+
+#### 4) Stagnation-Aware Probe Mode During Target Drive
+`rust/src/ast_pipeline/stimuli_generator.rs`
+- `generate_until_targets(...)` now tracks progress:
+  - `best_remaining`,
+  - `stagnant_iterations`,
+  - `probe_threshold` (32 iterations without improvement).
+- After threshold breach, generator temporarily probes unresolved target rules via `select_target_probe_rule(...)`.
+- Probe generation updates coverage and target status but does not pollute normal entry-rule sample output list.
+
+#### 5) CLI Visibility Improvement for Remaining Targets
+`rust/src/main.rs`
+- In target mode, unresolved targets are printed in a compact top-20 table:
+  - `id | type | location | current/required | remaining | reason`.
+
+### Validation
+
+#### Unit Tests
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
+- Result: **15 passed, 0 failed**
+
+#### Build
+- `cargo build --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --bin ast_pipeline`
+- Result: success
+
+#### Semantic Target-Drive End-to-End
+Run sequence:
+1. Seed report generation:
+   - `--count 120 --seed 17 --entry-rule semantic_annotation`
+   - outputs: `/tmp/pgen_sem_cov_seed17_v4.json`, `/tmp/pgen_sem_gap_seed17_v4.json`
+2. Target drive:
+   - `--coverage-input /tmp/pgen_sem_cov_seed17_v4.json`
+   - `--target-report-input /tmp/pgen_sem_gap_seed17_v4.json`
+   - `--target-max-attempts 800`
+   - outputs: `/tmp/pgen_sem_cov_after_target_v4.json`, `/tmp/pgen_sem_gap_after_target_v4.json`
+
+Observed:
+- `Target-driven generation: resolved 78/78 targets in 226 attempts (generation_successes=226, generation_errors=0)`
+- Post-run gap report:
+  - `targets=0`
+  - `reachable_rule_debt=0`
+  - `reachable_branch_debt=0`
+  - reachable rules at threshold: `81/81`
+  - reachable branches at threshold: `236/236`
+
+### Files Modified
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `rust/src/main.rs`
+- `CHANGES.md`
+- `DEVELOPMENT_NOTES.md`

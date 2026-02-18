@@ -1307,3 +1307,180 @@ This preserves weighted semantics while making repeated regressions increasingly
 
 ### Practical Insight
 Branch steering increased semantic branch exploration without destabilizing parseable generation. Rule coverage appears bounded by current entry-rule reachability/grammar structure, while branch-level coverage still had exploitable headroom and improved measurably.
+
+---
+
+## 2026-02-18 - Semantic Target Drive Stall Analysis and Closure (Detailed)
+
+### Initial Failure Profile
+During semantic target-drive (`entry_rule=semantic_annotation`), generation repeatedly stalled with 8 unresolved reachable targets:
+- Rules:
+  - `logical_expression`
+  - `logical_or_expr`
+  - `logical_and_expr`
+  - `logical_not_expr`
+  - `conditional_expression`
+- Branches:
+  - `branch::expression_value::root#1`
+  - `branch::expression_value::root#3`
+  - `branch::primary_expr::root#2`
+
+Persistent pattern from coverage snapshots:
+- `expression_value::root#1` and `#3` had very high `selected_counts` but zero `success_counts`.
+- `primary_expr::root#2` likewise showed extreme over-selection with no success in the stalled run context.
+
+This indicated selector thrash and local-generation deadlock, not parse-level crashes (sample generation stayed successful globally).
+
+### Key Root Causes Confirmed
+1. **Over-aggressive target weighting**
+   - Existing target multiplier (`branch_deficit`, `rule_deficit`, referenced target rules) could force repeated selection of branches that were still failing.
+2. **No repeat-shape recovery in quantified nodes**
+   - `generate_quantified(...)` used one repeat count per attempt; one failing repeat shape aborted that quantified expansion.
+3. **Recursion-heavy alternatives under depth pressure**
+   - Branch choice had no explicit runtime penalty for call-stack recursion pressure beyond a separate depth-limit candidate reduction.
+4. **No stagnation strategy in target loop**
+   - `generate_until_targets(...)` only generated from resolved entry rule, even when unresolved set stopped shrinking for long periods.
+
+### Code-Level Changes
+
+#### A) `generate_quantified(...)` retry over repeat candidates
+File: `rust/src/ast_pipeline/stimuli_generator.rs`
+
+Previous behavior:
+- choose one repeat count,
+- fail immediately if any repeated child expansion failed.
+
+New behavior:
+- build `repeat_candidates`,
+- try preferred random repeat first, then other legal repeats,
+- return on first successful full expansion,
+- retain most recent error if all candidates fail.
+
+Net effect:
+- reduced false-negative branch failures caused by unlucky repeat-size selection.
+
+#### B) OR branch weighting now includes recursion pressure penalty
+File: `rust/src/ast_pipeline/stimuli_generator.rs`
+
+Added:
+- `recursion_pressure_penalty(branch_node, call_stack, depth) -> u64`
+
+Penalty components:
+- count referenced rules in branch,
+- inspect active occurrences of those rules in current call stack,
+- compute `max_active` and `total_active`,
+- scale penalty further as remaining depth budget drops (`<=8`, `<=4`, `<=2`).
+
+Applied in `generate_or(...)`:
+- `adjusted_multiplier = (coverage_multiplier / recursion_penalty).max(1)`
+
+Net effect:
+- recursive alternatives are naturally deprioritized when already deep/recursive, improving chance of reaching terminating shapes.
+
+#### C) Failing target-branch throttle + target multiplier retune
+File: `rust/src/ast_pipeline/stimuli_generator.rs`
+
+Added:
+- `failing_target_branch_throttle(selected_hits) -> u64`
+  - stepwise throttle for repeatedly selected, still-failing target branches.
+
+Applied in `coverage_guidance_multiplier(...)`:
+- if branch target still has deficit, zero successes, and nonzero selections:
+  - divide multiplier by throttle.
+
+Retuned `target_guidance_multiplier(...)`:
+- branch deficit scale reduced:
+  - from `64 * deficit`-style to `16 * deficit`-style
+- rule deficit scale reduced:
+  - from `4 * deficit` to `3 * deficit` floor-adjusted
+- targeted reference boost reduced:
+  - from `*8` slope to `*4` slope
+
+Net effect:
+- preserved target guidance intent while preventing runaway branch monopolization.
+
+#### D) Stagnation-aware probe generation
+File: `rust/src/ast_pipeline/stimuli_generator.rs`
+
+`generate_until_targets(...)` now tracks:
+- `best_remaining`,
+- `stagnant_iterations`,
+- `probe_threshold = 32`.
+
+Behavior:
+- if unresolved count no longer improves for 32 iterations,
+  - temporarily choose a probe entry using `select_target_probe_rule(...)`,
+  - preference: unresolved branch target rules first, then other unresolved rules,
+  - must exist in `grammar_tree`,
+  - fall back to resolved entry if no valid probe rule.
+
+Important detail:
+- probe generations update coverage/target resolution,
+- probe-generated samples are **not appended** to the output sample list unless generation entry equals the original resolved entry.
+
+Net effect:
+- resolves local deadlocks while preserving normal output semantics for caller-facing stimuli list.
+
+#### E) CLI unresolved-target diagnostics
+File: `rust/src/main.rs`
+
+Target mode now prints a top unresolved target table when non-empty:
+- `id`
+- `type`
+- `location`
+- `current/required`
+- `remaining`
+- `reason`
+
+This materially improved post-run debugging and made deadlocks obvious without opening JSON artifacts.
+
+### Validation Sequence and Outcomes
+
+#### 1) Compilation and unit tests
+Commands:
+- `cargo fmt --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
+- `cargo build --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --bin ast_pipeline`
+
+Results:
+- tests passed (`15/15`)
+- build succeeded
+
+#### 2) Reproduced prior stalled scenario
+Used semantic workflow with:
+- seed report build: `count=120`, `seed=17`
+- target drive: `target_max_attempts=800`
+
+Earlier patched intermediate versions still showed the same 8 unresolved targets, confirming issue was not solved by weighting-only tweaks.
+
+#### 3) Probe-mode verification in focused context
+A focused target drive from `entry_rule=expression_value` with prior unresolved report demonstrated quick closure:
+- `resolved 8/8 targets in 3 attempts`
+
+This validated that unresolved targets were reachable and generation-capable when entered locally.
+
+#### 4) Final end-to-end semantic closure
+Final run (post-stagnation probe integration):
+- `Target-driven generation: resolved 78/78 targets in 226 attempts (generation_successes=226, generation_errors=0)`
+- Artifacts:
+  - `/tmp/pgen_sem_cov_after_target_v4.json`
+  - `/tmp/pgen_sem_gap_after_target_v4.json`
+
+Gap report final state:
+- `targets=0`
+- `reachable_rule_debt=0`
+- `reachable_branch_debt=0`
+- reachable rules at threshold: `81/81`
+- reachable branches at threshold: `236/236`
+
+### Operational Notes
+1. Probe mode is only activated after detected stagnation; normal runs still prioritize entry-rule generation.
+2. Probe-generated samples intentionally do not alter emitted sample stream semantics.
+3. Existing unresolved-table CLI output remains useful for future regressions.
+
+### Files Touched in This Increment
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `rust/src/main.rs`
+- `CHANGES.md`
+- `DEVELOPMENT_NOTES.md`
+- `git_message_brief.txt` (untracked helper for commit message)
