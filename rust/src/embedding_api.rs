@@ -12,6 +12,12 @@ pub const EMBEDDING_API_VERSION: &str = "1.0.0";
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 1;
 
+/// Default hard limit for embedding API input payload size (in bytes).
+///
+/// This bound is intentionally conservative enough for typical annotation payloads
+/// while protecting embedders from accidental unbounded input growth.
+pub const EMBEDDING_API_DEFAULT_MAX_INPUT_BYTES: usize = 1_048_576; // 1 MiB
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AnnotationFamily {
@@ -37,6 +43,19 @@ pub enum ParseStatus {
 pub struct ParseDiagnostic {
     pub code: String,
     pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ParseLimits {
+    pub max_input_bytes: usize,
+}
+
+impl Default for ParseLimits {
+    fn default() -> Self {
+        Self {
+            max_input_bytes: EMBEDDING_API_DEFAULT_MAX_INPUT_BYTES,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,7 +96,20 @@ pub fn parse_annotation(
     backend: ParserBackend,
     input: &str,
 ) -> ParseOutcome {
-    match run_parse(family, backend, input) {
+    parse_annotation_with_limits(family, backend, input, &ParseLimits::default())
+}
+
+/// Parses a single annotation payload using explicit parse limits.
+///
+/// This allows embedders to tighten bounds per call site while preserving
+/// deterministic and structured outcomes.
+pub fn parse_annotation_with_limits(
+    family: AnnotationFamily,
+    backend: ParserBackend,
+    input: &str,
+    limits: &ParseLimits,
+) -> ParseOutcome {
+    match run_parse(family, backend, input, limits) {
         Ok(()) => ParseOutcome {
             api_version: EMBEDDING_API_VERSION.to_string(),
             family,
@@ -99,13 +131,37 @@ fn run_parse(
     family: AnnotationFamily,
     backend: ParserBackend,
     input: &str,
+    limits: &ParseLimits,
 ) -> Result<(), ParseDiagnostic> {
+    validate_input_limits(input, limits)?;
     match (family, backend) {
         (AnnotationFamily::Return, ParserBackend::Bootstrap) => parse_bootstrap_return(input),
         (AnnotationFamily::Return, ParserBackend::Generated) => parse_generated_return(input),
         (AnnotationFamily::Semantic, ParserBackend::Bootstrap) => parse_bootstrap_semantic(input),
         (AnnotationFamily::Semantic, ParserBackend::Generated) => parse_generated_semantic(input),
     }
+}
+
+fn validate_input_limits(input: &str, limits: &ParseLimits) -> Result<(), ParseDiagnostic> {
+    if limits.max_input_bytes == 0 {
+        return Err(ParseDiagnostic {
+            code: "E_INVALID_LIMITS".to_string(),
+            message: "max_input_bytes must be greater than 0".to_string(),
+        });
+    }
+
+    let input_len = input.len();
+    if input_len > limits.max_input_bytes {
+        return Err(ParseDiagnostic {
+            code: "E_INPUT_TOO_LARGE".to_string(),
+            message: format!(
+                "input size {} bytes exceeds max_input_bytes {}",
+                input_len, limits.max_input_bytes
+            ),
+        });
+    }
+
+    Ok(())
 }
 
 fn parse_bootstrap_return(input: &str) -> Result<(), ParseDiagnostic> {
@@ -214,6 +270,51 @@ mod tests {
 
     #[test]
     fn bootstrap_semantic_smoke_parse_succeeds() {
+        let outcome = parse_annotation(
+            AnnotationFamily::Semantic,
+            ParserBackend::Bootstrap,
+            "@type: \"Expression\"",
+        );
+        assert_eq!(outcome.status, ParseStatus::Success);
+        assert!(outcome.diagnostic.is_none());
+    }
+
+    #[test]
+    fn parse_with_limits_rejects_input_that_exceeds_bound() {
+        let limits = ParseLimits { max_input_bytes: 4 };
+        let outcome = parse_annotation_with_limits(
+            AnnotationFamily::Return,
+            ParserBackend::Bootstrap,
+            "$12345",
+            &limits,
+        );
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        let diagnostic = outcome
+            .diagnostic
+            .as_ref()
+            .expect("expected size limit diagnostic");
+        assert_eq!(diagnostic.code, "E_INPUT_TOO_LARGE");
+    }
+
+    #[test]
+    fn parse_with_limits_rejects_invalid_zero_max_input_bytes() {
+        let limits = ParseLimits { max_input_bytes: 0 };
+        let outcome = parse_annotation_with_limits(
+            AnnotationFamily::Semantic,
+            ParserBackend::Bootstrap,
+            "@type: \"Expression\"",
+            &limits,
+        );
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        let diagnostic = outcome
+            .diagnostic
+            .as_ref()
+            .expect("expected invalid limits diagnostic");
+        assert_eq!(diagnostic.code, "E_INVALID_LIMITS");
+    }
+
+    #[test]
+    fn parse_annotation_default_limits_allow_normal_input() {
         let outcome = parse_annotation(
             AnnotationFamily::Semantic,
             ParserBackend::Bootstrap,

@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-02-18 - Phase G Start: Embedding API Input-Bound Hardening
+### ✅ Achievement Summary
+Started Pillar 11 hardening by adding bounded-input parsing controls to the stable embedding API with deterministic, structured diagnostics.
+### Scope of Changes
+- Extended embedding API implementation:
+  - `rust/src/embedding_api.rs`
+  - Added:
+    - `EMBEDDING_API_DEFAULT_MAX_INPUT_BYTES = 1_048_576`
+    - `ParseLimits { max_input_bytes }`
+    - `parse_annotation_with_limits(...)`
+  - `parse_annotation(...)` now uses `ParseLimits::default()`.
+  - Added stable diagnostics for bounds/config:
+    - `E_INPUT_TOO_LARGE`
+    - `E_INVALID_LIMITS`
+- Added embedding API tests:
+  - oversized input rejection path,
+  - invalid zero-limit rejection path,
+  - default-limits happy-path parse.
+- Updated embedding contract docs:
+  - `rust/docs/EMBEDDING_API_CONTRACT.md`
+  - documented limits API, default bound, and new diagnostic codes.
+- Updated roadmap tracking:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Pillar 11 moved to `In Progress`, with Phase G hardening steps recorded.
+### Validation Results
+- `make -C rust embedding_api_gate` ✅
+  - bootstrap embedding API tests passed
+  - generated-feature embedding API tests passed
+
 ## 2026-02-18 - Phase F Extension: Shared Bootstrap/Generated Annotation Contracts
 ### ✅ Achievement Summary
 Extended annotation contract enforcement by adding explicit shared contract suites for syntax that must succeed in both bootstrap and generated parsers.

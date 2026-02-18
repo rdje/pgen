@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase G Start: Embedding API Input Boundaries and Stable Limit Diagnostics
+### Context
+The embedding API was stable and versioned but accepted unbounded input payloads. For embedding into high-rigor systems (HDL tooling and regex engines), explicit bounded behavior is required so accidental oversized payloads fail predictably instead of flowing into parser internals unchecked.
+### Implementation
+- Extended stable embedding API in:
+  - `rust/src/embedding_api.rs`
+- Added input-bound model:
+  - `ParseLimits { max_input_bytes }`
+  - `impl Default for ParseLimits`
+  - default bound constant:
+    - `EMBEDDING_API_DEFAULT_MAX_INPUT_BYTES = 1_048_576` bytes (1 MiB)
+- Added bounded entrypoint:
+  - `parse_annotation_with_limits(family, backend, input, limits) -> ParseOutcome`
+- Updated existing entrypoint behavior:
+  - `parse_annotation(...)` now delegates to `parse_annotation_with_limits(...)` with `ParseLimits::default()`.
+- Added limit validation pre-check before parser dispatch:
+  - invalid configuration guard (`max_input_bytes == 0`)
+  - oversized input guard (`input.len() > max_input_bytes`)
+- Added stable diagnostics for these paths:
+  - `E_INPUT_TOO_LARGE`
+  - `E_INVALID_LIMITS`
+- Added test coverage:
+  - oversized input returns `E_INPUT_TOO_LARGE`,
+  - zero max bound returns `E_INVALID_LIMITS`,
+  - default-limits path still succeeds for normal payloads.
+- Updated contract documentation:
+  - `rust/docs/EMBEDDING_API_CONTRACT.md`
+  - now documents:
+    - limits-aware parse API,
+    - default bound constant,
+    - new diagnostic codes and semantics.
+- Updated roadmap:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Pillar 11 status moved to `In Progress` with this hardening slice logged under Phase G.
+### Validation
+- Ran:
+  - `make -C rust embedding_api_gate`
+- Result:
+  - bootstrap embedding API tests passed.
+  - generated-feature embedding API tests passed.
+### Why This Matters
+- Introduces explicit bounded behavior at the contract boundary embedders consume.
+- Improves robustness without exposing internal parser types or changing deterministic outcome shape.
+- Provides stable, machine-readable failure diagnostics for integration-layer policy handling.
+
 ## 2026-02-18 - Phase F Extension: Shared Bootstrap/Generated Contract Coverage
 ### Context
 The initial normative contract gate focused on bootstrap behavior plus validator diagnostics. That protected chicken-and-egg bootstrap semantics, but it did not explicitly enforce a positive shared compatibility subset that both bootstrap and generated parsers must continue to parse.

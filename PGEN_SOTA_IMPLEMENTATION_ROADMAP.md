@@ -25,7 +25,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 | 8. Differential Validation vs External Parsers | In Progress | Continuous mismatch detection against trusted external tools. |
 | 9. Performance and Scalability SLAs | In Progress | Enforced throughput/memory/latency budgets in CI. |
 | 10. Embedding-Grade APIs and Contracts | In Progress | Stable crate API, deterministic behavior, and versioned contracts. |
-| 11. Security and Robustness Hardening | Not Started | Fuzzed, bounded, and resilient parser/stimuli runtime. |
+| 11. Security and Robustness Hardening | In Progress | Fuzzed, bounded, and resilient parser/stimuli runtime. |
 | 12. SOTA Exit Criteria Gate | Not Started | CI-enforced release gates with objective pass thresholds. |
 
 ## Execution Plan (Ordered)
@@ -66,6 +66,10 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Wire `annotation_contract_gate` into CI as required pre-merge check.
 - [x] Add shared bootstrap/generated annotation contract suites and enforce them in gate paths.
 
+### Phase G (Current)
+- [x] Add embedding API input bounds (`ParseLimits`) with stable diagnostics for oversized/invalid inputs.
+- [x] Extend embedding API contract docs with limit behavior and new diagnostic codes.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -100,3 +104,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Started Pillar 2 by publishing `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, adding bootstrap contract suites (`builtin_contract.json`), and wiring `make annotation_contract_gate`.
 - 2026-02-18: Added CI workflow `annotation-contract-gate` to enforce `make annotation_contract_gate` on PR/main.
 - 2026-02-18: Added shared bootstrap/generated contract suites (`normative_shared_contract.json`) and extended `annotation_contract_gate` with `annotation_shared_contract_gate`.
+- 2026-02-18: Started Pillar 11 by hardening embedding API parsing with bounded input limits (`ParseLimits`, `E_INPUT_TOO_LARGE`, `E_INVALID_LIMITS`) and updated contract docs.

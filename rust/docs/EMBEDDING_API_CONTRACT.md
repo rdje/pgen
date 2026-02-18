@@ -9,6 +9,11 @@ Provide a stable, versioned surface for external projects embedding PGEN annotat
   - `embedding_api_contract() -> EmbeddingApiContract`
 - Parse API:
   - `parse_annotation(family, backend, input) -> ParseOutcome`
+  - `parse_annotation_with_limits(family, backend, input, limits) -> ParseOutcome`
+- Parse limits type:
+  - `ParseLimits { max_input_bytes }`
+  - default via `ParseLimits::default()`
+  - default bound constant: `EMBEDDING_API_DEFAULT_MAX_INPUT_BYTES` (`1_048_576`)
 
 ## Versioning
 - Contract version constant: `EMBEDDING_API_VERSION = "1.0.0"`
@@ -27,10 +32,17 @@ Provide a stable, versioned surface for external projects embedding PGEN annotat
 ## Diagnostic Code Contract
 - `E_BACKEND_UNAVAILABLE`: generated backend requested without `generated_parsers` feature.
 - `E_PARSE_FAILURE`: selected backend failed to parse the provided input.
+- `E_INPUT_TOO_LARGE`: input exceeds `max_input_bytes` parse limit.
+- `E_INVALID_LIMITS`: invalid limit configuration (for example `max_input_bytes == 0`).
 
 ## Determinism Contract
 - `embedding_api_contract().deterministic_by_default` is `true`.
 - Parsing uses deterministic execution paths and no random sampling.
+
+## Input-Bound Contract
+- `parse_annotation(...)` uses `ParseLimits::default()` and enforces bounded input size.
+- Embedders can override the bound per call via `parse_annotation_with_limits(...)`.
+- The bound is measured in raw input bytes.
 
 ## Gate
 - Local/CI gate command:
