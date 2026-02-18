@@ -6,7 +6,9 @@ use anyhow::Result;
 use clap::Parser;
 #[cfg(feature = "generated_parsers")]
 use pgen::NoOpLogger;
-use pgen::ast_pipeline::stimuli_generator::{StimuliConfig, StimuliGenerator};
+use pgen::ast_pipeline::stimuli_generator::{
+    StimuliConfig, StimuliCoverageMetrics, StimuliGenerator,
+};
 use pgen::ast_pipeline::{
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
 };
@@ -75,6 +77,14 @@ struct Args {
     /// Validate generated stimuli by parsing each sample with the matching generated parser
     #[arg(long, requires = "generate_stimuli")]
     validate_parseability: bool,
+
+    /// Load prior stimuli coverage JSON and merge new generation coverage into it
+    #[arg(long, requires = "generate_stimuli")]
+    coverage_input: Option<String>,
+
+    /// Write merged stimuli coverage metrics JSON to this path
+    #[arg(long, requires = "generate_stimuli")]
+    coverage_output: Option<String>,
 
     /// Enable trace mode in generated parser (detailed debug logging)
     #[arg(long)]
@@ -160,6 +170,11 @@ fn main() -> Result<()> {
             },
         );
 
+        if let Some(coverage_input_path) = args.coverage_input.as_deref() {
+            let existing_coverage = load_coverage_metrics(coverage_input_path)?;
+            generator.merge_coverage_metrics(&existing_coverage)?;
+        }
+
         let samples = if args.validate_parseability {
             generate_parseable_stimuli(
                 &grammar.grammar_name,
@@ -183,6 +198,16 @@ fn main() -> Result<()> {
             for sample in &samples {
                 println!("{}", sample);
             }
+        }
+
+        println!("{}", generator.coverage_metrics().summary_line());
+        if let Some(coverage_output_path) = args.coverage_output.as_deref() {
+            let coverage_json = serde_json::to_string_pretty(generator.coverage_metrics())?;
+            std::fs::write(coverage_output_path, coverage_json)?;
+            println!(
+                "Wrote stimuli coverage metrics to {}",
+                coverage_output_path
+            );
         }
 
         (samples.len(), grammar.rule_order)
@@ -246,6 +271,12 @@ fn load_grammar_bundle(
             "Unknown JSON format - expected raw_ast or grammar_tree/rule_order"
         ))
     }
+}
+
+fn load_coverage_metrics(path: &str) -> Result<StimuliCoverageMetrics> {
+    let content = std::fs::read_to_string(path)?;
+    let metrics: StimuliCoverageMetrics = serde_json::from_str(&content)?;
+    Ok(metrics)
 }
 
 fn supports_generated_parseability(grammar_name: &str) -> bool {

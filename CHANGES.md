@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-02-17 - Regex Robustness Phase 2: Anchor/Boundary/Escape/Bounded-Repetition Coverage
+### ✅ Achievement Summary
+Extended regex stimuli robustness with additional matchability safeguards and focused unit-test coverage for common fragile regex constructs.
+### Scope of Changes
+- Updated:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+- Regex class sampling fallback refined:
+  - preserves class membership,
+  - prefers printable in-range bytes where available,
+  - avoids degrading to hardcoded out-of-class fallbacks.
+- Added targeted regex robustness tests:
+  - `regex_anchor_pattern_generates_full_match` for anchored patterns (`^...$`)
+  - `regex_word_boundary_pattern_generates_matchable_sample` for word boundaries (`\\b`)
+  - `regex_escape_classes_generate_printable_match` for mixed escape classes (`\\d\\w\\s\\D\\W\\S`)
+  - `regex_bounded_repetition_respects_length_bounds` for bounded quantifiers (`{m,n}`)
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml stimuli_generator` ✅ (`10/10` passed)
+- bootstrap semantic edge-regression suite:
+  - `cargo run --manifest-path rust/Cargo.toml --bin test_runner -- --parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression` ✅ (`4/4` passed)
+- generated semantic edge-regression suite:
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_generated_whitespace_and_dotted_regression` ✅ (`4/4` passed)
+### Operational Notes
+- No EBNF updates were required.
+- This phase strengthens stimuli quality and regex matchability checks without altering parser entry semantics.
 ## 2026-02-17 - Semantic Regression Expansion + Regex Stimuli Printable-Class Hardening
 ### ✅ Achievement Summary
 Expanded semantic regression coverage for string-content/escape edge cases and hardened regex stimuli generation to prefer printable samples instead of control characters.
@@ -5878,3 +5902,57 @@ Result:
 
 ### Notes
 - Temporary smoke-test artifact `rust/tmp_stimuli_output.txt` was used for runtime validation and is not part of core implementation.
+
+---
+
+## 2026-02-18: Coverage-Guided Branch Steering in Stimuli Generator + Multi-Seed Validation
+
+### Problem Statement
+The stimuli generator had coverage metrics and merge/dump support, but branch selection still mostly followed static probability behavior. This limited automatic exploration of low-hit branches and slowed semantic coverage growth across repeated regression runs.
+
+### Root Cause Analysis
+1. OR branch selection had no direct feedback loop from collected coverage metrics.
+2. Branches that referenced uncovered rules were not preferentially sampled.
+3. Coverage data existed, but generation-time weighting did not consume it.
+
+### Implementation Summary
+- Updated `rust/src/ast_pipeline/stimuli_generator.rs` to add coverage-guided steering in `generate_or(...)`.
+- Added guidance helper methods:
+  - `coverage_guidance_multiplier(...)`
+  - `count_uncovered_rule_references(...)`
+  - `collect_uncovered_rule_references(...)`
+- Guidance policy now boosts branch weights based on live coverage:
+  - strong bias for never-successful branches,
+  - medium bias for low-success branches,
+  - additional boost for never-selected branches,
+  - additional boost for branches containing rule references that still have zero success hits.
+- Preserved existing fallback retry behavior across alternatives when selected branch generation fails.
+
+### Validation
+#### Unit tests
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
+- Result: **13 passed, 0 failed**
+
+#### Semantic multi-seed merged coverage (parseability-validated stimuli)
+- Seeds: `17, 29, 43, 71, 89`
+- Grammar: `generated/semantic_annotation.json`
+- Mode: `--generate-stimuli --validate-parseability --count 200 --entry-rule semantic_annotation`
+- Coverage merge file: `/tmp/pgen_semantic_cov_guided.json`
+
+Merged result after steering:
+- Rules: **76/112 (67.86%)**
+- Branches: **233/299 (77.93%)**
+
+Previous baseline (same seed set, pre-steering):
+- Rules: **76/112 (67.86%)**
+- Branches: **229/299 (76.59%)**
+
+Observed uplift:
+- Rule coverage: **no regression / unchanged**
+- Branch coverage: **+4 branches**, **+1.34 percentage points**
+
+### Files Modified
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `CHANGES.md`
+- `DEVELOPMENT_NOTES.md`
+- `git_message_brief.txt`

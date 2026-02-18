@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-17 - Regex Robustness Phase 2: Matchability-First Unit Coverage
+### Context
+After introducing printable-preferred class sampling, the next risk was silent mismatch on common regex constructs (anchors, boundaries, mixed escapes, bounded repetitions).
+### Coverage Strategy
+Use direct regex assertions in unit tests to ensure generated samples actually satisfy target patterns:
+- anchored pattern check (`^\\d{2}$`)
+- word-boundary check (`\\bword\\b`)
+- mixed escape classes check (`^\\d\\w\\s\\D\\W\\S$`)
+- bounded repetition check (`^[A-Z]{2,4}$`)
+### Generator Policy Refinement
+- For byte-class fallback, preserve class membership first, then choose the first printable in-range byte when available.
+- Avoid fallback behavior that can emit out-of-class literals under broad/negated class scenarios.
+### Why This Matters
+- Converts regex robustness from heuristic confidence to explicit testable contract.
+- Improves reliability of downstream parseability loops by ensuring generated stimuli remain regex-valid and human-inspectable.
 ## 2026-02-17 - Regex Stimuli Robustness Policy: Prefer Printable Class Samples
 ### Context
 Regex-driven stimuli generation can produce syntactically valid but operationally poor samples when class selection falls back to control characters (especially from broad/negated classes).
@@ -1261,3 +1276,34 @@ CLI smoke validation run:
 2. Introduce optional coverage-guided branch steering (hit unobserved alternatives/rules first).
 3. Expand regex synthesis toward structural derivation from regex AST (or constrained subset parser) instead of heuristics.
 4. Add dedicated universal test-runner JSON suites for stimuli-mode contract validation.
+
+---
+
+## 2026-02-18 - Coverage-Guided Steering Activated in Stimuli OR Selection
+
+### What Changed
+- Integrated coverage feedback directly into OR alternative weighting in `StimuliGenerator::generate_or(...)`.
+- Added branch-level steering helpers:
+  - `coverage_guidance_multiplier(...)`
+  - `count_uncovered_rule_references(...)`
+  - `collect_uncovered_rule_references(...)`
+
+### Guidance Strategy
+At generation time, branch weights are no longer only static probability-derived values. They are multiplied by a live guidance factor that prioritizes:
+1. alternatives with zero successful hits,
+2. alternatives with low successful hit counts,
+3. alternatives never selected yet,
+4. alternatives referencing rules with zero success hits.
+
+This preserves weighted semantics while making repeated regressions increasingly exploratory.
+
+### Validation Snapshot
+- Targeted unit tests:
+  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
+  - Result: `13 passed, 0 failed`
+- Semantic coverage (merged across seeds `17,29,43,71,89`, parseability-validated, count=200 each):
+  - Rules: `76/112 (67.86%)` (unchanged)
+  - Branches: `233/299 (77.93%)` (up from `229/299`, +1.34 pp)
+
+### Practical Insight
+Branch steering increased semantic branch exploration without destabilizing parseable generation. Rule coverage appears bounded by current entry-rule reachability/grammar structure, while branch-level coverage still had exploitable headroom and improved measurably.

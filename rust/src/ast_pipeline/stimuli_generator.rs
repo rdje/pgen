@@ -2,9 +2,11 @@ use super::{ASTNode, ASTValue, Annotations, TokenValue, UnifiedSemanticAST};
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
-use regex_syntax::hir::{Class, ClassBytes, ClassUnicode, Hir, HirKind, Literal, Repetition};
-use std::collections::HashMap;
+use regex_syntax::hir::{Class, Hir, HirKind, Literal, Repetition};
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct StimuliConfig {
@@ -25,6 +27,234 @@ impl Default for StimuliConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BranchCoverageGroup {
+    pub rule_name: String,
+    pub node_path: String,
+    pub total_branches: usize,
+    pub selected_counts: Vec<u64>,
+    pub success_counts: Vec<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StimuliCoverageMetrics {
+    pub grammar_name: String,
+    pub total_rules: usize,
+    pub total_branch_groups: usize,
+    pub total_branches: usize,
+    pub sample_attempts: u64,
+    pub sample_successes: u64,
+    pub sample_errors: u64,
+    pub rule_success_hits: HashMap<String, u64>,
+    pub branch_groups: HashMap<String, BranchCoverageGroup>,
+}
+
+impl StimuliCoverageMetrics {
+    fn new(
+        grammar_name: String,
+        total_rules: usize,
+        rule_success_hits: HashMap<String, u64>,
+        branch_groups: HashMap<String, BranchCoverageGroup>,
+    ) -> Self {
+        let mut metrics = Self {
+            grammar_name,
+            total_rules,
+            total_branch_groups: 0,
+            total_branches: 0,
+            sample_attempts: 0,
+            sample_successes: 0,
+            sample_errors: 0,
+            rule_success_hits,
+            branch_groups,
+        };
+        metrics.recompute_totals();
+        metrics
+    }
+
+    fn recompute_totals(&mut self) {
+        self.total_branch_groups = self.branch_groups.len();
+        self.total_branches = self
+            .branch_groups
+            .values()
+            .map(|group| group.total_branches)
+            .sum();
+    }
+
+    pub fn merge_from(&mut self, other: &Self) -> Result<()> {
+        if self.grammar_name != other.grammar_name {
+            return Err(anyhow!(
+                "Cannot merge coverage for different grammars: '{}' vs '{}'",
+                self.grammar_name,
+                other.grammar_name
+            ));
+        }
+
+        self.sample_attempts += other.sample_attempts;
+        self.sample_successes += other.sample_successes;
+        self.sample_errors += other.sample_errors;
+
+        for (rule_name, hits) in &other.rule_success_hits {
+            *self.rule_success_hits.entry(rule_name.clone()).or_insert(0) += hits;
+        }
+
+        for (group_key, other_group) in &other.branch_groups {
+            let group = self
+                .branch_groups
+                .entry(group_key.clone())
+                .or_insert_with(|| BranchCoverageGroup {
+                    rule_name: other_group.rule_name.clone(),
+                    node_path: other_group.node_path.clone(),
+                    total_branches: other_group.total_branches,
+                    selected_counts: vec![0; other_group.total_branches],
+                    success_counts: vec![0; other_group.total_branches],
+                });
+
+            if group.total_branches < other_group.total_branches {
+                group.selected_counts.resize(other_group.total_branches, 0);
+                group.success_counts.resize(other_group.total_branches, 0);
+                group.total_branches = other_group.total_branches;
+            }
+
+            for (idx, count) in other_group.selected_counts.iter().enumerate() {
+                if idx >= group.selected_counts.len() {
+                    group.selected_counts.push(0);
+                }
+                group.selected_counts[idx] += count;
+            }
+            for (idx, count) in other_group.success_counts.iter().enumerate() {
+                if idx >= group.success_counts.len() {
+                    group.success_counts.push(0);
+                }
+                group.success_counts[idx] += count;
+            }
+        }
+
+        if self.total_rules < other.total_rules {
+            self.total_rules = other.total_rules;
+        }
+        self.recompute_totals();
+        Ok(())
+    }
+
+    fn record_sample_attempt(&mut self, succeeded: bool) {
+        self.sample_attempts += 1;
+        if succeeded {
+            self.sample_successes += 1;
+        } else {
+            self.sample_errors += 1;
+        }
+    }
+
+    fn record_rule_success(&mut self, rule_name: &str) {
+        *self.rule_success_hits.entry(rule_name.to_string()).or_insert(0) += 1;
+    }
+
+    fn ensure_group_entry(
+        &mut self,
+        group_key: &str,
+        rule_name: &str,
+        node_path: &str,
+        total_branches: usize,
+    ) {
+        self.branch_groups
+            .entry(group_key.to_string())
+            .or_insert_with(|| BranchCoverageGroup {
+                rule_name: rule_name.to_string(),
+                node_path: node_path.to_string(),
+                total_branches,
+                selected_counts: vec![0; total_branches],
+                success_counts: vec![0; total_branches],
+            });
+    }
+
+    fn record_branch_selected(
+        &mut self,
+        group_key: &str,
+        rule_name: &str,
+        node_path: &str,
+        total_branches: usize,
+        branch_idx: usize,
+    ) {
+        self.ensure_group_entry(group_key, rule_name, node_path, total_branches);
+        if let Some(group) = self.branch_groups.get_mut(group_key) {
+            if group.selected_counts.len() <= branch_idx {
+                group.selected_counts.resize(branch_idx + 1, 0);
+            }
+            if group.success_counts.len() <= branch_idx {
+                group.success_counts.resize(branch_idx + 1, 0);
+            }
+            if group.total_branches < total_branches {
+                group.total_branches = total_branches;
+            }
+            group.selected_counts[branch_idx] += 1;
+        }
+    }
+
+    fn record_branch_success(
+        &mut self,
+        group_key: &str,
+        rule_name: &str,
+        node_path: &str,
+        total_branches: usize,
+        branch_idx: usize,
+    ) {
+        self.ensure_group_entry(group_key, rule_name, node_path, total_branches);
+        if let Some(group) = self.branch_groups.get_mut(group_key) {
+            if group.success_counts.len() <= branch_idx {
+                group.success_counts.resize(branch_idx + 1, 0);
+            }
+            if group.selected_counts.len() <= branch_idx {
+                group.selected_counts.resize(branch_idx + 1, 0);
+            }
+            if group.total_branches < total_branches {
+                group.total_branches = total_branches;
+            }
+            group.success_counts[branch_idx] += 1;
+        }
+    }
+
+    pub fn covered_rules(&self) -> usize {
+        self.rule_success_hits.values().filter(|hits| **hits > 0).count()
+    }
+
+    pub fn covered_branches(&self) -> usize {
+        self.branch_groups
+            .values()
+            .map(|group| group.success_counts.iter().filter(|hits| **hits > 0).count())
+            .sum()
+    }
+
+    pub fn rule_coverage_percent(&self) -> f64 {
+        if self.total_rules == 0 {
+            0.0
+        } else {
+            (self.covered_rules() as f64 * 100.0) / self.total_rules as f64
+        }
+    }
+
+    pub fn branch_coverage_percent(&self) -> f64 {
+        if self.total_branches == 0 {
+            0.0
+        } else {
+            (self.covered_branches() as f64 * 100.0) / self.total_branches as f64
+        }
+    }
+
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Stimuli coverage: rules {}/{} ({:.2}%), branches {}/{} ({:.2}%), sample_successes={}/{}",
+            self.covered_rules(),
+            self.total_rules,
+            self.rule_coverage_percent(),
+            self.covered_branches(),
+            self.total_branches,
+            self.branch_coverage_percent(),
+            self.sample_successes,
+            self.sample_attempts
+        )
+    }
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -32,6 +262,7 @@ pub struct StimuliGenerator<'a> {
     annotations: Option<&'a Annotations>,
     config: StimuliConfig,
     rng: StdRng,
+    coverage: StimuliCoverageMetrics,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -48,6 +279,33 @@ impl<'a> StimuliGenerator<'a> {
             StdRng::from_entropy()
         };
 
+        let mut rule_success_hits = HashMap::new();
+        for rule_name in rule_order {
+            rule_success_hits.entry(rule_name.clone()).or_insert(0);
+        }
+        for rule_name in grammar_tree.keys() {
+            rule_success_hits.entry(rule_name.clone()).or_insert(0);
+        }
+
+        let mut branch_groups = HashMap::new();
+        for rule_name in rule_order {
+            if let Some(rule_node) = grammar_tree.get(rule_name) {
+                Self::collect_branch_groups(rule_name, rule_node, "root", &mut branch_groups);
+            }
+        }
+        for (rule_name, rule_node) in grammar_tree {
+            if !rule_order.iter().any(|r| r == rule_name) {
+                Self::collect_branch_groups(rule_name, rule_node, "root", &mut branch_groups);
+            }
+        }
+
+        let coverage = StimuliCoverageMetrics::new(
+            grammar_name.clone(),
+            rule_success_hits.len(),
+            rule_success_hits,
+            branch_groups,
+        );
+
         Self {
             grammar_name,
             grammar_tree,
@@ -55,6 +313,58 @@ impl<'a> StimuliGenerator<'a> {
             annotations,
             config,
             rng,
+            coverage,
+        }
+    }
+
+    pub fn coverage_metrics(&self) -> &StimuliCoverageMetrics {
+        &self.coverage
+    }
+
+    pub fn merge_coverage_metrics(&mut self, other: &StimuliCoverageMetrics) -> Result<()> {
+        self.coverage.merge_from(other)
+    }
+
+    fn collect_branch_groups(
+        rule_name: &str,
+        node: &ASTNode,
+        node_path: &str,
+        groups: &mut HashMap<String, BranchCoverageGroup>,
+    ) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                let group_key = format!("{}::{}", rule_name, node_path);
+                groups
+                    .entry(group_key)
+                    .or_insert_with(|| BranchCoverageGroup {
+                        rule_name: rule_name.to_string(),
+                        node_path: node_path.to_string(),
+                        total_branches: alternatives.len(),
+                        selected_counts: vec![0; alternatives.len()],
+                        success_counts: vec![0; alternatives.len()],
+                    });
+
+                for (idx, alternative) in alternatives.iter().enumerate() {
+                    let alt_path = format!("{}/o{}", node_path, idx);
+                    Self::collect_branch_groups(rule_name, alternative, &alt_path, groups);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for (idx, element) in elements.iter().enumerate() {
+                    let element_path = format!("{}/s{}", node_path, idx);
+                    Self::collect_branch_groups(rule_name, element, &element_path, groups);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                let quantified_path = format!("{}/q", node_path);
+                Self::collect_branch_groups(rule_name, element, &quantified_path, groups);
+            }
+            ASTNode::Atom { value } => {
+                if let ASTValue::Node(node) = value {
+                    let atom_path = format!("{}/a", node_path);
+                    Self::collect_branch_groups(rule_name, node, &atom_path, groups);
+                }
+            }
         }
     }
 
@@ -69,7 +379,9 @@ impl<'a> StimuliGenerator<'a> {
 
     pub fn generate_from_entry(&mut self, entry_rule: &str) -> Result<String> {
         let mut call_stack = Vec::new();
-        self.generate_rule(entry_rule, 0, &mut call_stack)
+        let result = self.generate_rule(entry_rule, 0, &mut call_stack);
+        self.coverage.record_sample_attempt(result.is_ok());
+        result
     }
 
     fn resolve_entry_rule(&self, entry_rule: Option<&str>) -> Result<String> {
@@ -126,8 +438,11 @@ impl<'a> StimuliGenerator<'a> {
         })?;
 
         call_stack.push(rule_name.to_string());
-        let result = self.generate_node(rule_node, rule_name, depth + 1, call_stack);
+        let result = self.generate_node(rule_node, rule_name, depth + 1, call_stack, "root");
         call_stack.pop();
+        if result.is_ok() {
+            self.coverage.record_rule_success(rule_name);
+        }
         result
     }
 
@@ -137,19 +452,29 @@ impl<'a> StimuliGenerator<'a> {
         current_rule: &str,
         depth: usize,
         call_stack: &mut Vec<String>,
+        node_path: &str,
     ) -> Result<String> {
         match node {
             ASTNode::Or { alternatives } => {
-                self.generate_or(alternatives, current_rule, depth, call_stack)
+                self.generate_or(alternatives, current_rule, depth, call_stack, node_path)
             }
             ASTNode::Sequence { elements } => {
-                self.generate_sequence(elements, current_rule, depth, call_stack)
+                self.generate_sequence(elements, current_rule, depth, call_stack, node_path)
             }
-            ASTNode::Atom { value } => self.generate_atom(value, current_rule, depth, call_stack),
+            ASTNode::Atom { value } => {
+                self.generate_atom(value, current_rule, depth, call_stack, node_path)
+            }
             ASTNode::Quantified {
                 element,
                 quantifier,
-            } => self.generate_quantified(element, quantifier, current_rule, depth, call_stack),
+            } => self.generate_quantified(
+                element,
+                quantifier,
+                current_rule,
+                depth,
+                call_stack,
+                node_path,
+            ),
         }
     }
 
@@ -159,6 +484,7 @@ impl<'a> StimuliGenerator<'a> {
         current_rule: &str,
         depth: usize,
         call_stack: &mut Vec<String>,
+        node_path: &str,
     ) -> Result<String> {
         if alternatives.is_empty() {
             return Ok(String::new());
@@ -194,19 +520,70 @@ impl<'a> StimuliGenerator<'a> {
             .iter()
             .map(|idx| prepared[*idx].0)
             .collect();
-        let weights = self.build_weights(&probabilities)?;
+        let base_weights = self.build_weights(&probabilities)?;
+        let guided_weights: Vec<u64> = candidate_indices
+            .iter()
+            .enumerate()
+            .map(|(local_idx, global_idx)| {
+                let multiplier = self.coverage_guidance_multiplier(
+                    current_rule,
+                    node_path,
+                    *global_idx,
+                    &prepared[*global_idx].1,
+                );
+                u64::from(base_weights[local_idx]).saturating_mul(multiplier.max(1))
+            })
+            .collect();
 
-        let dist = WeightedIndex::new(&weights).with_context(|| {
+        let dist = WeightedIndex::new(&guided_weights).with_context(|| {
             format!(
                 "Invalid branch weights for rule '{}': {:?}",
-                current_rule, weights
+                current_rule, guided_weights
             )
         })?;
         let selected_local = dist.sample(&mut self.rng);
-        let selected_global = candidate_indices[selected_local];
+        let mut attempt_order: Vec<usize> = (0..candidate_indices.len()).collect();
+        attempt_order.swap(0, selected_local);
+        if attempt_order.len() > 2 {
+            attempt_order[1..].shuffle(&mut self.rng);
+        }
 
-        let (_, selected_node) = prepared.swap_remove(selected_global);
-        self.generate_node(&selected_node, current_rule, depth, call_stack)
+        let mut last_error: Option<anyhow::Error> = None;
+        for local_idx in attempt_order {
+            let selected_global = candidate_indices[local_idx];
+            let selected_node = prepared[selected_global].1.clone();
+            let group_key = format!("{}::{}", current_rule, node_path);
+            self.coverage.record_branch_selected(
+                &group_key,
+                current_rule,
+                node_path,
+                alternatives.len(),
+                selected_global,
+            );
+            let alt_path = format!("{}/o{}", node_path, selected_global);
+            match self.generate_node(&selected_node, current_rule, depth, call_stack, &alt_path) {
+                Ok(output) => {
+                    self.coverage.record_branch_success(
+                        &group_key,
+                        current_rule,
+                        node_path,
+                        alternatives.len(),
+                        selected_global,
+                    );
+                    return Ok(output);
+                }
+                Err(err) => {
+                    last_error = Some(err);
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or_else(|| {
+            anyhow!(
+                "Failed to generate any OR alternative for rule '{}'",
+                current_rule
+            )
+        }))
     }
 
     fn generate_sequence(
@@ -215,10 +592,18 @@ impl<'a> StimuliGenerator<'a> {
         current_rule: &str,
         depth: usize,
         call_stack: &mut Vec<String>,
+        node_path: &str,
     ) -> Result<String> {
         let mut output = String::new();
-        for element in elements {
-            output.push_str(&self.generate_node(element, current_rule, depth, call_stack)?);
+        for (idx, element) in elements.iter().enumerate() {
+            let element_path = format!("{}/s{}", node_path, idx);
+            output.push_str(&self.generate_node(
+                element,
+                current_rule,
+                depth,
+                call_stack,
+                &element_path,
+            )?);
         }
         Ok(output)
     }
@@ -229,9 +614,13 @@ impl<'a> StimuliGenerator<'a> {
         current_rule: &str,
         depth: usize,
         call_stack: &mut Vec<String>,
+        node_path: &str,
     ) -> Result<String> {
         match value {
-            ASTValue::Node(node) => self.generate_node(node, current_rule, depth, call_stack),
+            ASTValue::Node(node) => {
+                let atom_path = format!("{}/a", node_path);
+                self.generate_node(node, current_rule, depth, call_stack, &atom_path)
+            }
             ASTValue::Token(parts) => {
                 let Some((token_type, token_value)) = Self::extract_token_pair(parts) else {
                     return Ok(String::new());
@@ -258,6 +647,7 @@ impl<'a> StimuliGenerator<'a> {
         current_rule: &str,
         depth: usize,
         call_stack: &mut Vec<String>,
+        node_path: &str,
     ) -> Result<String> {
         let (min_repeat, max_repeat) = self.parse_quantifier_bounds(quantifier)?;
         let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
@@ -271,7 +661,14 @@ impl<'a> StimuliGenerator<'a> {
 
         let mut output = String::new();
         for _ in 0..repeats {
-            output.push_str(&self.generate_node(element, current_rule, depth + 1, call_stack)?);
+            let quantified_path = format!("{}/q", node_path);
+            output.push_str(&self.generate_node(
+                element,
+                current_rule,
+                depth + 1,
+                call_stack,
+                &quantified_path,
+            )?);
         }
         Ok(output)
     }
@@ -470,6 +867,88 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    fn coverage_guidance_multiplier(
+        &self,
+        current_rule: &str,
+        node_path: &str,
+        branch_idx: usize,
+        branch_node: &ASTNode,
+    ) -> u64 {
+        let group_key = format!("{}::{}", current_rule, node_path);
+        let (success_hits, selected_hits) =
+            if let Some(group) = self.coverage.branch_groups.get(&group_key) {
+                (
+                    group.success_counts.get(branch_idx).copied().unwrap_or(0),
+                    group.selected_counts.get(branch_idx).copied().unwrap_or(0),
+                )
+            } else {
+                (0, 0)
+            };
+
+        let mut multiplier = 1u64;
+        if success_hits == 0 {
+            multiplier = multiplier.saturating_mul(24);
+        } else if success_hits <= 2 {
+            multiplier = multiplier.saturating_mul(8);
+        } else if success_hits <= 8 {
+            multiplier = multiplier.saturating_mul(3);
+        }
+
+        if selected_hits == 0 {
+            multiplier = multiplier.saturating_mul(2);
+        }
+
+        let uncovered_rule_refs = self.count_uncovered_rule_references(branch_node);
+        if uncovered_rule_refs > 0 {
+            multiplier =
+                multiplier.saturating_mul(1 + u64::try_from(uncovered_rule_refs.min(4)).unwrap_or(1));
+        }
+
+        multiplier
+    }
+
+    fn count_uncovered_rule_references(&self, node: &ASTNode) -> usize {
+        let mut names = HashSet::new();
+        self.collect_uncovered_rule_references(node, &mut names);
+        names.len()
+    }
+
+    fn collect_uncovered_rule_references(&self, node: &ASTNode, names: &mut HashSet<String>) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for alternative in alternatives {
+                    self.collect_uncovered_rule_references(alternative, names);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for element in elements {
+                    self.collect_uncovered_rule_references(element, names);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                self.collect_uncovered_rule_references(element, names);
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(node) => self.collect_uncovered_rule_references(node, names),
+                ASTValue::Token(parts) => {
+                    if let Some((token_type, token_value)) = Self::extract_token_pair(parts) {
+                        if token_type == "rule_reference"
+                            && self
+                                .coverage
+                                .rule_success_hits
+                                .get(token_value)
+                                .copied()
+                                .unwrap_or(0)
+                                == 0
+                        {
+                            names.insert(token_value.to_string());
+                        }
+                    }
+                }
+            },
+        }
+    }
+
     fn generate_regex_sample(&mut self, pattern: &str, current_rule: &str) -> String {
         if let Some(semantic_hint) = self.semantic_hint_for_rule(current_rule) {
             return semantic_hint;
@@ -529,9 +1008,9 @@ impl<'a> StimuliGenerator<'a> {
             self.rng.gen_range(min..=bounded_max)
         };
 
-        let unit = self.generate_from_regex_hir(&rep.sub);
         let mut out = String::new();
         for _ in 0..count {
+            let unit = self.generate_from_regex_hir(&rep.sub);
             out.push_str(&unit);
         }
         out
@@ -540,55 +1019,66 @@ impl<'a> StimuliGenerator<'a> {
     fn generate_from_regex_class(&mut self, class: &Class) -> String {
         match class {
             Class::Unicode(unicode_class) => {
-                const PREFERRED: [char; 9] = ['a', 'A', '0', '_', '-', ' ', '.', '/', 'x'];
-                for ch in PREFERRED {
-                    if Self::unicode_class_contains(unicode_class, ch) {
+                let mut printable = Vec::new();
+                for range in unicode_class.ranges() {
+                    let start = (range.start() as u32).max(0x20);
+                    let end = (range.end() as u32).min(0x7e);
+                    for codepoint in start..=end {
+                        if let Some(ch) = char::from_u32(codepoint) {
+                            printable.push(ch);
+                        }
+                    }
+                }
+                if !printable.is_empty() {
+                    let idx = self.rng.gen_range(0..printable.len());
+                    return printable[idx].to_string();
+                }
+
+                if let Some(first_range) = unicode_class.ranges().first() {
+                    let start = first_range.start() as u32;
+                    let end = first_range.end() as u32;
+                    let sampled = if start <= end {
+                        self.rng.gen_range(start..=end)
+                    } else {
+                        start
+                    };
+                    if let Some(ch) = char::from_u32(sampled) {
                         return ch.to_string();
                     }
                 }
 
-                unicode_class
-                    .ranges()
-                    .first()
-                    .map(|range| range.start().to_string())
-                    .unwrap_or_else(|| "a".to_string())
+                "a".to_string()
             }
             Class::Bytes(bytes_class) => {
-                const PREFERRED: [u8; 9] = [b'a', b'A', b'0', b'_', b'-', b' ', b'.', b'/', b'x'];
-                for b in PREFERRED {
-                    if Self::bytes_class_contains(bytes_class, b) {
-                        return char::from(b).to_string();
+                let mut printable = Vec::new();
+                for range in bytes_class.ranges() {
+                    let start = range.start().max(0x20);
+                    let end = range.end().min(0x7e);
+                    if start <= end {
+                        for b in start..=end {
+                            printable.push(b);
+                        }
                     }
                 }
+                if !printable.is_empty() {
+                    let idx = self.rng.gen_range(0..printable.len());
+                    return char::from(printable[idx]).to_string();
+                }
 
-                bytes_class
-                    .ranges()
-                    .first()
-                    .map(|range| {
-                        let b = range.start();
-                        if b.is_ascii() && !b.is_ascii_control() {
-                            char::from(b).to_string()
-                        } else {
-                            "a".to_string()
-                        }
-                    })
-                    .unwrap_or_else(|| "a".to_string())
+                if let Some(first_range) = bytes_class.ranges().first() {
+                    let start = first_range.start();
+                    let end = first_range.end();
+                    let sampled = if start <= end {
+                        self.rng.gen_range(start..=end)
+                    } else {
+                        start
+                    };
+                    return char::from(sampled).to_string();
+                }
+
+                "a".to_string()
             }
         }
-    }
-
-    fn unicode_class_contains(class: &ClassUnicode, ch: char) -> bool {
-        class
-            .ranges()
-            .iter()
-            .any(|range| range.start() <= ch && ch <= range.end())
-    }
-
-    fn bytes_class_contains(class: &ClassBytes, b: u8) -> bool {
-        class
-            .ranges()
-            .iter()
-            .any(|range| range.start() <= b && b <= range.end())
     }
 
     fn semantic_hint_for_rule(&self, rule_name: &str) -> Option<String> {
@@ -645,6 +1135,7 @@ impl<'a> StimuliGenerator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use regex::Regex;
 
     fn token(token_type: &str, token_value: &str) -> ASTNode {
         ASTNode::Atom {
@@ -838,5 +1329,183 @@ mod tests {
             "whitespace sample should prefer printable spaces over control chars: {:?}",
             value[0]
         );
+    }
+
+    #[test]
+    fn regex_anchor_pattern_generates_full_match() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^\\d{2}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2026);
+        let value = generator
+            .generate_many(1, None)
+            .expect("anchored regex generation should succeed");
+
+        let re = Regex::new(r"^\d{2}$").expect("valid regex");
+        assert!(
+            re.is_match(&value[0]),
+            "generated sample must satisfy anchored regex: {:?}",
+            value[0]
+        );
+        assert_eq!(value[0].chars().count(), 2);
+    }
+
+    #[test]
+    fn regex_word_boundary_pattern_generates_matchable_sample() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "\\bword\\b"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2027);
+        let value = generator
+            .generate_many(1, None)
+            .expect("word-boundary regex generation should succeed");
+
+        let re = Regex::new(r"\bword\b").expect("valid regex");
+        assert!(
+            re.is_match(&value[0]),
+            "generated sample must satisfy word-boundary regex: {:?}",
+            value[0]
+        );
+    }
+
+    #[test]
+    fn regex_escape_classes_generate_printable_match() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^\\d\\w\\s\\D\\W\\S$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2028);
+        let value = generator
+            .generate_many(1, None)
+            .expect("escape-class regex generation should succeed");
+
+        let re = Regex::new(r"^\d\w\s\D\W\S$").expect("valid regex");
+        assert!(
+            re.is_match(&value[0]),
+            "generated sample must satisfy escape-class regex: {:?}",
+            value[0]
+        );
+        assert!(
+            value[0].chars().all(|c| !c.is_ascii_control()),
+            "generated escape-class sample should avoid control chars: {:?}",
+            value[0]
+        );
+    }
+
+    #[test]
+    fn regex_bounded_repetition_respects_length_bounds() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{2,4}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2029);
+        let value = generator
+            .generate_many(1, None)
+            .expect("bounded-repetition regex generation should succeed");
+
+        let re = Regex::new(r"^[A-Z]{2,4}$").expect("valid regex");
+        assert!(
+            re.is_match(&value[0]),
+            "generated sample must satisfy bounded repetition regex: {:?}",
+            value[0]
+        );
+        let len = value[0].chars().count();
+        assert!(
+            (2..=4).contains(&len),
+            "generated sample length should be within [2,4], got {} from {:?}",
+            len,
+            value[0]
+        );
+    }
+
+    #[test]
+    fn or_generation_retries_alternatives_after_selected_branch_error() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![
+                            token("probability", "100"),
+                            token("rule_reference", "missing_rule"),
+                        ],
+                    },
+                    ASTNode::Sequence {
+                        elements: vec![token("probability", "0"), token("quoted_string", "ok")],
+                    },
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 3030);
+        let value = generator
+            .generate_many(1, None)
+            .expect("generator should retry alternate OR branch and succeed");
+
+        assert_eq!(value[0], "ok");
+    }
+
+    #[test]
+    fn coverage_metrics_track_rule_and_branch_hits() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 4040);
+        let values = generator
+            .generate_many(64, None)
+            .expect("coverage tracking generation should succeed");
+        assert_eq!(values.len(), 64);
+
+        let coverage = generator.coverage_metrics();
+        assert_eq!(coverage.sample_attempts, 64);
+        assert_eq!(coverage.sample_successes, 64);
+        assert_eq!(coverage.sample_errors, 0);
+        assert_eq!(coverage.total_rules, 1);
+        assert_eq!(coverage.total_branches, 2);
+        assert_eq!(coverage.covered_rules(), 1);
+        assert!(coverage.covered_branches() >= 1);
+    }
+
+    #[test]
+    fn coverage_metrics_merge_accumulates_counts() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator_a = simple_generator(&grammar_tree, &rule_order, 5050);
+        let mut generator_b = simple_generator(&grammar_tree, &rule_order, 6060);
+
+        let _ = generator_a
+            .generate_many(30, None)
+            .expect("first coverage run should succeed");
+        let _ = generator_b
+            .generate_many(40, None)
+            .expect("second coverage run should succeed");
+
+        let mut merged = generator_a.coverage_metrics().clone();
+        merged
+            .merge_from(generator_b.coverage_metrics())
+            .expect("coverage merge should succeed");
+
+        assert_eq!(merged.sample_attempts, 70);
+        assert_eq!(merged.sample_successes, 70);
+        assert_eq!(merged.sample_errors, 0);
+        assert_eq!(merged.total_rules, 1);
+        assert_eq!(merged.total_branches, 2);
     }
 }
