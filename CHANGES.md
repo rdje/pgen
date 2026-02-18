@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-02-18 - Phase F Follow-Up: CI Wiring for Annotation Contract Gate
+### ✅ Achievement Summary
+Wired the new annotation normative contract gate into CI so pull requests and `main` pushes enforce bootstrap annotation contract conformance plus typed validator checks.
+### Scope of Changes
+- Added CI workflow:
+  - `.github/workflows/annotation-contract-gate.yml`
+  - Triggered on:
+    - `pull_request`
+    - `push` to `main`
+  - Runs:
+    - `make -C rust SHELL=/bin/bash annotation_contract_gate`
+- Updated roadmap tracking:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Marked Phase F CI wiring task complete.
+### Validation Results
+- `make -C rust annotation_contract_gate` ✅
+  - validator tests passed
+  - return builtin contract suite passed
+  - semantic builtin contract suite passed
+
 ## 2026-02-18 - Phase F Kickoff: Normative Annotation Spec + Executable Built-In Contracts
 ### ✅ Achievement Summary
 Started Pillar 2 (Normative Annotation Specification) by adding a living normative annotation contract and wiring executable bootstrap conformance checks into the Rust Make gate surface.

@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase F Follow-Up: CI Enforcement for Annotation Normative Contract
+### Context
+After introducing `annotation_contract_gate` locally, the gate still depended on local execution. To make annotation contract drift prevention auditable and pre-merge enforced, it needed to be wired into repository CI like the other production gates.
+### Implementation
+- Added GitHub Actions workflow:
+  - `.github/workflows/annotation-contract-gate.yml`
+- Workflow behavior:
+  - runs on `pull_request` and `push` to `main`,
+  - executes:
+    - `make -C rust SHELL=/bin/bash annotation_contract_gate`
+  - thereby enforcing:
+    - typed annotation validator unit checks,
+    - bootstrap return built-in contract suite,
+    - bootstrap semantic built-in contract suite.
+- Updated roadmap:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Added and marked complete Phase F item for CI wiring of `annotation_contract_gate`.
+### Validation
+- Re-ran:
+  - `make -C rust annotation_contract_gate`
+- Result:
+  - passed all validator and built-in contract suites.
+### Why This Matters
+- Converts normative annotation contract checks from convention to mandatory CI policy.
+- Prevents accidental bootstrap contract drift from landing unnoticed in PR flows.
+- Strengthens Pillar 2 by coupling specification + tests + CI enforcement.
+
 ## 2026-02-18 - Phase F Start: Normative Annotation Specification Contractization
 ### Context
 With Phase E completed, the next roadmap item is Pillar 2 (Normative Annotation Specification). We already had inferred built-in EBNFs and parser-specific behavior notes, but there was no single normative contract that:

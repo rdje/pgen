@@ -63,6 +63,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Publish living normative annotation specification with explicit bootstrap/full/validator contracts.
 - [x] Add executable bootstrap contract suites for inferred built-in return/semantic parser behaviors.
 - [x] Add `make annotation_contract_gate` to enforce validator + built-in contract suites.
+- [x] Wire `annotation_contract_gate` into CI as required pre-merge check.
 
 ## Current Sprint: Pillar 1
 
@@ -96,3 +97,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Added CI workflow `differential-regression-gate` to enforce `make differential_regression_gate` on PR/main and retain differential report artifacts.
 - 2026-02-18: Published initial comprehensive end-user guide in `PGEN_USER_GUIDE.md` and linked it from `README.md` (living document for onboarding + full feature usage).
 - 2026-02-18: Started Pillar 2 by publishing `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, adding bootstrap contract suites (`builtin_contract.json`), and wiring `make annotation_contract_gate`.
+- 2026-02-18: Added CI workflow `annotation-contract-gate` to enforce `make annotation_contract_gate` on PR/main.
