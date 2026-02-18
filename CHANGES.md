@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-02-18 - Phase E Follow-Up: CI Wiring for Differential Regression Gate
+### ✅ Achievement Summary
+Wired the differential regression gate into CI so pull requests are blocked only by newly introduced generated-vs-bootstrap mismatches (not existing tracked mismatch debt).
+### Scope of Changes
+- Added CI workflow:
+  - `.github/workflows/differential-regression-gate.yml`
+  - Triggered on:
+    - `pull_request`
+    - `push` to `main`
+  - Runs:
+    - `make -C rust SHELL=/bin/bash differential_regression_gate`
+  - Always uploads:
+    - `rust/target/differential_harness` reports for triage (`14`-day retention).
+- Updated roadmap tracking:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Marked CI wiring task complete in Phase E.
+### Validation Results
+- `make -C rust differential_regression_gate` ✅
+  - return: `new=0` vs baseline
+  - semantic: `new=0` vs baseline
+
 ## 2026-02-18 - Phase E Kickoff: Differential Baseline Regression Gate + User Guide Backlog Task
 ### ✅ Achievement Summary
 Started the next execution task after Phase D by adding baseline-aware differential closure tracking and a regression-only gate that fails only on newly introduced mismatches.

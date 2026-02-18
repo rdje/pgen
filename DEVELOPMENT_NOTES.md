@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase E Follow-Up: CI Enforcement for Differential New-Mismatch Gate
+### Context
+Differential baseline closure tooling was available locally (`differential_regression_gate`), but it was not yet enforced in repository CI. That left a gap where local discipline could drift and new mismatches might slip into PRs.
+### Implementation
+- Added GitHub Actions workflow:
+  - `.github/workflows/differential-regression-gate.yml`
+- Workflow behavior:
+  - runs on `pull_request` and `push` to `main`,
+  - executes `make -C rust SHELL=/bin/bash differential_regression_gate`,
+  - treats only **new** mismatches versus tracked baseline files as failures (existing baseline debt remains allowed),
+  - uploads `rust/target/differential_harness` artifacts on every run for diagnosis.
+### Validation
+- Re-ran:
+  - `make -C rust differential_regression_gate`
+- Result:
+  - passed with no new mismatches for return or semantic suites versus baseline snapshots.
+### Why This Matters
+- Converts differential closure policy from local convention into an auditable pre-merge CI control.
+- Preserves delivery velocity by allowing known debt while preventing fresh behavioral regressions.
+- Produces attached reports on every run so mismatch investigation does not require reruns.
+
 ## 2026-02-18 - Phase E Kickoff: Differential Closure Tracking and Regression-Only Gate
 ### Context
 After Phase D completion, differential harnessing existed but closure management still required manual inspection. There was no native way to:
