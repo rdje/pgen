@@ -70,22 +70,27 @@ trailing_text := /.*/
 # ============================================================================
 
 object_literal := "{" ws* object_properties? ws* "}"
-object_properties := object_property (ws* "," ws* object_property)*
+# Empty segments produced by extra commas are ignored by implementation.
+object_properties := object_property_segment (ws* "," ws* object_property_segment)*
+object_property_segment := object_property?
 object_property := object_key ws* ":" ws* return_value
 
 # Object keys:
 # - quoted key: "name"
-# - raw key: unquoted text segment (trimmed by parser)
+# - raw key: unquoted text segment (trimmed by parser, must be non-empty)
 object_key := quoted_key | raw_key
 quoted_key := "\"" dq_char* "\""
-raw_key := /[^,]*/
+raw_key := non_empty_raw_key
+non_empty_raw_key := /[^,]+/
 
 # ============================================================================
 # ARRAYS
 # ============================================================================
 
 array_literal := "[" ws* array_elements? ws* "]"
-array_elements := array_element (ws* "," ws* array_element)*
+# Empty segments produced by extra commas are ignored by implementation.
+array_elements := array_element_segment (ws* "," ws* array_element_segment)*
+array_element_segment := array_element?
 
 # Array spread behavior is implementation-specific:
 # if raw element text ends with '*' and does NOT start with '"',
@@ -130,3 +135,10 @@ ws := /[ \t\r\n]*/
 #      - {} and []
 #      - double-quoted strings
 #    It does not track parentheses depth.
+#
+# 5) Positional index "$0" is accepted by bootstrap parser behavior.
+#
+# 6) For objects/arrays, leading/trailing/consecutive top-level commas are tolerated:
+#      "{, a: $1,, b: $2,}" and "[, $1,, $2,]" both parse.
+#
+# 7) Duplicate object keys are allowed; later entries overwrite earlier ones.

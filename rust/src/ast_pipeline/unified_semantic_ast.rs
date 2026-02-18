@@ -87,3 +87,52 @@ impl fmt::Display for UnifiedSemanticAST {
         write!(f, "{}", self.pretty_print())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bootstrap_semantic_never_errors_and_falls_back_to_raw() {
+        let logger = crate::test_runner::NoOpLogger;
+        let parsed = UnifiedSemanticAST::parse_bootstrap("not a transform", &logger)
+            .expect("bootstrap semantic parser should not error on unknown syntax");
+        assert!(matches!(
+            parsed,
+            UnifiedSemanticAST::Raw { ref content } if content == "not a transform"
+        ));
+    }
+
+    #[test]
+    fn bootstrap_semantic_detects_transform_by_substring_markers() {
+        let logger = crate::test_runner::NoOpLogger;
+        let parsed = UnifiedSemanticAST::parse_bootstrap(
+            "str::parse::<u32>().unwrap_or(0)",
+            &logger,
+        )
+        .expect("bootstrap semantic parser should detect known transform marker pattern");
+        assert!(matches!(parsed, UnifiedSemanticAST::TransformExpr { .. }));
+    }
+
+    #[test]
+    fn bootstrap_semantic_detection_is_marker_based_not_structural() {
+        let logger = crate::test_runner::NoOpLogger;
+        let parsed = UnifiedSemanticAST::parse_bootstrap(
+            "x>().unwrap_or(0) ... ::parse::<u8>",
+            &logger,
+        )
+        .expect("bootstrap semantic parser only checks marker substrings");
+        assert!(matches!(parsed, UnifiedSemanticAST::TransformExpr { .. }));
+    }
+
+    #[test]
+    fn bootstrap_semantic_trims_outer_whitespace() {
+        let logger = crate::test_runner::NoOpLogger;
+        let parsed = UnifiedSemanticAST::parse_bootstrap("   value   ", &logger)
+            .expect("bootstrap semantic parser should trim outer whitespace");
+        assert!(matches!(
+            parsed,
+            UnifiedSemanticAST::Raw { ref content } if content == "value"
+        ));
+    }
+}

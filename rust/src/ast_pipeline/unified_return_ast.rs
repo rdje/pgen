@@ -1108,4 +1108,127 @@ mod tests {
             _ => panic!("Expected Spread"),
         }
     }
+
+    #[test]
+    fn bootstrap_leading_whitespace_before_arrow_is_not_stripped() {
+        let logger = crate::test_runner::NoOpLogger;
+        let err = UnifiedReturnAST::parse_bootstrap("  -> $1", &logger).expect_err(
+            "leading whitespace before '->' should not trigger arrow normalization in bootstrap parser",
+        );
+        assert!(
+            err.contains("Unable to parse return value"),
+            "unexpected error: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn bootstrap_positional_spread_ignores_trailing_text_after_star() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("$1*trailing", &logger)
+            .expect("bootstrap parser accepts trailing text after positional spread star");
+        assert_eq!(
+            ast,
+            UnifiedReturnAST::Spread {
+                base: Box::new(UnifiedReturnAST::PositionalRef { index: 1 })
+            }
+        );
+    }
+
+    #[test]
+    fn bootstrap_array_access_ignores_trailing_text_after_closing_bracket() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("$1[0]trailing", &logger).expect(
+            "bootstrap parser accepts trailing text after array access closing bracket",
+        );
+        match ast {
+            UnifiedReturnAST::ArrayAccess { base, index } => {
+                assert!(matches!(
+                    base.as_ref(),
+                    UnifiedReturnAST::PositionalRef { index: 1 }
+                ));
+                assert!(matches!(
+                    index.as_ref(),
+                    UnifiedReturnAST::NumberLiteral { value } if (*value - 0.0).abs() < f64::EPSILON
+                ));
+            }
+            other => panic!("expected ArrayAccess, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn bootstrap_array_spread_is_not_applied_to_quoted_strings() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("[\"$1*\"]", &logger)
+            .expect("quoted string ending in '*' should remain string literal");
+        match ast {
+            UnifiedReturnAST::Array { elements } => {
+                assert_eq!(elements.len(), 1);
+                assert!(matches!(
+                    elements[0],
+                    UnifiedReturnAST::StringLiteral { ref value } if value == "$1*"
+                ));
+            }
+            other => panic!("expected Array, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn bootstrap_array_ignores_empty_segments_from_extra_commas() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("[, $1,, $2,]", &logger)
+            .expect("bootstrap array splitter should ignore empty comma segments");
+        match ast {
+            UnifiedReturnAST::Array { elements } => {
+                assert_eq!(elements.len(), 2);
+                assert!(matches!(
+                    elements[0],
+                    UnifiedReturnAST::PositionalRef { index: 1 }
+                ));
+                assert!(matches!(
+                    elements[1],
+                    UnifiedReturnAST::PositionalRef { index: 2 }
+                ));
+            }
+            other => panic!("expected Array, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn bootstrap_object_ignores_empty_segments_from_extra_commas() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("{, a: $1,, b: $2,}", &logger)
+            .expect("bootstrap object splitter should ignore empty comma segments");
+        match ast {
+            UnifiedReturnAST::Object { properties } => {
+                assert_eq!(properties.len(), 2);
+                assert!(matches!(
+                    properties.get("a").map(|v| v.as_ref()),
+                    Some(UnifiedReturnAST::PositionalRef { index: 1 })
+                ));
+                assert!(matches!(
+                    properties.get("b").map(|v| v.as_ref()),
+                    Some(UnifiedReturnAST::PositionalRef { index: 2 })
+                ));
+            }
+            other => panic!("expected Object, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn bootstrap_object_duplicate_keys_keep_last_value() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("{a: $1, a: $2}", &logger)
+            .expect("bootstrap object parser should accept duplicate keys");
+        match ast {
+            UnifiedReturnAST::Object { properties } => {
+                assert_eq!(properties.len(), 1);
+                assert!(matches!(
+                    properties.get("a").map(|v| v.as_ref()),
+                    Some(UnifiedReturnAST::PositionalRef { index: 2 })
+                ));
+            }
+            other => panic!("expected Object, got {:?}", other),
+        }
+    }
 }

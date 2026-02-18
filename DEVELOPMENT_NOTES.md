@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Builtin Return Parser vs Inferred EBNF: Comma-Segment and Duplicate-Key Conformance
+### Context
+The inferred bootstrap grammars are intended to be implementation-accurate references for the hand-written chicken/egg parsers. During review, one remaining mismatch was found in list strictness: the inferred return EBNF modeled object/array comma lists as strict, while the bootstrap parser intentionally tolerates extra commas by dropping empty top-level segments.
+### What Was Tightened
+- Added conformance tests in `rust/src/ast_pipeline/unified_return_ast.rs` to lock behavior that had been implicit:
+  - `bootstrap_array_ignores_empty_segments_from_extra_commas`
+  - `bootstrap_object_ignores_empty_segments_from_extra_commas`
+  - `bootstrap_object_duplicate_keys_keep_last_value`
+- Updated `grammars/builtin_return_annotation.ebnf` so object/array productions reflect parser behavior:
+  - object properties now modeled as comma-separated `object_property_segment`, where segment may be empty,
+  - array elements now modeled as comma-separated `array_element_segment`, where segment may be empty.
+- Expanded implementation notes in the inferred EBNF to explicitly capture:
+  - tolerance of leading/trailing/consecutive commas,
+  - duplicate-key last-write-wins semantics from `HashMap::insert`.
+### Why This Matters
+- Keeps inferred bootstrap EBNF documentation aligned with actual parser acceptance behavior.
+- Prevents roundtrip regression triage noise caused by docs/specs that are stricter than bootstrap reality.
+- Improves confidence for fully automated stimuli generation + parseability checks by freezing edge acceptance contracts in tests.
+### Validation
+- Ran: `cargo test --manifest-path rust/Cargo.toml unified_`
+- Result: `18 passed, 0 failed` (includes all unified return/semantic bootstrap conformance tests).
+
 ## 2026-02-17 - Regex Robustness Phase 2: Matchability-First Unit Coverage
 ### Context
 After introducing printable-preferred class sampling, the next risk was silent mismatch on common regex constructs (anchors, boundaries, mixed escapes, bounded repetitions).
@@ -1484,3 +1506,70 @@ Gap report final state:
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
 - `git_message_brief.txt` (untracked helper for commit message)
+
+---
+
+## 2026-02-18 - Built-in Return/Semantic EBNF vs Bootstrap Parser Conformance
+
+### Context
+Two inferred EBNFs are intended to document the exact accepted subset of bootstrap annotation parsers:
+- `grammars/builtin_return_annotation.ebnf`
+- `grammars/builtin_semantic_annotation.ebnf`
+
+The implementation source-of-truth is:
+- return: `UnifiedReturnAST::parse_bootstrap(...)` in `rust/src/ast_pipeline/unified_return_ast.rs`
+- semantic: `UnifiedSemanticAST::parse_bootstrap(...)` in `rust/src/ast_pipeline/unified_semantic_ast.rs`
+
+Given PGEN’s role in higher-stakes downstream projects (RTL parsing and regex-engine tooling), drift between inferred spec and behavior must be caught automatically.
+
+### What Was Added
+
+#### 1) Executable conformance tests for bootstrap return parser
+File: `rust/src/ast_pipeline/unified_return_ast.rs`
+
+Added tests to enforce behavior already documented in inferred grammar notes:
+- `bootstrap_leading_whitespace_before_arrow_is_not_stripped`
+  - confirms `"  -> $1"` does not normalize as arrow form.
+- `bootstrap_positional_spread_ignores_trailing_text_after_star`
+  - confirms `$1*trailing` parses as `Spread(PositionalRef(1))`.
+- `bootstrap_array_access_ignores_trailing_text_after_closing_bracket`
+  - confirms `$1[0]trailing` parses as `ArrayAccess` and trailing text is ignored.
+- `bootstrap_array_spread_is_not_applied_to_quoted_strings`
+  - confirms `["$1*"]` remains a string literal, not spread.
+
+These tests make several parser quirks explicit and regression-protected.
+
+#### 2) Executable conformance tests for bootstrap semantic parser
+File: `rust/src/ast_pipeline/unified_semantic_ast.rs`
+
+Added tests to pin intended bootstrap permissiveness:
+- `bootstrap_semantic_never_errors_and_falls_back_to_raw`
+- `bootstrap_semantic_detects_transform_by_substring_markers`
+- `bootstrap_semantic_detection_is_marker_based_not_structural`
+- `bootstrap_semantic_trims_outer_whitespace`
+
+This locks the current “marker contains checks” behavior and avoids accidental tightening that would break bootstrap.
+
+### Inferred EBNF Precision Update
+File: `grammars/builtin_return_annotation.ebnf`
+
+Adjusted inferred spec details to better reflect real parser behavior:
+- raw object key is now explicitly non-empty (`non_empty_raw_key := /[^,]+/`),
+- implementation notes now explicitly state `$0` positional index is accepted.
+
+No behavioral parser change was made in this increment; this was a spec-accuracy correction plus test hardening.
+
+### Validation Run
+Command:
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml unified_`
+
+Result:
+- `15 passed, 0 failed`
+
+This includes all newly added conformance tests for built-in return and semantic bootstrap parser paths.
+
+### Why This Matters
+These checks provide a stable contract for bootstrap mode:
+- inferred EBNF files remain implementation-accurate,
+- parser quirks are explicit and test-locked,
+- future refactors to bootstrap parsers can be made safely with immediate drift detection.
