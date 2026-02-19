@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-02-19 - Phase I Follow-Up: Non-Bootstrap Annotation E2E Gate Enforcement
+### ✅ Achievement Summary
+Promoted non-bootstrap annotation end-to-end verification from local Make target into both standalone CI and aggregate SOTA required-check policy.
+### Scope of Changes
+- Added required CI workflow:
+  - `.github/workflows/annotation-nonbootstrap-e2e-gate.yml`
+  - runs:
+    - `make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+  - uploads failure artifacts from:
+    - `rust/target/annotation_nonbootstrap_e2e_gate`
+- Extended aggregate SOTA required-check execution path:
+  - `rust/scripts/sota_exit_gate.sh`
+  - added required check case:
+    - `annotation_nonbootstrap_e2e_gate`
+  - invokes:
+    - `make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+- Updated tracked aggregate policy:
+  - `rust/config/sota_exit_policy.env`
+  - added `annotation_nonbootstrap_e2e_gate` to `PGEN_SOTA_POLICY_REQUIRED_CHECKS`.
+- Updated living roadmap tracking:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - marked Phase I enforcement item complete and recorded change-log entry.
+### Validation Results
+- `make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate` ✅
+- `bash -n rust/scripts/sota_exit_gate.sh` ✅
+- `bash -n rust/scripts/annotation_nonbootstrap_e2e_gate.sh` ✅
+
 ## 2026-02-19 - Phase H: `ebnf.ebnf` Conversion Restored + Strict Aggregate Promotion
 ### ✅ Achievement Summary
 Fixed Perl `ebnf_to_json.pl` parsing of `grammars/ebnf.ebnf` by correcting include directive handling in `fx/specs/ebnf.spec`, then promoted strict EBNF frontend gating to required in aggregate SOTA policy.

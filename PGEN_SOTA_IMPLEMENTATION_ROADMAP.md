@@ -84,6 +84,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add CI workflow `sota-exit-gate` to run the aggregate gate and retain artifacts.
 - [x] Promote EBNF frontend strict mode (`ebnf_frontend_gate`) to required inside aggregate gate once `grammars/ebnf.ebnf` compatibility is fixed.
 - [x] Define and enforce explicit release pass policy for aggregate gate output (for example branch protection + release checklist criteria).
+- [x] Add non-bootstrap annotation end-to-end gate (`annotation_nonbootstrap_e2e_gate`) and enforce it in both standalone CI and aggregate SOTA required-check policy.
 
 ### Phase J (New): Semantic Steering Control Surface + Return Completeness
 - [x] Publish semantic steering control matrix with parser/stimuli control taxonomy, current support status, and target tiers (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`).
@@ -150,3 +151,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Burned down return differential debt from 7 to 2 by tightening bootstrap return parser behavior (leading-arrow whitespace normalization, strict trailing-modifier rejection, strict comma-list segment rejection), updating builtin return contract corpus/grammar inference, and refreshing baseline snapshots.
 - 2026-02-19: Completed Phase J P1 return differential closure by extending bootstrap positional/accessor-chain parsing (signed positional refs, chained postfix including extraction/property/index and parenthesized index expressions), reducing tracked return mismatch debt from 2 to 0, and refreshing return differential baseline + parity/regression gate runs.
 - 2026-02-19: Completed Phase H `ebnf.ebnf` frontend compatibility by fixing include directive capture in `fx/specs/ebnf.spec` (consume full include call, parse args in action code), restoring `ebnf_to_json.pl` conversion success for `grammars/ebnf.ebnf`, and turning strict EBNF frontend enforcement on in aggregate SOTA policy (`PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`).
+- 2026-02-19: Added standalone CI workflow `annotation-nonbootstrap-e2e-gate` and promoted `annotation_nonbootstrap_e2e_gate` into aggregate SOTA required checks (`rust/scripts/sota_exit_gate.sh` + `rust/config/sota_exit_policy.env`).

@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase I Follow-Up: Aggregate + CI Enforcement of Non-Bootstrap Annotation E2E Gate
+### Context
+We had already added a local non-bootstrap annotation end-to-end gate target (`annotation_nonbootstrap_e2e_gate`) that verifies generated-parser annotation handling across:
+- parser generation in non-bootstrap mode,
+- generated-parser-backed stimuli generation with parseability checks (return/semantic),
+- regex non-bootstrap parser/stimuli generation path.
+
+However, this check was still local-only and not yet part of:
+- required PR/main CI checks,
+- aggregate SOTA release policy execution path.
+### Implementation
+- Added standalone CI workflow:
+  - `.github/workflows/annotation-nonbootstrap-e2e-gate.yml`
+  - trigger: `pull_request` + push to `main`
+  - execution command:
+    - `make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+  - failure artifact retention:
+    - `rust/target/annotation_nonbootstrap_e2e_gate`
+- Extended aggregate SOTA gate dispatcher:
+  - `rust/scripts/sota_exit_gate.sh`
+  - updated default `POLICY_REQUIRED_CHECKS` list to include:
+    - `annotation_nonbootstrap_e2e_gate`
+  - added explicit dispatch case:
+    - required check name: `annotation_nonbootstrap_e2e_gate`
+    - command: `make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+- Updated tracked aggregate policy:
+  - `rust/config/sota_exit_policy.env`
+  - inserted `annotation_nonbootstrap_e2e_gate` into:
+    - `PGEN_SOTA_POLICY_REQUIRED_CHECKS`
+- Updated roadmap:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Phase I now explicitly records completion of non-bootstrap annotation E2E enforcement in both standalone CI and aggregate policy.
+### Validation
+- `make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+  - pass.
+  - verified generated parser build + non-bootstrap parser generation + stimuli/parseability checks.
+- syntax checks:
+  - `bash -n rust/scripts/sota_exit_gate.sh` pass
+  - `bash -n rust/scripts/annotation_nonbootstrap_e2e_gate.sh` pass
+### Why This Matters
+- Closes a release-safety gap between local engineering discipline and enforced CI policy.
+- Ensures non-bootstrap annotation behavior is continuously validated as part of the same contract surface as fixed-point, annotation contracts, differential regression, performance, and embedding API gates.
+
 ## 2026-02-19 - Phase H Implementation: `ebnf_to_json.pl` Fix for `grammars/ebnf.ebnf`
 ### Context
 `ebnf_frontend_readiness` was failing only on `grammars/ebnf.ebnf` at the Perl frontend stage (`EBNF -> JSON`) with:
