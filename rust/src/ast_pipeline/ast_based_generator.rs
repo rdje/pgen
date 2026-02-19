@@ -372,7 +372,7 @@ impl AstBasedGenerator {
                     let checkpoint = self.position;
                     self.consume_optional_whitespace();
                     let start_pos = self.position;
-                    if start_pos >= self.input.len() || !self.input[start_pos..].starts_with('@') {
+                    if start_pos >= self.input.len() || self.input.as_bytes()[start_pos] != b'@' {
                         self.position = checkpoint;
                         return Err(ParseError::Backtrack {
                             position: checkpoint,
@@ -431,12 +431,14 @@ impl AstBasedGenerator {
 
             pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
                 let parsed = self.#parse_method()?;
-                if parsed.span.end == self.input.len() {
+                // Allow trailing layout/comments so parse_full reports structural completeness.
+                self.consume_layout_for_terminal("<EOF>");
+                if self.position == self.input.len() {
                     Ok(parsed)
                 } else {
                     Err(ParseError::InvalidSyntax {
                         message: "Parser did not consume full input",
-                        position: parsed.span.end,
+                        position: self.position,
                     })
                 }
             }
@@ -538,7 +540,8 @@ impl AstBasedGenerator {
                         if self.logger.is_enabled() {
                             let consumed = node.span.end - start_pos;
                             if consumed > 0 {
-                                self.logger.log_success(#filename, 0, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} chars: '{}')", #rule_name, start_pos, node.span.end, consumed, &self.input[start_pos..node.span.end]));
+                                let consumed_preview = self.byte_window_lossy(start_pos, node.span.end);
+                                self.logger.log_success(#filename, 0, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')", #rule_name, start_pos, node.span.end, consumed, consumed_preview));
                             } else {
                                 self.logger.log_warning(#filename, 0, &format!("⚠️ Rule '{}' matched with zero length at position {}", #rule_name, start_pos));
                             }
@@ -1085,6 +1088,14 @@ impl AstBasedGenerator {
     ) -> Result<TokenStream> {
         eprintln!();
         let element_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
+        // Optional semantic guard for line-delimited declaration grammars.
+        // Example usage in a grammar:
+        //   @stop_at_rule_boundary: true
+        //   sequence := sequence_element+
+        let stop_at_rule_boundary = self.rule_has_semantic_bool_directive(
+            rule_name,
+            &["stop_at_rule_boundary", "stop_on_rule_boundary", "line_delimited_sequence"],
+        );
 
         match quantifier {
             "*" => Ok(quote! {
@@ -1094,6 +1105,9 @@ impl AstBasedGenerator {
                 const MAX_ITERATIONS: usize = 10000; // Safety limit
 
                 while iteration_count < MAX_ITERATIONS {
+                    if #stop_at_rule_boundary && parser.looks_like_rule_definition_boundary() {
+                        break;
+                    }
                     if let Some(node) = parser.try_parse(|p| {
                         let parser = p;
                         #element_logic;
@@ -1131,6 +1145,12 @@ impl AstBasedGenerator {
                 let mut results = Vec::new();
                 let start_position = parser.position;
 
+                if #stop_at_rule_boundary && parser.looks_like_rule_definition_boundary() {
+                    return Err(ParseError::Backtrack {
+                        position: parser.position,
+                    });
+                }
+
                 // First match is mandatory
                 {
                     #element_logic;
@@ -1154,6 +1174,9 @@ impl AstBasedGenerator {
                 const MAX_ITERATIONS: usize = 10000;
 
                 while iteration_count < MAX_ITERATIONS {
+                    if #stop_at_rule_boundary && parser.looks_like_rule_definition_boundary() {
+                        break;
+                    }
                     if let Some(node) = parser.try_parse(|p| {
                         let parser = p;
                         #element_logic;
@@ -1250,6 +1273,22 @@ impl AstBasedGenerator {
 
     fn generate_helper_methods(&self, filename: &str) -> TokenStream {
         quote! {
+            fn byte_window_lossy(&self, start: usize, end: usize) -> String {
+                if start >= end || start >= self.input.len() {
+                    return String::new();
+                }
+                let clamped_end = end.min(self.input.len());
+                String::from_utf8_lossy(&self.input.as_bytes()[start..clamped_end]).to_string()
+            }
+            fn bytes_match_at(&self, start: usize, expected: &[u8]) -> bool {
+                let Some(end) = start.checked_add(expected.len()) else {
+                    return false;
+                };
+                if end > self.input.len() {
+                    return false;
+                }
+                &self.input.as_bytes()[start..end] == expected
+            }
             fn consume_optional_whitespace(&mut self) {
                 while self.position < self.input.len() {
                     let b = self.input.as_bytes()[self.position];
@@ -1260,34 +1299,250 @@ impl AstBasedGenerator {
                     }
                 }
             }
+            fn consume_horizontal_whitespace(&mut self) {
+                while self.position < self.input.len() {
+                    let b = self.input.as_bytes()[self.position];
+                    if matches!(b, b' ' | b'\t') {
+                        self.position += 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            fn consume_layout_for_terminal(&mut self, expected: &str) {
+                // Skip comments as layout for structural terminals, but avoid swallowing
+                // comment-introducer tokens themselves.
+                let allow_comment_skip = expected != "#"
+                    && expected != "//"
+                    && expected != "/*"
+                    && expected != "/**"
+                    && expected != "///"
+                    && expected != "/";
+
+                loop {
+                    let before = self.position;
+                    self.consume_optional_whitespace();
+
+                    if !allow_comment_skip || self.position >= self.input.len() {
+                        break;
+                    }
+
+                    let bytes = self.input.as_bytes();
+                    let len = bytes.len();
+
+                    if bytes[self.position] == b'#' {
+                        while self.position < self.input.len() {
+                            let b = bytes[self.position];
+                            if b == b'\n' || b == b'\r' {
+                                break;
+                            }
+                            self.position += 1;
+                        }
+                        continue;
+                    }
+
+                    if self.position + 1 < len
+                        && bytes[self.position] == b'/'
+                        && bytes[self.position + 1] == b'/'
+                    {
+                        self.position += 2;
+                        while self.position < self.input.len() {
+                            let b = bytes[self.position];
+                            if b == b'\n' || b == b'\r' {
+                                break;
+                            }
+                            self.position += 1;
+                        }
+                        continue;
+                    }
+
+                    if self.position + 1 < len
+                        && bytes[self.position] == b'/'
+                        && bytes[self.position + 1] == b'*'
+                    {
+                        self.position += 2;
+                        while self.position + 1 < len
+                            && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
+                        {
+                            self.position += 1;
+                        }
+                        if self.position + 1 < len {
+                            self.position += 2;
+                        }
+                        continue;
+                    }
+
+                    if self.position == before {
+                        break;
+                    }
+                }
+            }
+            fn consume_layout_for_regex(&mut self, can_match_empty: bool) {
+                if can_match_empty {
+                    // Empty-matching regexes must not cross line boundaries implicitly.
+                    self.consume_horizontal_whitespace();
+                    return;
+                }
+
+                loop {
+                    let before = self.position;
+                    self.consume_optional_whitespace();
+
+                    if self.position >= self.input.len() {
+                        break;
+                    }
+
+                    let bytes = self.input.as_bytes();
+                    let len = bytes.len();
+
+                    if bytes[self.position] == b'#' {
+                        while self.position < self.input.len() {
+                            let b = bytes[self.position];
+                            if b == b'\n' || b == b'\r' {
+                                break;
+                            }
+                            self.position += 1;
+                        }
+                        continue;
+                    }
+
+                    if self.position + 1 < len
+                        && bytes[self.position] == b'/'
+                        && bytes[self.position + 1] == b'/'
+                    {
+                        self.position += 2;
+                        while self.position < self.input.len() {
+                            let b = bytes[self.position];
+                            if b == b'\n' || b == b'\r' {
+                                break;
+                            }
+                            self.position += 1;
+                        }
+                        continue;
+                    }
+
+                    if self.position + 1 < len
+                        && bytes[self.position] == b'/'
+                        && bytes[self.position + 1] == b'*'
+                    {
+                        self.position += 2;
+                        while self.position + 1 < len
+                            && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
+                        {
+                            self.position += 1;
+                        }
+                        if self.position + 1 < len {
+                            self.position += 2;
+                        }
+                        continue;
+                    }
+
+                    if self.position == before {
+                        break;
+                    }
+                }
+            }
+            fn looks_like_rule_definition_boundary(&self) -> bool {
+                let bytes = self.input.as_bytes();
+                let len = bytes.len();
+                let mut i = self.position;
+                let mut saw_newline = false;
+
+                while i < len {
+                    match bytes[i] {
+                        b' ' | b'\t' => {
+                            i += 1;
+                            continue;
+                        }
+                        b'\n' | b'\r' => {
+                            saw_newline = true;
+                            i += 1;
+                            continue;
+                        }
+                        b'#' => {
+                            while i < len && bytes[i] != b'\n' && bytes[i] != b'\r' {
+                                i += 1;
+                            }
+                            continue;
+                        }
+                        b'/' if i + 1 < len && bytes[i + 1] == b'/' => {
+                            i += 2;
+                            while i < len && bytes[i] != b'\n' && bytes[i] != b'\r' {
+                                i += 1;
+                            }
+                            continue;
+                        }
+                        b'/' if i + 1 < len && bytes[i + 1] == b'*' => {
+                            i += 2;
+                            while i + 1 < len && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
+                                i += 1;
+                            }
+                            if i + 1 < len {
+                                i += 2;
+                            }
+                            continue;
+                        }
+                        _ => {
+                            break;
+                        }
+                    }
+                }
+
+                if !saw_newline || i >= len {
+                    return false;
+                }
+
+                let is_ident_start = |b: u8| b == b'_' || (b as char).is_ascii_alphabetic();
+                let is_ident_continue = |b: u8| b == b'_' || (b as char).is_ascii_alphanumeric();
+
+                if !is_ident_start(bytes[i]) {
+                    return false;
+                }
+                i += 1;
+                while i < len && is_ident_continue(bytes[i]) {
+                    i += 1;
+                }
+                while i < len && matches!(bytes[i], b' ' | b'\t') {
+                    i += 1;
+                }
+
+                (i + 2 <= len && &bytes[i..i + 2] == b":=")
+                    || (i + 3 <= len && &bytes[i..i + 3] == b"::=")
+                    || (i + 2 <= len && &bytes[i..i + 2] == b":-")
+                    || (i + 1 <= len && bytes[i] == b'=')
+            }
             fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
-                self.consume_optional_whitespace();
+                self.consume_layout_for_terminal(expected);
                 let start = self.position;
-                let end = start + expected.len();
+                let expected_bytes = expected.as_bytes();
+                let end = start + expected_bytes.len();
 
                 if self.logger.is_enabled() {
                     self.logger.log_debug(#filename, 0, &format!("🔤 Attempting to match terminal '{}' at position {} (end: {})", expected, start, end));
                 }
 
-                if end <= self.input.len() {
-                    let slice = &self.input[start..end];
-                    if slice == expected {
-                        self.position = end;
-
-                        if self.logger.is_enabled() {
-                            self.logger.log_success(#filename, 0, &format!("✅ Terminal '{}' matched, advanced to position {}", expected, end));
-                        }
-
-                        return Ok(slice);
+                if self.bytes_match_at(start, expected_bytes) {
+                    if !self.input.is_char_boundary(start) || !self.input.is_char_boundary(end) {
+                        return Err(self.create_contextual_error(&format!(
+                            "Internal UTF-8 boundary mismatch while matching '{}'",
+                            expected
+                        )));
                     }
+                    self.position = end;
+
+                    if self.logger.is_enabled() {
+                        self.logger.log_success(#filename, 0, &format!("✅ Terminal '{}' matched, advanced to position {}", expected, end));
+                    }
+
+                    return Ok(&self.input[start..end]);
                 }
 
                 // Enhanced error with context
                 let found_str = if self.position < self.input.len() {
-                    let end = (self.position + expected.len()).min(self.input.len());
-                    &self.input[self.position..end]
+                    let end = (self.position + expected_bytes.len()).min(self.input.len());
+                    self.byte_window_lossy(self.position, end)
                 } else {
-                    "<EOF>"
+                    "<EOF>".to_string()
                 };
 
                 if self.logger.is_enabled() {
@@ -1301,16 +1556,27 @@ impl AstBasedGenerator {
             }
 
             fn match_regex(&mut self, pattern: &str, skip_leading_whitespace: bool) -> ParseResult<&'input str> {
-                if skip_leading_whitespace {
-                    self.consume_optional_whitespace();
-                }
                 let re = regex::Regex::new(pattern)
                     .map_err(|e| self.create_contextual_error(&format!(
                         "Invalid regex pattern '{}': {}",
                         pattern, e
                     )))?;
 
-                if let Some(mat) = re.find(&self.input[self.position..]) {
+                if skip_leading_whitespace {
+                    // Regexes that can match empty should not consume newlines first.
+                    // Otherwise optional branches can silently jump into the next rule/line.
+                    let can_match_empty = re
+                        .find("")
+                        .map(|m| m.start() == 0 && m.end() == 0)
+                        .unwrap_or(false);
+                    self.consume_layout_for_regex(can_match_empty);
+                }
+
+                let Some(haystack) = self.input.get(self.position..) else {
+                    return Err(self.create_contextual_error("Parser position is not on a UTF-8 boundary"));
+                };
+
+                if let Some(mat) = re.find(haystack) {
                     if mat.start() == 0 {
                         let matched = mat.as_str();
                         let start = self.position;
@@ -1320,16 +1586,19 @@ impl AstBasedGenerator {
                         }
 
                         self.position += matched.len();
-                        return Ok(&self.input[start..self.position]);
+                        if let Some(slice) = self.input.get(start..self.position) {
+                            return Ok(slice);
+                        }
+                        return Err(self.create_contextual_error("Regex matched invalid UTF-8 span"));
                     }
                 }
 
                 if self.logger.is_enabled() {
                     let preview = if self.position < self.input.len() {
                         let end = (self.position + 10).min(self.input.len());
-                        &self.input[self.position..end]
+                        self.byte_window_lossy(self.position, end)
                     } else {
-                        "<EOF>"
+                        "<EOF>".to_string()
                     };
                     self.logger.log_error(#filename, 0, &format!("❌ Regex '{}' no match at position {} (next: '{}')", pattern, self.position, preview));
                 }
@@ -1429,11 +1698,7 @@ impl AstBasedGenerator {
                 // Get input context around the error position
                 let start = position.saturating_sub(20);
                 let end = (position + 20).min(self.input.len());
-                let input_context = if start < end {
-                    self.input[start..end].to_string()
-                } else {
-                    String::new()
-                };
+                let input_context = self.byte_window_lossy(start, end);
 
                 ParseError::ContextualError {
                     message: message.to_string(),
@@ -1447,6 +1712,33 @@ impl AstBasedGenerator {
 
     fn semantic_directive_name(annotation: &SemanticAnnotation) -> Option<String> {
         Self::semantic_directive_parts(annotation).map(|(name, _)| name)
+    }
+
+    fn rule_has_semantic_bool_directive(&self, rule_name: &str, names: &[&str]) -> bool {
+        let Some(annotations) = &self.annotations else {
+            return false;
+        };
+        let Some(semantic_annotations) = annotations.semantic_annotations.get(rule_name) else {
+            return false;
+        };
+
+        semantic_annotations.iter().any(|annotation| {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                return false;
+            };
+            let name_matches = names.iter().any(|candidate| name.eq_ignore_ascii_case(candidate));
+            if !name_matches {
+                return false;
+            }
+
+            // Presence implies true; explicit falsy payload disables the gate.
+            let normalized = payload
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_ascii_lowercase();
+            !matches!(normalized.as_str(), "false" | "0" | "no" | "off")
+        })
     }
 
     fn semantic_directive_parts(annotation: &SemanticAnnotation) -> Option<(String, String)> {

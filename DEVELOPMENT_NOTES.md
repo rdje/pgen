@@ -3119,3 +3119,136 @@ These checks provide a stable contract for bootstrap mode:
 - inferred EBNF files remain implementation-accurate,
 - parser quirks are explicit and test-locked,
 - future refactors to bootstrap parsers can be made safely with immediate drift detection.
+
+---
+
+## 2026-02-19 - Generic Rust Frontend Hardening for EBNF/JSON Pipelines
+
+### Context
+The immediate requirement was explicit: parser pipeline changes must be reusable across grammars and must not be tailored to specific grammar names/files.
+
+At the same time, dual-run differential runs showed frontend instability:
+- `regex.ebnf` was prefix-parsing only (`parse_full` failed early).
+- `ebnf.ebnf` hit a runtime panic:
+  - `byte index ... is not a char boundary` near the `ε` literal section.
+
+### Root Causes Identified
+
+#### 1) Unsafe UTF-8 slicing in generated parser runtime
+Generated helpers were slicing with byte offsets assuming char boundaries:
+- terminal matching slices (`self.input[start..end]`),
+- preview/context extraction slices,
+- parse-context diagnostics.
+
+When position arithmetic landed inside a multi-byte character (for example `"ε"`), panic occurred.
+
+#### 2) Overly strict `parse_full` EOF check
+`parse_full()` previously required `parsed.span.end == input.len()`.
+This rejected structurally-complete parses that left only layout/comments at tail.
+
+#### 3) Hardcoded grammar-name boundary behavior
+Quantifier stop logic was tied to:
+- `grammar_name == "ebnf"` and
+- `rule_name == "sequence"`.
+
+This violated the no-tailoring requirement and made behavior non-portable to other declaration-style grammars.
+
+#### 4) Layout/comment handling gaps around matching paths
+Terminal/regex paths did not consistently treat comments as layout, and boundary probes did not skip comment blocks robustly.
+
+### Implementation Details
+
+#### A) UTF-8-safe matching and diagnostics helpers
+File: `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Added generated helper methods:
+- `byte_window_lossy(start, end) -> String`
+- `bytes_match_at(start, expected: &[u8]) -> bool`
+
+Applied across runtime:
+- `match_string` now compares bytes first, checks UTF-8 boundaries before returning a `&str`.
+- `match_regex` now:
+  - validates position-to-slice with `self.input.get(self.position..)`,
+  - validates match span with `self.input.get(start..self.position)`.
+- Error previews/context now use lossy byte windows instead of direct slicing.
+- Semantic annotation start detection switched to byte check (`b'@'`) rather than slicing + `starts_with`.
+
+Result:
+- eliminated UTF-8 boundary panics in dual-run execution.
+
+#### B) `parse_full` now checks structural completeness, not raw byte end from root span
+File: `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Updated generated `parse_full()` flow:
+1. parse entry rule,
+2. consume trailing layout/comments via `consume_layout_for_terminal("<EOF>")`,
+3. require `self.position == self.input.len()`.
+
+Result:
+- avoids false failures when only layout/comments remain after successful parse.
+
+#### C) Generic rule-boundary stopping via semantic directives
+File: `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Added:
+- `rule_has_semantic_bool_directive(rule_name, names: &[&str]) -> bool`
+
+Semantics:
+- recognized names:
+  - `stop_at_rule_boundary`
+  - `stop_on_rule_boundary`
+  - `line_delimited_sequence`
+- presence => enabled unless payload is explicit falsy (`false`, `0`, `no`, `off`).
+
+Quantifier loops (`*`, `+`) now gate boundary-stop behavior on this rule-level semantic directive, not on `grammar_name`.
+
+Result:
+- behavior is opt-in, explicit, and portable across grammars.
+
+#### D) Boundary probe made layout/comment aware
+File: `rust/src/ast_pipeline/ast_based_generator.rs`
+
+`looks_like_rule_definition_boundary()` now skips:
+- spaces/tabs/newlines,
+- line comments (`#`, `//`),
+- block comments (`/* ... */`)
+before checking for `identifier + rule operator`.
+
+Result:
+- robust boundary detection in real grammar files containing comments between rules.
+
+#### E) EBNF grammar annotation and include-item compatibility
+File: `grammars/ebnf.ebnf`
+
+1) Added explicit semantic opt-in:
+- `@stop_at_rule_boundary: true` on `sequence`.
+
+2) Extended include short form:
+- introduced `include_item_list` and `include_item`,
+- allows quoted strings and bare identifiers in `include(...)`, `file(...)`, `dir(...)`.
+
+This preserves portability and avoids parser hardcoding for include syntax variants.
+
+### Validation Runs
+
+#### Command
+- `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+
+#### Final outcome
+- `ebnf`: Perl pass, Rust parse pass, Rust parse_full pass
+- `json`: Perl pass, Rust parse pass, Rust parse_full pass
+- `regex`: Perl pass, Rust parse pass, Rust parse_full pass
+
+Dual-run summary ended with:
+- `EBNF dual-run differential passed for all tracked grammars`.
+
+### Design/Architecture Notes
+1. Rule-boundary behavior is now policy-driven (semantic directives), not name-driven.
+2. Runtime matching is now byte-safe by construction; UTF-8 text no longer panics on boundary mistakes.
+3. Full-parse semantics now align with practical grammar-file layout expectations.
+
+### Files Touched in This Increment
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `grammars/ebnf.ebnf`
+- `CHANGES.md`
+- `DEVELOPMENT_NOTES.md`

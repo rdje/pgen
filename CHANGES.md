@@ -7164,3 +7164,64 @@ Updated `grammars/builtin_return_annotation.ebnf`:
 - `grammars/builtin_return_annotation.ebnf`
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
+
+---
+
+## 2026-02-19: Generic Frontend Parser Hardening (All EBNF/JSON Grammars)
+
+### Goal
+Ensure parser pipeline fixes are grammar-agnostic (not hardcoded to one grammar name), while eliminating UTF-8 slicing panics and restoring full-parse parity in the Rust EBNF frontend path.
+
+### Changes
+
+#### 1) `parse_full` now accepts trailing layout/comments before EOF
+File: `rust/src/ast_pipeline/ast_based_generator.rs`
+- Updated generated `parse_full()` to consume trailing layout/comments before final EOF verification.
+- This prevents false `parse_full` failures on files that end with comments/whitespace.
+
+#### 2) Replaced hardcoded EBNF sequence boundary logic with semantic directive control
+File: `rust/src/ast_pipeline/ast_based_generator.rs`
+- Removed grammar-name-special-casing and introduced semantic bool directive lookup:
+  - `@stop_at_rule_boundary`
+  - `@stop_on_rule_boundary`
+  - `@line_delimited_sequence`
+- Quantifier loops now only stop at rule-definition boundaries when the rule carries one of those directives.
+
+File: `grammars/ebnf.ebnf`
+- Added `@stop_at_rule_boundary: true` to `sequence` to preserve intended line-delimited behavior without generator hardcoding.
+
+#### 3) UTF-8-safe generated runtime matching and diagnostics
+File: `rust/src/ast_pipeline/ast_based_generator.rs`
+- `match_string` switched to byte-level compare (`bytes_match_at`) with UTF-8 boundary checks before returning `&str`.
+- `match_regex` now guards invalid non-char-boundary parser positions and validates matched spans.
+- Error previews and contextual snippets now use lossy byte windows (`byte_window_lossy`) instead of unsafe direct string slicing.
+- Semantic annotation probe switched to byte check (`b'@'`) to avoid non-boundary string slicing.
+
+#### 4) Comment-aware layout handling in terminal/regex paths
+File: `rust/src/ast_pipeline/ast_based_generator.rs`
+- Added layout helpers that treat `#`, `//`, and `/* ... */` as layout where appropriate.
+- Added boundary probe support that skips comments/newlines before testing for next rule definitions.
+- Empty-matching regex handling now avoids newline-crossing by consuming only horizontal whitespace.
+
+#### 5) EBNF include short-form compatibility extension
+File: `grammars/ebnf.ebnf`
+- `include(...)`, `file(...)`, and `dir(...)` now accept mixed include items via:
+  - `include_item_list := include_item ("," include_item)*`
+  - `include_item := quoted_string | rule_name`
+- This supports bare include identifiers (e.g. `include(semantic_annotations)`) in addition to quoted strings.
+
+### Validation
+Command:
+- `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+
+Result:
+- `ebnf`: pass / pass / pass (parse + parse_full parity)
+- `json`: pass / pass / pass
+- `regex`: pass / pass / pass
+- Final summary: `EBNF dual-run differential passed for all tracked grammars`.
+
+### Files Modified
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `grammars/ebnf.ebnf`
+- `CHANGES.md`
+- `DEVELOPMENT_NOTES.md`

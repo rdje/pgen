@@ -46,10 +46,17 @@ include_directories := "include_dir" "(" string_list ")"
 
 # Short form: include("file1", "file2") or dir("dir1", "dir2")
 include_short_form := (
-    "include" "(" string_list ")" |
-    "file" "(" string_list ")" |
-    "dir" "(" string_list ")"
+    "include" "(" include_item_list ")" |
+    "file" "(" include_item_list ")" |
+    "dir" "(" include_item_list ")"
 ) -> {type: "include", form: $1, items: $3}
+
+# Include item list can use quoted strings or bare include identifiers.
+include_item_list := include_item ("," include_item)*
+    -> [$1, $2*]
+
+include_item := quoted_string | rule_name
+    -> $1
 
 # Comma-separated list of quoted strings
 string_list := quoted_string ("," quoted_string)*
@@ -96,6 +103,7 @@ alternation := sequence ("|" sequence)*
     -> {type: "alternation", alternatives: [$1, $2*]}
 
 # Sequence: expr1 expr2 expr3
+@stop_at_rule_boundary: true
 sequence := sequence_element+
     -> {type: "sequence", elements: [$1*]}
 
