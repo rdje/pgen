@@ -235,6 +235,7 @@ help:
 	@echo "  differential_report - Compare generated vs bootstrap parser behavior and emit JSON reports"
 	@echo "  differential_refresh_baseline - Refresh tracked differential mismatch baselines"
 	@echo "  differential_regression_gate - Fail only on NEW mismatches vs tracked differential baselines"
+	@echo "  return_parity_gate - Enforce zero return mismatches on comparable (expectation-aligned) differential corpus"
 	@echo "  help         - Show this help"
 	@echo "  status       - Show current build status"
 	@echo ""
@@ -428,6 +429,7 @@ annotation_contract_gate:
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_builtin_contract
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract
 	@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate
+	@$(MAKE) -C $(RUST_DIR) return_parity_gate
 	@$(MAKE) -C $(RUST_DIR) semantic_usage_gate
 	@$(MAKE) -C $(RUST_DIR) annotation_robustness_gate
 	@echo "✅ Annotation normative contract gate passed."
@@ -496,6 +498,14 @@ differential_regression_gate:
 	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-baseline-json test_data/differential_baseline/return_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/return_annotation_diff_report.json
 	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/semantic_annotation_diff_report.json
 	@echo "✅ Differential regression gate passed (no new mismatches vs baseline)."
+
+.PHONY: return_parity_gate
+return_parity_gate:
+	@echo "🧩 Running return parity gate (comparable corpus)..."
+	@mkdir -p $(DIFFERENTIAL_REPORT_DIR)
+	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-comparable-only --differential-report-json target/differential_harness/return_annotation_parity_report.json
+	@echo "✅ Return parity gate passed (comparable return corpus has zero mismatches)."
 
 .PHONY: performance_gate
 performance_gate:

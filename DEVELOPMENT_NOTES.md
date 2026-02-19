@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J P1 Implementation: Return Parity Gate on Comparable Differential Corpus
+### Context
+The next Phase J return-closure step needed stricter parity enforcement without conflating intentionally non-comparable tests:
+- bootstrap-only quirk contract suites (`generated_parser: skip`),
+- parser-specific regression suites where expectations intentionally differ between bootstrap/generated.
+
+Existing differential gates tracked global mismatch debt via baselines (`new mismatch only`) but did not enforce a zero-mismatch contract on the truly comparable return corpus.
+### Implementation
+- Extended differential harness CLI:
+  - `rust/src/bin/test_runner.rs`
+  - New flag:
+    - `--differential-comparable-only`
+- Added expectation-aware comparability filtering in differential mode:
+  - canonical expectation classes:
+    - `pass`
+    - `fail` / `expected_fail`
+    - `skip`
+  - comparable-case rule:
+    - bootstrap and generated expectations must both be non-`skip`,
+    - and must map to the same expectation class.
+  - non-comparable cases are skipped (not counted as mismatches) and reported.
+- Extended differential report model:
+  - added `comparable_only` marker,
+  - added `skipped_non_comparable_cases` count.
+- Added return parity gate target:
+  - `rust/Makefile`
+  - `return_parity_gate` runs:
+    - differential return mode,
+    - comparable-only filter enabled,
+    - fails if any comparable mismatch remains.
+- Enforced parity gate in annotation contract path:
+  - wired `return_parity_gate` into `annotation_contract_gate`.
+- Updated:
+  - Makefile `help` target
+  - roadmap + user guide references for the new parity closure mechanism.
+### Validation
+- Ran:
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --differential --parser return --differential-comparable-only`
+  - `make -C rust SHELL=/bin/bash return_parity_gate`
+- Result:
+  - comparable return differential corpus reported `mismatched=0`,
+  - return parity gate passed and is now part of annotation contract gate execution.
+### Why This Matters
+- Converts return parity from passive reporting to an explicit gate contract for expectation-aligned cases.
+- Preserves visibility of bootstrap-only/parser-specific drift without letting intentional non-comparables block parity closure.
+- Tightens Phase J return closure criteria while maintaining compatibility with existing baseline-driven differential debt tracking.
+
 ## 2026-02-19 - Phase J P1 Implementation: Unsatisfiable Value-Domain Intersection Diagnostics
 ### Context
 After deterministic conflict-resolution landed (`priority > precedence` and duplicate last-wins), the next pending Phase J P1 item was cross-directive contradiction detection for value-domain semantics.

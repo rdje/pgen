@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-02-19 - Phase J P1: Return Parity Gate (Comparable Differential Corpus)
+### ✅ Achievement Summary
+Added an expectation-aware return parity closure gate that enforces zero differential mismatches on the comparable return corpus, and wired it into `annotation_contract_gate`.
+### Scope of Changes
+- Extended differential harness CLI in:
+  - `rust/src/bin/test_runner.rs`
+- Added new flag:
+  - `--differential-comparable-only`
+  - behavior:
+    - includes only tests where bootstrap and generated expectations are both non-`skip` and equivalent (`pass` vs `pass`, `fail/expected_fail` vs `fail/expected_fail`),
+    - skips non-comparable cases (for example parser-specific suites and bootstrap-only quirk contracts),
+    - reports skipped non-comparable case count in output/JSON report.
+- Added expectation-classification helpers in differential mode:
+  - canonical expectation parsing (`pass`, `fail/expected_fail`, `skip`),
+  - comparable-case filter.
+- Added new Makefile gate:
+  - `make -C rust return_parity_gate`
+  - executes return differential in comparable-only mode and fails on any mismatch.
+- Wired `return_parity_gate` into:
+  - `make -C rust annotation_contract_gate`
+  - so parity closure criteria are now enforced in the annotation contract gate path.
+- Updated docs/roadmap:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `rust/Makefile` help target.
+### Validation Results
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --differential --parser return --differential-comparable-only` ✅ (`mismatched=0`)
+- `make -C rust SHELL=/bin/bash return_parity_gate` ✅
+
 ## 2026-02-19 - Phase J P1: Unsatisfiable Value-Domain Intersection Diagnostics
 ### ✅ Achievement Summary
 Expanded semantic conflict diagnostics to detect contradictory value-domain directive combinations and emit a stable warning when no `@enum` value can satisfy all active constraints.

@@ -6,22 +6,22 @@ use chrono::Utc;
 use clap::{Arg, Command};
 use lazy_static::lazy_static;
 #[cfg(feature = "generated_parsers")]
-use pgen::NoOpLogger;
-#[cfg(feature = "generated_parsers")]
 use pgen::generated_parsers::return_annotation::Return_annotationParser;
 #[cfg(feature = "generated_parsers")]
 use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
 #[cfg(feature = "generated_parsers")]
-use pgen::test_runner::Logger;
-#[cfg(feature = "generated_parsers")]
-use pgen::test_runner::normalization::{Normalizer, apply_normalizer};
+use pgen::test_runner::normalization::{apply_normalizer, Normalizer};
 use pgen::test_runner::parsers::{
     ReturnAnnotationParser as BootstrapReturnAnnotationParser,
     SemanticAnnotationParser as BootstrapSemanticAnnotationParser,
 };
 #[cfg(feature = "generated_parsers")]
 use pgen::test_runner::round_trip_tests::{RoundTripTest, TestSuite};
+#[cfg(feature = "generated_parsers")]
+use pgen::test_runner::Logger;
 use pgen::test_runner::{FileLogger, Parser, UniversalTestRunner};
+#[cfg(feature = "generated_parsers")]
+use pgen::NoOpLogger;
 #[cfg(feature = "generated_parsers")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "generated_parsers")]
@@ -273,9 +273,11 @@ struct DifferentialReport {
     parser: String,
     baseline: String,
     candidate: String,
+    comparable_only: bool,
     suite_filter: Option<String>,
     tag_filter: Vec<String>,
     total_cases: usize,
+    skipped_non_comparable_cases: usize,
     matched_cases: usize,
     mismatched_cases: usize,
     mismatch_category_counts: BTreeMap<String, usize>,
@@ -293,6 +295,33 @@ struct DifferentialReport {
 struct DifferentialBaselineFile {
     parser: String,
     allowed_mismatches: Vec<DifferentialMismatchKey>,
+}
+
+#[cfg(feature = "generated_parsers")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DifferentialExpectationClass {
+    Pass,
+    Fail,
+    Skip,
+}
+
+#[cfg(feature = "generated_parsers")]
+fn parse_differential_expectation(raw: &str) -> DifferentialExpectationClass {
+    match raw.trim().to_lowercase().as_str() {
+        "skip" => DifferentialExpectationClass::Skip,
+        "fail" | "expected_fail" => DifferentialExpectationClass::Fail,
+        _ => DifferentialExpectationClass::Pass,
+    }
+}
+
+#[cfg(feature = "generated_parsers")]
+fn differential_case_is_comparable(test: &RoundTripTest) -> bool {
+    let baseline = parse_differential_expectation(&test.expectations.bootstrap_parser);
+    let candidate = parse_differential_expectation(&test.expectations.generated_parser);
+
+    baseline != DifferentialExpectationClass::Skip
+        && candidate != DifferentialExpectationClass::Skip
+        && baseline == candidate
 }
 
 #[cfg(feature = "generated_parsers")]
@@ -332,6 +361,7 @@ fn run_differential_mode(
     parser_type: &str,
     suite_filter: Option<String>,
     tag_filter: Vec<String>,
+    comparable_only: bool,
     debug_enabled: bool,
     fail_fast: bool,
     baseline_json_path: Option<&str>,
@@ -373,9 +403,11 @@ fn run_differential_mode(
         parser: canonical.clone(),
         baseline: "bootstrap".to_string(),
         candidate: "generated".to_string(),
+        comparable_only,
         suite_filter: suite_filter.clone(),
         tag_filter: tag_filter.clone(),
         total_cases: 0,
+        skipped_non_comparable_cases: 0,
         matched_cases: 0,
         mismatched_cases: 0,
         mismatch_category_counts: BTreeMap::new(),
@@ -405,6 +437,10 @@ fn run_differential_mode(
             if !test_matches_tag_filter(test, &tag_filter) {
                 continue;
             }
+            if comparable_only && !differential_case_is_comparable(test) {
+                report.skipped_non_comparable_cases += 1;
+                continue;
+            }
 
             report.total_cases += 1;
 
@@ -427,7 +463,8 @@ fn run_differential_mode(
                 },
             };
 
-            let mismatch_category = classify_outcome_mismatch(&baseline_outcome, &candidate_outcome);
+            let mismatch_category =
+                classify_outcome_mismatch(&baseline_outcome, &candidate_outcome);
             if mismatch_category.is_none() {
                 report.matched_cases += 1;
                 continue;
@@ -466,12 +503,13 @@ fn run_differential_mode(
                 path, e
             )
         })?;
-        let baseline: DifferentialBaselineFile = serde_json::from_str(&baseline_json).map_err(|e| {
-            format!(
-                "Failed to parse differential baseline JSON '{}': {}",
-                path, e
-            )
-        })?;
+        let baseline: DifferentialBaselineFile =
+            serde_json::from_str(&baseline_json).map_err(|e| {
+                format!(
+                    "Failed to parse differential baseline JSON '{}': {}",
+                    path, e
+                )
+            })?;
         let baseline_parser = canonical_parser_type(&baseline.parser);
         if baseline_parser != canonical {
             return Err(format!(
@@ -513,6 +551,12 @@ fn run_differential_mode(
     }
     if !report.tag_filter.is_empty() {
         log_output(&format!("Tag filter: {}", report.tag_filter.join(",")));
+    }
+    if report.comparable_only {
+        log_output(&format!(
+            "Comparable-only filter: skipped {} non-comparable case(s)",
+            report.skipped_non_comparable_cases
+        ));
     }
     log_output(&format!(
         "Compared {} case(s): matched={} mismatched={}",
@@ -565,7 +609,10 @@ fn run_differential_mode(
         }
         if report.baseline_new_mismatches.unwrap_or(0) > 0 {
             for mismatch in report.baseline_new_mismatch_cases.iter().take(20) {
-                log_output(&format!("  - NEW mismatch: {} / {}", mismatch.suite, mismatch.test));
+                log_output(&format!(
+                    "  - NEW mismatch: {} / {}",
+                    mismatch.suite, mismatch.test
+                ));
             }
             return Ok(1);
         }
@@ -593,6 +640,7 @@ fn run_differential_mode(
     _parser_type: &str,
     _suite_filter: Option<String>,
     _tag_filter: Vec<String>,
+    _comparable_only: bool,
     _debug_enabled: bool,
     _fail_fast: bool,
     _baseline_json_path: Option<&str>,
@@ -694,6 +742,13 @@ fn main() {
                 .requires("differential")
         )
         .arg(
+            Arg::new("differential_comparable_only")
+                .long("differential-comparable-only")
+                .help("Compare only cases where bootstrap/generated expectations are both non-skip and equivalent")
+                .requires("differential")
+                .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
             Arg::new("differential_baseline_json")
                 .long("differential-baseline-json")
                 .value_name("PATH")
@@ -743,6 +798,7 @@ fn main() {
         let report_path = matches
             .get_one::<String>("differential_report_json")
             .map(|s| s.as_str());
+        let comparable_only = matches.get_flag("differential_comparable_only");
         let baseline_path = matches
             .get_one::<String>("differential_baseline_json")
             .map(|s| s.as_str());
@@ -754,6 +810,7 @@ fn main() {
             parser_type,
             suite_filter,
             tag_filter,
+            comparable_only,
             debug_enabled,
             fail_fast,
             baseline_path,

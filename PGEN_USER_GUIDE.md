@@ -397,14 +397,26 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin tes
   --differential --parser semantic --differential-report-json /tmp/semantic_diff.json
 ```
 
-2. Refresh tracked mismatch baseline:
+2. Comparable-only parity run (expectation-aligned corpus only):
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- \
+  --differential --parser return --differential-comparable-only \
+  --differential-report-json /tmp/return_parity_diff.json
+```
+
+3. Refresh tracked mismatch baseline:
 ```bash
 make -C rust SHELL=/bin/bash differential_refresh_baseline
 ```
 
-3. Regression-only gate (fail only on NEW mismatches):
+4. Regression-only gate (fail only on NEW mismatches):
 ```bash
 make -C rust SHELL=/bin/bash differential_regression_gate
+```
+
+5. Return parity gate (comparable corpus must be zero mismatch):
+```bash
+make -C rust SHELL=/bin/bash return_parity_gate
 ```
 
 Tracked baselines:
@@ -431,6 +443,8 @@ Tracked baselines:
   - throughput/latency/failure thresholds
 - `differential-regression-gate`
   - no new generated-vs-bootstrap mismatches
+- `return_parity_gate` (local gate target)
+  - zero return mismatches on expectation-aligned (comparable) differential corpus
 - `embedding_api_gate` (local gate target)
   - contract stability for embedding API behavior
 
@@ -450,6 +464,7 @@ Annotation contract/robustness commands:
 ```bash
 make -C rust SHELL=/bin/bash annotation_robustness_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
+make -C rust SHELL=/bin/bash return_parity_gate
 ```
 
 Aggregate SOTA gate command:
