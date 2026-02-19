@@ -54,7 +54,7 @@ Hard boundary:
 | `SC-05` | Precedence/associativity steering | Resolve ambiguity/branching deterministically | Generate precedence-respecting trees | `@precedence`, `@associativity`, `@priority` | Implemented: parser tie-break uses priority+associativity; stimuli branch sampling uses semantic priority/precedence + associativity multipliers; conflict contract enforces `priority > precedence` with deterministic duplicate last-wins diagnostics | Tier 3 | P0 |
 | `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | External gap-priority exists; semantic-driven route not implemented | Tier 3 | P1 |
 | `SC-07` | Error recovery and sync strategy | Production-grade parser recovery hints | Generate recovery-focused stimuli sets | `@recover`, `@sync`, `@panic_until` | Not implemented | Tier 2 | P1 |
-| `SC-08` | Value-domain constraints | Enforce value contracts at parse/validation boundaries | Generate in-domain samples | `@range`, `@enum`, `@regex`, `@len` | Baseline implemented: parser value guards + stimuli domain steering + typed validator payload diagnostics + semantic usage gate coverage | Tier 3 | P0 |
+| `SC-08` | Value-domain constraints | Enforce value contracts at parse/validation boundaries | Generate in-domain samples | `@range`, `@enum`, `@regex`, `@len` | Implemented with conflict diagnostics: parser value guards + stimuli domain steering + typed payload diagnostics + unsatisfiable intersection warning (`W_SEM_UNSATISFIABLE_VALUE_DOMAIN`) + semantic usage gate coverage | Tier 3 | P0 |
 | `SC-09` | Cross-field/cross-capture constraints | Validate relational constraints between captures | Generate constraint-satisfying combinations | `@constraint`, `@requires`, `@implies` | Not implemented | Tier 3 | P1 |
 | `SC-10` | Coverage target hints | Optional parser instrumentation priority tags | Rule/branch target boosting | `@coverage_target`, `@critical_path` | Coverage/gap pipeline exists; semantic hints not implemented | Tier 3 | P1 |
 | `SC-11` | Negative case semantics | Emit expected-failure parser paths | Generate invalid/near-invalid stimuli | `@invalid_case`, `@negative` | Not implemented | Tier 3 | P2 |
@@ -90,13 +90,13 @@ Required quality bar:
 
 ## Next Implementation Focus (Recommended)
 1. Decide strictness policy for known-invalid semantic directive payloads (warning vs error in strict CI paths).
-2. Add unsatisfiable multi-constraint semantic diagnostics for value-domain intersections (`enum/range/len/regex`).
-3. Add dedicated return-annotation closure work to drive differential return mismatches to zero.
-4. Start `SC-09` cross-field/cross-capture constraint design and validator contract.
+2. Add dedicated return-annotation closure work to drive differential return mismatches to zero.
+3. Start `SC-09` cross-field/cross-capture constraint design and validator contract.
+4. Define policy for promoting selected semantic warnings to strict-mode errors without harming bootstrap compatibility.
 
 ## Priority Queue (Balance-Oriented)
 - `P0` Keep built-in core minimal and invariant-only (correctness/safety/return completeness).
 - `P0` Implement typed semantic directive registry + unknown-directive policy modes (`warn`/`strict`). (Completed 2026-02-19)
 - `P0` Promote precedence/associativity and value-domain constraints to parser+stimuli steering. (Completed 2026-02-19)
-- `P1` Expand conflict diagnostics from directive precedence to unsatisfiable cross-directive constraint intersections.
+- `P1` Expand conflict diagnostics from directive precedence to unsatisfiable cross-directive constraint intersections. (Completed 2026-02-19)
 - `P1` Drive return differential mismatch debt to zero and tighten release gate criteria.

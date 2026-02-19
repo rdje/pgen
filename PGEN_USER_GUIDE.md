@@ -290,6 +290,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Deterministic merge/precedence behavior:
   - different value-domain directives compose conjunctively (all active constraints must pass),
   - repeated occurrences of the same directive currently follow last-wins assignment per rule.
+  - when `@enum` is present with `@len`/`@range`/`@regex`, validator checks satisfiability of the intersection and warns if no enum value can satisfy all active constraints.
 
 ### 8.5 Parser Runtime Contract for Value-Domain Directives
 - Value-domain guards are injected into generated parser code for relevant atom token paths:
@@ -331,6 +332,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Conflict diagnostics:
   - `W_SEM_PRIORITY_PRECEDENCE_CONFLICT` (`@priority` + `@precedence` both present; `@priority` takes precedence)
   - `W_SEM_DIRECTIVE_OVERRIDDEN` (same known directive repeated; last occurrence wins)
+  - `W_SEM_UNSATISFIABLE_VALUE_DOMAIN` (`@enum` combined with `@len`/`@range`/`@regex` yields an empty effective domain)
 
 ### 8.8 Practical Examples
 

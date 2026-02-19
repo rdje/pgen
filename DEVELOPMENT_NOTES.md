@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J P1 Implementation: Unsatisfiable Value-Domain Intersection Diagnostics
+### Context
+After deterministic conflict-resolution landed (`priority > precedence` and duplicate last-wins), the next pending Phase J P1 item was cross-directive contradiction detection for value-domain semantics.
+
+Before this slice, contradictory combinations could pass typed payload validation while still creating an empty effective domain at runtime (for example enum candidates that can never satisfy regex/range/len constraints together). This ambiguity reduced confidence in semantic contracts and made author mistakes harder to catch early.
+### Implementation
+- Extended semantic conflict analysis in:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+- Added a dedicated intersection check in conflict validation flow:
+  - `validate_unsatisfiable_value_domain_intersection(...)`
+  - execution point: after directive occurrence collection, before duplicate-override diagnostics.
+- Intersection detection rules:
+  - requires parseable, non-empty `@enum`,
+  - considers latest effective payload for each directive (`@enum`, `@len`, `@range`, `@regex`) using existing last-wins policy,
+  - applies conjunction semantics:
+    - length bound test (when `@len` present),
+    - numeric range parse + bound test (when `@range` present),
+    - full-string regex match (when `@regex` present),
+  - emits warning only when at least one of `@len/@range/@regex` is active and no enum candidate passes all active constraints.
+- Added stable diagnostic:
+  - `W_SEM_UNSATISFIABLE_VALUE_DOMAIN`
+  - message communicates empty effective value domain under combined directives.
+- Added validator-local helper methods:
+  - latest directive payload resolver (index + payload),
+  - full-match regex helper for candidate checks.
+- Added focused tests:
+  - `semantic_validator_warns_on_unsatisfiable_enum_regex_intersection`
+  - `semantic_validator_warns_on_unsatisfiable_enum_range_intersection`
+  - `semantic_validator_does_not_warn_when_enum_intersection_is_satisfiable`
+### Validation
+- Ran:
+  - `cargo test --manifest-path rust/Cargo.toml semantic_validator_`
+  - `make -C rust SHELL=/bin/bash annotation_contract_gate`
+- Result:
+  - all validator tests passed,
+  - annotation contract gate remained green (including shared contract, semantic usage, and robustness sub-gates).
+### Why This Matters
+- Converts a previously implicit semantic contradiction class into an explicit, stable diagnostic contract.
+- Improves authoring ergonomics for advanced semantic annotation usage by surfacing empty-domain mistakes early.
+- Completes the pending Phase J P1 roadmap item for unsatisfiable multi-directive conflict diagnostics.
+
 ## 2026-02-19 - Phase J P1 Implementation: Deterministic Conflict-Resolution Baseline
 ### Context
 After implementing value-domain steering, the next roadmap item was deterministic conflict resolution between overlapping semantic directives.

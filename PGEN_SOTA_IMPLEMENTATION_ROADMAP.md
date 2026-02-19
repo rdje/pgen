@@ -93,7 +93,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] `P0` Implement parser/stimuli precedence+associativity steering controls.
 - [x] `P0` Implement parser/stimuli value-domain constraint controls (`range/enum/regex/len` style directives) baseline.
 - [x] `P1` Implement semantic directive conflict-resolution baseline (deterministic `priority > precedence` policy and duplicate directive override diagnostics).
-- [ ] `P1` Expand semantic conflict diagnostics to unsatisfiable multi-directive intersections.
+- [x] `P1` Expand semantic conflict diagnostics to unsatisfiable multi-directive intersections.
 - [ ] `P1` Drive return-annotation differential mismatches to zero and enforce stricter return parity closure criteria.
 
 ## Current Sprint: Pillar 1
@@ -143,3 +143,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Completed Phase J P0 precedence/associativity steering baseline by adding semantic `priority/precedence` branch tie-break controls and `associativity` tie policy routing in parser codegen and stimuli branch selection.
 - 2026-02-19: Completed Phase J P0 value-domain steering baseline by wiring semantic `enum/range/len/regex` constraints into parser value guards and stimuli generation candidate selection, and added typed validator payload diagnostics plus semantic usage gate coverage for value-domain directives.
 - 2026-02-19: Completed Phase J deterministic conflict-resolution baseline by enforcing `priority > precedence` policy in parser/stimuli steering and adding validator diagnostics for `priority+precedence` overlap and duplicate known-directive last-wins resolution.
+- 2026-02-19: Completed Phase J P1 unsatisfiable value-domain intersection diagnostics by adding validator detection for contradictory `@enum` + (`@len`/`@range`/`@regex`) combinations with stable warning code `W_SEM_UNSATISFIABLE_VALUE_DOMAIN`.

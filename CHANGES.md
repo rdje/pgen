@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-02-19 - Phase J P1: Unsatisfiable Value-Domain Intersection Diagnostics
+### ✅ Achievement Summary
+Expanded semantic conflict diagnostics to detect contradictory value-domain directive combinations and emit a stable warning when no `@enum` value can satisfy all active constraints.
+### Scope of Changes
+- Added unsatisfiable intersection validator pass:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - New semantic conflict analysis now checks the effective intersection of:
+    - `@enum` values
+    - optional `@len` bounds
+    - optional `@range` bounds
+    - optional `@regex` full-match constraint
+- Added stable diagnostic code:
+  - `W_SEM_UNSATISFIABLE_VALUE_DOMAIN`
+  - Emitted when `@enum` is parseable and non-empty, at least one of `@len/@range/@regex` is active, and zero enum candidates satisfy the combined constraints.
+- Added helper utilities in validator for deterministic analysis:
+  - latest known directive payload resolution (last-wins consistent with existing contracts),
+  - full-match regex candidate evaluation.
+- Added focused validator tests:
+  - `semantic_validator_warns_on_unsatisfiable_enum_regex_intersection`
+  - `semantic_validator_warns_on_unsatisfiable_enum_range_intersection`
+  - `semantic_validator_does_not_warn_when_enum_intersection_is_satisfiable`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_` ✅
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅
+
 ## 2026-02-19 - Phase J P1: Deterministic Semantic Conflict-Resolution Baseline
 ### ✅ Achievement Summary
 Implemented deterministic semantic conflict-resolution behavior for branch steering directives and surfaced conflict contracts as stable validator diagnostics.

@@ -1,9 +1,9 @@
 use super::{
-    ASTNode, Annotations, BranchAnnotation, ExtractionTarget, SemanticAnnotation,
-    SemanticAssociativity, UnifiedReturnAST, UnifiedSemanticAST, UnknownSemanticDirectivePolicy,
     extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
     parse_canonical_transform_expression, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
-    parse_semantic_numeric_list, parse_semantic_string_list, semantic_directive_spec,
+    parse_semantic_numeric_list, parse_semantic_string_list, semantic_directive_spec, ASTNode,
+    Annotations, BranchAnnotation, ExtractionTarget, SemanticAnnotation, SemanticAssociativity,
+    UnifiedReturnAST, UnifiedSemanticAST, UnknownSemanticDirectivePolicy,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -560,7 +560,8 @@ impl AnnotationValidator {
         let mut directive_occurrences: HashMap<String, Vec<(usize, String)>> = HashMap::new();
 
         for (idx, semantic_annotation) in semantic_annotations.iter().enumerate() {
-            let Some((directive_name, payload)) = self.semantic_directive_parts(semantic_annotation)
+            let Some((directive_name, payload)) =
+                self.semantic_directive_parts(semantic_annotation)
             else {
                 continue;
             };
@@ -606,7 +607,13 @@ impl AnnotationValidator {
             });
         }
 
-        for (directive_name, entries) in directive_occurrences {
+        self.validate_unsatisfiable_value_domain_intersection(
+            rule_name,
+            &directive_occurrences,
+            report,
+        );
+
+        for (directive_name, entries) in &directive_occurrences {
             if entries.len() <= 1 {
                 continue;
             }
@@ -627,9 +634,122 @@ impl AnnotationValidator {
                     entries.len(),
                     rule_name
                 ),
-                annotation: Some(format!("@{}: {}", directive_name, last_payload)),
+                annotation: Some(format!("@{}: {}", directive_name.as_str(), last_payload)),
             });
         }
+    }
+
+    fn validate_unsatisfiable_value_domain_intersection(
+        &self,
+        rule_name: &str,
+        directive_occurrences: &HashMap<String, Vec<(usize, String)>>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        let Some((enum_idx, enum_payload)) =
+            Self::latest_directive_payload(directive_occurrences, "enum")
+        else {
+            return;
+        };
+        let Some(enum_values) = parse_semantic_string_list(enum_payload) else {
+            return;
+        };
+        if enum_values.is_empty() {
+            return;
+        }
+
+        let len_bounds = Self::latest_directive_payload(directive_occurrences, "len")
+            .and_then(|(_, payload)| parse_semantic_len_bounds(payload));
+        let numeric_bounds = Self::latest_directive_payload(directive_occurrences, "range")
+            .and_then(|(_, payload)| parse_semantic_numeric_bounds(payload));
+        let regex_payload = Self::latest_directive_payload(directive_occurrences, "regex")
+            .map(|(_, payload)| normalize_semantic_scalar(payload))
+            .filter(|payload| !payload.is_empty());
+        let semantic_regex = match regex_payload.as_deref() {
+            Some(pattern) => match Regex::new(pattern) {
+                Ok(compiled) => Some(compiled),
+                Err(_) => return,
+            },
+            None => None,
+        };
+
+        if len_bounds.is_none() && numeric_bounds.is_none() && semantic_regex.is_none() {
+            return;
+        }
+
+        let any_candidate_satisfies = enum_values.iter().any(|value| {
+            if let Some((min_len, max_len)) = len_bounds {
+                let len = value.chars().count();
+                if len < min_len || len > max_len {
+                    return false;
+                }
+            }
+
+            if let Some((min_numeric, max_numeric)) = numeric_bounds {
+                let Ok(parsed_numeric) = value.parse::<f64>() else {
+                    return false;
+                };
+                if parsed_numeric < min_numeric || parsed_numeric > max_numeric {
+                    return false;
+                }
+            }
+
+            if let Some(regex) = &semantic_regex {
+                if !Self::regex_matches_entire(regex, value) {
+                    return false;
+                }
+            }
+
+            true
+        });
+
+        if any_candidate_satisfies {
+            return;
+        }
+
+        let mut annotation_index = enum_idx;
+        let mut details = vec![format!("@enum: {}", enum_payload)];
+
+        if let Some((idx, payload)) = Self::latest_directive_payload(directive_occurrences, "len") {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@len: {}", payload));
+        }
+        if let Some((idx, payload)) = Self::latest_directive_payload(directive_occurrences, "range")
+        {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@range: {}", payload));
+        }
+        if let Some((idx, payload)) = Self::latest_directive_payload(directive_occurrences, "regex")
+        {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@regex: {}", payload));
+        }
+
+        report.diagnostics.push(AnnotationDiagnostic {
+            code: "W_SEM_UNSATISFIABLE_VALUE_DOMAIN",
+            severity: AnnotationSeverity::Warning,
+            kind: AnnotationKind::Semantic,
+            rule_name: rule_name.to_string(),
+            annotation_index: Some(annotation_index),
+            message: "Value-domain directives are unsatisfiable: no '@enum' value satisfies all active constraints.".to_string(),
+            annotation: Some(details.join("; ")),
+        });
+    }
+
+    fn latest_directive_payload<'a>(
+        directive_occurrences: &'a HashMap<String, Vec<(usize, String)>>,
+        directive_name: &str,
+    ) -> Option<(usize, &'a str)> {
+        directive_occurrences
+            .get(directive_name)?
+            .last()
+            .map(|(idx, payload)| (*idx, payload.as_str()))
+    }
+
+    fn regex_matches_entire(regex: &Regex, candidate: &str) -> bool {
+        regex
+            .find(candidate)
+            .map(|matched| matched.start() == 0 && matched.end() == candidate.len())
+            .unwrap_or(false)
     }
 
     fn semantic_annotation_raw_text(&self, semantic_annotation: &SemanticAnnotation) -> String {
@@ -888,12 +1008,10 @@ mod tests {
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
         assert!(report.has_errors());
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "E_RET_POS_ZERO")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "E_RET_POS_ZERO"));
     }
 
     #[test]
@@ -909,12 +1027,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_RET_UNPARSED" && d.severity == AnnotationSeverity::Warning)
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_RET_UNPARSED" && d.severity == AnnotationSeverity::Warning));
     }
 
     #[test]
@@ -922,12 +1038,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "number".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<u32>().unwrap_or(0)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<u32>().unwrap_or(0)".to_string(),
+            }
+            .into()],
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
@@ -940,12 +1054,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "number".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "parse(value)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "parse(value)".to_string(),
+            }
+            .into()],
         );
 
         let report = AnnotationValidator::new(AnnotationValidatorConfig {
@@ -956,13 +1068,11 @@ mod tests {
         .validate_annotations(&annotations);
 
         assert!(report.has_errors());
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_NON_CANONICAL_TRANSFORM"
-                    && d.severity == AnnotationSeverity::Error)
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_NON_CANONICAL_TRANSFORM"
+                && d.severity == AnnotationSeverity::Error));
     }
 
     #[test]
@@ -985,13 +1095,11 @@ mod tests {
         })
         .validate_annotations(&annotations);
 
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
-                    && d.severity == AnnotationSeverity::Warning)
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
+                && d.severity == AnnotationSeverity::Warning));
     }
 
     #[test]
@@ -1040,12 +1148,10 @@ mod tests {
         .validate_annotations(&annotations);
 
         assert!(report.has_errors());
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "E_RET_POS_OUT_OF_RANGE")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "E_RET_POS_OUT_OF_RANGE"));
     }
 
     #[test]
@@ -1082,12 +1188,10 @@ mod tests {
 
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_RET_POS_RULE_BOUND")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_RET_POS_RULE_BOUND"));
     }
 
     #[test]
@@ -1114,12 +1218,10 @@ mod tests {
 
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_RET_BRANCH_NOT_SEQUENCE")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_RET_BRANCH_NOT_SEQUENCE"));
     }
 
     #[test]
@@ -1156,12 +1258,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_PRIORITY_PAYLOAD")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_PRIORITY_PAYLOAD"));
     }
 
     #[test]
@@ -1198,30 +1298,22 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_RANGE_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_LEN_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_ENUM_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_REGEX_PAYLOAD")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_RANGE_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_LEN_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_ENUM_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_REGEX_PAYLOAD"));
     }
 
     #[test]
@@ -1246,12 +1338,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_PRIORITY_PRECEDENCE_CONFLICT")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_PRIORITY_PRECEDENCE_CONFLICT"));
     }
 
     #[test]
@@ -1276,11 +1366,99 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_DIRECTIVE_OVERRIDDEN")
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_DIRECTIVE_OVERRIDDEN"));
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_unsatisfiable_enum_regex_intersection() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "ident".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "enum".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"AA\", \"BB\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "regex".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "^C[A-Z]$".to_string(),
+                    },
+                },
+            ],
         );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_unsatisfiable_enum_range_intersection() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "number".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "enum".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"1\", \"2\", \"3\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "range".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "10..20".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
+    }
+
+    #[test]
+    fn semantic_validator_does_not_warn_when_enum_intersection_is_satisfiable() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "ident".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "enum".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"AA\", \"AB\", \"BC\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "regex".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "^A[A-Z]$".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "len".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[2, 2]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
     }
 }
