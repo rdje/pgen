@@ -502,7 +502,7 @@ fn load_grammar_bundle(
         let raw_ast_array = raw_ast
             .as_array()
             .ok_or_else(|| anyhow::anyhow!("Invalid raw_ast format"))?;
-        let (grammar_tree, rule_order) = pipeline.transform_from_raw_ast(raw_ast_array)?;
+        let (grammar_tree, rule_order, annotations) = pipeline.transform_from_raw_ast(raw_ast_array)?;
         let grammar_name = json_value
             .get("grammar_name")
             .and_then(|n| n.as_str())
@@ -513,7 +513,7 @@ fn load_grammar_bundle(
             grammar_name,
             grammar_tree,
             rule_order,
-            annotations: None,
+            annotations,
         })
     } else if json_value.get("grammar_tree").is_some() && json_value.get("rule_order").is_some() {
         let transformed: TransformedASTJson = serde_json::from_value(json_value)?;

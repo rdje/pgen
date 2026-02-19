@@ -120,7 +120,9 @@ create-placeholders:
 	@[ -f $(SEMANTIC_ANNOTATION_PARSER) ] || ./scripts/create_placeholder_parser.sh Semantic_annotationParser $(SEMANTIC_ANNOTATION_PARSER)
 	@[ -f $(RETURN_ANNOTATION_PARSER) ] || ./scripts/create_placeholder_parser.sh Return_annotationParser $(RETURN_ANNOTATION_PARSER)
 
-# Build Rust AST pipeline binary only (avoids circular dependency with generated parsers in lib.rs)
+# Build Rust AST pipeline binaries.
+# - bootstrap binary intentionally avoids generated parser dependency to break initial cycle
+# - normal binary is built with generated_parsers so non-bootstrap annotation parsing uses generated backends
 $(RUST_AST_PIPELINE_BOOTSTRAP): $(AST_PIPELINE_SOURCES)
 	@echo "Ensuring parser placeholders exist to avoid circular dependency..."
 	@source ./scripts/create_placeholder_parser.sh Semantic_annotationParser $(SEMANTIC_ANNOTATION_PARSER)
@@ -128,9 +130,9 @@ $(RUST_AST_PIPELINE_BOOTSTRAP): $(AST_PIPELINE_SOURCES)
 	@echo "Building Rust AST pipeline binary only (avoiding circular dependency)..."
 	cd $(RUST_DIR) && cargo build --bin ast_pipeline_bootstrap  --no-default-features --features bootstrap
 
-$(RUST_AST_PIPELINE): $(AST_PIPELINE_SOURCES)
-	@echo "Building Rust AST pipeline binary only (avoiding circular dependency)..."
-	cd $(RUST_DIR) && cargo build --bin ast_pipeline
+$(RUST_AST_PIPELINE): $(AST_PIPELINE_SOURCES) $(SEMANTIC_ANNOTATION_PARSER) $(RETURN_ANNOTATION_PARSER)
+	@echo "Building Rust AST pipeline binary with generated parsers enabled..."
+	cd $(RUST_DIR) && cargo build --features generated_parsers --bin ast_pipeline
 
 # Step 2: Generate Rust parsers from JSON files using bootstrap mode
 # These parsers are generated using bootstrap mode to avoid circular dependency

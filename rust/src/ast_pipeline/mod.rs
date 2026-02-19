@@ -34,6 +34,11 @@ use anyhow::Result;
 use serde;
 use std::collections::{HashMap, HashSet};
 
+#[cfg(feature = "generated_parsers")]
+use crate::generated_parsers::return_annotation::Return_annotationParser;
+#[cfg(feature = "generated_parsers")]
+use crate::generated_parsers::semantic_annotation::Semantic_annotationParser;
+
 // Shared parser types used by generated parsers
 /// Parse result type
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -359,6 +364,20 @@ enum RawRuleElement {
     Quantifier(String),
 }
 
+#[derive(Debug, Clone)]
+struct ParsedRuleContent {
+    ast_node: ASTNode,
+    branch_return_annotations: Vec<Option<BranchAnnotation>>,
+    semantic_annotations: Vec<SemanticAnnotation>,
+}
+
+#[derive(Debug, Clone)]
+struct ExtractedRuleAnnotations {
+    syntax_elements: Vec<serde_json::Value>,
+    branch_return_annotations: Vec<Option<BranchAnnotation>>,
+    semantic_annotations: Vec<SemanticAnnotation>,
+}
+
 impl RustASTPipeline {
     pub fn new(config: PipelineConfig) -> Self {
         RustASTPipeline { config }
@@ -368,7 +387,7 @@ impl RustASTPipeline {
     pub fn transform_from_raw_ast(
         &self,
         raw_ast_data: &[serde_json::Value],
-    ) -> Result<(HashMap<String, ASTNode>, Vec<String>)> {
+    ) -> Result<(HashMap<String, ASTNode>, Vec<String>, Option<Annotations>)> {
         eprintln!("\n{}", "=".repeat(80));
         eprintln!("🔄  AST PIPELINE TRANSFORMATION STARTED");
         eprintln!("{}", "=".repeat(80));
@@ -381,6 +400,7 @@ impl RustASTPipeline {
 
         let mut grammar_tree = HashMap::new();
         let mut rule_order = Vec::new();
+        let mut annotations = Annotations::default();
 
         for (rule_idx, rule_data) in raw_ast_data.iter().enumerate() {
             eprintln!("   📋  Rule {}/{}", rule_idx + 1, raw_ast_data.len());
@@ -419,15 +439,33 @@ impl RustASTPipeline {
                         );
                         eprintln!("       File: {}:{}", file!(), line!());
 
-                        let ast_node = self.parse_rule_content(rule_content)?;
+                        let parsed_rule = self.parse_rule_content(rule_content)?;
 
                         eprintln!(
                             "       🎯  Rule '{}' successfully transformed to AST",
                             rule_name
                         );
-                        eprintln!("       Result: {:?}", ast_node);
+                        eprintln!("       Result: {:?}", parsed_rule.ast_node);
                         eprintln!("       File: {}:{}", file!(), line!());
-                        grammar_tree.insert(rule_name, ast_node);
+                        if self.config.preserve_annotations {
+                            if parsed_rule
+                                .branch_return_annotations
+                                .iter()
+                                .any(|entry| entry.is_some())
+                            {
+                                annotations.branch_return_annotations.insert(
+                                    rule_name.clone(),
+                                    parsed_rule.branch_return_annotations.clone(),
+                                );
+                            }
+                            if !parsed_rule.semantic_annotations.is_empty() {
+                                annotations.semantic_annotations.insert(
+                                    rule_name.clone(),
+                                    parsed_rule.semantic_annotations.clone(),
+                                );
+                            }
+                        }
+                        grammar_tree.insert(rule_name, parsed_rule.ast_node);
                         eprintln!();
                     } else {
                         eprintln!("       ❌  ERROR: Failed to extract rule name from element");
@@ -466,7 +504,16 @@ impl RustASTPipeline {
         eprintln!("{}", "=".repeat(80));
         eprintln!();
 
-        Ok((grammar_tree, rule_order))
+        let annotations = if self.config.preserve_annotations
+            && (!annotations.branch_return_annotations.is_empty()
+                || !annotations.semantic_annotations.is_empty())
+        {
+            Some(annotations)
+        } else {
+            None
+        };
+
+        Ok((grammar_tree, rule_order, annotations))
     }
 
     fn eliminate_left_recursive_patterns(
@@ -737,20 +784,44 @@ impl RustASTPipeline {
         None
     }
 
-    fn parse_rule_content(&self, content: &[serde_json::Value]) -> Result<ASTNode> {
+    fn parse_rule_content(&self, content: &[serde_json::Value]) -> Result<ParsedRuleContent> {
         if content.is_empty() {
             eprintln!(
                 "[mod.rs][parse_rule_content()] 📝 Rule content is empty - creating empty sequence node"
             );
             eprintln!("   File: {}:{}", file!(), line!());
-            return Ok(ASTNode::Sequence { elements: vec![] });
+            return Ok(ParsedRuleContent {
+                ast_node: ASTNode::Sequence { elements: vec![] },
+                branch_return_annotations: vec![None],
+                semantic_annotations: Vec::new(),
+            });
         }
+
         eprintln!("   🏗️   RULE CONTENT PARSING (STAGED PIPELINE)");
         eprintln!("        Elements to process: {}", content.len());
-        eprintln!("        Elements to process: {}", content.len());
         eprintln!("        File: {}:{}", file!(), line!());
+
+        let extracted = self.extract_rule_annotations(content)?;
+        eprintln!(
+            "        Annotation extraction: {} branch return slot(s), {} semantic annotation(s)",
+            extracted.branch_return_annotations.len(),
+            extracted.semantic_annotations.len()
+        );
+
+        if extracted.syntax_elements.is_empty() {
+            let mut branch_return_annotations = extracted.branch_return_annotations;
+            if branch_return_annotations.is_empty() {
+                branch_return_annotations.push(None);
+            }
+            return Ok(ParsedRuleContent {
+                ast_node: ASTNode::Sequence { elements: vec![] },
+                branch_return_annotations,
+                semantic_annotations: extracted.semantic_annotations,
+            });
+        }
+
         eprintln!("        Stage-1: normalize raw elements");
-        let normalized = self.step1_normalize_raw_elements(content)?;
+        let normalized = self.step1_normalize_raw_elements(&extracted.syntax_elements)?;
         eprintln!(
             "        Stage-1 result: {} normalized elements",
             normalized.len()
@@ -787,7 +858,270 @@ impl RustASTPipeline {
         eprintln!("       Final AST: {:?}", result);
         eprintln!("       File: {}:{}", file!(), line!());
 
-        Ok(result)
+        let mut branch_return_annotations = extracted.branch_return_annotations;
+        let branch_count = match &result {
+            ASTNode::Or { alternatives } => alternatives.len(),
+            _ => 1,
+        };
+        if branch_return_annotations.len() < branch_count {
+            branch_return_annotations.resize(branch_count, None);
+        } else if branch_return_annotations.len() > branch_count {
+            branch_return_annotations.truncate(branch_count);
+        }
+
+        Ok(ParsedRuleContent {
+            ast_node: result,
+            branch_return_annotations,
+            semantic_annotations: extracted.semantic_annotations,
+        })
+    }
+
+    fn extract_rule_annotations(
+        &self,
+        content: &[serde_json::Value],
+    ) -> Result<ExtractedRuleAnnotations> {
+        let mut syntax_elements = Vec::with_capacity(content.len());
+        let mut branch_return_annotations: Vec<Option<BranchAnnotation>> = vec![None];
+        let mut semantic_annotations = Vec::new();
+
+        let mut group_depth = 0usize;
+        let mut branch_idx = 0usize;
+
+        for item in content {
+            let Some(arr) = item.as_array() else {
+                syntax_elements.push(item.clone());
+                continue;
+            };
+            let Some(elem_type) = arr.first().and_then(|v| v.as_str()) else {
+                syntax_elements.push(item.clone());
+                continue;
+            };
+
+            match elem_type {
+                "group_open" => {
+                    group_depth = group_depth.saturating_add(1);
+                    syntax_elements.push(item.clone());
+                }
+                "group_close" => {
+                    group_depth = group_depth.saturating_sub(1);
+                    syntax_elements.push(item.clone());
+                }
+                "operator" => {
+                    if arr.get(1).and_then(|v| v.as_str()) == Some("|") && group_depth == 0 {
+                        branch_idx = branch_idx.saturating_add(1);
+                        if branch_return_annotations.len() <= branch_idx {
+                            branch_return_annotations.push(None);
+                        }
+                    }
+                    syntax_elements.push(item.clone());
+                }
+                "return_scalar" | "return_array" | "return_object" => {
+                    let Some(annotation_content) = arr.get(1).and_then(|v| v.as_str()) else {
+                        eprintln!(
+                            "[mod.rs][extract_rule_annotations()] ⚠️ malformed return annotation payload: {:?}",
+                            item
+                        );
+                        continue;
+                    };
+                    if branch_return_annotations.len() <= branch_idx {
+                        branch_return_annotations.resize(branch_idx + 1, None);
+                    }
+                    if branch_return_annotations[branch_idx].is_some() {
+                        eprintln!(
+                            "[mod.rs][extract_rule_annotations()] ⚠️ multiple return annotations in branch {} - keeping last",
+                            branch_idx + 1
+                        );
+                    }
+                    let parsed_ast = self.parse_return_annotation_ast(annotation_content);
+                    branch_return_annotations[branch_idx] = Some(BranchAnnotation {
+                        annotation_type: elem_type.to_string(),
+                        annotation_content: annotation_content.to_string(),
+                        parsed_ast,
+                    });
+                }
+                "semantic_annotation" => {
+                    if let Some(payload) = arr.get(1) {
+                        if let Some(annotation) =
+                            self.parse_semantic_annotation_entry(payload, item)?
+                        {
+                            semantic_annotations.push(annotation);
+                        }
+                    } else {
+                        eprintln!(
+                            "[mod.rs][extract_rule_annotations()] ⚠️ semantic annotation missing payload: {:?}",
+                            item
+                        );
+                    }
+                }
+                _ => syntax_elements.push(item.clone()),
+            }
+        }
+
+        Ok(ExtractedRuleAnnotations {
+            syntax_elements,
+            branch_return_annotations,
+            semantic_annotations,
+        })
+    }
+
+    fn parse_return_annotation_ast(&self, annotation_content: &str) -> Option<UnifiedReturnAST> {
+        let content = annotation_content.trim();
+        if content.is_empty() {
+            return None;
+        }
+
+        if !self.validate_return_annotation_backend(content) {
+            eprintln!(
+                "[mod.rs][parse_return_annotation_ast()] ⚠️ selected backend could not validate return annotation '{}'",
+                content
+            );
+        }
+
+        let logger = NoOpLogger;
+        match UnifiedReturnAST::parse_bootstrap(content, &logger) {
+            Ok(ast) => Some(ast),
+            Err(err) => {
+                eprintln!(
+                    "[mod.rs][parse_return_annotation_ast()] ⚠️ failed to build typed return AST for '{}' ({})",
+                    content, err
+                );
+                None
+            }
+        }
+    }
+
+    fn parse_semantic_annotation_entry(
+        &self,
+        payload: &serde_json::Value,
+        original_element: &serde_json::Value,
+    ) -> Result<Option<SemanticAnnotation>> {
+        match payload {
+            serde_json::Value::Array(parts) if parts.len() >= 2 => {
+                let name = self.semantic_value_to_string(&parts[0]);
+                let annotation_name = name.trim().to_ascii_lowercase();
+                if annotation_name.is_empty() {
+                    eprintln!(
+                        "[mod.rs][parse_semantic_annotation_entry()] ⚠️ empty semantic annotation name in {:?}",
+                        original_element
+                    );
+                    return Ok(None);
+                }
+
+                let payload_text = self.semantic_value_to_string(&parts[1]);
+                let canonical = format!("@{}: {}", annotation_name, payload_text);
+                if !self.validate_semantic_annotation_backend(&canonical) {
+                    eprintln!(
+                        "[mod.rs][parse_semantic_annotation_entry()] ⚠️ selected backend could not validate semantic annotation '{}'",
+                        canonical
+                    );
+                }
+
+                Ok(Some(SemanticAnnotation::Named {
+                    name: annotation_name.clone(),
+                    ast: self.semantic_named_ast(&annotation_name, &payload_text),
+                }))
+            }
+            serde_json::Value::String(text) => {
+                let trimmed = text.trim();
+                if trimmed.is_empty() {
+                    return Ok(None);
+                }
+
+                if let Some((name, payload)) =
+                    self::semantic_directive_registry::extract_semantic_directive(trimmed)
+                {
+                    if !self.validate_semantic_annotation_backend(trimmed) {
+                        eprintln!(
+                            "[mod.rs][parse_semantic_annotation_entry()] ⚠️ selected backend could not validate semantic annotation '{}'",
+                            trimmed
+                        );
+                    }
+                    return Ok(Some(SemanticAnnotation::Named {
+                        name: name.clone(),
+                        ast: self.semantic_named_ast(&name, &payload),
+                    }));
+                }
+
+                let logger = NoOpLogger;
+                let ast =
+                    UnifiedSemanticAST::parse_bootstrap(trimmed, &logger).unwrap_or_else(|_| {
+                        UnifiedSemanticAST::Raw {
+                            content: trimmed.to_string(),
+                        }
+                    });
+                Ok(Some(SemanticAnnotation::Legacy(ast)))
+            }
+            _ => {
+                let raw = self.semantic_value_to_string(payload);
+                if raw.trim().is_empty() {
+                    return Ok(None);
+                }
+                Ok(Some(SemanticAnnotation::Legacy(UnifiedSemanticAST::Raw {
+                    content: raw,
+                })))
+            }
+        }
+    }
+
+    fn semantic_named_ast(&self, name: &str, payload: &str) -> UnifiedSemanticAST {
+        if name.eq_ignore_ascii_case("transform") {
+            UnifiedSemanticAST::TransformExpr {
+                expression: payload.trim().to_string(),
+            }
+        } else {
+            UnifiedSemanticAST::Raw {
+                content: payload.trim().to_string(),
+            }
+        }
+    }
+
+    fn semantic_value_to_string(&self, value: &serde_json::Value) -> String {
+        match value {
+            serde_json::Value::String(text) => text.clone(),
+            _ => value.to_string(),
+        }
+    }
+
+    fn validate_return_annotation_backend(&self, annotation_content: &str) -> bool {
+        if self.config.bootstrap_mode {
+            return true;
+        }
+
+        #[cfg(feature = "generated_parsers")]
+        {
+            let mut parser = Return_annotationParser::new(annotation_content, Box::new(NoOpLogger));
+            return parser.parse_full_return_annotation().is_ok();
+        }
+
+        #[cfg(not(feature = "generated_parsers"))]
+        {
+            let _ = annotation_content;
+            eprintln!(
+                "[mod.rs][validate_return_annotation_backend()] ⚠️ generated parser backend unavailable (build with --features generated_parsers)"
+            );
+            true
+        }
+    }
+
+    fn validate_semantic_annotation_backend(&self, annotation_text: &str) -> bool {
+        if self.config.bootstrap_mode {
+            return true;
+        }
+
+        #[cfg(feature = "generated_parsers")]
+        {
+            let mut parser = Semantic_annotationParser::new(annotation_text, Box::new(NoOpLogger));
+            return parser.parse_full_semantic_annotation().is_ok();
+        }
+
+        #[cfg(not(feature = "generated_parsers"))]
+        {
+            let _ = annotation_text;
+            eprintln!(
+                "[mod.rs][validate_semantic_annotation_backend()] ⚠️ generated parser backend unavailable (build with --features generated_parsers)"
+            );
+            true
+        }
     }
 
     fn step1_normalize_raw_elements(
@@ -1435,6 +1769,94 @@ impl RustASTPipeline {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn transform_from_raw_ast_preserves_return_and_semantic_annotations() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![json!([
+            ["rule", "expr"],
+            ["semantic_annotation", ["priority", "[9, 1]"]],
+            ["rule_reference", "lhs"],
+            ["operator", "|"],
+            ["rule_reference", "rhs"],
+            ["return_scalar", "$1"]
+        ])];
+
+        let (_grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        let branch_annotations = annotations
+            .branch_return_annotations
+            .get("expr")
+            .expect("rule return annotations should exist");
+        assert_eq!(branch_annotations.len(), 2);
+        assert!(branch_annotations[0].is_none());
+        let return_annotation = branch_annotations[1]
+            .as_ref()
+            .expect("second branch should carry return annotation");
+        assert_eq!(return_annotation.annotation_type, "return_scalar");
+        assert_eq!(return_annotation.annotation_content, "$1");
+        assert!(return_annotation.parsed_ast.is_some());
+
+        let semantic_annotations = annotations
+            .semantic_annotations
+            .get("expr")
+            .expect("rule semantic annotations should exist");
+        assert_eq!(semantic_annotations.len(), 1);
+        match &semantic_annotations[0] {
+            SemanticAnnotation::Named { name, ast } => {
+                assert_eq!(name, "priority");
+                assert!(matches!(
+                    ast,
+                    UnifiedSemanticAST::Raw { content } if content == "[9, 1]"
+                ));
+            }
+            _ => panic!("semantic annotation should be captured as named directive"),
+        }
+    }
+
+    #[test]
+    fn transform_from_raw_ast_promotes_transform_semantic_payload() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![json!([
+            ["rule", "int_rule"],
+            [
+                "semantic_annotation",
+                ["transform", "str::parse::<i64>().unwrap_or(0)"]
+            ],
+            ["regex", "[-+]?[0-9]+"]
+        ])];
+
+        let (_grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        let semantic_annotations = annotations
+            .semantic_annotations
+            .get("int_rule")
+            .expect("semantic annotation should be present for int_rule");
+        assert_eq!(semantic_annotations.len(), 1);
+        match &semantic_annotations[0] {
+            SemanticAnnotation::Named { name, ast } => {
+                assert_eq!(name, "transform");
+                assert!(matches!(
+                    ast,
+                    UnifiedSemanticAST::TransformExpr { expression }
+                        if expression == "str::parse::<i64>().unwrap_or(0)"
+                ));
+            }
+            _ => panic!("transform semantic annotation should be named"),
+        }
+    }
+}
+
 pub mod annotation_validator;
 pub mod ast_based_generator;
 pub mod ast_code_generator;
@@ -1457,8 +1879,8 @@ pub use annotation_validator::{
 pub use semantic_directive_registry::{
     SemanticAssociativity, SemanticDirectiveCapability, SemanticDirectiveSpec,
     SemanticValueConstraints, UnknownSemanticDirectivePolicy, extract_semantic_directive,
-    extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_float_list,
-    parse_semantic_branch_priorities, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
+    extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_branch_priorities,
+    parse_semantic_float_list, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
     parse_semantic_numeric_list, parse_semantic_string_list, semantic_directive_spec,
 };
 pub use semantic_transform::{
