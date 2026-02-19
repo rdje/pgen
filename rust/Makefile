@@ -227,6 +227,8 @@ help:
 	@echo "  sota_release_policy - Show active SOTA release policy file"
 	@echo "  ebnf_frontend_readiness - Report EBNF frontend flow readiness for ebnf/json/regex grammars"
 	@echo "  ebnf_frontend_gate - Strict EBNF frontend gate (fail on any grammar flow failure)"
+	@echo "  ebnf_frontend_dual_run_diff - Report Perl-vs-Rust EBNF frontend differential across ebnf/json/regex"
+	@echo "  ebnf_frontend_dual_run_gate - Strict Perl-vs-Rust EBNF frontend differential gate"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
 	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
@@ -415,6 +417,18 @@ ebnf_frontend_gate:
 	@echo "🧱 Running strict EBNF frontend readiness gate..."
 	cd $(RUST_DIR) && PGEN_EBNF_FRONTEND_STRICT=1 ./scripts/ebnf_frontend_readiness_gate.sh
 	@echo "✅ EBNF frontend gate passed."
+
+.PHONY: ebnf_frontend_dual_run_diff
+ebnf_frontend_dual_run_diff:
+	@echo "🧪 Running EBNF frontend dual-run differential (report mode)..."
+	cd $(RUST_DIR) && ./scripts/ebnf_frontend_dual_run_diff_gate.sh
+	@echo "✅ EBNF frontend dual-run differential report generated."
+
+.PHONY: ebnf_frontend_dual_run_gate
+ebnf_frontend_dual_run_gate:
+	@echo "🧱 Running strict EBNF frontend dual-run differential gate..."
+	cd $(RUST_DIR) && PGEN_EBNF_DUAL_RUN_STRICT=1 ./scripts/ebnf_frontend_dual_run_diff_gate.sh
+	@echo "✅ EBNF frontend dual-run differential gate passed."
 
 .PHONY: regression_gate
 regression_gate:

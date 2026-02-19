@@ -76,7 +76,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 ### Phase H (New): Rust-Native EBNF Frontend Migration
 - [x] Add executable EBNF frontend readiness report/gate for `grammars/ebnf.ebnf`, `grammars/json.ebnf`, and `grammars/regex.ebnf` (Perl `EBNF -> JSON`, Rust `JSON -> parser`, Rust stimuli generation).
 - [x] Fix `grammars/ebnf.ebnf` compatibility gaps so readiness strict mode is green for all tracked grammars.
-- [ ] Add dual-run differential harness between Perl `ebnf_to_json.pl` and Rust-native EBNF parser (`generated/ebnf.rs`) once Rust EBNF parser generation path is available.
+- [x] Add dual-run differential harness between Perl `ebnf_to_json.pl` and Rust-native EBNF parser (`generated/ebnf.rs`) once Rust EBNF parser generation path is available.
 
 ### Phase I (New): SOTA Exit Criteria Aggregation
 - [x] Add aggregate `make sota_exit_gate` to execute required release-grade checks in one command.
@@ -152,3 +152,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Completed Phase J P1 return differential closure by extending bootstrap positional/accessor-chain parsing (signed positional refs, chained postfix including extraction/property/index and parenthesized index expressions), reducing tracked return mismatch debt from 2 to 0, and refreshing return differential baseline + parity/regression gate runs.
 - 2026-02-19: Completed Phase H `ebnf.ebnf` frontend compatibility by fixing include directive capture in `fx/specs/ebnf.spec` (consume full include call, parse args in action code), restoring `ebnf_to_json.pl` conversion success for `grammars/ebnf.ebnf`, and turning strict EBNF frontend enforcement on in aggregate SOTA policy (`PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`).
 - 2026-02-19: Added standalone CI workflow `annotation-nonbootstrap-e2e-gate` and promoted `annotation_nonbootstrap_e2e_gate` into aggregate SOTA required checks (`rust/scripts/sota_exit_gate.sh` + `rust/config/sota_exit_policy.env`).
+- 2026-02-19: Completed Phase H dual-run differential operationalization by adding `make ebnf_frontend_dual_run_diff`/`make ebnf_frontend_dual_run_gate`, script + Rust report binary (`rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`, `rust/src/bin/ebnf_dual_run_diff.rs`), standalone CI workflow (`ebnf-frontend-dual-run-diff`), and aggregate SOTA policy/workflow wiring with optional strictness controls.

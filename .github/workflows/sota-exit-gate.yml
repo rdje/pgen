@@ -33,6 +33,8 @@ jobs:
           PGEN_SOTA_POLICY_FILE: ${{ github.workspace }}/rust/config/sota_exit_policy.env
           PGEN_SOTA_RUN_EBNF_READINESS: "1"
           PGEN_SOTA_REQUIRE_EBNF_STRICT: "0"
+          PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF: "1"
+          PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT: "0"
         run: make -C rust SHELL=/bin/bash sota_exit_gate
 
       - name: Upload SOTA gate artifacts
@@ -47,5 +49,6 @@ jobs:
             rust/target/differential_harness
             rust/target/performance_gate
             rust/target/ebnf_frontend_gate
+            rust/target/ebnf_frontend_dual_run_gate
           if-no-files-found: warn
           retention-days: 14

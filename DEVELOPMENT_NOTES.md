@@ -3252,3 +3252,124 @@ Dual-run summary ended with:
 - `grammars/ebnf.ebnf`
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
+
+---
+
+## 2026-02-19 - Dual-Run Differential Operationalization + Generated Artifact Hygiene
+
+### Context
+The EBNF frontend now has both:
+1. readiness checks (Perl EBNF->JSON + Rust JSON->parser/stimuli path), and
+2. a Perl-vs-Rust dual-run differential path based on `generated/ebnf.rs`.
+
+This increment productizes (2) into regular make/CI/SOTA policy execution and aligns repository hygiene with the rule that transient generated frontend artifacts should not be git-tracked.
+
+### Implementation Details
+
+#### A) Dedicated dual-run report binary
+File: `rust/src/bin/ebnf_dual_run_diff.rs`
+
+Implemented a small CLI that:
+- loads an input grammar file,
+- runs generated parser `parse()` and `parse_full_grammar_file()`,
+- normalizes parse errors (`UnexpectedEof`, `UnexpectedToken`, `InvalidSyntax`, etc.),
+- emits a structured JSON report including:
+  - parse/parse_full status,
+  - root rule/content kind/spans,
+  - normalized error fields,
+  - UTF-8-safe context snippets at failure points,
+  - unconsumed start/context when `parse` succeeds but `parse_full` fails.
+
+Cargo wiring:
+- `rust/Cargo.toml`
+  - new bin target `ebnf_dual_run_diff`
+  - feature gate `ebnf_dual_run`
+
+#### B) Scripted dual-run differential gate
+File: `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+
+Gate workflow:
+1. Build `ast_pipeline` non-bootstrap.
+2. Regenerate harness artifacts:
+   - `generated/ebnf.json` via `ebnf_to_json.pl`
+   - `generated/ebnf.rs` via `ast_pipeline --generate-parser`
+3. Build `ebnf_dual_run_diff` (`--features ebnf_dual_run`).
+4. For `ebnf/json/regex` grammars:
+   - run Perl `ebnf_to_json.pl`,
+   - run Rust dual-run binary,
+   - collect per-grammar diff payload JSON.
+5. Emit consolidated outputs:
+   - `summary.csv`
+   - `summary.txt`
+   - `summary.json`
+   - logs/work artifacts under `rust/target/ebnf_frontend_dual_run_gate`.
+
+Strictness:
+- `PGEN_EBNF_DUAL_RUN_STRICT=0` => report-only.
+- `PGEN_EBNF_DUAL_RUN_STRICT=1` => fail gate on mismatch.
+
+#### C) Makefile integration
+File: `rust/Makefile`
+
+Added:
+- `ebnf_frontend_dual_run_diff` (report mode)
+- `ebnf_frontend_dual_run_gate` (strict mode)
+
+#### D) SOTA aggregate policy and workflow wiring
+Files:
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `.github/workflows/sota-exit-gate.yml`
+
+Added policy-controlled execution knobs:
+- `PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF`
+- `PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT`
+
+Behavior:
+- aggregate gate can run dual-run differential as informational or required.
+- current policy defaults to informational.
+
+Workflow updates:
+- `sota-exit-gate` job exports the new env vars,
+- artifact upload now captures `rust/target/ebnf_frontend_dual_run_gate`.
+
+#### E) Standalone CI workflow for differential visibility
+File: `.github/workflows/ebnf-frontend-dual-run-diff.yml`
+
+Added independent workflow that runs report mode on PR/main and uploads dual-run artifacts for inspection.
+
+#### F) Generated artifact tracking cleanup
+Files:
+- `.gitignore`
+- `generated/ebnf.json` (index removal)
+
+Actions:
+- Added ignore rules for transient EBNF frontend outputs:
+  - `generated/ebnf.json`
+  - `generated/ebnf.rs`
+  - `generated/json.json`
+  - `generated/regex.json`
+- Removed `generated/ebnf.json` from version control going forward (`git rm --cached` in this increment), per policy that such artifacts are regenerated and should not be tracked.
+
+### Validation
+
+Command:
+- `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+
+Observed:
+- dual-run summary produced successfully,
+- full-parse parity reported for `ebnf/json/regex`,
+- artifacts written under `rust/target/ebnf_frontend_dual_run_gate`.
+
+### Files Touched in This Increment
+- `.github/workflows/ebnf-frontend-dual-run-diff.yml`
+- `.github/workflows/sota-exit-gate.yml`
+- `rust/Cargo.toml`
+- `rust/Makefile`
+- `rust/config/sota_exit_policy.env`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+- `rust/src/bin/ebnf_dual_run_diff.rs`
+- `.gitignore`
+- `CHANGES.md`
+- `DEVELOPMENT_NOTES.md`

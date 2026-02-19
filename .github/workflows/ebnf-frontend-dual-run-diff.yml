@@ -1,0 +1,40 @@
+name: ebnf-frontend-dual-run-diff
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  ebnf-frontend-dual-run-diff:
+    name: ebnf-frontend-dual-run-diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Verify Perl runtime
+        run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
+
+      - name: Run EBNF frontend dual-run differential (report mode)
+        run: make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff
+
+      - name: Upload EBNF dual-run differential artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ebnf-frontend-dual-run-diff-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/ebnf_frontend_dual_run_gate
+          if-no-files-found: warn
+          retention-days: 14

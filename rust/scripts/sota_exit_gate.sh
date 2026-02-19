@@ -22,10 +22,14 @@ POLICY_VERSION="${PGEN_SOTA_POLICY_VERSION:-1}"
 POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-differential_baseline_contract fixed_point_gate annotation_contract_gate annotation_nonbootstrap_e2e_gate differential_regression_gate performance_gate embedding_api_gate}"
 POLICY_RUN_EBNF_READINESS="${PGEN_SOTA_POLICY_RUN_EBNF_READINESS:-1}"
 POLICY_REQUIRE_EBNF_STRICT="${PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT:-0}"
+POLICY_RUN_EBNF_DUAL_RUN_DIFF="${PGEN_SOTA_POLICY_RUN_EBNF_DUAL_RUN_DIFF:-1}"
+POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT="${PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT:-0}"
 POLICY_ALLOW_INFORMATIONAL_FAILURES="${PGEN_SOTA_POLICY_ALLOW_INFORMATIONAL_FAILURES:-1}"
 
 RUN_EBNF_READINESS="${PGEN_SOTA_RUN_EBNF_READINESS:-$POLICY_RUN_EBNF_READINESS}"
 REQUIRE_EBNF_STRICT="${PGEN_SOTA_REQUIRE_EBNF_STRICT:-$POLICY_REQUIRE_EBNF_STRICT}"
+RUN_EBNF_DUAL_RUN_DIFF="${PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF:-$POLICY_RUN_EBNF_DUAL_RUN_DIFF}"
+REQUIRE_EBNF_DUAL_RUN_STRICT="${PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT:-$POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT}"
 ALLOW_INFORMATIONAL_FAILURES="${PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES:-$POLICY_ALLOW_INFORMATIONAL_FAILURES}"
 REQUIRED_CHECKS="${PGEN_SOTA_REQUIRED_CHECKS:-$POLICY_REQUIRED_CHECKS}"
 
@@ -35,6 +39,14 @@ if ! [[ "$RUN_EBNF_READINESS" =~ ^[01]$ ]]; then
 fi
 if ! [[ "$REQUIRE_EBNF_STRICT" =~ ^[01]$ ]]; then
     echo "error: PGEN_SOTA_REQUIRE_EBNF_STRICT must be 0 or 1" >&2
+    exit 2
+fi
+if ! [[ "$RUN_EBNF_DUAL_RUN_DIFF" =~ ^[01]$ ]]; then
+    echo "error: PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF must be 0 or 1" >&2
+    exit 2
+fi
+if ! [[ "$REQUIRE_EBNF_DUAL_RUN_STRICT" =~ ^[01]$ ]]; then
+    echo "error: PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT must be 0 or 1" >&2
     exit 2
 fi
 if ! [[ "$ALLOW_INFORMATIONAL_FAILURES" =~ ^[01]$ ]]; then
@@ -91,6 +103,8 @@ echo "policy_version: $POLICY_VERSION"
 echo "required_checks: $REQUIRED_CHECKS"
 echo "run_ebnf_readiness: $RUN_EBNF_READINESS"
 echo "require_ebnf_strict: $REQUIRE_EBNF_STRICT"
+echo "run_ebnf_dual_run_diff: $RUN_EBNF_DUAL_RUN_DIFF"
+echo "require_ebnf_dual_run_strict: $REQUIRE_EBNF_DUAL_RUN_STRICT"
 echo "allow_informational_failures: $ALLOW_INFORMATIONAL_FAILURES"
 
 run_required_check_by_name() {
@@ -183,6 +197,16 @@ if [[ "$RUN_EBNF_READINESS" -eq 1 ]]; then
     else
         run_check "ebnf_frontend_readiness" "informational" "report-only EBNF frontend readiness" \
             make -C rust SHELL=/bin/bash ebnf_frontend_readiness
+    fi
+fi
+
+if [[ "$RUN_EBNF_DUAL_RUN_DIFF" -eq 1 ]]; then
+    if [[ "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
+        run_check "ebnf_frontend_dual_run_gate" "required" "strict Perl-vs-Rust EBNF dual-run differential" \
+            make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate
+    else
+        run_check "ebnf_frontend_dual_run_diff" "informational" "report-only Perl-vs-Rust EBNF dual-run differential" \
+            make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff
     fi
 fi
 

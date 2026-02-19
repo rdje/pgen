@@ -7225,3 +7225,81 @@ Result:
 - `grammars/ebnf.ebnf`
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
+
+---
+
+## 2026-02-19: EBNF Dual-Run Differential Gate + SOTA Wiring
+
+### Goal
+Operationalize Perl-vs-Rust EBNF frontend differential validation as a first-class gate path, and stop version-controlling transient EBNF frontend artifacts.
+
+### Changes
+
+#### 1) New dual-run differential runner and binary
+- Added gate script:
+  - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+- Added Rust report binary:
+  - `rust/src/bin/ebnf_dual_run_diff.rs`
+  - wired in `rust/Cargo.toml` under feature `ebnf_dual_run`.
+
+Behavior:
+- regenerates `generated/ebnf.json` and `generated/ebnf.rs` for harness use,
+- runs Perl `ebnf_to_json.pl` + Rust parse/parse_full report across:
+  - `grammars/ebnf.ebnf`
+  - `grammars/json.ebnf`
+  - `grammars/regex.ebnf`
+- emits summary tables + JSON artifacts under:
+  - `rust/target/ebnf_frontend_dual_run_gate`.
+
+#### 2) Makefile targets
+File: `rust/Makefile`
+- Added report-mode target:
+  - `make ebnf_frontend_dual_run_diff`
+- Added strict-mode gate target:
+  - `make ebnf_frontend_dual_run_gate` (`PGEN_EBNF_DUAL_RUN_STRICT=1`)
+
+#### 3) SOTA exit-gate policy integration
+Files:
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `.github/workflows/sota-exit-gate.yml`
+
+Added policy/env knobs:
+- `PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF`
+- `PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT`
+
+Default policy:
+- dual-run differential runs in informational/report mode,
+- strict failure remains opt-in.
+
+Workflow artifact upload now includes:
+- `rust/target/ebnf_frontend_dual_run_gate`
+
+#### 4) Standalone CI workflow for dual-run differential
+File: `.github/workflows/ebnf-frontend-dual-run-diff.yml`
+- New workflow to run report-mode dual-run differential on PR/main and upload artifacts.
+
+#### 5) Stop tracking transient EBNF frontend generated artifacts
+- Untracked `generated/ebnf.json` from git history forward (`git rm --cached` in this increment).
+- Added ignore entries in `.gitignore`:
+  - `generated/ebnf.json`
+  - `generated/ebnf.rs`
+  - `generated/json.json`
+  - `generated/regex.json`
+
+### Validation
+- `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+- Result: pass summary for `ebnf/json/regex` with generated report artifacts.
+
+### Files Modified
+- `.github/workflows/ebnf-frontend-dual-run-diff.yml`
+- `.github/workflows/sota-exit-gate.yml`
+- `rust/Cargo.toml`
+- `rust/Makefile`
+- `rust/config/sota_exit_policy.env`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+- `rust/src/bin/ebnf_dual_run_diff.rs`
+- `.gitignore`
+- `CHANGES.md`
+- `DEVELOPMENT_NOTES.md`

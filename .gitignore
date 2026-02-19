@@ -205,6 +205,10 @@ nytprof/
 # =============================================================================
 # Generated parsers (preserve source grammars, ignore generated code)
 **/target/
+generated/ebnf.json
+generated/ebnf.rs
+generated/json.json
+generated/regex.json
 generated_*.pm
 generated_*.jl
 generated_*.rs

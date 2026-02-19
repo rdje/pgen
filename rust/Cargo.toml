@@ -29,6 +29,11 @@ name = "perf_bench"
 path = "src/bin/perf_bench.rs"
 required-features = ["generated_parsers"]
 
+[[bin]]
+name = "ebnf_dual_run_diff"
+path = "src/bin/ebnf_dual_run_diff.rs"
+required-features = ["ebnf_dual_run"]
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -50,6 +55,7 @@ default = ["normal"]
 normal = []
 bootstrap = []
 generated_parsers = []
+ebnf_dual_run = []
 
 [dev-dependencies]
 
