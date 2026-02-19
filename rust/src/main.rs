@@ -4,8 +4,6 @@
 
 use anyhow::Result;
 use clap::Parser;
-#[cfg(feature = "generated_parsers")]
-use pgen::NoOpLogger;
 use pgen::ast_pipeline::stimuli_generator::{
     StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics, StimuliGenerator,
 };
@@ -14,9 +12,7 @@ use pgen::ast_pipeline::{
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
 };
 #[cfg(feature = "generated_parsers")]
-use pgen::generated_parsers::return_annotation::Return_annotationParser;
-#[cfg(feature = "generated_parsers")]
-use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
+use pgen::parser_registry;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -943,7 +939,33 @@ where
 }
 
 fn supports_generated_parseability(grammar_name: &str) -> bool {
-    matches!(grammar_name, "return_annotation" | "semantic_annotation")
+    #[cfg(feature = "generated_parsers")]
+    {
+        return parser_registry::supports_grammar(grammar_name);
+    }
+
+    #[cfg(not(feature = "generated_parsers"))]
+    {
+        return supported_generated_parseability_grammars()
+            .iter()
+            .any(|supported| *supported == grammar_name);
+    }
+}
+
+#[cfg(feature = "generated_parsers")]
+fn supported_generated_parseability_grammars() -> Vec<&'static str> {
+    parser_registry::registered_grammars()
+}
+
+#[cfg(not(feature = "generated_parsers"))]
+fn supported_generated_parseability_grammars() -> Vec<&'static str> {
+    vec!["return_annotation", "semantic_annotation"]
+}
+
+fn supported_generated_parseability_grammars_csv() -> String {
+    let mut grammars = supported_generated_parseability_grammars();
+    grammars.sort_unstable();
+    grammars.join(", ")
 }
 
 fn generate_parseable_stimuli(
@@ -1055,35 +1077,25 @@ fn generate_parseable_stimuli(
 #[cfg(feature = "generated_parsers")]
 fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
     if !supports_generated_parseability(grammar_name) {
+        let supported = supported_generated_parseability_grammars_csv();
         return Err(anyhow::anyhow!(
-            "No matching compiled generated parser is available for grammar '{}'. Supported grammars: return_annotation, semantic_annotation",
-            grammar_name
+            "No matching compiled generated parser is available for grammar '{}'. Supported grammars: {}",
+            grammar_name,
+            supported
         ));
     }
     Ok(())
 }
 #[cfg(feature = "generated_parsers")]
 fn is_sample_parseable_by_generated_parser(grammar_name: &str, sample: &str) -> Result<bool> {
-    match grammar_name {
-        "return_annotation" => {
-            let mut parser = Return_annotationParser::new(sample, Box::new(NoOpLogger));
-            match parser.parse_full_return_annotation() {
-                Ok(_) => Ok(true),
-                Err(_) => Ok(false),
-            }
-        }
-        "semantic_annotation" => {
-            let mut parser = Semantic_annotationParser::new(sample, Box::new(NoOpLogger));
-            match parser.parse_full_semantic_annotation() {
-                Ok(_) => Ok(true),
-                Err(_) => Ok(false),
-            }
-        }
-        _ => Err(anyhow::anyhow!(
-            "Unsupported grammar '{}' for generated parseability validation",
-            grammar_name
-        )),
-    }
+    parser_registry::parse_sample(grammar_name, sample).ok_or_else(|| {
+        let supported = supported_generated_parseability_grammars_csv();
+        anyhow::anyhow!(
+            "Unsupported grammar '{}' for generated parseability validation. Supported grammars: {}",
+            grammar_name,
+            supported
+        )
+    })
 }
 
 #[cfg(not(feature = "generated_parsers"))]
@@ -1093,9 +1105,11 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
             "Parseability validation requires building ast_pipeline with generated parsers enabled: cargo run --features generated_parsers --bin ast_pipeline -- ... --validate-parseability"
         ))
     } else {
+        let supported = supported_generated_parseability_grammars_csv();
         Err(anyhow::anyhow!(
-            "No matching generated parser validation path exists for grammar '{}'. Supported grammars: return_annotation, semantic_annotation",
-            grammar_name
+            "No matching generated parser validation path exists for grammar '{}'. Supported grammars: {}",
+            grammar_name,
+            supported
         ))
     }
 }
@@ -1111,7 +1125,7 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 mod tests {
     use super::{
         coverage_branch_hit_delta, minimize_failing_input, minimize_fuzz_corpus_cases,
-        supports_generated_parseability,
+        supported_generated_parseability_grammars, supports_generated_parseability,
         FuzzCorpusCandidate, StimuliCoverageMetrics,
     };
     use pgen::ast_pipeline::stimuli_generator::BranchCoverageGroup;
@@ -1119,9 +1133,11 @@ mod tests {
 
     #[test]
     fn supports_known_generated_parseability_grammars() {
+        let supported = supported_generated_parseability_grammars();
+        assert!(supported.contains(&"return_annotation"));
+        assert!(supported.contains(&"semantic_annotation"));
         assert!(supports_generated_parseability("return_annotation"));
         assert!(supports_generated_parseability("semantic_annotation"));
-        assert!(!supports_generated_parseability("regex"));
         assert!(!supports_generated_parseability("unknown"));
     }
 

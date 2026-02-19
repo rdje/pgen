@@ -28,3 +28,6 @@ pub mod generated_parsers {
         include!("../../generated/semantic_annotation_parser.rs");
     }
 }
+
+#[cfg(feature = "generated_parsers")]
+pub mod parser_registry;
