@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J P1 Implementation: Return Differential Burn-Down (7 -> 2)
+### Context
+After reducing return differential debt to 7, the remaining highest-impact closure slice (excluding `ebnf.ebnf` work) was bootstrap/generated drift caused by bootstrap quirk behavior:
+- whitespace before arrow handling mismatch,
+- trailing text acceptance after spread/array access,
+- tolerance of empty comma segments in object/array lists.
+
+These were implementation-level return parser differences, so closing them directly in bootstrap behavior gives better convergence than masking them in harness logic.
+### Implementation
+- Tightened bootstrap return parser behavior in:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+- Parser behavior updates:
+  - `parse_bootstrap` now normalizes leading whitespace before checking arrow prefix.
+  - `parse_positional_ref` now rejects trailing payload after spread suffix (`*`).
+  - `parse_positional_ref` now rejects trailing payload after array access closing bracket.
+  - object/array parsing now uses strict top-level comma splitting:
+    - leading/trailing/consecutive commas produce parse errors.
+- Added strict splitter helper:
+  - `split_respecting_nesting_strict(...)`
+  - preserves nesting-aware delimiter semantics while rejecting empty segments.
+- Updated bootstrap return parser unit tests for tightened behavior:
+  - whitespace-before-arrow now expected to parse,
+  - trailing spread/array payload now expected to fail,
+  - extra comma segments in arrays/objects now expected to fail.
+- Updated executable builtin return contract expectations:
+  - `rust/test_data/return_annotation/builtin_contract.json`
+  - removed outdated quirk assumptions for the tightened cases.
+- Updated inferred builtin return grammar contract:
+  - `grammars/builtin_return_annotation.ebnf`
+  - aligned normalization and strict list/trailing-modifier notes with implementation.
+- Refreshed return differential baseline:
+  - `rust/test_data/differential_baseline/return_annotation_baseline.json`
+  - reduced tracked mismatch debt from `7` to `2`.
+### Validation
+- Ran unit coverage:
+  - `cargo test --manifest-path rust/Cargo.toml unified_return_ast -- --nocapture`
+- Ran return differential:
+  - `mismatched=2` (from previous `7`).
+- Refreshed return baseline JSON from current differential state.
+- Ran gates:
+  - `make -C rust SHELL=/bin/bash return_parity_gate` (still green: `mismatched=0` on comparable corpus),
+  - `make -C rust SHELL=/bin/bash differential_regression_gate` (return baseline now `allowed=2` with `new=0`).
+### Why This Matters
+- Removes major bootstrap quirk classes that previously inflated return drift debt.
+- Keeps parity gating strict while reducing tracked debt with implementation-level correctness improvements.
+- Leaves only two parser-capability mismatches (generated-only accessor-chain regression cases) for final Phase J return closure.
+
 ## 2026-02-19 - Phase J P1 Implementation: Return Differential Burn-Down (9 -> 7)
 ### Context
 After adding comparable-corpus parity gating, the next closure step was to reduce tracked return mismatch debt without weakening generated-parser strictness guarantees.

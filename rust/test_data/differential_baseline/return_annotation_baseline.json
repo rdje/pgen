@@ -2,26 +2,6 @@
   "parser": "return",
   "allowed_mismatches": [
     {
-      "suite": "return_annotation_builtin_contract",
-      "test": "array_access_ignores_trailing_text"
-    },
-    {
-      "suite": "return_annotation_builtin_contract",
-      "test": "array_extra_commas_are_ignored"
-    },
-    {
-      "suite": "return_annotation_builtin_contract",
-      "test": "leading_whitespace_before_arrow_is_not_normalized"
-    },
-    {
-      "suite": "return_annotation_builtin_contract",
-      "test": "object_extra_commas_are_ignored"
-    },
-    {
-      "suite": "return_annotation_builtin_contract",
-      "test": "positional_spread_ignores_trailing_text"
-    },
-    {
       "suite": "return_annotation_full_consumption_regression",
       "test": "generated_parser_must_fully_consume_chained_accessor"
     },

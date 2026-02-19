@@ -15,71 +15,71 @@
   },
   {
     "name": "leading_whitespace_before_arrow_is_not_normalized",
-    "description": "Leading whitespace before arrow should fail in bootstrap parser because arrow normalization is byte-0 only.",
+    "description": "Leading whitespace before arrow is normalized and parsed as arrow form.",
     "input": "  -> $1",
-    "expected_round_trip": "  -> $1",
+    "expected_round_trip": "-> $1",
     "parser_type": "return",
     "normalizer": "text",
     "tier": "A",
-    "tags": ["normative_contract", "bootstrap", "builtin_return", "quirk"],
+    "tags": ["normative_contract", "bootstrap", "builtin_return"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "positional_spread_ignores_trailing_text",
+    "description": "Trailing text after positional spread marker is rejected by bootstrap parser.",
+    "input": "$1*trailing",
+    "expected_round_trip": "$1*",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_return"],
     "expectations": {
       "bootstrap_parser": "expected_fail",
       "generated_parser": "skip"
     }
   },
   {
-    "name": "positional_spread_ignores_trailing_text",
-    "description": "Trailing text after positional spread marker is ignored in bootstrap parser.",
-    "input": "$1*trailing",
-    "expected_round_trip": "$1*",
-    "parser_type": "return",
-    "normalizer": "text",
-    "tier": "A",
-    "tags": ["normative_contract", "bootstrap", "builtin_return", "quirk"],
-    "expectations": {
-      "bootstrap_parser": "pass",
-      "generated_parser": "skip"
-    }
-  },
-  {
     "name": "array_access_ignores_trailing_text",
-    "description": "Trailing text after array access closing bracket is ignored by bootstrap parser.",
+    "description": "Trailing text after array access closing bracket is rejected by bootstrap parser.",
     "input": "$1[0]trailing",
     "expected_round_trip": "$1[0]",
     "parser_type": "return",
     "normalizer": "text",
     "tier": "A",
-    "tags": ["normative_contract", "bootstrap", "builtin_return", "quirk"],
+    "tags": ["normative_contract", "bootstrap", "builtin_return"],
     "expectations": {
-      "bootstrap_parser": "pass",
+      "bootstrap_parser": "expected_fail",
       "generated_parser": "skip"
     }
   },
   {
     "name": "array_extra_commas_are_ignored",
-    "description": "Bootstrap parser ignores empty array segments introduced by repeated commas.",
+    "description": "Bootstrap parser rejects empty array segments introduced by repeated commas.",
     "input": "[, $1,, $2,]",
     "expected_round_trip": "[$1, $2]",
     "parser_type": "return",
     "normalizer": "text",
     "tier": "A",
-    "tags": ["normative_contract", "bootstrap", "builtin_return", "quirk"],
+    "tags": ["normative_contract", "bootstrap", "builtin_return"],
     "expectations": {
-      "bootstrap_parser": "pass",
+      "bootstrap_parser": "expected_fail",
       "generated_parser": "skip"
     }
   },
   {
     "name": "object_extra_commas_are_ignored",
-    "description": "Bootstrap parser ignores empty object segments introduced by repeated commas.",
+    "description": "Bootstrap parser rejects empty object segments introduced by repeated commas.",
     "input": "{, a: $1,, b: $2,}",
     "expected_round_trip": "{a: $1, b: $2}",
     "parser_type": "return",
     "normalizer": "text",
     "tier": "A",
-    "tags": ["normative_contract", "bootstrap", "builtin_return", "quirk"],
+    "tags": ["normative_contract", "bootstrap", "builtin_return"],
     "expectations": {
-      "bootstrap_parser": "pass",
+      "bootstrap_parser": "expected_fail",
       "generated_parser": "skip"
     }
   },

@@ -5,22 +5,23 @@
 #
 # IMPORTANT:
 # - This grammar is intentionally implementation-accurate (not idealized).
-# - It documents accepted syntax + known parser quirks.
+# - It documents accepted syntax + known parser constraints.
 
 # ============================================================================
 # ENTRY / NORMALIZATION
 # ============================================================================
 
 # The parser first applies this normalization:
-# 1) If input starts with "-> " or "->" at byte 0, strip that prefix.
-# 2) Trim leading/trailing whitespace.
-# 3) If result is empty, return Passthrough.
+# 1) Trim leading whitespace.
+# 2) If normalized input starts with "-> " or "->", strip that prefix.
+# 3) Trim leading/trailing whitespace.
+# 4) If result is empty, return Passthrough.
 #
 # This is procedural behavior, represented here as two accepted forms.
 bootstrap_return_annotation := arrow_form | bare_form
 
-# Arrow form is recognized only when "->" is the first bytes of the raw input.
-arrow_form := "->" ws* return_value?
+# Arrow form is recognized after leading whitespace normalization.
+arrow_form := ws* "->" ws* return_value?
 
 # Bare form is fully trimmed before parsing.
 bare_form := ws* return_value? ws*
@@ -61,18 +62,15 @@ property_suffix := "." property_text
 property_text := /.+/
 
 # Array access: $1[0], $1[$2], etc.
-# Implementation parses up to first ']' and does not validate trailing text.
-array_index_suffix := "[" return_value "]" trailing_text?
-trailing_text := /.*/
+# Trailing text after ']' is rejected.
+array_index_suffix := "[" return_value "]"
 
 # ============================================================================
 # OBJECTS
 # ============================================================================
 
 object_literal := "{" ws* object_properties? ws* "}"
-# Empty segments produced by extra commas are ignored by implementation.
-object_properties := object_property_segment (ws* "," ws* object_property_segment)*
-object_property_segment := object_property?
+object_properties := object_property (ws* "," ws* object_property)*
 object_property := object_key ws* ":" ws* return_value
 
 # Object keys:
@@ -88,9 +86,7 @@ non_empty_raw_key := /[^,]+/
 # ============================================================================
 
 array_literal := "[" ws* array_elements? ws* "]"
-# Empty segments produced by extra commas are ignored by implementation.
-array_elements := array_element_segment (ws* "," ws* array_element_segment)*
-array_element_segment := array_element?
+array_elements := array_element (ws* "," ws* array_element)*
 
 # Array spread behavior is implementation-specific:
 # if raw element text ends with '*' and does NOT start with '"',
@@ -122,14 +118,12 @@ ws := /[ \t\r\n]*/
 # IMPLEMENTATION NOTES (QUIRKS TO PRESERVE)
 # ============================================================================
 #
-# 1) Leading whitespace before "->" is NOT treated as arrow form.
-#    Example: "  -> $1" does not strip arrow and fails.
+# 1) Leading whitespace before "->" is normalized.
+#    Example: "  -> $1" is treated as arrow form and parses.
 #
-# 2) In positional spread form, "$1*anything" is accepted as "$1*"
-#    (trailing characters are not validated).
+# 2) In positional spread form, "$1*anything" is rejected.
 #
-# 3) In array access, "$1[0]anything" is accepted as "$1[0]"
-#    (trailing characters are not validated).
+# 3) In array access, "$1[0]anything" is rejected.
 #
 # 4) Top-level comma/colon splitting is nesting-aware only for:
 #      - {} and []
@@ -138,7 +132,6 @@ ws := /[ \t\r\n]*/
 #
 # 5) Positional index "$0" is accepted by bootstrap parser behavior.
 #
-# 6) For objects/arrays, leading/trailing/consecutive top-level commas are tolerated:
-#      "{, a: $1,, b: $2,}" and "[, $1,, $2,]" both parse.
+# 6) For objects/arrays, leading/trailing/consecutive top-level commas are rejected.
 #
 # 7) Duplicate object keys are allowed; later entries overwrite earlier ones.

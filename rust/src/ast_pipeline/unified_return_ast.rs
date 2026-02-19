@@ -93,11 +93,12 @@ impl UnifiedReturnAST {
             );
         }
 
-        // Remove leading "-> " if present
-        let cleaned = if annotation.starts_with("-> ") {
-            &annotation[3..]
-        } else if annotation.starts_with("->") {
-            &annotation[2..]
+        // Remove leading "-> " if present after leading whitespace normalization.
+        let normalized_leading = annotation.trim_start();
+        let cleaned = if normalized_leading.starts_with("-> ") {
+            &normalized_leading[3..]
+        } else if normalized_leading.starts_with("->") {
+            &normalized_leading[2..]
         } else {
             annotation
         }
@@ -274,7 +275,18 @@ impl UnifiedReturnAST {
                     base: Box::new(base),
                 };
             }
-        } else if remaining.starts_with('*') {
+        } else if let Some(rest) = remaining.strip_prefix('*') {
+            if !rest.is_empty() {
+                logger.log_error(
+                    "unified_return_ast.rs",
+                    line!(),
+                    &format!("Invalid positional reference modifier: '{}'", remaining),
+                );
+                return Err(format!(
+                    "Invalid positional reference modifier: '{}'",
+                    remaining
+                ));
+            }
             if logger.is_enabled() {
                 logger.log_debug(
                     "unified_return_ast.rs",
@@ -304,6 +316,17 @@ impl UnifiedReturnAST {
             // Array access - for now, simplified
             // TODO: Parse the index expression properly
             if let Some(end) = remaining.find(']') {
+                if end != remaining.len() - 1 {
+                    logger.log_error(
+                        "unified_return_ast.rs",
+                        line!(),
+                        &format!("Invalid positional reference modifier: '{}'", remaining),
+                    );
+                    return Err(format!(
+                        "Invalid positional reference modifier: '{}'",
+                        remaining
+                    ));
+                }
                 let index_str = &remaining[1..end];
                 let index = Self::parse_value(index_str, logger)?;
                 base = UnifiedReturnAST::ArrayAccess {
@@ -352,8 +375,8 @@ impl UnifiedReturnAST {
 
         let mut properties = HashMap::new();
 
-        // Split by commas, but respect nested structures
-        let pairs = Self::split_respecting_nesting(content, ',');
+        // Split by commas, but respect nested structures and reject empty segments.
+        let pairs = Self::split_respecting_nesting_strict(content, ',')?;
 
         for pair in pairs {
             let Some((raw_key, raw_value)) = Self::split_object_property(&pair) else {
@@ -393,7 +416,7 @@ impl UnifiedReturnAST {
         let mut elements = Vec::new();
 
         if !content.trim().is_empty() {
-            let items = Self::split_respecting_nesting(content, ',');
+            let items = Self::split_respecting_nesting_strict(content, ',')?;
 
             for item in items {
                 let trimmed = item.trim();
@@ -452,6 +475,59 @@ impl UnifiedReturnAST {
         }
 
         result
+    }
+
+    /// Strict variant of split_respecting_nesting:
+    /// rejects leading/trailing/consecutive top-level delimiters.
+    fn split_respecting_nesting_strict(input: &str, delimiter: char) -> Result<Vec<String>, String> {
+        let mut result = Vec::new();
+        let mut current = String::new();
+        let mut depth = 0;
+        let mut in_string = false;
+        let mut escape_next = false;
+        let mut seen_delimiter = false;
+
+        for ch in input.chars() {
+            if escape_next {
+                current.push(ch);
+                escape_next = false;
+                continue;
+            }
+
+            match ch {
+                '\\' if in_string => escape_next = true,
+                '"' => in_string = !in_string,
+                '[' | '{' if !in_string => depth += 1,
+                ']' | '}' if !in_string => depth -= 1,
+                c if c == delimiter && depth == 0 && !in_string => {
+                    seen_delimiter = true;
+                    if current.trim().is_empty() {
+                        return Err(format!(
+                            "Empty segment in '{}' separated list: '{}'",
+                            delimiter, input
+                        ));
+                    }
+                    result.push(current.trim().to_string());
+                    current.clear();
+                    continue;
+                }
+                _ => {}
+            }
+            current.push(ch);
+        }
+
+        if current.trim().is_empty() {
+            if seen_delimiter {
+                return Err(format!(
+                    "Empty segment in '{}' separated list: '{}'",
+                    delimiter, input
+                ));
+            }
+        } else {
+            result.push(current.trim().to_string());
+        }
+
+        Ok(result)
     }
 
     /// Split a single object property into key/value at the first top-level ':'
@@ -1110,50 +1186,33 @@ mod tests {
     }
 
     #[test]
-    fn bootstrap_leading_whitespace_before_arrow_is_not_stripped() {
+    fn bootstrap_leading_whitespace_before_arrow_is_normalized() {
         let logger = crate::test_runner::NoOpLogger;
-        let err = UnifiedReturnAST::parse_bootstrap("  -> $1", &logger).expect_err(
-            "leading whitespace before '->' should not trigger arrow normalization in bootstrap parser",
+        let ast = UnifiedReturnAST::parse_bootstrap("  -> $1", &logger).expect(
+            "leading whitespace before '->' should still normalize and parse as arrow form",
         );
-        assert!(
-            err.contains("Unable to parse return value"),
-            "unexpected error: {}",
-            err
-        );
+        assert_eq!(ast, UnifiedReturnAST::PositionalRef { index: 1 });
     }
 
     #[test]
-    fn bootstrap_positional_spread_ignores_trailing_text_after_star() {
+    fn bootstrap_positional_spread_rejects_trailing_text_after_star() {
         let logger = crate::test_runner::NoOpLogger;
-        let ast = UnifiedReturnAST::parse_bootstrap("$1*trailing", &logger)
-            .expect("bootstrap parser accepts trailing text after positional spread star");
+        let err = UnifiedReturnAST::parse_bootstrap("$1*trailing", &logger).expect_err(
+            "bootstrap parser should reject trailing text after positional spread star",
+        );
         assert_eq!(
-            ast,
-            UnifiedReturnAST::Spread {
-                base: Box::new(UnifiedReturnAST::PositionalRef { index: 1 })
-            }
+            err,
+            "Invalid positional reference modifier: '*trailing'"
         );
     }
 
     #[test]
-    fn bootstrap_array_access_ignores_trailing_text_after_closing_bracket() {
+    fn bootstrap_array_access_rejects_trailing_text_after_closing_bracket() {
         let logger = crate::test_runner::NoOpLogger;
-        let ast = UnifiedReturnAST::parse_bootstrap("$1[0]trailing", &logger).expect(
-            "bootstrap parser accepts trailing text after array access closing bracket",
+        let err = UnifiedReturnAST::parse_bootstrap("$1[0]trailing", &logger).expect_err(
+            "bootstrap parser should reject trailing text after array access closing bracket",
         );
-        match ast {
-            UnifiedReturnAST::ArrayAccess { base, index } => {
-                assert!(matches!(
-                    base.as_ref(),
-                    UnifiedReturnAST::PositionalRef { index: 1 }
-                ));
-                assert!(matches!(
-                    index.as_ref(),
-                    UnifiedReturnAST::NumberLiteral { value } if (*value - 0.0).abs() < f64::EPSILON
-                ));
-            }
-            other => panic!("expected ArrayAccess, got {:?}", other),
-        }
+        assert_eq!(err, "Invalid positional reference modifier: '[0]trailing'");
     }
 
     #[test]
@@ -1174,45 +1233,29 @@ mod tests {
     }
 
     #[test]
-    fn bootstrap_array_ignores_empty_segments_from_extra_commas() {
+    fn bootstrap_array_rejects_empty_segments_from_extra_commas() {
         let logger = crate::test_runner::NoOpLogger;
-        let ast = UnifiedReturnAST::parse_bootstrap("[, $1,, $2,]", &logger)
-            .expect("bootstrap array splitter should ignore empty comma segments");
-        match ast {
-            UnifiedReturnAST::Array { elements } => {
-                assert_eq!(elements.len(), 2);
-                assert!(matches!(
-                    elements[0],
-                    UnifiedReturnAST::PositionalRef { index: 1 }
-                ));
-                assert!(matches!(
-                    elements[1],
-                    UnifiedReturnAST::PositionalRef { index: 2 }
-                ));
-            }
-            other => panic!("expected Array, got {:?}", other),
-        }
+        let err = UnifiedReturnAST::parse_bootstrap("[, $1,, $2,]", &logger).expect_err(
+            "bootstrap array parser should reject empty comma segments",
+        );
+        assert!(
+            err.contains("Empty segment"),
+            "unexpected error: {}",
+            err
+        );
     }
 
     #[test]
-    fn bootstrap_object_ignores_empty_segments_from_extra_commas() {
+    fn bootstrap_object_rejects_empty_segments_from_extra_commas() {
         let logger = crate::test_runner::NoOpLogger;
-        let ast = UnifiedReturnAST::parse_bootstrap("{, a: $1,, b: $2,}", &logger)
-            .expect("bootstrap object splitter should ignore empty comma segments");
-        match ast {
-            UnifiedReturnAST::Object { properties } => {
-                assert_eq!(properties.len(), 2);
-                assert!(matches!(
-                    properties.get("a").map(|v| v.as_ref()),
-                    Some(UnifiedReturnAST::PositionalRef { index: 1 })
-                ));
-                assert!(matches!(
-                    properties.get("b").map(|v| v.as_ref()),
-                    Some(UnifiedReturnAST::PositionalRef { index: 2 })
-                ));
-            }
-            other => panic!("expected Object, got {:?}", other),
-        }
+        let err = UnifiedReturnAST::parse_bootstrap("{, a: $1,, b: $2,}", &logger).expect_err(
+            "bootstrap object parser should reject empty comma segments",
+        );
+        assert!(
+            err.contains("Empty segment"),
+            "unexpected error: {}",
+            err
+        );
     }
 
     #[test]
