@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-02-19 - Phase J Kickoff: Semantic Steering Control Matrix + Return No-Compromise Contract
+### ✅ Achievement Summary
+Added a dedicated living control matrix that lists parser/stimuli steering controls needed by the Rust AST pipeline, distinguishes current support vs target tiers, and codifies return-annotation completeness as a hard requirement.
+### Scope of Changes
+- Added steering matrix:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - Includes:
+    - semantic steering control catalog (`SC-*`) with parser/stimuli needs,
+    - current support status and target capability tiers,
+    - priority labels and next implementation focus.
+- Added explicit return policy in same matrix:
+  - "Return Annotation No-Compromise Contract"
+  - Defines required return construct coverage and quality bar.
+- Updated roadmap:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Added Phase J for semantic steering control surface and return completeness closure tasks.
+- Updated user guide:
+  - `PGEN_USER_GUIDE.md`
+  - Linked semantic steering matrix and return no-compromise policy reference.
+### Validation Results
+- Documentation and roadmap integration updated; no runtime behavior change in this slice.
+
 ## 2026-02-19 - Phase I Follow-Up: Explicit Release Policy Enforcement for SOTA Aggregate Gate
 ### ✅ Achievement Summary
 Converted `sota_exit_gate` from a fixed command sequence into a policy-driven release gate with tracked machine policy and explicit release checklist documentation.

@@ -85,6 +85,13 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [ ] Promote EBNF frontend strict mode (`ebnf_frontend_gate`) to required inside aggregate gate once `grammars/ebnf.ebnf` compatibility is fixed.
 - [x] Define and enforce explicit release pass policy for aggregate gate output (for example branch protection + release checklist criteria).
 
+### Phase J (New): Semantic Steering Control Surface + Return Completeness
+- [x] Publish semantic steering control matrix with parser/stimuli control taxonomy, current support status, and target tiers (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`).
+- [ ] Implement typed semantic directive registry (name-based routing) and promote from parse-only to steering for selected directives.
+- [ ] Implement parser/stimuli precedence+associativity steering controls.
+- [ ] Implement parser/stimuli value-domain constraint controls (`range/enum/regex/len` style directives).
+- [ ] Drive return-annotation differential mismatches to zero and enforce stricter return parity closure criteria.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -126,3 +133,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Hardened Phase F with `make annotation_robustness_gate` (advanced bootstrap/generated annotation suites plus generated parseability+coverage/gap checks) and enforced it inside `annotation_contract_gate`.
 - 2026-02-19: Started Pillar 12/Phase I by adding aggregate `make sota_exit_gate`, script-backed run summaries under `rust/target/sota_exit_gate`, CI workflow `sota-exit-gate`, and refreshed tracked differential baselines so aggregate required checks run with explicit known-drift accounting.
 - 2026-02-19: Completed explicit aggregate release policy enforcement by adding tracked policy config (`rust/config/sota_exit_policy.env`), policy-driven required-check execution in `sota_exit_gate`, and release policy checklist doc (`PGEN_RELEASE_POLICY.md`).
+- 2026-02-19: Started Phase J by publishing semantic steering control matrix (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`) and codifying the no-compromise return-annotation completeness contract.

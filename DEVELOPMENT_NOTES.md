@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J Kickoff: Semantic Steering Inventory and Return-Annotation Hard Requirement
+### Context
+Semantic annotation grammar is intentionally richer than what the Rust AST pipeline can fully steer at any specific point in time. Without an explicit steering inventory, it is difficult to decide which semantic constructs should be promoted from parsed/validated state into parser/stimuli steering behavior first.
+
+At the same time, return annotations are AST-shaping core functionality and must not be treated as an optional or partial feature surface.
+### Implementation
+- Added a living steering inventory:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- Document includes:
+  - capability tiers (`Tier 0..4`) to separate parse-only from gate-enforced steering,
+  - control catalog (`SC-*`) across parser and stimuli domains,
+  - current support snapshot and target promotion tiers,
+  - prioritized next-control implementation suggestions.
+- Added explicit return policy in same document:
+  - "Return Annotation No-Compromise Contract"
+  - Enumerates required construct coverage and quality expectations (including parity and closure direction for return differential drift).
+- Updated integration docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - added Phase J (semantic steering control surface + return completeness closure).
+  - `PGEN_USER_GUIDE.md`
+    - linked matrix as authoritative steering-control reference.
+### Validation
+- Documentation-only slice; no executable behavior changes.
+### Why This Matters
+- Creates a concrete decision framework for semantic steering feature promotion.
+- Prevents ambiguity between "accepted semantic syntax" and "actually steering behavior".
+- Makes return-annotation completeness a visible, tracked engineering contract rather than a soft expectation.
+
 ## 2026-02-19 - Phase I Follow-Up: Policy-Driven SOTA Release Gate Contract
 ### Context
 We had an aggregate gate command, but release pass rules were still implicit in script internals and CI wiring. To make release criteria auditable and stable, policy had to be explicit, tracked, and executable.

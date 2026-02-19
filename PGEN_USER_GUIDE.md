@@ -250,6 +250,17 @@ Current leverage contract (parser + stimuli):
   - `make -C rust semantic_usage_gate`
   - This enforces targeted `semantic_usage_*` unit tests in parser codegen and stimuli generator paths.
 
+Semantic steering roadmap/control reference:
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- This matrix defines:
+  - control types the Rust AST pipeline may/might/will need for parser/stimuli steering,
+  - current support tier per control,
+  - priority and target tier for promotion.
+
+Return-annotation completeness reference (non-negotiable policy):
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` ("Return Annotation No-Compromise Contract")
+- Return annotations are AST-shaping critical-path features; the pipeline target is full construct support with no intentional feature compromise.
+
 ## 9) Differential Testing and Drift Management
 
 Reference help:
