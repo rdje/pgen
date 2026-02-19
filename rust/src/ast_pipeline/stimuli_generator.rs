@@ -1,4 +1,7 @@
-use super::{ASTNode, ASTValue, Annotations, TokenValue, UnifiedSemanticAST};
+use super::{
+    ASTNode, ASTValue, Annotations, TokenValue, UnifiedSemanticAST,
+    parse_canonical_transform_expression, stimuli_hint_for_target_type,
+};
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
@@ -2169,19 +2172,10 @@ impl<'a> StimuliGenerator<'a> {
         for ast in semantic_asts {
             match ast {
                 UnifiedSemanticAST::TransformExpr { expression } => {
-                    let lower = expression.to_lowercase();
-                    if lower.contains("parse::<f") {
-                        return Some("1.0".to_string());
-                    }
-                    if lower.contains("parse::<i")
-                        || lower.contains("parse::<u")
-                        || lower.contains("parse::<isize")
-                        || lower.contains("parse::<usize")
-                    {
-                        return Some("1".to_string());
-                    }
-                    if lower.contains("parse::<bool") {
-                        return Some("true".to_string());
+                    if let Some(transform) = parse_canonical_transform_expression(expression) {
+                        if let Some(hint) = stimuli_hint_for_target_type(&transform.target_type) {
+                            return Some(hint.to_string());
+                        }
                     }
                 }
                 UnifiedSemanticAST::Raw { content } => {
@@ -2747,6 +2741,55 @@ mod tests {
             .generate_many(1, Some("bool_rule"))
             .expect("bool semantic-driven generation should succeed");
         assert_eq!(bool_values[0], "true");
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_transformexpr_supports_path_target_type() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{5}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9094);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("path-type semantic-driven generation should succeed");
+        assert_eq!(values[0], "1");
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_noncanonical_transform_does_not_override_regex() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{6}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9095);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("non-canonical semantic transform should still allow generation");
+
+        let sample = &values[0];
+        let regex = Regex::new(r"^[A-Z]{6}$").expect("valid regex");
+        assert!(
+            regex.is_match(sample),
+            "non-canonical transform should not override regex sampling, got {:?}",
+            sample
+        );
     }
 
     #[test]

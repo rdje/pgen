@@ -5,7 +5,7 @@
 use super::Logger;
 use crate::ast_pipeline::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, TokenValue, UnifiedSemanticAST,
-    ast_return_transform::AstReturnTransformer,
+    ast_return_transform::AstReturnTransformer, parse_canonical_transform_expression,
 };
 use anyhow::Result;
 use prettyplease;
@@ -779,38 +779,32 @@ impl AstBasedGenerator {
                             {
                                 for ast in semantic_asts {
                                     if let UnifiedSemanticAST::TransformExpr { expression } = ast {
-                                        // Parse transform expressions like "str::parse::<f64>().unwrap_or(0.0)"
-                                        if expression.starts_with("str::parse::<")
-                                            && expression.contains(">().unwrap_or(")
+                                        if let Some(transform) =
+                                            parse_canonical_transform_expression(expression)
                                         {
-                                            if let Some(type_end) =
-                                                expression.find(">().unwrap_or(")
+                                            if let Ok(target_type) =
+                                                syn::parse_str::<syn::Type>(&transform.target_type)
                                             {
-                                                let type_str =
-                                                    &expression["str::parse::<".len()..type_end];
-                                                let default_start =
-                                                    type_end + ">().unwrap_or(".len();
-                                                let default_end = expression.len() - 1; // remove closing )
-                                                let default_str =
-                                                    &expression[default_start..default_end];
+                                                let default_expr: syn::Expr = syn::parse_str(
+                                                    &transform.default_expr,
+                                                )
+                                                .unwrap_or_else(|_| {
+                                                    syn::parse_str("0")
+                                                        .expect("fallback default expression")
+                                                });
 
-                                                let type_ident = format_ident!("{}", type_str);
-                                                let default_expr: syn::Expr =
-                                                    syn::parse_str(default_str)
-                                                        .unwrap_or(syn::parse_str("0").unwrap());
-
-                                                // Generate transformation code
+                                                // Canonical transform path: parse matched regex token into target type.
                                                 if self.enable_debug {
                                                     return Ok(quote! {
                                                         let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
-                                                        let transformed = matched_str.parse::<#type_ident>().unwrap_or(#default_expr);
-                                                        parser.debug_output.push(format!("🎯 Applied semantic transform: parsed '{}' to {}={}", matched_str, stringify!(#type_ident), transformed));
+                                                        let transformed = matched_str.parse::<#target_type>().unwrap_or(#default_expr);
+                                                        parser.debug_output.push(format!("🎯 Applied semantic transform: parsed '{}' to {}={}", matched_str, stringify!(#target_type), transformed));
                                                         let result = ParseContent::TransformedTerminal(transformed.to_string())
                                                     });
                                                 } else {
                                                     return Ok(quote! {
                                                         let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
-                                                        let transformed = matched_str.parse::<#type_ident>().unwrap_or(#default_expr);
+                                                        let transformed = matched_str.parse::<#target_type>().unwrap_or(#default_expr);
                                                         let result = ParseContent::TransformedTerminal(transformed.to_string())
                                                     });
                                                 }
@@ -1313,6 +1307,32 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("unwrap_or (0)"),
             "expected unwrap_or default in generated code, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_accepts_path_target_type() {
+        let generator = generator_with_semantic(
+            "number",
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<std::primitive::i64>().unwrap_or(0)".to_string(),
+            }],
+        );
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[0-9]+"), "number", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("parse :: < std :: primitive :: i64 >"),
+            "expected path target type in generated code, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("ParseContent :: TransformedTerminal"),
+            "path target type should still produce transformed terminal output, got: {}",
             rendered
         );
     }

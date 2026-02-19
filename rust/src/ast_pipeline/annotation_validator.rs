@@ -1,5 +1,6 @@
 use super::{
     ASTNode, Annotations, BranchAnnotation, ExtractionTarget, UnifiedReturnAST, UnifiedSemanticAST,
+    parse_canonical_transform_expression,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -396,12 +397,7 @@ impl AnnotationValidator {
         expression: &str,
         report: &mut AnnotationValidationReport,
     ) {
-        let canonical = Regex::new(
-            r"^\s*str::parse::<(?P<target>[A-Za-z_][A-Za-z0-9_:]*)>\(\)\.unwrap_or\((?P<default>.+)\)\s*$",
-        )
-        .expect("canonical transform regex must compile");
-
-        let Some(caps) = canonical.captures(expression) else {
+        let Some(transform) = parse_canonical_transform_expression(expression) else {
             report.diagnostics.push(AnnotationDiagnostic {
                 code: "W_SEM_NON_CANONICAL_TRANSFORM",
                 severity: self.semantic_check_severity(),
@@ -414,16 +410,8 @@ impl AnnotationValidator {
             return;
         };
 
-        let target_type = caps
-            .name("target")
-            .map(|m| m.as_str())
-            .unwrap_or_default()
-            .trim();
-        let default_expr = caps
-            .name("default")
-            .map(|m| m.as_str())
-            .unwrap_or_default()
-            .trim();
+        let target_type = transform.target_type.as_str();
+        let default_expr = transform.default_expr.as_str();
 
         if target_type.is_empty() || default_expr.is_empty() {
             report.diagnostics.push(AnnotationDiagnostic {

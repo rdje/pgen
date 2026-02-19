@@ -63,14 +63,19 @@ Normative runtime leverage behavior for semantic annotations:
 - Parser generation (`rust/src/ast_pipeline/ast_based_generator.rs`):
   - `TransformExpr` currently steers regex atom code generation for matching rule names.
   - Canonical parse transforms (`str::parse::<T>().unwrap_or(default)`) emit `TransformedTerminal` code paths.
+  - Target type parsing is path-aware (for example `std::primitive::i64`).
   - `Raw` semantic annotations do not alter regex atom parser generation behavior.
 - Stimuli generation (`rust/src/ast_pipeline/stimuli_generator.rs`):
   - Regex sample generation checks semantic hints before regex-HIR sampling.
-  - Current hint mapping is implementation-defined but contract-enforced:
+  - Current hint mapping is canonical-transform-driven and contract-enforced:
     - parse float targets -> `"1.0"`
     - parse integer/unsigned/isize/usize targets -> `"1"`
     - parse bool targets -> `"true"`
-    - raw quoted payloads -> unquoted literal output
+  - Non-canonical transform expressions do not apply typed hint overrides.
+  - raw quoted payloads -> unquoted literal output
+- Shared canonical-transform parser utility:
+  - `rust/src/ast_pipeline/semantic_transform.rs`
+  - Used by validator, parser codegen, and stimuli hinting paths.
 - Annotation names are not yet a first-class steering key in these leverage paths; current contract is AST-shape + transform-expression driven.
 
 ## Typed Annotation Validator Contract

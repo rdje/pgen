@@ -1411,6 +1411,7 @@ pub mod annotation_validator;
 pub mod grouped_quantifier_parser;
 pub mod mutual_recursion_handler;
 pub mod return_annotation_handler;
+pub mod semantic_transform;
 pub mod stimuli_generator;
 pub mod unified_return_ast;
 pub mod unified_semantic_ast;
@@ -1419,6 +1420,9 @@ pub mod unified_semantic_ast;
 pub use annotation_validator::{
     AnnotationDiagnostic, AnnotationKind, AnnotationSeverity, AnnotationValidationReport,
     AnnotationValidator, AnnotationValidatorConfig,
+};
+pub use semantic_transform::{
+    CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,
 };
 pub use unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 pub use unified_semantic_ast::UnifiedSemanticAST;

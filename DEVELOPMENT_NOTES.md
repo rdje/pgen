@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-18 - Phase F Follow-Up: Canonical Semantic Transform Alignment Across Validator/Codegen/Stimuli
+### Context
+Semantic transform handling was implemented in multiple locations with slightly different parsing approaches. This created drift risk: validator used canonical regex checks, parser codegen used manual substring slicing, and stimuli used loose substring hints. To keep semantic behavior precise and maintainable, these paths needed one shared interpretation layer.
+### Implementation
+- Added shared canonical transform parser module:
+  - `rust/src/ast_pipeline/semantic_transform.rs`
+  - Introduced:
+    - `CanonicalSemanticTransform { target_type, default_expr }`
+    - `parse_canonical_transform_expression(...)`
+    - `stimuli_hint_for_target_type(...)`
+  - Implemented with a single canonical regex and cached initialization.
+- Wired module into AST pipeline surface:
+  - `rust/src/ast_pipeline/mod.rs`
+  - Added module export and public re-exports for reuse.
+- Updated annotation validator to use shared canonical parser:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - Replaced local canonical-regex extraction path in `validate_transform_expression(...)` with shared parser output, keeping diagnostic behavior intact.
+- Updated parser codegen to use shared canonical parser + type-aware AST typing:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - Replaced manual string slicing for transform parsing.
+  - Canonical target types are now parsed as `syn::Type` instead of `format_ident!`, enabling path targets (for example `std::primitive::i64`).
+  - Non-canonical or unparseable target types continue through existing raw-expression fallback behavior.
+- Updated stimuli semantic hinting to use canonical parser:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Typed hint overrides now require canonical transform parsing success.
+  - Added target-type mapping helper usage (including path-leaf type extraction).
+  - Non-canonical transform expressions now fall back to regex sampling (no typed override).
+- Added/extended tests:
+  - `rust/src/ast_pipeline/semantic_transform.rs` unit tests for canonical parse + typed hint mapping.
+  - `rust/src/ast_pipeline/ast_based_generator.rs`:
+    - `semantic_usage_codegen_accepts_path_target_type`.
+  - `rust/src/ast_pipeline/stimuli_generator.rs`:
+    - `semantic_usage_stimuli_transformexpr_supports_path_target_type`,
+    - `semantic_usage_stimuli_noncanonical_transform_does_not_override_regex`.
+- Updated docs/roadmap:
+  - `PGEN_USER_GUIDE.md` semantic leverage section updated with canonical/path-aware behavior and non-canonical fallback note.
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` updated with shared canonical parser contract.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated to track completion.
+### Validation
+- Ran:
+  - `make -C rust semantic_usage_gate`
+  - `make -C rust annotation_contract_gate`
+- Result:
+  - semantic usage gate passed with expanded coverage.
+  - annotation contract gate remained green across validator + built-in + shared + semantic usage suites.
+### Why This Matters
+- Eliminates parser/validator/stimuli semantic parsing drift.
+- Improves correctness for path-based transform targets without changing generated artifact ownership boundaries (`generated/` remains regeneration-owned).
+- Makes semantic steering rules stricter and clearer for future advanced semantic features.
+
 ## 2026-02-18 - Phase F Follow-Up: Semantic Leverage Contract Hardening (Parser + Stimuli)
 ### Context
 There was ambiguity about whether semantic annotations currently steer parser generation and/or stimuli generation in practical flows. The code had partial leverage paths, but without an explicit gate this could silently drift and weaken confidence for annotation-heavy grammar use cases.

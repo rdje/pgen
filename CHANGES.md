@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-02-18 - Phase F Follow-Up: Shared Canonical Semantic Transform Parsing
+### ✅ Achievement Summary
+Aligned semantic transform interpretation across validator, parser codegen, and stimuli generation using one shared canonical transform parser.
+### Scope of Changes
+- Added shared semantic transform utility:
+  - `rust/src/ast_pipeline/semantic_transform.rs`
+  - Provides:
+    - canonical parse of `str::parse::<T>().unwrap_or(default)`,
+    - typed stimuli hint mapping by parsed target type.
+- Wired shared utility into core paths:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - `rust/src/ast_pipeline/mod.rs` (module + re-exports).
+- Parser codegen improvements:
+  - canonical transform codegen now parses target types as `syn::Type` (path-aware),
+  - added test coverage for path target types (`std::primitive::i64`).
+- Stimuli behavior tightening:
+  - typed semantic hints now apply only for canonical transforms,
+  - non-canonical transforms no longer override regex sampling.
+- Extended semantic usage test coverage:
+  - path-type transform hint test,
+  - non-canonical transform fallback-to-regex test.
+- Updated living docs:
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+### Validation Results
+- `make -C rust semantic_usage_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-18 - Phase F Follow-Up: Semantic Annotation Leverage Contract Gate
 ### ✅ Achievement Summary
 Made semantic-annotation runtime leverage explicit and test-enforced for both parser generation and stimuli generation.

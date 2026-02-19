@@ -233,13 +233,15 @@ Current leverage contract (parser + stimuli):
 - Parser codegen leverage:
   - `TransformExpr` is currently applied on regex atom generation paths for the annotated rule.
   - Canonical parse transforms (`str::parse::<T>().unwrap_or(default)`) produce transformed terminal output in generated parser code.
+  - Target type parsing is path-aware (for example `std::primitive::i64`).
   - `Raw` semantic annotations do not currently alter parser regex atom behavior.
 - Stimuli generation leverage:
   - For regex-token sampling, semantic hints are checked first for the current rule.
-  - Current typed hints:
+  - Typed hints are derived from canonical transform parsing:
     - `parse::<f*>` -> `"1.0"`
     - `parse::<i*>`, `parse::<u*>`, `parse::<isize>`, `parse::<usize>` -> `"1"`
     - `parse::<bool>` -> `"true"`
+  - Non-canonical transform expressions do not override regex sampling.
   - Raw quoted semantic payloads (for example `"literal"`) are unquoted and emitted as the sample.
 - Gate/test coverage:
   - `make -C rust semantic_usage_gate`
