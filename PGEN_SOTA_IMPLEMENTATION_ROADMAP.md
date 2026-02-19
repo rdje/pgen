@@ -88,9 +88,9 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 ### Phase J (New): Semantic Steering Control Surface + Return Completeness
 - [x] Publish semantic steering control matrix with parser/stimuli control taxonomy, current support status, and target tiers (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`).
 - [x] Capture layered control architecture decision (minimal built-in invariants + annotation-driven policy surface + hard precedence rules).
-- [ ] `P0` Implement typed semantic directive registry (name-based routing) and promote from parse-only to steering for selected directives.
-- [ ] `P0` Implement unknown-directive handling policy modes (`warn` and `strict`) with stable diagnostics.
-- [ ] `P0` Implement parser/stimuli precedence+associativity steering controls.
+- [x] `P0` Implement typed semantic directive registry (name-based routing) and promote from parse-only to steering for selected directives.
+- [x] `P0` Implement unknown-directive handling policy modes (`warn` and `strict`) with stable diagnostics.
+- [x] `P0` Implement parser/stimuli precedence+associativity steering controls.
 - [ ] `P0` Implement parser/stimuli value-domain constraint controls (`range/enum/regex/len` style directives).
 - [ ] `P1` Implement semantic directive conflict-resolution contract (deterministic policy precedence and tie-breaking).
 - [ ] `P1` Drive return-annotation differential mismatches to zero and enforce stricter return parity closure criteria.
@@ -138,3 +138,5 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Completed explicit aggregate release policy enforcement by adding tracked policy config (`rust/config/sota_exit_policy.env`), policy-driven required-check execution in `sota_exit_gate`, and release policy checklist doc (`PGEN_RELEASE_POLICY.md`).
 - 2026-02-19: Started Phase J by publishing semantic steering control matrix (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`) and codifying the no-compromise return-annotation completeness contract.
 - 2026-02-19: Refined Phase J with explicit layered built-in-vs-annotation control decision and P0/P1 implementation priorities for semantic steering promotion.
+- 2026-02-19: Completed Phase J P0 directive-registry foundation: added typed semantic directive registry + unknown-directive warn/strict policy with stable diagnostics, and wired directive-aware steering routing in parser codegen and stimuli generation.
+- 2026-02-19: Completed Phase J P0 precedence/associativity steering baseline by adding semantic `priority/precedence` branch tie-break controls and `associativity` tie policy routing in parser codegen and stimuli branch selection.

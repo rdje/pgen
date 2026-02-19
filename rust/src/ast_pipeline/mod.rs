@@ -248,12 +248,44 @@ pub struct BranchAnnotation {
     pub parsed_ast: Option<UnifiedReturnAST>,
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
+#[serde(untagged)]
+pub enum SemanticAnnotation {
+    Legacy(UnifiedSemanticAST),
+    Named {
+        name: String,
+        ast: UnifiedSemanticAST,
+    },
+}
+
+impl SemanticAnnotation {
+    pub fn ast(&self) -> &UnifiedSemanticAST {
+        match self {
+            SemanticAnnotation::Legacy(ast) => ast,
+            SemanticAnnotation::Named { ast, .. } => ast,
+        }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        match self {
+            SemanticAnnotation::Legacy(_) => None,
+            SemanticAnnotation::Named { name, .. } => Some(name.as_str()),
+        }
+    }
+}
+
+impl From<UnifiedSemanticAST> for SemanticAnnotation {
+    fn from(value: UnifiedSemanticAST) -> Self {
+        SemanticAnnotation::Legacy(value)
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, Default)]
 pub struct Annotations {
     #[serde(default)]
     pub branch_return_annotations: std::collections::HashMap<String, Vec<Option<BranchAnnotation>>>,
     #[serde(default)]
-    pub semantic_annotations: std::collections::HashMap<String, Vec<UnifiedSemanticAST>>,
+    pub semantic_annotations: std::collections::HashMap<String, Vec<SemanticAnnotation>>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -1411,6 +1443,7 @@ pub mod annotation_validator;
 pub mod grouped_quantifier_parser;
 pub mod mutual_recursion_handler;
 pub mod return_annotation_handler;
+pub mod semantic_directive_registry;
 pub mod semantic_transform;
 pub mod stimuli_generator;
 pub mod unified_return_ast;
@@ -1420,6 +1453,11 @@ pub mod unified_semantic_ast;
 pub use annotation_validator::{
     AnnotationDiagnostic, AnnotationKind, AnnotationSeverity, AnnotationValidationReport,
     AnnotationValidator, AnnotationValidatorConfig,
+};
+pub use semantic_directive_registry::{
+    SemanticAssociativity, SemanticDirectiveCapability, SemanticDirectiveSpec,
+    UnknownSemanticDirectivePolicy, extract_semantic_directive, extract_semantic_directive_name,
+    parse_semantic_numeric_list, semantic_directive_spec,
 };
 pub use semantic_transform::{
     CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,

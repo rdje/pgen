@@ -1,6 +1,7 @@
 use super::{
-    ASTNode, ASTValue, Annotations, TokenValue, UnifiedSemanticAST,
-    parse_canonical_transform_expression, stimuli_hint_for_target_type,
+    ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity, TokenValue,
+    UnifiedSemanticAST, extract_semantic_directive, parse_canonical_transform_expression,
+    parse_semantic_numeric_list, stimuli_hint_for_target_type,
 };
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
@@ -1483,6 +1484,8 @@ impl<'a> StimuliGenerator<'a> {
             .map(|idx| prepared[*idx].0)
             .collect();
         let base_weights = self.build_weights(&probabilities)?;
+        let (associativity, branch_priorities) =
+            self.rule_branch_controls(current_rule, prepared.len());
         let guided_weights: Vec<u64> = candidate_indices
             .iter()
             .enumerate()
@@ -1496,7 +1499,15 @@ impl<'a> StimuliGenerator<'a> {
                 let recursion_penalty =
                     self.recursion_pressure_penalty(&prepared[*global_idx].1, call_stack, depth);
                 let adjusted_multiplier = (multiplier / recursion_penalty).max(1);
-                u64::from(base_weights[local_idx]).saturating_mul(adjusted_multiplier)
+                let semantic_multiplier = self.semantic_branch_multiplier(
+                    associativity,
+                    &branch_priorities,
+                    *global_idx,
+                    prepared.len(),
+                );
+                u64::from(base_weights[local_idx])
+                    .saturating_mul(adjusted_multiplier)
+                    .saturating_mul(semantic_multiplier)
             })
             .collect();
 
@@ -2167,11 +2178,15 @@ impl<'a> StimuliGenerator<'a> {
 
     fn semantic_hint_for_rule(&self, rule_name: &str) -> Option<String> {
         let annotations = self.annotations?;
-        let semantic_asts = annotations.semantic_annotations.get(rule_name)?;
+        let semantic_annotations = annotations.semantic_annotations.get(rule_name)?;
 
-        for ast in semantic_asts {
-            match ast {
+        for semantic_annotation in semantic_annotations {
+            let directive_name = self.semantic_directive_name(semantic_annotation);
+            match semantic_annotation.ast() {
                 UnifiedSemanticAST::TransformExpr { expression } => {
+                    if directive_name.as_deref() != Some("transform") {
+                        continue;
+                    }
                     if let Some(transform) = parse_canonical_transform_expression(expression) {
                         if let Some(hint) = stimuli_hint_for_target_type(&transform.target_type) {
                             return Some(hint.to_string());
@@ -2179,6 +2194,14 @@ impl<'a> StimuliGenerator<'a> {
                     }
                 }
                 UnifiedSemanticAST::Raw { content } => {
+                    if matches!(
+                        directive_name.as_deref(),
+                        Some(name)
+                            if !matches!(name, "sample" | "literal" | "example" | "stimulus")
+                    ) {
+                        continue;
+                    }
+
                     let trimmed = content.trim();
                     if trimmed.len() >= 2
                         && ((trimmed.starts_with('"') && trimmed.ends_with('"'))
@@ -2191,6 +2214,103 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         None
+    }
+
+    fn rule_branch_controls(
+        &self,
+        rule_name: &str,
+        branch_count: usize,
+    ) -> (SemanticAssociativity, Vec<i64>) {
+        let mut associativity = SemanticAssociativity::Left;
+        let mut priorities = vec![0i64; branch_count];
+        let Some(annotations) = self.annotations else {
+            return (associativity, priorities);
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return (associativity, priorities);
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "associativity" => {
+                    if let Some(parsed) = SemanticAssociativity::parse(&payload) {
+                        associativity = parsed;
+                    }
+                }
+                "precedence" | "priority" => {
+                    let Some(values) = parse_semantic_numeric_list(&payload) else {
+                        continue;
+                    };
+                    if values.len() == 1 {
+                        priorities.fill(values[0]);
+                    } else {
+                        for (idx, value) in values.iter().enumerate().take(branch_count) {
+                            priorities[idx] = *value;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        (associativity, priorities)
+    }
+
+    fn semantic_branch_multiplier(
+        &self,
+        associativity: SemanticAssociativity,
+        priorities: &[i64],
+        branch_index: usize,
+        branch_count: usize,
+    ) -> u64 {
+        let priority_component = if priorities.is_empty() {
+            1
+        } else {
+            let min = priorities.iter().copied().min().unwrap_or(0);
+            let value = priorities.get(branch_index).copied().unwrap_or(min);
+            value.saturating_sub(min).saturating_add(1) as u64
+        };
+
+        let associativity_component = match associativity {
+            SemanticAssociativity::Left => branch_count.saturating_sub(branch_index) as u64,
+            SemanticAssociativity::Right => branch_index.saturating_add(1) as u64,
+            SemanticAssociativity::NonAssoc => 1,
+        };
+
+        priority_component
+            .max(1)
+            .saturating_mul(associativity_component.max(1))
+    }
+
+    fn semantic_directive_name(&self, annotation: &SemanticAnnotation) -> Option<String> {
+        self.semantic_directive_parts(annotation)
+            .map(|(name, _)| name)
+    }
+
+    fn semantic_directive_parts(&self, annotation: &SemanticAnnotation) -> Option<(String, String)> {
+        if let Some(name) = annotation.name() {
+            let normalized = name.trim().to_ascii_lowercase();
+            if !normalized.is_empty() {
+                let payload = match annotation.ast() {
+                    UnifiedSemanticAST::TransformExpr { expression } => expression.clone(),
+                    UnifiedSemanticAST::Raw { content } => content.clone(),
+                };
+                return Some((normalized, payload.trim().to_string()));
+            }
+        }
+
+        match annotation.ast() {
+            UnifiedSemanticAST::TransformExpr { expression } => {
+                if let Some(parts) = extract_semantic_directive(expression) {
+                    return Some(parts);
+                }
+                Some(("transform".to_string(), expression.clone()))
+            }
+            UnifiedSemanticAST::Raw { content } => extract_semantic_directive(content),
+        }
     }
 
     fn extract_token_pair(parts: &[TokenValue]) -> Option<(&str, &str)> {
@@ -2317,6 +2437,76 @@ mod tests {
         assert!(
             values.iter().any(|v| v == "R"),
             "expected at least one right branch"
+        );
+    }
+
+    #[test]
+    fn semantic_priority_directive_biases_branch_selection() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "priority".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[1, 12]".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 17);
+        let values = generator
+            .generate_many(80, None)
+            .expect("priority-biased generation should pass");
+
+        let left_count = values.iter().filter(|v| v.as_str() == "L").count();
+        let right_count = values.iter().filter(|v| v.as_str() == "R").count();
+        assert!(
+            right_count > left_count,
+            "priority directive should bias toward higher-priority branch"
+        );
+    }
+
+    #[test]
+    fn semantic_associativity_right_biases_ties_to_later_branches() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "associativity".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "right".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 23);
+        let values = generator
+            .generate_many(80, None)
+            .expect("associativity-biased generation should pass");
+
+        let left_count = values.iter().filter(|v| v.as_str() == "L").count();
+        let right_count = values.iter().filter(|v| v.as_str() == "R").count();
+        assert!(
+            right_count > left_count,
+            "right associativity should bias ties toward later branches"
         );
     }
 
@@ -2695,7 +2885,8 @@ mod tests {
             "start".to_string(),
             vec![UnifiedSemanticAST::TransformExpr {
                 expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
-            }],
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9090);
@@ -2720,13 +2911,15 @@ mod tests {
             "float_rule".to_string(),
             vec![UnifiedSemanticAST::TransformExpr {
                 expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
-            }],
+            }
+            .into()],
         );
         annotations.semantic_annotations.insert(
             "bool_rule".to_string(),
             vec![UnifiedSemanticAST::TransformExpr {
                 expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
-            }],
+            }
+            .into()],
         );
 
         let mut float_generator =
@@ -2754,7 +2947,8 @@ mod tests {
             "start".to_string(),
             vec![UnifiedSemanticAST::TransformExpr {
                 expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
-            }],
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9094);
@@ -2775,7 +2969,8 @@ mod tests {
             "start".to_string(),
             vec![UnifiedSemanticAST::TransformExpr {
                 expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
-            }],
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9095);
@@ -2803,7 +2998,8 @@ mod tests {
             "start".to_string(),
             vec![UnifiedSemanticAST::Raw {
                 content: "\"literal-token\"".to_string(),
-            }],
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9093);
@@ -2811,5 +3007,36 @@ mod tests {
             .generate_many(1, Some("start"))
             .expect("raw-semantic-driven generation should succeed");
         assert_eq!(values[0], "literal-token");
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_raw_hint_requires_literalish_directive_when_named() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{4}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "type".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"literal-token\"".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9193);
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("generation should succeed");
+
+        let sample = &values[0];
+        let regex = Regex::new(r"^[A-Z]{4}$").expect("valid regex");
+        assert!(
+            regex.is_match(sample),
+            "non-literal directive should not override regex sampling, got {:?}",
+            sample
+        );
     }
 }

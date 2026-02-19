@@ -4,8 +4,9 @@
 
 use super::Logger;
 use crate::ast_pipeline::{
-    ASTNode, ASTValue, Annotations, BranchAnnotation, TokenValue, UnifiedSemanticAST,
-    ast_return_transform::AstReturnTransformer, parse_canonical_transform_expression,
+    ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
+    TokenValue, UnifiedSemanticAST, ast_return_transform::AstReturnTransformer,
+    extract_semantic_directive, parse_canonical_transform_expression, parse_semantic_numeric_list,
 };
 use anyhow::Result;
 use prettyplease;
@@ -541,6 +542,9 @@ impl AstBasedGenerator {
         } else {
             // Multi-branch - evaluate all branches and keep the longest successful match
             let mut branch_attempts = Vec::new();
+            let branch_priorities = self.rule_branch_priorities(rule_name, branch_count);
+            let associativity = self.rule_associativity(rule_name);
+            let associativity_mode = associativity.as_str();
 
             for (idx, alternative) in alternatives.iter().enumerate() {
                 eprintln!();
@@ -564,6 +568,8 @@ impl AstBasedGenerator {
                     };
 
                 let branch_num = idx + 1;
+                let branch_priority = branch_priorities.get(idx).copied().unwrap_or(0);
+                let branch_index = idx;
                 branch_attempts.push(quote! {
                     parser.position = parse_start;
                     if let Some(content) = parser.try_parse(|p| {
@@ -579,12 +585,38 @@ impl AstBasedGenerator {
                     }) {
                         let candidate_end = parser.position;
                         parser.position = parse_start;
+                        let candidate_priority: i64 = #branch_priority;
                         let transformed = {
                             let content = content;
                             #transform
                         };
-                        if best_content.is_none() || candidate_end > best_end {
+                        let should_take = if best_content.is_none() {
+                            true
+                        } else if candidate_end > best_end {
+                            true
+                        } else if candidate_end < best_end {
+                            false
+                        } else if candidate_priority > best_priority {
+                            true
+                        } else if candidate_priority < best_priority {
+                            false
+                        } else {
+                            match #associativity_mode {
+                                "right" => #branch_index > best_branch_index,
+                                "nonassoc" => {
+                                    if #branch_index != best_branch_index {
+                                        nonassoc_tie = true;
+                                    }
+                                    false
+                                }
+                                _ => false,
+                            }
+                        };
+
+                        if should_take {
                             best_end = candidate_end;
+                            best_priority = candidate_priority;
+                            best_branch_index = #branch_index;
                             best_branch = #branch_num;
                             best_content = Some(transformed);
                         }
@@ -599,14 +631,29 @@ impl AstBasedGenerator {
                 let parse_start = parser.position;
                 let mut best_content: Option<ParseContent<'input>> = None;
                 let mut best_end = parse_start;
+                let mut best_priority: i64 = i64::MIN;
+                let mut best_branch_index: usize = 0usize;
                 let mut best_branch = 0usize;
+                let mut nonassoc_tie = false;
                 let mut result = ParseContent::Sequence(Vec::new());
                 #(#branch_attempts)*
 
-                if let Some(content) = best_content {
+                if nonassoc_tie {
+                    return Err(ParseError::Backtrack {
+                        position: parse_start,
+                    });
+                } else if let Some(content) = best_content {
                     parser.position = best_end;
                     if parser.logger.is_enabled() {
-                        parser.logger.log_info(#filename, 0, &format!("🏁 Rule '{}' selected branch {}/{} consuming {} chars", #rule_name, best_branch, #branch_count, best_end.saturating_sub(parse_start)));
+                        parser.logger.log_info(#filename, 0, &format!(
+                            "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={})",
+                            #rule_name,
+                            best_branch,
+                            #branch_count,
+                            best_end.saturating_sub(parse_start),
+                            best_priority,
+                            #associativity_mode
+                        ));
                     }
                     result = content;
                 } else {
@@ -774,11 +821,19 @@ impl AstBasedGenerator {
                         };
                         // Check for semantic annotations that should transform the matched string
                         if let Some(annotations) = &self.annotations {
-                            if let Some(semantic_asts) =
+                            if let Some(semantic_annotations) =
                                 annotations.semantic_annotations.get(rule_name)
                             {
-                                for ast in semantic_asts {
-                                    if let UnifiedSemanticAST::TransformExpr { expression } = ast {
+                                for semantic_annotation in semantic_annotations {
+                                    if Self::semantic_directive_name(semantic_annotation).as_deref()
+                                        != Some("transform")
+                                    {
+                                        continue;
+                                    }
+
+                                    if let UnifiedSemanticAST::TransformExpr { expression } =
+                                        semantic_annotation.ast()
+                                    {
                                         if let Some(transform) =
                                             parse_canonical_transform_expression(expression)
                                         {
@@ -1225,6 +1280,87 @@ impl AstBasedGenerator {
             }
         }
     }
+
+    fn semantic_directive_name(annotation: &SemanticAnnotation) -> Option<String> {
+        Self::semantic_directive_parts(annotation).map(|(name, _)| name)
+    }
+
+    fn semantic_directive_parts(annotation: &SemanticAnnotation) -> Option<(String, String)> {
+        if let Some(name) = annotation.name() {
+            let normalized = name.trim().to_ascii_lowercase();
+            if !normalized.is_empty() {
+                let payload = match annotation.ast() {
+                    UnifiedSemanticAST::TransformExpr { expression } => expression.clone(),
+                    UnifiedSemanticAST::Raw { content } => content.clone(),
+                };
+                return Some((normalized, payload.trim().to_string()));
+            }
+        }
+
+        match annotation.ast() {
+            UnifiedSemanticAST::TransformExpr { expression } => {
+                if let Some(parts) = extract_semantic_directive(expression) {
+                    return Some(parts);
+                }
+                Some(("transform".to_string(), expression.clone()))
+            }
+            UnifiedSemanticAST::Raw { content } => extract_semantic_directive(content),
+        }
+    }
+
+    fn rule_associativity(&self, rule_name: &str) -> SemanticAssociativity {
+        let Some(annotations) = &self.annotations else {
+            return SemanticAssociativity::Left;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return SemanticAssociativity::Left;
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            if name == "associativity" {
+                if let Some(parsed) = SemanticAssociativity::parse(&payload) {
+                    return parsed;
+                }
+            }
+        }
+
+        SemanticAssociativity::Left
+    }
+
+    fn rule_branch_priorities(&self, rule_name: &str, branch_count: usize) -> Vec<i64> {
+        let mut priorities = vec![0i64; branch_count];
+        let Some(annotations) = &self.annotations else {
+            return priorities;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return priorities;
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            if name != "priority" && name != "precedence" {
+                continue;
+            }
+
+            let Some(values) = parse_semantic_numeric_list(&payload) else {
+                continue;
+            };
+            if values.len() == 1 {
+                priorities.fill(values[0]);
+                continue;
+            }
+            for (idx, value) in values.iter().enumerate().take(branch_count) {
+                priorities[idx] = *value;
+            }
+        }
+
+        priorities
+    }
 }
 
 fn generate_tests(parser_name: &Ident) -> TokenStream {
@@ -1249,7 +1385,9 @@ fn generate_tests(parser_name: &Ident) -> TokenStream {
 #[cfg(test)]
 mod semantic_usage_tests {
     use super::*;
-    use crate::ast_pipeline::{Annotations, ASTNode, ASTValue, TokenValue, UnifiedSemanticAST};
+    use crate::ast_pipeline::{
+        ASTNode, ASTValue, Annotations, SemanticAnnotation, TokenValue, UnifiedSemanticAST,
+    };
     use std::collections::HashMap;
 
     fn regex_atom(pattern: &str) -> ASTNode {
@@ -1261,6 +1399,15 @@ mod semantic_usage_tests {
         }
     }
 
+    fn token(token_type: &str, token_value: &str) -> ASTNode {
+        ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String(token_type.to_string()),
+                TokenValue::String(token_value.to_string()),
+            ]),
+        }
+    }
+
     fn generator_with_semantic(
         rule_name: &str,
         semantic_asts: Vec<UnifiedSemanticAST>,
@@ -1268,7 +1415,10 @@ mod semantic_usage_tests {
         let mut annotations = Annotations::default();
         annotations
             .semantic_annotations
-            .insert(rule_name.to_string(), semantic_asts);
+            .insert(
+                rule_name.to_string(),
+                semantic_asts.into_iter().map(SemanticAnnotation::from).collect(),
+            );
 
         AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
@@ -1277,6 +1427,12 @@ mod semantic_usage_tests {
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
             enable_debug: false,
+        }
+    }
+
+    fn or_rule() -> ASTNode {
+        ASTNode::Or {
+            alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
         }
     }
 
@@ -1359,6 +1515,145 @@ mod semantic_usage_tests {
         assert!(
             !rendered.contains("ParseContent :: TransformedTerminal"),
             "raw semantic annotations should not force transformed terminal output, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_ignores_transformexpr_when_named_non_transform_directive() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "number".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "type".to_string(),
+                ast: UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
+                },
+            }],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[0-9]+"), "number", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("ParseContent :: Terminal"),
+            "non-transform directive should not trigger transform steering, got: {}",
+            rendered
+        );
+        assert!(
+            !rendered.contains("ParseContent :: TransformedTerminal"),
+            "non-transform directive should not force transformed terminal output, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_parses_associativity_directive() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "associativity".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "right".to_string(),
+                },
+            }],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        assert_eq!(
+            generator.rule_associativity("expr"),
+            SemanticAssociativity::Right
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_parses_branch_priorities() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "priority".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[1, 9]".to_string(),
+                },
+            }],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_priority_and_associativity_tiebreak_logic() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "priority".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[1, 9]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "associativity".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "right".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let logic = generator
+            .generate_node_parsing_logic(&or_rule(), "expr", "semantic_usage.rs")
+            .expect("or-node logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("candidate_priority"),
+            "expected candidate priority tie-break support, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("match \"right\""),
+            "expected associativity-aware logging content, got: {}",
             rendered
         );
     }

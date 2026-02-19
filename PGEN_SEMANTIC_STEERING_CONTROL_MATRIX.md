@@ -49,9 +49,9 @@ Hard boundary:
 |---|---|---|---|---|---|---|---|
 | `SC-01` | Canonical terminal transform/coercion | Transform matched terminal into typed parse content | Bias sample shape by target type | `@transform: str::parse::<T>().unwrap_or(default)` | Implemented (canonical parser shared across validator/codegen/stimuli) | Tier 4 | P0 |
 | `SC-02` | Raw literal sample hint | None | Allow explicit literal sample override | Raw semantic payload (`"literal"`) | Implemented for stimuli only | Tier 3 | P1 |
-| `SC-03` | Name-based directive routing | Select behavior by semantic annotation name | Same | `@sample`, `@weight`, `@recover`, `@token`, `@constraint` | Parsed but not a first-class steering key | Tier 3 | P0 |
+| `SC-03` | Name-based directive routing | Select behavior by semantic annotation name | Same | `@sample`, `@weight`, `@recover`, `@token`, `@constraint` | Foundation implemented: typed name routing + unknown-directive policy + transform/literal routing guards; broader directive steering still pending | Tier 3 | P0 |
 | `SC-04` | Token-class steering | Choose tokenizer/matcher strategy per atom/rule | Generate samples by token class family | `@token_class`, `@charset`, `@pattern` | Not implemented | Tier 3 | P1 |
-| `SC-05` | Precedence/associativity steering | Resolve ambiguity/branching deterministically | Generate precedence-respecting trees | `@precedence`, `@associativity`, `@priority` | Not implemented | Tier 3 | P0 |
+| `SC-05` | Precedence/associativity steering | Resolve ambiguity/branching deterministically | Generate precedence-respecting trees | `@precedence`, `@associativity`, `@priority` | Baseline implemented: parser tie-break uses priority+associativity; stimuli branch sampling uses semantic priority/precedence + associativity multipliers | Tier 3 | P0 |
 | `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | External gap-priority exists; semantic-driven route not implemented | Tier 3 | P1 |
 | `SC-07` | Error recovery and sync strategy | Production-grade parser recovery hints | Generate recovery-focused stimuli sets | `@recover`, `@sync`, `@panic_until` | Not implemented | Tier 2 | P1 |
 | `SC-08` | Value-domain constraints | Enforce value contracts at parse/validation boundaries | Generate in-domain samples | `@range`, `@enum`, `@regex`, `@len` | Not implemented | Tier 3 | P0 |
@@ -89,14 +89,14 @@ Required quality bar:
 4. Any temporary mismatch must be explicitly tracked in differential baselines with closure plan.
 
 ## Next Implementation Focus (Recommended)
-1. Promote `SC-03` (name-based directive routing) to `Tier 2/3` with a typed directive registry.
-2. Implement `SC-05` precedence/associativity steering for ambiguity resolution.
-3. Implement `SC-08` value-domain constraints for both parser validation and stimuli generation.
+1. Implement `SC-08` value-domain constraints for both parser validation and stimuli generation.
+2. Add deterministic directive conflict-resolution contract for multi-directive overlap.
+3. Add typed validator checks for invalid `priority/precedence/associativity` payloads.
 4. Add dedicated return-annotation closure work to drive differential return mismatches to zero.
 
 ## Priority Queue (Balance-Oriented)
 - `P0` Keep built-in core minimal and invariant-only (correctness/safety/return completeness).
-- `P0` Implement typed semantic directive registry + unknown-directive policy modes (`warn`/`strict`).
-- `P0` Promote precedence/associativity and value-domain constraints to parser+stimuli steering.
+- `P0` Implement typed semantic directive registry + unknown-directive policy modes (`warn`/`strict`). (Completed 2026-02-19)
+- `P0` Promote precedence/associativity and value-domain constraints to parser+stimuli steering. (Precedence/associativity completed 2026-02-19; value-domain pending)
 - `P1` Add semantic directive conflict-resolution contract and deterministic precedence rules.
 - `P1` Drive return differential mismatch debt to zero and tighten release gate criteria.

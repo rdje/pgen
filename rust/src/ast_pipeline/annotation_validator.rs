@@ -1,6 +1,8 @@
 use super::{
-    ASTNode, Annotations, BranchAnnotation, ExtractionTarget, UnifiedReturnAST, UnifiedSemanticAST,
-    parse_canonical_transform_expression,
+    ASTNode, Annotations, BranchAnnotation, ExtractionTarget, SemanticAnnotation,
+    UnifiedReturnAST, UnifiedSemanticAST, UnknownSemanticDirectivePolicy,
+    extract_semantic_directive_name, parse_canonical_transform_expression,
+    semantic_directive_spec,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -78,6 +80,7 @@ impl AnnotationValidationReport {
 pub struct AnnotationValidatorConfig {
     pub max_capture_index: Option<usize>,
     pub strict_semantic_transforms: bool,
+    pub unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -102,8 +105,13 @@ impl AnnotationValidator {
         }
 
         for (rule_name, semantic_annotations) in &annotations.semantic_annotations {
-            for (idx, annotation_ast) in semantic_annotations.iter().enumerate() {
-                self.validate_semantic_annotation(rule_name, idx + 1, annotation_ast, &mut report);
+            for (idx, semantic_annotation) in semantic_annotations.iter().enumerate() {
+                self.validate_semantic_annotation(
+                    rule_name,
+                    idx + 1,
+                    semantic_annotation,
+                    &mut report,
+                );
             }
         }
 
@@ -362,9 +370,29 @@ impl AnnotationValidator {
         &self,
         rule_name: &str,
         annotation_index: usize,
-        semantic_ast: &UnifiedSemanticAST,
+        semantic_annotation: &SemanticAnnotation,
         report: &mut AnnotationValidationReport,
     ) {
+        if let Some(directive_name) = self.semantic_directive_name(semantic_annotation) {
+            if semantic_directive_spec(&directive_name).is_none() {
+                if let Some(severity) = self.unknown_semantic_directive_severity() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_UNKNOWN_DIRECTIVE",
+                        severity,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: format!(
+                            "Unknown semantic directive '{}' is not registered in the typed directive registry.",
+                            directive_name
+                        ),
+                        annotation: Some(self.semantic_annotation_raw_text(semantic_annotation)),
+                    });
+                }
+            }
+        }
+
+        let semantic_ast = semantic_annotation.ast();
         match semantic_ast {
             UnifiedSemanticAST::TransformExpr { expression } => {
                 self.validate_transform_expression(
@@ -387,6 +415,48 @@ impl AnnotationValidator {
                     });
                 }
             }
+        }
+    }
+
+    fn semantic_annotation_raw_text(&self, semantic_annotation: &SemanticAnnotation) -> String {
+        match semantic_annotation {
+            SemanticAnnotation::Legacy(UnifiedSemanticAST::TransformExpr { expression }) => {
+                expression.clone()
+            }
+            SemanticAnnotation::Legacy(UnifiedSemanticAST::Raw { content }) => content.clone(),
+            SemanticAnnotation::Named { name, ast } => match ast {
+                UnifiedSemanticAST::TransformExpr { expression } => {
+                    format!("@{}: {}", name, expression)
+                }
+                UnifiedSemanticAST::Raw { content } => format!("@{}: {}", name, content),
+            },
+        }
+    }
+
+    fn semantic_directive_name(&self, semantic_annotation: &SemanticAnnotation) -> Option<String> {
+        if let Some(name) = semantic_annotation.name() {
+            let normalized = name.trim().to_ascii_lowercase();
+            if !normalized.is_empty() {
+                return Some(normalized);
+            }
+        }
+
+        match semantic_annotation.ast() {
+            UnifiedSemanticAST::TransformExpr { expression } => {
+                if let Some(name) = extract_semantic_directive_name(expression) {
+                    return Some(name);
+                }
+                Some("transform".to_string())
+            }
+            UnifiedSemanticAST::Raw { content } => extract_semantic_directive_name(content),
+        }
+    }
+
+    fn unknown_semantic_directive_severity(&self) -> Option<AnnotationSeverity> {
+        match self.config.unknown_semantic_directive_policy {
+            UnknownSemanticDirectivePolicy::Ignore => None,
+            UnknownSemanticDirectivePolicy::Warn => Some(AnnotationSeverity::Warning),
+            UnknownSemanticDirectivePolicy::Strict => Some(AnnotationSeverity::Error),
         }
     }
 
@@ -608,7 +678,8 @@ mod tests {
             "number".to_string(),
             vec![UnifiedSemanticAST::TransformExpr {
                 expression: "str::parse::<u32>().unwrap_or(0)".to_string(),
-            }],
+            }
+            .into()],
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
@@ -623,12 +694,14 @@ mod tests {
             "number".to_string(),
             vec![UnifiedSemanticAST::TransformExpr {
                 expression: "parse(value)".to_string(),
-            }],
+            }
+            .into()],
         );
 
         let report = AnnotationValidator::new(AnnotationValidatorConfig {
             max_capture_index: None,
             strict_semantic_transforms: true,
+            unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
         })
         .validate_annotations(&annotations);
 
@@ -637,6 +710,61 @@ mod tests {
             .diagnostics
             .iter()
             .any(|d| d.code == "W_SEM_NON_CANONICAL_TRANSFORM"
+                && d.severity == AnnotationSeverity::Error));
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_unknown_directive_in_warn_mode() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "rule".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "custom_directive".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"value\"".to_string(),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::new(AnnotationValidatorConfig {
+            max_capture_index: None,
+            strict_semantic_transforms: false,
+            unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
+        })
+        .validate_annotations(&annotations);
+
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
+                && d.severity == AnnotationSeverity::Warning));
+    }
+
+    #[test]
+    fn semantic_validator_errors_on_unknown_directive_in_strict_mode() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "rule".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "custom_directive".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"value\"".to_string(),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::new(AnnotationValidatorConfig {
+            max_capture_index: None,
+            strict_semantic_transforms: false,
+            unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Strict,
+        })
+        .validate_annotations(&annotations);
+
+        assert!(report.has_errors());
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
                 && d.severity == AnnotationSeverity::Error));
     }
 
@@ -655,6 +783,7 @@ mod tests {
         let report = AnnotationValidator::new(AnnotationValidatorConfig {
             max_capture_index: Some(3),
             strict_semantic_transforms: false,
+            unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
         })
         .validate_annotations(&annotations);
 

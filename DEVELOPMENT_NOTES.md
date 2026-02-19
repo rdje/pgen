@@ -1,4 +1,107 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J P0 Implementation: Precedence/Associativity Steering Baseline
+### Context
+After landing typed semantic directive routing and unknown-directive policy modes, the next P0 gap was steering ambiguity/branch choice with explicit semantic intent.
+
+Without this, OR-branch behavior stayed mostly structural (`longest match`, then implicit source-order tie behavior), and stimuli branch sampling could not be steered by semantic precedence/associativity intent.
+### Implementation
+- Added reusable directive payload parsers in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - New helpers:
+    - `SemanticAssociativity` + parser (`left/right/nonassoc`)
+    - `extract_semantic_directive(...)` (name + payload extraction)
+    - `parse_semantic_numeric_list(...)` (`priority/precedence` payload parsing)
+  - Kept `::` false-positive guard to avoid misclassifying Rust path syntax as directives.
+- Parser codegen steering (`rust/src/ast_pipeline/ast_based_generator.rs`):
+  - For OR rules, branch resolution now uses:
+    1. longest consumed input (existing invariant),
+    2. semantic branch priority tie-break (`@priority`/`@precedence`),
+    3. associativity tie policy (`@associativity`).
+  - Behavior:
+    - `left`: default, stable first-winner on exact ties.
+    - `right`: deterministic later-branch winner on exact ties.
+    - `nonassoc`: explicit backtrack on unresolved exact tie.
+  - Added tests for:
+    - associativity parsing,
+    - branch-priority parsing,
+    - tie-break code emission path.
+- Stimuli steering (`rust/src/ast_pipeline/stimuli_generator.rs`):
+  - OR branch weight computation now includes semantic multipliers on top of existing probability + coverage guidance:
+    - branch priority/precedence vector influence,
+    - associativity bias (`left` favors earlier branches, `right` favors later branches, `nonassoc` neutral).
+  - Added tests showing:
+    - `@priority` biases branch selection distribution,
+    - `@associativity: right` biases tie sampling toward later branches.
+- Pipeline export updates:
+  - `rust/src/ast_pipeline/mod.rs`
+  - Re-exported semantic directive extraction/payload helpers and `SemanticAssociativity`.
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_directive_registry` passed.
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_` passed.
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_priority_directive_biases_branch_selection` passed.
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_associativity_right_biases_ties_to_later_branches` passed.
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` passed.
+### Why This Matters
+- Makes precedence/associativity intent executable rather than purely documentary.
+- Improves determinism and controllability for ambiguous grammar branches in both parser and stimuli flows.
+- Advances Phase J P0 toward a typed semantic steering surface while preserving built-in correctness precedence.
+
+## 2026-02-19 - Phase J P0 Implementation: Typed Directive Registry and Unknown-Directive Contract
+### Context
+Phase J requires reducing ambiguity between "semantic text that parses" and "semantic directives that actively steer parser/stimuli behavior." Before this slice, semantic handling was AST-shape-driven and could accidentally infer directive intent from raw transform-like content.
+
+To move toward deterministic semantic control, we needed:
+- a typed directive registry as the contract boundary,
+- explicit unknown-directive policy modes,
+- directive-name-aware steering in parser/stimuli routing.
+### Implementation
+- Migrated semantic annotation representation in pipeline state:
+  - `rust/src/ast_pipeline/mod.rs`
+  - Added `SemanticAnnotation` wrapper with:
+    - `Legacy(UnifiedSemanticAST)` for backward compatibility,
+    - `Named { name, ast }` for typed directive identity.
+  - Updated `Annotations.semantic_annotations` to store `Vec<SemanticAnnotation>`.
+- Added typed semantic directive registry:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - Introduced:
+    - directive capability taxonomy (`ParsedOnly`, `ParsedAndValidated`, `ParserSteering`, `StimuliSteering`, `ParserAndStimuliSteering`),
+    - known directive registry table,
+    - unknown-directive policy enum (`Ignore`, `Warn`, `Strict`),
+    - extraction helper for directive names from raw annotation content.
+  - Hardened extraction to avoid false positives on Rust path syntax (`str::parse...`).
+- Extended validator with stable unknown-directive diagnostics:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - New config field:
+    - `unknown_semantic_directive_policy`
+  - New diagnostic code:
+    - `W_SEM_UNKNOWN_DIRECTIVE`
+  - Policy mapping:
+    - `Ignore`: no diagnostic,
+    - `Warn`: warning,
+    - `Strict`: error.
+  - Added tests covering both warn and strict semantics.
+- Wired policy into parser generation entrypoint:
+  - `rust/src/ast_pipeline/ast_generator_direct.rs`
+  - Added env parsing for:
+    - `PGEN_UNKNOWN_SEMANTIC_DIRECTIVE_POLICY` (`ignore|warn|strict`, default `warn`).
+- Added directive-aware semantic steering in parser codegen:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - Canonical transform steering now applies only when effective directive name resolves to `transform`.
+  - Added regression test ensuring named non-transform directives do not accidentally trigger transform steering.
+- Added directive-aware semantic steering in stimuli generation:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Transform-based hint overrides now require directive `transform`.
+  - Raw literal hint overrides are gated to literal/sample directive names when explicitly named.
+  - Added regression test ensuring non-literal directives do not override regex sampling with raw quoted payloads.
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib annotation_validator` passed.
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_` passed.
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` passed.
+### Why This Matters
+- Establishes deterministic, typed semantic directive identity as the basis for future steering expansion.
+- Prevents accidental steering from syntactic coincidences in raw semantic content.
+- Provides an explicit policy lever for unknown directives, supporting both iterative (`warn`) and enforcement (`strict`) workflows in CI/local validation.
+
 ## 2026-02-19 - Phase J Follow-Up: Explicit Built-In vs Annotation Balance (with Priorities)
 ### Context
 The key architecture question was how much semantic behavior should remain hardcoded in the Rust AST pipeline versus controlled through semantic annotations in EBNF.

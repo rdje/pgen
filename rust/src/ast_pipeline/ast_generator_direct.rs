@@ -3,6 +3,7 @@
 
 use crate::ast_pipeline::{
     ASTNode, Annotations, BranchAnnotation, TransformedASTJson,
+    UnknownSemanticDirectivePolicy,
     annotation_validator::{AnnotationSeverity, AnnotationValidator, AnnotationValidatorConfig},
     ast_based_generator::AstBasedGenerator,
 };
@@ -64,6 +65,7 @@ pub fn generate_parser_ast_based(
         let validator = AnnotationValidator::new(AnnotationValidatorConfig {
             max_capture_index: None,
             strict_semantic_transforms: strict_validation,
+            unknown_semantic_directive_policy: unknown_semantic_directive_policy(),
         });
         let validation_report = validator.validate_annotations_with_grammar(annotations, grammar);
 
@@ -139,6 +141,13 @@ fn strict_annotation_validation_enabled() -> bool {
 
     // In CI, strict annotation validation is the default unless CI is explicitly false-ish.
     parse_bool_env("CI").unwrap_or(false)
+}
+
+fn unknown_semantic_directive_policy() -> UnknownSemanticDirectivePolicy {
+    std::env::var("PGEN_UNKNOWN_SEMANTIC_DIRECTIVE_POLICY")
+        .ok()
+        .and_then(|raw| UnknownSemanticDirectivePolicy::parse(&raw))
+        .unwrap_or_default()
 }
 
 fn parse_bool_env(var_name: &str) -> Option<bool> {

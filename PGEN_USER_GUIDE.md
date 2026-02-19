@@ -238,6 +238,12 @@ Current leverage contract (parser + stimuli):
   - Canonical parse transforms (`str::parse::<T>().unwrap_or(default)`) produce transformed terminal output in generated parser code.
   - Target type parsing is path-aware (for example `std::primitive::i64`).
   - `Raw` semantic annotations do not currently alter parser regex atom behavior.
+  - OR-branch tie-breaking supports semantic steering:
+    - `@priority: [1, 9, 2]` or `@precedence: [1, 9, 2]` applies branch-priority tie-break values by OR-branch index.
+    - `@associativity: left|right|nonassoc` controls exact-tie behavior:
+      - `left`: keep earlier branch winner (default),
+      - `right`: prefer later branch on exact ties,
+      - `nonassoc`: unresolved exact ties backtrack.
 - Stimuli generation leverage:
   - For regex-token sampling, semantic hints are checked first for the current rule.
   - Typed hints are derived from canonical transform parsing:
@@ -246,6 +252,10 @@ Current leverage contract (parser + stimuli):
     - `parse::<bool>` -> `"true"`
   - Non-canonical transform expressions do not override regex sampling.
   - Raw quoted semantic payloads (for example `"literal"`) are unquoted and emitted as the sample.
+  - OR-branch selection supports semantic steering:
+    - `@priority` / `@precedence` adds per-branch sampling bias,
+    - `@associativity: right` biases equal structures toward later branches,
+    - `@associativity: left` biases toward earlier branches.
 - Gate/test coverage:
   - `make -C rust semantic_usage_gate`
   - This enforces targeted `semantic_usage_*` unit tests in parser codegen and stimuli generator paths.
@@ -265,6 +275,8 @@ Built-in vs annotation control policy:
   - then supported semantic directives,
   - then fallback defaults.
 - Unknown semantic directives are expected to move toward explicit policy modes (`warn`/`strict`) rather than silent ignore.
+  - Runtime control:
+    - `PGEN_UNKNOWN_SEMANTIC_DIRECTIVE_POLICY=ignore|warn|strict` (default: `warn`).
 
 Return-annotation completeness reference (non-negotiable policy):
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` ("Return Annotation No-Compromise Contract")
