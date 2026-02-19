@@ -7303,3 +7303,21 @@ File: `.github/workflows/ebnf-frontend-dual-run-diff.yml`
 - `.gitignore`
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
+
+---
+
+## 2026-02-19: Generated Directory Fully Untracked
+
+### Goal
+Ensure generated artifacts do not remain under version control and can be regenerated on demand without repository clutter.
+
+### Changes
+- `.gitignore` now ignores the entire `generated/` directory (not just selected files).
+- Removed remaining generated artifacts from git tracking (kept locally):
+  - `generated/return_annotation.json`
+  - `generated/return_annotation_parser.rs`
+  - `generated/semantic_annotation.json`
+  - `generated/semantic_annotation_parser.rs`
+
+### Notes
+- This follows the project policy that generated files are reproducible artifacts and should not be tracked.

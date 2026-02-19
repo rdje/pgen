@@ -3373,3 +3373,31 @@ Observed:
 - `.gitignore`
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
+
+---
+
+## 2026-02-19 - Generated Artifact Tracking Policy Consolidation
+
+### Context
+Some generated artifacts under `generated/` were still git-tracked, which conflicted with the policy that generated outputs are transient/regenerable build artifacts.
+
+### Implementation
+
+#### 1) Ignore entire generated tree
+File: `.gitignore`
+- Replaced selective ignore entries with:
+  - `generated/`
+
+This guarantees all future regenerated artifacts under this directory remain untracked by default.
+
+#### 2) Remove remaining tracked generated artifacts from index
+Index cleanup (`git rm --cached`) was applied for:
+- `generated/return_annotation.json`
+- `generated/return_annotation_parser.rs`
+- `generated/semantic_annotation.json`
+- `generated/semantic_annotation_parser.rs`
+
+Local files remain present on disk; only git tracking was removed.
+
+### Outcome
+Generated artifacts are now fully excluded from version control, reducing repository noise and avoiding churn from deterministic regeneration.
