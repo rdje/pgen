@@ -1,7 +1,7 @@
 [
   {
     "name": "generated_parser_must_fully_consume_chained_accessor",
-    "description": "Regression: generated parser must fully consume chained property+array accessor sample instead of stopping at prefix.",
+    "description": "Regression: parser must fully consume chained property+array accessor sample instead of stopping at prefix.",
     "input": "$+0.A.A000[($0::first)[$00]]",
     "expected_round_trip": "$+0.A.A000[($0::first)[$00]]",
     "parser_type": "return",
@@ -12,7 +12,7 @@
       "left_recursion"
     ],
     "expectations": {
-      "bootstrap_parser": "expected_fail",
+      "bootstrap_parser": "pass",
       "generated_parser": "pass"
     }
   }

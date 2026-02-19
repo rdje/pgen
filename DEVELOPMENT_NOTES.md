@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J P1 Implementation: Return Differential Closure (2 -> 0)
+### Context
+After prior burn-down work, two return mismatches remained and both were bootstrap parser capability gaps:
+- `return_annotation_full_consumption_regression / generated_parser_must_fully_consume_chained_accessor`
+- `return_annotation_generated_whitespace_regression / generated_parser_accepts_leading_whitespace_on_accessor_chain`
+
+Both cases relied on signed positional refs and deeper postfix chaining:
+- `$+0.A.A000[($0::first)[$00]]`
+- `   $+0.A.A000[($0::first)[$00]]`
+
+Generated parser already accepted these forms; bootstrap parser needed feature completion for closure.
+### Implementation
+- Extended bootstrap return parser in:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+- Parser changes:
+  - `parse_positional_ref(...)` now parses optional leading `+`/`-` in positional index tokenization.
+  - `parse_value(...)` now supports parenthesized expression parsing followed by postfix modifiers.
+  - added `parse_postfix_chain(...)` to apply repeated postfix segments:
+    - extraction (`::target`),
+    - property access (`.segment`),
+    - array indexing (`[expr]`) with nested delimiter support,
+    - spread (`*`) as terminal modifier.
+  - added `find_matching_closer(...)` helper to locate matching `)` / `]` while respecting nested pairs and quoted string boundaries.
+- Unit test updates/additions:
+  - `bootstrap_accepts_signed_positional_with_chained_accessor_and_nested_index_expr`
+  - `bootstrap_accepts_leading_whitespace_on_signed_accessor_chain`
+  - updated trailing-array-modifier rejection assertion to normalized diagnostic payload.
+- Differential suite expectation updates:
+  - `rust/test_data/return_annotation/full_consumption_regression.json`
+    - `bootstrap_parser: expected_fail -> pass`
+  - `rust/test_data/return_annotation/generated_whitespace_regression.json`
+    - `bootstrap_parser: expected_fail -> pass`
+- Baseline refresh:
+  - rewrote `rust/test_data/differential_baseline/return_annotation_baseline.json` from current differential output (mismatches now zero).
+### Validation
+- Targeted unit tests:
+  - `cargo test --manifest-path rust/Cargo.toml unified_return_ast -- --nocapture`
+  - result: all `unified_return_ast` tests passed.
+- Return differential:
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --differential --parser return --differential-report-json rust/target/differential_harness/return_annotation_diff_report.json`
+  - result: `matched=89 mismatched=0`.
+- Baseline refresh:
+  - `./rust/target/debug/test_runner --differential --parser return --differential-write-baseline-json rust/test_data/differential_baseline/return_annotation_baseline.json`
+  - result: baseline written with zero mismatches.
+- Gate checks:
+  - `make -C rust SHELL=/bin/bash return_parity_gate` -> pass (`comparable mismatched=0`)
+  - `make -C rust SHELL=/bin/bash differential_regression_gate` -> pass (`return allowed=0 new=0 resolved=0`)
+### Why This Matters
+- Completes Phase J return mismatch closure without weakening expectation semantics.
+- Moves non-`ebnf.ebnf` roadmap work to completion state.
+- Leaves remaining roadmap debt isolated to Rust-native EBNF frontend migration tasks centered on `grammars/ebnf.ebnf`.
+
 ## 2026-02-19 - Phase J P1 Implementation: Return Differential Burn-Down (7 -> 2)
 ### Context
 After reducing return differential debt to 7, the remaining highest-impact closure slice (excluding `ebnf.ebnf` work) was bootstrap/generated drift caused by bootstrap quirk behavior:

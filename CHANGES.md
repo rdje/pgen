@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-19 - Phase J P1: Return Differential Closure (Baseline 2 -> 0)
+### ✅ Achievement Summary
+Closed the final two non-`ebnf.ebnf` return differential mismatches by extending bootstrap parser support for signed positional accessor chains and nested parenthesized index expressions.
+### Scope of Changes
+- Extended bootstrap return parser in:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+- Behavior updates:
+  - positional refs now support signed indices (`$+0`, `$-1` parse path; negative values still rejected),
+  - parenthesized expressions can now be followed by postfix chains,
+  - postfix chain parsing now supports repeated extraction/property/index modifiers and terminal spread semantics.
+- Added helpers:
+  - `parse_postfix_chain(...)`
+  - `find_matching_closer(...)` (nested delimiter handling with quoted-string awareness).
+- Added/updated bootstrap return tests:
+  - signed positional + chained accessor + nested index expression accepted,
+  - leading-whitespace signed accessor chain accepted,
+  - trailing-array-modifier rejection assertion updated to reflect normalized modifier diagnostics.
+- Updated regression-suite expectations (bootstrap now expected `pass`) in:
+  - `rust/test_data/return_annotation/full_consumption_regression.json`
+  - `rust/test_data/return_annotation/generated_whitespace_regression.json`
+- Refreshed tracked return mismatch baseline:
+  - `rust/test_data/differential_baseline/return_annotation_baseline.json`
+  - mismatch debt count: `2 -> 0`.
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml unified_return_ast -- --nocapture` ✅
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --differential --parser return --differential-report-json rust/target/differential_harness/return_annotation_diff_report.json` ✅ (`mismatched=0`)
+- `./rust/target/debug/test_runner --differential --parser return --differential-write-baseline-json rust/test_data/differential_baseline/return_annotation_baseline.json` ✅
+- `make -C rust SHELL=/bin/bash return_parity_gate` ✅ (`comparable corpus mismatched=0`)
+- `make -C rust SHELL=/bin/bash differential_regression_gate` ✅ (`return allowed=0 new=0 resolved=0`)
+
 ## 2026-02-19 - Phase J P1: Return Differential Burn-Down (Baseline 7 -> 2)
 ### ✅ Achievement Summary
 Reduced return differential mismatch debt from 7 to 2 by aligning bootstrap return parser behavior with generated parser strictness for whitespace normalization and malformed trailing/comma-list cases.

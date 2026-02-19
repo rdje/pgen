@@ -138,6 +138,17 @@ impl UnifiedReturnAST {
             return Self::parse_positional_ref(trimmed, logger);
         }
 
+        // Parenthesized expression, potentially followed by postfix accessors
+        if trimmed.starts_with('(') {
+            if let Some(close_idx) = Self::find_matching_closer(trimmed, '(', ')') {
+                if close_idx == trimmed.len() - 1 {
+                    return Self::parse_value(&trimmed[1..close_idx], logger);
+                }
+                let base = Self::parse_value(&trimmed[1..close_idx], logger)?;
+                return Self::parse_postfix_chain(base, &trimmed[close_idx + 1..], logger);
+            }
+        }
+
         // Check for string literal "..."
         if trimmed.starts_with('"') && trimmed.ends_with('"') {
             return Ok(UnifiedReturnAST::StringLiteral {
@@ -179,16 +190,27 @@ impl UnifiedReturnAST {
             );
         }
 
-        // Handle $N, $N*, $N.property, $N[index], $N::target, $N::target*
-        // Skip the '$' and find where the number ends
         let without_dollar = &input[1..];
-        let end_of_number = without_dollar
-            .chars()
-            .position(|c| !c.is_ascii_digit())
-            .unwrap_or(without_dollar.len());
+        let mut index_end = 0usize;
+        let mut chars = without_dollar.char_indices();
 
-        let num_str = &without_dollar[..end_of_number];
-        let remaining = &without_dollar[end_of_number..];
+        if let Some((_, first)) = chars.next() {
+            if first == '+' || first == '-' {
+                index_end = 1;
+            }
+        }
+
+        let digit_start = index_end;
+        for (idx, ch) in without_dollar[digit_start..].char_indices() {
+            if ch.is_ascii_digit() {
+                index_end = digit_start + idx + ch.len_utf8();
+            } else {
+                break;
+            }
+        }
+
+        let num_str = &without_dollar[..index_end];
+        let remaining = &without_dollar[index_end..];
 
         if logger.is_enabled() {
             logger.log_debug(
@@ -201,7 +223,7 @@ impl UnifiedReturnAST {
             );
         }
 
-        if num_str.is_empty() {
+        if num_str.is_empty() || index_end == digit_start {
             logger.log_error(
                 "unified_return_ast.rs",
                 line!(),
@@ -210,7 +232,7 @@ impl UnifiedReturnAST {
             return Err(format!("Invalid positional reference: '{}'", input));
         }
 
-        let index = num_str.parse::<usize>().map_err(|_| {
+        let signed_index = num_str.parse::<i64>().map_err(|_| {
             logger.log_error(
                 "unified_return_ast.rs",
                 line!(),
@@ -218,105 +240,85 @@ impl UnifiedReturnAST {
             );
             format!("Invalid positional index: '{}'", num_str)
         })?;
+        if signed_index < 0 {
+            logger.log_error(
+                "unified_return_ast.rs",
+                line!(),
+                &format!("Invalid positional index: '{}'", num_str),
+            );
+            return Err(format!("Invalid positional index: '{}'", num_str));
+        }
 
-        let mut base = UnifiedReturnAST::PositionalRef { index };
+        let base = UnifiedReturnAST::PositionalRef {
+            index: signed_index as usize,
+        };
+        let parsed = Self::parse_postfix_chain(base, remaining, logger)?;
 
-        // Check for extraction operator first (::)
-        if remaining.starts_with("::") {
-            let extraction_part = &remaining[2..];
+        if logger.is_enabled() {
+            logger.log_debug(
+                "unified_return_ast.rs",
+                line!(),
+                &format!("  Returning: {}", parsed.pretty_print(0).trim()),
+            );
+        }
 
-            // Check if there's a spread operator at the end
-            let (target_str, has_spread) = if extraction_part.ends_with('*') {
-                (&extraction_part[..extraction_part.len() - 1], true)
-            } else {
-                (extraction_part, false)
-            };
+        Ok(parsed)
+    }
 
-            // Parse the extraction target
-            let target = match target_str {
-                "first" => ExtractionTarget::First,
-                "last" => ExtractionTarget::Last,
-                s => {
-                    // Try to parse as index (1-based, convert to 0-based for internal use)
-                    match s.parse::<usize>() {
-                        Ok(user_idx) => {
-                            if user_idx == 0 {
-                                logger.log_error(
-                                    "unified_return_ast.rs",
-                                    line!(),
-                                    "Extraction index must be 1 or greater, got 0",
-                                );
-                                return Err(format!(
-                                    "Extraction index must be 1 or greater, got 0"
-                                ));
-                            }
-                            ExtractionTarget::Index(user_idx - 1) // Convert 1-based to 0-based
-                        }
-                        Err(_) => {
+    fn parse_postfix_chain(
+        mut base: UnifiedReturnAST,
+        mut remaining: &str,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        while !remaining.is_empty() {
+            if let Some(after_extraction_prefix) = remaining.strip_prefix("::") {
+                let mut target_end = 0usize;
+                for (idx, ch) in after_extraction_prefix.char_indices() {
+                    if ch.is_ascii_alphanumeric() || ch == '_' {
+                        target_end = idx + ch.len_utf8();
+                    } else {
+                        break;
+                    }
+                }
+                if target_end == 0 {
+                    logger.log_error(
+                        "unified_return_ast.rs",
+                        line!(),
+                        &format!("Invalid extraction target: '{}'", after_extraction_prefix),
+                    );
+                    return Err(format!(
+                        "Invalid extraction target: '{}'",
+                        after_extraction_prefix
+                    ));
+                }
+
+                let target_str = &after_extraction_prefix[..target_end];
+                let target = match target_str {
+                    "first" => ExtractionTarget::First,
+                    "last" => ExtractionTarget::Last,
+                    _ => match target_str.parse::<usize>() {
+                        Ok(user_idx) if user_idx > 0 => ExtractionTarget::Index(user_idx - 1),
+                        _ => {
                             logger.log_error(
                                 "unified_return_ast.rs",
                                 line!(),
-                                &format!("Invalid extraction target: '{}'", s),
+                                &format!("Invalid extraction target: '{}'", target_str),
                             );
-                            return Err(format!("Invalid extraction target: '{}'", s));
+                            return Err(format!("Invalid extraction target: '{}'", target_str));
                         }
-                    }
-                }
-            };
-
-            base = UnifiedReturnAST::QuantifiedExtraction {
-                base: Box::new(base),
-                target,
-            };
-
-            // Apply spread if present
-            if has_spread {
-                base = UnifiedReturnAST::Spread {
-                    base: Box::new(base),
+                    },
                 };
+
+                base = UnifiedReturnAST::QuantifiedExtraction {
+                    base: Box::new(base),
+                    target,
+                };
+                remaining = &after_extraction_prefix[target_end..];
+                continue;
             }
-        } else if let Some(rest) = remaining.strip_prefix('*') {
-            if !rest.is_empty() {
-                logger.log_error(
-                    "unified_return_ast.rs",
-                    line!(),
-                    &format!("Invalid positional reference modifier: '{}'", remaining),
-                );
-                return Err(format!(
-                    "Invalid positional reference modifier: '{}'",
-                    remaining
-                ));
-            }
-            if logger.is_enabled() {
-                logger.log_debug(
-                    "unified_return_ast.rs",
-                    line!(),
-                    "  Found spread operator '*'",
-                );
-            }
-            base = UnifiedReturnAST::Spread {
-                base: Box::new(base),
-            };
-        } else if remaining.starts_with('.') {
-            // Property access
-            let property = remaining[1..].to_string();
-            if property.is_empty() {
-                logger.log_error(
-                    "unified_return_ast.rs",
-                    line!(),
-                    &format!("Invalid property access: '{}'", input),
-                );
-                return Err(format!("Invalid property access: '{}'", input));
-            }
-            base = UnifiedReturnAST::PropertyAccess {
-                base: Box::new(base),
-                property,
-            };
-        } else if remaining.starts_with('[') {
-            // Array access - for now, simplified
-            // TODO: Parse the index expression properly
-            if let Some(end) = remaining.find(']') {
-                if end != remaining.len() - 1 {
+
+            if let Some(rest) = remaining.strip_prefix('*') {
+                if !rest.is_empty() {
                     logger.log_error(
                         "unified_return_ast.rs",
                         line!(),
@@ -327,21 +329,68 @@ impl UnifiedReturnAST {
                         remaining
                     ));
                 }
-                let index_str = &remaining[1..end];
-                let index = Self::parse_value(index_str, logger)?;
+                base = UnifiedReturnAST::Spread {
+                    base: Box::new(base),
+                };
+                remaining = rest;
+                continue;
+            }
+
+            if let Some(property_source) = remaining.strip_prefix('.') {
+                let mut property_end = 0usize;
+                for (idx, ch) in property_source.char_indices() {
+                    let valid = if idx == 0 {
+                        ch == '_' || ch.is_ascii_alphabetic()
+                    } else {
+                        ch == '_' || ch.is_ascii_alphanumeric()
+                    };
+                    if valid {
+                        property_end = idx + ch.len_utf8();
+                    } else {
+                        break;
+                    }
+                }
+                if property_end == 0 {
+                    logger.log_error(
+                        "unified_return_ast.rs",
+                        line!(),
+                        &format!("Invalid positional reference modifier: '{}'", remaining),
+                    );
+                    return Err(format!(
+                        "Invalid positional reference modifier: '{}'",
+                        remaining
+                    ));
+                }
+
+                let property = property_source[..property_end].to_string();
+                base = UnifiedReturnAST::PropertyAccess {
+                    base: Box::new(base),
+                    property,
+                };
+                remaining = &property_source[property_end..];
+                continue;
+            }
+
+            if remaining.starts_with('[') {
+                let Some(close_idx) = Self::find_matching_closer(remaining, '[', ']') else {
+                    logger.log_error(
+                        "unified_return_ast.rs",
+                        line!(),
+                        &format!("Unclosed array access: '{}'", remaining),
+                    );
+                    return Err(format!("Unclosed array access: '{}'", remaining));
+                };
+
+                let index_expr = &remaining[1..close_idx];
+                let index = Self::parse_value(index_expr, logger)?;
                 base = UnifiedReturnAST::ArrayAccess {
                     base: Box::new(base),
                     index: Box::new(index),
                 };
-            } else {
-                logger.log_error(
-                    "unified_return_ast.rs",
-                    line!(),
-                    &format!("Unclosed array access: '{}'", input),
-                );
-                return Err(format!("Unclosed array access: '{}'", input));
+                remaining = &remaining[close_idx + 1..];
+                continue;
             }
-        } else if !remaining.is_empty() {
+
             logger.log_error(
                 "unified_return_ast.rs",
                 line!(),
@@ -353,15 +402,46 @@ impl UnifiedReturnAST {
             ));
         }
 
-        if logger.is_enabled() {
-            logger.log_debug(
-                "unified_return_ast.rs",
-                line!(),
-                &format!("  Returning: {}", base.pretty_print(0).trim()),
-            );
+        Ok(base)
+    }
+
+    fn find_matching_closer(input: &str, open: char, close: char) -> Option<usize> {
+        if !input.starts_with(open) {
+            return None;
+        }
+        let mut depth = 0usize;
+        let mut in_string = false;
+        let mut escape_next = false;
+
+        for (idx, ch) in input.char_indices() {
+            if escape_next {
+                escape_next = false;
+                continue;
+            }
+
+            if in_string {
+                match ch {
+                    '\\' => escape_next = true,
+                    '"' => in_string = false,
+                    _ => {}
+                }
+                continue;
+            }
+
+            match ch {
+                '"' => in_string = true,
+                c if c == open => depth += 1,
+                c if c == close => {
+                    depth = depth.saturating_sub(1);
+                    if depth == 0 {
+                        return Some(idx);
+                    }
+                }
+                _ => {}
+            }
         }
 
-        Ok(base)
+        None
     }
 
     fn parse_object(content: &str, logger: &dyn Logger) -> Result<UnifiedReturnAST, String> {
@@ -1212,7 +1292,7 @@ mod tests {
         let err = UnifiedReturnAST::parse_bootstrap("$1[0]trailing", &logger).expect_err(
             "bootstrap parser should reject trailing text after array access closing bracket",
         );
-        assert_eq!(err, "Invalid positional reference modifier: '[0]trailing'");
+        assert_eq!(err, "Invalid positional reference modifier: 'trailing'");
     }
 
     #[test]
@@ -1273,5 +1353,70 @@ mod tests {
             }
             other => panic!("expected Object, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn bootstrap_accepts_signed_positional_with_chained_accessor_and_nested_index_expr() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("$+0.A.A000[($0::first)[$00]]", &logger)
+            .expect("bootstrap parser should support signed positional chained accessor sample");
+
+        match ast {
+            UnifiedReturnAST::ArrayAccess { base, index } => {
+                // base: $0.A.A000
+                match base.as_ref() {
+                    UnifiedReturnAST::PropertyAccess {
+                        base: level1,
+                        property,
+                    } => {
+                        assert_eq!(property, "A000");
+                        match level1.as_ref() {
+                            UnifiedReturnAST::PropertyAccess {
+                                base: level0,
+                                property,
+                            } => {
+                                assert_eq!(property, "A");
+                                assert!(matches!(
+                                    level0.as_ref(),
+                                    UnifiedReturnAST::PositionalRef { index: 0 }
+                                ));
+                            }
+                            other => panic!("expected first property access level, got {:?}", other),
+                        }
+                    }
+                    other => panic!("expected property access base, got {:?}", other),
+                }
+
+                // index: ($0::first)[$00]
+                match index.as_ref() {
+                    UnifiedReturnAST::ArrayAccess {
+                        base: nested_base,
+                        index: nested_index,
+                    } => {
+                        assert!(matches!(
+                            nested_base.as_ref(),
+                            UnifiedReturnAST::QuantifiedExtraction {
+                                base,
+                                target: ExtractionTarget::First
+                            } if matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 0 })
+                        ));
+                        assert!(matches!(
+                            nested_index.as_ref(),
+                            UnifiedReturnAST::PositionalRef { index: 0 }
+                        ));
+                    }
+                    other => panic!("expected nested array access index, got {:?}", other),
+                }
+            }
+            other => panic!("expected top-level ArrayAccess, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn bootstrap_accepts_leading_whitespace_on_signed_accessor_chain() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("   $+0.A.A000[($0::first)[$00]]", &logger)
+            .expect("leading whitespace should be tolerated before accessor chain");
+        assert!(matches!(ast, UnifiedReturnAST::ArrayAccess { .. }));
     }
 }

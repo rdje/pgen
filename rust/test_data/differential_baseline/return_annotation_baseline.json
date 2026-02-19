@@ -1,13 +1,4 @@
 {
   "parser": "return",
-  "allowed_mismatches": [
-    {
-      "suite": "return_annotation_full_consumption_regression",
-      "test": "generated_parser_must_fully_consume_chained_accessor"
-    },
-    {
-      "suite": "return_annotation_generated_whitespace_regression",
-      "test": "generated_parser_accepts_leading_whitespace_on_accessor_chain"
-    }
-  ]
+  "allowed_mismatches": []
 }

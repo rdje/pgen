@@ -1,7 +1,7 @@
 [
   {
     "name": "generated_parser_accepts_leading_whitespace_on_accessor_chain",
-    "description": "Regression: generated return parser should fully consume valid accessor-chain input even with leading whitespace.",
+    "description": "Regression: return parser should fully consume valid accessor-chain input even with leading whitespace.",
     "input": "   $+0.A.A000[($0::first)[$00]]",
     "expected_round_trip": "   $+0.A.A000[($0::first)[$00]]",
     "parser_type": "return",
@@ -12,9 +12,9 @@
       "generated_parser"
     ],
     "expectations": {
-      "bootstrap_parser": "expected_fail",
+      "bootstrap_parser": "pass",
       "generated_parser": "pass"
     },
-    "note": "Bootstrap parser remains strict at entry; generated parser now tolerates leading whitespace through helper-level whitespace consumption."
+    "note": "Bootstrap and generated parsers both tolerate leading whitespace for this accessor-chain regression sample."
   }
 ]
