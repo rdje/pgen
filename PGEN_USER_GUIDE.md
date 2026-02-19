@@ -41,6 +41,7 @@ For annotation grammars specifically:
 
 ### Build and run core gates
 ```bash
+make -C rust SHELL=/bin/bash sota_exit_gate
 make -C rust SHELL=/bin/bash fixed_point_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
 make -C rust SHELL=/bin/bash performance_gate
@@ -281,6 +282,8 @@ Tracked baselines:
 
 - `fixed-point-gate`
   - deterministic bootstrap artifact regeneration
+- `sota_exit_gate` (local aggregate target)
+  - one-shot release-grade aggregate check for fixed-point, annotation, differential, performance, embedding, and EBNF readiness reporting
 - `annotation_contract_gate` (local gate target)
   - validator + built-in/shared contracts + semantic leverage + advanced robustness checks
 - `annotation_robustness_gate` (local gate target)
@@ -300,6 +303,7 @@ Workflow files:
 - `.github/workflows/fixed-point-gate.yml`
 - `.github/workflows/performance-gate.yml`
 - `.github/workflows/differential-regression-gate.yml`
+- `.github/workflows/sota-exit-gate.yml`
 
 EBNF frontend readiness commands:
 ```bash
@@ -312,6 +316,16 @@ Annotation contract/robustness commands:
 make -C rust SHELL=/bin/bash annotation_robustness_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
 ```
+
+Aggregate SOTA gate command:
+```bash
+make -C rust SHELL=/bin/bash sota_exit_gate
+```
+
+Aggregate gate tuning:
+- `PGEN_SOTA_RUN_EBNF_READINESS` (`1`/`0`, default `1`)
+- `PGEN_SOTA_REQUIRE_EBNF_STRICT` (`1`/`0`, default `0`)
+- `PGEN_SOTA_EXIT_STATE_DIR` (override output state dir)
 
 Optional robustness-gate tuning:
 - `PGEN_ANNOTATION_ROBUSTNESS_COUNT` (default `32`)
@@ -348,6 +362,7 @@ Ephemeral/runtime reports:
 - `rust/target/performance_gate/report.json`
 - `rust/target/fixed_point_gate/*`
 - `rust/target/annotation_robustness_gate/*`
+- `rust/target/sota_exit_gate/*`
 
 Important:
 - Do not treat `rust/target/*` reports as source-of-truth grammar artifacts.
@@ -382,4 +397,5 @@ make -C rust SHELL=/bin/bash differential_refresh_baseline
 4. Run differential regression gate.
 5. Run fixed-point gate before merge-sensitive changes.
 6. Run performance gate for parser/runtime-impacting changes.
-7. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.
+7. Run the aggregate release gate (`sota_exit_gate`) before merge/release cuts.
+8. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.

@@ -26,7 +26,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 | 9. Performance and Scalability SLAs | In Progress | Enforced throughput/memory/latency budgets in CI. |
 | 10. Embedding-Grade APIs and Contracts | In Progress | Stable crate API, deterministic behavior, and versioned contracts. |
 | 11. Security and Robustness Hardening | In Progress | Fuzzed, bounded, and resilient parser/stimuli runtime. |
-| 12. SOTA Exit Criteria Gate | Not Started | CI-enforced release gates with objective pass thresholds. |
+| 12. SOTA Exit Criteria Gate | In Progress | CI-enforced release gates with objective pass thresholds. |
 
 ## Execution Plan (Ordered)
 
@@ -78,6 +78,13 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [ ] Fix `grammars/ebnf.ebnf` compatibility gaps so readiness strict mode is green for all tracked grammars.
 - [ ] Add dual-run differential harness between Perl `ebnf_to_json.pl` and Rust-native EBNF parser (`generated/ebnf.rs`) once Rust EBNF parser generation path is available.
 
+### Phase I (New): SOTA Exit Criteria Aggregation
+- [x] Add aggregate `make sota_exit_gate` to execute required release-grade checks in one command.
+- [x] Add script-backed summary/log artifacts for aggregate gate runs (`rust/target/sota_exit_gate`).
+- [x] Add CI workflow `sota-exit-gate` to run the aggregate gate and retain artifacts.
+- [ ] Promote EBNF frontend strict mode (`ebnf_frontend_gate`) to required inside aggregate gate once `grammars/ebnf.ebnf` compatibility is fixed.
+- [ ] Define and enforce explicit release pass policy for aggregate gate output (for example branch protection + release checklist criteria).
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -117,3 +124,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Started Pillar 11 by hardening embedding API parsing with bounded input limits (`ParseLimits`, `E_INPUT_TOO_LARGE`, `E_INVALID_LIMITS`) and updated contract docs.
 - 2026-02-19: Started Phase H by adding `make ebnf_frontend_readiness` / `make ebnf_frontend_gate` and script-backed reporting of current frontend status across `ebnf/json/regex` grammar flows.
 - 2026-02-19: Hardened Phase F with `make annotation_robustness_gate` (advanced bootstrap/generated annotation suites plus generated parseability+coverage/gap checks) and enforced it inside `annotation_contract_gate`.
+- 2026-02-19: Started Pillar 12/Phase I by adding aggregate `make sota_exit_gate`, script-backed run summaries under `rust/target/sota_exit_gate`, CI workflow `sota-exit-gate`, and refreshed tracked differential baselines so aggregate required checks run with explicit known-drift accounting.

@@ -1,0 +1,50 @@
+name: sota-exit-gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  sota-exit-gate:
+    name: sota-exit-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Verify Perl runtime
+        run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
+
+      - name: Run SOTA exit aggregate gate
+        env:
+          PGEN_STRICT_ANNOTATION_VALIDATION: "1"
+          PGEN_SOTA_RUN_EBNF_READINESS: "1"
+          PGEN_SOTA_REQUIRE_EBNF_STRICT: "0"
+        run: make -C rust SHELL=/bin/bash sota_exit_gate
+
+      - name: Upload SOTA gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sota-exit-gate-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            rust/target/sota_exit_gate
+            rust/target/fixed_point_gate
+            rust/target/annotation_robustness_gate
+            rust/target/differential_harness
+            rust/target/performance_gate
+            rust/target/ebnf_frontend_gate
+          if-no-files-found: warn
+          retention-days: 14

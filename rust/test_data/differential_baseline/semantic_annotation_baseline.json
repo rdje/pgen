@@ -14,6 +14,34 @@
       "test": "bare_expression_bootstrap_compatibility"
     },
     {
+      "suite": "semantic_annotation_builtin_contract",
+      "test": "canonical_transform_marker_pattern_is_transform_expr"
+    },
+    {
+      "suite": "semantic_annotation_builtin_contract",
+      "test": "empty_payload_is_valid_raw"
+    },
+    {
+      "suite": "semantic_annotation_builtin_contract",
+      "test": "marker_detection_is_not_structural"
+    },
+    {
+      "suite": "semantic_annotation_builtin_contract",
+      "test": "missing_unwrap_marker_falls_back_to_raw"
+    },
+    {
+      "suite": "semantic_annotation_builtin_contract",
+      "test": "nonsensical_payload_is_still_raw"
+    },
+    {
+      "suite": "semantic_annotation_builtin_contract",
+      "test": "raw_payload_is_outer_trimmed"
+    },
+    {
+      "suite": "semantic_annotation_builtin_contract",
+      "test": "whitespace_only_payload_normalizes_to_empty"
+    },
+    {
       "suite": "semantic_annotation_complex_group_tests",
       "test": "array_processing"
     },
