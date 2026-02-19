@@ -91,7 +91,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] `P0` Implement typed semantic directive registry (name-based routing) and promote from parse-only to steering for selected directives.
 - [x] `P0` Implement unknown-directive handling policy modes (`warn` and `strict`) with stable diagnostics.
 - [x] `P0` Implement parser/stimuli precedence+associativity steering controls.
-- [ ] `P0` Implement parser/stimuli value-domain constraint controls (`range/enum/regex/len` style directives).
+- [x] `P0` Implement parser/stimuli value-domain constraint controls (`range/enum/regex/len` style directives) baseline.
 - [ ] `P1` Implement semantic directive conflict-resolution contract (deterministic policy precedence and tie-breaking).
 - [ ] `P1` Drive return-annotation differential mismatches to zero and enforce stricter return parity closure criteria.
 
@@ -140,3 +140,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Refined Phase J with explicit layered built-in-vs-annotation control decision and P0/P1 implementation priorities for semantic steering promotion.
 - 2026-02-19: Completed Phase J P0 directive-registry foundation: added typed semantic directive registry + unknown-directive warn/strict policy with stable diagnostics, and wired directive-aware steering routing in parser codegen and stimuli generation.
 - 2026-02-19: Completed Phase J P0 precedence/associativity steering baseline by adding semantic `priority/precedence` branch tie-break controls and `associativity` tie policy routing in parser codegen and stimuli branch selection.
+- 2026-02-19: Completed Phase J P0 value-domain steering baseline by wiring semantic `enum/range/len/regex` constraints into parser value guards and stimuli generation candidate selection, and added typed validator payload diagnostics plus semantic usage gate coverage for value-domain directives.

@@ -1,7 +1,9 @@
 use super::{
-    ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity, TokenValue,
-    UnifiedSemanticAST, extract_semantic_directive, parse_canonical_transform_expression,
-    parse_semantic_numeric_list, stimuli_hint_for_target_type,
+    ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
+    SemanticValueConstraints, TokenValue, UnifiedSemanticAST, extract_semantic_directive,
+    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_len_bounds,
+    parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_string_list,
+    stimuli_hint_for_target_type,
 };
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
@@ -2045,8 +2047,11 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn generate_regex_sample(&mut self, pattern: &str, current_rule: &str) -> String {
+        let constraints = self.rule_value_constraints(current_rule);
         if let Some(semantic_hint) = self.semantic_hint_for_rule(current_rule) {
-            return semantic_hint;
+            if self.value_satisfies_constraints(&semantic_hint, &constraints) {
+                return semantic_hint;
+            }
         }
 
         let trimmed = pattern.trim();
@@ -2054,10 +2059,159 @@ impl<'a> StimuliGenerator<'a> {
             return String::new();
         }
 
-        match regex_syntax::parse(trimmed) {
-            Ok(hir) => self.generate_from_regex_hir(&hir),
-            Err(_) => "x".to_string(),
+        if !constraints.enum_values.is_empty() {
+            let valid_enum_values: Vec<&String> = constraints
+                .enum_values
+                .iter()
+                .filter(|value| {
+                    Self::regex_matches_entire(trimmed, value)
+                        && self.value_satisfies_constraints(value, &constraints)
+                })
+                .collect();
+            if !valid_enum_values.is_empty() {
+                let idx = if valid_enum_values.len() == 1 {
+                    0
+                } else {
+                    self.rng.gen_range(0..valid_enum_values.len())
+                };
+                return valid_enum_values[idx].to_string();
+            }
         }
+
+        if let Some(candidate) = self.constraint_driven_candidate(trimmed, &constraints) {
+            return candidate;
+        }
+
+        let sample_once = |this: &mut Self| match regex_syntax::parse(trimmed) {
+            Ok(hir) => this.generate_from_regex_hir(&hir),
+            Err(_) => "x".to_string(),
+        };
+
+        if constraints.is_empty() {
+            return sample_once(self);
+        }
+
+        for _ in 0..64 {
+            let candidate = sample_once(self);
+            if self.value_satisfies_constraints(&candidate, &constraints) {
+                return candidate;
+            }
+        }
+
+        if let Some(fallback) = constraints.enum_values.first() {
+            if Self::regex_matches_entire(trimmed, fallback) {
+                return fallback.clone();
+            }
+        }
+
+        sample_once(self)
+    }
+
+    fn regex_matches_entire(pattern: &str, candidate: &str) -> bool {
+        if let Ok(re) = regex::Regex::new(pattern) {
+            if let Some(matched) = re.find(candidate) {
+                return matched.start() == 0 && matched.end() == candidate.len();
+            }
+        }
+        false
+    }
+
+    fn constraint_driven_candidate(
+        &mut self,
+        pattern: &str,
+        constraints: &SemanticValueConstraints,
+    ) -> Option<String> {
+        if let (Some(min), Some(max)) = (constraints.min_numeric, constraints.max_numeric) {
+            let lower = min.ceil().max(i64::MIN as f64);
+            let upper = max.floor().min(i64::MAX as f64);
+            if lower <= upper {
+                let start = lower as i64;
+                let end = upper as i64;
+                let sampled = if start == end {
+                    start
+                } else {
+                    self.rng.gen_range(start..=end)
+                };
+                let candidate = sampled.to_string();
+                if Self::regex_matches_entire(pattern, &candidate)
+                    && self.value_satisfies_constraints(&candidate, constraints)
+                {
+                    return Some(candidate);
+                }
+            }
+        }
+
+        if let (Some(min_len), Some(max_len)) = (constraints.min_len, constraints.max_len) {
+            let upper = max_len.min(min_len.saturating_add(32));
+            let len = if min_len == upper {
+                min_len
+            } else {
+                self.rng.gen_range(min_len..=upper)
+            };
+            let candidate = "a".repeat(len);
+            if Self::regex_matches_entire(pattern, &candidate)
+                && self.value_satisfies_constraints(&candidate, constraints)
+            {
+                return Some(candidate);
+            }
+        }
+
+        None
+    }
+
+    fn value_satisfies_constraints(
+        &self,
+        value: &str,
+        constraints: &SemanticValueConstraints,
+    ) -> bool {
+        if constraints.is_empty() {
+            return true;
+        }
+
+        if !constraints.enum_values.is_empty()
+            && !constraints
+                .enum_values
+                .iter()
+                .any(|allowed| allowed == value)
+        {
+            return false;
+        }
+
+        let value_len = value.chars().count();
+        if let Some(min_len) = constraints.min_len {
+            if value_len < min_len {
+                return false;
+            }
+        }
+        if let Some(max_len) = constraints.max_len {
+            if value_len > max_len {
+                return false;
+            }
+        }
+
+        if constraints.min_numeric.is_some() || constraints.max_numeric.is_some() {
+            let Ok(numeric_value) = value.parse::<f64>() else {
+                return false;
+            };
+            if let Some(min_numeric) = constraints.min_numeric {
+                if numeric_value < min_numeric {
+                    return false;
+                }
+            }
+            if let Some(max_numeric) = constraints.max_numeric {
+                if numeric_value > max_numeric {
+                    return false;
+                }
+            }
+        }
+
+        if let Some(pattern) = &constraints.regex_pattern {
+            if !Self::regex_matches_entire(pattern, value) {
+                return false;
+            }
+        }
+
+        true
     }
 
     fn generate_from_regex_hir(&mut self, hir: &Hir) -> String {
@@ -2259,6 +2413,50 @@ impl<'a> StimuliGenerator<'a> {
         (associativity, priorities)
     }
 
+    fn rule_value_constraints(&self, rule_name: &str) -> SemanticValueConstraints {
+        let mut constraints = SemanticValueConstraints::default();
+        let Some(annotations) = self.annotations else {
+            return constraints;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return constraints;
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "enum" => {
+                    if let Some(values) = parse_semantic_string_list(&payload) {
+                        constraints.enum_values = values;
+                    }
+                }
+                "regex" => {
+                    let pattern = normalize_semantic_scalar(&payload);
+                    if !pattern.is_empty() {
+                        constraints.regex_pattern = Some(pattern);
+                    }
+                }
+                "range" => {
+                    if let Some((min, max)) = parse_semantic_numeric_bounds(&payload) {
+                        constraints.min_numeric = Some(min);
+                        constraints.max_numeric = Some(max);
+                    }
+                }
+                "len" => {
+                    if let Some((min_len, max_len)) = parse_semantic_len_bounds(&payload) {
+                        constraints.min_len = Some(min_len);
+                        constraints.max_len = Some(max_len);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        constraints
+    }
+
     fn semantic_branch_multiplier(
         &self,
         associativity: SemanticAssociativity,
@@ -2290,7 +2488,10 @@ impl<'a> StimuliGenerator<'a> {
             .map(|(name, _)| name)
     }
 
-    fn semantic_directive_parts(&self, annotation: &SemanticAnnotation) -> Option<(String, String)> {
+    fn semantic_directive_parts(
+        &self,
+        annotation: &SemanticAnnotation,
+    ) -> Option<(String, String)> {
         if let Some(name) = annotation.name() {
             let normalized = name.trim().to_ascii_lowercase();
             if !normalized.is_empty() {
@@ -2883,10 +3084,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9090);
@@ -2902,24 +3105,31 @@ mod tests {
     #[test]
     fn semantic_usage_stimuli_transformexpr_hints_cover_float_and_bool() {
         let mut grammar_tree = HashMap::new();
-        grammar_tree.insert("float_rule".to_string(), token("regex", "^[0-9]+(\\.[0-9]+)?$"));
+        grammar_tree.insert(
+            "float_rule".to_string(),
+            token("regex", "^[0-9]+(\\.[0-9]+)?$"),
+        );
         grammar_tree.insert("bool_rule".to_string(), token("regex", "^(true|false)$"));
         let rule_order = vec!["float_rule".to_string(), "bool_rule".to_string()];
 
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "float_rule".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
+                }
+                .into(),
+            ],
         );
         annotations.semantic_annotations.insert(
             "bool_rule".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut float_generator =
@@ -2929,7 +3139,8 @@ mod tests {
             .expect("float semantic-driven generation should succeed");
         assert_eq!(float_values[0], "1.0");
 
-        let mut bool_generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9092);
+        let mut bool_generator =
+            annotated_generator(&grammar_tree, &rule_order, &annotations, 9092);
         let bool_values = bool_generator
             .generate_many(1, Some("bool_rule"))
             .expect("bool semantic-driven generation should succeed");
@@ -2945,10 +3156,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9094);
@@ -2967,10 +3180,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9095);
@@ -2996,10 +3211,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![UnifiedSemanticAST::Raw {
-                content: "\"literal-token\"".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::Raw {
+                    content: "\"literal-token\"".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9093);
@@ -3037,6 +3254,140 @@ mod tests {
             regex.is_match(sample),
             "non-literal directive should not override regex sampling, got {:?}",
             sample
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_enum_constraints_filter_regex_sampling() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{2}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "enum".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\"AA\", \"BB\"]".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9201);
+        let values = generator
+            .generate_many(24, Some("start"))
+            .expect("enum-constrained generation should succeed");
+        assert!(
+            values.iter().all(|value| value == "AA" || value == "BB"),
+            "enum-constrained values must stay inside allowed set, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_range_constraints_generate_in_domain_values() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[0-9]{2}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "range".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "10..12".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9202);
+        let values = generator
+            .generate_many(24, Some("start"))
+            .expect("range-constrained generation should succeed");
+
+        for value in values {
+            let parsed = value
+                .parse::<i64>()
+                .expect("range-constrained output must be numeric");
+            assert!(
+                (10..=12).contains(&parsed),
+                "numeric sample must satisfy @range bounds, got {}",
+                parsed
+            );
+        }
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_len_constraints_generate_matching_lengths() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[a-z]+$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "len".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[3, 3]".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9203);
+        let values = generator
+            .generate_many(20, Some("start"))
+            .expect("len-constrained generation should succeed");
+
+        for value in values {
+            assert_eq!(
+                value.chars().count(),
+                3,
+                "len-constrained sample must have exact configured length"
+            );
+            assert!(
+                value.chars().all(|ch| ch.is_ascii_lowercase()),
+                "len-constrained sample should still satisfy base regex, got {:?}",
+                value
+            );
+        }
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_regex_and_enum_constraints_compose() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{2}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "regex".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "^A[A-Z]$".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "enum".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"AA\", \"AB\", \"BC\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9204);
+        let values = generator
+            .generate_many(24, Some("start"))
+            .expect("composed regex+enum constraints should succeed");
+        assert!(
+            values.iter().all(|value| value == "AA" || value == "AB"),
+            "composed constraints should filter enum candidates to regex-valid subset, got {:?}",
+            values
         );
     }
 }

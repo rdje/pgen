@@ -1,4 +1,100 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J P0 Implementation: Value-Domain Steering Baseline + Typed Semantic Payload Diagnostics
+### Context
+After directive routing and precedence/associativity steering landed, the next P0 control-surface gap was value-domain steering.
+
+Until this slice, semantic value directives (`range/enum/len/regex`) were parsed but not consistently leveraged end-to-end. That left two risks:
+1. parser acceptance behavior could drift from intended semantic contracts, and
+2. stimuli generation could produce syntactically valid but semantically out-of-domain samples.
+
+We also lacked typed diagnostics for malformed payloads on known steering directives, which made misuse harder to detect early.
+### Implementation
+- Extended typed semantic payload parsing utilities:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - Added:
+    - `SemanticValueConstraints` aggregate struct:
+      - `enum_values`
+      - `regex_pattern`
+      - `min_numeric/max_numeric`
+      - `min_len/max_len`
+    - parser helpers:
+      - `parse_semantic_float_list`
+      - `parse_semantic_string_list`
+      - `parse_semantic_numeric_bounds`
+      - `parse_semantic_len_bounds`
+      - `normalize_semantic_scalar`
+  - Added dedicated helper tests for payload parsing variants and normalization.
+- Wired parser codegen constraint guards:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - Added rule-level value-constraint extraction from typed semantic directives.
+  - Injected generated guard tokens in atom parsing paths where terminal values are produced:
+    - `quoted_string`
+    - `regex`
+    - `number`/`probability`/`include_*`/`rule` literal token types
+  - Guard order is deterministic:
+    1. enum membership check,
+    2. semantic regex full-match validation,
+    3. length bounds check,
+    4. numeric bounds check.
+  - Canonical transform and transform-fallback regex paths now execute semantic value guards before producing transformed output.
+  - Added parser semantic usage tests that assert emitted code includes value guard logic for:
+    - enum + len + regex,
+    - numeric range.
+- Wired stimuli generation value-domain steering:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Added rule-level value-constraint extraction using same directive payload helpers.
+  - Updated regex sample generation to follow this precedence:
+    1. semantic hint (only if it satisfies active constraints),
+    2. enum candidate filtering (must satisfy grammar regex + all active constraints),
+    3. constraint-driven candidate (numeric or length),
+    4. bounded retry loop over regex-HIR sampling with constraint checks,
+    5. deterministic fallback.
+  - Added shared helpers:
+    - `regex_matches_entire(...)`
+    - `constraint_driven_candidate(...)`
+    - `value_satisfies_constraints(...)`
+  - Added semantic usage tests for:
+    - enum-constrained regex generation,
+    - range-constrained numeric generation,
+    - len-constrained generation,
+    - regex+enum composed constraint behavior.
+- Added typed semantic payload diagnostics:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - Added directive payload checks for:
+    - `@associativity`
+    - `@priority/@precedence`
+    - `@enum`
+    - `@range`
+    - `@len`
+    - `@regex`
+  - Added stable diagnostic codes:
+    - `W_SEM_INVALID_ASSOCIATIVITY_PAYLOAD`
+    - `W_SEM_INVALID_PRIORITY_PAYLOAD`
+    - `W_SEM_INVALID_ENUM_PAYLOAD`
+    - `W_SEM_INVALID_RANGE_PAYLOAD`
+    - `W_SEM_INVALID_LEN_PAYLOAD`
+    - `W_SEM_INVALID_REGEX_PAYLOAD`
+  - Added tests covering each invalid payload class.
+- Export surface updates:
+  - `rust/src/ast_pipeline/mod.rs`
+  - Re-exported new semantic helper/value-constraint APIs so parser/stimuli/validator consumers stay aligned.
+### Validation
+- Ran:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_validator_`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_`
+  - `cargo test --manifest-path rust/Cargo.toml parses_semantic_`
+  - `make -C rust SHELL=/bin/bash annotation_contract_gate`
+- Result:
+  - all targeted semantic usage + validator suites passed,
+  - full annotation contract gate (including robustness and semantic usage gate) passed.
+### Why This Matters
+- Converts value-domain directives from parse-only metadata into executable parser/stimuli behavior.
+- Reduces semantic drift between expected value contracts and generated artifacts.
+- Improves failure transparency via typed diagnostics for malformed known directives.
+- Advances Phase J P0 toward a typed, deterministic steering surface while preserving the hard boundary that return-annotation completeness remains non-negotiable.
+
 ## 2026-02-19 - Phase J P0 Implementation: Precedence/Associativity Steering Baseline
 ### Context
 After landing typed semantic directive routing and unknown-directive policy modes, the next P0 gap was steering ambiguity/branch choice with explicit semantic intent.

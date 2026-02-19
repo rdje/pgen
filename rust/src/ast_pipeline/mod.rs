@@ -1435,11 +1435,11 @@ impl RustASTPipeline {
     }
 }
 
+pub mod annotation_validator;
 pub mod ast_based_generator;
 pub mod ast_code_generator;
 pub mod ast_generator_direct;
 pub mod ast_return_transform;
-pub mod annotation_validator;
 pub mod grouped_quantifier_parser;
 pub mod mutual_recursion_handler;
 pub mod return_annotation_handler;
@@ -1456,8 +1456,10 @@ pub use annotation_validator::{
 };
 pub use semantic_directive_registry::{
     SemanticAssociativity, SemanticDirectiveCapability, SemanticDirectiveSpec,
-    UnknownSemanticDirectivePolicy, extract_semantic_directive, extract_semantic_directive_name,
-    parse_semantic_numeric_list, semantic_directive_spec,
+    SemanticValueConstraints, UnknownSemanticDirectivePolicy, extract_semantic_directive,
+    extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_float_list,
+    parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
+    parse_semantic_string_list, semantic_directive_spec,
 };
 pub use semantic_transform::{
     CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,

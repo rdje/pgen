@@ -1,4 +1,73 @@
 # CHANGES.md
+## 2026-02-19 - Phase J P0: Value-Domain Steering Baseline + Typed Payload Diagnostics
+### ✅ Achievement Summary
+Implemented baseline semantic value-domain steering across parser and stimuli paths for `@enum`, `@range`, `@len`, and `@regex`, then added typed semantic payload diagnostics in validator coverage so malformed steering payloads are surfaced with stable codes.
+### Scope of Changes
+- Semantic directive utility expansion:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - Added:
+    - `SemanticValueConstraints` aggregate contract,
+    - payload parsers:
+      - `parse_semantic_float_list`
+      - `parse_semantic_string_list`
+      - `parse_semantic_numeric_bounds`
+      - `parse_semantic_len_bounds`
+    - `normalize_semantic_scalar` helper.
+  - Added unit coverage for float/list/bounds/scalar parsing.
+- Parser codegen value-domain steering:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - Added per-rule value-constraint extraction and generated constraint guards in terminal/regex token paths.
+  - Guard coverage:
+    - enum membership,
+    - semantic regex full-match validation,
+    - length bounds,
+    - numeric range bounds.
+  - Applied guards on:
+    - default regex terminals,
+    - canonical transform paths,
+    - transform fallback paths,
+    - quoted/literal token terminal paths.
+  - Added parser codegen semantic usage tests for value-constraint guard emission.
+- Stimuli value-domain steering:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Added rule-scoped value constraint extraction and conjunction-based evaluation.
+  - Regex sample generation now uses deterministic precedence:
+    1. semantic hint (if constraint-valid),
+    2. enum candidate filtering,
+    3. constraint-driven candidate generation (`range`/`len`),
+    4. bounded regex sampling retries with constraint checks,
+    5. deterministic fallback.
+  - Added tests for:
+    - enum-constrained sampling,
+    - numeric range-constrained sampling,
+    - len-constrained sampling,
+    - composed regex+enum constraints.
+- Typed validator payload diagnostics:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - Added stable semantic payload warnings:
+    - `W_SEM_INVALID_ASSOCIATIVITY_PAYLOAD`
+    - `W_SEM_INVALID_PRIORITY_PAYLOAD`
+    - `W_SEM_INVALID_ENUM_PAYLOAD`
+    - `W_SEM_INVALID_RANGE_PAYLOAD`
+    - `W_SEM_INVALID_LEN_PAYLOAD`
+    - `W_SEM_INVALID_REGEX_PAYLOAD`
+  - Added validator tests covering invalid payload surfaces for branch and value-domain directives.
+- Pipeline export surface:
+  - `rust/src/ast_pipeline/mod.rs`
+  - Re-exported new semantic payload parsing/value-constraint helpers.
+- Roadmap/control docs:
+  - Updated:
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+    - `PGEN_USER_GUIDE.md` (expanded semantic section with implementation-level contracts and examples).
+### Validation Results
+- `cargo fmt --manifest-path rust/Cargo.toml` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_` ✅
+- `cargo test --manifest-path rust/Cargo.toml parses_semantic_` ✅
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅
+
 ## 2026-02-19 - Phase J P0: Precedence/Associativity Steering Baseline (Parser + Stimuli)
 ### ✅ Achievement Summary
 Implemented baseline semantic steering for ambiguity/branch preference by wiring `priority/precedence` and `associativity` directives into parser codegen branch tie-break logic and stimuli branch sampling weights.

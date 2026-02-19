@@ -5,8 +5,10 @@
 use super::Logger;
 use crate::ast_pipeline::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
-    TokenValue, UnifiedSemanticAST, ast_return_transform::AstReturnTransformer,
-    extract_semantic_directive, parse_canonical_transform_expression, parse_semantic_numeric_list,
+    SemanticValueConstraints, TokenValue, UnifiedSemanticAST,
+    ast_return_transform::AstReturnTransformer, extract_semantic_directive,
+    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_len_bounds,
+    parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_string_list,
 };
 use anyhow::Result;
 use prettyplease;
@@ -757,6 +759,8 @@ impl AstBasedGenerator {
             line!()
         );
 
+        let value_constraints = self.rule_value_constraints(rule_name);
+
         match value {
             ASTValue::Token(parts) if parts.len() >= 2 => {
                 let token_type_str = if let TokenValue::String(ref s) = parts[0] {
@@ -786,8 +790,12 @@ impl AstBasedGenerator {
                             file!(),
                             line!()
                         );
+                        let constraint_guards =
+                            self.semantic_value_constraint_tokens(rule_name, &value_constraints);
                         Ok(quote! {
-                            let result = ParseContent::Terminal(parser.match_string(#token_value_str)?)
+                            let matched_str = parser.match_string(#token_value_str)?;
+                            #constraint_guards
+                            let result = ParseContent::Terminal(matched_str)
                         })
                     }
                     "rule_reference" => {
@@ -840,18 +848,24 @@ impl AstBasedGenerator {
                                             if let Ok(target_type) =
                                                 syn::parse_str::<syn::Type>(&transform.target_type)
                                             {
-                                                let default_expr: syn::Expr = syn::parse_str(
-                                                    &transform.default_expr,
-                                                )
-                                                .unwrap_or_else(|_| {
-                                                    syn::parse_str("0")
-                                                        .expect("fallback default expression")
-                                                });
+                                                let default_expr: syn::Expr =
+                                                    syn::parse_str(&transform.default_expr)
+                                                        .unwrap_or_else(|_| {
+                                                            syn::parse_str("0").expect(
+                                                                "fallback default expression",
+                                                            )
+                                                        });
 
                                                 // Canonical transform path: parse matched regex token into target type.
+                                                let constraint_guards = self
+                                                    .semantic_value_constraint_tokens(
+                                                        rule_name,
+                                                        &value_constraints,
+                                                    );
                                                 if self.enable_debug {
                                                     return Ok(quote! {
                                                         let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                                                        #constraint_guards
                                                         let transformed = matched_str.parse::<#target_type>().unwrap_or(#default_expr);
                                                         parser.debug_output.push(format!("🎯 Applied semantic transform: parsed '{}' to {}={}", matched_str, stringify!(#target_type), transformed));
                                                         let result = ParseContent::TransformedTerminal(transformed.to_string())
@@ -859,6 +873,7 @@ impl AstBasedGenerator {
                                                 } else {
                                                     return Ok(quote! {
                                                         let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                                                        #constraint_guards
                                                         let transformed = matched_str.parse::<#target_type>().unwrap_or(#default_expr);
                                                         let result = ParseContent::TransformedTerminal(transformed.to_string())
                                                     });
@@ -867,15 +882,22 @@ impl AstBasedGenerator {
                                         }
 
                                         // Fallback: treat as raw expression
+                                        let constraint_guards = self
+                                            .semantic_value_constraint_tokens(
+                                                rule_name,
+                                                &value_constraints,
+                                            );
                                         if self.enable_debug {
                                             return Ok(quote! {
                                                 let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                                                #constraint_guards
                                                 parser.debug_output.push(format!("🎯 Applied semantic transform: raw expression '{}' to rule '{}': matched '{}'", #expression, #rule_name, matched_str));
                                                 let result = ParseContent::TransformedTerminal(#expression.to_string())
                                             });
                                         } else {
                                             return Ok(quote! {
                                                 let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                                                #constraint_guards
                                                 let result = ParseContent::TransformedTerminal(#expression.to_string())
                                             });
                                         }
@@ -885,8 +907,12 @@ impl AstBasedGenerator {
                         }
 
                         // Default behavior: return matched string as terminal
+                        let constraint_guards =
+                            self.semantic_value_constraint_tokens(rule_name, &value_constraints);
                         Ok(quote! {
-                            let result = ParseContent::Terminal(parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?)
+                            let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
+                            #constraint_guards
+                            let result = ParseContent::Terminal(matched_str)
                         })
                     }
                     "number" | "probability" | "include_dir" | "include_file" | "rule" => {
@@ -897,8 +923,12 @@ impl AstBasedGenerator {
                             file!(),
                             line!()
                         );
+                        let constraint_guards =
+                            self.semantic_value_constraint_tokens(rule_name, &value_constraints);
                         Ok(quote! {
-                            let result = ParseContent::Terminal(parser.match_string(#token_value_str)?)
+                            let matched_str = parser.match_string(#token_value_str)?;
+                            #constraint_guards
+                            let result = ParseContent::Terminal(matched_str)
                         })
                     }
                     _ => Ok(quote! {
@@ -1361,6 +1391,203 @@ impl AstBasedGenerator {
 
         priorities
     }
+
+    fn rule_value_constraints(&self, rule_name: &str) -> SemanticValueConstraints {
+        let mut constraints = SemanticValueConstraints::default();
+        let Some(annotations) = &self.annotations else {
+            return constraints;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return constraints;
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+
+            match name.as_str() {
+                "enum" => {
+                    if let Some(values) = parse_semantic_string_list(&payload) {
+                        constraints.enum_values = values;
+                    }
+                }
+                "regex" => {
+                    let pattern = normalize_semantic_scalar(&payload);
+                    if !pattern.is_empty() {
+                        constraints.regex_pattern = Some(pattern);
+                    }
+                }
+                "range" => {
+                    if let Some((min, max)) = parse_semantic_numeric_bounds(&payload) {
+                        constraints.min_numeric = Some(min);
+                        constraints.max_numeric = Some(max);
+                    }
+                }
+                "len" => {
+                    if let Some((min_len, max_len)) = parse_semantic_len_bounds(&payload) {
+                        constraints.min_len = Some(min_len);
+                        constraints.max_len = Some(max_len);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        constraints
+    }
+
+    fn semantic_value_constraint_tokens(
+        &self,
+        rule_name: &str,
+        constraints: &SemanticValueConstraints,
+    ) -> TokenStream {
+        if constraints.is_empty() {
+            return quote! {};
+        }
+
+        let mut checks = Vec::new();
+
+        if !constraints.enum_values.is_empty() {
+            let enum_values = constraints.enum_values.clone();
+            checks.push(quote! {
+                if ![#(#enum_values),*].iter().any(|allowed| *allowed == matched_str) {
+                    return Err(parser.create_contextual_error(&format!(
+                        "Semantic enum constraint failed for rule '{}': value '{}' not in allowed set",
+                        #rule_name,
+                        matched_str
+                    )));
+                }
+            });
+        }
+
+        if let Some(pattern) = &constraints.regex_pattern {
+            let pattern = pattern.clone();
+            checks.push(quote! {
+                let semantic_re = regex::Regex::new(#pattern).map_err(|e| {
+                    parser.create_contextual_error(&format!(
+                        "Invalid semantic regex constraint '{}' for rule '{}': {}",
+                        #pattern,
+                        #rule_name,
+                        e
+                    ))
+                })?;
+                let semantic_regex_full_match = semantic_re
+                    .find(matched_str)
+                    .map(|m| m.start() == 0 && m.end() == matched_str.len())
+                    .unwrap_or(false);
+                if !semantic_regex_full_match {
+                    return Err(parser.create_contextual_error(&format!(
+                        "Semantic regex constraint '{}' failed for rule '{}': value '{}'",
+                        #pattern,
+                        #rule_name,
+                        matched_str
+                    )));
+                }
+            });
+        }
+
+        match (constraints.min_len, constraints.max_len) {
+            (Some(min_len), Some(max_len)) => checks.push(quote! {
+                let semantic_len = matched_str.chars().count();
+                if semantic_len < #min_len || semantic_len > #max_len {
+                    return Err(parser.create_contextual_error(&format!(
+                        "Semantic len constraint [{}, {}] failed for rule '{}': value '{}' has length {}",
+                        #min_len,
+                        #max_len,
+                        #rule_name,
+                        matched_str,
+                        semantic_len
+                    )));
+                }
+            }),
+            (Some(min_len), None) => checks.push(quote! {
+                let semantic_len = matched_str.chars().count();
+                if semantic_len < #min_len {
+                    return Err(parser.create_contextual_error(&format!(
+                        "Semantic len minimum {} failed for rule '{}': value '{}' has length {}",
+                        #min_len,
+                        #rule_name,
+                        matched_str,
+                        semantic_len
+                    )));
+                }
+            }),
+            (None, Some(max_len)) => checks.push(quote! {
+                let semantic_len = matched_str.chars().count();
+                if semantic_len > #max_len {
+                    return Err(parser.create_contextual_error(&format!(
+                        "Semantic len maximum {} failed for rule '{}': value '{}' has length {}",
+                        #max_len,
+                        #rule_name,
+                        matched_str,
+                        semantic_len
+                    )));
+                }
+            }),
+            (None, None) => {}
+        }
+
+        match (constraints.min_numeric, constraints.max_numeric) {
+            (Some(min), Some(max)) => checks.push(quote! {
+                let semantic_numeric = matched_str.parse::<f64>().map_err(|_| {
+                    parser.create_contextual_error(&format!(
+                        "Semantic numeric constraint failed for rule '{}': value '{}' is not numeric",
+                        #rule_name,
+                        matched_str
+                    ))
+                })?;
+                if semantic_numeric < #min || semantic_numeric > #max {
+                    return Err(parser.create_contextual_error(&format!(
+                        "Semantic numeric range [{}, {}] failed for rule '{}': value {}",
+                        #min,
+                        #max,
+                        #rule_name,
+                        semantic_numeric
+                    )));
+                }
+            }),
+            (Some(min), None) => checks.push(quote! {
+                let semantic_numeric = matched_str.parse::<f64>().map_err(|_| {
+                    parser.create_contextual_error(&format!(
+                        "Semantic numeric constraint failed for rule '{}': value '{}' is not numeric",
+                        #rule_name,
+                        matched_str
+                    ))
+                })?;
+                if semantic_numeric < #min {
+                    return Err(parser.create_contextual_error(&format!(
+                        "Semantic numeric min {} failed for rule '{}': value {}",
+                        #min,
+                        #rule_name,
+                        semantic_numeric
+                    )));
+                }
+            }),
+            (None, Some(max)) => checks.push(quote! {
+                let semantic_numeric = matched_str.parse::<f64>().map_err(|_| {
+                    parser.create_contextual_error(&format!(
+                        "Semantic numeric constraint failed for rule '{}': value '{}' is not numeric",
+                        #rule_name,
+                        matched_str
+                    ))
+                })?;
+                if semantic_numeric > #max {
+                    return Err(parser.create_contextual_error(&format!(
+                        "Semantic numeric max {} failed for rule '{}': value {}",
+                        #max,
+                        #rule_name,
+                        semantic_numeric
+                    )));
+                }
+            }),
+            (None, None) => {}
+        }
+
+        quote! {
+            #(#checks)*
+        }
+    }
 }
 
 fn generate_tests(parser_name: &Ident) -> TokenStream {
@@ -1413,12 +1640,13 @@ mod semantic_usage_tests {
         semantic_asts: Vec<UnifiedSemanticAST>,
     ) -> AstBasedGenerator {
         let mut annotations = Annotations::default();
-        annotations
-            .semantic_annotations
-            .insert(
-                rule_name.to_string(),
-                semantic_asts.into_iter().map(SemanticAnnotation::from).collect(),
-            );
+        annotations.semantic_annotations.insert(
+            rule_name.to_string(),
+            semantic_asts
+                .into_iter()
+                .map(SemanticAnnotation::from)
+                .collect(),
+        );
 
         AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
@@ -1654,6 +1882,98 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("match \"right\""),
             "expected associativity-aware logging content, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_value_constraint_guards_for_regex_atoms() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "ident".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "enum".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"AA\", \"BB\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "len".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[2, 2]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "regex".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "^[A-Z]{2}$".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[A-Z]+"), "ident", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("Semantic enum constraint failed"),
+            "expected enum constraint guard in generated code, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("Semantic len constraint"),
+            "expected len constraint guard in generated code, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("Semantic regex constraint"),
+            "expected regex constraint guard in generated code, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_numeric_range_constraint_guards() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "number".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "range".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "10..20".to_string(),
+                },
+            }],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[0-9]+"), "number", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("Semantic numeric range"),
+            "expected numeric range guard in generated code, got: {}",
             rendered
         );
     }

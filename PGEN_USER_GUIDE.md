@@ -214,73 +214,165 @@ Bootstrap behavior notes:
 
 Main grammar: `grammars/semantic_annotation.ebnf`
 
-Typical forms:
+### 8.1 Syntax Model
+- Preferred semantic form is named directive:
+  - `@name: payload`
+  - examples: `@type: "Expression"`, `@precedence: 5`, `@range: 0..10`
+- Payloads may be scalar, list, or expression depending on directive.
+- Legacy/raw semantic payloads are still accepted for compatibility, but typed named directives are the contract surface for steering behavior.
 
-- Basic key/value:
-  - `@type: "Expression"`
-- Precedence and metadata:
-  - `@precedence: 5`
-  - `@effect: "pure"`
-- Structured values:
-  - arrays, objects, tuples, sets, maps
-- Expression-style values:
-  - arithmetic/logical/comparison/conditional/function-call/lambda forms
-
-Bootstrap behavior notes:
-- Bootstrap semantic parser is intentionally permissive.
-- Full behavior reference:
+### 8.2 Bootstrap vs Generated Semantic Parsers
+- Bootstrap mode is intentionally limited/permissive and exists only to break the chicken-and-egg dependency for annotation parser generation.
+- Generated parser is the long-term behavior target.
+- Bootstrap references:
   - `grammars/builtin_semantic_annotation.ebnf`
   - `rust/src/ast_pipeline/unified_semantic_ast.rs`
 
-Current leverage contract (parser + stimuli):
-- Parser codegen leverage:
-  - `TransformExpr` is currently applied on regex atom generation paths for the annotated rule.
-  - Canonical parse transforms (`str::parse::<T>().unwrap_or(default)`) produce transformed terminal output in generated parser code.
-  - Target type parsing is path-aware (for example `std::primitive::i64`).
-  - `Raw` semantic annotations do not currently alter parser regex atom behavior.
-  - OR-branch tie-breaking supports semantic steering:
-    - `@priority: [1, 9, 2]` or `@precedence: [1, 9, 2]` applies branch-priority tie-break values by OR-branch index.
-    - `@associativity: left|right|nonassoc` controls exact-tie behavior:
-      - `left`: keep earlier branch winner (default),
-      - `right`: prefer later branch on exact ties,
-      - `nonassoc`: unresolved exact ties backtrack.
-- Stimuli generation leverage:
-  - For regex-token sampling, semantic hints are checked first for the current rule.
-  - Typed hints are derived from canonical transform parsing:
-    - `parse::<f*>` -> `"1.0"`
-    - `parse::<i*>`, `parse::<u*>`, `parse::<isize>`, `parse::<usize>` -> `"1"`
-    - `parse::<bool>` -> `"true"`
-  - Non-canonical transform expressions do not override regex sampling.
-  - Raw quoted semantic payloads (for example `"literal"`) are unquoted and emitted as the sample.
-  - OR-branch selection supports semantic steering:
-    - `@priority` / `@precedence` adds per-branch sampling bias,
-    - `@associativity: right` biases equal structures toward later branches,
-    - `@associativity: left` biases toward earlier branches.
-- Gate/test coverage:
-  - `make -C rust semantic_usage_gate`
-  - This enforces targeted `semantic_usage_*` unit tests in parser codegen and stimuli generator paths.
+### 8.3 Typed Directive Routing + Unknown Directive Policy
+- Directive names are resolved through the typed registry in `rust/src/ast_pipeline/semantic_directive_registry.rs`.
+- Unknown directive handling is policy-driven:
+  - `PGEN_UNKNOWN_SEMANTIC_DIRECTIVE_POLICY=ignore|warn|strict` (default `warn`).
+  - `warn`: emits `W_SEM_UNKNOWN_DIRECTIVE`.
+  - `strict`: promotes unknown directive to `error`.
+- Directive routing is name-aware:
+  - transform steering is only active for directive `transform`,
+  - raw literal hint steering is only active for literal/sample directive family in named mode.
 
-Semantic steering roadmap/control reference:
+### 8.4 Steering Behaviors Implemented Today
+
+#### A) Canonical transform steering (`@transform`)
+- Canonical form:
+  - `str::parse::<T>().unwrap_or(default)`
+- Parser behavior:
+  - for regex atoms, generated parser emits transformed terminal output for canonical transform.
+  - target type supports path forms (for example `std::primitive::i64`).
+- Stimuli behavior:
+  - canonical transform target type can drive deterministic hint value:
+    - integer targets -> `"1"`
+    - float targets -> `"1.0"`
+    - bool target -> `"true"`
+- Non-canonical transform expressions are accepted but do not trigger canonical typed steering.
+
+#### B) Branch steering (`@priority`, `@precedence`, `@associativity`)
+- `@priority` / `@precedence` payloads:
+  - scalar: `5` (applies to all OR branches),
+  - list: `[1, 9, 2]` (applies by OR-branch index).
+- `@associativity` payloads:
+  - `left`, `right`, `nonassoc`.
+- Parser OR tie-break behavior:
+  - primary remains longest-match,
+  - semantic priority/precedence breaks equal-length ties,
+  - associativity controls exact-equality resolution:
+    - `left`: keep earlier winner,
+    - `right`: prefer later winner,
+    - `nonassoc`: unresolved exact ties backtrack.
+- Stimuli OR branch behavior:
+  - semantic priority/precedence contributes branch sampling bias,
+  - associativity biases equal structures toward earlier/later branch order.
+
+#### C) Value-domain steering (`@enum`, `@range`, `@len`, `@regex`)
+- `@enum` payload forms:
+  - `["AA", "BB"]`
+  - `"AA"` (single value form also accepted).
+- `@range` payload forms:
+  - `10..20`
+  - `[10, 20]`
+  - `7` (exact-value shorthand).
+- `@len` payload forms:
+  - `2..8`
+  - `[2, 8]`
+  - `4` (exact-length shorthand).
+- `@regex` payload:
+  - non-empty regex pattern string/scalar.
+- Deterministic merge/precedence behavior:
+  - different value-domain directives compose conjunctively (all active constraints must pass),
+  - repeated occurrences of the same directive currently follow last-wins assignment per rule.
+
+### 8.5 Parser Runtime Contract for Value-Domain Directives
+- Value-domain guards are injected into generated parser code for relevant atom token paths:
+  - `quoted_string`
+  - `regex`
+  - `number`, `probability`, `include_dir`, `include_file`, `rule`
+- Guard order:
+  1. enum membership
+  2. semantic regex full-match check
+  3. length bounds
+  4. numeric bounds
+- In canonical transform paths, guard checks are applied before type transform.
+- On violation, generated parser returns contextual parse error with semantic constraint reason.
+
+### 8.6 Stimuli Runtime Contract for Value-Domain Directives
+- Regex-token sample selection order:
+  1. semantic hint (only if it satisfies active constraints),
+  2. enum candidates filtered by grammar regex and active constraints,
+  3. constraint-driven candidate (numeric range or length candidate),
+  4. regex HIR generation attempts (bounded retries) filtered by constraints,
+  5. deterministic fallback.
+- Constraint satisfaction is conjunction-based:
+  - enum + regex + len + range all must be satisfied if present.
+
+### 8.7 Typed Validator Diagnostics (Semantic Directives)
+- Unknown directive:
+  - `W_SEM_UNKNOWN_DIRECTIVE` (policy-dependent severity).
+- Transform diagnostics:
+  - `W_SEM_NON_CANONICAL_TRANSFORM`
+  - `W_SEM_DEFAULT_TYPE_MISMATCH`
+  - `W_SEM_UNKNOWN_TARGET_TYPE`
+- Value/branch payload diagnostics:
+  - `W_SEM_INVALID_ASSOCIATIVITY_PAYLOAD`
+  - `W_SEM_INVALID_PRIORITY_PAYLOAD`
+  - `W_SEM_INVALID_ENUM_PAYLOAD`
+  - `W_SEM_INVALID_RANGE_PAYLOAD`
+  - `W_SEM_INVALID_LEN_PAYLOAD`
+  - `W_SEM_INVALID_REGEX_PAYLOAD`
+
+### 8.8 Practical Examples
+
+#### Example: Numeric literal rule with transform + range
+```ebnf
+number = regex("[0-9]+") @transform: str::parse::<i64>().unwrap_or(0) @range: 0..255 ;
+```
+- Parser: parses token, enforces `0..255`, then transforms to typed terminal string output.
+- Stimuli: prefers values in range domain and still validates against regex.
+
+#### Example: Identifier rule with enum + regex + len
+```ebnf
+ident = regex("[A-Z]+") @enum: ["AA", "AB", "BC"] @regex: "^A[A-Z]$" @len: [2, 2] ;
+```
+- Effective allowed values are intersection of all constraints (`AA`, `AB`).
+
+#### Example: Expression rule branch steering
+```ebnf
+expr = term | expr "+" term ;
+@precedence: [1, 9]
+@associativity: right
+```
+- Parser and stimuli both bias toward later branch under exact ties because of right associativity and higher branch precedence value.
+
+### 8.9 Gate/Test Coverage for Semantic Steering
+- `make -C rust semantic_usage_gate`
+- Included in:
+  - `make -C rust annotation_contract_gate`
+- Coverage includes parser + stimuli semantic usage tests (`semantic_usage_*`), including value-domain steering and directive routing regressions.
+
+### 8.10 Steering Roadmap References
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- This matrix defines:
-  - control types the Rust AST pipeline may/might/will need for parser/stimuli steering,
-  - current support tier per control,
-  - priority and target tier for promotion.
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
-Built-in vs annotation control policy:
-- Keep built-in semantic behavior minimal and invariant-focused (correctness, safety, deterministic contracts).
-- Offload project/domain steering semantics to typed semantic annotations where possible.
+### 8.11 Built-In vs Annotation Policy
+- Keep built-in behavior minimal and invariant-focused:
+  - correctness
+  - safety bounds
+  - deterministic contracts
+- Express domain/project semantics via typed annotations where possible.
 - Precedence order:
-  - built-in correctness/safety contracts,
-  - then supported semantic directives,
-  - then fallback defaults.
-- Unknown semantic directives are expected to move toward explicit policy modes (`warn`/`strict`) rather than silent ignore.
-  - Runtime control:
-    - `PGEN_UNKNOWN_SEMANTIC_DIRECTIVE_POLICY=ignore|warn|strict` (default: `warn`).
+  1. built-in correctness/safety
+  2. supported semantic directives
+  3. fallback defaults
 
-Return-annotation completeness reference (non-negotiable policy):
+Return-annotation completeness reference (non-negotiable):
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` ("Return Annotation No-Compromise Contract")
-- Return annotations are AST-shaping critical-path features; the pipeline target is full construct support with no intentional feature compromise.
+- Return annotations remain critical-path AST-shaping behavior with no intentional feature compromise.
 
 ## 9) Differential Testing and Drift Management
 

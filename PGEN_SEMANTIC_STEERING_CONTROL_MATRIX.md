@@ -54,7 +54,7 @@ Hard boundary:
 | `SC-05` | Precedence/associativity steering | Resolve ambiguity/branching deterministically | Generate precedence-respecting trees | `@precedence`, `@associativity`, `@priority` | Baseline implemented: parser tie-break uses priority+associativity; stimuli branch sampling uses semantic priority/precedence + associativity multipliers | Tier 3 | P0 |
 | `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | External gap-priority exists; semantic-driven route not implemented | Tier 3 | P1 |
 | `SC-07` | Error recovery and sync strategy | Production-grade parser recovery hints | Generate recovery-focused stimuli sets | `@recover`, `@sync`, `@panic_until` | Not implemented | Tier 2 | P1 |
-| `SC-08` | Value-domain constraints | Enforce value contracts at parse/validation boundaries | Generate in-domain samples | `@range`, `@enum`, `@regex`, `@len` | Not implemented | Tier 3 | P0 |
+| `SC-08` | Value-domain constraints | Enforce value contracts at parse/validation boundaries | Generate in-domain samples | `@range`, `@enum`, `@regex`, `@len` | Baseline implemented: parser value guards + stimuli domain steering + typed validator payload diagnostics + semantic usage gate coverage; deterministic multi-directive conflict contract still pending | Tier 3 | P0 |
 | `SC-09` | Cross-field/cross-capture constraints | Validate relational constraints between captures | Generate constraint-satisfying combinations | `@constraint`, `@requires`, `@implies` | Not implemented | Tier 3 | P1 |
 | `SC-10` | Coverage target hints | Optional parser instrumentation priority tags | Rule/branch target boosting | `@coverage_target`, `@critical_path` | Coverage/gap pipeline exists; semantic hints not implemented | Tier 3 | P1 |
 | `SC-11` | Negative case semantics | Emit expected-failure parser paths | Generate invalid/near-invalid stimuli | `@invalid_case`, `@negative` | Not implemented | Tier 3 | P2 |
@@ -89,14 +89,14 @@ Required quality bar:
 4. Any temporary mismatch must be explicitly tracked in differential baselines with closure plan.
 
 ## Next Implementation Focus (Recommended)
-1. Implement `SC-08` value-domain constraints for both parser validation and stimuli generation.
-2. Add deterministic directive conflict-resolution contract for multi-directive overlap.
-3. Add typed validator checks for invalid `priority/precedence/associativity` payloads.
-4. Add dedicated return-annotation closure work to drive differential return mismatches to zero.
+1. Add deterministic directive conflict-resolution contract for multi-directive overlap.
+2. Decide strictness policy for known-invalid semantic directive payloads (warning vs error in strict CI paths).
+3. Add dedicated return-annotation closure work to drive differential return mismatches to zero.
+4. Start `SC-09` cross-field/cross-capture constraint design and validator contract.
 
 ## Priority Queue (Balance-Oriented)
 - `P0` Keep built-in core minimal and invariant-only (correctness/safety/return completeness).
 - `P0` Implement typed semantic directive registry + unknown-directive policy modes (`warn`/`strict`). (Completed 2026-02-19)
-- `P0` Promote precedence/associativity and value-domain constraints to parser+stimuli steering. (Precedence/associativity completed 2026-02-19; value-domain pending)
+- `P0` Promote precedence/associativity and value-domain constraints to parser+stimuli steering. (Precedence/associativity and value-domain baseline completed 2026-02-19; conflict policy hardening pending)
 - `P1` Add semantic directive conflict-resolution contract and deterministic precedence rules.
 - `P1` Drive return differential mismatch debt to zero and tighten release gate criteria.
