@@ -257,6 +257,15 @@ Semantic steering roadmap/control reference:
   - current support tier per control,
   - priority and target tier for promotion.
 
+Built-in vs annotation control policy:
+- Keep built-in semantic behavior minimal and invariant-focused (correctness, safety, deterministic contracts).
+- Offload project/domain steering semantics to typed semantic annotations where possible.
+- Precedence order:
+  - built-in correctness/safety contracts,
+  - then supported semantic directives,
+  - then fallback defaults.
+- Unknown semantic directives are expected to move toward explicit policy modes (`warn`/`strict`) rather than silent ignore.
+
 Return-annotation completeness reference (non-negotiable policy):
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` ("Return Annotation No-Compromise Contract")
 - Return annotations are AST-shaping critical-path features; the pipeline target is full construct support with no intentional feature compromise.

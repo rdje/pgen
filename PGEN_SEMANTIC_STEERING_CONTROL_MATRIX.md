@@ -11,6 +11,31 @@ This document defines:
 3. Which controls are parse-only/validated-only vs truly steering.
 4. The non-negotiable return-annotation completeness contract.
 
+## Built-In vs Annotation Balance (Decision)
+Adopt a layered control model:
+
+1. Layer A: built-in invariants (hardcoded, minimal, mandatory)
+- Parser/stimuli correctness and determinism guards.
+- Safety limits and bounded runtime behavior.
+- Stable diagnostics/error-code contracts.
+- Return-annotation full feature support (no compromise).
+
+2. Layer B: annotation policy controls (user-authored in EBNF)
+- Parser/stimuli steering directives that vary by language/domain/project.
+- Defaults exist, but directives are the preferred way to control behavior.
+
+3. Layer C: optional extension hooks (future)
+- Project-specific behavior integration without polluting core invariants.
+
+Precedence rule:
+- Built-in correctness/safety contracts override everything.
+- Then semantic directive policy (when supported/typed).
+- Then fallback defaults.
+
+Hard boundary:
+- Do not hardcode domain semantics that can be expressed as typed semantic directives.
+- Do hardcode only the minimum invariant semantic behavior required for correctness/safety.
+
 ## Capability Tiers
 - `Tier 0` Parsed only (stored as AST/raw, no validation contract).
 - `Tier 1` Parsed + validated (diagnostics), no runtime steering.
@@ -40,6 +65,7 @@ This document defines:
 - Non-steering acceptance must be explicit (`Tier 0`/`Tier 1`) and documented.
 - Promotion rule for each control: `Tier 0/1 -> Tier 2/3 -> Tier 4` only with tests + gate integration.
 - Return annotation behavior must not be weakened to compensate for semantic feature gaps.
+- Unknown semantic directives should move toward explicit policy (`warn`/`strict`) rather than silent accept-and-ignore.
 
 ## Return Annotation No-Compromise Contract
 Return annotation support is mandatory and must be complete in bootstrap + generated paths.
@@ -67,3 +93,10 @@ Required quality bar:
 2. Implement `SC-05` precedence/associativity steering for ambiguity resolution.
 3. Implement `SC-08` value-domain constraints for both parser validation and stimuli generation.
 4. Add dedicated return-annotation closure work to drive differential return mismatches to zero.
+
+## Priority Queue (Balance-Oriented)
+- `P0` Keep built-in core minimal and invariant-only (correctness/safety/return completeness).
+- `P0` Implement typed semantic directive registry + unknown-directive policy modes (`warn`/`strict`).
+- `P0` Promote precedence/associativity and value-domain constraints to parser+stimuli steering.
+- `P1` Add semantic directive conflict-resolution contract and deterministic precedence rules.
+- `P1` Drive return differential mismatch debt to zero and tighten release gate criteria.

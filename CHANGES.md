@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-02-19 - Phase J Follow-Up: Built-In vs Annotation Balance and Priority Commitments
+### ✅ Achievement Summary
+Captured explicit architecture and priority decisions for semantic steering: keep built-in semantic behavior minimal/invariant-focused, and offload steering semantics to typed semantic annotations.
+### Scope of Changes
+- Updated steering matrix:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - Added:
+    - layered control model (`Layer A/B/C`),
+    - precedence rule (`built-in correctness/safety > directive policy > fallback`),
+    - hard boundary against unnecessary hardcoded domain semantics,
+    - balance-oriented `P0/P1` priority queue.
+- Updated roadmap priorities:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Phase J now includes explicit `P0/P1` items:
+    - typed directive registry,
+    - unknown-directive policy modes (`warn`/`strict`),
+    - precedence/associativity steering,
+    - value-domain constraint steering,
+    - deterministic directive conflict resolution,
+    - return parity closure.
+- Updated user guide semantics section:
+  - `PGEN_USER_GUIDE.md`
+  - Added built-in-vs-annotation policy summary so implementation intent is clear to contributors/users.
+### Validation Results
+- Documentation/roadmap policy capture only; no runtime behavior change in this slice.
+
 ## 2026-02-19 - Phase J Kickoff: Semantic Steering Control Matrix + Return No-Compromise Contract
 ### ✅ Achievement Summary
 Added a dedicated living control matrix that lists parser/stimuli steering controls needed by the Rust AST pipeline, distinguishes current support vs target tiers, and codifies return-annotation completeness as a hard requirement.

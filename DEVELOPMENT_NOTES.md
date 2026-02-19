@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J Follow-Up: Explicit Built-In vs Annotation Balance (with Priorities)
+### Context
+The key architecture question was how much semantic behavior should remain hardcoded in the Rust AST pipeline versus controlled through semantic annotations in EBNF.
+
+The agreed direction is:
+- hardcode a minimal invariant semantic core,
+- push project/domain steering semantics into semantic annotations,
+- preserve a strict precedence contract so correctness/safety never becomes annotation-dependent.
+### Implementation
+- Updated `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` with explicit balance policy:
+  - layered model:
+    - Layer A: built-in invariants (correctness/safety/diagnostics/return completeness),
+    - Layer B: annotation policy controls (user-authored steering),
+    - Layer C: extension hooks (future).
+  - precedence rule:
+    - built-in correctness/safety > supported semantic directives > fallback defaults.
+  - anti-drift boundary:
+    - avoid hardcoding domain semantics that can be represented via typed directives.
+- Added explicit `P0/P1` priority queue in matrix:
+  - `P0`: typed directive registry, unknown-directive policy modes, precedence+associativity steering, value-domain steering.
+  - `P1`: deterministic directive conflict policy + return mismatch closure tightening.
+- Updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase J tasks to reflect these priorities.
+- Updated `PGEN_USER_GUIDE.md` semantic section with policy summary for contributor/user clarity.
+### Validation
+- Documentation/priority alignment only; no executable changes in this slice.
+### Why This Matters
+- Prevents gradual semantic hardcoding creep in generator internals.
+- Makes semantic extensibility intentional and typed rather than ad-hoc.
+- Preserves non-negotiable return-annotation completeness while scaling semantic steering capability.
+
 ## 2026-02-19 - Phase J Kickoff: Semantic Steering Inventory and Return-Annotation Hard Requirement
 ### Context
 Semantic annotation grammar is intentionally richer than what the Rust AST pipeline can fully steer at any specific point in time. Without an explicit steering inventory, it is difficult to decide which semantic constructs should be promoted from parsed/validated state into parser/stimuli steering behavior first.
