@@ -259,6 +259,9 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - list: `[1, 9, 2]` (applies by OR-branch index).
 - `@associativity` payloads:
   - `left`, `right`, `nonassoc`.
+- Conflict-resolution contract:
+  - if both `@priority` and `@precedence` are present for a rule, `@priority` deterministically overrides `@precedence` regardless of annotation order.
+  - repeated occurrences of a known directive follow deterministic last-wins behavior.
 - Parser OR tie-break behavior:
   - primary remains longest-match,
   - semantic priority/precedence breaks equal-length ties,
@@ -325,6 +328,9 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_INVALID_RANGE_PAYLOAD`
   - `W_SEM_INVALID_LEN_PAYLOAD`
   - `W_SEM_INVALID_REGEX_PAYLOAD`
+- Conflict diagnostics:
+  - `W_SEM_PRIORITY_PRECEDENCE_CONFLICT` (`@priority` + `@precedence` both present; `@priority` takes precedence)
+  - `W_SEM_DIRECTIVE_OVERRIDDEN` (same known directive repeated; last occurrence wins)
 
 ### 8.8 Practical Examples
 

@@ -286,6 +286,26 @@ pub fn parse_semantic_numeric_list(payload: &str) -> Option<Vec<i64>> {
     Some(values)
 }
 
+pub fn parse_semantic_branch_priorities(payload: &str, branch_count: usize) -> Option<Vec<i64>> {
+    if branch_count == 0 {
+        return Some(Vec::new());
+    }
+
+    let values = parse_semantic_numeric_list(payload)?;
+    let mut priorities = vec![0i64; branch_count];
+
+    if values.len() == 1 {
+        priorities.fill(values[0]);
+        return Some(priorities);
+    }
+
+    for (idx, value) in values.iter().enumerate().take(branch_count) {
+        priorities[idx] = *value;
+    }
+
+    Some(priorities)
+}
+
 pub fn parse_semantic_float_list(payload: &str) -> Option<Vec<f64>> {
     let normalized = payload.trim();
     if normalized.is_empty() {
@@ -433,7 +453,7 @@ mod tests {
         SemanticAssociativity, UnknownSemanticDirectivePolicy, extract_semantic_directive,
         extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_float_list,
         parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
-        parse_semantic_string_list, semantic_directive_spec,
+        parse_semantic_string_list, semantic_directive_spec, parse_semantic_branch_priorities,
     };
 
     #[test]
@@ -493,6 +513,23 @@ mod tests {
         assert_eq!(parse_semantic_numeric_list("'4', \"6\""), Some(vec![4, 6]));
         assert_eq!(parse_semantic_numeric_list("[]"), None);
         assert_eq!(parse_semantic_numeric_list("[x]"), None);
+    }
+
+    #[test]
+    fn parses_semantic_branch_priority_vectors() {
+        assert_eq!(
+            parse_semantic_branch_priorities("9", 3),
+            Some(vec![9, 9, 9])
+        );
+        assert_eq!(
+            parse_semantic_branch_priorities("[1, 5, 2]", 3),
+            Some(vec![1, 5, 2])
+        );
+        assert_eq!(
+            parse_semantic_branch_priorities("[7, 8]", 4),
+            Some(vec![7, 8, 0, 0])
+        );
+        assert_eq!(parse_semantic_branch_priorities("bad", 2), None);
     }
 
     #[test]

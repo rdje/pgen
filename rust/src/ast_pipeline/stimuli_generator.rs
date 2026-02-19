@@ -2,7 +2,7 @@ use super::{
     ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
     SemanticValueConstraints, TokenValue, UnifiedSemanticAST, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_len_bounds,
-    parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_string_list,
+    parse_semantic_branch_priorities, parse_semantic_numeric_bounds, parse_semantic_string_list,
     stimuli_hint_for_target_type,
 };
 use anyhow::{Context, Result, anyhow};
@@ -2376,13 +2376,16 @@ impl<'a> StimuliGenerator<'a> {
         branch_count: usize,
     ) -> (SemanticAssociativity, Vec<i64>) {
         let mut associativity = SemanticAssociativity::Left;
-        let mut priorities = vec![0i64; branch_count];
+        let default_priorities = vec![0i64; branch_count];
         let Some(annotations) = self.annotations else {
-            return (associativity, priorities);
+            return (associativity, default_priorities);
         };
         let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return (associativity, priorities);
+            return (associativity, default_priorities);
         };
+
+        let mut precedence_priorities: Option<Vec<i64>> = None;
+        let mut explicit_priorities: Option<Vec<i64>> = None;
 
         for annotation in entries {
             let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
@@ -2394,22 +2397,27 @@ impl<'a> StimuliGenerator<'a> {
                         associativity = parsed;
                     }
                 }
-                "precedence" | "priority" => {
-                    let Some(values) = parse_semantic_numeric_list(&payload) else {
+                "precedence" => {
+                    let Some(parsed) = parse_semantic_branch_priorities(&payload, branch_count)
+                    else {
                         continue;
                     };
-                    if values.len() == 1 {
-                        priorities.fill(values[0]);
-                    } else {
-                        for (idx, value) in values.iter().enumerate().take(branch_count) {
-                            priorities[idx] = *value;
-                        }
-                    }
+                    precedence_priorities = Some(parsed);
+                }
+                "priority" => {
+                    let Some(parsed) = parse_semantic_branch_priorities(&payload, branch_count)
+                    else {
+                        continue;
+                    };
+                    explicit_priorities = Some(parsed);
                 }
                 _ => {}
             }
         }
 
+        let priorities = explicit_priorities
+            .or(precedence_priorities)
+            .unwrap_or(default_priorities);
         (associativity, priorities)
     }
 
@@ -2673,6 +2681,49 @@ mod tests {
         assert!(
             right_count > left_count,
             "priority directive should bias toward higher-priority branch"
+        );
+    }
+
+    #[test]
+    fn semantic_priority_overrides_precedence_regardless_of_order() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "priority".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[1, 12]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "precedence".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[12, 1]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 29);
+        let values = generator
+            .generate_many(80, None)
+            .expect("priority-vs-precedence generation should pass");
+
+        let left_count = values.iter().filter(|v| v.as_str() == "L").count();
+        let right_count = values.iter().filter(|v| v.as_str() == "R").count();
+        assert!(
+            right_count > left_count,
+            "priority should deterministically override precedence for branch steering"
         );
     }
 

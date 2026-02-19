@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J P1 Implementation: Deterministic Conflict-Resolution Baseline
+### Context
+After implementing value-domain steering, the next roadmap item was deterministic conflict resolution between overlapping semantic directives.
+
+Before this slice:
+- `@priority` and `@precedence` resolution depended on annotation order,
+- duplicate directive behavior was implicit,
+- validator did not emit dedicated diagnostics for these conflicts.
+
+For reproducible parser/stimuli behavior, conflict handling needed to become explicit, deterministic, and test-covered.
+### Implementation
+- Added shared branch-priority payload parsing:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - new helper:
+    - `parse_semantic_branch_priorities(payload, branch_count)`
+  - behavior:
+    - scalar payload broadcasts across branches,
+    - vector payload maps by branch index (defaulting trailing branches to `0`),
+    - invalid payload returns `None`.
+  - exported via `rust/src/ast_pipeline/mod.rs`.
+- Enforced deterministic branch conflict policy in parser codegen:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - `rule_branch_priorities(...)` now resolves directives by policy, not by incidental order:
+    - `@priority` overrides `@precedence` when both are present.
+  - `rule_associativity(...)` now applies last valid occurrence wins for repeated directives.
+- Enforced same deterministic policy in stimuli generation:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - `rule_branch_controls(...)` now uses the same `priority > precedence` contract.
+- Added validator conflict diagnostics:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - New rule-level warnings:
+    - `W_SEM_PRIORITY_PRECEDENCE_CONFLICT`
+      - emitted when both directives are present, documenting deterministic precedence (`priority` wins).
+    - `W_SEM_DIRECTIVE_OVERRIDDEN`
+      - emitted when a known directive appears multiple times and last occurrence wins.
+- Added focused tests:
+  - parser semantic usage:
+    - `semantic_usage_codegen_priority_overrides_precedence_regardless_of_order`
+    - `semantic_usage_codegen_last_associativity_directive_wins`
+  - stimuli semantic usage:
+    - `semantic_priority_overrides_precedence_regardless_of_order`
+  - validator:
+    - `semantic_validator_warns_when_priority_and_precedence_both_present`
+    - `semantic_validator_warns_on_duplicate_directive_override_contract`
+  - registry:
+    - `parses_semantic_branch_priority_vectors`
+### Validation
+- Ran:
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_`
+  - `cargo test --manifest-path rust/Cargo.toml semantic_validator_`
+  - `cargo test --manifest-path rust/Cargo.toml parses_semantic_branch_priority_vectors`
+  - `make -C rust SHELL=/bin/bash annotation_contract_gate`
+- Result:
+  - all targeted tests passed,
+  - full annotation contract gate remained green.
+### Why This Matters
+- Removes annotation-order ambiguity from branch steering semantics.
+- Makes duplicate directive resolution behavior explicit and diagnosable.
+- Strengthens reproducibility guarantees for parser/stimuli outputs under complex semantic annotation mixes.
+- Advances Phase J from steering capability to deterministic steering policy contracts.
+
 ## 2026-02-19 - Phase J P0 Implementation: Value-Domain Steering Baseline + Typed Semantic Payload Diagnostics
 ### Context
 After directive routing and precedence/associativity steering landed, the next P0 control-surface gap was value-domain steering.

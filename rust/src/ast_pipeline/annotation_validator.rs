@@ -114,6 +114,11 @@ impl AnnotationValidator {
                     &mut report,
                 );
             }
+            self.validate_semantic_directive_conflicts(
+                rule_name,
+                semantic_annotations,
+                &mut report,
+            );
         }
 
         report
@@ -543,6 +548,87 @@ impl AnnotationValidator {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn validate_semantic_directive_conflicts(
+        &self,
+        rule_name: &str,
+        semantic_annotations: &[SemanticAnnotation],
+        report: &mut AnnotationValidationReport,
+    ) {
+        let mut directive_occurrences: HashMap<String, Vec<(usize, String)>> = HashMap::new();
+
+        for (idx, semantic_annotation) in semantic_annotations.iter().enumerate() {
+            let Some((directive_name, payload)) = self.semantic_directive_parts(semantic_annotation)
+            else {
+                continue;
+            };
+
+            if semantic_directive_spec(&directive_name).is_none() {
+                continue;
+            }
+
+            directive_occurrences
+                .entry(directive_name)
+                .or_default()
+                .push((idx + 1, payload));
+        }
+
+        if let (Some(priority_entries), Some(precedence_entries)) = (
+            directive_occurrences.get("priority"),
+            directive_occurrences.get("precedence"),
+        ) {
+            let annotation_index = priority_entries
+                .last()
+                .map(|(idx, _)| *idx)
+                .max(precedence_entries.last().map(|(idx, _)| *idx));
+            let priority_payload = priority_entries
+                .last()
+                .map(|(_, payload)| payload.as_str())
+                .unwrap_or("");
+            let precedence_payload = precedence_entries
+                .last()
+                .map(|(_, payload)| payload.as_str())
+                .unwrap_or("");
+
+            report.diagnostics.push(AnnotationDiagnostic {
+                code: "W_SEM_PRIORITY_PRECEDENCE_CONFLICT",
+                severity: AnnotationSeverity::Warning,
+                kind: AnnotationKind::Semantic,
+                rule_name: rule_name.to_string(),
+                annotation_index,
+                message: "Both '@priority' and '@precedence' are present; deterministic conflict policy applies with '@priority' taking precedence.".to_string(),
+                annotation: Some(format!(
+                    "@priority: {}; @precedence: {}",
+                    priority_payload, precedence_payload
+                )),
+            });
+        }
+
+        for (directive_name, entries) in directive_occurrences {
+            if entries.len() <= 1 {
+                continue;
+            }
+
+            let (last_index, last_payload) = entries
+                .last()
+                .map(|(idx, payload)| (*idx, payload.as_str()))
+                .unwrap_or((1, ""));
+            report.diagnostics.push(AnnotationDiagnostic {
+                code: "W_SEM_DIRECTIVE_OVERRIDDEN",
+                severity: AnnotationSeverity::Warning,
+                kind: AnnotationKind::Semantic,
+                rule_name: rule_name.to_string(),
+                annotation_index: Some(last_index),
+                message: format!(
+                    "Directive '@{}' appears {} times for rule '{}'; deterministic conflict policy uses the last occurrence.",
+                    directive_name,
+                    entries.len(),
+                    rule_name
+                ),
+                annotation: Some(format!("@{}: {}", directive_name, last_payload)),
+            });
         }
     }
 
@@ -1135,6 +1221,66 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_INVALID_REGEX_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_when_priority_and_precedence_both_present() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "precedence".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[9, 1]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "priority".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[1, 9]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_PRIORITY_PRECEDENCE_CONFLICT")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_duplicate_directive_override_contract() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "associativity".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "left".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "associativity".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "right".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_DIRECTIVE_OVERRIDDEN")
         );
     }
 }

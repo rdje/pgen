@@ -7,8 +7,9 @@ use crate::ast_pipeline::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
     SemanticValueConstraints, TokenValue, UnifiedSemanticAST,
     ast_return_transform::AstReturnTransformer, extract_semantic_directive,
-    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_len_bounds,
-    parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_string_list,
+    normalize_semantic_scalar, parse_canonical_transform_expression,
+    parse_semantic_branch_priorities, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
+    parse_semantic_string_list,
 };
 use anyhow::Result;
 use prettyplease;
@@ -1346,50 +1347,54 @@ impl AstBasedGenerator {
             return SemanticAssociativity::Left;
         };
 
+        let mut associativity = SemanticAssociativity::Left;
         for annotation in entries {
             let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
                 continue;
             };
             if name == "associativity" {
                 if let Some(parsed) = SemanticAssociativity::parse(&payload) {
-                    return parsed;
+                    associativity = parsed;
                 }
             }
         }
 
-        SemanticAssociativity::Left
+        associativity
     }
 
     fn rule_branch_priorities(&self, rule_name: &str, branch_count: usize) -> Vec<i64> {
-        let mut priorities = vec![0i64; branch_count];
+        let default_priorities = vec![0i64; branch_count];
         let Some(annotations) = &self.annotations else {
-            return priorities;
+            return default_priorities;
         };
         let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return priorities;
+            return default_priorities;
         };
+
+        let mut precedence_priorities: Option<Vec<i64>> = None;
+        let mut explicit_priorities: Option<Vec<i64>> = None;
 
         for annotation in entries {
             let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
                 continue;
             };
-            if name != "priority" && name != "precedence" {
-                continue;
-            }
-
-            let Some(values) = parse_semantic_numeric_list(&payload) else {
+            let Some(parsed) = parse_semantic_branch_priorities(&payload, branch_count) else {
                 continue;
             };
-            if values.len() == 1 {
-                priorities.fill(values[0]);
-                continue;
-            }
-            for (idx, value) in values.iter().enumerate().take(branch_count) {
-                priorities[idx] = *value;
+            match name.as_str() {
+                "precedence" => {
+                    precedence_priorities = Some(parsed);
+                }
+                "priority" => {
+                    explicit_priorities = Some(parsed);
+                }
+                _ => {}
             }
         }
 
-        priorities
+        explicit_priorities
+            .or(precedence_priorities)
+            .unwrap_or(default_priorities)
     }
 
     fn rule_value_constraints(&self, rule_name: &str) -> SemanticValueConstraints {
@@ -1837,6 +1842,80 @@ mod semantic_usage_tests {
         };
 
         assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
+    }
+
+    #[test]
+    fn semantic_usage_codegen_priority_overrides_precedence_regardless_of_order() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "priority".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[1, 9]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "precedence".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[9, 1]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        assert_eq!(
+            generator.rule_branch_priorities("expr", 2),
+            vec![1, 9],
+            "priority payload should override precedence payload independent of annotation order"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_last_associativity_directive_wins() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "associativity".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "left".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "associativity".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "right".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        assert_eq!(
+            generator.rule_associativity("expr"),
+            SemanticAssociativity::Right,
+            "duplicate associativity directives should resolve with last occurrence wins"
+        );
     }
 
     #[test]

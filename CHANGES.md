@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-02-19 - Phase J P1: Deterministic Semantic Conflict-Resolution Baseline
+### ✅ Achievement Summary
+Implemented deterministic semantic conflict-resolution behavior for branch steering directives and surfaced conflict contracts as stable validator diagnostics.
+### Scope of Changes
+- Deterministic branch directive precedence:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Policy is now explicit and order-independent:
+    - when both `@priority` and `@precedence` are present on the same rule, `@priority` wins.
+- Deterministic duplicate directive behavior:
+  - parser/stimuli directive resolution now follows explicit last-wins behavior for repeated known directives.
+  - `rule_associativity` in parser codegen now resolves by last parsed valid directive instead of first-match early-return.
+- Shared branch-priority payload parser:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - Added `parse_semantic_branch_priorities(payload, branch_count)` and test coverage.
+  - Re-exported in `rust/src/ast_pipeline/mod.rs`.
+- Validator conflict diagnostics:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - Added rule-level conflict checks with stable warnings:
+    - `W_SEM_PRIORITY_PRECEDENCE_CONFLICT`
+    - `W_SEM_DIRECTIVE_OVERRIDDEN`
+- New tests:
+  - parser semantic usage:
+    - `semantic_usage_codegen_priority_overrides_precedence_regardless_of_order`
+    - `semantic_usage_codegen_last_associativity_directive_wins`
+  - stimuli semantic usage:
+    - `semantic_priority_overrides_precedence_regardless_of_order`
+  - validator:
+    - `semantic_validator_warns_when_priority_and_precedence_both_present`
+    - `semantic_validator_warns_on_duplicate_directive_override_contract`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_` ✅
+- `cargo test --manifest-path rust/Cargo.toml parses_semantic_branch_priority_vectors` ✅
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅
+
 ## 2026-02-19 - Phase J P0: Value-Domain Steering Baseline + Typed Payload Diagnostics
 ### ✅ Achievement Summary
 Implemented baseline semantic value-domain steering across parser and stimuli paths for `@enum`, `@range`, `@len`, and `@regex`, then added typed semantic payload diagnostics in validator coverage so malformed steering payloads are surfaced with stable codes.

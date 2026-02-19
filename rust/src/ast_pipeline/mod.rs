@@ -1458,8 +1458,8 @@ pub use semantic_directive_registry::{
     SemanticAssociativity, SemanticDirectiveCapability, SemanticDirectiveSpec,
     SemanticValueConstraints, UnknownSemanticDirectivePolicy, extract_semantic_directive,
     extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_float_list,
-    parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
-    parse_semantic_string_list, semantic_directive_spec,
+    parse_semantic_branch_priorities, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
+    parse_semantic_numeric_list, parse_semantic_string_list, semantic_directive_spec,
 };
 pub use semantic_transform::{
     CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,
