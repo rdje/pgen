@@ -221,6 +221,8 @@ help:
 	@echo "  clean        - Remove generated files"
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
+	@echo "  ebnf_frontend_readiness - Report EBNF frontend flow readiness for ebnf/json/regex grammars"
+	@echo "  ebnf_frontend_gate - Strict EBNF frontend gate (fail on any grammar flow failure)"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
 	@echo "  semantic_usage_gate - Enforce semantic-annotation leverage contract (parser/stimuli)"
@@ -383,6 +385,18 @@ fixed_point_gate:
 	@echo "🔁 Running fixed-point bootstrap reproducibility gate..."
 	cd $(RUST_DIR) && PGEN_STRICT_ANNOTATION_VALIDATION=$${PGEN_STRICT_ANNOTATION_VALIDATION:-1} ./scripts/fixed_point_bootstrap_gate.sh --cycles $(FIXED_POINT_CYCLES)
 	@echo "✅ Fixed-point gate passed."
+
+.PHONY: ebnf_frontend_readiness
+ebnf_frontend_readiness:
+	@echo "🧭 Running EBNF frontend readiness check (report mode)..."
+	cd $(RUST_DIR) && ./scripts/ebnf_frontend_readiness_gate.sh
+	@echo "✅ EBNF frontend readiness report generated."
+
+.PHONY: ebnf_frontend_gate
+ebnf_frontend_gate:
+	@echo "🧱 Running strict EBNF frontend readiness gate..."
+	cd $(RUST_DIR) && PGEN_EBNF_FRONTEND_STRICT=1 ./scripts/ebnf_frontend_readiness_gate.sh
+	@echo "✅ EBNF frontend gate passed."
 
 .PHONY: regression_gate
 regression_gate:

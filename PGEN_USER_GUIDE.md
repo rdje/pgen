@@ -280,6 +280,10 @@ Tracked baselines:
 
 - `fixed-point-gate`
   - deterministic bootstrap artifact regeneration
+- `ebnf_frontend_readiness` (local report target)
+  - executes `EBNF -> JSON -> parser/stimuli` readiness checks for `ebnf/json/regex` grammars
+- `ebnf_frontend_gate` (local strict target)
+  - same checks, but fails on any grammar-flow failure
 - `performance-gate`
   - throughput/latency/failure thresholds
 - `differential-regression-gate`
@@ -291,6 +295,12 @@ Workflow files:
 - `.github/workflows/fixed-point-gate.yml`
 - `.github/workflows/performance-gate.yml`
 - `.github/workflows/differential-regression-gate.yml`
+
+EBNF frontend readiness commands:
+```bash
+make -C rust SHELL=/bin/bash ebnf_frontend_readiness
+make -C rust SHELL=/bin/bash ebnf_frontend_gate
+```
 
 ## 11) Embedding API (Rust)
 

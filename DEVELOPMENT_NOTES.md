@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase H Kickoff: EBNF Frontend Readiness Baseline for Rust Migration
+### Context
+To migrate `EBNF -> JSON` away from Perl (`tools/ebnf_to_json.pl`) toward a Rust-native flow (`generated/ebnf.rs` in the future), we first need an executable baseline that continuously reports which upstream grammars are currently front-end compatible.
+
+Without an explicit readiness gate/report, migration planning would be based on assumptions about grammar completeness and parser compatibility instead of measured status.
+### Implementation
+- Added script-backed readiness flow:
+  - `rust/scripts/ebnf_frontend_readiness_gate.sh`
+  - Tracked grammars:
+    - `grammars/ebnf.ebnf`
+    - `grammars/json.ebnf`
+    - `grammars/regex.ebnf`
+  - Per grammar stages:
+    1. Perl `EBNF -> JSON` (`tools/ebnf_to_json.pl`)
+    2. Rust `JSON -> parser` (`ast_pipeline --generate-parser`)
+    3. Rust stimuli generation (`ast_pipeline --generate-stimuli`)
+  - Artifacts/logs:
+    - `rust/target/ebnf_frontend_gate/summary.csv`
+    - `rust/target/ebnf_frontend_gate/summary.txt`
+    - `rust/target/ebnf_frontend_gate/logs/*`
+    - `rust/target/ebnf_frontend_gate/work/*`
+  - Modes:
+    - report mode (default): `PGEN_EBNF_FRONTEND_STRICT=0`
+    - strict gate mode: `PGEN_EBNF_FRONTEND_STRICT=1`
+- Added Make integration:
+  - `rust/Makefile`
+  - targets:
+    - `ebnf_frontend_readiness` (report-only)
+    - `ebnf_frontend_gate` (strict failure policy)
+- Updated living docs:
+  - `PGEN_USER_GUIDE.md` with new gate targets and intent.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with new Phase H migration track.
+### Validation
+- Ran report mode:
+  - `make -C rust ebnf_frontend_readiness`
+- Baseline results:
+  - `ebnf.ebnf`: fail at Perl `EBNF -> JSON` conversion (`')' occurrence with no container rule context`)
+  - `json.ebnf`: pass across all three stages
+  - `regex.ebnf`: pass across all three stages
+- Ran strict mode:
+  - `make -C rust ebnf_frontend_gate`
+  - expected failure because `ebnf.ebnf` is not yet frontend-compatible.
+### Why This Matters
+- Creates a concrete, repeatable migration baseline for de-Perl work.
+- Makes `ebnf.ebnf` compatibility debt explicit and measurable.
+- Provides the first gating primitive needed for a future dual-run Perl-vs-Rust EBNF frontend differential check.
+
 ## 2026-02-18 - Phase F Follow-Up: Canonical Semantic Transform Alignment Across Validator/Codegen/Stimuli
 ### Context
 Semantic transform handling was implemented in multiple locations with slightly different parsing approaches. This created drift risk: validator used canonical regex checks, parser codegen used manual substring slicing, and stimuli used loose substring hints. To keep semantic behavior precise and maintainable, these paths needed one shared interpretation layer.

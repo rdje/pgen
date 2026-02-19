@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-02-19 - Phase H Kickoff: EBNF Frontend Readiness Gate/Report
+### ✅ Achievement Summary
+Added an executable readiness flow for the `EBNF -> JSON -> parser/stimuli` frontend path to baseline migration risk before replacing Perl `ebnf_to_json.pl`.
+### Scope of Changes
+- Added readiness script:
+  - `rust/scripts/ebnf_frontend_readiness_gate.sh`
+  - Tracks grammar flows for:
+    - `grammars/ebnf.ebnf`
+    - `grammars/json.ebnf`
+    - `grammars/regex.ebnf`
+  - Executes:
+    - Perl `ebnf_to_json.pl` conversion,
+    - Rust `ast_pipeline --generate-parser`,
+    - Rust `ast_pipeline --generate-stimuli`.
+  - Emits summary + logs under:
+    - `rust/target/ebnf_frontend_gate/`
+  - Supports:
+    - report mode (`PGEN_EBNF_FRONTEND_STRICT=0`, default),
+    - strict gate mode (`PGEN_EBNF_FRONTEND_STRICT=1`).
+- Added Make targets:
+  - `make -C rust ebnf_frontend_readiness` (report-only)
+  - `make -C rust ebnf_frontend_gate` (strict failure on any tracked flow failure)
+- Updated docs/roadmap:
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` (new Phase H migration track)
+- Baseline readiness result:
+  - `ebnf.ebnf`: currently fails at Perl `EBNF -> JSON` (known blocker)
+  - `json.ebnf`: pass
+  - `regex.ebnf`: pass
+### Validation Results
+- `make -C rust ebnf_frontend_readiness` ✅ (report generated)
+- `make -C rust ebnf_frontend_gate` ❌ (expected, due current `ebnf.ebnf` conversion failure)
+
 ## 2026-02-18 - Phase F Follow-Up: Shared Canonical Semantic Transform Parsing
 ### ✅ Achievement Summary
 Aligned semantic transform interpretation across validator, parser codegen, and stimuli generation using one shared canonical transform parser.
