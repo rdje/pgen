@@ -15,7 +15,7 @@ use anyhow::Result;
 use prettyplease;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use syn::Ident;
 
 /// AST-based generator that produces guaranteed syntactically correct Rust code
@@ -234,6 +234,16 @@ impl AstBasedGenerator {
                 eprintln!();
             }
         }
+        let unresolved_reference_methods =
+            self.generate_unresolved_reference_methods(grammar_tree, rule_order);
+        if !unresolved_reference_methods.is_empty() {
+            eprintln!(
+                "Generated {} unresolved reference fallback method(s) - File: {}:{}",
+                unresolved_reference_methods.len(),
+                file!(),
+                line!()
+            );
+        }
         eprintln!(
             "All rule methods generated ({}) - File: {}:{}",
             rule_methods.len(),
@@ -250,6 +260,7 @@ impl AstBasedGenerator {
                 #constructor
                 #parse_method
                 #(#rule_methods)*
+                #(#unresolved_reference_methods)*
                 #helpers
             }
         })
@@ -270,6 +281,128 @@ impl AstBasedGenerator {
 
         quote! {
             #(#constants)*
+        }
+    }
+
+    fn generate_unresolved_reference_methods(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+        rule_order: &[String],
+    ) -> Vec<TokenStream> {
+        let known_rules: HashSet<&str> = rule_order.iter().map(|rule| rule.as_str()).collect();
+        let mut referenced_rules: HashSet<String> = HashSet::new();
+        for rule_name in rule_order {
+            if let Some(ast_node) = grammar_tree.get(rule_name) {
+                Self::collect_rule_references(ast_node, &mut referenced_rules);
+            }
+        }
+
+        let mut unresolved: Vec<String> = referenced_rules
+            .into_iter()
+            .filter(|rule| !known_rules.contains(rule.as_str()))
+            .collect();
+        unresolved.sort();
+        unresolved.dedup();
+
+        unresolved
+            .iter()
+            .map(|rule| self.generate_unresolved_reference_method(rule))
+            .collect()
+    }
+
+    fn collect_rule_references(node: &ASTNode, out: &mut HashSet<String>) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for alt in alternatives {
+                    Self::collect_rule_references(alt, out);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for element in elements {
+                    Self::collect_rule_references(element, out);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                Self::collect_rule_references(element, out);
+            }
+            ASTNode::Atom { value } => {
+                if let ASTValue::Token(parts) = value {
+                    if parts.len() >= 2 {
+                        if let (
+                            TokenValue::String(token_type),
+                            TokenValue::String(token_value),
+                        ) = (&parts[0], &parts[1])
+                        {
+                            if token_type == "rule_reference" {
+                                out.insert(token_value.clone());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn generate_unresolved_reference_method(&self, rule_name: &str) -> TokenStream {
+        let method_name = format_ident!("parse_{}", rule_name);
+
+        match rule_name {
+            "true" => quote! {
+                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+                    let start_pos = self.position;
+                    Ok(ParseNode {
+                        rule_name: #rule_name,
+                        content: ParseContent::Terminal("true"),
+                        span: start_pos..start_pos,
+                    })
+                }
+            },
+            "false" => quote! {
+                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+                    let start_pos = self.position;
+                    Ok(ParseNode {
+                        rule_name: #rule_name,
+                        content: ParseContent::Terminal("false"),
+                        span: start_pos..start_pos,
+                    })
+                }
+            },
+            "semantic_annotation" => quote! {
+                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+                    let checkpoint = self.position;
+                    self.consume_optional_whitespace();
+                    let start_pos = self.position;
+                    if start_pos >= self.input.len() || !self.input[start_pos..].starts_with('@') {
+                        self.position = checkpoint;
+                        return Err(ParseError::Backtrack {
+                            position: checkpoint,
+                        });
+                    }
+
+                    while self.position < self.input.len() {
+                        let b = self.input.as_bytes()[self.position];
+                        if b == b'\n' || b == b'\r' {
+                            break;
+                        }
+                        self.position += 1;
+                    }
+
+                    let end_pos = self.position;
+                    let matched = &self.input[start_pos..end_pos];
+                    Ok(ParseNode {
+                        rule_name: #rule_name,
+                        content: ParseContent::Terminal(matched),
+                        span: start_pos..end_pos,
+                    })
+                }
+            },
+            _ => quote! {
+                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+                    Err(ParseError::Backtrack {
+                        position: self.position,
+                    })
+                }
+            },
         }
     }
 
@@ -2054,6 +2187,77 @@ mod semantic_usage_tests {
             rendered.contains("Semantic numeric range"),
             "expected numeric range guard in generated code, got: {}",
             rendered
+        );
+    }
+
+    #[test]
+    fn unresolved_reference_codegen_emits_semantic_and_boolean_fallbacks() {
+        let generator = AstBasedGenerator::new("usage_test".to_string());
+
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "semantic_annotation"),
+                    token("rule_reference", "true"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let methods = generator.generate_unresolved_reference_methods(&grammar_tree, &rule_order);
+        let rendered = methods
+            .into_iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(
+            rendered.contains("pub fn parse_semantic_annotation"),
+            "expected semantic_annotation fallback method in unresolved reference emission"
+        );
+        assert!(
+            rendered.contains("starts_with"),
+            "expected semantic_annotation fallback to detect '@' directives"
+        );
+        assert!(
+            rendered.contains("pub fn parse_true"),
+            "expected boolean fallback method for malformed rule_reference true"
+        );
+        assert!(
+            rendered.contains("\"true\""),
+            "expected parse_true fallback to materialize boolean content, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn unresolved_reference_codegen_skips_known_rules() {
+        let generator = AstBasedGenerator::new("usage_test".to_string());
+
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "known")],
+            },
+        );
+        grammar_tree.insert(
+            "known".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![
+                    TokenValue::String("quoted_string".to_string()),
+                    TokenValue::String("k".to_string()),
+                ]),
+            },
+        );
+        let rule_order = vec!["start".to_string(), "known".to_string()];
+
+        let methods = generator.generate_unresolved_reference_methods(&grammar_tree, &rule_order);
+        assert!(
+            methods.is_empty(),
+            "known in-grammar rule references should not emit fallback methods"
         );
     }
 }

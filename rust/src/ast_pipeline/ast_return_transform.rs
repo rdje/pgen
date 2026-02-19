@@ -4,8 +4,7 @@
 use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use anyhow::Result;
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
-use syn::parse_quote;
+use quote::quote;
 
 /// Generate AST-based return transformation code
 pub struct AstReturnTransformer;
@@ -15,7 +14,7 @@ impl AstReturnTransformer {
     pub fn generate_transform(
         ast: &UnifiedReturnAST,
         captured_vars: &[String],
-        rule_name: &str,
+        _rule_name: &str,
     ) -> Result<TokenStream> {
         match ast {
             UnifiedReturnAST::PositionalRef { index } => {
@@ -54,57 +53,70 @@ impl AstReturnTransformer {
         }
     }
 
+    fn parse_capture_expr(var_ref: &str) -> TokenStream {
+        match syn::parse_str::<syn::Expr>(var_ref) {
+            Ok(expr) => quote! { #expr },
+            Err(_) => quote! { ParseContent::Terminal("<invalid_capture_ref>") },
+        }
+    }
+
+    fn parse_content_to_string(content_expr: TokenStream) -> TokenStream {
+        quote! {
+            {
+                let __pgen_content = #content_expr;
+                match __pgen_content {
+                    ParseContent::Terminal(s) => s.to_string(),
+                    ParseContent::TransformedTerminal(s) => s,
+                    ParseContent::Alternative(node) => {
+                        match node.content {
+                            ParseContent::Terminal(s) => s.to_string(),
+                            ParseContent::TransformedTerminal(s) => s,
+                            other => format!("{:?}", other),
+                        }
+                    }
+                    other => format!("{:?}", other),
+                }
+            }
+        }
+    }
+
     /// Generate code for positional reference ($1, $2, etc.)
     fn generate_positional_ref(index: usize, captured_vars: &[String]) -> Result<TokenStream> {
-        // Special case: if we have a single "result" variable, assume it might be a sequence
-        // and try to extract the element at the requested index
-        if captured_vars.len() == 1 && captured_vars[0] == "result" {
-            let element_index = index - 1; // Convert from 1-based to 0-based
-            return Ok(quote! {
-                match &result {
-                    ParseContent::Sequence(elements) if elements.len() > #element_index => {
-                        elements[#element_index].content.clone()
-                    }
-                    _ => ParseContent::Terminal("<invalid_sequence_access>")
-                }
-            });
-        }
-
-        if index == 0 || index > captured_vars.len() {
+        if index == 0 {
             return Ok(quote! {
                 ParseContent::Terminal("<invalid_positional_ref>")
             });
         }
 
-        let var_ref = &captured_vars[index - 1];
-
-        // Check if this is a sequence element reference
-        if var_ref.starts_with("sequence_elements[") {
-            // Extract from sequence element
-            Ok(quote! {
-                match &#var_ref.content {
-                    ParseContent::Terminal(s) => ParseContent::Terminal(s),
-                    ParseContent::Alternative(node) => node.content.clone(),
-                    other => other.clone()
-                }
-            })
-        } else if var_ref.starts_with("match &branch_result") {
-            // This is a complex extraction expression for sequences
-            // Parse it to generate proper code
-            Ok(quote! {
-                #var_ref.content.clone()
-            })
-        } else {
-            // Direct reference
-            Ok(quote! {
-                match &#var_ref {
-                    ParseContent::Sequence(elements) if elements.len() > 0 => {
-                        elements[0].content.clone()
+        if captured_vars.len() == 1 {
+            let base_expr = Self::parse_capture_expr(&captured_vars[0]);
+            let element_index = index - 1;
+            return Ok(quote! {
+                {
+                    let __pgen_base = (#base_expr).clone();
+                    match __pgen_base {
+                        ParseContent::Sequence(elements) if elements.len() > #element_index => {
+                            elements[#element_index].content.clone()
+                        }
+                        ParseContent::Quantified(elements, _) if elements.len() > #element_index => {
+                            elements[#element_index].content.clone()
+                        }
+                        ParseContent::Alternative(node) if #element_index == 0usize => node.content.clone(),
+                        other if #element_index == 0usize => other,
+                        _ => ParseContent::Terminal("<invalid_sequence_access>"),
                     }
-                    other => other.clone()
                 }
-            })
+            });
         }
+
+        if index > captured_vars.len() {
+            return Ok(quote! {
+                ParseContent::Terminal("<invalid_positional_ref>")
+            });
+        }
+
+        let expr = Self::parse_capture_expr(&captured_vars[index - 1]);
+        Ok(quote! { (#expr).clone() })
     }
 
     /// Generate array transformation
@@ -117,10 +129,8 @@ impl AstReturnTransformer {
         for (idx, element) in elements.iter().enumerate() {
             match element {
                 UnifiedReturnAST::Spread { base } => {
-                    // Handle spread operator in array
                     let base_code = Self::generate_transform(base, captured_vars, "")?;
                     element_codes.push(quote! {
-                        // Spread elements
                         match #base_code {
                             ParseContent::Sequence(nodes) => {
                                 for node in nodes {
@@ -143,7 +153,6 @@ impl AstReturnTransformer {
                     });
                 }
                 _ => {
-                    // Regular element
                     let elem_code = Self::generate_transform(element, captured_vars, "")?;
                     let elem_name = format!("element_{}", idx);
                     element_codes.push(quote! {
@@ -176,7 +185,7 @@ impl AstReturnTransformer {
         for (key, value_ast) in properties {
             let value_code = Self::generate_value_extraction(value_ast, captured_vars)?;
             field_assignments.push(quote! {
-                json_obj[#key] = serde_json::json!(#value_code);
+                json_obj[#key] = serde_json::json!((#value_code));
             });
         }
 
@@ -186,7 +195,7 @@ impl AstReturnTransformer {
                 #(#field_assignments)*
                 let json_str = serde_json::to_string(&json_obj)
                     .unwrap_or_else(|_| "{}".to_string());
-                ParseContent::Terminal(&json_str)
+                ParseContent::TransformedTerminal(json_str)
             }
         })
     }
@@ -198,95 +207,51 @@ impl AstReturnTransformer {
     ) -> Result<TokenStream> {
         match ast {
             UnifiedReturnAST::PositionalRef { index } => {
-                // Special case: if we have a single "result" variable, assume it might be a sequence
-                if captured_vars.len() == 1 && captured_vars[0] == "result" {
-                    let element_index = index - 1; // Convert from 1-based to 0-based
-                    return Ok(quote! {
-                        match &result {
-                            ParseContent::Sequence(elements) if elements.len() > #element_index => {
-                                match &elements[#element_index].content {
-                                    ParseContent::Terminal(s) => s.to_string(),
-                                    ParseContent::Alternative(node) => {
-                                        match &node.content {
-                                            ParseContent::Terminal(s) => s.to_string(),
-                                            _ => format!("{:?}", node.content)
-                                        }
-                                    }
-                                    _ => format!("{:?}", elements[#element_index].content)
+                if *index == 0 {
+                    return Ok(quote! { "<invalid_ref_0>".to_string() });
+                }
+
+                if captured_vars.len() == 1 {
+                    let base_expr = Self::parse_capture_expr(&captured_vars[0]);
+                    let element_index = index - 1;
+                    return Ok(Self::parse_content_to_string(quote! {
+                        {
+                            let __pgen_base = (#base_expr).clone();
+                            match __pgen_base {
+                                ParseContent::Sequence(elements) if elements.len() > #element_index => {
+                                    elements[#element_index].content.clone()
                                 }
+                                ParseContent::Quantified(elements, _) if elements.len() > #element_index => {
+                                    elements[#element_index].content.clone()
+                                }
+                                ParseContent::Alternative(node) if #element_index == 0usize => node.content.clone(),
+                                other if #element_index == 0usize => other,
+                                _ => ParseContent::Terminal("<invalid_sequence_access>"),
                             }
-                            _ => "<invalid_sequence_access>".to_string()
                         }
-                    });
+                    }));
                 }
 
-                if *index > 0 && *index <= captured_vars.len() {
-                    let var_ref = &captured_vars[index - 1];
-
-                    // Check for complex match expression
-                    if var_ref.starts_with("match &branch_result") {
-                        // This is a complex extraction - use it as-is
-                        let var_tokens: TokenStream = var_ref
-                            .parse()
-                            .map_err(|e| anyhow::anyhow!("Failed to parse var ref: {}", e))?;
-                        Ok(quote! {
-                            match #var_tokens {
-                                ParseContent::Terminal(s) => s.to_string(),
-                                ParseContent::Alternative(node) => {
-                                    match &node.content {
-                                        ParseContent::Terminal(s) => s.to_string(),
-                                        _ => format!("{:?}", node.content)
-                                    }
-                                }
-                                other => format!("{:?}", other)
-                            }
-                        })
-                    } else if var_ref.starts_with("sequence_elements[") {
-                        // Extract from sequence element
-                        Ok(quote! {
-                            match &#var_ref.content {
-                                ParseContent::Terminal(s) => s.to_string(),
-                                ParseContent::Alternative(node) => {
-                                    match &node.content {
-                                        ParseContent::Terminal(s) => s.to_string(),
-                                        _ => format!("{:?}", node.content)
-                                    }
-                                }
-                                _ => format!("{:?}", #var_ref.content)
-                            }
-                        })
-                    } else {
-                        // Simple variable reference
-                        Ok(quote! {
-                            match &#var_ref {
-                                ParseContent::Terminal(s) => s.to_string(),
-                                _ => format!("{:?}", #var_ref)
-                            }
-                        })
-                    }
-                } else {
-                    Ok(quote! { format!("<invalid_ref_{}>", #index) })
+                if *index <= captured_vars.len() {
+                    let expr = Self::parse_capture_expr(&captured_vars[index - 1]);
+                    return Ok(Self::parse_content_to_string(quote! { (#expr).clone() }));
                 }
+
+                Ok(quote! { format!("<invalid_ref_{}>", #index) })
             }
             UnifiedReturnAST::StringLiteral { value } => Ok(quote! { #value }),
             UnifiedReturnAST::NumberLiteral { value } => Ok(quote! { #value }),
             UnifiedReturnAST::BooleanLiteral { value } => Ok(quote! { #value }),
             _ => {
-                // For complex nested values
                 let nested = Self::generate_transform(ast, captured_vars, "")?;
-                Ok(quote! {
-                    match #nested {
-                        ParseContent::Terminal(s) => s.to_string(),
-                        _ => format!("{:?}", #nested)
-                    }
-                })
+                Ok(Self::parse_content_to_string(quote! { #nested }))
             }
         }
     }
 
     /// Generate spread operator transformation
     fn generate_spread_transform(
-        base: &Box<UnifiedReturnAST>,
+        base: &UnifiedReturnAST,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
         let base_code = Self::generate_transform(base, captured_vars, "")?;
@@ -299,37 +264,31 @@ impl AstReturnTransformer {
                     rule_name: "spread_base",
                     content: other,
                     span: 0..0,
-                }])
+                }]),
             }
         })
     }
 
     /// Generate property access transformation
     fn generate_property_access(
-        base: &Box<UnifiedReturnAST>,
+        base: &UnifiedReturnAST,
         property: &str,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
         let base_code = Self::generate_transform(base, captured_vars, "")?;
+        let json_source = Self::parse_content_to_string(quote! { #base_code });
 
-        // For now, return a placeholder - would need runtime reflection
         Ok(quote! {
             {
-                // Property access: .#property
-                // This would require runtime JSON parsing
-                match #base_code {
-                    ParseContent::Terminal(json_str) => {
-                        if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(json_str) {
-                            if let Some(prop_val) = json_val.get(#property) {
-                                ParseContent::Terminal(&prop_val.to_string())
-                            } else {
-                                ParseContent::Terminal("<missing_property>")
-                            }
-                        } else {
-                            ParseContent::Terminal("<invalid_json>")
-                        }
+                let __pgen_json_source = #json_source;
+                if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(&__pgen_json_source) {
+                    if let Some(prop_val) = json_val.get(#property) {
+                        ParseContent::TransformedTerminal(prop_val.to_string())
+                    } else {
+                        ParseContent::Terminal("<missing_property>")
                     }
-                    _ => ParseContent::Terminal("<not_an_object>")
+                } else {
+                    ParseContent::Terminal("<invalid_json>")
                 }
             }
         })
@@ -337,22 +296,18 @@ impl AstReturnTransformer {
 
     /// Generate array access transformation
     fn generate_array_access(
-        base: &Box<UnifiedReturnAST>,
-        index: &Box<UnifiedReturnAST>,
+        base: &UnifiedReturnAST,
+        index: &UnifiedReturnAST,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
         let base_code = Self::generate_transform(base, captured_vars, "")?;
 
-        // Get index value
-        let index_code = match index.as_ref() {
+        let index_code = match index {
             UnifiedReturnAST::NumberLiteral { value } => {
                 let idx = *value as usize;
                 quote! { #idx }
             }
-            _ => {
-                // Dynamic index - would need runtime evaluation
-                quote! { 0usize }
-            }
+            _ => quote! { 0usize },
         };
 
         Ok(quote! {
@@ -363,60 +318,64 @@ impl AstReturnTransformer {
                 ParseContent::Quantified(ref elements, _) if elements.len() > #index_code => {
                     elements[#index_code].content.clone()
                 }
-                _ => ParseContent::Terminal("<invalid_array_access>")
+                _ => ParseContent::Terminal("<invalid_array_access>"),
             }
         })
     }
 
     /// Generate quantified extraction ($1*, $2+, etc.)
     fn generate_quantified_extraction(
-        base: &Box<UnifiedReturnAST>,
+        base: &UnifiedReturnAST,
         target: &ExtractionTarget,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
-        // Get the base reference
-        let base_ref = match base.as_ref() {
+        let base_expr = match base {
             UnifiedReturnAST::PositionalRef { index }
                 if *index > 0 && *index <= captured_vars.len() =>
             {
-                &captured_vars[index - 1]
+                Self::parse_capture_expr(&captured_vars[index - 1])
             }
             _ => return Ok(quote! { ParseContent::Terminal("<invalid_extraction_base>") }),
         };
 
-        // Determine extraction index
         let extraction_idx = match target {
             ExtractionTarget::Index(idx) => *idx,
             ExtractionTarget::First => 0,
             ExtractionTarget::Last => {
-                // Would need runtime determination
                 return Ok(quote! {
-                    match &#base_ref {
-                        ParseContent::Quantified(elements, _) if !elements.is_empty() => {
-                            elements.last().unwrap().content.clone()
+                    {
+                        let __pgen_base = (#base_expr).clone();
+                        match __pgen_base {
+                            ParseContent::Quantified(elements, _) if !elements.is_empty() => {
+                                elements.last().unwrap().content.clone()
+                            }
+                            _ => ParseContent::Terminal("<no_last_element>"),
                         }
-                        _ => ParseContent::Terminal("<no_last_element>")
                     }
                 });
             }
         };
 
         Ok(quote! {
-            match &#base_ref {
-                ParseContent::Quantified(elements, _) => {
-                    let extracted: Vec<ParseNode> = elements.iter()
-                        .filter_map(|node| {
-                            match &node.content {
-                                ParseContent::Sequence(subelems) if subelems.len() > #extraction_idx => {
-                                    Some(subelems[#extraction_idx].clone())
+            {
+                let __pgen_base = (#base_expr).clone();
+                match __pgen_base {
+                    ParseContent::Quantified(elements, _) => {
+                        let extracted: Vec<ParseNode> = elements
+                            .iter()
+                            .filter_map(|node| {
+                                match &node.content {
+                                    ParseContent::Sequence(subelems) if subelems.len() > #extraction_idx => {
+                                        Some(subelems[#extraction_idx].clone())
+                                    }
+                                    _ => None,
                                 }
-                                _ => None
-                            }
-                        })
-                        .collect();
-                    ParseContent::Sequence(extracted)
+                            })
+                            .collect();
+                        ParseContent::Sequence(extracted)
+                    }
+                    _ => ParseContent::Terminal("<not_quantified>"),
                 }
-                _ => ParseContent::Terminal("<not_quantified>")
             }
         })
     }
@@ -427,17 +386,12 @@ impl AstReturnTransformer {
             return Ok(quote! { ParseContent::Terminal("") });
         }
 
-        // Return the last captured element or first if only one
         let var_ref = if captured_vars.len() == 1 {
             &captured_vars[0]
         } else {
             captured_vars.last().unwrap()
         };
-
-        if var_ref.starts_with("sequence_elements[") {
-            Ok(quote! { #var_ref.content.clone() })
-        } else {
-            Ok(quote! { #var_ref.clone() })
-        }
+        let expr = Self::parse_capture_expr(var_ref);
+        Ok(quote! { (#expr).clone() })
     }
 }
