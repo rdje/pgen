@@ -75,14 +75,14 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 
 ### Phase H (New): Rust-Native EBNF Frontend Migration
 - [x] Add executable EBNF frontend readiness report/gate for `grammars/ebnf.ebnf`, `grammars/json.ebnf`, and `grammars/regex.ebnf` (Perl `EBNF -> JSON`, Rust `JSON -> parser`, Rust stimuli generation).
-- [ ] Fix `grammars/ebnf.ebnf` compatibility gaps so readiness strict mode is green for all tracked grammars.
+- [x] Fix `grammars/ebnf.ebnf` compatibility gaps so readiness strict mode is green for all tracked grammars.
 - [ ] Add dual-run differential harness between Perl `ebnf_to_json.pl` and Rust-native EBNF parser (`generated/ebnf.rs`) once Rust EBNF parser generation path is available.
 
 ### Phase I (New): SOTA Exit Criteria Aggregation
 - [x] Add aggregate `make sota_exit_gate` to execute required release-grade checks in one command.
 - [x] Add script-backed summary/log artifacts for aggregate gate runs (`rust/target/sota_exit_gate`).
 - [x] Add CI workflow `sota-exit-gate` to run the aggregate gate and retain artifacts.
-- [ ] Promote EBNF frontend strict mode (`ebnf_frontend_gate`) to required inside aggregate gate once `grammars/ebnf.ebnf` compatibility is fixed.
+- [x] Promote EBNF frontend strict mode (`ebnf_frontend_gate`) to required inside aggregate gate once `grammars/ebnf.ebnf` compatibility is fixed.
 - [x] Define and enforce explicit release pass policy for aggregate gate output (for example branch protection + release checklist criteria).
 
 ### Phase J (New): Semantic Steering Control Surface + Return Completeness
@@ -149,3 +149,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Burned down return differential debt from 9 to 7 by enabling empty-arrow (`->`) generated parsing parity and enforcing positive extraction index (`::0` rejection) in return grammar + regenerated artifacts + baseline refresh.
 - 2026-02-19: Burned down return differential debt from 7 to 2 by tightening bootstrap return parser behavior (leading-arrow whitespace normalization, strict trailing-modifier rejection, strict comma-list segment rejection), updating builtin return contract corpus/grammar inference, and refreshing baseline snapshots.
 - 2026-02-19: Completed Phase J P1 return differential closure by extending bootstrap positional/accessor-chain parsing (signed positional refs, chained postfix including extraction/property/index and parenthesized index expressions), reducing tracked return mismatch debt from 2 to 0, and refreshing return differential baseline + parity/regression gate runs.
+- 2026-02-19: Completed Phase H `ebnf.ebnf` frontend compatibility by fixing include directive capture in `fx/specs/ebnf.spec` (consume full include call, parse args in action code), restoring `ebnf_to_json.pl` conversion success for `grammars/ebnf.ebnf`, and turning strict EBNF frontend enforcement on in aggregate SOTA policy (`PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`).

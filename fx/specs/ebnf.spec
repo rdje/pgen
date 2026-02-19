@@ -200,8 +200,20 @@ probability: /@\d+%?/               I {$IMATCH =~ s/@|%//g; return ["probability
 regex: /(?<!\\)\/.+?(?<!\\)\//      I {$IMATCH =~ s/^\/|\/$//g; return ["regex", $IMATCH]}
 whitespace: /\s+/
 comment: /#.*/
-include_dir: /\b(include_)?dir\(\K[^)]+(?=\))/ 		     I {return ["include_dir",  [split /\s*,\s*/, $IMATCH]]}
-include_file: /\b((include_)?file|include)\(\K[^)]+(?=\))/   I {return ["include_file", [split /\s*,\s*/, $IMATCH]]}
+include_dir: /\b(?:include_)?dir\(\s*[^)]*?\s*\)/ I {
+  my $args = $IMATCH;
+  $args =~ s/^\s*(?:include_)?dir\(\s*//;
+  $args =~ s/\s*\)\s*$//;
+  my @parts = grep { length($_) } map { my $v = $_; $v =~ s/^\s+|\s+$//g; $v } split /\s*,\s*/, $args;
+  return ["include_dir", \@parts]
+}
+include_file: /\b(?:include(?:_file)?|file)\(\s*[^)]*?\s*\)/ I {
+  my $args = $IMATCH;
+  $args =~ s/^\s*(?:include(?:_file)?|file)\(\s*//;
+  $args =~ s/\s*\)\s*$//;
+  my @parts = grep { length($_) } map { my $v = $_; $v =~ s/^\s+|\s+$//g; $v } split /\s*,\s*/, $args;
+  return ["include_file", \@parts]
+}
 
 semantic_annotation: /@(\w+)\s*:\s*/
 -> semantic_annotation 	{BACKTRACK(); my $c = $CAPTURE; $c =~ s/\s*$//o; $c =~ s/^"|"$//go; return ['semantic_annotation', [$IMATCH_LIST[0], $c]]}

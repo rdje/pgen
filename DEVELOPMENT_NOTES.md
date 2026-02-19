@@ -1,4 +1,60 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase H Implementation: `ebnf_to_json.pl` Fix for `grammars/ebnf.ebnf`
+### Context
+`ebnf_frontend_readiness` was failing only on `grammars/ebnf.ebnf` at the Perl frontend stage (`EBNF -> JSON`) with:
+- `Error: ')' occurrence with no container rule context`
+
+This blocked:
+- strict frontend readiness closure for `ebnf/json/regex`,
+- promotion of strict EBNF frontend gating to required in aggregate `sota_exit_gate`.
+### Failure Reproduction and Localization
+- Reproduced with:
+  - `tools/ebnf_to_json.pl --verbosity debug --pretty --output /tmp/ebnf.json grammars/ebnf.ebnf`
+- Failure localized with prefix bisection:
+  - first failing prefix at line 18 of `grammars/ebnf.ebnf`,
+  - line content: `include(semantic_annotations)`.
+- Direct parser probe (`LinkedSpec::Get` on `fx/specs/ebnf.spec`) confirmed the include line alone produced:
+  - `Error: ')' occurrence with no container rule context`.
+### Root Cause
+- In `fx/specs/ebnf.spec`, include token rules were defined as:
+  - `...\\(\\K[^)]+(?=\\))`
+- This captured only inner arguments and left closing `)` outside the matched token stream.
+- The unmatched `)` was then parsed in normal token flow while no active container rule context existed, causing the hard parser error.
+### Implementation
+- Updated include token definitions in `fx/specs/ebnf.spec`:
+  - `include_dir` now matches full call form: `dir(...)` / `include_dir(...)` including closing `)`.
+  - `include_file` now matches full call form: `include(...)` / `include_file(...)` / `file(...)` including closing `)`.
+- Action blocks now:
+  - strip the directive wrapper and trailing `)`,
+  - split arguments on commas with whitespace normalization,
+  - return stable payload shape:
+    - `["include_dir", \\@parts]`
+    - `["include_file", \\@parts]`
+- No AST include-processing contract changes were required in `AST::Transform`.
+### Validation
+- Minimal reproducer:
+  - `tools/ebnf_to_json.pl --validate-only --verbosity debug /tmp/ebnf_prefix18.ebnf`
+  - pass.
+- Full conversion:
+  - `tools/ebnf_to_json.pl --verbosity debug --pretty --output /tmp/ebnf.json grammars/ebnf.ebnf`
+  - pass.
+  - `tools/ebnf_to_json.pl --pretty --output generated/ebnf.json grammars/ebnf.ebnf`
+  - pass (`raw_ast_rules=119`).
+- Frontend gates:
+  - `make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
+    - `ebnf/json/regex` all pass.
+  - `make -C rust SHELL=/bin/bash ebnf_frontend_gate`
+    - strict mode pass.
+### Follow-on Policy/Gate Promotion
+- With strict compatibility restored, aggregate SOTA policy was promoted:
+  - `rust/config/sota_exit_policy.env`
+  - `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`.
+- This makes strict EBNF frontend readiness a required check in `sota_exit_gate`.
+### Why This Matters
+- Restores reliable Perl frontend behavior for self-host grammar input.
+- Unblocks Phase H strict-compatibility closure.
+- Enables aggregate release gate to require strict EBNF frontend success for tracked grammars.
+
 ## 2026-02-19 - Phase J P1 Implementation: Return Differential Closure (2 -> 0)
 ### Context
 After prior burn-down work, two return mismatches remained and both were bootstrap parser capability gaps:

@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-19 - Phase H: `ebnf.ebnf` Conversion Restored + Strict Aggregate Promotion
+### ✅ Achievement Summary
+Fixed Perl `ebnf_to_json.pl` parsing of `grammars/ebnf.ebnf` by correcting include directive handling in `fx/specs/ebnf.spec`, then promoted strict EBNF frontend gating to required in aggregate SOTA policy.
+### Scope of Changes
+- Fixed include directive parsing in:
+  - `fx/specs/ebnf.spec`
+- Root-cause behavior:
+  - prior include regex used `\\K...(?=\\))`, which left closing `)` unmatched in parser token flow and triggered:
+    - `Error: ')' occurrence with no container rule context`
+  - first failure point reproduced at:
+    - `grammars/ebnf.ebnf` line 18 (`include(semantic_annotations)`).
+- Include parser implementation changes:
+  - `include_dir` and `include_file` now match/consume the full directive call including closing `)`,
+  - arguments are extracted in action code by trimming directive wrapper and splitting comma-separated payloads,
+  - returned include payload shape remains compatible with AST include processing.
+- Promoted strict EBNF frontend check to required in aggregate gate policy:
+  - `rust/config/sota_exit_policy.env`
+  - `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`.
+- Updated roadmap completion state:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - marked:
+    - Phase H `ebnf.ebnf` compatibility gap closed,
+    - Phase I strict EBNF aggregate promotion complete.
+### Validation Results
+- `tools/ebnf_to_json.pl --validate-only --verbosity debug /tmp/ebnf_prefix18.ebnf` ✅ (minimal reproducer passes)
+- `tools/ebnf_to_json.pl --verbosity debug --pretty --output /tmp/ebnf.json grammars/ebnf.ebnf` ✅
+- `tools/ebnf_to_json.pl --pretty --output generated/ebnf.json grammars/ebnf.ebnf` ✅
+- `make -C rust SHELL=/bin/bash ebnf_frontend_readiness` ✅ (`ebnf/json/regex` all pass)
+- `make -C rust SHELL=/bin/bash ebnf_frontend_gate` ✅ (strict mode pass)
+
 ## 2026-02-19 - Phase J P1: Return Differential Closure (Baseline 2 -> 0)
 ### ✅ Achievement Summary
 Closed the final two non-`ebnf.ebnf` return differential mismatches by extending bootstrap parser support for signed positional accessor chains and nested parenthesized index expressions.
