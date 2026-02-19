@@ -229,6 +229,7 @@ help:
 	@echo "  ebnf_frontend_gate - Strict EBNF frontend gate (fail on any grammar flow failure)"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
+	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
 	@echo "  semantic_usage_gate - Enforce semantic-annotation leverage contract (parser/stimuli)"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
@@ -441,6 +442,12 @@ annotation_robustness_gate:
 	@echo "🧪 Running annotation robustness gate..."
 	cd $(RUST_DIR) && ./scripts/annotation_robustness_gate.sh
 	@echo "✅ Annotation robustness gate passed."
+
+.PHONY: annotation_nonbootstrap_e2e_gate
+annotation_nonbootstrap_e2e_gate:
+	@echo "🧪 Running annotation non-bootstrap end-to-end gate..."
+	cd $(RUST_DIR) && ./scripts/annotation_nonbootstrap_e2e_gate.sh
+	@echo "✅ Annotation non-bootstrap end-to-end gate passed."
 
 .PHONY: annotation_shared_contract_gate
 annotation_shared_contract_gate:
