@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase F Hardening: Annotation Robustness Gate for Advanced Annotation Grammars
+### Context
+We already had normative/bootstrap/shared annotation contracts and semantic usage checks, but we still lacked one executable gate dedicated to high-intensity annotation behavior under advanced suites and generated-parser parseability checks.
+
+To keep PGEN robust for any successfully produced `EBNF -> JSON` grammar that uses richer return/semantic constructs, this needed to be enforced as a first-class gate, not an ad-hoc manual sequence.
+### Implementation
+- Added `rust/scripts/annotation_robustness_gate.sh`.
+- Gate behavior:
+  - Validates advanced return/semantic test suites in bootstrap mode.
+  - Validates the same advanced suites with `--features generated_parsers`.
+  - Runs generated-parser parseability stimuli flows for:
+    - `generated/return_annotation.json`
+    - `generated/semantic_annotation.json`
+  - Captures coverage and gap-report artifacts during those generated parseability runs.
+- Outputs:
+  - logs: `rust/target/annotation_robustness_gate/logs/`
+  - generated artifacts/reports: `rust/target/annotation_robustness_gate/work/`
+- Added Make integration in `rust/Makefile`:
+  - new target: `annotation_robustness_gate`
+  - `annotation_contract_gate` now includes `annotation_robustness_gate` to ensure robustness checks run in the standard annotation contract path.
+### Validation
+- Ran:
+  - `make -C rust SHELL=/bin/bash annotation_robustness_gate`
+  - `make -C rust SHELL=/bin/bash annotation_contract_gate`
+- Result:
+  - all advanced bootstrap/generated suites passed,
+  - generated parseability + coverage/gap runs passed for both annotation grammars,
+  - full annotation contract gate remained green with robustness stage included.
+### Why This Matters
+- Converts advanced annotation confidence from manual checks into enforced policy.
+- Increases confidence that annotation-heavy grammar behaviors remain stable across bootstrap/generated modes.
+- Strengthens the "rock solid for successfully parsed `EBNF -> JSON` inputs" objective without coupling to unstable generated artifact edits.
+
 ## 2026-02-19 - Phase H Kickoff: EBNF Frontend Readiness Baseline for Rust Migration
 ### Context
 To migrate `EBNF -> JSON` away from Perl (`tools/ebnf_to_json.pl`) toward a Rust-native flow (`generated/ebnf.rs` in the future), we first need an executable baseline that continuously reports which upstream grammars are currently front-end compatible.

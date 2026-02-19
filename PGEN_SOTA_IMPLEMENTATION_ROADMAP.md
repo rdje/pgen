@@ -67,6 +67,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add shared bootstrap/generated annotation contract suites and enforce them in gate paths.
 - [x] Add semantic leverage contract gate (`semantic_usage_gate`) for parser/stimuli steering behavior.
 - [x] Align validator, parser codegen, and stimuli hinting on a shared canonical semantic transform parser.
+- [x] Add annotation robustness gate (advanced suites + generated parseability/coverage/gap checks) and enforce it via `annotation_contract_gate`.
 
 ### Phase G (Current)
 - [x] Add embedding API input bounds (`ParseLimits`) with stable diagnostics for oversized/invalid inputs.
@@ -115,3 +116,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-18: Added shared canonical semantic transform parsing (`semantic_transform.rs`) and wired validator/parser/stimuli to it, including path-type and noncanonical fallback tests.
 - 2026-02-18: Started Pillar 11 by hardening embedding API parsing with bounded input limits (`ParseLimits`, `E_INPUT_TOO_LARGE`, `E_INVALID_LIMITS`) and updated contract docs.
 - 2026-02-19: Started Phase H by adding `make ebnf_frontend_readiness` / `make ebnf_frontend_gate` and script-backed reporting of current frontend status across `ebnf/json/regex` grammar flows.
+- 2026-02-19: Hardened Phase F with `make annotation_robustness_gate` (advanced bootstrap/generated annotation suites plus generated parseability+coverage/gap checks) and enforced it inside `annotation_contract_gate`.

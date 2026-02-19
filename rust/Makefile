@@ -224,6 +224,7 @@ help:
 	@echo "  ebnf_frontend_readiness - Report EBNF frontend flow readiness for ebnf/json/regex grammars"
 	@echo "  ebnf_frontend_gate - Strict EBNF frontend gate (fail on any grammar flow failure)"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
+	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
 	@echo "  semantic_usage_gate - Enforce semantic-annotation leverage contract (parser/stimuli)"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
@@ -415,7 +416,14 @@ annotation_contract_gate:
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract
 	@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate
 	@$(MAKE) -C $(RUST_DIR) semantic_usage_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_robustness_gate
 	@echo "✅ Annotation normative contract gate passed."
+
+.PHONY: annotation_robustness_gate
+annotation_robustness_gate:
+	@echo "🧪 Running annotation robustness gate..."
+	cd $(RUST_DIR) && ./scripts/annotation_robustness_gate.sh
+	@echo "✅ Annotation robustness gate passed."
 
 .PHONY: annotation_shared_contract_gate
 annotation_shared_contract_gate:

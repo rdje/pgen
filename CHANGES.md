@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-19 - Phase F Hardening: Annotation Robustness Gate for Advanced Return/Semantic Flows
+### ✅ Achievement Summary
+Added an executable annotation robustness gate that stress-checks advanced return/semantic annotation behavior across bootstrap and generated parsers, then validates generated-parser parseability via stimuli + coverage/gap outputs.
+### Scope of Changes
+- Added robustness script:
+  - `rust/scripts/annotation_robustness_gate.sh`
+  - Runs:
+    - bootstrap advanced suites:
+      - `return_annotation_advanced_extraction_tests`
+      - `return_annotation_stress_tests`
+      - `semantic_annotation_advanced_tests`
+    - generated advanced suites:
+      - `return_annotation_advanced_extraction_tests`
+      - `return_annotation_stress_tests`
+      - `semantic_annotation_advanced_tests`
+    - generated parseability/coverage/gap checks for:
+      - `generated/return_annotation.json`
+      - `generated/semantic_annotation.json`
+  - Produces logs + artifacts under:
+    - `rust/target/annotation_robustness_gate/`
+- Makefile integration:
+  - `rust/Makefile`
+  - Added:
+    - `annotation_robustness_gate`
+  - Updated:
+    - `annotation_contract_gate` now invokes `annotation_robustness_gate`, so advanced annotation robustness is part of the standard contract gate path.
+### Validation Results
+- `make -C rust annotation_robustness_gate` ✅
+- `make -C rust annotation_contract_gate` ✅ (includes robustness gate stage)
+
 ## 2026-02-19 - Phase H Kickoff: EBNF Frontend Readiness Gate/Report
 ### ✅ Achievement Summary
 Added an executable readiness flow for the `EBNF -> JSON -> parser/stimuli` frontend path to baseline migration risk before replacing Perl `ebnf_to_json.pl`.

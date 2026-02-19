@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-02-18
+Last updated: 2026-02-19
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -42,6 +42,7 @@ For annotation grammars specifically:
 ### Build and run core gates
 ```bash
 make -C rust SHELL=/bin/bash fixed_point_gate
+make -C rust SHELL=/bin/bash annotation_contract_gate
 make -C rust SHELL=/bin/bash performance_gate
 make -C rust SHELL=/bin/bash differential_regression_gate
 make -C rust SHELL=/bin/bash embedding_api_gate
@@ -280,6 +281,10 @@ Tracked baselines:
 
 - `fixed-point-gate`
   - deterministic bootstrap artifact regeneration
+- `annotation_contract_gate` (local gate target)
+  - validator + built-in/shared contracts + semantic leverage + advanced robustness checks
+- `annotation_robustness_gate` (local gate target)
+  - advanced return/semantic suites in bootstrap/generated modes + generated parseability/coverage/gap checks
 - `ebnf_frontend_readiness` (local report target)
   - executes `EBNF -> JSON -> parser/stimuli` readiness checks for `ebnf/json/regex` grammars
 - `ebnf_frontend_gate` (local strict target)
@@ -301,6 +306,17 @@ EBNF frontend readiness commands:
 make -C rust SHELL=/bin/bash ebnf_frontend_readiness
 make -C rust SHELL=/bin/bash ebnf_frontend_gate
 ```
+
+Annotation contract/robustness commands:
+```bash
+make -C rust SHELL=/bin/bash annotation_robustness_gate
+make -C rust SHELL=/bin/bash annotation_contract_gate
+```
+
+Optional robustness-gate tuning:
+- `PGEN_ANNOTATION_ROBUSTNESS_COUNT` (default `32`)
+- `PGEN_ANNOTATION_ROBUSTNESS_RETURN_SEED` (default `4242`)
+- `PGEN_ANNOTATION_ROBUSTNESS_SEMANTIC_SEED` (default `4343`)
 
 ## 11) Embedding API (Rust)
 
@@ -331,6 +347,7 @@ Ephemeral/runtime reports:
 - `rust/target/differential_harness/*`
 - `rust/target/performance_gate/report.json`
 - `rust/target/fixed_point_gate/*`
+- `rust/target/annotation_robustness_gate/*`
 
 Important:
 - Do not treat `rust/target/*` reports as source-of-truth grammar artifacts.
@@ -361,7 +378,8 @@ make -C rust SHELL=/bin/bash differential_refresh_baseline
 
 1. Regenerate/build the parser path you touched.
 2. Run focused universal tests for return/semantic.
-3. Run differential regression gate.
-4. Run fixed-point gate before merge-sensitive changes.
-5. Run performance gate for parser/runtime-impacting changes.
-6. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.
+3. Run annotation contract gate (`annotation_contract_gate`) for annotation-heavy changes.
+4. Run differential regression gate.
+5. Run fixed-point gate before merge-sensitive changes.
+6. Run performance gate for parser/runtime-impacting changes.
+7. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.
