@@ -95,7 +95,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] `P1` Implement semantic directive conflict-resolution baseline (deterministic `priority > precedence` policy and duplicate directive override diagnostics).
 - [x] `P1` Expand semantic conflict diagnostics to unsatisfiable multi-directive intersections.
 - [x] `P1` Add comparable-corpus return parity gate (`make return_parity_gate`) and enforce inside `annotation_contract_gate`.
-- [ ] `P1` Drive return-annotation differential mismatches to zero and enforce stricter return parity closure criteria.
+- [ ] `P1` Drive return-annotation differential mismatches to zero and enforce stricter return parity closure criteria (tracked debt currently 7 cases).
 
 ## Current Sprint: Pillar 1
 
@@ -146,3 +146,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Completed Phase J deterministic conflict-resolution baseline by enforcing `priority > precedence` policy in parser/stimuli steering and adding validator diagnostics for `priority+precedence` overlap and duplicate known-directive last-wins resolution.
 - 2026-02-19: Completed Phase J P1 unsatisfiable value-domain intersection diagnostics by adding validator detection for contradictory `@enum` + (`@len`/`@range`/`@regex`) combinations with stable warning code `W_SEM_UNSATISFIABLE_VALUE_DOMAIN`.
 - 2026-02-19: Added comparable-only differential mode and wired `make return_parity_gate` into `annotation_contract_gate` to enforce zero mismatches on expectation-aligned return parity corpus while preserving tracked bootstrap-only drift separately.
+- 2026-02-19: Burned down return differential debt from 9 to 7 by enabling empty-arrow (`->`) generated parsing parity and enforcing positive extraction index (`::0` rejection) in return grammar + regenerated artifacts + baseline refresh.

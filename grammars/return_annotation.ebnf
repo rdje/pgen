@@ -5,7 +5,11 @@
 # Supports extraction operators, spreading, objects, arrays, and more.
 
 # Entry point - return annotation with optional arrow
-return_annotation := arrow? expression
+# `->` with no payload is treated as passthrough (equivalent to $1)
+return_annotation := arrow expression
+                 | arrow
+                 | expression
+
 -> $2
 
 # Arrow operator (optional, may be pre-stripped by parser)
@@ -42,9 +46,12 @@ extraction_expression := positional_reference '::' extraction_target spread_suff
 }
 
 # Extraction targets
-extraction_target := integer           # Index extraction (1-based)
+extraction_target := positive_integer  # Index extraction (1-based)
                    | 'first'           # First element
                    | 'last'            # Last element
+
+@transform: str::parse::<usize>().unwrap_or(1)
+positive_integer := /[1-9][0-9]*/
 
 # =====================================
 # SPREAD OPERATOR

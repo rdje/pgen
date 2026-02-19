@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase J P1 Implementation: Return Differential Burn-Down (9 -> 7)
+### Context
+After adding comparable-corpus parity gating, the next closure step was to reduce tracked return mismatch debt without weakening generated-parser strictness guarantees.
+
+Two concrete mismatch classes were selected for burn-down:
+- generated parser rejecting empty arrow payload (`->`) while bootstrap normalized it to passthrough,
+- generated parser accepting `::0` extraction targets while bootstrap rejects zero extraction index.
+### Implementation
+- Updated return grammar in:
+  - `grammars/return_annotation.ebnf`
+- Grammar changes:
+  - entry rule now accepts bare arrow form:
+    - `return_annotation := arrow expression | arrow | expression`
+  - extraction target tightened to positive index:
+    - replaced `integer` with `positive_integer` for `extraction_target`,
+    - added `positive_integer := /[1-9][0-9]*/` with typed transform.
+- Regenerated return artifacts:
+  - `generated/return_annotation.json`
+  - `generated/return_annotation_parser.rs`
+- Kept compatibility with existing generated parser import sites:
+  - added alias in `rust/src/lib.rs`:
+    - `Return_annotationParser<'input> = ReturnAnnotationParser<'input>`
+- Refreshed return differential baseline snapshot:
+  - `rust/test_data/differential_baseline/return_annotation_baseline.json`
+  - removed resolved cases:
+    - `empty_arrow_payload_defaults_to_passthrough`
+    - `extraction_zero_is_rejected`
+  - baseline mismatch debt reduced from `9` to `7`.
+### Validation
+- Ran full return differential report:
+  - `mismatched=7`
+- Wrote updated return baseline JSON from current differential state.
+- Ran gates:
+  - `make -C rust SHELL=/bin/bash return_parity_gate`:
+    - comparable-only return corpus remains `mismatched=0`.
+  - `make -C rust SHELL=/bin/bash differential_regression_gate`:
+    - return baseline check now reports `allowed=7 new=0 resolved=0`.
+### Why This Matters
+- Continues Phase J mismatch debt ratchet without regressing parity guarantees.
+- Preserves strict generated-parser closure behavior while eliminating two concrete debt items.
+- Keeps baseline tracking accurate so future reductions are measurable and CI-stable.
+
 ## 2026-02-19 - Phase J P1 Implementation: Return Parity Gate on Comparable Differential Corpus
 ### Context
 The next Phase J return-closure step needed stricter parity enforcement without conflating intentionally non-comparable tests:

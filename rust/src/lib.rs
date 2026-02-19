@@ -20,6 +20,9 @@ pub use ast_pipeline::NoOpLogger;
 pub mod generated_parsers {
     pub mod return_annotation {
         include!("../../generated/return_annotation_parser.rs");
+        // Backward-compat alias for previously generated snake_case parser type.
+        #[allow(non_camel_case_types)]
+        pub type Return_annotationParser<'input> = ReturnAnnotationParser<'input>;
     }
     pub mod semantic_annotation {
         include!("../../generated/semantic_annotation_parser.rs");

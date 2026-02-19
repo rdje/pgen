@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-02-19 - Phase J P1: Return Differential Burn-Down (Baseline 9 -> 7)
+### ✅ Achievement Summary
+Reduced return differential mismatch debt by two additional cases and refreshed the tracked return baseline.
+### Scope of Changes
+- Updated return grammar contracts in:
+  - `grammars/return_annotation.ebnf`
+- Added/adjusted behavior:
+  - `return_annotation` now accepts bare `->` (empty arrow payload) so passthrough form parses in generated mode.
+  - `extraction_target` now uses `positive_integer` (`/[1-9][0-9]*/`) to reject `::0` in generated mode.
+- Regenerated return artifacts from the updated grammar:
+  - `generated/return_annotation.json`
+  - `generated/return_annotation_parser.rs`
+- Added generated parser type compatibility alias:
+  - `rust/src/lib.rs`
+  - `Return_annotationParser<'input>` now aliases generated `ReturnAnnotationParser<'input>` for existing call sites.
+- Refreshed tracked return mismatch baseline:
+  - `rust/test_data/differential_baseline/return_annotation_baseline.json`
+  - removed resolved mismatch entries:
+    - `empty_arrow_payload_defaults_to_passthrough`
+    - `extraction_zero_is_rejected`
+  - mismatch debt count: `9 -> 7`.
+### Validation Results
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --differential --parser return --differential-report-json rust/target/differential_harness/return_annotation_diff_report.json` ✅ (`mismatched=7`)
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --differential --parser return --differential-write-baseline-json rust/test_data/differential_baseline/return_annotation_baseline.json` ✅
+- `make -C rust SHELL=/bin/bash return_parity_gate` ✅ (`comparable corpus mismatched=0`)
+- `make -C rust SHELL=/bin/bash differential_regression_gate` ✅ (`allowed=7 new=0 resolved=0` for return)
+
 ## 2026-02-19 - Phase J P1: Return Parity Gate (Comparable Differential Corpus)
 ### ✅ Achievement Summary
 Added an expectation-aware return parity closure gate that enforces zero differential mismatches on the comparable return corpus, and wired it into `annotation_contract_gate`.
