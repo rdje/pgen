@@ -42,6 +42,7 @@ For annotation grammars specifically:
 ### Build and run core gates
 ```bash
 make -C rust SHELL=/bin/bash sota_exit_gate
+make -C rust SHELL=/bin/bash sota_release_policy
 make -C rust SHELL=/bin/bash fixed_point_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
 make -C rust SHELL=/bin/bash performance_gate
@@ -284,6 +285,8 @@ Tracked baselines:
   - deterministic bootstrap artifact regeneration
 - `sota_exit_gate` (local aggregate target)
   - one-shot release-grade aggregate check for fixed-point, annotation, differential, performance, embedding, and EBNF readiness reporting
+- `sota_release_policy` (local utility target)
+  - prints the tracked machine policy consumed by `sota_exit_gate`
 - `annotation_contract_gate` (local gate target)
   - validator + built-in/shared contracts + semantic leverage + advanced robustness checks
 - `annotation_robustness_gate` (local gate target)
@@ -320,12 +323,20 @@ make -C rust SHELL=/bin/bash annotation_contract_gate
 Aggregate SOTA gate command:
 ```bash
 make -C rust SHELL=/bin/bash sota_exit_gate
+make -C rust SHELL=/bin/bash sota_release_policy
 ```
 
 Aggregate gate tuning:
 - `PGEN_SOTA_RUN_EBNF_READINESS` (`1`/`0`, default `1`)
 - `PGEN_SOTA_REQUIRE_EBNF_STRICT` (`1`/`0`, default `0`)
+- `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
+- `PGEN_SOTA_REQUIRED_CHECKS` (space-separated required check override list)
+- `PGEN_SOTA_POLICY_FILE` (override machine policy file path)
 - `PGEN_SOTA_EXIT_STATE_DIR` (override output state dir)
+
+Release policy references:
+- machine policy: `rust/config/sota_exit_policy.env`
+- release checklist/policy doc: `PGEN_RELEASE_POLICY.md`
 
 Optional robustness-gate tuning:
 - `PGEN_ANNOTATION_ROBUSTNESS_COUNT` (default `32`)

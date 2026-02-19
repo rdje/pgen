@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-02-19 - Phase I Follow-Up: Explicit Release Policy Enforcement for SOTA Aggregate Gate
+### ✅ Achievement Summary
+Converted `sota_exit_gate` from a fixed command sequence into a policy-driven release gate with tracked machine policy and explicit release checklist documentation.
+### Scope of Changes
+- Added tracked machine policy:
+  - `rust/config/sota_exit_policy.env`
+  - Declares:
+    - required check list,
+    - EBNF readiness mode (`report` for now),
+    - informational-failure policy.
+- Upgraded aggregate gate implementation:
+  - `rust/scripts/sota_exit_gate.sh`
+  - Now:
+    - loads and validates policy file,
+    - runs required checks from policy-defined list,
+    - enforces differential baseline contract (`return/semantic baseline JSON exists + parses + `allowed_mismatches` array shape),
+    - supports policy-aware informational failure enforcement.
+- Added release policy/checklist document:
+  - `PGEN_RELEASE_POLICY.md`
+  - Captures release criteria, branch-protection expectations, and strict-EBNF promotion criteria.
+- Make + CI wiring:
+  - `rust/Makefile`
+    - added `sota_release_policy` target to print active policy.
+  - `.github/workflows/sota-exit-gate.yml`
+    - now points `PGEN_SOTA_POLICY_FILE` at tracked policy in workspace.
+- Updated living docs:
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+### Validation Results
+- `make -C rust sota_release_policy` ✅
+- `make -C rust sota_exit_gate` ✅
+
 ## 2026-02-19 - Phase I Kickoff: SOTA Exit Aggregate Gate
 ### ✅ Achievement Summary
 Started Pillar 12 by introducing a single aggregate SOTA gate that executes release-grade checks and emits a unified summary/log bundle.

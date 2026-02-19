@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-19 - Phase I Follow-Up: Policy-Driven SOTA Release Gate Contract
+### Context
+We had an aggregate gate command, but release pass rules were still implicit in script internals and CI wiring. To make release criteria auditable and stable, policy had to be explicit, tracked, and executable.
+### Implementation
+- Added tracked machine policy:
+  - `rust/config/sota_exit_policy.env`
+  - Includes:
+    - `PGEN_SOTA_POLICY_VERSION`,
+    - `PGEN_SOTA_POLICY_REQUIRED_CHECKS`,
+    - EBNF readiness mode controls,
+    - informational failure allowance control.
+- Upgraded aggregate gate behavior in:
+  - `rust/scripts/sota_exit_gate.sh`
+  - New behavior:
+    - requires and loads policy file (`PGEN_SOTA_POLICY_FILE` override supported),
+    - validates policy shape and boolean controls,
+    - executes required checks from policy-defined list,
+    - enforces `differential_baseline_contract` as a required policy check:
+      - verifies return/semantic baseline files exist,
+      - verifies JSON parseability,
+      - verifies `allowed_mismatches` is an array.
+    - supports policy-aware informational-failure strictness (`PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES`).
+- Added release checklist/spec doc:
+  - `PGEN_RELEASE_POLICY.md`
+  - Defines:
+    - required release checks,
+    - branch protection expectations,
+    - strict EBNF promotion criteria.
+- Make/CI integration updates:
+  - `rust/Makefile`
+    - added `sota_release_policy` helper target to print active policy.
+  - `.github/workflows/sota-exit-gate.yml`
+    - explicitly binds `PGEN_SOTA_POLICY_FILE` to tracked workspace policy file.
+- Updated roadmap/user guide with policy references and command surface.
+### Validation
+- Ran:
+  - `make -C rust SHELL=/bin/bash sota_release_policy`
+  - `make -C rust SHELL=/bin/bash sota_exit_gate`
+- Result:
+  - aggregate gate stayed green with policy enforcement active,
+  - policy and checklist are now explicit and versioned as part of repository state.
+### Why This Matters
+- Converts release criteria from convention into enforceable contract.
+- Improves auditability and reduces accidental gate drift.
+- Closes the roadmap item for explicit aggregate release policy definition/enforcement while keeping strict EBNF promotion correctly deferred to Phase H closure.
+
 ## 2026-02-19 - Phase I Kickoff: Aggregate SOTA Exit Gate
 ### Context
 We had multiple strong gates (`fixed_point`, `annotation_contract`, `differential_regression`, `performance`, `embedding_api`), but no single execution entrypoint that represented "release-grade readiness" in one run with one summary artifact.

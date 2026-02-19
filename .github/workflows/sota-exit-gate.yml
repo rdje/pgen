@@ -30,6 +30,7 @@ jobs:
       - name: Run SOTA exit aggregate gate
         env:
           PGEN_STRICT_ANNOTATION_VALIDATION: "1"
+          PGEN_SOTA_POLICY_FILE: ${{ github.workspace }}/rust/config/sota_exit_policy.env
           PGEN_SOTA_RUN_EBNF_READINESS: "1"
           PGEN_SOTA_REQUIRE_EBNF_STRICT: "0"
         run: make -C rust SHELL=/bin/bash sota_exit_gate

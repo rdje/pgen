@@ -83,7 +83,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add script-backed summary/log artifacts for aggregate gate runs (`rust/target/sota_exit_gate`).
 - [x] Add CI workflow `sota-exit-gate` to run the aggregate gate and retain artifacts.
 - [ ] Promote EBNF frontend strict mode (`ebnf_frontend_gate`) to required inside aggregate gate once `grammars/ebnf.ebnf` compatibility is fixed.
-- [ ] Define and enforce explicit release pass policy for aggregate gate output (for example branch protection + release checklist criteria).
+- [x] Define and enforce explicit release pass policy for aggregate gate output (for example branch protection + release checklist criteria).
 
 ## Current Sprint: Pillar 1
 
@@ -125,3 +125,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Started Phase H by adding `make ebnf_frontend_readiness` / `make ebnf_frontend_gate` and script-backed reporting of current frontend status across `ebnf/json/regex` grammar flows.
 - 2026-02-19: Hardened Phase F with `make annotation_robustness_gate` (advanced bootstrap/generated annotation suites plus generated parseability+coverage/gap checks) and enforced it inside `annotation_contract_gate`.
 - 2026-02-19: Started Pillar 12/Phase I by adding aggregate `make sota_exit_gate`, script-backed run summaries under `rust/target/sota_exit_gate`, CI workflow `sota-exit-gate`, and refreshed tracked differential baselines so aggregate required checks run with explicit known-drift accounting.
+- 2026-02-19: Completed explicit aggregate release policy enforcement by adding tracked policy config (`rust/config/sota_exit_policy.env`), policy-driven required-check execution in `sota_exit_gate`, and release policy checklist doc (`PGEN_RELEASE_POLICY.md`).

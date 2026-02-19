@@ -222,6 +222,7 @@ help:
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
 	@echo "  sota_exit_gate - Run release-grade aggregate gate (fixed-point, annotation, differential, performance, embedding, EBNF readiness report)"
+	@echo "  sota_release_policy - Show active SOTA release policy file"
 	@echo "  ebnf_frontend_readiness - Report EBNF frontend flow readiness for ebnf/json/regex grammars"
 	@echo "  ebnf_frontend_gate - Strict EBNF frontend gate (fail on any grammar flow failure)"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
@@ -393,6 +394,11 @@ sota_exit_gate:
 	@echo "🏁 Running SOTA exit aggregate gate..."
 	cd $(RUST_DIR) && ./scripts/sota_exit_gate.sh
 	@echo "✅ SOTA exit aggregate gate passed."
+
+.PHONY: sota_release_policy
+sota_release_policy:
+	@echo "📜 Active SOTA release policy:"
+	@cat $(RUST_DIR)/config/sota_exit_policy.env
 
 .PHONY: ebnf_frontend_readiness
 ebnf_frontend_readiness:
