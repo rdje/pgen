@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Stimuli Runtime Relational Synthesis Baseline
+### ✅ Achievement Summary
+Promoted SC-09 from parser-only runtime enforcement to parser+stimuli runtime baseline by enforcing relational contracts during stimuli sequence synthesis.
+### Scope of Changes
+- Updated stimuli generation in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+- Added rule-level SC-09 policy extraction for stimuli:
+  - `@constraint`, `@requires`, `@implies` typed payload parsing reuse.
+- Added relational contract-aware sequence generation:
+  - root-sequence rules with active `@constraint` now retry synthesis until relational checks pass or attempt budget is exhausted.
+  - enforced checks:
+    - `@requires` reference resolution + non-empty values,
+    - `@constraint` expression truth,
+    - `@implies` antecedent/consequent gating.
+- Added shared stimuli-side relational evaluator helpers:
+  - top-level boolean/comparison expression handling,
+  - positional/named reference resolution baseline with `.len` support.
+- Added semantic usage regression tests:
+  - `semantic_usage_stimuli_relational_constraint_filters_cross_capture_values`
+  - `semantic_usage_stimuli_relational_implies_enforced_during_generation`
+  - `semantic_usage_stimuli_relational_hints_without_constraint_remain_inactive`
+- Updated living docs/spec status:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test semantic_usage_stimuli_relational_constraint_filters_cross_capture_values --manifest-path rust/Cargo.toml` ✅
+- `cargo test semantic_usage_stimuli_relational_implies_enforced_during_generation --manifest-path rust/Cargo.toml` ✅
+- `cargo test semantic_usage_stimuli_relational_hints_without_constraint_remain_inactive --manifest-path rust/Cargo.toml` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Parser Runtime Relational Enforcement Baseline
 ### ✅ Achievement Summary
 Promoted SC-09 from validator-only contracts to parser runtime enforcement for `@constraint/@requires/@implies` in generated parsers.

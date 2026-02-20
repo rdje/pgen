@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Stimuli Runtime Relational Synthesis Baseline
+### Context
+SC-09 parser runtime enforcement was already active, but stimuli generation still ignored relational contracts at sample acceptance time. That left a Tier-2-to-Tier-3 gap where generated samples could violate `@constraint/@requires/@implies`.
+
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+#### 1) Stimuli-side SC-09 policy extraction
+- Added `StimuliRelationalConstraintPolicy` for per-rule relational settings.
+- Added `rule_relational_constraints(rule_name)`:
+  - parses `@constraint/@requires/@implies` with typed helpers,
+  - keeps relational hints inactive when `@constraint` is missing (coherent with validator contract).
+
+#### 2) Constraint-aware sequence synthesis retries
+- Updated `generate_sequence(...)`:
+  - root-sequence rules with active `@constraint` now run retry-based synthesis,
+  - each attempt captures per-element outputs and direct named captures from `rule_reference` elements,
+  - sample accepted only if all relational checks pass.
+- Retry failure now returns explicit relational generation error with last violation reason.
+
+#### 3) Stimuli relational evaluator/runtime helpers
+- Added helper surface:
+  - `validate_relational_sample(...)`
+  - `enforce_relational_requires_for_sample(...)`
+  - `evaluate_relational_expression_for_sample(...)`
+  - reference/operand parsing and top-level expression split helpers.
+- Baseline reference support in stimuli:
+  - positional refs (`$1`, `$3`),
+  - direct named refs (`lhs`) with optional `.len`,
+  - nested named-path synthesis (for example `lhs.id`) remains follow-on hardening.
+
+#### 4) Semantic usage coverage
+- Added:
+  - `semantic_usage_stimuli_relational_constraint_filters_cross_capture_values`
+  - `semantic_usage_stimuli_relational_implies_enforced_during_generation`
+  - `semantic_usage_stimuli_relational_hints_without_constraint_remain_inactive`
+- Also fixed literal precedence in evaluator so bare `true/false` are treated as boolean literals (not unresolved references).
+
+#### 5) Living-doc status alignment
+- Updated:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+- New status:
+  - SC-09 now has parser+stimuli runtime baseline (`Tier 3` baseline), with nested named-path stimuli synthesis still tracked as hardening follow-up.
+
+### Validation
+- `cargo test semantic_usage_stimuli_relational_constraint_filters_cross_capture_values --manifest-path rust/Cargo.toml`
+  - pass.
+- `cargo test semantic_usage_stimuli_relational_implies_enforced_during_generation --manifest-path rust/Cargo.toml`
+  - pass.
+- `cargo test semantic_usage_stimuli_relational_hints_without_constraint_remain_inactive --manifest-path rust/Cargo.toml`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Parser Runtime Relational Enforcement Baseline
 ### Context
 SC-09 was previously limited to typed validator contracts (`@constraint/@requires/@implies`) and coherence diagnostics, but generated parser runtime had no executable relational enforcement. That left a contract gap between semantic metadata validation and actual parse-time behavior.
@@ -59,8 +117,8 @@ Primary file:
   - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
 - New declared status:
-  - SC-09 promoted to parser runtime baseline (`Tier 2`),
-  - stimuli relational synthesis remains pending (`Tier 3` target).
+  - SC-09 promoted to parser runtime baseline (`Tier 2`) at this stage.
+  - Later on 2026-02-20 (see section above), SC-09 was further promoted to stimuli runtime baseline (`Tier 3` baseline).
 
 ### Validation
 - `cargo test semantic_usage_codegen_parses_relational_constraint_policy --manifest-path rust/Cargo.toml`

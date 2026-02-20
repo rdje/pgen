@@ -3,8 +3,9 @@ use super::{
     SemanticBranchPolicy,
     SemanticValueConstraints, TokenValue, UnifiedSemanticAST, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_branch_priorities, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
-    parse_semantic_string_list, stimuli_hint_for_target_type,
+    parse_semantic_branch_priorities, parse_semantic_constraint_expression,
+    parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
+    parse_semantic_reference_list, parse_semantic_string_list, stimuli_hint_for_target_type,
 };
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
@@ -543,6 +544,13 @@ impl TargetDriveSummary {
 struct ActiveTargetPlan {
     rule_thresholds: HashMap<String, u64>,
     branch_thresholds: HashMap<String, HashMap<usize, u64>>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct StimuliRelationalConstraintPolicy {
+    constraint_expression: Option<String>,
+    requires_references: Vec<String>,
+    implication: Option<(String, String)>,
 }
 
 pub struct StimuliGenerator<'a> {
@@ -1602,18 +1610,83 @@ impl<'a> StimuliGenerator<'a> {
         call_stack: &mut Vec<String>,
         node_path: &str,
     ) -> Result<String> {
-        let mut output = String::new();
-        for (idx, element) in elements.iter().enumerate() {
-            let element_path = format!("{}/s{}", node_path, idx);
-            output.push_str(&self.generate_node(
-                element,
-                current_rule,
-                depth,
-                call_stack,
-                &element_path,
-            )?);
+        let relational_policy = if node_path == "root" {
+            self.rule_relational_constraints(current_rule)
+        } else {
+            StimuliRelationalConstraintPolicy::default()
+        };
+
+        if relational_policy.constraint_expression.is_none() {
+            let mut output = String::new();
+            for (idx, element) in elements.iter().enumerate() {
+                let element_path = format!("{}/s{}", node_path, idx);
+                output.push_str(&self.generate_node(
+                    element,
+                    current_rule,
+                    depth,
+                    call_stack,
+                    &element_path,
+                )?);
+            }
+            return Ok(output);
         }
-        Ok(output)
+
+        let attempt_budget = self.relational_attempt_budget();
+        let mut last_error: Option<anyhow::Error> = None;
+        let mut last_violation: Option<String> = None;
+
+        for _ in 0..attempt_budget {
+            let mut output = String::new();
+            let mut captures = Vec::with_capacity(elements.len());
+            let mut named_captures = HashMap::new();
+
+            let mut generation_failed = false;
+            for (idx, element) in elements.iter().enumerate() {
+                let element_path = format!("{}/s{}", node_path, idx);
+                let capture_name = Self::sequence_element_capture_name(element);
+                match self.generate_node(element, current_rule, depth, call_stack, &element_path) {
+                    Ok(generated) => {
+                        if let Some(name) = capture_name {
+                            named_captures.insert(name, generated.clone());
+                        }
+                        output.push_str(&generated);
+                        captures.push(generated);
+                    }
+                    Err(err) => {
+                        generation_failed = true;
+                        last_error = Some(err);
+                        break;
+                    }
+                }
+            }
+
+            if generation_failed {
+                continue;
+            }
+
+            match self.validate_relational_sample(
+                current_rule,
+                &relational_policy,
+                &captures,
+                &named_captures,
+            ) {
+                Ok(()) => return Ok(output),
+                Err(err) => {
+                    last_violation = Some(err.to_string());
+                }
+            }
+        }
+
+        if let Some(err) = last_error {
+            return Err(err);
+        }
+
+        Err(anyhow!(
+            "Failed to generate relationally valid sequence for rule '{}' within {} attempt(s): {}",
+            current_rule,
+            attempt_budget,
+            last_violation.unwrap_or_else(|| "unknown relational contract violation".to_string())
+        ))
     }
 
     fn generate_atom(
@@ -2499,6 +2572,642 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         constraints
+    }
+
+    fn relational_attempt_budget(&self) -> usize {
+        self.config.max_repeat.max(4).saturating_mul(8).max(8)
+    }
+
+    fn sequence_element_capture_name(element: &ASTNode) -> Option<String> {
+        let ASTNode::Atom { value } = element else {
+            return None;
+        };
+        let ASTValue::Token(parts) = value else {
+            return None;
+        };
+        let (token_type, token_value) = Self::extract_token_pair(parts)?;
+        if token_type != "rule_reference" {
+            return None;
+        }
+        let trimmed = token_value.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+        Some(trimmed.to_string())
+    }
+
+    fn rule_relational_constraints(&self, rule_name: &str) -> StimuliRelationalConstraintPolicy {
+        let mut policy = StimuliRelationalConstraintPolicy::default();
+        let Some(annotations) = self.annotations else {
+            return policy;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return policy;
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "constraint" => {
+                    if let Some(parsed) = parse_semantic_constraint_expression(&payload) {
+                        policy.constraint_expression = Some(parsed);
+                    }
+                }
+                "requires" => {
+                    if let Some(parsed) = parse_semantic_reference_list(&payload) {
+                        policy.requires_references = parsed;
+                    }
+                }
+                "implies" => {
+                    if let Some(parsed) = parse_semantic_implication(&payload) {
+                        policy.implication = Some(parsed);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if policy.constraint_expression.is_none() {
+            policy.requires_references.clear();
+            policy.implication = None;
+        }
+
+        policy
+    }
+
+    fn validate_relational_sample(
+        &self,
+        rule_name: &str,
+        policy: &StimuliRelationalConstraintPolicy,
+        captures: &[String],
+        named_captures: &HashMap<String, String>,
+    ) -> Result<()> {
+        let Some(constraint_expression) = policy.constraint_expression.as_deref() else {
+            return Ok(());
+        };
+
+        self.enforce_relational_requires_for_sample(
+            rule_name,
+            captures,
+            named_captures,
+            &policy.requires_references,
+        )?;
+
+        if !self.evaluate_relational_expression_for_sample(
+            captures,
+            named_captures,
+            constraint_expression,
+        )? {
+            return Err(anyhow!(
+                "Semantic relational constraint failed for rule '{}': {}",
+                rule_name,
+                constraint_expression
+            ));
+        }
+
+        if let Some((antecedent, consequent)) = &policy.implication {
+            if self.evaluate_relational_expression_for_sample(captures, named_captures, antecedent)?
+                && !self.evaluate_relational_expression_for_sample(
+                    captures,
+                    named_captures,
+                    consequent,
+                )?
+            {
+                return Err(anyhow!(
+                    "Semantic implication failed for rule '{}': {} => {}",
+                    rule_name,
+                    antecedent,
+                    consequent
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn enforce_relational_requires_for_sample(
+        &self,
+        rule_name: &str,
+        captures: &[String],
+        named_captures: &HashMap<String, String>,
+        required_references: &[String],
+    ) -> Result<()> {
+        for reference in required_references {
+            let normalized = reference.trim();
+            if normalized.is_empty() {
+                continue;
+            }
+            let Some(value) =
+                self.resolve_semantic_reference_in_sample(captures, named_captures, normalized)
+            else {
+                return Err(anyhow!(
+                    "Semantic @requires contract failed for rule '{}': unresolved reference '{}'",
+                    rule_name,
+                    normalized
+                ));
+            };
+            if value.trim().is_empty() {
+                return Err(anyhow!(
+                    "Semantic @requires contract failed for rule '{}': empty reference '{}'",
+                    rule_name,
+                    normalized
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn evaluate_relational_expression_for_sample(
+        &self,
+        captures: &[String],
+        named_captures: &HashMap<String, String>,
+        expression: &str,
+    ) -> Result<bool> {
+        let normalized = expression.trim();
+        if normalized.is_empty() {
+            return Err(anyhow!("Semantic relational expression cannot be empty"));
+        }
+        self.evaluate_relational_expression_inner_for_sample(captures, named_captures, normalized)
+    }
+
+    fn evaluate_relational_expression_inner_for_sample(
+        &self,
+        captures: &[String],
+        named_captures: &HashMap<String, String>,
+        expression: &str,
+    ) -> Result<bool> {
+        let mut normalized = expression.trim();
+        while Self::semantic_encloses_full_parens(normalized) {
+            normalized = normalized[1..normalized.len() - 1].trim();
+        }
+
+        let disjuncts = Self::split_semantic_top_level(normalized, "||");
+        if disjuncts.len() > 1 {
+            for term in disjuncts {
+                if term.is_empty() {
+                    continue;
+                }
+                if self.evaluate_relational_expression_inner_for_sample(
+                    captures,
+                    named_captures,
+                    term,
+                )? {
+                    return Ok(true);
+                }
+            }
+            return Ok(false);
+        }
+
+        let conjuncts = Self::split_semantic_top_level(normalized, "&&");
+        if conjuncts.len() > 1 {
+            for term in conjuncts {
+                if term.is_empty() {
+                    continue;
+                }
+                if !self.evaluate_relational_expression_inner_for_sample(
+                    captures,
+                    named_captures,
+                    term,
+                )? {
+                    return Ok(false);
+                }
+            }
+            return Ok(true);
+        }
+
+        if let Some(rest) = normalized.strip_prefix('!') {
+            return Ok(!self.evaluate_relational_expression_inner_for_sample(
+                captures,
+                named_captures,
+                rest,
+            )?);
+        }
+
+        for operator in ["==", "!=", ">=", "<=", ">", "<"] {
+            if let Some((left, right)) = Self::split_semantic_top_level_once(normalized, operator) {
+                return self.evaluate_relational_comparison_for_sample(
+                    captures,
+                    named_captures,
+                    left,
+                    operator,
+                    right,
+                );
+            }
+        }
+
+        if let Some(unquoted) = Self::semantic_unquote(normalized) {
+            return Ok(Self::semantic_truthy(unquoted));
+        }
+
+        let lowered = normalized.to_ascii_lowercase();
+        if lowered == "true" {
+            return Ok(true);
+        }
+        if lowered == "false" {
+            return Ok(false);
+        }
+
+        if let Ok(number) = normalized.parse::<f64>() {
+            return Ok(number != 0.0);
+        }
+
+        if Self::semantic_reference_syntax(normalized) {
+            let value = self
+                .resolve_semantic_reference_in_sample(captures, named_captures, normalized)
+                .ok_or_else(|| {
+                    anyhow!(
+                        "Semantic relational expression references unresolved capture '{}'",
+                        normalized
+                    )
+                })?;
+            return Ok(Self::semantic_truthy(&value));
+        }
+
+        Ok(Self::semantic_truthy(normalized))
+    }
+
+    fn evaluate_relational_comparison_for_sample(
+        &self,
+        captures: &[String],
+        named_captures: &HashMap<String, String>,
+        left: &str,
+        operator: &str,
+        right: &str,
+    ) -> Result<bool> {
+        let lhs = self.resolve_relational_operand_for_sample(captures, named_captures, left)?;
+        let rhs = self.resolve_relational_operand_for_sample(captures, named_captures, right)?;
+        let lhs_numeric = lhs.parse::<f64>().ok();
+        let rhs_numeric = rhs.parse::<f64>().ok();
+
+        match operator {
+            "==" => {
+                if let (Some(a), Some(b)) = (lhs_numeric, rhs_numeric) {
+                    Ok((a - b).abs() <= f64::EPSILON)
+                } else {
+                    Ok(lhs == rhs)
+                }
+            }
+            "!=" => {
+                if let (Some(a), Some(b)) = (lhs_numeric, rhs_numeric) {
+                    Ok((a - b).abs() > f64::EPSILON)
+                } else {
+                    Ok(lhs != rhs)
+                }
+            }
+            ">" => {
+                if let (Some(a), Some(b)) = (lhs_numeric, rhs_numeric) {
+                    Ok(a > b)
+                } else {
+                    Ok(lhs > rhs)
+                }
+            }
+            ">=" => {
+                if let (Some(a), Some(b)) = (lhs_numeric, rhs_numeric) {
+                    Ok(a >= b)
+                } else {
+                    Ok(lhs >= rhs)
+                }
+            }
+            "<" => {
+                if let (Some(a), Some(b)) = (lhs_numeric, rhs_numeric) {
+                    Ok(a < b)
+                } else {
+                    Ok(lhs < rhs)
+                }
+            }
+            "<=" => {
+                if let (Some(a), Some(b)) = (lhs_numeric, rhs_numeric) {
+                    Ok(a <= b)
+                } else {
+                    Ok(lhs <= rhs)
+                }
+            }
+            _ => Err(anyhow!(
+                "Unsupported semantic comparison operator '{}'",
+                operator
+            )),
+        }
+    }
+
+    fn resolve_relational_operand_for_sample(
+        &self,
+        captures: &[String],
+        named_captures: &HashMap<String, String>,
+        operand: &str,
+    ) -> Result<String> {
+        let normalized = operand.trim();
+        if normalized.is_empty() {
+            return Err(anyhow!("Semantic relational operand cannot be empty"));
+        }
+
+        if let Some(unquoted) = Self::semantic_unquote(normalized) {
+            return Ok(unquoted.to_string());
+        }
+
+        let lowered = normalized.to_ascii_lowercase();
+        if lowered == "true" || lowered == "false" {
+            return Ok(lowered);
+        }
+
+        if normalized.parse::<f64>().is_ok() {
+            return Ok(normalized.to_string());
+        }
+
+        if Self::semantic_reference_syntax(normalized) {
+            return self
+                .resolve_semantic_reference_in_sample(captures, named_captures, normalized)
+                .ok_or_else(|| {
+                    anyhow!(
+                        "Semantic relational operand references unresolved capture '{}'",
+                        normalized
+                    )
+                });
+        }
+
+        Ok(normalized.to_string())
+    }
+
+    fn resolve_semantic_reference_in_sample(
+        &self,
+        captures: &[String],
+        named_captures: &HashMap<String, String>,
+        reference: &str,
+    ) -> Option<String> {
+        let normalized = reference.trim();
+        if normalized.is_empty() {
+            return None;
+        }
+
+        let (core_reference, wants_len) = if let Some(stripped) = normalized.strip_suffix(".len") {
+            (stripped.trim(), true)
+        } else {
+            (normalized, false)
+        };
+
+        let resolved = if core_reference.starts_with('$') {
+            self.resolve_positional_reference_in_sample(captures, core_reference)
+        } else {
+            self.resolve_named_reference_in_sample(named_captures, core_reference)
+        }?;
+
+        if wants_len {
+            Some(resolved.chars().count().to_string())
+        } else {
+            Some(resolved)
+        }
+    }
+
+    fn resolve_positional_reference_in_sample(
+        &self,
+        captures: &[String],
+        reference: &str,
+    ) -> Option<String> {
+        let (index, path_segments) = Self::parse_positional_reference_segments(reference)?;
+        if !path_segments.is_empty() {
+            return None;
+        }
+        captures.get(index.saturating_sub(1)).cloned()
+    }
+
+    fn resolve_named_reference_in_sample(
+        &self,
+        named_captures: &HashMap<String, String>,
+        reference: &str,
+    ) -> Option<String> {
+        let normalized = reference.trim();
+        if normalized.is_empty() {
+            return None;
+        }
+
+        if let Some(value) = named_captures.get(normalized) {
+            return Some(value.clone());
+        }
+
+        let mut segments = normalized.split('.').map(str::trim);
+        let first = segments.next()?;
+        if !Self::semantic_identifier(first) {
+            return None;
+        }
+        if segments.next().is_some() {
+            return None;
+        }
+        named_captures.get(first).cloned()
+    }
+
+    fn parse_positional_reference_segments(reference: &str) -> Option<(usize, Vec<&str>)> {
+        let normalized = reference.trim();
+        if !normalized.starts_with('$') {
+            return None;
+        }
+
+        let bytes = normalized.as_bytes();
+        let mut index_end = 1usize;
+        while index_end < bytes.len() && bytes[index_end].is_ascii_digit() {
+            index_end += 1;
+        }
+        if index_end == 1 {
+            return None;
+        }
+
+        let index = normalized[1..index_end].parse::<usize>().ok()?;
+        if index == 0 {
+            return None;
+        }
+
+        let mut segments = Vec::new();
+        let suffix = normalized[index_end..].trim();
+        if suffix.is_empty() {
+            return Some((index, segments));
+        }
+        if !suffix.starts_with('.') {
+            return None;
+        }
+
+        for segment in suffix[1..].split('.') {
+            let normalized_segment = segment.trim();
+            if normalized_segment.is_empty() || !Self::semantic_identifier(normalized_segment) {
+                return None;
+            }
+            segments.push(normalized_segment);
+        }
+
+        Some((index, segments))
+    }
+
+    fn semantic_reference_syntax(reference: &str) -> bool {
+        let normalized = reference.trim();
+        if normalized.is_empty() {
+            return false;
+        }
+
+        if normalized.starts_with('$') {
+            return Self::parse_positional_reference_segments(normalized).is_some();
+        }
+
+        let mut segments = normalized.split('.');
+        let Some(first) = segments.next() else {
+            return false;
+        };
+        if !Self::semantic_identifier(first) {
+            return false;
+        }
+        segments.all(Self::semantic_identifier)
+    }
+
+    fn semantic_identifier(segment: &str) -> bool {
+        let bytes = segment.as_bytes();
+        let Some(first) = bytes.first() else {
+            return false;
+        };
+        if !(*first == b'_' || (*first as char).is_ascii_alphabetic()) {
+            return false;
+        }
+        bytes[1..]
+            .iter()
+            .all(|b| *b == b'_' || (*b as char).is_ascii_alphanumeric())
+    }
+
+    fn split_semantic_top_level<'b>(expression: &'b str, separator: &str) -> Vec<&'b str> {
+        if separator.is_empty() {
+            return vec![expression.trim()];
+        }
+
+        let bytes = expression.as_bytes();
+        let separator_bytes = separator.as_bytes();
+        if separator_bytes.is_empty() || bytes.len() < separator_bytes.len() {
+            return vec![expression.trim()];
+        }
+
+        let mut parts = Vec::new();
+        let mut start = 0usize;
+        let mut idx = 0usize;
+        let mut depth = 0usize;
+        let mut quote: Option<u8> = None;
+
+        while idx < bytes.len() {
+            let current = bytes[idx];
+            if let Some(active_quote) = quote {
+                if current == active_quote && (idx == 0 || bytes[idx - 1] != b'\\') {
+                    quote = None;
+                }
+                idx += 1;
+                continue;
+            }
+
+            match current {
+                b'"' | b'\'' => {
+                    quote = Some(current);
+                    idx += 1;
+                    continue;
+                }
+                b'(' => {
+                    depth += 1;
+                    idx += 1;
+                    continue;
+                }
+                b')' => {
+                    depth = depth.saturating_sub(1);
+                    idx += 1;
+                    continue;
+                }
+                _ => {}
+            }
+
+            if depth == 0
+                && idx + separator_bytes.len() <= bytes.len()
+                && &bytes[idx..idx + separator_bytes.len()] == separator_bytes
+            {
+                parts.push(expression[start..idx].trim());
+                idx += separator_bytes.len();
+                start = idx;
+                continue;
+            }
+
+            idx += 1;
+        }
+
+        parts.push(expression[start..].trim());
+        parts
+    }
+
+    fn split_semantic_top_level_once<'b>(
+        expression: &'b str,
+        separator: &str,
+    ) -> Option<(&'b str, &'b str)> {
+        let pieces = Self::split_semantic_top_level(expression, separator);
+        if pieces.len() != 2 {
+            return None;
+        }
+        Some((pieces[0], pieces[1]))
+    }
+
+    fn semantic_encloses_full_parens(expression: &str) -> bool {
+        let normalized = expression.trim();
+        if normalized.len() < 2 || !normalized.starts_with('(') || !normalized.ends_with(')') {
+            return false;
+        }
+
+        let bytes = normalized.as_bytes();
+        let mut depth = 0usize;
+        let mut quote: Option<u8> = None;
+
+        for (idx, current) in bytes.iter().enumerate() {
+            let current = *current;
+            if let Some(active_quote) = quote {
+                if current == active_quote && (idx == 0 || bytes[idx - 1] != b'\\') {
+                    quote = None;
+                }
+                continue;
+            }
+
+            match current {
+                b'"' | b'\'' => {
+                    quote = Some(current);
+                }
+                b'(' => depth += 1,
+                b')' => {
+                    if depth == 0 {
+                        return false;
+                    }
+                    depth -= 1;
+                    if depth == 0 && idx + 1 < bytes.len() {
+                        return false;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        depth == 0 && quote.is_none()
+    }
+
+    fn semantic_unquote(value: &str) -> Option<&str> {
+        let normalized = value.trim();
+        if normalized.len() >= 2
+            && ((normalized.starts_with('"') && normalized.ends_with('"'))
+                || (normalized.starts_with('\'') && normalized.ends_with('\'')))
+        {
+            return Some(&normalized[1..normalized.len() - 1]);
+        }
+        None
+    }
+
+    fn semantic_truthy(value: &str) -> bool {
+        let normalized = value.trim();
+        if normalized.is_empty() {
+            return false;
+        }
+        let lowered = normalized
+            .trim_matches('"')
+            .trim_matches('\'')
+            .trim()
+            .to_ascii_lowercase();
+        !matches!(
+            lowered.as_str(),
+            "" | "false" | "0" | "no" | "off" | "none" | "null"
+        )
     }
 
     fn rule_recovery_controls(&self, rule_name: &str) -> (bool, Vec<String>, Vec<String>) {
@@ -3699,6 +4408,162 @@ mod tests {
         assert!(
             result.is_err(),
             "recovery fallback must stay inactive when @recover is not enabled"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_relational_constraint_filters_cross_capture_values() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("ident".to_string(), token("regex", "^[A-Z]{2}$"));
+        grammar_tree.insert(
+            "pair".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "ident"),
+                    token("quoted_string", ":"),
+                    token("rule_reference", "ident"),
+                ],
+            },
+        );
+        let rule_order = vec!["pair".to_string(), "ident".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "ident".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "enum".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\"AA\", \"BB\"]".to_string(),
+                },
+            }],
+        );
+        annotations.semantic_annotations.insert(
+            "pair".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "constraint".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"$1 != $3\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "requires".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"$1\", \"$3\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9401);
+        let values = generator
+            .generate_many(24, Some("pair"))
+            .expect("relationally constrained stimuli generation should succeed");
+
+        for value in values {
+            let parts: Vec<&str> = value.split(':').collect();
+            assert_eq!(
+                parts.len(),
+                2,
+                "pair stimuli should preserve expected shape, got {:?}",
+                value
+            );
+            assert_ne!(
+                parts[0], parts[1],
+                "@constraint should enforce distinct captures, got {:?}",
+                value
+            );
+            assert!(
+                matches!(parts[0], "AA" | "BB") && matches!(parts[1], "AA" | "BB"),
+                "pair captures should stay inside enum-constrained domain, got {:?}",
+                value
+            );
+        }
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_relational_implies_enforced_during_generation() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "rhs".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "B"), token("quoted_string", "C")],
+            },
+        );
+        grammar_tree.insert(
+            "pair".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "A"),
+                    token("quoted_string", ":"),
+                    token("rule_reference", "rhs"),
+                ],
+            },
+        );
+        let rule_order = vec!["pair".to_string(), "rhs".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "pair".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "constraint".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "requires".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"$1\", \"$3\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "implies".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"$1 == 'A' => $3 == 'B'\"".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9402);
+        let values = generator
+            .generate_many(24, Some("pair"))
+            .expect("relational implication constrained generation should succeed");
+
+        assert!(
+            values.iter().all(|value| value == "A:B"),
+            "@implies contract should suppress consequent-violating samples, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_relational_hints_without_constraint_remain_inactive() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "requires".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\"$9\"]".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9403);
+        let values = generator
+            .generate_many(8, Some("start"))
+            .expect("@requires without @constraint should stay inactive for stimuli generation");
+        assert!(
+            values.iter().all(|value| value == "ok"),
+            "inactive relational hints should not alter sample generation, got {:?}",
+            values
         );
     }
 }

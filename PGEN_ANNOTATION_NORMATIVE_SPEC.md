@@ -102,14 +102,18 @@ Normative runtime leverage behavior for semantic annotations:
       - first non-empty `@panic_until` token, else first non-empty `@sync` token.
   - `@constraint/@requires/@implies` contract baseline:
     - directives are typed/validated by the annotation validator,
-    - parser runtime baseline is active (`Tier 2`) when `@constraint` is present:
+    - parser runtime baseline is active when `@constraint` is present:
       - `@requires`: each reference must resolve to a non-empty capture value,
       - `@constraint`: relational expression is evaluated against captures/references,
       - `@implies`: antecedent truth implies consequent truth.
-    - reference resolution supports positional (`$1`, `$2.field`) and named dotted paths (`lhs.id`), including `.len` suffix.
-    - unresolved references or failed relational checks return generated contextual parse errors.
+    - parser-side reference resolution supports positional (`$1`, `$2.field`) and named dotted paths (`lhs.id`), including `.len` suffix.
+    - parser unresolved references or failed relational checks return generated contextual parse errors.
     - relational hints remain inactive when `@constraint` is missing (validator still emits `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`).
-    - stimuli relational synthesis/steering is still follow-on work.
+    - stimuli runtime baseline is active for root sequence synthesis when `@constraint` is present:
+      - sequence generation retries until relational contract checks pass or attempt budget is exhausted,
+      - `@requires`, `@constraint`, and `@implies` use the same evaluator contract surface as parser baseline,
+      - stimuli reference support baseline covers positional refs (`$1`, `$3`) and direct named refs (`lhs`) with optional `.len`,
+      - deeper nested named-path synthesis (for example `lhs.id`) remains follow-on hardening work.
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.

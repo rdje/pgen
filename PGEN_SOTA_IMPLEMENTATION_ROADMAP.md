@@ -108,6 +108,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add typed rule-local recovery budget control (`@recover_budget`) with validator diagnostics + parser runtime enforcement.
 - [x] Start SC-09 cross-field/cross-capture constraint contract baseline with typed validator payload/coherence diagnostics (`@constraint/@requires/@implies`).
 - [x] Promote SC-09 to parser runtime baseline by enforcing `@constraint/@requires/@implies` contracts in generated rule methods (reference resolution + relational expression checks + implication checks).
+- [x] Promote SC-09 to stimuli runtime baseline by enforcing relational constraints during sequence synthesis with retry-based constraint satisfaction.
 
 ## Current Sprint: Pillar 1
 
@@ -173,3 +174,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Added Phase K typed rule-local recovery budget control (`@recover_budget`) by extending directive registry + validator diagnostics (`W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD`, `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`) and wiring generated parser enforcement (budget exhaustion blocks additional recoveries for the same rule in a parse run).
 - 2026-02-20: Started SC-09 contract baseline by adding typed validator parsing for `@constraint/@requires/@implies`, stable payload diagnostics (`W_SEM_INVALID_CONSTRAINT_PAYLOAD`, `W_SEM_INVALID_REQUIRES_PAYLOAD`, `W_SEM_INVALID_IMPLIES_PAYLOAD`), and relational coherence warning (`W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`).
 - 2026-02-20: Promoted SC-09 to parser runtime baseline by wiring generated relational enforcement (`@requires` reference checks, `@constraint` expression evaluation, `@implies` antecedent/consequent gating) with contextual parse errors and semantic usage coverage.
+- 2026-02-20: Promoted SC-09 to stimuli runtime baseline by adding relational constraint-aware sequence retries (`@requires/@constraint/@implies`) with semantic usage coverage for cross-capture filtering and implication steering.

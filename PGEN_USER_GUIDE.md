@@ -296,7 +296,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Current stage:
   - typed validator contract is implemented,
   - parser runtime baseline (`Tier 2`) is implemented,
-  - stimuli runtime relational synthesis is still pending.
+  - stimuli runtime baseline (`Tier 3`) is implemented for root sequence synthesis retries.
 - Payload expectations:
   - `@constraint`: non-empty expression/scalar payload.
   - `@requires`: one or more references (for example `["$1", "lhs.id"]`).
@@ -306,6 +306,10 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `@constraint`: relational expression is evaluated against resolved capture/reference values.
   - `@implies`: antecedent must not evaluate to true while consequent is false.
   - unresolved references and failed checks return contextual parse errors.
+- Stimuli runtime behavior (when `@constraint` is present on a rule whose root is a sequence):
+  - generator retries sequence synthesis until relational checks pass or attempt budget is exhausted,
+  - same contracts are enforced (`@requires`, `@constraint`, `@implies`),
+  - baseline reference support in stimuli covers positional (`$1`, `$3`) and direct named refs (`lhs`) with optional `.len`.
 - Coherence rule:
   - `@requires`/`@implies` without `@constraint` triggers `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`.
 
@@ -429,7 +433,7 @@ pair = ident ":" ident ;
 - Current behavior:
   - validator enforces payload shapes/coherence,
   - generated parser enforces relational contract checks at runtime,
-  - stimuli relational synthesis/steering is follow-on work.
+  - stimuli generator enforces relational checks during root sequence synthesis retries.
 
 #### Example: Relational coherence warning
 ```ebnf
@@ -677,7 +681,7 @@ Pattern 2:
 Pattern 3:
 - add at least one semantic usage regression test whenever recovery directives are changed
 
-### 8.13 SC-09 Relational Constraint Contract (Validator + Parser Runtime Baseline)
+### 8.13 SC-09 Relational Constraint Contract (Validator + Parser + Stimuli Baseline)
 
 This section focuses on:
 - `@constraint`
@@ -687,7 +691,7 @@ This section focuses on:
 Current stage:
 - typed validator contract is active,
 - parser runtime relational steering is active,
-- stimuli runtime relational steering remains follow-on work.
+- stimuli runtime relational steering baseline is active for root sequence synthesis.
 
 #### 8.13.1 Payload Forms
 
@@ -728,8 +732,12 @@ pair = ident ":" ident ;
   - `@requires` references must resolve and be non-empty.
   - `@constraint` expression is evaluated against capture/reference values.
   - `@implies` is enforced as antecedent truth implies consequent truth.
+- Runtime stimuli enforcement activates only when `@constraint` is present on root-sequence rules:
+  - generation retries until relational checks pass (or attempt budget is exhausted),
+  - same `@requires/@constraint/@implies` checks gate sample acceptance.
 - Reference resolution supports positional (`$1`, `$2.field`) and named dotted references (`lhs.id`) including `.len` suffix (for example `$1.len >= 1`).
-- These directives now provide parse+validate plus parser-runtime contract surface (`Tier 2`).
+- Stimuli reference support baseline covers positional refs and direct named refs with optional `.len`; deeper nested named-path synthesis remains follow-on hardening.
+- These directives now provide parse+validate plus parser+stimuli runtime contract surface (`Tier 3` baseline).
 
 ## 9) Differential Testing and Drift Management
 

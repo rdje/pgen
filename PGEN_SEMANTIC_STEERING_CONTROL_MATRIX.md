@@ -55,7 +55,7 @@ Hard boundary:
 | `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | Implemented baseline: typed `@branch_policy` with parser/stimuli branch steering (`longest_match`, `ordered`, `priority_first`) + validator payload contracts | Tier 3 | P1 |
 | `SC-07` | Error recovery and sync strategy | Production-grade parser recovery hints | Generate recovery-focused stimuli sets | `@recover`, `@recover_budget`, `@sync`, `@panic_until` | Implemented parser+stimuli baseline: typed validator payload/coherence diagnostics + parser OR-failure recovery hooks + per-rule `@recover_budget` enforcement + structured recovery event reporting APIs + stimuli OR-failure fallback marker emission (`panic_until` first, then `sync`) when `@recover` is enabled; advanced scoped policy and negative-case generation still pending | Tier 3 | P1 |
 | `SC-08` | Value-domain constraints | Enforce value contracts at parse/validation boundaries | Generate in-domain samples | `@range`, `@enum`, `@regex`, `@len` | Implemented with conflict diagnostics: parser value guards + stimuli domain steering + typed payload diagnostics + unsatisfiable intersection warning (`W_SEM_UNSATISFIABLE_VALUE_DOMAIN`) + semantic usage gate coverage | Tier 3 | P0 |
-| `SC-09` | Cross-field/cross-capture constraints | Validate relational constraints between captures | Generate constraint-satisfying combinations | `@constraint`, `@requires`, `@implies` | Started (Tier 2 parser baseline): typed payload contracts + relational coherence warning + parser runtime enforcement (`@requires` reference checks, `@constraint` expression evaluation, `@implies` antecedent/consequent gating); stimuli relational synthesis pending | Tier 3 | P1 |
+| `SC-09` | Cross-field/cross-capture constraints | Validate relational constraints between captures | Generate constraint-satisfying combinations | `@constraint`, `@requires`, `@implies` | Implemented Tier 3 baseline: typed payload contracts + relational coherence warning + parser runtime relational enforcement + stimuli relational sequence synthesis retries (`@requires` reference checks, `@constraint` expression evaluation, `@implies` antecedent/consequent gating); deep nested named-path synthesis remains follow-on hardening | Tier 3 | P1 |
 | `SC-10` | Coverage target hints | Optional parser instrumentation priority tags | Rule/branch target boosting | `@coverage_target`, `@critical_path` | Coverage/gap pipeline exists; semantic hints not implemented | Tier 3 | P1 |
 | `SC-11` | Negative case semantics | Emit expected-failure parser paths | Generate invalid/near-invalid stimuli | `@invalid_case`, `@negative` | Not implemented | Tier 3 | P2 |
 | `SC-12` | Determinism partitioning hints | Stable behavior partitions for parser modes | Seed partitioning per semantic class | `@seed_group`, `@deterministic_group` | Not implemented | Tier 2 | P2 |
@@ -91,7 +91,7 @@ Required quality bar:
 ## Next Implementation Focus (Recommended)
 1. Expand `SC-07` from rule-local `@recover_budget` to broader scoped policy controls (for example per-parse/global budgets and policy scopes) on top of the existing runtime + structured event baseline.
 2. Expand `SC-07` stimuli beyond OR-failure fallback into dedicated recovery-biased and near-sync negative-case generation modes.
-3. Promote `SC-09` from parser runtime baseline to stimuli relational synthesis steering (constraint-aware cross-capture sample generation).
+3. Harden `SC-09` beyond current baseline with richer nested named-reference synthesis coverage and stronger unsatisfiable-contract reporting in stimuli.
 4. Define policy for promoting selected semantic warnings to strict-mode errors without harming bootstrap compatibility.
 
 ## Priority Queue (Balance-Oriented)
@@ -101,4 +101,5 @@ Required quality bar:
 - `P1` Expand conflict diagnostics from directive precedence to unsatisfiable cross-directive constraint intersections. (Completed 2026-02-19)
 - `P1` Start `SC-09` typed cross-field/cross-capture validator contract (`@constraint/@requires/@implies`) with stable diagnostics. (Completed 2026-02-20)
 - `P1` Promote `SC-09` to parser runtime relational enforcement (`@requires/@constraint/@implies`). (Completed 2026-02-20)
+- `P1` Promote `SC-09` to stimuli runtime relational synthesis steering baseline. (Completed 2026-02-20)
 - `P1` Drive return differential mismatch debt to zero and tighten release gate criteria.
