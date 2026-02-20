@@ -1,4 +1,92 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Scoped Recovery Budgets (Rule/Parse/Global)
+### Context
+SC-07 already had executable recovery hooks, structured events, and rule-local `@recover_budget`, but still lacked scoped guardrails for whole-parse and long-lived parser-instance recovery behavior.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+#### 1) Directive registry extension
+- Added typed parser-steering directives:
+  - `recover_parse_budget`
+  - `recover_global_budget`
+- These are now recognized by semantic directive routing alongside `recover_budget`.
+
+#### 2) Typed validator contracts + coherence diagnostics
+- Added payload diagnostics:
+  - `W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD`
+- Added coherence warnings when `@recover` is not enabled:
+  - `W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER`
+  - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER`
+- Existing `recover`/`sync`/`panic_until` and rule-local budget contracts remain unchanged.
+
+#### 3) Generated parser runtime enforcement (scoped budgets)
+- Extended recovery policy extraction in codegen:
+  - `rule_recovery_hints(...)` now returns:
+    - `recover_budget`
+    - `recover_parse_budget`
+    - `recover_global_budget`
+- Extended generated parser state:
+  - `recovery_parse_count: usize` (reset each `parse()` call)
+  - `recovery_global_count: usize` (persists across parser lifetime)
+- Extended generated parser APIs:
+  - `recovery_parse_count()`
+  - `recovery_global_count()`
+- Recovery success now requires remaining capacity in all active scopes:
+  - rule-local (`@recover_budget`)
+  - parse-scope (`@recover_parse_budget`)
+  - global-scope (`@recover_global_budget`)
+- On successful recovery, parser increments:
+  - per-rule recovery count
+  - parse-scope recovery count
+  - global-scope recovery count
+
+#### 4) Coverage updates
+- Updated tests in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+- Key assertions now cover:
+  - directive recognition for new scoped budgets,
+  - payload and coherence diagnostics for new directives,
+  - generated recovery hook wiring with all three budgets,
+  - parse/global recovery counter accessors and increments.
+
+#### 5) Living docs alignment
+- Updated:
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+- UG SC-07 deep-dive now documents:
+  - all recovery budget scopes,
+  - warning codes for scoped-budget payload/coherence failures,
+  - parser API counters for parse/global recovery totals.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_directive_registry::tests::recognizes_known_directives`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_invalid_recovery_payloads`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_when_recover_budget_present_without_recover`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_does_not_warn_when_recovery_hints_enabled`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_extracts_recovery_hints`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_emits_runtime_recovery_hook_when_recover_enabled`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_emits_recovery_event_accessors`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_records_recovery_events_in_helper_methods`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Stimuli Runtime Relational Synthesis Baseline
 ### Context
 SC-09 parser runtime enforcement was already active, but stimuli generation still ignored relational contracts at sample acceptance time. That left a Tier-2-to-Tier-3 gap where generated samples could violate `@constraint/@requires/@implies`.

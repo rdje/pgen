@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Scoped Recovery Budgets (Rule + Parse + Global)
+### ✅ Achievement Summary
+Hardened SC-07 recovery steering by extending budget control beyond rule-local scope and documenting the full behavior contract for users.
+### Scope of Changes
+- Updated semantic directive registry in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - added typed parser-steering directives:
+    - `recover_parse_budget`
+    - `recover_global_budget`
+- Updated validator contracts in:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - added payload diagnostics:
+    - `W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD`
+    - `W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD`
+  - added coherence diagnostics:
+    - `W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER`
+    - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER`
+- Updated parser codegen/runtime in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - extended recovery hint extraction to include:
+    - `@recover_parse_budget`
+    - `@recover_global_budget`
+  - enforced scoped recovery limits in generated recovery hook:
+    - rule scope (`@recover_budget`)
+    - parse scope (`@recover_parse_budget`)
+    - parser-lifetime scope (`@recover_global_budget`)
+  - added parser counters/accessors:
+    - `recovery_parse_count()`
+    - `recovery_global_count()`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_directive_registry::tests::recognizes_known_directives` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_invalid_recovery_payloads` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_when_recover_budget_present_without_recover` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_does_not_warn_when_recovery_hints_enabled` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_extracts_recovery_hints` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_emits_runtime_recovery_hook_when_recover_enabled` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_emits_recovery_event_accessors` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_records_recovery_events_in_helper_methods` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Stimuli Runtime Relational Synthesis Baseline
 ### ✅ Achievement Summary
 Promoted SC-09 from parser-only runtime enforcement to parser+stimuli runtime baseline by enforcing relational contracts during stimuli sequence synthesis.

@@ -349,6 +349,8 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`
   - `W_SEM_INVALID_RECOVER_PAYLOAD`
   - `W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD`
   - `W_SEM_INVALID_CONSTRAINT_PAYLOAD`
   - `W_SEM_INVALID_REQUIRES_PAYLOAD`
   - `W_SEM_INVALID_IMPLIES_PAYLOAD`
@@ -363,6 +365,8 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_DIRECTIVE_OVERRIDDEN` (same known directive repeated; last occurrence wins)
   - `W_SEM_UNSATISFIABLE_VALUE_DOMAIN` (`@enum` combined with `@len`/`@range`/`@regex` yields an empty effective domain)
   - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER` (`@recover_budget` present while `@recover` is not enabled)
+  - `W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER` (`@recover_parse_budget` present while `@recover` is not enabled)
+  - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER` (`@recover_global_budget` present while `@recover` is not enabled)
   - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER` (`@sync`/`@panic_until` present while `@recover` is not enabled)
   - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT` (`@requires`/`@implies` present while `@constraint` is missing)
 - Grammar ambiguity diagnostics (grammar-aware validation pass):
@@ -454,6 +458,10 @@ stmt = declaration | assignment ;
 - Validator enforces typed payloads and contract coherence.
 - Current generated parser behavior:
   - if all OR branches fail and effective `@recover` is truthy, runtime recovery is attempted,
+  - optional scoped budgets can limit successful recoveries:
+    - `@recover_budget` (per rule per parse),
+    - `@recover_parse_budget` (all rules in one parse),
+    - `@recover_global_budget` (parser lifetime),
   - parser scans from rule start for nearest configured marker token,
   - token precedence on same location is deterministic: `panic_until` over `sync`,
   - parser advances past the chosen marker, or falls back to EOF skip when no marker is found,
@@ -462,6 +470,8 @@ stmt = declaration | assignment ;
     - `recovery_events()`
     - `take_recovery_events()`
     - `recovery_event_count()`
+    - `recovery_parse_count()`
+    - `recovery_global_count()`
   - event shape includes:
     - `rule_name`
     - `parse_start`
@@ -504,6 +514,8 @@ Return-annotation completeness reference (non-negotiable):
 This section focuses only on:
 - `@recover`
 - `@recover_budget`
+- `@recover_parse_budget`
+- `@recover_global_budget`
 - `@sync`
 - `@panic_until`
 
@@ -524,6 +536,20 @@ Valid `@recover_budget` payloads (typed non-negative integer):
 @recover_budget: "5"
 ```
 
+Valid `@recover_parse_budget` payloads (typed non-negative integer):
+```ebnf
+@recover_parse_budget: 0
+@recover_parse_budget: 4
+@recover_parse_budget: "8"
+```
+
+Valid `@recover_global_budget` payloads (typed non-negative integer):
+```ebnf
+@recover_global_budget: 0
+@recover_global_budget: 16
+@recover_global_budget: "32"
+```
+
 Valid `@sync/@panic_until` payloads:
 ```ebnf
 @sync: ";"
@@ -537,10 +563,14 @@ Invalid payload examples (validator warnings):
 @recover: maybe              # W_SEM_INVALID_RECOVER_PAYLOAD
 @recover_budget: -1          # W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD
 @recover_budget: many        # W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD
+@recover_parse_budget: -2    # W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD
+@recover_global_budget: bad  # W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD
 @sync: []                    # W_SEM_INVALID_SYNC_PAYLOAD
 @panic_until: []             # W_SEM_INVALID_PANIC_UNTIL_PAYLOAD
 @sync: [";"]                 # plus @recover missing/false => W_SEM_RECOVERY_HINT_WITHOUT_RECOVER
 @recover_budget: 3           # plus @recover missing/false => W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER
+@recover_parse_budget: 3     # plus @recover missing/false => W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER
+@recover_global_budget: 3    # plus @recover missing/false => W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER
 ```
 
 #### 8.12.2 Parser Runtime Behavior Examples
@@ -559,6 +589,8 @@ Example B: token-based recovery with `panic_until` priority
 stmt = declaration | assignment ;
 @recover: true
 @recover_budget: 2
+@recover_parse_budget: 6
+@recover_global_budget: 20
 @sync: [";"]
 @panic_until: ["}"]
 ```
@@ -567,7 +599,10 @@ stmt = declaration | assignment ;
   - nearest marker wins,
   - tie on same position: `panic_until` beats `sync`,
   - parser advances past chosen marker and continues,
-  - recovery for this rule is capped to `@recover_budget` successful recoveries per parse.
+  - recovery succeeds only while all active budgets still have capacity:
+    - rule-local `@recover_budget`,
+    - parse-scope `@recover_parse_budget`,
+    - parser-lifetime `@recover_global_budget`.
 
 Example C: no marker found
 ```ebnf
@@ -592,12 +627,32 @@ stmt = declaration | assignment ;
 - First eligible failure can recover.
 - Subsequent eligible failures in the same parse for `stmt` do not recover once budget is exhausted.
 
+Example F: parse-scope budget exhaustion
+```ebnf
+stmt = declaration | assignment ;
+@recover: true
+@recover_parse_budget: 2
+@sync: [";"]
+```
+- After two successful recoveries (across all rules) in one parse call, further recoveries are blocked for that parse run.
+
+Example G: global budget exhaustion
+```ebnf
+stmt = declaration | assignment ;
+@recover: true
+@recover_global_budget: 5
+@sync: [";"]
+```
+- After five successful recoveries on the parser instance lifetime, additional parse calls do not recover until a new parser instance is created.
+
 #### 8.12.3 Structured Recovery Event API (Generated Parser)
 
 Generated parsers expose:
 - `recovery_events()`
 - `take_recovery_events()`
 - `recovery_event_count()`
+- `recovery_parse_count()`
+- `recovery_global_count()`
 
 Event model:
 - `RecoveryEvent`
@@ -630,7 +685,7 @@ Notes:
 
 #### 8.12.4 Stimuli Behavior Examples
 
-Example F: recovery fallback sample (panic marker preferred)
+Example H: recovery fallback sample (panic marker preferred)
 ```ebnf
 start = missing_left | missing_right ;
 @recover: true
@@ -640,7 +695,7 @@ start = missing_left | missing_right ;
 - If all OR branches fail during stimuli generation:
   - emitted fallback sample is `"}"` (first non-empty `@panic_until` token).
 
-Example G: sync fallback sample
+Example I: sync fallback sample
 ```ebnf
 start = missing_left | missing_right ;
 @recover: true
@@ -648,7 +703,7 @@ start = missing_left | missing_right ;
 ```
 - With no `@panic_until`, fallback sample becomes first non-empty `@sync` token (`";"` here).
 
-Example H: fallback inactive without `@recover`
+Example J: fallback inactive without `@recover`
 ```ebnf
 start = missing_left | missing_right ;
 @sync: [";"]
@@ -661,7 +716,8 @@ Parser determinism:
 1. earliest marker location wins
 2. same location: `panic_until` before `sync`
 3. no marker: EOF fallback
-4. `@recover_budget` limits successful recoveries per rule per parse
+4. recovery is blocked if any active budget is exhausted:
+   `@recover_budget`, `@recover_parse_budget`, `@recover_global_budget`
 
 Stimuli determinism:
 1. first non-empty `@panic_until` token
@@ -680,6 +736,12 @@ Pattern 2:
 
 Pattern 3:
 - add at least one semantic usage regression test whenever recovery directives are changed
+
+Pattern 4:
+- use all three budget scopes deliberately:
+  - `@recover_budget` to cap local rule churn,
+  - `@recover_parse_budget` to bound one parse run,
+  - `@recover_global_budget` to bound long-lived parser instances.
 
 ### 8.13 SC-09 Relational Constraint Contract (Validator + Parser + Stimuli Baseline)
 

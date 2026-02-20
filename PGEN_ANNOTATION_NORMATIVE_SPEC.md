@@ -83,7 +83,10 @@ Normative runtime leverage behavior for semantic annotations:
     - `priority_first`.
   - `@recover/@sync/@panic_until` are typed/validated contract directives with executable parser runtime recovery baseline:
     - recovery triggers when OR branches all fail and effective `@recover` is truthy,
-    - optional `@recover_budget` caps successful recoveries per rule per parse run (`0` disables recovery for that rule),
+    - optional scoped recovery budgets are enforced when present:
+      - `@recover_budget`: caps successful recoveries per rule per parse run (`0` disables recovery for that rule in the current parse),
+      - `@recover_parse_budget`: caps total successful recoveries across all rules in the current parse (`0` disables recovery for that parse run),
+      - `@recover_global_budget`: caps total successful recoveries across parser lifetime (`0` disables recovery for that parser instance),
     - parser scans from rule start for nearest configured marker token (`panic_until` preferred over `sync` on same position),
     - parser advances past selected marker (or to EOF fallback when no marker exists),
     - recovery success continues parse flow with recovered empty branch content,
@@ -92,6 +95,8 @@ Normative runtime leverage behavior for semantic annotations:
       - `recovery_events()`
       - `take_recovery_events()`
       - `recovery_event_count()`
+      - `recovery_parse_count()`
+      - `recovery_global_count()`
     - event marker kinds:
       - `PanicUntil`
       - `Sync`
@@ -141,12 +146,16 @@ Current stable diagnostic codes include:
   - `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`
   - `W_SEM_INVALID_RECOVER_PAYLOAD`
   - `W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD`
   - `W_SEM_INVALID_CONSTRAINT_PAYLOAD`
   - `W_SEM_INVALID_REQUIRES_PAYLOAD`
   - `W_SEM_INVALID_IMPLIES_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
   - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`
+  - `W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER`
+  - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER`
   - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER`
   - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`
 

@@ -222,6 +222,8 @@ impl AstBasedGenerator {
                 recursion_guard: RecursionGuard,
                 recovery_events: Vec<RecoveryEvent>,
                 recovery_counts: HashMap<String, usize>,
+                recovery_parse_count: usize,
+                recovery_global_count: usize,
                 logger: Box<dyn Logger>,
             }
         }
@@ -440,6 +442,8 @@ impl AstBasedGenerator {
                     recursion_guard: RecursionGuard::new(100),
                     recovery_events: Vec::new(),
                     recovery_counts: HashMap::new(),
+                    recovery_parse_count: 0,
+                    recovery_global_count: 0,
                     logger,
                 }
             }
@@ -454,6 +458,7 @@ impl AstBasedGenerator {
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.recovery_events.clear();
                 self.recovery_counts.clear();
+                self.recovery_parse_count = 0;
                 self.#parse_method()
             }
 
@@ -485,6 +490,14 @@ impl AstBasedGenerator {
 
             pub fn recovery_event_count(&self) -> usize {
                 self.recovery_events.len()
+            }
+
+            pub fn recovery_parse_count(&self) -> usize {
+                self.recovery_parse_count
+            }
+
+            pub fn recovery_global_count(&self) -> usize {
+                self.recovery_global_count
             }
         }
     }
@@ -729,11 +742,23 @@ impl AstBasedGenerator {
             let associativity_mode = associativity.as_str();
             let branch_policy = self.rule_branch_policy(rule_name);
             let branch_policy_mode = branch_policy.as_str();
-            let (recover_enabled, sync_tokens, panic_until_tokens, recover_budget) =
-                self.rule_recovery_hints(rule_name);
+            let (
+                recover_enabled,
+                sync_tokens,
+                panic_until_tokens,
+                recover_budget,
+                recover_parse_budget,
+                recover_global_budget,
+            ) = self.rule_recovery_hints(rule_name);
             let sync_tokens_label = sync_tokens.join(", ");
             let panic_until_tokens_label = panic_until_tokens.join(", ");
             let recover_budget_label = recover_budget
+                .map(|limit| limit.to_string())
+                .unwrap_or_else(|| "unbounded".to_string());
+            let recover_parse_budget_label = recover_parse_budget
+                .map(|limit| limit.to_string())
+                .unwrap_or_else(|| "unbounded".to_string());
+            let recover_global_budget_label = recover_global_budget
                 .map(|limit| limit.to_string())
                 .unwrap_or_else(|| "unbounded".to_string());
             let sync_tokens_for_code = sync_tokens.clone();
@@ -747,14 +772,18 @@ impl AstBasedGenerator {
                         &[#(#sync_tokens_for_code),*],
                         &[#(#panic_until_tokens_for_code),*],
                         #recover_budget,
+                        #recover_parse_budget,
+                        #recover_global_budget,
                     ) {
                         if parser.logger.is_enabled() {
                             parser.logger.log_warning(#filename, 0, &format!(
-                                "🛟 Rule '{}' recovered from branch failure using sync=[{}] panic_until=[{}] budget={}",
+                                "🛟 Rule '{}' recovered from branch failure using sync=[{}] panic_until=[{}] budget(rule={}, parse={}, global={})",
                                 #rule_name,
                                 #sync_tokens_label,
                                 #panic_until_tokens_label,
-                                #recover_budget_label
+                                #recover_budget_label,
+                                #recover_parse_budget_label,
+                                #recover_global_budget_label
                             ));
                         }
                         result = ParseContent::Sequence(Vec::new());
@@ -1427,6 +1456,8 @@ impl AstBasedGenerator {
                 sync_tokens: &[&str],
                 panic_until_tokens: &[&str],
                 recover_budget: Option<usize>,
+                recover_parse_budget: Option<usize>,
+                recover_global_budget: Option<usize>,
             ) -> bool {
                 if let Some(limit) = recover_budget {
                     let used = self.recovery_counts.get(rule_name).copied().unwrap_or(0);
@@ -1436,6 +1467,32 @@ impl AstBasedGenerator {
                                 "🛟 Recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
                                 used,
+                                limit
+                            ));
+                        }
+                        return false;
+                    }
+                }
+                if let Some(limit) = recover_parse_budget {
+                    if self.recovery_parse_count >= limit {
+                        if self.logger.is_enabled() {
+                            self.logger.log_warning(#filename, 0, &format!(
+                                "🛟 Parse-scope recovery budget exhausted for rule '{}': used={} limit={}",
+                                rule_name,
+                                self.recovery_parse_count,
+                                limit
+                            ));
+                        }
+                        return false;
+                    }
+                }
+                if let Some(limit) = recover_global_budget {
+                    if self.recovery_global_count >= limit {
+                        if self.logger.is_enabled() {
+                            self.logger.log_warning(#filename, 0, &format!(
+                                "🛟 Global recovery budget exhausted for rule '{}': used={} limit={}",
+                                rule_name,
+                                self.recovery_global_count,
                                 limit
                             ));
                         }
@@ -1507,6 +1564,8 @@ impl AstBasedGenerator {
                         marker_value: Some(token_value.clone()),
                     });
                     *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
+                    self.recovery_parse_count += 1;
+                    self.recovery_global_count += 1;
 
                     if self.logger.is_enabled() {
                         let marker = if token_priority == 0 {
@@ -1539,6 +1598,8 @@ impl AstBasedGenerator {
                         marker_value: None,
                     });
                     *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
+                    self.recovery_parse_count += 1;
+                    self.recovery_global_count += 1;
                     if self.logger.is_enabled() {
                         self.logger.log_warning(#filename, 0, &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
@@ -2614,18 +2675,30 @@ impl AstBasedGenerator {
         policy
     }
 
-    fn rule_recovery_hints(&self, rule_name: &str) -> (bool, Vec<String>, Vec<String>, Option<usize>) {
+    fn rule_recovery_hints(
+        &self,
+        rule_name: &str,
+    ) -> (
+        bool,
+        Vec<String>,
+        Vec<String>,
+        Option<usize>,
+        Option<usize>,
+        Option<usize>,
+    ) {
         let Some(annotations) = &self.annotations else {
-            return (false, Vec::new(), Vec::new(), None);
+            return (false, Vec::new(), Vec::new(), None, None, None);
         };
         let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return (false, Vec::new(), Vec::new(), None);
+            return (false, Vec::new(), Vec::new(), None, None, None);
         };
 
         let mut recover_enabled = false;
         let mut sync_tokens = Vec::new();
         let mut panic_until_tokens = Vec::new();
         let mut recover_budget = None;
+        let mut recover_parse_budget = None;
+        let mut recover_global_budget = None;
         for annotation in entries {
             let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
                 continue;
@@ -2651,10 +2724,27 @@ impl AstBasedGenerator {
                         recover_budget = Some(parsed);
                     }
                 }
+                "recover_parse_budget" => {
+                    if let Some(parsed) = parse_semantic_nonnegative_usize(&payload) {
+                        recover_parse_budget = Some(parsed);
+                    }
+                }
+                "recover_global_budget" => {
+                    if let Some(parsed) = parse_semantic_nonnegative_usize(&payload) {
+                        recover_global_budget = Some(parsed);
+                    }
+                }
                 _ => {}
             }
         }
-        (recover_enabled, sync_tokens, panic_until_tokens, recover_budget)
+        (
+            recover_enabled,
+            sync_tokens,
+            panic_until_tokens,
+            recover_budget,
+            recover_parse_budget,
+            recover_global_budget,
+        )
     }
 
     fn rule_associativity(&self, rule_name: &str) -> SemanticAssociativity {
@@ -3306,6 +3396,18 @@ mod semantic_usage_tests {
                         content: "3".to_string(),
                     },
                 },
+                SemanticAnnotation::Named {
+                    name: "recover_parse_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "5".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "recover_global_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "7".to_string(),
+                    },
+                },
             ],
         );
 
@@ -3318,12 +3420,21 @@ mod semantic_usage_tests {
             enable_debug: false,
         };
 
-        let (recover_enabled, sync_tokens, panic_tokens, recover_budget) =
+        let (
+            recover_enabled,
+            sync_tokens,
+            panic_tokens,
+            recover_budget,
+            recover_parse_budget,
+            recover_global_budget,
+        ) =
             generator.rule_recovery_hints("stmt");
         assert!(recover_enabled);
         assert_eq!(sync_tokens, vec![";".to_string(), "end".to_string()]);
         assert_eq!(panic_tokens, vec!["}".to_string()]);
         assert_eq!(recover_budget, Some(3));
+        assert_eq!(recover_parse_budget, Some(5));
+        assert_eq!(recover_global_budget, Some(7));
     }
 
     #[test]
@@ -3356,6 +3467,18 @@ mod semantic_usage_tests {
                         content: "2".to_string(),
                     },
                 },
+                SemanticAnnotation::Named {
+                    name: "recover_parse_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "4".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "recover_global_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "6".to_string(),
+                    },
+                },
             ],
         );
 
@@ -3386,6 +3509,16 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("2usize"),
             "recovery hook should carry typed recover_budget value, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("4usize"),
+            "recovery hook should carry typed recover_parse_budget value, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("6usize"),
+            "recovery hook should carry typed recover_global_budget value, got: {}",
             rendered
         );
     }
@@ -3475,6 +3608,16 @@ mod semantic_usage_tests {
             "parse method generation should expose recovery_event_count accessor, got: {}",
             rendered
         );
+        assert!(
+            rendered.contains("pub fn recovery_parse_count"),
+            "parse method generation should expose recovery_parse_count accessor, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pub fn recovery_global_count"),
+            "parse method generation should expose recovery_global_count accessor, got: {}",
+            rendered
+        );
     }
 
     #[test]
@@ -3499,6 +3642,12 @@ mod semantic_usage_tests {
                 && rendered.contains("RecoveryMarkerKind :: Sync")
                 && rendered.contains("RecoveryMarkerKind :: EofFallback"),
             "helper methods should classify recovery markers, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("self . recovery_parse_count += 1")
+                && rendered.contains("self . recovery_global_count += 1"),
+            "helper methods should update parse/global recovery counters, got: {}",
             rendered
         );
     }

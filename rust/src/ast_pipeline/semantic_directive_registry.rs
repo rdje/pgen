@@ -180,6 +180,14 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         capability: SemanticDirectiveCapability::ParserSteering,
     },
     SemanticDirectiveSpec {
+        name: "recover_parse_budget",
+        capability: SemanticDirectiveCapability::ParserSteering,
+    },
+    SemanticDirectiveSpec {
+        name: "recover_global_budget",
+        capability: SemanticDirectiveCapability::ParserSteering,
+    },
+    SemanticDirectiveSpec {
         name: "sync",
         capability: SemanticDirectiveCapability::ParsedOnly,
     },
@@ -769,6 +777,8 @@ mod tests {
         assert!(semantic_directive_spec("branch_policy").is_some());
         assert!(semantic_directive_spec("recover").is_some());
         assert!(semantic_directive_spec("recover_budget").is_some());
+        assert!(semantic_directive_spec("recover_parse_budget").is_some());
+        assert!(semantic_directive_spec("recover_global_budget").is_some());
         assert!(semantic_directive_spec("sync").is_some());
         assert!(semantic_directive_spec("panic_until").is_some());
         assert!(semantic_directive_spec("constraint").is_some());

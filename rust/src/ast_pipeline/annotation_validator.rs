@@ -530,6 +530,32 @@ impl AnnotationValidator {
                     });
                 }
             }
+            "recover_parse_budget" => {
+                if parse_semantic_nonnegative_usize(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@recover_parse_budget' expects a non-negative integer payload such as 8.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "recover_global_budget" => {
+                if parse_semantic_nonnegative_usize(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@recover_global_budget' expects a non-negative integer payload such as 16.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             "constraint" => {
                 if parse_semantic_constraint_expression(payload_trimmed).is_none() {
                     report.diagnostics.push(AnnotationDiagnostic {
@@ -874,35 +900,83 @@ impl AnnotationValidator {
         let panic_until_payload = Self::latest_directive_payload(directive_occurrences, "panic_until");
         let recover_budget_payload =
             Self::latest_directive_payload(directive_occurrences, "recover_budget");
+        let recover_parse_budget_payload =
+            Self::latest_directive_payload(directive_occurrences, "recover_parse_budget");
+        let recover_global_budget_payload =
+            Self::latest_directive_payload(directive_occurrences, "recover_global_budget");
         if sync_payload.is_none() && panic_until_payload.is_none() {
-            if !recover_enabled && recover_budget_payload.is_none() {
+            if !recover_enabled
+                && recover_budget_payload.is_none()
+                && recover_parse_budget_payload.is_none()
+                && recover_global_budget_payload.is_none()
+            {
                 return;
             }
         }
 
-        if !recover_enabled && recover_budget_payload.is_some() {
-            let mut annotation_index = 1usize;
-            let mut details = Vec::new();
+        if !recover_enabled {
             if let Some((idx, payload)) = recover_budget_payload {
-                annotation_index = annotation_index.max(idx);
-                details.push(format!("@recover_budget: {}", payload));
-            }
-            if let Some((idx, payload)) =
-                Self::latest_directive_payload(directive_occurrences, "recover")
-            {
-                annotation_index = annotation_index.max(idx);
-                details.push(format!("@recover: {}", payload));
+                let mut annotation_index = idx;
+                let mut details = vec![format!("@recover_budget: {}", payload)];
+                if let Some((recover_idx, recover_payload)) =
+                    Self::latest_directive_payload(directive_occurrences, "recover")
+                {
+                    annotation_index = annotation_index.max(recover_idx);
+                    details.push(format!("@recover: {}", recover_payload));
+                }
+
+                report.diagnostics.push(AnnotationDiagnostic {
+                    code: "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER",
+                    severity: AnnotationSeverity::Warning,
+                    kind: AnnotationKind::Semantic,
+                    rule_name: rule_name.to_string(),
+                    annotation_index: Some(annotation_index),
+                    message: "Directive '@recover_budget' is present but '@recover' is not enabled; budget remains inactive until '@recover: true'.".to_string(),
+                    annotation: Some(details.join("; ")),
+                });
             }
 
-            report.diagnostics.push(AnnotationDiagnostic {
-                code: "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER",
-                severity: AnnotationSeverity::Warning,
-                kind: AnnotationKind::Semantic,
-                rule_name: rule_name.to_string(),
-                annotation_index: Some(annotation_index),
-                message: "Directive '@recover_budget' is present but '@recover' is not enabled; budget remains inactive until '@recover: true'.".to_string(),
-                annotation: Some(details.join("; ")),
-            });
+            if let Some((idx, payload)) = recover_parse_budget_payload {
+                let mut annotation_index = idx;
+                let mut details = vec![format!("@recover_parse_budget: {}", payload)];
+                if let Some((recover_idx, recover_payload)) =
+                    Self::latest_directive_payload(directive_occurrences, "recover")
+                {
+                    annotation_index = annotation_index.max(recover_idx);
+                    details.push(format!("@recover: {}", recover_payload));
+                }
+
+                report.diagnostics.push(AnnotationDiagnostic {
+                    code: "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER",
+                    severity: AnnotationSeverity::Warning,
+                    kind: AnnotationKind::Semantic,
+                    rule_name: rule_name.to_string(),
+                    annotation_index: Some(annotation_index),
+                    message: "Directive '@recover_parse_budget' is present but '@recover' is not enabled; parse-scope budget remains inactive until '@recover: true'.".to_string(),
+                    annotation: Some(details.join("; ")),
+                });
+            }
+
+            if let Some((idx, payload)) = recover_global_budget_payload {
+                let mut annotation_index = idx;
+                let mut details = vec![format!("@recover_global_budget: {}", payload)];
+                if let Some((recover_idx, recover_payload)) =
+                    Self::latest_directive_payload(directive_occurrences, "recover")
+                {
+                    annotation_index = annotation_index.max(recover_idx);
+                    details.push(format!("@recover: {}", recover_payload));
+                }
+
+                report.diagnostics.push(AnnotationDiagnostic {
+                    code: "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER",
+                    severity: AnnotationSeverity::Warning,
+                    kind: AnnotationKind::Semantic,
+                    rule_name: rule_name.to_string(),
+                    annotation_index: Some(annotation_index),
+                    message: "Directive '@recover_global_budget' is present but '@recover' is not enabled; global-scope budget remains inactive until '@recover: true'.".to_string(),
+                    annotation: Some(details.join("; ")),
+                });
+            }
         }
 
         if sync_payload.is_none() && panic_until_payload.is_none() {
@@ -2087,6 +2161,18 @@ mod tests {
                     },
                 },
                 SemanticAnnotation::Named {
+                    name: "recover_parse_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"burst\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "recover_global_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"forever\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
                     name: "panic_until".to_string(),
                     ast: UnifiedSemanticAST::Raw {
                         content: "[]".to_string(),
@@ -2118,6 +2204,14 @@ mod tests {
             .diagnostics
             .iter()
             .any(|d| d.code == "W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD"));
         assert!(
             report
                 .diagnostics
@@ -2131,12 +2225,26 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "stmt".to_string(),
-            vec![SemanticAnnotation::Named {
-                name: "recover_budget".to_string(),
-                ast: UnifiedSemanticAST::Raw {
-                    content: "3".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "recover_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "3".to_string(),
+                    },
                 },
-            }],
+                SemanticAnnotation::Named {
+                    name: "recover_parse_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "6".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "recover_global_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "9".to_string(),
+                    },
+                },
+            ],
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
@@ -2144,6 +2252,14 @@ mod tests {
             .diagnostics
             .iter()
             .any(|d| d.code == "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER"));
     }
 
     #[test]
@@ -2194,6 +2310,24 @@ mod tests {
                         content: "[\";\"]".to_string(),
                     },
                 },
+                SemanticAnnotation::Named {
+                    name: "recover_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "1".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "recover_parse_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "2".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "recover_global_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "3".to_string(),
+                    },
+                },
             ],
         );
 
@@ -2203,6 +2337,24 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_RECOVERY_HINT_WITHOUT_RECOVER")
+        );
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER")
+        );
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER")
+        );
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER")
         );
     }
 
