@@ -1,0 +1,44 @@
+[
+  {
+    "name": "seed_group_label",
+    "description": "SC-12 shared contract: seed_group label payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@seed_group: \"stable.alpha\"",
+    "expected_round_trip": "@seed_group: \"stable.alpha\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc12", "seed_group"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "deterministic_group_bool_true",
+    "description": "SC-12 shared contract: deterministic_group boolean payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@deterministic_group: true",
+    "expected_round_trip": "@deterministic_group: true",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc12", "deterministic_group"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "deterministic_group_label",
+    "description": "SC-12 shared contract: deterministic_group label payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@deterministic_group: \"stmt.core\"",
+    "expected_round_trip": "@deterministic_group: \"stmt.core\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc12", "deterministic_group"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

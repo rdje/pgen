@@ -423,6 +423,30 @@ make -C rust annotation_contract_gate
 4. Stimuli invalid/negative generation contracts (invalid mutation + negative marker guard behavior).
 5. Bootstrap/generated SC-11 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-11 comparable corpus).
 
+#### 8.3.7 SC-12 Tier-4 Contract Gate
+
+SC-12 deterministic-partition behavior is gate-enforced.
+
+Contract corpus:
+- `rust/test_data/semantic_annotation/sc12_contract.json`
+
+Gate commands:
+```bash
+make -C rust sc12_contract_gate
+```
+
+Also included in:
+```bash
+make -C rust annotation_contract_gate
+```
+
+`sc12_contract_gate` enforces:
+1. Typed SC-12 payload parser contracts (`@seed_group/@deterministic_group`).
+2. Typed SC-12 validator/coherence contracts (`W_SEM_INVALID_SEED_GROUP_PAYLOAD`, `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`, `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`).
+3. Parser deterministic-partition runtime contracts (policy extraction, runtime mode/accessor surface, runtime-order branch partitioning and event recording).
+4. Stimuli deterministic-partition contracts (inactive seed-group guard, deterministic-group routing, and interleaving-order independence).
+5. Bootstrap/generated SC-12 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-12 comparable corpus).
+
 ### 8.4 Steering Behaviors Implemented Today
 
 #### A) Canonical transform steering (`@transform`)
@@ -1502,6 +1526,12 @@ Tracked baselines:
     - parser runtime negative-case instrumentation contract checks,
     - stimuli invalid/negative generation contract checks,
     - SC-11 bootstrap/generated contract slice + differential taxonomy parity checks
+- `sc12_contract_gate` (local gate target)
+  - SC-12 deterministic-partition Tier-4 contract:
+    - typed SC-12 payload/coherence validator contracts,
+    - parser deterministic-partition runtime contract checks,
+    - stimuli deterministic-partition generation contract checks,
+    - SC-12 bootstrap/generated contract slice + differential taxonomy parity checks
 - `annotation_robustness_gate` (local gate target)
   - advanced return/semantic suites in bootstrap/generated modes + generated parseability/coverage/gap checks
 - `annotation_stimuli_quality_gate` (local gate target)
@@ -1545,6 +1575,7 @@ Annotation contract/robustness commands:
 ```bash
 make -C rust SHELL=/bin/bash annotation_robustness_gate
 make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate
+make -C rust SHELL=/bin/bash sc12_contract_gate
 make -C rust SHELL=/bin/bash sc11_contract_gate
 make -C rust SHELL=/bin/bash sc10_contract_gate
 make -C rust SHELL=/bin/bash sc09_contract_gate

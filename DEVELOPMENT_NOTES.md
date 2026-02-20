@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-12 Tier-4 Deterministic-Partition Contract Gate Promotion
+### Context
+SC-12 (`@seed_group/@deterministic_group`) had parser/stimuli runtime behavior and embedder runtime-mode controls, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06/SC-07/SC-09/SC-10/SC-11.
+
+That left a closure gap:
+- no SC-12 shared semantic contract corpus slice,
+- no dedicated differential taxonomy parity check scoped to SC-12,
+- no single gate-level enforcement for typed SC-12 payload/coherence contracts plus parser/stimuli runtime SC-12 behavior.
+
+### Implementation
+Primary files:
+- `rust/test_data/semantic_annotation/sc12_contract.json`
+- `rust/scripts/sc12_contract_gate.sh`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) SC-12 shared contract corpus
+- Added `semantic_annotation/sc12_contract.json`.
+- Corpus covers parseability of SC-12 directive payload forms in bootstrap/generated semantic parsers:
+  - `@seed_group` label payload,
+  - `@deterministic_group` boolean payload,
+  - `@deterministic_group` label payload.
+
+#### 2) Dedicated SC-12 gate
+- Added `rust/scripts/sc12_contract_gate.sh`.
+- Gate stages:
+  - typed SC-12 payload parser contracts (`parse_semantic_group_label` and `parse_semantic_deterministic_group`),
+  - typed validator payload/coherence contracts (invalid payload diagnostics + seed-group coherence behavior),
+  - parser runtime contracts (policy extraction, deterministic partition runtime surface/events, runtime branch-order partitioning),
+  - stimuli runtime contracts (seed-group inactive guard, deterministic-group routing, order-independence),
+  - bootstrap/generated SC-12 contract suite runs,
+  - SC-12 differential taxonomy parity assertions:
+    - known category set only,
+    - category total must equal `mismatched_cases`,
+    - SC-12 comparable corpus currently requires `mismatched_cases == 0`.
+
+#### 3) Gate wiring
+- Added `sc12_contract_gate` Make target.
+- Wired `sc12_contract_gate` into `annotation_contract_gate`.
+- Updated Make help text accordingly.
+
+### Validation
+- `make -C rust sc12_contract_gate`:
+  - pass.
+- `make -C rust annotation_contract_gate`:
+  - pass with SC-12 gate included.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-11 Tier-4 Negative-Case Contract Gate Promotion
 ### Context
 SC-11 (`@invalid_case/@negative`) had parser/stimuli runtime behavior, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06/SC-07/SC-09/SC-10.
