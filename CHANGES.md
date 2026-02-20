@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-02-20 - Rust EBNF Frontend Hardening: Dual-Run Compile Closure + Frontend Regression Tests
+### ✅ Achievement Summary
+Closed a generator-level compile regression that could break `ebnf_dual_run` builds, and added focused frontend regression tests for `.ebnf` path helpers and raw-ast adapter behavior.
+### Scope of Changes
+- Fixed generated parser recovery tie-break codegen in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - changed recovery candidate comparison to borrow `best` (`match &best`) instead of moving tuple-owned marker strings, eliminating moved-value failures in generated parsers (including `generated/ebnf.rs`).
+- Added regression coverage for this generator contract in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - new test:
+    - `semantic_usage_codegen_compares_recovery_candidates_without_moving_best_marker`
+- Added frontend adapter tests in:
+  - `rust/src/ebnf_frontend.rs`
+  - new tests:
+    - `parses_semantic_annotation_with_nested_colons`
+    - `parses_ebnf_text_into_raw_ast_envelope_with_annotations`
+- Added CLI/frontend helper tests in:
+  - `rust/src/main.rs`
+  - new tests:
+    - `detects_ebnf_input_extension_case_insensitively`
+    - `derives_default_parser_output_path_for_json_and_ebnf_inputs`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline` ✅
+- `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run --lib ebnf_frontend::tests` ✅
+- `make -C rust SHELL=/bin/bash ebnf_frontend_gate` ✅
+- `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate` ✅
+- Dual-run strict summary:
+  - `ebnf`: pass/pass/pass (`parse_end=19544`, `input_bytes=19545`, `consumed_pct=99.99`)
+  - `json`: pass/pass/pass (`consumed_pct=100.00`)
+  - `regex`: pass/pass/pass (`consumed_pct=100.00`)
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 `@recover_budget` + SC-09 Validator Contract Kickoff
 ### ✅ Achievement Summary
 Extended recovery steering with typed rule-local budget enforcement, and started SC-09 with typed relational constraint validator contracts (`@constraint/@requires/@implies`).

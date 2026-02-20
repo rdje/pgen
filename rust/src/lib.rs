@@ -5,6 +5,8 @@
 
 pub mod ast_pipeline;
 pub mod embedding_api;
+#[cfg(feature = "ebnf_dual_run")]
+pub mod ebnf_frontend;
 pub mod test_registry;
 pub mod test_runner; // Only declare once
 
@@ -14,6 +16,11 @@ pub mod test_discovery;
 // Re-export Logger trait for generated parsers
 pub use ast_pipeline::Logger;
 pub use ast_pipeline::NoOpLogger;
+
+#[cfg(feature = "ebnf_dual_run")]
+pub mod ebnf_generated_parser {
+    include!("../../generated/ebnf.rs");
+}
 
 // Generated parsers from EBNF grammars
 #[cfg(feature = "generated_parsers")]

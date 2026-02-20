@@ -11,27 +11,34 @@ use pgen::ast_pipeline::{
     ast_generator_direct::generate_parser_ast_based,
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
 };
+#[cfg(feature = "ebnf_dual_run")]
+use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 
 #[derive(Parser)]
 #[command(name = "ast_pipeline")]
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
 #[command(
-    long_about = "Transform AST JSON files, generate high-performance Rust parsers, or generate grammar-valid stimuli.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Parser generation: ast_pipeline INPUT.json --generate-parser [--output PARSER.rs]\n  3. Stimuli generation: ast_pipeline INPUT.json --generate-stimuli [--count N] [--seed SEED]"
+    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, or generate grammar-valid stimuli.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF frontend: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli\n  3. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  4. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]"
 )]
 struct Args {
-    /// Raw AST JSON input file
-    input_json: String,
+    /// Input grammar source file (.json raw/transformed AST, or .ebnf when built with --features ebnf_dual_run)
+    input_path: String,
 
     /// Transformed AST JSON output file (optional, ignored when generation modes are used)
     output_json: Option<String>,
     /// Output file path for generated artifact (parser source or newline-delimited stimuli)
     #[arg(short, long)]
     output: Option<String>,
+
+    /// When INPUT is .ebnf, optionally write the Rust-frontend raw_ast envelope JSON to this file
+    #[arg(long)]
+    emit_raw_ast_json: Option<String>,
 
     /// Enable debug output
     #[arg(long, short = 'd')]
@@ -238,9 +245,13 @@ fn main() -> Result<()> {
         // Generate high-performance Rust parser using AST-based generator
         let output_rust = args
             .output
-            .unwrap_or_else(|| args.input_json.replace(".json", "_parser.rs"));
+            .unwrap_or_else(|| default_parser_output_path(&args.input_path));
 
-        let grammar = load_grammar_bundle(&args.input_json, &mut pipeline)?;
+        let grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
 
         // Generate parser through the direct AST integration path so typed annotation
         // validation and strict CI policies apply to normal CLI generation as well.
@@ -256,7 +267,11 @@ fn main() -> Result<()> {
         println!("SOTA regex parser generated: {}", output_rust);
         (0, Vec::<String>::new())
     } else if args.generate_stimuli {
-        let grammar = load_grammar_bundle(&args.input_json, &mut pipeline)?;
+        let grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
         let stimuli_config = StimuliConfig {
             seed: args.seed,
             max_depth: args.max_depth,
@@ -466,12 +481,12 @@ fn main() -> Result<()> {
         (samples.len(), grammar.rule_order)
     } else if let Some(output_file) = args.output_json {
         // Cross-language mode: JSON → JSON
-        // pipeline.transform_to_json(&args.input_json, &output_file)?;
+        // pipeline.transform_to_json(&args.input_path, &output_file)?;
         println!("Transformed AST saved to: {}", output_file);
         (0, Vec::<String>::new()) // (rule_count, rule_order)
     } else {
         // Same-language mode: JSON → In-memory
-        // let (grammar_tree, rule_order) = pipeline.transform_from_file(&args.input_json, None)?;
+        // let (grammar_tree, rule_order) = pipeline.transform_from_file(&args.input_path, None)?;
         println!("Transformed AST loaded in-memory: {} rules", 0);
         println!("Rule order: {}", "");
         (0, vec![])
@@ -488,12 +503,54 @@ fn main() -> Result<()> {
 }
 
 fn load_grammar_bundle(
-    input_json_path: &str,
+    input_path: &str,
+    pipeline: &mut RustASTPipeline,
+    emit_raw_ast_json: Option<&str>,
+) -> Result<LoadedGrammar> {
+    #[cfg(not(feature = "ebnf_dual_run"))]
+    let _ = emit_raw_ast_json;
+
+    if is_ebnf_input_path(input_path) {
+        #[cfg(feature = "ebnf_dual_run")]
+        {
+            let json_value = ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope(input_path)?;
+            if let Some(raw_ast_output_path) = emit_raw_ast_json {
+                let raw_ast_json = serde_json::to_string_pretty(&json_value)?;
+                std::fs::write(raw_ast_output_path, raw_ast_json)?;
+                println!(
+                    "Wrote Rust EBNF frontend raw_ast envelope to {}",
+                    raw_ast_output_path
+                );
+            }
+            return load_grammar_bundle_from_json_value(json_value, pipeline);
+        }
+
+        #[cfg(not(feature = "ebnf_dual_run"))]
+        {
+            return Err(anyhow::anyhow!(
+                "EBNF input '{}' requires building with --features ebnf_dual_run",
+                input_path
+            ));
+        }
+    }
+
+    let json_content = std::fs::read_to_string(input_path)?;
+    let json_value: serde_json::Value = serde_json::from_str(&json_content)?;
+    load_grammar_bundle_from_json_value(json_value, pipeline)
+}
+
+fn is_ebnf_input_path(input_path: &str) -> bool {
+    Path::new(input_path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("ebnf"))
+        .unwrap_or(false)
+}
+
+fn load_grammar_bundle_from_json_value(
+    json_value: serde_json::Value,
     pipeline: &mut RustASTPipeline,
 ) -> Result<LoadedGrammar> {
-    let json_content = std::fs::read_to_string(input_json_path)?;
-    let json_value: serde_json::Value = serde_json::from_str(&json_content)?;
-
     if let Some(raw_ast) = json_value.get("raw_ast") {
         let raw_ast_array = raw_ast
             .as_array()
@@ -523,6 +580,20 @@ fn load_grammar_bundle(
         Err(anyhow::anyhow!(
             "Unknown JSON format - expected raw_ast or grammar_tree/rule_order"
         ))
+    }
+}
+
+fn default_parser_output_path(input_path: &str) -> String {
+    let input = Path::new(input_path);
+    let stem = input
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("generated_parser");
+    let output_file_name = format!("{stem}.rs");
+    if let Some(parent) = input.parent() {
+        parent.join(output_file_name).to_string_lossy().into_owned()
+    } else {
+        output_file_name
     }
 }
 
@@ -1124,8 +1195,9 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 #[cfg(test)]
 mod tests {
     use super::{
-        coverage_branch_hit_delta, minimize_failing_input, minimize_fuzz_corpus_cases,
-        supported_generated_parseability_grammars, supports_generated_parseability,
+        coverage_branch_hit_delta, default_parser_output_path, is_ebnf_input_path,
+        minimize_failing_input, minimize_fuzz_corpus_cases, supported_generated_parseability_grammars,
+        supports_generated_parseability,
         FuzzCorpusCandidate, StimuliCoverageMetrics,
     };
     use pgen::ast_pipeline::stimuli_generator::BranchCoverageGroup;
@@ -1257,5 +1329,25 @@ mod tests {
         let minimized = minimize_failing_input("stable", |_candidate| Ok(false))
             .expect("minimizer should succeed");
         assert_eq!(minimized, "stable");
+    }
+
+    #[test]
+    fn detects_ebnf_input_extension_case_insensitively() {
+        assert!(is_ebnf_input_path("grammars/json.ebnf"));
+        assert!(is_ebnf_input_path("grammars/json.EBNF"));
+        assert!(!is_ebnf_input_path("generated/json.json"));
+        assert!(!is_ebnf_input_path("README.md"));
+    }
+
+    #[test]
+    fn derives_default_parser_output_path_for_json_and_ebnf_inputs() {
+        assert_eq!(
+            default_parser_output_path("grammars/json.ebnf"),
+            "grammars/json.rs"
+        );
+        assert_eq!(
+            default_parser_output_path("generated/return_annotation.json"),
+            "generated/return_annotation.rs"
+        );
     }
 }

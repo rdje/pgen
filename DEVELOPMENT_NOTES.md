@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Rust EBNF Frontend Hardening: Generator Move-Safety + Adapter/CLI Regression Coverage
+### Context
+Strict dual-run frontend validation exposed a compile-time failure in generated `ebnf.rs` recovery helper logic:
+- moved-value usage in tie-break matching over `best: Option<(..., String)>`,
+- surfaced under `--features ebnf_dual_run` while compiling regenerated EBNF parser artifacts.
+
+This was a generator-contract bug, not a one-off generated-file issue, so the fix had to land in codegen source.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `rust/src/ebnf_frontend.rs`
+- `rust/src/main.rs`
+
+#### 1) Generator fix (root cause closure)
+- Updated recovery candidate tie-break matching in `generate_helper_methods(...)`:
+  - from value match on `best` (moves tuple fields, including marker `String`),
+  - to borrowed match on `&best` with dereferenced scalar comparisons.
+- This prevents move-out of `best` while iterating candidate markers and keeps generated recovery helper code compile-safe.
+
+#### 2) Generator regression test
+- Added:
+  - `semantic_usage_codegen_compares_recovery_candidates_without_moving_best_marker`
+- Verifies generated helper method source includes borrowed tie-break pattern (`match & best`) to prevent regression.
+
+#### 3) Rust frontend adapter regression tests
+- Added semantic payload parsing coverage for top-level colon split behavior with nested colons inside quoted/nested payloads:
+  - `parses_semantic_annotation_with_nested_colons`
+- Added adapter E2E unit coverage:
+  - `parses_ebnf_text_into_raw_ast_envelope_with_annotations`
+  - validates rule token, semantic annotation token, and return annotation token emission in raw AST envelope.
+
+#### 4) CLI/frontend helper regression tests
+- Added extension detection and output-path derivation tests:
+  - `detects_ebnf_input_extension_case_insensitively`
+  - `derives_default_parser_output_path_for_json_and_ebnf_inputs`
+- Ensures `.ebnf` mode routing helpers remain stable as CLI evolves.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run --lib ebnf_frontend::tests`
+  - pass.
+- `make -C rust SHELL=/bin/bash ebnf_frontend_gate`
+  - pass (strict readiness).
+- `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
+  - pass (strict dual-run differential):
+    - `ebnf`: full parse parity, `parse_end=19544`, `input_bytes=19545`, `consumed_pct=99.99`.
+    - `json`: full parse parity, `consumed_pct=100.00`.
+    - `regex`: full parse parity, `consumed_pct=100.00`.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Rule-Local Budget + SC-09 Typed Relational Contracts
 ### Context
 SC-07 recovery hooks were already executable, but lacked a typed limiter to prevent unbounded repeated recovery in a single parse run. In parallel, SC-09 (`@constraint/@requires/@implies`) still had no typed validator contract even though directive names were already registered.

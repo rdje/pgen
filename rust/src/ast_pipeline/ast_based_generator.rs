@@ -1441,10 +1441,11 @@ impl AstBasedGenerator {
                     }
                     if let Some(pos) = self.find_token_from(recovery_start, token) {
                         let candidate = (pos, token.len(), 0u8, token.to_string());
-                        let take_candidate = match best {
+                        let take_candidate = match &best {
                             None => true,
                             Some((best_pos, _best_len, best_priority, _best_token)) => {
-                                pos < best_pos || (pos == best_pos && candidate.2 < best_priority)
+                                pos < *best_pos
+                                    || (pos == *best_pos && candidate.2 < *best_priority)
                             }
                         };
                         if take_candidate {
@@ -1459,10 +1460,11 @@ impl AstBasedGenerator {
                     }
                     if let Some(pos) = self.find_token_from(recovery_start, token) {
                         let candidate = (pos, token.len(), 1u8, token.to_string());
-                        let take_candidate = match best {
+                        let take_candidate = match &best {
                             None => true,
                             Some((best_pos, _best_len, best_priority, _best_token)) => {
-                                pos < best_pos || (pos == best_pos && candidate.2 < best_priority)
+                                pos < *best_pos
+                                    || (pos == *best_pos && candidate.2 < *best_priority)
                             }
                         };
                         if take_candidate {
@@ -2836,6 +2838,25 @@ mod semantic_usage_tests {
                 && rendered.contains("RecoveryMarkerKind :: Sync")
                 && rendered.contains("RecoveryMarkerKind :: EofFallback"),
             "helper methods should classify recovery markers, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_compares_recovery_candidates_without_moving_best_marker() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        assert!(
+            rendered.contains("match & best"),
+            "recovery candidate tie-break should borrow best marker (to avoid move errors), got: {}",
             rendered
         );
     }
