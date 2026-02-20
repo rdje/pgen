@@ -259,11 +259,11 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
     },
     SemanticDirectiveSpec {
         name: "seed_group",
-        capability: SemanticDirectiveCapability::StimuliSteering,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "deterministic_group",
-        capability: SemanticDirectiveCapability::StimuliSteering,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     // Literal-oriented generation hint directives.
     SemanticDirectiveSpec {

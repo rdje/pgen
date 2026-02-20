@@ -119,6 +119,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Promote selected semantic warning diagnostics to strict-mode errors under explicit policy controls (`PGEN_STRICT_SEMANTIC_WARNING_CODES`) with bootstrap-compatible defaults.
 - [x] Start SC-11 negative-case semantic steering (`@invalid_case/@negative`) with typed validator contracts and parser/stimuli runtime baseline behavior.
 - [x] Start SC-12 determinism partitioning hints (`@seed_group/@deterministic_group`) with typed validator contracts and deterministic stimuli seed-partition routing baseline.
+- [x] Promote SC-12 to parser-side deterministic partition steering baseline (ordered OR branch partition offsets + typed parser partition events/counters).
 
 ## Current Sprint: Pillar 1
 
@@ -195,3 +196,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Added strict semantic warning promotion policy controls in validator/codegen (`PGEN_STRICT_SEMANTIC_WARNING_CODES`) with targeted strict-default escalations for malformed SC-10 payload diagnostics (`W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`, `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`), plus wildcard/all/none policy overrides and regression tests.
 - 2026-02-20: Started SC-11 negative-case steering baseline by adding typed validator payload/coherence diagnostics (`W_SEM_INVALID_INVALID_CASE_PAYLOAD`, `W_SEM_INVALID_NEGATIVE_PAYLOAD`, `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE`), generated-parser expected-failure runtime hooks/events (`NegativeCaseEvent` + counters/accessors), and stimuli invalid/near-invalid mutation routing with semantic usage gate coverage.
 - 2026-02-20: Started SC-12 determinism partitioning baseline by adding typed validator payload/coherence diagnostics (`W_SEM_INVALID_SEED_GROUP_PAYLOAD`, `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`, `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`) plus deterministic stimuli seed partition routing per semantic group (`@seed_group/@deterministic_group`) with order-independence regression coverage.
+- 2026-02-20: Promoted SC-12 to parser-side steering baseline by adding deterministic group-aware ordered OR branch evaluation offsets (group-key hashed partitioning), typed parser partition telemetry (`DeterministicPartitionEvent` + per-rule counters/accessors), and semantic usage gate coverage for generated parser hooks/order rotation.

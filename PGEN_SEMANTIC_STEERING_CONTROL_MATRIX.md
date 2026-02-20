@@ -58,7 +58,7 @@ Hard boundary:
 | `SC-09` | Cross-field/cross-capture constraints | Validate relational constraints between captures | Generate constraint-satisfying combinations | `@constraint`, `@requires`, `@implies` | Implemented Tier 3 baseline: typed payload contracts + relational coherence warning + parser runtime relational enforcement + stimuli relational sequence synthesis retries (`@requires` reference checks, `@constraint` expression evaluation, `@implies` antecedent/consequent gating), including nested named/positional path reference resolution over structured JSON-like captures and non-structured object-like captures (`=/:` pairs, `,`/`;` delimiters, wrapper-aware parsing), plus ranked unsatisfiable-contract diagnostics on retry exhaustion (`relational_failures`, `generation_failures`, `top_violations`, `likely_unsatisfiable`) | Tier 3 | P1 |
 | `SC-10` | Coverage target hints | Optional parser instrumentation priority tags | Rule/branch target boosting | `@coverage_target`, `@critical_path` | Implemented Tier 3 baseline: typed payload + coherence validator contracts (`W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`, `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`, `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`) + stimuli coverage steering integration (semantic multipliers in branch guidance + semantic priority bonuses in gap report/target ordering) + parser runtime instrumentation hooks (`CoverageTargetEvent`, selected-branch tracking, rule/branch hit counters + accessors) | Tier 3 | P1 |
 | `SC-11` | Negative case semantics | Emit expected-failure parser paths | Generate invalid/near-invalid stimuli | `@invalid_case`, `@negative` | Implemented Tier 3 baseline: typed validator payload/coherence diagnostics (`W_SEM_INVALID_INVALID_CASE_PAYLOAD`, `W_SEM_INVALID_NEGATIVE_PAYLOAD`, `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE`) + generated-parser expected-failure event surface (`NegativeCaseEvent`, per-rule counters/accessors) + stimuli invalid/near-invalid mutation baseline with deterministic negative marker routing | Tier 3 | P2 |
-| `SC-12` | Determinism partitioning hints | Stable behavior partitions for parser modes | Seed partitioning per semantic class | `@seed_group`, `@deterministic_group` | Implemented stimuli-first baseline: typed payload/coherence validator contracts (`W_SEM_INVALID_SEED_GROUP_PAYLOAD`, `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`, `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`) + deterministic entry seed partition routing per semantic group in stimuli generation; parser-side partition steering still pending | Tier 2 | P2 |
+| `SC-12` | Determinism partitioning hints | Stable behavior partitions for parser modes | Seed partitioning per semantic class | `@seed_group`, `@deterministic_group` | Implemented parser+stimuli baseline: typed payload/coherence validator contracts (`W_SEM_INVALID_SEED_GROUP_PAYLOAD`, `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`, `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`) + deterministic parser OR-branch partition steering (group-key-based evaluation offset for ordered-choice behavior) + parser partition telemetry (`DeterministicPartitionEvent`, per-rule counters/accessors) + deterministic stimuli entry seed partition routing with interleaving-order independence | Tier 3 | P2 |
 
 ## Interpretation Rules
 - Semantic annotations may be accepted before they are steering-capable.
@@ -89,8 +89,8 @@ Required quality bar:
 4. Any temporary mismatch must be explicitly tracked in differential baselines with closure plan.
 
 ## Next Implementation Focus (Recommended)
-1. Promote `SC-12` from stimuli-first partition routing to parser-side deterministic partition steering contract.
-2. Start `SC-04` token-class steering (`@token_class/@charset/@pattern`) with typed validator contracts and parser/stimuli rollout plan.
+1. Start `SC-04` token-class steering (`@token_class/@charset/@pattern`) with typed validator contracts and parser/stimuli rollout plan.
+2. Harden SC-12 by adding explicit parser-side partition policy controls/config surface for embedders (beyond annotation-only defaults).
 
 ## Priority Queue (Balance-Oriented)
 - `P0` Keep built-in core minimal and invariant-only (correctness/safety/return completeness).
@@ -105,4 +105,5 @@ Required quality bar:
 - `P1` Promote selected semantic warnings to strict-mode errors under explicit policy controls (`PGEN_STRICT_SEMANTIC_WARNING_CODES`) with strict-default SC-10 invalid payload escalations. (Completed 2026-02-20)
 - `P2` Start `SC-11` negative-case semantic steering (`@invalid_case/@negative`) with typed validator contracts and parser/stimuli baseline behavior. (Completed 2026-02-20)
 - `P2` Start `SC-12` determinism partitioning hints (`@seed_group/@deterministic_group`) with typed validator contracts and deterministic stimuli seed partition routing baseline. (Completed 2026-02-20)
+- `P2` Promote SC-12 to parser-side deterministic partition steering baseline (`ordered` OR-branch evaluation offset + typed partition telemetry events/counters). (Completed 2026-02-20)
 - `P1` Drive return differential mismatch debt to zero and tighten release gate criteria.

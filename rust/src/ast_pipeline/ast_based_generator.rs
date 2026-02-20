@@ -9,9 +9,10 @@ use crate::ast_pipeline::{
     ast_return_transform::AstReturnTransformer, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
     parse_semantic_branch_priorities, parse_semantic_constraint_expression,
-    parse_semantic_coverage_target_weight,
-    parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
-    parse_semantic_numeric_bounds, parse_semantic_reference_list, parse_semantic_string_list,
+    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
+    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
+    parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
+    parse_semantic_reference_list, parse_semantic_string_list,
 };
 use anyhow::Result;
 use prettyplease;
@@ -47,6 +48,12 @@ struct SemanticCoverageTargetPolicy {
 struct SemanticNegativeCasePolicy {
     invalid_case: bool,
     negative: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct SemanticDeterminismPartitionPolicy {
+    enabled: bool,
+    group_label: Option<String>,
 }
 
 impl AstBasedGenerator {
@@ -239,6 +246,14 @@ impl AstBasedGenerator {
                 pub negative: bool,
                 pub error_kind: String,
             }
+
+            #[derive(Debug, Clone, PartialEq, Eq)]
+            pub struct DeterministicPartitionEvent {
+                pub rule_name: String,
+                pub parse_start: usize,
+                pub parse_end: usize,
+                pub group_key: String,
+            }
         }
     }
 
@@ -261,6 +276,8 @@ impl AstBasedGenerator {
                 coverage_target_branch_hits: HashMap<String, usize>,
                 negative_case_events: Vec<NegativeCaseEvent>,
                 negative_case_rule_hits: HashMap<String, usize>,
+                deterministic_partition_events: Vec<DeterministicPartitionEvent>,
+                deterministic_partition_rule_hits: HashMap<String, usize>,
                 logger: Box<dyn Logger>,
             }
         }
@@ -486,6 +503,8 @@ impl AstBasedGenerator {
                     coverage_target_branch_hits: HashMap::new(),
                     negative_case_events: Vec::new(),
                     negative_case_rule_hits: HashMap::new(),
+                    deterministic_partition_events: Vec::new(),
+                    deterministic_partition_rule_hits: HashMap::new(),
                     logger,
                 }
             }
@@ -506,6 +525,8 @@ impl AstBasedGenerator {
                 self.coverage_target_branch_hits.clear();
                 self.negative_case_events.clear();
                 self.negative_case_rule_hits.clear();
+                self.deterministic_partition_events.clear();
+                self.deterministic_partition_rule_hits.clear();
                 self.#parse_method()
             }
 
@@ -582,6 +603,22 @@ impl AstBasedGenerator {
             pub fn negative_case_rule_hits(&self) -> &HashMap<String, usize> {
                 &self.negative_case_rule_hits
             }
+
+            pub fn deterministic_partition_events(&self) -> &[DeterministicPartitionEvent] {
+                &self.deterministic_partition_events
+            }
+
+            pub fn take_deterministic_partition_events(&mut self) -> Vec<DeterministicPartitionEvent> {
+                std::mem::take(&mut self.deterministic_partition_events)
+            }
+
+            pub fn deterministic_partition_event_count(&self) -> usize {
+                self.deterministic_partition_events.len()
+            }
+
+            pub fn deterministic_partition_rule_hits(&self) -> &HashMap<String, usize> {
+                &self.deterministic_partition_rule_hits
+            }
         }
     }
 
@@ -618,6 +655,11 @@ impl AstBasedGenerator {
         let negative_case_policy = self.rule_negative_case_policy(rule_name);
         let negative_case_enabled = negative_case_policy.invalid_case;
         let negative_case_strict = negative_case_policy.negative;
+        let deterministic_partition_policy = self.rule_deterministic_partition_policy(rule_name);
+        let deterministic_partition_enabled = deterministic_partition_policy.enabled;
+        let deterministic_partition_group = deterministic_partition_policy
+            .group_label
+            .unwrap_or_else(|| format!("rule.{}", rule_name));
 
         // Build the complete method
         Ok(quote! {
@@ -678,6 +720,13 @@ impl AstBasedGenerator {
                         semantic_selected_branch_index,
                         #coverage_target_weight,
                         #coverage_critical_path,
+                    );
+                    parser.record_deterministic_partition_event(
+                        #rule_name,
+                        start_pos,
+                        end_pos,
+                        #deterministic_partition_enabled,
+                        #deterministic_partition_group,
                     );
 
                     Ok(ParseNode {
@@ -852,6 +901,22 @@ impl AstBasedGenerator {
             let associativity_mode = associativity.as_str();
             let branch_policy = self.rule_branch_policy(rule_name);
             let branch_policy_mode = branch_policy.as_str();
+            let deterministic_partition_policy =
+                self.rule_deterministic_partition_policy(rule_name);
+            let deterministic_partition_enabled = deterministic_partition_policy.enabled;
+            let deterministic_partition_group = deterministic_partition_policy
+                .group_label
+                .unwrap_or_else(|| format!("rule.{}", rule_name));
+            let deterministic_partition_offset = if deterministic_partition_enabled {
+                Self::deterministic_partition_offset(&deterministic_partition_group, branch_count)
+            } else {
+                0usize
+            };
+            let mut evaluation_order: Vec<usize> = (0..branch_count).collect();
+            if deterministic_partition_enabled && branch_count > 1 && deterministic_partition_offset > 0
+            {
+                evaluation_order.rotate_left(deterministic_partition_offset);
+            }
             let (
                 recover_enabled,
                 sync_tokens,
@@ -911,7 +976,8 @@ impl AstBasedGenerator {
                 }
             };
 
-            for (idx, alternative) in alternatives.iter().enumerate() {
+            for idx in evaluation_order {
+                let alternative = &alternatives[idx];
                 eprintln!();
                 let branch_logic =
                     self.generate_node_parsing_logic(alternative, rule_name, filename)?;
@@ -1602,6 +1668,39 @@ impl AstBasedGenerator {
                         branch_index,
                         coverage_target_weight,
                         marker,
+                        parse_start,
+                        parse_end
+                    ));
+                }
+            }
+            fn record_deterministic_partition_event(
+                &mut self,
+                rule_name: &str,
+                parse_start: usize,
+                parse_end: usize,
+                enabled: bool,
+                group_key: &str,
+            ) {
+                if !enabled {
+                    return;
+                }
+
+                self.deterministic_partition_events.push(DeterministicPartitionEvent {
+                    rule_name: rule_name.to_string(),
+                    parse_start,
+                    parse_end,
+                    group_key: group_key.to_string(),
+                });
+                *self
+                    .deterministic_partition_rule_hits
+                    .entry(rule_name.to_string())
+                    .or_insert(0) += 1;
+
+                if self.logger.is_enabled() {
+                    self.logger.log_info(#filename, 0, &format!(
+                        "🧭 SC-12 parser partition: rule='{}' group='{}' span={}..{}",
+                        rule_name,
+                        group_key,
                         parse_start,
                         parse_end
                     ));
@@ -2934,6 +3033,64 @@ impl AstBasedGenerator {
         policy
     }
 
+    fn rule_deterministic_partition_policy(
+        &self,
+        rule_name: &str,
+    ) -> SemanticDeterminismPartitionPolicy {
+        let Some(annotations) = &self.annotations else {
+            return SemanticDeterminismPartitionPolicy::default();
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return SemanticDeterminismPartitionPolicy::default();
+        };
+
+        let mut policy = SemanticDeterminismPartitionPolicy::default();
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "seed_group" => {
+                    if let Some(label) = parse_semantic_group_label(&payload) {
+                        policy.group_label = Some(label);
+                    }
+                }
+                "deterministic_group" => {
+                    if let Some(parsed) = parse_semantic_deterministic_group(&payload) {
+                        policy.enabled = parsed.enabled;
+                        if let Some(label) = parsed.group {
+                            policy.group_label = Some(label);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if !policy.enabled {
+            policy.group_label = None;
+            return policy;
+        }
+        if policy.group_label.is_none() {
+            policy.group_label = Some(format!("rule.{}", rule_name));
+        }
+
+        policy
+    }
+
+    fn deterministic_partition_offset(group_key: &str, branch_count: usize) -> usize {
+        if branch_count <= 1 {
+            return 0;
+        }
+
+        let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+        for byte in group_key.as_bytes() {
+            hash ^= *byte as u64;
+            hash = hash.wrapping_mul(0x0000_0100_0000_01B3);
+        }
+        (hash as usize) % branch_count
+    }
+
     fn rule_recovery_hints(
         &self,
         rule_name: &str,
@@ -3419,6 +3576,16 @@ mod semantic_usage_tests {
     fn or_rule() -> ASTNode {
         ASTNode::Or {
             alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+        }
+    }
+
+    fn or_rule_three() -> ASTNode {
+        ASTNode::Or {
+            alternatives: vec![
+                token("quoted_string", "L"),
+                token("quoted_string", "M"),
+                token("quoted_string", "R"),
+            ],
         }
     }
 
@@ -4209,6 +4376,225 @@ mod semantic_usage_tests {
             rendered.contains("self . negative_case_events . push")
                 && rendered.contains("self . negative_case_rule_hits"),
             "SC-11 helper should record events and per-rule hit counters, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_extracts_deterministic_partition_policy() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "seed_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"stable.alpha\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "deterministic_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let policy = generator.rule_deterministic_partition_policy("stmt");
+        assert!(policy.enabled);
+        assert_eq!(policy.group_label.as_deref(), Some("stable.alpha"));
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_deterministic_partition_types_and_accessors() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let types_rendered = generator.generate_types().to_string();
+        assert!(
+            types_rendered.contains("pub struct DeterministicPartitionEvent"),
+            "generated types should include DeterministicPartitionEvent, got: {}",
+            types_rendered
+        );
+
+        let parse_rendered = generator.generate_parse_method("start").to_string();
+        assert!(
+            parse_rendered.contains("pub fn deterministic_partition_events"),
+            "parse method generation should expose deterministic_partition_events accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn take_deterministic_partition_events"),
+            "parse method generation should expose take_deterministic_partition_events accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn deterministic_partition_rule_hits"),
+            "parse method generation should expose deterministic_partition_rule_hits accessor, got: {}",
+            parse_rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_deterministic_partition_runtime_hooks_for_rules() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "seed_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"stable.alpha\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "deterministic_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let method = generator
+            .generate_rule_method("stmt", &or_rule(), &["stmt".to_string()], "semantic_usage.rs")
+            .expect("rule method generation should succeed");
+        let rendered = method.to_string();
+
+        assert!(
+            rendered.contains("record_deterministic_partition_event"),
+            "rule method should emit SC-12 deterministic partition runtime hook, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("\"stable.alpha\""),
+            "SC-12 hook should carry resolved deterministic group key, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_records_deterministic_partition_events_in_helper_methods() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        assert!(
+            rendered.contains("fn record_deterministic_partition_event"),
+            "helper methods should define SC-12 deterministic partition recorder, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("self . deterministic_partition_events . push")
+                && rendered.contains("self . deterministic_partition_rule_hits"),
+            "SC-12 helper should record partition events and per-rule hit counters, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_rotates_ordered_or_branch_evaluation_by_partition() {
+        let labels = ["stable.alpha", "stable.beta", "stable.gamma"];
+        let selected_label = labels
+            .iter()
+            .find(|label| AstBasedGenerator::deterministic_partition_offset(label, 3) > 0)
+            .copied()
+            .expect("at least one test label should produce non-zero deterministic offset");
+        let offset = AstBasedGenerator::deterministic_partition_offset(selected_label, 3);
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "branch_policy".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "ordered".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "seed_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: format!("\"{}\"", selected_label),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "deterministic_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "priority".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[11, 22, 33]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let logic = generator
+            .generate_node_parsing_logic(&or_rule_three(), "expr", "semantic_usage.rs")
+            .expect("or-node logic generation should succeed");
+        let rendered = logic.to_string();
+
+        let mut expected_priorities = vec![11, 22, 33];
+        expected_priorities.rotate_left(offset);
+        let expected_tokens: Vec<String> = expected_priorities
+            .iter()
+            .map(|priority| format!("= {}i64", priority))
+            .collect();
+        let mut positions = Vec::new();
+        for token in &expected_tokens {
+            let pos = rendered
+                .find(token)
+                .unwrap_or_else(|| panic!("expected to find token '{}' in '{}'", token, rendered));
+            positions.push(pos);
+        }
+        assert!(
+            positions.windows(2).all(|pair| pair[0] < pair[1]),
+            "branch evaluation order should follow deterministic partition offset {}, got rendered: {}",
+            offset,
             rendered
         );
     }

@@ -1057,7 +1057,7 @@ stmt = atom ;
 - With both `@invalid_case: true` and `@negative: true`, a deterministic negative-case marker suffix is appended.
 - With `@negative: true` only, steering remains inactive (coherence rule above).
 
-### 8.16 SC-12 Determinism Partition Contract (Validator + Stimuli Baseline)
+### 8.16 SC-12 Determinism Partition Contract (Validator + Parser + Stimuli Baseline)
 
 This section focuses on:
 - `@seed_group`
@@ -1065,8 +1065,8 @@ This section focuses on:
 
 Current stage:
 - typed validator contract is active,
-- stimuli deterministic seed partition routing baseline is active,
-- parser-side partition steering is still pending.
+- parser deterministic partition steering baseline is active,
+- stimuli deterministic seed partition routing baseline is active.
 
 #### 8.16.1 Payload Forms
 
@@ -1089,7 +1089,23 @@ Invalid examples:
 If `@seed_group` is present while effective `@deterministic_group` is missing or false, validator emits:
 - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`
 
-#### 8.16.3 Stimuli Deterministic Partition Behavior
+#### 8.16.3 Parser Deterministic Partition Behavior
+
+- For OR rules under `@branch_policy: ordered`, effective deterministic partition hints apply a stable branch-evaluation offset before first-success short-circuit.
+- Offset is deterministic per group key + branch count (`hash(group_key) % branch_count`).
+- Group key resolution order:
+  - explicit `@seed_group`,
+  - else explicit group label embedded in `@deterministic_group`,
+  - else fallback `rule.<rule_name>`.
+- Generated parser emits typed partition telemetry on effective deterministic-group rules:
+  - event type: `DeterministicPartitionEvent { rule_name, parse_start, parse_end, group_key }`
+  - accessors:
+    - `deterministic_partition_events()`
+    - `take_deterministic_partition_events()`
+    - `deterministic_partition_event_count()`
+    - `deterministic_partition_rule_hits()`
+
+#### 8.16.4 Stimuli Deterministic Partition Behavior
 
 - When effective `@deterministic_group` is enabled and `--seed` is provided:
   - generator derives deterministic partition seeds per semantic group,

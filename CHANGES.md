@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-12 Parser-Side Deterministic Partition Steering Promotion
+### ✅ Achievement Summary
+Promoted SC-12 from stimuli-first routing to parser+stimuli steering by adding deterministic group-aware ordered-branch partitioning and typed parser partition telemetry.
+### Scope of Changes
+- Updated directive capability contracts in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - promoted:
+    - `seed_group` -> `ParserAndStimuliSteering`
+    - `deterministic_group` -> `ParserAndStimuliSteering`.
+- Updated parser codegen/runtime in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - added typed policy extraction:
+    - `rule_deterministic_partition_policy(...)`
+  - added deterministic partition hash helper:
+    - `deterministic_partition_offset(...)`
+  - added deterministic OR branch evaluation ordering for parser `@branch_policy: ordered` paths,
+  - added generated parser event surface:
+    - `DeterministicPartitionEvent { rule_name, parse_start, parse_end, group_key }`
+  - added generated parser state/accessors:
+    - `deterministic_partition_events`
+    - `deterministic_partition_rule_hits`
+    - `deterministic_partition_events()`
+    - `take_deterministic_partition_events()`
+    - `deterministic_partition_event_count()`
+    - `deterministic_partition_rule_hits()`
+  - added parser runtime hook:
+    - `record_deterministic_partition_event(...)`
+  - wired rule-method runtime emission for effective deterministic-group rules.
+- Added parser semantic-usage regression coverage:
+  - `semantic_usage_codegen_extracts_deterministic_partition_policy`
+  - `semantic_usage_codegen_emits_deterministic_partition_types_and_accessors`
+  - `semantic_usage_codegen_emits_deterministic_partition_runtime_hooks_for_rules`
+  - `semantic_usage_codegen_records_deterministic_partition_events_in_helper_methods`
+  - `semantic_usage_codegen_rotates_ordered_or_branch_evaluation_by_partition`
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml deterministic_partition` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_rotates_ordered_or_branch_evaluation_by_partition` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-11 Negative-Case Baseline + SC-12 Determinism Partition Baseline
 ### ✅ Achievement Summary
 Promoted SC-11 to parser+stimuli runtime baseline and started SC-12 with typed validator contracts plus deterministic stimuli seed partition routing.

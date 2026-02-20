@@ -1,4 +1,82 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-12 Parser-Side Deterministic Partition Steering Promotion
+### Context
+SC-12 had reached a stimuli-first baseline:
+- typed validator payload/coherence contracts were in place,
+- deterministic seed partition routing was active in stimuli generation.
+
+Parser behavior still did not consume SC-12 steering hints beyond annotation acceptance.
+That left asymmetry between parser and stimuli control surfaces for determinism partitioning.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Directive capability promotion
+- Promoted SC-12 directives to parser+stimuli steering capability:
+  - `seed_group` -> `ParserAndStimuliSteering`
+  - `deterministic_group` -> `ParserAndStimuliSteering`
+
+#### 2) Parser codegen SC-12 policy extraction
+- Added parser-side SC-12 policy model:
+  - `SemanticDeterminismPartitionPolicy { enabled, group_label }`
+- Added extraction function:
+  - `rule_deterministic_partition_policy(rule_name)`
+- Group resolution mirrors existing stimuli contract:
+  - `@seed_group` (if valid) wins,
+  - else label from `@deterministic_group`,
+  - else fallback `rule.<rule_name>` when deterministic mode is enabled.
+
+#### 3) Deterministic OR-partition steering in parser runtime
+- Added deterministic offset helper:
+  - `deterministic_partition_offset(group_key, branch_count)`
+  - deterministic hash modulo branch count.
+- Applied offset in parser OR codegen path:
+  - for effective SC-12 rules, OR branch evaluation order is rotated by deterministic offset before attempts are emitted.
+- Resulting behavior:
+  - under ordered-choice semantics (`@branch_policy: ordered`), first-success selection is now partition-steered but deterministic per group key.
+
+#### 4) Parser partition telemetry surface
+- Added generated parser event type:
+  - `DeterministicPartitionEvent { rule_name, parse_start, parse_end, group_key }`
+- Added generated parser state:
+  - `deterministic_partition_events`
+  - `deterministic_partition_rule_hits`
+- Added generated parser accessors:
+  - `deterministic_partition_events()`
+  - `take_deterministic_partition_events()`
+  - `deterministic_partition_event_count()`
+  - `deterministic_partition_rule_hits()`
+- Added helper hook:
+  - `record_deterministic_partition_event(...)`
+- Hook emission:
+  - rule methods now emit partition events for effective deterministic-group rules.
+
+#### 5) Semantic-usage regression coverage
+- Added parser-focused SC-12 tests:
+  - `semantic_usage_codegen_extracts_deterministic_partition_policy`
+  - `semantic_usage_codegen_emits_deterministic_partition_types_and_accessors`
+  - `semantic_usage_codegen_emits_deterministic_partition_runtime_hooks_for_rules`
+  - `semantic_usage_codegen_records_deterministic_partition_events_in_helper_methods`
+  - `semantic_usage_codegen_rotates_ordered_or_branch_evaluation_by_partition`
+- Existing stimuli SC-12 coverage remains active and passing.
+
+#### 6) Documentation sync
+- Updated matrix/roadmap/spec/UG to reflect SC-12 parser+stimuli baseline and revised next focus priorities.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml deterministic_partition`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_rotates_ordered_or_branch_evaluation_by_partition`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-11 Negative-Case Runtime Baseline + SC-12 Determinism Partition Baseline
 ### Context
 SC-10 had already promoted semantic steering into parser/stimuli runtime. Two `P2` controls remained unimplemented in the control matrix:
@@ -95,12 +173,12 @@ Primary files:
   - `SemanticDeterministicGroupHint`
   - `parse_semantic_group_label(...)`
   - `parse_semantic_deterministic_group(...)`
-- Keeps shared usage consistent across validator/stimuli and future parser-side SC-12 promotion.
+- Keeps shared usage consistent across validator/stimuli and parser-side SC-12 promotion paths.
 
 #### 7) Documentation alignment
 - Updated control matrix:
   - SC-11 marked implemented Tier 3 baseline,
-  - SC-12 marked implemented stimuli-first baseline with parser-side partition steering still pending.
+  - SC-12 initially marked implemented stimuli-first baseline (later promoted to parser+stimuli baseline in the follow-up section above).
 - Updated roadmap:
   - SC-11 and SC-12 added as completed Phase K checklist items + dated change-log entries.
 - Updated normative spec + user guide:

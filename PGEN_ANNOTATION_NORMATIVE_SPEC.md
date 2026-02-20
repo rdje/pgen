@@ -133,6 +133,21 @@ Normative runtime leverage behavior for semantic annotations:
       - `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`,
     - coherence warning:
       - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP` when `@seed_group` is present while effective `@deterministic_group` is missing/false.
+    - parser runtime baseline:
+      - for OR rules under `@branch_policy: ordered`, effective deterministic partition hints drive stable branch-evaluation offsets before first-success short-circuit,
+      - partition offset is deterministic per rule group key and branch count (group-key hash modulo branch count),
+      - group key selection:
+        - explicit `@seed_group` label when present,
+        - else explicit label embedded in `@deterministic_group`,
+        - else fallback `rule.<rule_name>`,
+      - parser emits typed partition telemetry for effective deterministic-group rules:
+        - event type:
+          - `DeterministicPartitionEvent { rule_name, parse_start, parse_end, group_key }`
+        - accessors/counters:
+          - `deterministic_partition_events()`
+          - `take_deterministic_partition_events()`
+          - `deterministic_partition_event_count()`
+          - `deterministic_partition_rule_hits()`
     - stimuli runtime baseline:
       - when effective `@deterministic_group` is enabled and seed is configured, stimuli generation uses deterministic per-group seed partition routing,
       - group key selection:
