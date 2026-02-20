@@ -1,0 +1,58 @@
+[
+  {
+    "name": "coverage_target_integer_weight",
+    "description": "SC-10 shared contract: integer coverage_target payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@coverage_target: 2",
+    "expected_round_trip": "@coverage_target: 2",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc10", "coverage_target"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "coverage_target_boolean_weight",
+    "description": "SC-10 shared contract: boolean coverage_target payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@coverage_target: true",
+    "expected_round_trip": "@coverage_target: true",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc10", "coverage_target"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "critical_path_enabled",
+    "description": "SC-10 shared contract: critical_path boolean payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@critical_path: true",
+    "expected_round_trip": "@critical_path: true",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc10", "critical_path"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "coverage_target_quoted_on",
+    "description": "SC-10 shared contract: quoted symbolic coverage_target payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@coverage_target: \"on\"",
+    "expected_round_trip": "@coverage_target: \"on\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc10", "coverage_target"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

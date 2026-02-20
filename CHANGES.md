@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-10 Tier-4 Coverage-Target Contract Gate Promotion
+### ✅ Achievement Summary
+Promoted SC-10 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-10 gate slice with typed coverage-target validator/coherence checks, parser/stimuli runtime coverage steering contracts, and differential taxonomy parity checks.
+
+### Scope of Changes
+- Added SC-10 semantic contract corpus:
+  - `rust/test_data/semantic_annotation/sc10_contract.json`
+  - includes shared bootstrap/generated parseability slices for:
+    - `@coverage_target`
+    - `@critical_path`
+    - combined SC-10 payload forms.
+- Added dedicated SC-10 gate script:
+  - `rust/scripts/sc10_contract_gate.sh`
+  - enforces:
+    - typed SC-10 payload parser contracts,
+    - typed SC-10 validator/coherence + strict warning-policy contracts,
+    - parser codegen/runtime SC-10 instrumentation contracts,
+    - stimuli SC-10 coverage steering contracts,
+    - bootstrap/generated SC-10 suite parity and differential taxonomy integrity (`mismatched_cases == 0`).
+- Updated gate wiring:
+  - `rust/Makefile`
+    - added target: `sc10_contract_gate`
+    - wired `sc10_contract_gate` into `annotation_contract_gate`
+    - updated help text.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` (SC-10 promoted to Tier 4)
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `make -C rust sc10_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Tier-4 Relational-Constraint Contract Gate Promotion
 ### ✅ Achievement Summary
 Promoted SC-09 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-09 gate slice with typed relational validator/coherence checks, parser/stimuli relational runtime contracts, and differential taxonomy parity checks.

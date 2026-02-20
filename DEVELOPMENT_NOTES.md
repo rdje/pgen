@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-10 Tier-4 Coverage-Target Contract Gate Promotion
+### Context
+SC-10 (`@coverage_target/@critical_path`) had parser/stimuli runtime instrumentation and steering, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06/SC-07/SC-09.
+
+That left a closure gap:
+- no SC-10 shared semantic contract corpus slice,
+- no dedicated differential taxonomy parity check scoped to SC-10,
+- no single gate-level enforcement for typed SC-10 payload/coherence contracts plus parser/stimuli runtime SC-10 behavior.
+
+### Implementation
+Primary files:
+- `rust/test_data/semantic_annotation/sc10_contract.json`
+- `rust/scripts/sc10_contract_gate.sh`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) SC-10 shared contract corpus
+- Added `semantic_annotation/sc10_contract.json`.
+- Corpus covers parseability of SC-10 directive payload forms in bootstrap/generated semantic parsers:
+  - `@coverage_target` integer/boolean payloads,
+  - `@critical_path` boolean payload,
+  - combined SC-10 directive payload snippet.
+
+#### 2) Dedicated SC-10 gate
+- Added `rust/scripts/sc10_contract_gate.sh`.
+- Gate stages:
+  - typed SC-10 payload parser contracts (`parse_semantic_coverage_target_weight` + bool payload parser),
+  - typed validator payload/coherence contracts (invalid payload fixture, strict warning-policy behavior, and `critical_path` coherence checks),
+  - parser SC-10 runtime contracts (policy extraction, event/accessor surface, runtime hook and event-recording behavior),
+  - stimuli SC-10 runtime contracts (coverage-target branch bias and gap-priority branch ordering bonuses),
+  - bootstrap/generated SC-10 contract suite runs,
+  - SC-10 differential taxonomy parity assertions:
+    - known category set only,
+    - category total must equal `mismatched_cases`,
+    - SC-10 comparable corpus currently requires `mismatched_cases == 0`.
+
+#### 3) Gate wiring
+- Added `sc10_contract_gate` Make target.
+- Wired `sc10_contract_gate` into `annotation_contract_gate`.
+- Updated Make help text accordingly.
+
+### Validation
+- `make -C rust sc10_contract_gate`:
+  - pass.
+- `make -C rust annotation_contract_gate`:
+  - pass with SC-10 gate included.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Tier-4 Relational-Constraint Contract Gate Promotion
 ### Context
 SC-09 (cross-field/cross-capture relational constraints) had strong parser/stimuli runtime behavior, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06/SC-07.

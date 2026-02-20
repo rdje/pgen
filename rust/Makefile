@@ -235,6 +235,7 @@ help:
 	@echo "  ebnf_stimuli_quality_gate - Enforce strict closed-loop parser/stimuli quality checks for non-annotation tracked EBNFs"
 	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
+	@echo "  sc10_contract_gate - Enforce SC-10 coverage-target Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc09_contract_gate - Enforce SC-09 relational-constraint Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc07_contract_gate - Enforce SC-07 recovery/sync Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc06_contract_gate - Enforce SC-06 branch weighting/selection Tier-4 contract slices + differential taxonomy checks"
@@ -453,6 +454,7 @@ annotation_contract_gate:
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_builtin_contract
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract
 	@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate
+	@$(MAKE) -C $(RUST_DIR) sc10_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc09_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc07_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc06_contract_gate
@@ -469,6 +471,12 @@ sc06_contract_gate:
 	@echo "🧪 Running SC-06 branch weighting/selection contract gate..."
 	cd $(RUST_DIR) && ./scripts/sc06_contract_gate.sh
 	@echo "✅ SC-06 branch weighting/selection contract gate passed."
+
+.PHONY: sc10_contract_gate
+sc10_contract_gate:
+	@echo "🧪 Running SC-10 coverage-target contract gate..."
+	cd $(RUST_DIR) && ./scripts/sc10_contract_gate.sh
+	@echo "✅ SC-10 coverage-target contract gate passed."
 
 .PHONY: sc09_contract_gate
 sc09_contract_gate:
