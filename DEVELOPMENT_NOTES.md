@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Stimuli Recovery Fallback Baseline
+### Context
+Parser-side runtime recovery hooks were already active for `@recover/@sync/@panic_until`, but stimuli generation still ignored those directives once OR branch generation exhausted all alternatives. This left a symmetry gap between parser and stimuli behavior for recovery-directed workflows.
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+#### 1) OR-failure fallback integration
+- Function area:
+  - `generate_or(...)`
+- Added post-attempt fallback path:
+  - after branch-attempt exhaustion, generator checks semantic recovery controls for the current rule,
+  - if effective `@recover` is enabled and marker tokens are available, generation returns a recovery marker fallback sample instead of hard failure.
+
+#### 2) Recovery control extraction for stimuli
+- Added helper:
+  - `rule_recovery_controls(rule_name) -> (recover_enabled, sync_tokens, panic_until_tokens)`
+- Directive parsing behavior:
+  - `@recover` parsed via typed bool parser (`parse_semantic_bool`),
+  - `@sync/@panic_until` parsed via typed string-list parser (`parse_semantic_string_list`),
+  - latest-known directive payload semantics remain consistent with existing directive processing.
+
+#### 3) Deterministic marker selection contract
+- Added helper:
+  - `recovery_stimulus_fallback(rule_name) -> Option<String>`
+- Selection policy:
+  - first non-empty `@panic_until` token,
+  - else first non-empty `@sync` token,
+  - no fallback if `@recover` is not enabled or no usable marker exists.
+
+### Tests
+- Added semantic usage tests:
+  - `semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker`
+  - `semantic_usage_stimuli_recovery_fallback_requires_recover_enabled`
+- Test intent:
+  - ensure deterministic marker precedence and recover gating contract.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_fallback_requires_recover_enabled`
+  - pass.
+- `make -C rust SHELL=/bin/bash semantic_usage_gate`
+  - pass (`29 semantic_usage_* tests`).
+
+### Contract/Docs Updates
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - added completed Phase K item for SC-07 stimuli baseline.
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `SC-07` promoted to parser+stimuli baseline tier with explicit note on remaining advanced recovery-targeted generation.
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - added normative stimuli fallback semantics for recovery directives.
+- `PGEN_USER_GUIDE.md`
+  - updated recovery behavior section with stimuli fallback details and remaining follow-on scope.
+
 ## 2026-02-20 - Phase K Follow-Up: Recovery Runtime Hook Wiring (Parser Codegen)
 ### Context
 Phase K previously delivered:

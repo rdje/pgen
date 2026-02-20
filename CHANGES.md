@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Stimuli Recovery Baseline
+### ✅ Achievement Summary
+Added first-class stimuli-side usage of `@recover/@sync/@panic_until` by emitting deterministic recovery marker fallback samples when OR branch generation fully exhausts alternatives.
+### Scope of Changes
+- Updated stimuli generation in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+- Behavior changes:
+  - OR generation now checks semantic recovery controls after all branch attempts fail.
+  - Fallback activation requires effective `@recover: true`.
+  - Marker selection policy is deterministic:
+    - first non-empty `@panic_until` token,
+    - else first non-empty `@sync` token.
+  - Without enabled `@recover`, existing OR failure behavior is preserved.
+- Added semantic usage tests:
+  - `semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker`
+  - `semantic_usage_stimuli_recovery_fallback_requires_recover_enabled`
+- Updated living roadmap/spec/matrix/UG to reflect SC-07 stimuli baseline status.
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_fallback_requires_recover_enabled` ✅
+- `make -C rust SHELL=/bin/bash semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: Executable Recovery Runtime Baseline
 ### ✅ Achievement Summary
 Promoted semantic recovery directives from staged signaling to executable parser runtime behavior in generated OR-branch parsing paths.

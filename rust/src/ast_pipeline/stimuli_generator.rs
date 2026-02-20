@@ -2,9 +2,9 @@ use super::{
     ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
     SemanticBranchPolicy,
     SemanticValueConstraints, TokenValue, UnifiedSemanticAST, extract_semantic_directive,
-    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_len_bounds,
-    parse_semantic_branch_priorities, parse_semantic_numeric_bounds, parse_semantic_string_list,
-    stimuli_hint_for_target_type,
+    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
+    parse_semantic_branch_priorities, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
+    parse_semantic_string_list, stimuli_hint_for_target_type,
 };
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
@@ -1582,6 +1582,10 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
+        if let Some(recovery_sample) = self.recovery_stimulus_fallback(current_rule) {
+            return Ok(recovery_sample);
+        }
+
         Err(last_error.unwrap_or_else(|| {
             anyhow!(
                 "Failed to generate any OR alternative for rule '{}'",
@@ -2495,6 +2499,62 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         constraints
+    }
+
+    fn rule_recovery_controls(&self, rule_name: &str) -> (bool, Vec<String>, Vec<String>) {
+        let Some(annotations) = self.annotations else {
+            return (false, Vec::new(), Vec::new());
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return (false, Vec::new(), Vec::new());
+        };
+
+        let mut recover_enabled = false;
+        let mut sync_tokens = Vec::new();
+        let mut panic_until_tokens = Vec::new();
+        for annotation in entries {
+            let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "recover" => {
+                    if let Some(parsed) = parse_semantic_bool(&payload) {
+                        recover_enabled = parsed;
+                    }
+                }
+                "sync" => {
+                    if let Some(parsed) = parse_semantic_string_list(&payload) {
+                        sync_tokens = parsed;
+                    }
+                }
+                "panic_until" => {
+                    if let Some(parsed) = parse_semantic_string_list(&payload) {
+                        panic_until_tokens = parsed;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        (recover_enabled, sync_tokens, panic_until_tokens)
+    }
+
+    fn recovery_stimulus_fallback(&self, rule_name: &str) -> Option<String> {
+        let (recover_enabled, sync_tokens, panic_until_tokens) = self.rule_recovery_controls(rule_name);
+        if !recover_enabled {
+            return None;
+        }
+
+        if let Some(marker) = panic_until_tokens
+            .into_iter()
+            .find(|token| !token.trim().is_empty())
+        {
+            return Some(marker);
+        }
+
+        sync_tokens
+            .into_iter()
+            .find(|token| !token.trim().is_empty())
     }
 
     fn semantic_branch_multiplier(
@@ -3555,6 +3615,90 @@ mod tests {
             values.iter().all(|value| value == "AA" || value == "AB"),
             "composed constraints should filter enum candidates to regex-valid subset, got {:?}",
             values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "missing_left"),
+                    token("rule_reference", "missing_right"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "recover".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "sync".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\";\", \"end\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "panic_until".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"}\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9301);
+        let values = generator
+            .generate_many(4, Some("start"))
+            .expect("recovery fallback should provide stimuli when OR branches fail");
+
+        assert!(
+            values.iter().all(|value| value == "}"),
+            "recovery fallback should prefer panic_until marker token, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_recovery_fallback_requires_recover_enabled() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "missing_left"),
+                    token("rule_reference", "missing_right"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sync".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\";\"]".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9302);
+        let result = generator.generate_many(1, Some("start"));
+        assert!(
+            result.is_err(),
+            "recovery fallback must stay inactive when @recover is not enabled"
         );
     }
 }

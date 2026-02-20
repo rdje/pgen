@@ -411,14 +411,15 @@ stmt = declaration | assignment ;
   - parser advances past the chosen marker, or falls back to EOF skip when no marker is found,
   - unrecoverable no-progress cases still return normal backtrack errors.
 - Stimuli behavior in this stage:
-  - recovery directives are validated/typed and available for future recovery-targeted generation,
-  - dedicated recovery-focused stimuli steering remains follow-on work.
+  - when all OR branches fail and effective `@recover` is truthy, fallback samples can be emitted from recovery markers,
+  - marker preference is deterministic: first non-empty `@panic_until` token, then first non-empty `@sync` token,
+  - dedicated recovery-focused negative-case generation modes remain follow-on work.
 
 ### 8.9 Gate/Test Coverage for Semantic Steering
 - `make -C rust semantic_usage_gate`
 - Included in:
   - `make -C rust annotation_contract_gate`
-- Coverage includes parser + stimuli semantic usage tests (`semantic_usage_*`), including value-domain steering, directive routing, and recovery-hook codegen regressions.
+- Coverage includes parser + stimuli semantic usage tests (`semantic_usage_*`), including value-domain steering, directive routing, parser recovery-hook codegen, and stimuli recovery-fallback regressions.
 
 ### 8.10 Steering Roadmap References
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`

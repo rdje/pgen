@@ -87,6 +87,10 @@ Normative runtime leverage behavior for semantic annotations:
     - parser advances past selected marker (or to EOF fallback when no marker exists),
     - recovery success continues parse flow with recovered empty branch content,
     - if no forward progress is possible, parser still backtracks.
+  - Stimuli generation baseline for these directives:
+    - when OR branch generation exhausts all alternatives and effective `@recover` is truthy,
+    - generator emits deterministic marker fallback sample from recovery directives:
+      - first non-empty `@panic_until` token, else first non-empty `@sync` token.
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.

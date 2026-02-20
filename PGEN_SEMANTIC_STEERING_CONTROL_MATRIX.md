@@ -53,7 +53,7 @@ Hard boundary:
 | `SC-04` | Token-class steering | Choose tokenizer/matcher strategy per atom/rule | Generate samples by token class family | `@token_class`, `@charset`, `@pattern` | Not implemented | Tier 3 | P1 |
 | `SC-05` | Precedence/associativity steering | Resolve ambiguity/branching deterministically | Generate precedence-respecting trees | `@precedence`, `@associativity`, `@priority` | Implemented: parser tie-break uses priority+associativity; stimuli branch sampling uses semantic priority/precedence + associativity multipliers; conflict contract enforces `priority > precedence` with deterministic duplicate last-wins diagnostics | Tier 3 | P0 |
 | `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | Implemented baseline: typed `@branch_policy` with parser/stimuli branch steering (`longest_match`, `ordered`, `priority_first`) + validator payload contracts | Tier 3 | P1 |
-| `SC-07` | Error recovery and sync strategy | Production-grade parser recovery hints | Generate recovery-focused stimuli sets | `@recover`, `@sync`, `@panic_until` | Implemented parser runtime baseline: typed validator payload/coherence diagnostics + OR-failure recovery hooks (nearest token scan, `panic_until > sync` tie-break, deterministic advance/EOF fallback); recovery-focused stimuli steering still pending | Tier 2 | P1 |
+| `SC-07` | Error recovery and sync strategy | Production-grade parser recovery hints | Generate recovery-focused stimuli sets | `@recover`, `@sync`, `@panic_until` | Implemented parser+stimuli baseline: typed validator payload/coherence diagnostics + parser OR-failure recovery hooks + stimuli OR-failure fallback marker emission (`panic_until` first, then `sync`) when `@recover` is enabled; advanced recovery-targeted/negative-case generation still pending | Tier 3 | P1 |
 | `SC-08` | Value-domain constraints | Enforce value contracts at parse/validation boundaries | Generate in-domain samples | `@range`, `@enum`, `@regex`, `@len` | Implemented with conflict diagnostics: parser value guards + stimuli domain steering + typed payload diagnostics + unsatisfiable intersection warning (`W_SEM_UNSATISFIABLE_VALUE_DOMAIN`) + semantic usage gate coverage | Tier 3 | P0 |
 | `SC-09` | Cross-field/cross-capture constraints | Validate relational constraints between captures | Generate constraint-satisfying combinations | `@constraint`, `@requires`, `@implies` | Not implemented | Tier 3 | P1 |
 | `SC-10` | Coverage target hints | Optional parser instrumentation priority tags | Rule/branch target boosting | `@coverage_target`, `@critical_path` | Coverage/gap pipeline exists; semantic hints not implemented | Tier 3 | P1 |
@@ -90,7 +90,7 @@ Required quality bar:
 
 ## Next Implementation Focus (Recommended)
 1. Harden `SC-07` runtime recovery baseline with scoped recovery policies and structured multi-error reporting semantics.
-2. Add `SC-07` stimuli-side recovery targeting (emit recovery-biased and near-sync negative cases).
+2. Expand `SC-07` stimuli beyond OR-failure fallback into dedicated recovery-biased and near-sync negative-case generation modes.
 3. Start `SC-09` cross-field/cross-capture constraint design and validator contract.
 4. Define policy for promoting selected semantic warnings to strict-mode errors without harming bootstrap compatibility.
 
