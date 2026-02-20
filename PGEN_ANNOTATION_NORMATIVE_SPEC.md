@@ -150,6 +150,17 @@ Normative runtime leverage behavior for semantic annotations:
       - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP` when `@seed_group` is present while effective `@deterministic_group` is missing/false.
     - parser runtime baseline:
       - for OR rules under `@branch_policy: ordered`, effective deterministic partition hints drive stable branch-evaluation offsets before first-success short-circuit,
+      - generated parsers expose explicit runtime partition override modes for embedders:
+        - `DeterministicPartitionRuntimeMode::AnnotationDriven`
+        - `DeterministicPartitionRuntimeMode::ForceEnabled`
+        - `DeterministicPartitionRuntimeMode::ForceDisabled`
+      - generated parser API surface includes:
+        - `deterministic_partition_runtime_mode()`
+        - `set_deterministic_partition_runtime_mode(...)`
+      - effective partition-enable decision for branch ordering and event emission is computed at runtime from `(annotation, runtime_mode)`:
+        - `AnnotationDriven`: honor annotation payload,
+        - `ForceEnabled`: enable partition behavior regardless of annotation,
+        - `ForceDisabled`: disable partition behavior regardless of annotation,
       - partition offset is deterministic per rule group key and branch count (group-key hash modulo branch count),
       - group key selection:
         - explicit `@seed_group` label when present,

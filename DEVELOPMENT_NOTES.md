@@ -1,4 +1,76 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-12 Runtime Partition Mode Hardening
+### Context
+SC-12 parser-side steering had been promoted, but partition behavior was still effectively fixed at code-generation time for each rule.
+
+That meant embedders had no parser-runtime control surface to:
+- force deterministic partitioning on,
+- force deterministic partitioning off,
+- or cleanly keep annotation-driven defaults.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Generated parser runtime mode surface
+- Added generated enum:
+  - `DeterministicPartitionRuntimeMode`
+    - `AnnotationDriven`
+    - `ForceEnabled`
+    - `ForceDisabled`
+- Added generated parser field:
+  - `deterministic_partition_runtime_mode`
+- Default mode in constructor:
+  - `AnnotationDriven`
+- Added generated parser API:
+  - `deterministic_partition_runtime_mode()`
+  - `set_deterministic_partition_runtime_mode(...)`
+
+#### 2) Runtime-effective SC-12 helpers
+- Added generated helper methods:
+  - `effective_deterministic_partition_enabled(annotation_enabled)`
+  - `effective_deterministic_partition_group(rule_name, annotation_group)`
+  - `deterministic_partition_offset_runtime(group_key, branch_count)`
+- These helpers centralize runtime-effective decision logic so ordered-OR steering and event hooks use one policy path.
+
+#### 3) Ordered OR steering moved to runtime
+- In multi-branch OR codegen:
+  - removed generation-time branch list rotation,
+  - generated parser now computes effective enable/group/offset at runtime,
+  - runtime loop builds and rotates `evaluation_order`,
+  - branch attempts execute by runtime-selected order (`match branch_index` dispatch).
+- Net effect:
+  - parser behavior can now be changed by embedder mode controls without regenerating parser code.
+
+#### 4) Rule-level partition telemetry uses runtime-effective state
+- Updated generated rule-method hooks to resolve effective enable/group at runtime before calling:
+  - `record_deterministic_partition_event(...)`
+- Event emission now aligns with runtime mode overrides (not annotation-only state).
+
+#### 5) Regression coverage updates
+- Extended parser semantic usage tests for runtime-mode hardening:
+  - `semantic_usage_codegen_emits_deterministic_partition_types_and_accessors`
+  - `semantic_usage_codegen_emits_deterministic_partition_runtime_hooks_for_rules`
+  - `semantic_usage_codegen_records_deterministic_partition_events_in_helper_methods`
+  - `semantic_usage_codegen_uses_runtime_partition_order_for_ordered_or`
+
+#### 6) Documentation sync
+- Updated matrix to record SC-12 embedder runtime override support and adjusted next-focus priorities.
+- Updated roadmap checklist + change log for SC-12 hardening milestone completion.
+- Updated normative spec and UG with runtime mode API contract and behavior precedence.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml deterministic_partition`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_uses_runtime_partition_order_for_ordered_or`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass (`75 semantic_usage_* tests`).
+
 ## 2026-02-20 - Phase K Follow-Up: SC-04 Token-Family Steering Baseline (`@token_class/@charset/@pattern`)
 ### Context
 SC-04 was still the largest semantic steering gap in the control matrix:

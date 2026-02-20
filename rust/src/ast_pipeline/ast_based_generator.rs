@@ -261,6 +261,13 @@ impl AstBasedGenerator {
                 pub parse_end: usize,
                 pub group_key: String,
             }
+
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            pub enum DeterministicPartitionRuntimeMode {
+                AnnotationDriven,
+                ForceEnabled,
+                ForceDisabled,
+            }
         }
     }
 
@@ -285,6 +292,7 @@ impl AstBasedGenerator {
                 negative_case_rule_hits: HashMap<String, usize>,
                 deterministic_partition_events: Vec<DeterministicPartitionEvent>,
                 deterministic_partition_rule_hits: HashMap<String, usize>,
+                deterministic_partition_runtime_mode: DeterministicPartitionRuntimeMode,
                 logger: Box<dyn Logger>,
             }
         }
@@ -510,6 +518,7 @@ impl AstBasedGenerator {
                     negative_case_rule_hits: HashMap::new(),
                     deterministic_partition_events: Vec::new(),
                     deterministic_partition_rule_hits: HashMap::new(),
+                    deterministic_partition_runtime_mode: DeterministicPartitionRuntimeMode::AnnotationDriven,
                     logger,
                 }
             }
@@ -624,6 +633,17 @@ impl AstBasedGenerator {
             pub fn deterministic_partition_rule_hits(&self) -> &HashMap<String, usize> {
                 &self.deterministic_partition_rule_hits
             }
+
+            pub fn deterministic_partition_runtime_mode(&self) -> DeterministicPartitionRuntimeMode {
+                self.deterministic_partition_runtime_mode
+            }
+
+            pub fn set_deterministic_partition_runtime_mode(
+                &mut self,
+                mode: DeterministicPartitionRuntimeMode,
+            ) {
+                self.deterministic_partition_runtime_mode = mode;
+            }
         }
     }
 
@@ -726,12 +746,18 @@ impl AstBasedGenerator {
                         #coverage_target_weight,
                         #coverage_critical_path,
                     );
+                    let deterministic_partition_effective_enabled =
+                        parser.effective_deterministic_partition_enabled(#deterministic_partition_enabled);
+                    let deterministic_partition_effective_group = parser.effective_deterministic_partition_group(
+                        #rule_name,
+                        #deterministic_partition_group,
+                    );
                     parser.record_deterministic_partition_event(
                         #rule_name,
                         start_pos,
                         end_pos,
-                        #deterministic_partition_enabled,
-                        #deterministic_partition_group,
+                        deterministic_partition_effective_enabled,
+                        &deterministic_partition_effective_group,
                     );
 
                     Ok(ParseNode {
@@ -900,7 +926,6 @@ impl AstBasedGenerator {
             }
         } else {
             // Multi-branch - evaluate all branches and keep the longest successful match
-            let mut branch_attempts = Vec::new();
             let branch_priorities = self.rule_branch_priorities(rule_name, branch_count);
             let associativity = self.rule_associativity(rule_name);
             let associativity_mode = associativity.as_str();
@@ -908,22 +933,10 @@ impl AstBasedGenerator {
             let branch_policy_mode = branch_policy.as_str();
             let deterministic_partition_policy =
                 self.rule_deterministic_partition_policy(rule_name);
-            let deterministic_partition_enabled = deterministic_partition_policy.enabled;
-            let deterministic_partition_group = deterministic_partition_policy
+            let deterministic_partition_annotation_enabled = deterministic_partition_policy.enabled;
+            let deterministic_partition_annotation_group = deterministic_partition_policy
                 .group_label
                 .unwrap_or_else(|| format!("rule.{}", rule_name));
-            let deterministic_partition_offset = if deterministic_partition_enabled {
-                Self::deterministic_partition_offset(&deterministic_partition_group, branch_count)
-            } else {
-                0usize
-            };
-            let mut evaluation_order: Vec<usize> = (0..branch_count).collect();
-            if deterministic_partition_enabled
-                && branch_count > 1
-                && deterministic_partition_offset > 0
-            {
-                evaluation_order.rotate_left(deterministic_partition_offset);
-            }
             let (
                 recover_enabled,
                 sync_tokens,
@@ -983,7 +996,8 @@ impl AstBasedGenerator {
                 }
             };
 
-            for idx in evaluation_order {
+            let mut branch_attempt_arms = Vec::new();
+            for idx in 0..branch_count {
                 let alternative = &alternatives[idx];
                 eprintln!();
                 let branch_logic =
@@ -1008,41 +1022,64 @@ impl AstBasedGenerator {
                 let branch_num = idx + 1;
                 let branch_priority = branch_priorities.get(idx).copied().unwrap_or(0);
                 let branch_index = idx;
-                branch_attempts.push(quote! {
-                    if #branch_policy_mode == "ordered" && best_content.is_some() {
-                        // Ordered branch policy keeps first successful branch.
-                    } else {
-                        parser.position = parse_start;
-                        if let Some(content) = parser.try_parse(|p| {
-                            let parser = p;
-                            if parser.logger.is_enabled() {
-                                parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
-                            }
-                            #branch_logic;
-                            if parser.logger.is_enabled() {
-                                parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
-                            }
-                            Ok(result)
-                        }) {
-                            let candidate_end = parser.position;
+                branch_attempt_arms.push(quote! {
+                    #branch_index => {
+                        if #branch_policy_mode == "ordered" && best_content.is_some() {
+                            // Ordered branch policy keeps first successful branch.
+                        } else {
                             parser.position = parse_start;
-                            let candidate_priority: i64 = #branch_priority;
-                            let transformed = {
-                                let content = content;
-                                #transform
-                            };
-                            let should_take = if #branch_policy_mode == "ordered" {
-                                best_content.is_none()
-                            } else if #branch_policy_mode == "priority_first" {
-                                if best_content.is_none() {
+                            if let Some(content) = parser.try_parse(|p| {
+                                let parser = p;
+                                if parser.logger.is_enabled() {
+                                    parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
+                                }
+                                #branch_logic;
+                                if parser.logger.is_enabled() {
+                                    parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
+                                }
+                                Ok(result)
+                            }) {
+                                let candidate_end = parser.position;
+                                parser.position = parse_start;
+                                let candidate_priority: i64 = #branch_priority;
+                                let transformed = {
+                                    let content = content;
+                                    #transform
+                                };
+                                let should_take = if #branch_policy_mode == "ordered" {
+                                    best_content.is_none()
+                                } else if #branch_policy_mode == "priority_first" {
+                                    if best_content.is_none() {
+                                        true
+                                    } else if candidate_priority > best_priority {
+                                        true
+                                    } else if candidate_priority < best_priority {
+                                        false
+                                    } else if candidate_end > best_end {
+                                        true
+                                    } else if candidate_end < best_end {
+                                        false
+                                    } else {
+                                        match #associativity_mode {
+                                            "right" => #branch_index > best_branch_index,
+                                            "nonassoc" => {
+                                                if #branch_index != best_branch_index {
+                                                    nonassoc_tie = true;
+                                                }
+                                                false
+                                            }
+                                            _ => false,
+                                        }
+                                    }
+                                } else if best_content.is_none() {
                                     true
-                                } else if candidate_priority > best_priority {
-                                    true
-                                } else if candidate_priority < best_priority {
-                                    false
                                 } else if candidate_end > best_end {
                                     true
                                 } else if candidate_end < best_end {
+                                    false
+                                } else if candidate_priority > best_priority {
+                                    true
+                                } else if candidate_priority < best_priority {
                                     false
                                 } else {
                                     match #associativity_mode {
@@ -1055,39 +1092,18 @@ impl AstBasedGenerator {
                                         }
                                         _ => false,
                                     }
-                                }
-                            } else if best_content.is_none() {
-                                true
-                            } else if candidate_end > best_end {
-                                true
-                            } else if candidate_end < best_end {
-                                false
-                            } else if candidate_priority > best_priority {
-                                true
-                            } else if candidate_priority < best_priority {
-                                false
-                            } else {
-                                match #associativity_mode {
-                                    "right" => #branch_index > best_branch_index,
-                                    "nonassoc" => {
-                                        if #branch_index != best_branch_index {
-                                            nonassoc_tie = true;
-                                        }
-                                        false
-                                    }
-                                    _ => false,
-                                }
-                            };
+                                };
 
-                            if should_take {
-                                best_end = candidate_end;
-                                best_priority = candidate_priority;
-                                best_branch_index = #branch_index;
-                                best_branch = #branch_num;
-                                best_content = Some(transformed);
+                                if should_take {
+                                    best_end = candidate_end;
+                                    best_priority = candidate_priority;
+                                    best_branch_index = #branch_index;
+                                    best_branch = #branch_num;
+                                    best_content = Some(transformed);
+                                }
+                            } else if parser.logger.is_enabled() {
+                                parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                             }
-                        } else if parser.logger.is_enabled() {
-                            parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                         }
                     }
                 });
@@ -1103,7 +1119,31 @@ impl AstBasedGenerator {
                 let mut best_branch = 0usize;
                 let mut nonassoc_tie = false;
                 let mut result = ParseContent::Sequence(Vec::new());
-                #(#branch_attempts)*
+                let deterministic_partition_effective_enabled = parser
+                    .effective_deterministic_partition_enabled(#deterministic_partition_annotation_enabled);
+                let deterministic_partition_effective_group = parser
+                    .effective_deterministic_partition_group(#rule_name, #deterministic_partition_annotation_group);
+                let deterministic_partition_offset = if deterministic_partition_effective_enabled {
+                    parser.deterministic_partition_offset_runtime(
+                        &deterministic_partition_effective_group,
+                        #branch_count,
+                    )
+                } else {
+                    0usize
+                };
+                let mut evaluation_order: Vec<usize> = (0..#branch_count).collect();
+                if deterministic_partition_effective_enabled
+                    && #branch_count > 1
+                    && deterministic_partition_offset > 0
+                {
+                    evaluation_order.rotate_left(deterministic_partition_offset);
+                }
+                for branch_index in evaluation_order {
+                    match branch_index {
+                        #(#branch_attempt_arms,)*
+                        _ => {}
+                    }
+                }
 
                 if nonassoc_tie {
                     return Err(ParseError::Backtrack {
@@ -1630,6 +1670,44 @@ impl AstBasedGenerator {
                     }
                 }
                 None
+            }
+            fn effective_deterministic_partition_enabled(
+                &self,
+                annotation_enabled: bool,
+            ) -> bool {
+                match self.deterministic_partition_runtime_mode {
+                    DeterministicPartitionRuntimeMode::AnnotationDriven => annotation_enabled,
+                    DeterministicPartitionRuntimeMode::ForceEnabled => true,
+                    DeterministicPartitionRuntimeMode::ForceDisabled => false,
+                }
+            }
+            fn effective_deterministic_partition_group(
+                &self,
+                rule_name: &str,
+                annotation_group: &str,
+            ) -> String {
+                let trimmed = annotation_group.trim();
+                if !trimmed.is_empty() {
+                    trimmed.to_string()
+                } else {
+                    format!("rule.{}", rule_name)
+                }
+            }
+            fn deterministic_partition_offset_runtime(
+                &self,
+                group_key: &str,
+                branch_count: usize,
+            ) -> usize {
+                if branch_count <= 1 {
+                    return 0;
+                }
+
+                let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+                for byte in group_key.as_bytes() {
+                    hash ^= *byte as u64;
+                    hash = hash.wrapping_mul(0x0000_0100_0000_01B3);
+                }
+                (hash as usize) % branch_count
             }
             fn record_coverage_target_event(
                 &mut self,
@@ -4603,6 +4681,11 @@ mod semantic_usage_tests {
             "generated types should include DeterministicPartitionEvent, got: {}",
             types_rendered
         );
+        assert!(
+            types_rendered.contains("pub enum DeterministicPartitionRuntimeMode"),
+            "generated types should expose DeterministicPartitionRuntimeMode, got: {}",
+            types_rendered
+        );
 
         let parse_rendered = generator.generate_parse_method("start").to_string();
         assert!(
@@ -4618,6 +4701,16 @@ mod semantic_usage_tests {
         assert!(
             parse_rendered.contains("pub fn deterministic_partition_rule_hits"),
             "parse method generation should expose deterministic_partition_rule_hits accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn deterministic_partition_runtime_mode"),
+            "parse method generation should expose deterministic_partition_runtime_mode accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn set_deterministic_partition_runtime_mode"),
+            "parse method generation should expose runtime mode setter, got: {}",
             parse_rendered
         );
     }
@@ -4668,8 +4761,9 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("\"stable.alpha\""),
-            "SC-12 hook should carry resolved deterministic group key, got: {}",
+            rendered.contains("effective_deterministic_partition_enabled")
+                && rendered.contains("effective_deterministic_partition_group"),
+            "SC-12 hook should use runtime-effective partition policy helpers, got: {}",
             rendered
         );
     }
@@ -4699,18 +4793,17 @@ mod semantic_usage_tests {
             "SC-12 helper should record partition events and per-rule hit counters, got: {}",
             rendered
         );
+        assert!(
+            rendered.contains("fn effective_deterministic_partition_enabled")
+                && rendered.contains("fn effective_deterministic_partition_group")
+                && rendered.contains("fn deterministic_partition_offset_runtime"),
+            "SC-12 helper methods should expose runtime-effective enable/group/offset helpers, got: {}",
+            rendered
+        );
     }
 
     #[test]
-    fn semantic_usage_codegen_rotates_ordered_or_branch_evaluation_by_partition() {
-        let labels = ["stable.alpha", "stable.beta", "stable.gamma"];
-        let selected_label = labels
-            .iter()
-            .find(|label| AstBasedGenerator::deterministic_partition_offset(label, 3) > 0)
-            .copied()
-            .expect("at least one test label should produce non-zero deterministic offset");
-        let offset = AstBasedGenerator::deterministic_partition_offset(selected_label, 3);
-
+    fn semantic_usage_codegen_uses_runtime_partition_order_for_ordered_or() {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "expr".to_string(),
@@ -4724,7 +4817,7 @@ mod semantic_usage_tests {
                 SemanticAnnotation::Named {
                     name: "seed_group".to_string(),
                     ast: UnifiedSemanticAST::Raw {
-                        content: format!("\"{}\"", selected_label),
+                        content: "\"stable.beta\"".to_string(),
                     },
                 },
                 SemanticAnnotation::Named {
@@ -4755,24 +4848,17 @@ mod semantic_usage_tests {
             .generate_node_parsing_logic(&or_rule_three(), "expr", "semantic_usage.rs")
             .expect("or-node logic generation should succeed");
         let rendered = logic.to_string();
+        let has_rotate = rendered.contains("evaluation_order . rotate_left (deterministic_partition_offset)")
+            || rendered.contains("evaluation_order . rotate_left ( deterministic_partition_offset )");
 
-        let mut expected_priorities = vec![11, 22, 33];
-        expected_priorities.rotate_left(offset);
-        let expected_tokens: Vec<String> = expected_priorities
-            .iter()
-            .map(|priority| format!("= {}i64", priority))
-            .collect();
-        let mut positions = Vec::new();
-        for token in &expected_tokens {
-            let pos = rendered
-                .find(token)
-                .unwrap_or_else(|| panic!("expected to find token '{}' in '{}'", token, rendered));
-            positions.push(pos);
-        }
         assert!(
-            positions.windows(2).all(|pair| pair[0] < pair[1]),
-            "branch evaluation order should follow deterministic partition offset {}, got rendered: {}",
-            offset,
+            rendered.contains("effective_deterministic_partition_enabled")
+                && rendered.contains("effective_deterministic_partition_group")
+                && rendered.contains("deterministic_partition_offset_runtime")
+                && has_rotate
+                && rendered.contains("for branch_index in evaluation_order")
+                && rendered.contains("match branch_index"),
+            "ordered OR logic should compute deterministic partition order at parser runtime, got rendered: {}",
             rendered
         );
     }

@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-12 Runtime Partition Mode Hardening
+### ✅ Achievement Summary
+Hardened SC-12 parser steering by moving deterministic partition resolution fully to parser runtime and exposing embedder override modes.
+### Scope of Changes
+- Updated parser codegen/runtime in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - added generated runtime mode enum:
+    - `DeterministicPartitionRuntimeMode::{AnnotationDriven, ForceEnabled, ForceDisabled}`
+  - added generated parser runtime controls:
+    - `deterministic_partition_runtime_mode()`
+    - `set_deterministic_partition_runtime_mode(...)`
+  - moved ordered OR partition selection to runtime-effective resolution:
+    - runtime-effective enable/group helpers are now used before branch evaluation order is computed
+    - branch-evaluation order rotation now occurs in generated parser runtime code (not generation-time token ordering)
+  - wired deterministic partition event emission to runtime-effective enable/group state in generated rule methods.
+- Expanded parser semantic-usage regression coverage:
+  - `semantic_usage_codegen_emits_deterministic_partition_types_and_accessors` (runtime mode API assertions)
+  - `semantic_usage_codegen_emits_deterministic_partition_runtime_hooks_for_rules` (runtime-effective helper usage assertions)
+  - `semantic_usage_codegen_records_deterministic_partition_events_in_helper_methods` (runtime-effective helper coverage)
+  - `semantic_usage_codegen_uses_runtime_partition_order_for_ordered_or` (runtime-ordered OR partitioning assertion).
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml deterministic_partition` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_uses_runtime_partition_order_for_ordered_or` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-04 Token-Family Steering Baseline (`@token_class/@charset/@pattern`)
 ### ✅ Achievement Summary
 Implemented SC-04 end-to-end baseline so parser and stimuli now share deterministic token-family steering with typed payload diagnostics and explicit precedence contract.

@@ -1126,6 +1126,18 @@ If `@seed_group` is present while effective `@deterministic_group` is missing or
   - explicit `@seed_group`,
   - else explicit group label embedded in `@deterministic_group`,
   - else fallback `rule.<rule_name>`.
+- Generated parser exposes runtime override controls for embedders:
+  - enum: `DeterministicPartitionRuntimeMode`
+    - `AnnotationDriven` (default)
+    - `ForceEnabled`
+    - `ForceDisabled`
+  - accessors:
+    - `deterministic_partition_runtime_mode()`
+    - `set_deterministic_partition_runtime_mode(...)`
+- Runtime mode controls effective partition behavior for ordered OR branch ordering and partition telemetry:
+  - `AnnotationDriven`: follow annotation payload,
+  - `ForceEnabled`: enable partition behavior regardless of annotation,
+  - `ForceDisabled`: disable partition behavior regardless of annotation.
 - Generated parser emits typed partition telemetry on effective deterministic-group rules:
   - event type: `DeterministicPartitionEvent { rule_name, parse_start, parse_end, group_key }`
   - accessors:
