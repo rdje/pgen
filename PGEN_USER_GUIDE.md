@@ -37,6 +37,18 @@ For annotation grammars specifically:
 - Generated parsers are the target steady-state behavior.
 - Differential tooling tracks drift between the two.
 
+### Quality gates (term definition)
+A **gate** in PGEN is a hard, executable quality contract with pass/fail outcome that can block merge/release.
+
+For a check to be considered a gate, it is captured in all of these places:
+- local command entrypoint (usually a Make target in `rust/Makefile`)
+- executable logic (`rust/scripts/*.sh`, `cargo test`, and/or `test_runner` suites)
+- release policy classification (required vs informational in `rust/config/sota_exit_policy.env` and `rust/scripts/sota_exit_gate.sh`)
+- CI execution (`.github/workflows/*.yml`)
+- run evidence/artifacts (`rust/target/<gate_name>/...` logs/reports)
+
+This keeps “gate” meaning aligned: it is not a guideline; it is an enforceable, versioned contract.
+
 ## 3) Fast Start
 
 ### Build and run core gates

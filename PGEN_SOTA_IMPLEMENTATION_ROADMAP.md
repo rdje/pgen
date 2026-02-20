@@ -156,6 +156,23 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Promote `ebnf_stimuli_quality_gate` into aggregate SOTA required-check policy.
 - [ ] Promote parseability validation from optional to required grammar-by-grammar as parser registry coverage expands beyond annotation grammars.
 
+### Phase N (New): Generated Stimuli Module Artifacts (`<grammar>_stimuli.rs`)
+- [ ] Add explicit AST-pipeline generation mode for Rust stimuli modules (for example `--generate-stimuli-module`) from both JSON and EBNF frontend inputs.
+- [ ] Define deterministic artifact contract:
+  - output path pattern: `generated/<grammar>_stimuli.rs`,
+  - stable exported API surface for embedding,
+  - deterministic output under fixed grammar + config.
+- [ ] Preserve current in-memory stimuli path as default behavior while enabling file artifact generation via explicit opt-in CLI flag.
+- [ ] Add parity gate between in-memory stimuli generation and generated stimuli-module behavior:
+  - same grammar,
+  - same seed/config,
+  - equivalent acceptance/coverage/gap outcomes.
+- [ ] Add gate target (for example `stimuli_module_parity_gate`) and wire into aggregate SOTA required-check policy once parity is stable.
+- [ ] Extend User Guide and normative docs with:
+  - when to use in-memory vs generated stimuli module,
+  - embedding workflow examples for `generated/<grammar>_stimuli.rs`,
+  - deterministic replay/seed compatibility guarantees.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -240,3 +257,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Strengthened Phase L with explicit annotation proof-doctrine requirements (construct coverage, typed-AST no-fallback, runtime intent conformance, determinism, and parity) as mandatory gate work.
 - 2026-02-20: Implemented `annotation_stimuli_quality_gate` and wired it into `annotation_contract_gate`; gate now enforces a strict deterministic closed-loop for return/semantic annotation grammars (baseline parseability+coverage+gap, gap-priority generation, target-driven generation, and final no-regression gap recompute with stage-level artifact/metric invariants).
 - 2026-02-20: Added Phase M non-annotation quality loop with contract-driven `make ebnf_stimuli_quality_gate` (strict `EBNF -> JSON`, parser generation, and closed-loop stimuli/coverage/gap invariants for tracked non-annotation grammars) and promoted it to required aggregate SOTA policy checks.
+- 2026-02-20: Added Phase N roadmap track for generated stimuli-module artifacts (`generated/<grammar>_stimuli.rs`) with explicit in-memory-vs-module parity gate requirements and embedding contract milestones.
