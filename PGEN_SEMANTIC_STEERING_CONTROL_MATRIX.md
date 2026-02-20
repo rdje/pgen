@@ -49,7 +49,7 @@ Hard boundary:
 |---|---|---|---|---|---|---|---|
 | `SC-01` | Canonical terminal transform/coercion | Transform matched terminal into typed parse content | Bias sample shape by target type | `@transform: str::parse::<T>().unwrap_or(default)` | Implemented (canonical parser shared across validator/codegen/stimuli) | Tier 4 | P0 |
 | `SC-02` | Raw literal sample hint | None | Allow explicit literal sample override | Raw semantic payload (`"literal"`) | Implemented for stimuli only | Tier 3 | P1 |
-| `SC-03` | Name-based directive routing | Select behavior by semantic annotation name | Same | `@sample`, `@weight`, `@recover`, `@token`, `@constraint` | Foundation implemented: typed name routing + unknown-directive policy + transform/literal routing guards; broader directive steering still pending | Tier 3 | P0 |
+| `SC-03` | Name-based directive routing | Select behavior by semantic annotation name | Same | `@sample`, `@weight`, `@recover`, `@token`, `@constraint` | Gate-hardened routing baseline: typed directive registry with capability taxonomy checks + unknown-directive warn/strict policy contracts + strict-warning policy selectors + parser/stimuli transform/literal named-routing guards + dedicated SC-03 contract slices (bootstrap/generated semantic suite + differential taxonomy parity checks) wired into `annotation_contract_gate`/CI; broader directive steering remains tracked under per-control SC items | Tier 4 | P0 |
 | `SC-04` | Token-class steering | Choose matcher strategy per regex atom/rule | Generate samples by token family/class | `@token_class`, `@charset`, `@pattern` | Implemented Tier 4 contract: typed payload validators + deterministic precedence (`@pattern > @charset > @token_class`) + parser regex matcher override + stimuli regex sampling override + grammar-aware inactive-steering warning when no regex atom is present + dedicated SC-04 gate slices (bootstrap/generated semantic contract suite + differential taxonomy parity checks) wired into `annotation_contract_gate`/CI | Tier 4 | P1 |
 | `SC-05` | Precedence/associativity steering | Resolve ambiguity/branching deterministically | Generate precedence-respecting trees | `@precedence`, `@associativity`, `@priority` | Implemented: parser tie-break uses priority+associativity; stimuli branch sampling uses semantic priority/precedence + associativity multipliers; conflict contract enforces `priority > precedence` with deterministic duplicate last-wins diagnostics | Tier 3 | P0 |
 | `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | Implemented baseline: typed `@branch_policy` with parser/stimuli branch steering (`longest_match`, `ordered`, `priority_first`) + validator payload contracts | Tier 3 | P1 |
@@ -89,12 +89,13 @@ Required quality bar:
 4. Any temporary mismatch must be explicitly tracked in differential baselines with closure plan.
 
 ## Next Implementation Focus (Recommended)
-1. Expand SC-03 from directive-routing foundation to broader typed steering coverage and stricter policy enforcement in CI gates.
-2. Promote selected Tier-3 controls (SC-06/SC-07/SC-09/SC-10/SC-11/SC-12) toward Tier-4 gate slices with comparable differential taxonomy checks.
+1. Promote selected Tier-3 controls (SC-06/SC-07/SC-09/SC-10/SC-11/SC-12) toward Tier-4 gate slices with comparable differential taxonomy checks.
+2. Expand per-directive capability taxonomy assertions so registry metadata cannot drift from runtime behavior.
 
 ## Priority Queue (Balance-Oriented)
 - `P0` Keep built-in core minimal and invariant-only (correctness/safety/return completeness).
 - `P0` Implement typed semantic directive registry + unknown-directive policy modes (`warn`/`strict`). (Completed 2026-02-19)
+- `P0` Harden SC-03 with gate-enforced contract slices and strict-policy coverage (`sc03_contract_gate` wired into `annotation_contract_gate`). (Completed 2026-02-20)
 - `P0` Promote precedence/associativity and value-domain constraints to parser+stimuli steering. (Completed 2026-02-19)
 - `P1` Expand conflict diagnostics from directive precedence to unsatisfiable cross-directive constraint intersections. (Completed 2026-02-19)
 - `P1` Start `SC-09` typed cross-field/cross-capture validator contract (`@constraint/@requires/@implies`) with stable diagnostics. (Completed 2026-02-20)

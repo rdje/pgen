@@ -1,0 +1,100 @@
+[
+  {
+    "name": "directive_sample_string",
+    "description": "SC-03 shared contract: sample directive name routes through typed registry and remains parseable in bootstrap/generated parsers.",
+    "input": "@sample: \"literal_seed\"",
+    "expected_round_trip": "@sample: \"literal_seed\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc03", "directive_routing"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_weight_numeric",
+    "description": "SC-03 shared contract: weight directive remains parseable for typed registry routing.",
+    "input": "@weight: 3",
+    "expected_round_trip": "@weight: 3",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc03", "directive_routing"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_recover_bool",
+    "description": "SC-03 shared contract: recover directive remains parseable for typed routing into recovery controls.",
+    "input": "@recover: true",
+    "expected_round_trip": "@recover: true",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc03", "directive_routing"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_branch_policy_ordered",
+    "description": "SC-03 shared contract: branch_policy named directive remains parseable in both parser paths.",
+    "input": "@branch_policy: ordered",
+    "expected_round_trip": "@branch_policy: ordered",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc03", "directive_routing"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_constraint_expression",
+    "description": "SC-03 shared contract: constraint directive expression payload remains parseable in both parser paths.",
+    "input": "@constraint: \"lhs == rhs\"",
+    "expected_round_trip": "@constraint: \"lhs == rhs\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc03", "directive_routing"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_literal_hint",
+    "description": "SC-03 shared contract: literal directive remains parseable for stimuli literal-hint routing.",
+    "input": "@literal: \"seed_literal\"",
+    "expected_round_trip": "@literal: \"seed_literal\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc03", "directive_routing"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_example_hint",
+    "description": "SC-03 shared contract: example directive remains parseable for stimuli literal-hint routing.",
+    "input": "@example: \"seed_example\"",
+    "expected_round_trip": "@example: \"seed_example\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc03", "directive_routing"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

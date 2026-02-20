@@ -226,19 +226,19 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
     // Planned steering directives (registry-first, steering rollout follows).
     SemanticDirectiveSpec {
         name: "sample",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::StimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "precedence",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "associativity",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "priority",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "weight",
@@ -246,11 +246,11 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
     },
     SemanticDirectiveSpec {
         name: "branch_policy",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "recover",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "recover_budget",
@@ -266,39 +266,39 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
     },
     SemanticDirectiveSpec {
         name: "sync",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "panic_until",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "range",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "enum",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "regex",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "len",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "constraint",
-        capability: SemanticDirectiveCapability::ParsedAndValidated,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "requires",
-        capability: SemanticDirectiveCapability::ParsedAndValidated,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "implies",
-        capability: SemanticDirectiveCapability::ParsedAndValidated,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "token_class",
@@ -314,11 +314,11 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
     },
     SemanticDirectiveSpec {
         name: "coverage_target",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "critical_path",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "invalid_case",
@@ -721,7 +721,8 @@ fn strip_optional_quotes(value: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::{
-        SemanticAssociativity, SemanticBranchPolicy, SemanticTokenClass,
+        SemanticAssociativity, SemanticBranchPolicy, SemanticDirectiveCapability,
+        SemanticTokenClass,
         UnknownSemanticDirectivePolicy, extract_semantic_directive,
         extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_bool,
         parse_semantic_branch_priorities, parse_semantic_charset,
@@ -1041,5 +1042,45 @@ mod tests {
         assert!(semantic_directive_spec("seed_group").is_some());
         assert!(semantic_directive_spec("deterministic_group").is_some());
         assert!(semantic_directive_spec("unknown_directive").is_none());
+    }
+
+    #[test]
+    fn directive_capability_matrix_reflects_runtime_surface() {
+        assert_eq!(
+            semantic_directive_spec("transform").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParserAndStimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("sample").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::StimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("branch_policy").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParserAndStimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("recover").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParserAndStimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("recover_budget").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParserSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("sync").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParserAndStimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("constraint").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParserAndStimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("coverage_target").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParserAndStimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("literal").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::StimuliSteering)
+        );
     }
 }

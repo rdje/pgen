@@ -7,6 +7,20 @@ This document defines the normative contract for PGEN return and semantic annota
 
 The goal is to keep annotation behavior stable for embedding users and to make bootstrap behavior explicit (including known quirks used to break chicken-and-egg cycles).
 
+Binding policy note (2026-02-20):
+- Built-in annotation parser support is no longer treated as an open-ended "limited subset" target.
+- Built-in return/semantic parsers are required to cover all annotation construct forms exercised by their corresponding full-grammar corpora:
+  - `grammars/return_annotation.ebnf`
+  - `grammars/semantic_annotation.ebnf`
+- `grammars/builtin_return_annotation.ebnf` and `grammars/builtin_semantic_annotation.ebnf` must remain exact executable compatibility specs for built-in parser behavior; drift is a contract failure.
+- Verification quality is normative:
+  - construct-level parse acceptance/rejection coverage,
+  - typed-AST mapping coverage,
+  - runtime-intent conformance coverage,
+  - deterministic replay coverage,
+  - comparable bootstrap/generated parity coverage,
+  - EBNF-based stimuli quality coverage (construct-complete generation, gap-target convergence, deterministic replay, and failure shrinking).
+
 ## Scope Layers
 PGEN annotation behavior is defined in three layers:
 
@@ -77,6 +91,21 @@ Normative runtime leverage behavior for semantic annotations:
   - `rust/src/ast_pipeline/semantic_transform.rs`
   - Used by validator, parser codegen, and stimuli hinting paths.
 - Additional semantic steering contract (Phase K):
+  - SC-03 typed directive routing + strictness policy contract:
+    - directive names are resolved through typed registry entries (`semantic_directive_spec(...)`),
+    - unknown directive behavior is policy-controlled (`ignore|warn|strict`),
+    - strict warning promotion is selector-controlled (`PGEN_STRICT_SEMANTIC_WARNING_CODES`),
+    - transform steering is name-aware (`transform` only),
+    - raw literal hint steering is restricted to literalish directives (`sample|literal|example|stimulus`) in named mode.
+    - Tier-4 gate contract:
+      - dedicated shared semantic contract slice:
+        - `rust/test_data/semantic_annotation/sc03_contract.json`
+      - dedicated gate target:
+        - `make -C rust sc03_contract_gate`
+      - gate includes differential mismatch taxonomy parity checks over the SC-03 suite:
+        - allowed mismatch categories are constrained to the differential taxonomy set,
+        - category-count totals must match `mismatched_cases`,
+        - SC-03 comparable corpus currently requires `mismatched_cases == 0`.
   - `@branch_policy` is a typed steering directive used in parser/stimuli OR-branch selection:
     - `longest_match` (default),
     - `ordered`,
@@ -314,6 +343,8 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/return_annotation/normative_shared_contract.json`
 - Shared bootstrap/generated semantic contract suite:
   - `rust/test_data/semantic_annotation/normative_shared_contract.json`
+- SC-03 shared semantic contract suite:
+  - `rust/test_data/semantic_annotation/sc03_contract.json`
 - SC-04 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc04_contract.json`
 - Semantic leverage usage suite:
@@ -321,8 +352,10 @@ Normative contract checks are executable, not only documented:
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust sc03_contract_gate`
   - `make -C rust sc04_contract_gate`
   - `make -C rust semantic_usage_gate`
+  - `make -C rust annotation_stimuli_quality_gate`
 
 The gate runs:
 - typed validator unit coverage
@@ -330,8 +363,14 @@ The gate runs:
 - bootstrap semantic contract suite
 - shared return contract suite (bootstrap + generated)
 - shared semantic contract suite (bootstrap + generated)
+- SC-03 semantic contract slice + differential taxonomy parity check
 - SC-04 semantic contract slice + differential taxonomy parity check
 - semantic leverage unit contract suite (parser + stimuli)
+- strict closed-loop stimuli quality verification (return + semantic):
+  - baseline parseability/coverage/gap snapshot,
+  - gap-priority generation with merged-coverage monotonicity checks,
+  - target-driven generation summary integrity checks,
+  - final gap no-regression assertions.
 
 ## Maintenance Rules
 When annotation behavior changes intentionally:
