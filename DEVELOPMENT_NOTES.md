@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Unsatisfiable Stimuli Contract Diagnostics
+### Context
+SC-09 stimuli retries were already enforcing relational contracts, but attempt exhaustion diagnostics only surfaced the final violation (`last_violation`).
+
+That made failures noisy and hard to triage:
+- no visibility into repeated vs sporadic causes,
+- no split between generation failures and relational contract failures,
+- no machine-readable hint for likely-unsatisfiable contracts.
+
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+#### 1) Failure accounting in relational retries
+- Updated `generate_sequence(...)` (relational branch) to track:
+  - `relational_failures`
+  - `generation_failures`
+  - `violation_counts: HashMap<String, usize>`
+- Generation errors are still preserved via `last_error`; relational failures now increment structured counters.
+
+#### 2) Ranked violation aggregation
+- On each relational validation failure:
+  - error reason is converted to a stable string and counted in `violation_counts`.
+- On attempt exhaustion (with collected relational failures):
+  - reasons are ranked by descending count (then lexicographic tie-break),
+  - top 3 reasons are emitted as:
+    - `top_violations=[<count>x <reason> | ...]`
+
+#### 3) Likely-unsatisfiable signal
+- Added deterministic `likely_unsatisfiable` emission:
+  - `true` when one root violation reason accounts for all relational failures in the attempt budget,
+  - `false` otherwise.
+- Final error now reports:
+  - attempt budget,
+  - relational vs generation failure counts,
+  - ranked top violation reasons,
+  - likely-unsatisfiable flag.
+
+#### 4) Regression test
+- Added:
+  - `semantic_usage_stimuli_relational_unsat_reports_ranked_violation_summary`
+- Test enforces:
+  - unsatisfiable contract returns an error,
+  - error includes:
+    - `relational_failures=<attempt_budget>`
+    - `generation_failures=0`
+    - `top_violations=[...]`
+    - expected relational root-cause text
+    - `likely_unsatisfiable=true`
+
+#### 5) Living docs alignment
+- Updated:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+- SC-09 status now explicitly includes structured unsatisfiable diagnostics in stimuli runtime.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_unsat_reports_ranked_violation_summary`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Stimuli Nested Path Synthesis Hardening
 ### Context
 SC-09 stimuli enforcement already retried root-sequence generation under `@constraint/@requires/@implies`, but reference resolution remained shallow on the stimuli side:

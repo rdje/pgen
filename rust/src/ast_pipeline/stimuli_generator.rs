@@ -1707,6 +1707,9 @@ impl<'a> StimuliGenerator<'a> {
         let attempt_budget = self.relational_attempt_budget();
         let mut last_error: Option<anyhow::Error> = None;
         let mut last_violation: Option<String> = None;
+        let mut violation_counts: HashMap<String, usize> = HashMap::new();
+        let mut relational_failures = 0usize;
+        let mut generation_failures = 0usize;
 
         for _ in 0..attempt_budget {
             let mut output = String::new();
@@ -1727,6 +1730,7 @@ impl<'a> StimuliGenerator<'a> {
                     }
                     Err(err) => {
                         generation_failed = true;
+                        generation_failures = generation_failures.saturating_add(1);
                         last_error = Some(err);
                         break;
                     }
@@ -1745,9 +1749,40 @@ impl<'a> StimuliGenerator<'a> {
             ) {
                 Ok(()) => return Ok(output),
                 Err(err) => {
-                    last_violation = Some(err.to_string());
+                    relational_failures = relational_failures.saturating_add(1);
+                    let reason = err.to_string();
+                    *violation_counts.entry(reason.clone()).or_insert(0) += 1;
+                    last_violation = Some(reason);
                 }
             }
+        }
+
+        if !violation_counts.is_empty() {
+            let mut ranked_violations: Vec<(String, usize)> = violation_counts.into_iter().collect();
+            ranked_violations.sort_by(|left, right| {
+                right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0))
+            });
+
+            let top_violations = ranked_violations
+                .iter()
+                .take(3)
+                .map(|(reason, count)| format!("{}x {}", count, reason))
+                .collect::<Vec<String>>()
+                .join(" | ");
+            let likely_unsatisfiable = ranked_violations
+                .first()
+                .map(|(_, count)| *count == relational_failures)
+                .unwrap_or(false);
+
+            return Err(anyhow!(
+                "Failed to generate relationally valid sequence for rule '{}' within {} attempt(s): relational_failures={} generation_failures={} top_violations=[{}] likely_unsatisfiable={}",
+                current_rule,
+                attempt_budget,
+                relational_failures,
+                generation_failures,
+                top_violations,
+                likely_unsatisfiable
+            ));
         }
 
         if let Some(err) = last_error {
@@ -5062,6 +5097,75 @@ mod tests {
             values.iter().all(|value| value == "ok"),
             "inactive relational hints should not alter sample generation, got {:?}",
             values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_relational_unsat_reports_ranked_violation_summary() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("ident".to_string(), token("quoted_string", "AA"));
+        grammar_tree.insert(
+            "pair".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "ident"),
+                    token("quoted_string", ":"),
+                    token("rule_reference", "ident"),
+                ],
+            },
+        );
+        let rule_order = vec!["pair".to_string(), "ident".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "pair".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "constraint".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"$1 != $3\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "requires".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"$1\", \"$3\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9410);
+        let expected_budget = generator.relational_attempt_budget();
+        let err = generator
+            .generate_many(1, Some("pair"))
+            .expect_err("unsatisfiable relational contracts should surface structured diagnostics");
+        let message = err.to_string();
+
+        assert!(
+            message.contains(&format!("relational_failures={}", expected_budget)),
+            "error should report relational failure count, got {:?}",
+            message
+        );
+        assert!(
+            message.contains("generation_failures=0"),
+            "error should report generation failures separately, got {:?}",
+            message
+        );
+        assert!(
+            message.contains("top_violations=["),
+            "error should report ranked violation reasons, got {:?}",
+            message
+        );
+        assert!(
+            message.contains("Semantic relational constraint failed for rule 'pair': $1 != $3"),
+            "error should keep root cause in ranked summary, got {:?}",
+            message
+        );
+        assert!(
+            message.contains("likely_unsatisfiable=true"),
+            "error should flag consistently failing contracts as likely unsatisfiable, got {:?}",
+            message
         );
     }
 }

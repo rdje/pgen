@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Unsatisfiable Stimuli Contract Diagnostics
+### ✅ Achievement Summary
+Hardened SC-09 stimuli contract failures by upgrading attempt-exhaustion errors from single-cause output to ranked, structured unsatisfiable-contract diagnostics.
+### Scope of Changes
+- Updated relational retry failure reporting in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - added per-attempt failure accounting:
+    - `relational_failures`
+    - `generation_failures`
+  - added ranked relational violation summary aggregation:
+    - `top_violations=[...]` (count + reason, top 3)
+  - added deterministic unsatisfiable signal:
+    - `likely_unsatisfiable=true|false`
+  - preserved existing success behavior and retry acceptance criteria.
+- Added semantic usage regression test:
+  - `semantic_usage_stimuli_relational_unsat_reports_ranked_violation_summary`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_unsat_reports_ranked_violation_summary` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Stimuli Nested Path Synthesis Hardening
 ### ✅ Achievement Summary
 Hardened SC-09 stimuli relational enforcement by adding nested named/positional path reference resolution for structured capture values.

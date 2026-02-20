@@ -849,6 +849,11 @@ pair = ident ":" ident ;
   - same `@requires/@constraint/@implies` checks gate sample acceptance.
 - Reference resolution supports positional (`$1`, `$2.field`) and named dotted references (`lhs.id`) including `.len` suffix (for example `$1.len >= 1`).
 - Stimuli reference support includes nested named/positional paths (for example `lhs.id`, `$1.id`, `$3.id.len`) when referenced capture values are structured (JSON-like object payloads).
+- On retry exhaustion, stimuli returns structured diagnostics including:
+  - `relational_failures=<N>`
+  - `generation_failures=<N>`
+  - `top_violations=[<count>x <reason> | ...]` (ranked top causes)
+  - `likely_unsatisfiable=<bool>` (true when one cause consistently explains all relational failures)
 - Broader non-structured nested extraction heuristics remain follow-on hardening.
 - These directives now provide parse+validate plus parser+stimuli runtime contract surface (`Tier 3` baseline).
 

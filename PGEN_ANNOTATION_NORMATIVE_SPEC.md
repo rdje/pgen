@@ -123,6 +123,7 @@ Normative runtime leverage behavior for semantic annotations:
       - `@requires`, `@constraint`, and `@implies` use the same evaluator contract surface as parser baseline,
       - stimuli reference support covers positional and named references (including dotted nested paths and optional `.len`),
       - nested path traversal in stimuli is resolved over structured capture values (for example JSON-like object payloads emitted by grammar rules),
+      - on retry exhaustion, stimuli emits structured diagnostics including relational/generation failure counts, ranked top violation reasons, and a `likely_unsatisfiable` signal,
       - non-structured nested value extraction heuristics remain follow-on hardening work.
 
 ## Typed Annotation Validator Contract
