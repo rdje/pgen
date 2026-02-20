@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Non-Structured Nested Reference Extraction
+### ✅ Achievement Summary
+Extended SC-09 stimuli relational resolution beyond JSON-only captures by adding deterministic non-structured object parsing for nested named/positional reference paths.
+### Scope of Changes
+- Updated capture-path resolution in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - added non-structured capture parsing fallback for nested path lookups when JSON parsing fails,
+  - supported object-like key/value payloads using:
+    - separators: `=`, `:`
+    - pair delimiters: `,`, `;`, newline
+    - optional wrappers: `{...}`, `(...)`, `[...]`
+  - supported dotted key insertion into nested maps (for example `meta.id=AA`, `meta.kind:lhs`),
+  - preserved existing structured JSON path behavior and `.len` semantics.
+- Added semantic usage regression tests:
+  - `semantic_usage_stimuli_relational_supports_nonstructured_named_paths`
+  - `semantic_usage_stimuli_relational_supports_nonstructured_positional_paths`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_supports_nonstructured_` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Unsatisfiable Stimuli Contract Diagnostics
 ### ✅ Achievement Summary
 Hardened SC-09 stimuli contract failures by upgrading attempt-exhaustion errors from single-cause output to ranked, structured unsatisfiable-contract diagnostics.

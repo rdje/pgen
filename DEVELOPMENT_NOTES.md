@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Non-Structured Nested Reference Extraction
+### Context
+SC-09 stimuli nested reference support was previously limited to structured (JSON-like) capture payloads.
+
+That left a practical gap for grammars that emit non-JSON object-like text while still relying on relational constraints:
+- examples: `id=AA,meta.kind=lhs`, `(meta.id:BB,meta.kind:rhs)`,
+- nested reference checks (`lhs.meta.kind`, `$1.meta.id`) could fail despite semantically present data.
+
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+#### 1) Non-structured capture parsing fallback
+- Extended `parse_capture_value_as_json(...)`:
+  - keeps JSON parse as first priority,
+  - adds deterministic fallback parser for non-structured object-like captures when JSON parse fails.
+
+#### 2) Loose object model accepted by fallback
+- Added parsing support for:
+  - key/value separators:
+    - `=`
+    - `:`
+  - pair delimiters:
+    - `,`
+    - `;`
+    - newline
+  - outer wrappers:
+    - `{...}`
+    - `(...)`
+    - `[...]`
+- Added scalar normalization:
+  - quoted strings,
+  - booleans/null,
+  - integer/float numbers,
+  - nested object-like payloads (bounded recursion).
+
+#### 3) Nested dotted-key insertion
+- Added path insertion logic to materialize dotted keys into nested map structure:
+  - `meta.id=AA` -> `{ "meta": { "id": "AA" } }`
+  - `meta.kind:lhs` -> `{ "meta": { "kind": "lhs" } }`
+- This directly enables nested relational references over non-structured captures:
+  - named: `lhs.meta.id`
+  - positional: `$1.meta.kind`
+
+#### 4) Regression coverage
+- Added semantic usage tests:
+  - `semantic_usage_stimuli_relational_supports_nonstructured_named_paths`
+  - `semantic_usage_stimuli_relational_supports_nonstructured_positional_paths`
+- Tests confirm relational constraints are satisfiable and enforced when nested references resolve through non-structured capture parsing.
+
+#### 5) Living docs alignment
+- Updated:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+- SC-09 status now includes non-structured nested reference extraction for stimuli relational checks.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_supports_nonstructured_`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Unsatisfiable Stimuli Contract Diagnostics
 ### Context
 SC-09 stimuli retries were already enforcing relational contracts, but attempt exhaustion diagnostics only surfaced the final violation (`last_violation`).

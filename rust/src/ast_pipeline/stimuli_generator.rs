@@ -3143,8 +3143,350 @@ impl<'a> StimuliGenerator<'a> {
             return Some(parsed);
         }
 
-        let unquoted = Self::semantic_unquote(normalized)?;
-        serde_json::from_str::<JsonValue>(unquoted.trim()).ok()
+        if let Some(unquoted) = Self::semantic_unquote(normalized) {
+            let unquoted_trimmed = unquoted.trim();
+            if let Ok(parsed) = serde_json::from_str::<JsonValue>(unquoted_trimmed) {
+                return Some(parsed);
+            }
+            if let Some(parsed) = Self::parse_nonstructured_capture_object(unquoted_trimmed, 0) {
+                return Some(parsed);
+            }
+        }
+
+        Self::parse_nonstructured_capture_object(normalized, 0)
+    }
+
+    fn parse_nonstructured_capture_object(raw: &str, depth: usize) -> Option<JsonValue> {
+        if depth > 4 {
+            return None;
+        }
+
+        let normalized = raw.trim();
+        if normalized.is_empty() {
+            return None;
+        }
+
+        let candidate = Self::strip_balanced_outer_wrappers(normalized);
+        if candidate.is_empty() || (!candidate.contains('=') && !candidate.contains(':')) {
+            return None;
+        }
+
+        let mut object = serde_json::Map::new();
+        let mut parsed_any = false;
+
+        for pair in Self::split_nonstructured_capture_pairs(candidate) {
+            let pair = pair.trim();
+            if pair.is_empty() {
+                continue;
+            }
+
+            let Some((raw_key, raw_value)) = Self::split_nonstructured_capture_key_value(pair)
+            else {
+                continue;
+            };
+            let Some(path_segments) = Self::parse_nonstructured_key_path(raw_key) else {
+                continue;
+            };
+
+            let parsed_value = Self::parse_nonstructured_capture_scalar(raw_value, depth + 1);
+            if Self::insert_nonstructured_capture_path(&mut object, &path_segments, parsed_value) {
+                parsed_any = true;
+            }
+        }
+
+        if parsed_any {
+            Some(JsonValue::Object(object))
+        } else {
+            None
+        }
+    }
+
+    fn parse_nonstructured_capture_scalar(raw: &str, depth: usize) -> JsonValue {
+        let normalized = raw.trim();
+        if normalized.is_empty() {
+            return JsonValue::String(String::new());
+        }
+
+        if let Ok(parsed) = serde_json::from_str::<JsonValue>(normalized) {
+            return parsed;
+        }
+
+        if let Some(unquoted) = Self::semantic_unquote(normalized) {
+            let unquoted_trimmed = unquoted.trim();
+            if let Ok(parsed) = serde_json::from_str::<JsonValue>(unquoted_trimmed) {
+                return parsed;
+            }
+            if let Some(parsed) = Self::parse_nonstructured_capture_object(unquoted_trimmed, depth)
+            {
+                return parsed;
+            }
+            return JsonValue::String(unquoted.to_string());
+        }
+
+        match normalized.to_ascii_lowercase().as_str() {
+            "true" => return JsonValue::Bool(true),
+            "false" => return JsonValue::Bool(false),
+            "null" => return JsonValue::Null,
+            _ => {}
+        }
+
+        if let Ok(number) = normalized.parse::<i64>() {
+            return JsonValue::Number(serde_json::Number::from(number));
+        }
+        if let Ok(number) = normalized.parse::<u64>() {
+            return JsonValue::Number(serde_json::Number::from(number));
+        }
+        if let Ok(number) = normalized.parse::<f64>() {
+            if let Some(parsed_number) = serde_json::Number::from_f64(number) {
+                return JsonValue::Number(parsed_number);
+            }
+        }
+
+        if let Some(parsed) = Self::parse_nonstructured_capture_object(normalized, depth) {
+            return parsed;
+        }
+
+        JsonValue::String(normalized.to_string())
+    }
+
+    fn parse_nonstructured_key_path(raw: &str) -> Option<Vec<String>> {
+        let normalized = raw.trim();
+        if normalized.is_empty() {
+            return None;
+        }
+
+        let normalized = if let Some(unquoted) = Self::semantic_unquote(normalized) {
+            unquoted.trim()
+        } else {
+            normalized
+        };
+        if normalized.is_empty() {
+            return None;
+        }
+
+        let mut segments = Vec::new();
+        for segment in normalized.split('.') {
+            let segment = segment.trim();
+            if segment.is_empty() || !Self::semantic_identifier(segment) {
+                return None;
+            }
+            segments.push(segment.to_string());
+        }
+        if segments.is_empty() {
+            return None;
+        }
+        Some(segments)
+    }
+
+    fn insert_nonstructured_capture_path(
+        object: &mut serde_json::Map<String, JsonValue>,
+        segments: &[String],
+        value: JsonValue,
+    ) -> bool {
+        if segments.is_empty() {
+            return false;
+        }
+        if segments.len() == 1 {
+            object.insert(segments[0].clone(), value);
+            return true;
+        }
+
+        let entry = object
+            .entry(segments[0].clone())
+            .or_insert_with(|| JsonValue::Object(serde_json::Map::new()));
+        if !matches!(entry, JsonValue::Object(_)) {
+            *entry = JsonValue::Object(serde_json::Map::new());
+        }
+        let JsonValue::Object(next) = entry else {
+            return false;
+        };
+
+        Self::insert_nonstructured_capture_path(next, &segments[1..], value)
+    }
+
+    fn strip_balanced_outer_wrappers(raw: &str) -> &str {
+        let mut candidate = raw.trim();
+        loop {
+            if candidate.len() < 2 {
+                break;
+            }
+            let bytes = candidate.as_bytes();
+            let Some(last) = bytes.last().copied() else {
+                break;
+            };
+            let first = bytes[0];
+            let wraps = matches!(
+                (first, last),
+                (b'{', b'}') | (b'(', b')') | (b'[', b']')
+            );
+            if !wraps || !Self::capture_encloses_full_wrapper(candidate) {
+                break;
+            }
+            candidate = candidate[1..candidate.len() - 1].trim();
+        }
+        candidate
+    }
+
+    fn capture_encloses_full_wrapper(raw: &str) -> bool {
+        let normalized = raw.trim();
+        if normalized.len() < 2 {
+            return false;
+        }
+        let bytes = normalized.as_bytes();
+        let Some(last) = bytes.last().copied() else {
+            return false;
+        };
+        let first = bytes[0];
+        if !Self::matching_brace(first, last) {
+            return false;
+        }
+
+        let mut stack: Vec<u8> = Vec::new();
+        let mut quote: Option<u8> = None;
+        for (idx, current) in bytes.iter().copied().enumerate() {
+            if let Some(active_quote) = quote {
+                if current == active_quote && (idx == 0 || bytes[idx - 1] != b'\\') {
+                    quote = None;
+                }
+                continue;
+            }
+
+            match current {
+                b'"' | b'\'' => {
+                    quote = Some(current);
+                }
+                b'(' | b'[' | b'{' => stack.push(current),
+                b')' | b']' | b'}' => {
+                    let Some(open) = stack.pop() else {
+                        return false;
+                    };
+                    if !Self::matching_brace(open, current) {
+                        return false;
+                    }
+                    if stack.is_empty() && idx + 1 < bytes.len() {
+                        return false;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        quote.is_none() && stack.is_empty()
+    }
+
+    fn split_nonstructured_capture_pairs<'b>(input: &'b str) -> Vec<&'b str> {
+        let bytes = input.as_bytes();
+        if bytes.is_empty() {
+            return Vec::new();
+        }
+
+        let mut parts = Vec::new();
+        let mut start = 0usize;
+        let mut idx = 0usize;
+        let mut quote: Option<u8> = None;
+        let mut stack: Vec<u8> = Vec::new();
+
+        while idx < bytes.len() {
+            let current = bytes[idx];
+            if let Some(active_quote) = quote {
+                if current == active_quote && (idx == 0 || bytes[idx - 1] != b'\\') {
+                    quote = None;
+                }
+                idx += 1;
+                continue;
+            }
+
+            match current {
+                b'"' | b'\'' => {
+                    quote = Some(current);
+                    idx += 1;
+                    continue;
+                }
+                b'(' | b'[' | b'{' => {
+                    stack.push(current);
+                    idx += 1;
+                    continue;
+                }
+                b')' | b']' | b'}' => {
+                    if let Some(open) = stack.last().copied() {
+                        if Self::matching_brace(open, current) {
+                            stack.pop();
+                        }
+                    }
+                    idx += 1;
+                    continue;
+                }
+                b',' | b';' | b'\n' | b'\r' if stack.is_empty() => {
+                    parts.push(input[start..idx].trim());
+                    idx += 1;
+                    start = idx;
+                    continue;
+                }
+                _ => {}
+            }
+
+            idx += 1;
+        }
+
+        parts.push(input[start..].trim());
+        parts
+    }
+
+    fn split_nonstructured_capture_key_value(pair: &str) -> Option<(&str, &str)> {
+        let normalized = pair.trim();
+        if normalized.is_empty() {
+            return None;
+        }
+
+        let bytes = normalized.as_bytes();
+        let mut quote: Option<u8> = None;
+        let mut stack: Vec<u8> = Vec::new();
+
+        for (idx, current) in bytes.iter().copied().enumerate() {
+            if let Some(active_quote) = quote {
+                if current == active_quote && (idx == 0 || bytes[idx - 1] != b'\\') {
+                    quote = None;
+                }
+                continue;
+            }
+
+            match current {
+                b'"' | b'\'' => {
+                    quote = Some(current);
+                    continue;
+                }
+                b'(' | b'[' | b'{' => {
+                    stack.push(current);
+                    continue;
+                }
+                b')' | b']' | b'}' => {
+                    if let Some(open) = stack.last().copied() {
+                        if Self::matching_brace(open, current) {
+                            stack.pop();
+                        }
+                    }
+                    continue;
+                }
+                b'=' | b':' if stack.is_empty() => {
+                    let key = normalized[..idx].trim();
+                    let value = normalized[idx + 1..].trim();
+                    if key.is_empty() || value.is_empty() {
+                        return None;
+                    }
+                    return Some((key, value));
+                }
+                _ => {}
+            }
+        }
+
+        None
+    }
+
+    fn matching_brace(open: u8, close: u8) -> bool {
+        matches!(
+            (open, close),
+            (b'(', b')') | (b'[', b']') | (b'{', b'}')
+        )
     }
 
     fn json_value_to_scalar_string(value: &JsonValue) -> Option<String> {
@@ -5067,6 +5409,236 @@ mod tests {
             assert_eq!(
                 lhs_id, "AA",
                 "positional nested-path constraint $1.id == 'AA' should hold, got {:?}",
+                sample
+            );
+        }
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_relational_supports_nonstructured_named_paths() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("ident".to_string(), token("regex", "^[A-Z]{2}$"));
+        grammar_tree.insert(
+            "lhs".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "{id="),
+                    token("rule_reference", "ident"),
+                    token("quoted_string", ",meta.kind=lhs}"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "rhs".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "{id="),
+                    token("rule_reference", "ident"),
+                    token("quoted_string", ",meta.kind=rhs}"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "pair".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "lhs"),
+                    token("quoted_string", "|"),
+                    token("rule_reference", "rhs"),
+                ],
+            },
+        );
+        let rule_order = vec![
+            "pair".to_string(),
+            "lhs".to_string(),
+            "rhs".to_string(),
+            "ident".to_string(),
+        ];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "ident".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "enum".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\"AA\", \"BB\"]".to_string(),
+                },
+            }],
+        );
+        annotations.semantic_annotations.insert(
+            "pair".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "constraint".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"lhs.id != rhs.id && lhs.meta.kind == 'lhs' && rhs.meta.kind == 'rhs'\""
+                            .to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "requires".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"lhs.id\", \"rhs.id\", \"lhs.meta.kind\", \"rhs.meta.kind\"]"
+                            .to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9406);
+        let values = generator
+            .generate_many(24, Some("pair"))
+            .expect("non-structured named-path relational constraints should be satisfiable");
+
+        for sample in values {
+            let parts: Vec<&str> = sample.split('|').collect();
+            assert_eq!(
+                parts.len(),
+                2,
+                "pair sample must preserve expected split shape, got {:?}",
+                sample
+            );
+            let lhs = StimuliGenerator::parse_capture_value_as_json(parts[0])
+                .expect("lhs capture should parse with non-structured object heuristics");
+            let rhs = StimuliGenerator::parse_capture_value_as_json(parts[1])
+                .expect("rhs capture should parse with non-structured object heuristics");
+            let lhs_id = lhs
+                .get("id")
+                .and_then(JsonValue::as_str)
+                .expect("lhs.id should be present");
+            let rhs_id = rhs
+                .get("id")
+                .and_then(JsonValue::as_str)
+                .expect("rhs.id should be present");
+            let lhs_kind = lhs
+                .get("meta")
+                .and_then(|meta| meta.get("kind"))
+                .and_then(JsonValue::as_str)
+                .expect("lhs.meta.kind should be present");
+            let rhs_kind = rhs
+                .get("meta")
+                .and_then(|meta| meta.get("kind"))
+                .and_then(JsonValue::as_str)
+                .expect("rhs.meta.kind should be present");
+            assert_ne!(
+                lhs_id, rhs_id,
+                "non-structured named-path constraint lhs.id != rhs.id should hold, got {:?}",
+                sample
+            );
+            assert_eq!(
+                lhs_kind, "lhs",
+                "lhs.meta.kind contract should hold, got {:?}",
+                sample
+            );
+            assert_eq!(
+                rhs_kind, "rhs",
+                "rhs.meta.kind contract should hold, got {:?}",
+                sample
+            );
+        }
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_relational_supports_nonstructured_positional_paths() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("ident".to_string(), token("regex", "^[A-Z]{2}$"));
+        grammar_tree.insert(
+            "lhs".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "(meta.id:"),
+                    token("rule_reference", "ident"),
+                    token("quoted_string", ",meta.kind:lhs)"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "rhs".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "(meta.id:"),
+                    token("rule_reference", "ident"),
+                    token("quoted_string", ",meta.kind:rhs)"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "pair".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "lhs"),
+                    token("quoted_string", "|"),
+                    token("rule_reference", "rhs"),
+                ],
+            },
+        );
+        let rule_order = vec![
+            "pair".to_string(),
+            "lhs".to_string(),
+            "rhs".to_string(),
+            "ident".to_string(),
+        ];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "ident".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "enum".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\"AA\", \"BB\"]".to_string(),
+                },
+            }],
+        );
+        annotations.semantic_annotations.insert(
+            "pair".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "constraint".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"$1.meta.id != $3.meta.id && $1.meta.kind == 'lhs' && $3.meta.kind == 'rhs'\""
+                            .to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "requires".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"$1.meta.id\", \"$3.meta.id\", \"$1.meta.kind\", \"$3.meta.kind\"]"
+                            .to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9407);
+        let values = generator
+            .generate_many(24, Some("pair"))
+            .expect("non-structured positional nested-path constraints should be satisfiable");
+
+        for sample in values {
+            let parts: Vec<&str> = sample.split('|').collect();
+            assert_eq!(
+                parts.len(),
+                2,
+                "pair sample must preserve expected split shape, got {:?}",
+                sample
+            );
+            let lhs = StimuliGenerator::parse_capture_value_as_json(parts[0])
+                .expect("lhs capture should parse with non-structured object heuristics");
+            let rhs = StimuliGenerator::parse_capture_value_as_json(parts[1])
+                .expect("rhs capture should parse with non-structured object heuristics");
+            let lhs_id = lhs
+                .get("meta")
+                .and_then(|meta| meta.get("id"))
+                .and_then(JsonValue::as_str)
+                .expect("lhs.meta.id should be present");
+            let rhs_id = rhs
+                .get("meta")
+                .and_then(|meta| meta.get("id"))
+                .and_then(JsonValue::as_str)
+                .expect("rhs.meta.id should be present");
+            assert_ne!(
+                lhs_id, rhs_id,
+                "non-structured positional path constraint should keep ids distinct, got {:?}",
                 sample
             );
         }

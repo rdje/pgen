@@ -113,6 +113,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Promote SC-09 to stimuli runtime baseline by enforcing relational constraints during sequence synthesis with retry-based constraint satisfaction.
 - [x] Harden SC-09 stimuli nested reference synthesis by supporting dotted named/positional path resolution for structured capture values (for example `lhs.id`, `$1.id.len`).
 - [x] Harden SC-09 stimuli retry exhaustion diagnostics with ranked unsatisfiable-contract reporting (`relational_failures`, `generation_failures`, `top_violations`, `likely_unsatisfiable`).
+- [x] Harden SC-09 stimuli nested reference synthesis for non-structured object-like captures (`=/:` pairs, wrapper-aware parsing, dotted-key path materialization).
 
 ## Current Sprint: Pillar 1
 
@@ -183,3 +184,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Promoted SC-09 to stimuli runtime baseline by adding relational constraint-aware sequence retries (`@requires/@constraint/@implies`) with semantic usage coverage for cross-capture filtering and implication steering.
 - 2026-02-20: Hardened SC-09 stimuli nested-path resolution by adding structured capture traversal for named/positional dotted references (`lhs.id`, `$1.id`, `$3.id.len`) in relational checks and added semantic usage regression coverage for nested named and positional path contracts.
 - 2026-02-20: Hardened SC-09 retry-exhaustion diagnostics in stimuli synthesis by adding aggregated relational failure reporting (`relational_failures`, `generation_failures`, ranked `top_violations`, and `likely_unsatisfiable` flag) plus semantic usage regression coverage for unsatisfiable contracts.
+- 2026-02-20: Hardened SC-09 stimuli nested-path resolution for non-structured object-like captures by adding wrapper-aware loose key/value parsing (`=/:`, `,`/`;`/newline delimiters), dotted-key materialization (for example `meta.id=AA`), and semantic usage regression coverage for named/positional non-structured relational references.

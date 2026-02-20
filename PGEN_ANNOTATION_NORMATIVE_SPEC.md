@@ -122,9 +122,11 @@ Normative runtime leverage behavior for semantic annotations:
       - sequence generation retries until relational contract checks pass or attempt budget is exhausted,
       - `@requires`, `@constraint`, and `@implies` use the same evaluator contract surface as parser baseline,
       - stimuli reference support covers positional and named references (including dotted nested paths and optional `.len`),
-      - nested path traversal in stimuli is resolved over structured capture values (for example JSON-like object payloads emitted by grammar rules),
+      - nested path traversal in stimuli is resolved over:
+        - structured capture values (for example JSON-like object payloads emitted by grammar rules),
+        - non-structured object-like capture values parsed from `=/:` key-value pairs with wrapper-aware delimiter handling,
       - on retry exhaustion, stimuli emits structured diagnostics including relational/generation failure counts, ranked top violation reasons, and a `likely_unsatisfiable` signal,
-      - non-structured nested value extraction heuristics remain follow-on hardening work.
+      - dotted key materialization is supported for non-structured captures (for example `meta.id=AA` -> nested `meta.id` path resolution).
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.
