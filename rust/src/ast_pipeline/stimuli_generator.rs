@@ -14,6 +14,7 @@ use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use regex_syntax::hir::{Class, Hir, HirKind, Literal, Repetition};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -3037,10 +3038,11 @@ impl<'a> StimuliGenerator<'a> {
         reference: &str,
     ) -> Option<String> {
         let (index, path_segments) = Self::parse_positional_reference_segments(reference)?;
-        if !path_segments.is_empty() {
-            return None;
+        let base_value = captures.get(index.saturating_sub(1))?;
+        if path_segments.is_empty() {
+            return Some(base_value.clone());
         }
-        captures.get(index.saturating_sub(1)).cloned()
+        self.resolve_capture_path_value(base_value, &path_segments)
     }
 
     fn resolve_named_reference_in_sample(
@@ -3057,15 +3059,67 @@ impl<'a> StimuliGenerator<'a> {
             return Some(value.clone());
         }
 
-        let mut segments = normalized.split('.').map(str::trim);
+        let mut segments = normalized.split('.').map(str::trim).filter(|s| !s.is_empty());
         let first = segments.next()?;
         if !Self::semantic_identifier(first) {
             return None;
         }
-        if segments.next().is_some() {
+        let mut path_segments = Vec::new();
+        for segment in segments {
+            if !Self::semantic_identifier(segment) {
+                return None;
+            }
+            path_segments.push(segment);
+        }
+        let base_value = named_captures.get(first)?;
+        if path_segments.is_empty() {
+            return Some(base_value.clone());
+        }
+        self.resolve_capture_path_value(base_value, &path_segments)
+    }
+
+    fn resolve_capture_path_value(&self, raw: &str, path_segments: &[&str]) -> Option<String> {
+        if path_segments.is_empty() {
+            return Some(raw.to_string());
+        }
+
+        let mut current = Self::parse_capture_value_as_json(raw)?;
+        for segment in path_segments {
+            current = match current {
+                JsonValue::Object(ref object) => object.get(*segment)?.clone(),
+                JsonValue::Array(ref array) => {
+                    let index = segment.parse::<usize>().ok()?;
+                    array.get(index)?.clone()
+                }
+                _ => return None,
+            };
+        }
+
+        Self::json_value_to_scalar_string(&current)
+    }
+
+    fn parse_capture_value_as_json(raw: &str) -> Option<JsonValue> {
+        let normalized = raw.trim();
+        if normalized.is_empty() {
             return None;
         }
-        named_captures.get(first).cloned()
+
+        if let Ok(parsed) = serde_json::from_str::<JsonValue>(normalized) {
+            return Some(parsed);
+        }
+
+        let unquoted = Self::semantic_unquote(normalized)?;
+        serde_json::from_str::<JsonValue>(unquoted.trim()).ok()
+    }
+
+    fn json_value_to_scalar_string(value: &JsonValue) -> Option<String> {
+        match value {
+            JsonValue::Null => Some("null".to_string()),
+            JsonValue::Bool(inner) => Some(inner.to_string()),
+            JsonValue::Number(inner) => Some(inner.to_string()),
+            JsonValue::String(inner) => Some(inner.clone()),
+            JsonValue::Array(_) | JsonValue::Object(_) => serde_json::to_string(value).ok(),
+        }
     }
 
     fn parse_positional_reference_segments(reference: &str) -> Option<(usize, Vec<&str>)> {
@@ -3428,6 +3482,7 @@ impl<'a> StimuliGenerator<'a> {
 mod tests {
     use super::*;
     use regex::Regex;
+    use serde_json::Value as JsonValue;
 
     fn token(token_type: &str, token_value: &str) -> ASTNode {
         ASTNode::Atom {
@@ -4782,6 +4837,204 @@ mod tests {
             "@implies contract should suppress consequent-violating samples, got {:?}",
             values
         );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_relational_supports_nested_named_paths() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("ident".to_string(), token("regex", "^[A-Z]{2}$"));
+        grammar_tree.insert(
+            "lhs".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "{\"id\":\""),
+                    token("rule_reference", "ident"),
+                    token("quoted_string", "\"}"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "rhs".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "{\"id\":\""),
+                    token("rule_reference", "ident"),
+                    token("quoted_string", "\"}"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "pair".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "lhs"),
+                    token("quoted_string", "|"),
+                    token("rule_reference", "rhs"),
+                ],
+            },
+        );
+        let rule_order = vec![
+            "pair".to_string(),
+            "lhs".to_string(),
+            "rhs".to_string(),
+            "ident".to_string(),
+        ];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "ident".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "enum".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\"AA\", \"BB\"]".to_string(),
+                },
+            }],
+        );
+        annotations.semantic_annotations.insert(
+            "pair".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "constraint".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"lhs.id != rhs.id\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "requires".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"lhs.id\", \"rhs.id\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9404);
+        let values = generator
+            .generate_many(24, Some("pair"))
+            .expect("nested named-path relational constraints should be satisfiable");
+
+        for sample in values {
+            let parts: Vec<&str> = sample.split('|').collect();
+            assert_eq!(
+                parts.len(),
+                2,
+                "pair sample must preserve expected split shape, got {:?}",
+                sample
+            );
+            let lhs: JsonValue = serde_json::from_str(parts[0])
+                .expect("lhs capture should remain a parseable JSON object");
+            let rhs: JsonValue = serde_json::from_str(parts[1])
+                .expect("rhs capture should remain a parseable JSON object");
+            let lhs_id = lhs
+                .get("id")
+                .and_then(JsonValue::as_str)
+                .expect("lhs.id should be present");
+            let rhs_id = rhs
+                .get("id")
+                .and_then(JsonValue::as_str)
+                .expect("rhs.id should be present");
+            assert_ne!(
+                lhs_id, rhs_id,
+                "nested named-path constraint lhs.id != rhs.id should hold, got {:?}",
+                sample
+            );
+        }
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_relational_supports_positional_nested_paths() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("ident".to_string(), token("regex", "^[A-Z]{2}$"));
+        grammar_tree.insert(
+            "lhs".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "{\"id\":\""),
+                    token("rule_reference", "ident"),
+                    token("quoted_string", "\"}"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "rhs".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "{\"id\":\""),
+                    token("rule_reference", "ident"),
+                    token("quoted_string", "\"}"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "pair".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "lhs"),
+                    token("quoted_string", "|"),
+                    token("rule_reference", "rhs"),
+                ],
+            },
+        );
+        let rule_order = vec![
+            "pair".to_string(),
+            "lhs".to_string(),
+            "rhs".to_string(),
+            "ident".to_string(),
+        ];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "ident".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "enum".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\"AA\", \"BB\"]".to_string(),
+                },
+            }],
+        );
+        annotations.semantic_annotations.insert(
+            "pair".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "constraint".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"$1.id == 'AA' && $3.id.len == 2\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "requires".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"$1.id\", \"$3.id.len\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9405);
+        let values = generator
+            .generate_many(24, Some("pair"))
+            .expect("positional nested-path relational constraints should be satisfiable");
+
+        for sample in values {
+            let parts: Vec<&str> = sample.split('|').collect();
+            assert_eq!(
+                parts.len(),
+                2,
+                "pair sample must preserve expected split shape, got {:?}",
+                sample
+            );
+            let lhs: JsonValue = serde_json::from_str(parts[0])
+                .expect("lhs capture should remain a parseable JSON object");
+            let lhs_id = lhs
+                .get("id")
+                .and_then(JsonValue::as_str)
+                .expect("lhs.id should be present");
+            assert_eq!(
+                lhs_id, "AA",
+                "positional nested-path constraint $1.id == 'AA' should hold, got {:?}",
+                sample
+            );
+        }
     }
 
     #[test]

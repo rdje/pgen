@@ -111,6 +111,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Start SC-09 cross-field/cross-capture constraint contract baseline with typed validator payload/coherence diagnostics (`@constraint/@requires/@implies`).
 - [x] Promote SC-09 to parser runtime baseline by enforcing `@constraint/@requires/@implies` contracts in generated rule methods (reference resolution + relational expression checks + implication checks).
 - [x] Promote SC-09 to stimuli runtime baseline by enforcing relational constraints during sequence synthesis with retry-based constraint satisfaction.
+- [x] Harden SC-09 stimuli nested reference synthesis by supporting dotted named/positional path resolution for structured capture values (for example `lhs.id`, `$1.id.len`).
 
 ## Current Sprint: Pillar 1
 
@@ -179,3 +180,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Started SC-09 contract baseline by adding typed validator parsing for `@constraint/@requires/@implies`, stable payload diagnostics (`W_SEM_INVALID_CONSTRAINT_PAYLOAD`, `W_SEM_INVALID_REQUIRES_PAYLOAD`, `W_SEM_INVALID_IMPLIES_PAYLOAD`), and relational coherence warning (`W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`).
 - 2026-02-20: Promoted SC-09 to parser runtime baseline by wiring generated relational enforcement (`@requires` reference checks, `@constraint` expression evaluation, `@implies` antecedent/consequent gating) with contextual parse errors and semantic usage coverage.
 - 2026-02-20: Promoted SC-09 to stimuli runtime baseline by adding relational constraint-aware sequence retries (`@requires/@constraint/@implies`) with semantic usage coverage for cross-capture filtering and implication steering.
+- 2026-02-20: Hardened SC-09 stimuli nested-path resolution by adding structured capture traversal for named/positional dotted references (`lhs.id`, `$1.id`, `$3.id.len`) in relational checks and added semantic usage regression coverage for nested named and positional path contracts.

@@ -329,7 +329,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Stimuli runtime behavior (when `@constraint` is present on a rule whose root is a sequence):
   - generator retries sequence synthesis until relational checks pass or attempt budget is exhausted,
   - same contracts are enforced (`@requires`, `@constraint`, `@implies`),
-  - baseline reference support in stimuli covers positional (`$1`, `$3`) and direct named refs (`lhs`) with optional `.len`.
+  - stimuli reference support covers positional and named nested paths (for example `$1.id`, `lhs.id`, `$3.id.len`) over structured capture payloads, with optional `.len`.
 - Coherence rule:
   - `@requires`/`@implies` without `@constraint` triggers `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`.
 
@@ -848,8 +848,26 @@ pair = ident ":" ident ;
   - generation retries until relational checks pass (or attempt budget is exhausted),
   - same `@requires/@constraint/@implies` checks gate sample acceptance.
 - Reference resolution supports positional (`$1`, `$2.field`) and named dotted references (`lhs.id`) including `.len` suffix (for example `$1.len >= 1`).
-- Stimuli reference support baseline covers positional refs and direct named refs with optional `.len`; deeper nested named-path synthesis remains follow-on hardening.
+- Stimuli reference support includes nested named/positional paths (for example `lhs.id`, `$1.id`, `$3.id.len`) when referenced capture values are structured (JSON-like object payloads).
+- Broader non-structured nested extraction heuristics remain follow-on hardening.
 - These directives now provide parse+validate plus parser+stimuli runtime contract surface (`Tier 3` baseline).
+
+#### 8.13.4 Nested-Path Stimuli Example
+
+```ebnf
+pair = lhs "|" rhs ;
+lhs = "{\"id\":\"" ident "\"}" ;
+rhs = "{\"id\":\"" ident "\"}" ;
+ident = regex("^[A-Z]{2}$") @enum: ["AA", "BB"] ;
+
+@constraint: "lhs.id != rhs.id && $1.id.len == 2"
+@requires: ["lhs.id", "rhs.id", "$1.id.len"]
+```
+
+Expected behavior:
+- parser and stimuli both resolve nested paths (`lhs.id`, `$1.id`) and optional `.len`,
+- stimuli retries sequence synthesis until constraint holds,
+- emitted samples satisfy the contract (for example `{"id":"AA"}|{"id":"BB"}`).
 
 ## 9) Differential Testing and Drift Management
 

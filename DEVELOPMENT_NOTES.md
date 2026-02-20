@@ -1,4 +1,67 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Stimuli Nested Path Synthesis Hardening
+### Context
+SC-09 stimuli enforcement already retried root-sequence generation under `@constraint/@requires/@implies`, but reference resolution remained shallow on the stimuli side:
+- named references were effectively direct-only (`lhs`),
+- positional references were effectively direct-only (`$1`),
+- nested paths such as `lhs.id` and `$1.id` were not resolved in stimuli contract checks.
+
+This created an asymmetry vs parser-side relational resolution and blocked richer relational contracts in stimuli generation.
+
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+#### 1) Positional nested path support
+- Updated `resolve_positional_reference_in_sample(...)`:
+  - now parses positional path segments via existing reference parser,
+  - resolves base capture (`$N`) and traverses nested segments (for example `$1.id`, `$3.meta.tag`),
+  - preserves direct `$N` behavior when no path is provided.
+
+#### 2) Named nested path support
+- Updated `resolve_named_reference_in_sample(...)`:
+  - continues to support direct named capture lookup (`lhs`),
+  - now supports dotted path traversal (`lhs.id`) by splitting named reference segments and resolving against capture content.
+
+#### 3) Structured capture traversal helpers
+- Added helper surface:
+  - `resolve_capture_path_value(...)`
+  - `parse_capture_value_as_json(...)`
+  - `json_value_to_scalar_string(...)`
+- Behavior:
+  - nested path traversal in stimuli resolves over structured (JSON-like) capture payloads,
+  - scalar terminal values remain direct,
+  - optional `.len` is still applied after reference resolution.
+
+#### 4) Regression coverage
+- Added tests:
+  - `semantic_usage_stimuli_relational_supports_nested_named_paths`
+  - `semantic_usage_stimuli_relational_supports_positional_nested_paths`
+- Existing SC-09 stimuli tests remain green, confirming no regression on baseline relational behavior.
+
+#### 5) Living docs alignment
+- Updated:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+- Status update:
+  - SC-09 stimuli nested named/positional path synthesis is now implemented for structured capture payloads.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_constraint_filters_cross_capture_values`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_implies_enforced_during_generation`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_supports_nested_named_paths`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_supports_positional_nested_paths`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_hints_without_constraint_remain_inactive`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Dedicated Stimuli Modes (`recovery_biased`, `near_sync_negative`)
 ### Context
 SC-07 stimuli support already handled OR-failure fallback markers, but lacked explicit operating modes for deliberately recovery-focused datasets and near-sync negative-case synthesis.

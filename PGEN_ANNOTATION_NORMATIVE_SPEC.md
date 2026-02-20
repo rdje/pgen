@@ -121,8 +121,9 @@ Normative runtime leverage behavior for semantic annotations:
     - stimuli runtime baseline is active for root sequence synthesis when `@constraint` is present:
       - sequence generation retries until relational contract checks pass or attempt budget is exhausted,
       - `@requires`, `@constraint`, and `@implies` use the same evaluator contract surface as parser baseline,
-      - stimuli reference support baseline covers positional refs (`$1`, `$3`) and direct named refs (`lhs`) with optional `.len`,
-      - deeper nested named-path synthesis (for example `lhs.id`) remains follow-on hardening work.
+      - stimuli reference support covers positional and named references (including dotted nested paths and optional `.len`),
+      - nested path traversal in stimuli is resolved over structured capture values (for example JSON-like object payloads emitted by grammar rules),
+      - non-structured nested value extraction heuristics remain follow-on hardening work.
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.

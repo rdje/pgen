@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Stimuli Nested Path Synthesis Hardening
+### ✅ Achievement Summary
+Hardened SC-09 stimuli relational enforcement by adding nested named/positional path reference resolution for structured capture values.
+### Scope of Changes
+- Updated stimuli relational reference resolution in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - positional references now support dotted path traversal (for example `$1.id`, `$3.id.len`) instead of only direct scalar lookup,
+  - named references now support dotted path traversal (for example `lhs.id`) over structured capture payloads,
+  - nested path traversal now resolves against parsed JSON-like capture values,
+  - existing direct-reference and `.len` behavior remains intact.
+- Added semantic usage regression tests:
+  - `semantic_usage_stimuli_relational_supports_nested_named_paths`
+  - `semantic_usage_stimuli_relational_supports_positional_nested_paths`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_constraint_filters_cross_capture_values` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_implies_enforced_during_generation` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_supports_nested_named_paths` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_supports_positional_nested_paths` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_relational_hints_without_constraint_remain_inactive` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Dedicated Stimuli Modes (`recovery_biased`, `near_sync_negative`)
 ### ✅ Achievement Summary
 Expanded SC-07 stimuli steering beyond OR-failure fallback by adding explicit recovery-focused generation modes for recover-enabled grammars.
