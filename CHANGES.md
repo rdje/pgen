@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: Structured Recovery Event Reporting Baseline
+### ✅ Achievement Summary
+Added typed, machine-readable recovery event reporting to generated parsers so recovery outcomes are observable beyond log text.
+### Scope of Changes
+- Updated parser code generation in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+- Added generated recovery types:
+  - `RecoveryMarkerKind` (`PanicUntil`, `Sync`, `EofFallback`)
+  - `RecoveryEvent` (rule, positions, marker metadata)
+- Parser struct/runtime changes:
+  - parser now stores `recovery_events: Vec<RecoveryEvent>`,
+  - `parse()` clears recovery events at parse start for deterministic per-run reporting,
+  - `parse_full()` uses `parse()` path so event lifecycle is consistent.
+- Added generated parser accessors:
+  - `recovery_events()`
+  - `take_recovery_events()`
+  - `recovery_event_count()`
+- Recovery hook integration:
+  - `recover_with_hints(...)` now records structured events for:
+    - token-based recovery (`panic_until`/`sync`)
+    - EOF fallback recovery
+- Added semantic usage codegen tests:
+  - `semantic_usage_codegen_declares_structured_recovery_types`
+  - `semantic_usage_codegen_emits_recovery_event_accessors`
+  - `semantic_usage_codegen_records_recovery_events_in_helper_methods`
+- Updated living roadmap/spec/matrix/UG to reflect structured recovery reporting baseline.
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_declares_structured_recovery_types` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_emits_recovery_event_accessors` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_records_recovery_events_in_helper_methods` ✅
+- `make -C rust SHELL=/bin/bash semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Stimuli Recovery Baseline
 ### ✅ Achievement Summary
 Added first-class stimuli-side usage of `@recover/@sync/@panic_until` by emitting deterministic recovery marker fallback samples when OR branch generation fully exhausts alternatives.

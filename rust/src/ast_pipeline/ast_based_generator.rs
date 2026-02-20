@@ -182,9 +182,23 @@ impl AstBasedGenerator {
 
     fn generate_types(&self) -> TokenStream {
         quote! {
-            // Types are now shared in crate::ast_pipeline
-            // ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, RuleId, CycleType, RecursionGuard
-            // are all defined in the parent module
+            #[derive(Debug, Clone, PartialEq, Eq)]
+            pub enum RecoveryMarkerKind {
+                PanicUntil,
+                Sync,
+                EofFallback,
+            }
+
+            #[derive(Debug, Clone, PartialEq, Eq)]
+            pub struct RecoveryEvent {
+                pub rule_name: String,
+                pub parse_start: usize,
+                pub previous_position: usize,
+                pub new_position: usize,
+                pub marker_kind: RecoveryMarkerKind,
+                pub marker_position: Option<usize>,
+                pub marker_value: Option<String>,
+            }
         }
     }
 
@@ -198,6 +212,7 @@ impl AstBasedGenerator {
                 position: usize,
                 memo: HashMap<(RuleId, usize), Option<ParseNode<'input>>>,
                 recursion_guard: RecursionGuard,
+                recovery_events: Vec<RecoveryEvent>,
                 logger: Box<dyn Logger>,
             }
         }
@@ -414,6 +429,7 @@ impl AstBasedGenerator {
                     position: 0,
                     memo: HashMap::new(),
                     recursion_guard: RecursionGuard::new(100),
+                    recovery_events: Vec::new(),
                     logger,
                 }
             }
@@ -426,11 +442,12 @@ impl AstBasedGenerator {
 
         quote! {
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
+                self.recovery_events.clear();
                 self.#parse_method()
             }
 
             pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
-                let parsed = self.#parse_method()?;
+                let parsed = self.parse()?;
                 // Allow trailing layout/comments so parse_full reports structural completeness.
                 self.consume_layout_for_terminal("<EOF>");
                 if self.position == self.input.len() {
@@ -445,6 +462,18 @@ impl AstBasedGenerator {
 
             pub fn #parse_full_method(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.parse_full()
+            }
+
+            pub fn recovery_events(&self) -> &[RecoveryEvent] {
+                &self.recovery_events
+            }
+
+            pub fn take_recovery_events(&mut self) -> Vec<RecoveryEvent> {
+                std::mem::take(&mut self.recovery_events)
+            }
+
+            pub fn recovery_event_count(&self) -> usize {
+                self.recovery_events.len()
             }
         }
     }
@@ -1380,17 +1409,17 @@ impl AstBasedGenerator {
                 panic_until_tokens: &[&str],
             ) -> bool {
                 let recovery_start = parse_start.min(self.input.len());
-                let mut best: Option<(usize, usize, u8)> = None;
+                let mut best: Option<(usize, usize, u8, String)> = None;
 
                 for token in panic_until_tokens {
                     if token.is_empty() {
                         continue;
                     }
                     if let Some(pos) = self.find_token_from(recovery_start, token) {
-                        let candidate = (pos, token.len(), 0u8);
+                        let candidate = (pos, token.len(), 0u8, token.to_string());
                         let take_candidate = match best {
                             None => true,
-                            Some((best_pos, _best_len, best_priority)) => {
+                            Some((best_pos, _best_len, best_priority, _best_token)) => {
                                 pos < best_pos || (pos == best_pos && candidate.2 < best_priority)
                             }
                         };
@@ -1405,10 +1434,10 @@ impl AstBasedGenerator {
                         continue;
                     }
                     if let Some(pos) = self.find_token_from(recovery_start, token) {
-                        let candidate = (pos, token.len(), 1u8);
+                        let candidate = (pos, token.len(), 1u8, token.to_string());
                         let take_candidate = match best {
                             None => true,
-                            Some((best_pos, _best_len, best_priority)) => {
+                            Some((best_pos, _best_len, best_priority, _best_token)) => {
                                 pos < best_pos || (pos == best_pos && candidate.2 < best_priority)
                             }
                         };
@@ -1418,7 +1447,7 @@ impl AstBasedGenerator {
                     }
                 }
 
-                if let Some((token_pos, token_len, token_priority)) = best {
+                if let Some((token_pos, token_len, token_priority, token_value)) = best {
                     let previous = self.position;
                     let token_end = token_pos.saturating_add(token_len).min(self.input.len());
                     let mut new_position = token_end;
@@ -1426,6 +1455,20 @@ impl AstBasedGenerator {
                         new_position = previous + 1;
                     }
                     self.position = new_position.min(self.input.len());
+                    let marker_kind = if token_priority == 0 {
+                        RecoveryMarkerKind::PanicUntil
+                    } else {
+                        RecoveryMarkerKind::Sync
+                    };
+                    self.recovery_events.push(RecoveryEvent {
+                        rule_name: rule_name.to_string(),
+                        parse_start,
+                        previous_position: previous,
+                        new_position: self.position,
+                        marker_kind,
+                        marker_position: Some(token_pos),
+                        marker_value: Some(token_value.clone()),
+                    });
 
                     if self.logger.is_enabled() {
                         let marker = if token_priority == 0 {
@@ -1448,6 +1491,15 @@ impl AstBasedGenerator {
                 if self.position < self.input.len() {
                     let previous = self.position;
                     self.position = self.input.len();
+                    self.recovery_events.push(RecoveryEvent {
+                        rule_name: rule_name.to_string(),
+                        parse_start,
+                        previous_position: previous,
+                        new_position: self.position,
+                        marker_kind: RecoveryMarkerKind::EofFallback,
+                        marker_position: None,
+                        marker_value: None,
+                    });
                     if self.logger.is_enabled() {
                         self.logger.log_warning(#filename, 0, &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
@@ -2654,6 +2706,85 @@ mod semantic_usage_tests {
         assert!(
             !rendered.contains("recover_with_hints"),
             "recover-disabled rule should not emit runtime recovery hook, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_declares_structured_recovery_types() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let rendered = generator.generate_types().to_string();
+        assert!(
+            rendered.contains("pub enum RecoveryMarkerKind"),
+            "generated types should include RecoveryMarkerKind, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pub struct RecoveryEvent"),
+            "generated types should include RecoveryEvent, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_recovery_event_accessors() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let rendered = generator.generate_parse_method("start").to_string();
+        assert!(
+            rendered.contains("pub fn recovery_events"),
+            "parse method generation should expose recovery_events accessor, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pub fn take_recovery_events"),
+            "parse method generation should expose take_recovery_events accessor, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pub fn recovery_event_count"),
+            "parse method generation should expose recovery_event_count accessor, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_records_recovery_events_in_helper_methods() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        assert!(
+            rendered.contains("self . recovery_events . push"),
+            "helper methods should record recovery events, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("RecoveryMarkerKind :: PanicUntil")
+                && rendered.contains("RecoveryMarkerKind :: Sync")
+                && rendered.contains("RecoveryMarkerKind :: EofFallback"),
+            "helper methods should classify recovery markers, got: {}",
             rendered
         );
     }

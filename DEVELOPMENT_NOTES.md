@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: Structured Recovery Event Reporting (Parser Codegen)
+### Context
+With parser runtime recovery and stimuli fallback already wired for `@recover/@sync/@panic_until`, the next SC-07 hardening gap was observability: recovery outcomes were mostly log-only and not machine-readable for programmatic consumers.
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+#### 1) Generated typed recovery event model
+- Added generated types:
+  - `RecoveryMarkerKind`:
+    - `PanicUntil`
+    - `Sync`
+    - `EofFallback`
+  - `RecoveryEvent`:
+    - `rule_name`
+    - `parse_start`
+    - `previous_position`
+    - `new_position`
+    - `marker_kind`
+    - optional `marker_position`
+    - optional `marker_value`
+
+#### 2) Parser struct lifecycle + accessors
+- Added parser state field:
+  - `recovery_events: Vec<RecoveryEvent>`
+- Constructor initializes empty recovery-event buffer.
+- Parse lifecycle:
+  - `parse()` clears event buffer at entry to guarantee deterministic per-run event reporting.
+  - `parse_full()` delegates through `parse()` to share event lifecycle behavior.
+- Added public accessors:
+  - `recovery_events() -> &[RecoveryEvent]`
+  - `take_recovery_events() -> Vec<RecoveryEvent>`
+  - `recovery_event_count() -> usize`
+
+#### 3) Recovery hook event recording
+- `recover_with_hints(...)` now records structured events for both recovery classes:
+  - token-based recovery (`panic_until`/`sync`) with marker position/value metadata,
+  - EOF fallback recovery when no marker token is found.
+- This complements existing logs with structured, machine-consumable telemetry.
+
+### Tests
+- Added codegen semantic-usage coverage:
+  - `semantic_usage_codegen_declares_structured_recovery_types`
+  - `semantic_usage_codegen_emits_recovery_event_accessors`
+  - `semantic_usage_codegen_records_recovery_events_in_helper_methods`
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_declares_structured_recovery_types`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_emits_recovery_event_accessors`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_records_recovery_events_in_helper_methods`
+  - pass.
+- `make -C rust SHELL=/bin/bash semantic_usage_gate`
+  - pass (`32 semantic_usage_* tests`).
+
+### Contract/Docs Updates
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - added completed Phase K item and change-log entry for structured recovery reporting baseline.
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - updated `SC-07` status to include structured recovery event reporting in current baseline.
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - documented typed event reporting APIs and marker-kind contract.
+- `PGEN_USER_GUIDE.md`
+  - documented parser-facing recovery event APIs and event payload shape.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Stimuli Recovery Fallback Baseline
 ### Context
 Parser-side runtime recovery hooks were already active for `@recover/@sync/@panic_until`, but stimuli generation still ignored those directives once OR branch generation exhausted all alternatives. This left a symmetry gap between parser and stimuli behavior for recovery-directed workflows.

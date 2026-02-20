@@ -409,7 +409,18 @@ stmt = declaration | assignment ;
   - parser scans from rule start for nearest configured marker token,
   - token precedence on same location is deterministic: `panic_until` over `sync`,
   - parser advances past the chosen marker, or falls back to EOF skip when no marker is found,
-  - unrecoverable no-progress cases still return normal backtrack errors.
+  - unrecoverable no-progress cases still return normal backtrack errors,
+  - structured recovery events are recorded and exposed through generated parser APIs:
+    - `recovery_events()`
+    - `take_recovery_events()`
+    - `recovery_event_count()`
+  - event shape includes:
+    - `rule_name`
+    - `parse_start`
+    - `previous_position`
+    - `new_position`
+    - `marker_kind` (`panic_until`, `sync`, `eof_fallback`)
+    - optional marker metadata (`marker_position`, `marker_value`).
 - Stimuli behavior in this stage:
   - when all OR branches fail and effective `@recover` is truthy, fallback samples can be emitted from recovery markers,
   - marker preference is deterministic: first non-empty `@panic_until` token, then first non-empty `@sync` token,
