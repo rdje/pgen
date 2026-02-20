@@ -8,8 +8,8 @@ use crate::ast_pipeline::{
     SemanticBranchPolicy, SemanticValueConstraints, TokenValue, UnifiedSemanticAST,
     ast_return_transform::AstReturnTransformer, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_branch_priorities, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
-    parse_semantic_string_list,
+    parse_semantic_branch_priorities, parse_semantic_len_bounds,
+    parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_string_list,
 };
 use anyhow::Result;
 use prettyplease;
@@ -213,6 +213,7 @@ impl AstBasedGenerator {
                 memo: HashMap<(RuleId, usize), Option<ParseNode<'input>>>,
                 recursion_guard: RecursionGuard,
                 recovery_events: Vec<RecoveryEvent>,
+                recovery_counts: HashMap<String, usize>,
                 logger: Box<dyn Logger>,
             }
         }
@@ -430,6 +431,7 @@ impl AstBasedGenerator {
                     memo: HashMap::new(),
                     recursion_guard: RecursionGuard::new(100),
                     recovery_events: Vec::new(),
+                    recovery_counts: HashMap::new(),
                     logger,
                 }
             }
@@ -443,6 +445,7 @@ impl AstBasedGenerator {
         quote! {
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.recovery_events.clear();
+                self.recovery_counts.clear();
                 self.#parse_method()
             }
 
@@ -715,10 +718,13 @@ impl AstBasedGenerator {
             let associativity_mode = associativity.as_str();
             let branch_policy = self.rule_branch_policy(rule_name);
             let branch_policy_mode = branch_policy.as_str();
-            let (recover_enabled, sync_tokens, panic_until_tokens) =
+            let (recover_enabled, sync_tokens, panic_until_tokens, recover_budget) =
                 self.rule_recovery_hints(rule_name);
             let sync_tokens_label = sync_tokens.join(", ");
             let panic_until_tokens_label = panic_until_tokens.join(", ");
+            let recover_budget_label = recover_budget
+                .map(|limit| limit.to_string())
+                .unwrap_or_else(|| "unbounded".to_string());
             let sync_tokens_for_code = sync_tokens.clone();
             let panic_until_tokens_for_code = panic_until_tokens.clone();
 
@@ -729,13 +735,15 @@ impl AstBasedGenerator {
                         parse_start,
                         &[#(#sync_tokens_for_code),*],
                         &[#(#panic_until_tokens_for_code),*],
+                        #recover_budget,
                     ) {
                         if parser.logger.is_enabled() {
                             parser.logger.log_warning(#filename, 0, &format!(
-                                "🛟 Rule '{}' recovered from branch failure using sync=[{}] panic_until=[{}]",
+                                "🛟 Rule '{}' recovered from branch failure using sync=[{}] panic_until=[{}] budget={}",
                                 #rule_name,
                                 #sync_tokens_label,
-                                #panic_until_tokens_label
+                                #panic_until_tokens_label,
+                                #recover_budget_label
                             ));
                         }
                         result = ParseContent::Sequence(Vec::new());
@@ -1407,7 +1415,23 @@ impl AstBasedGenerator {
                 parse_start: usize,
                 sync_tokens: &[&str],
                 panic_until_tokens: &[&str],
+                recover_budget: Option<usize>,
             ) -> bool {
+                if let Some(limit) = recover_budget {
+                    let used = self.recovery_counts.get(rule_name).copied().unwrap_or(0);
+                    if used >= limit {
+                        if self.logger.is_enabled() {
+                            self.logger.log_warning(#filename, 0, &format!(
+                                "🛟 Recovery budget exhausted for rule '{}': used={} limit={}",
+                                rule_name,
+                                used,
+                                limit
+                            ));
+                        }
+                        return false;
+                    }
+                }
+
                 let recovery_start = parse_start.min(self.input.len());
                 let mut best: Option<(usize, usize, u8, String)> = None;
 
@@ -1469,6 +1493,7 @@ impl AstBasedGenerator {
                         marker_position: Some(token_pos),
                         marker_value: Some(token_value.clone()),
                     });
+                    *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
 
                     if self.logger.is_enabled() {
                         let marker = if token_priority == 0 {
@@ -1500,6 +1525,7 @@ impl AstBasedGenerator {
                         marker_position: None,
                         marker_value: None,
                     });
+                    *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
                     if self.logger.is_enabled() {
                         self.logger.log_warning(#filename, 0, &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
@@ -2011,17 +2037,18 @@ impl AstBasedGenerator {
         policy
     }
 
-    fn rule_recovery_hints(&self, rule_name: &str) -> (bool, Vec<String>, Vec<String>) {
+    fn rule_recovery_hints(&self, rule_name: &str) -> (bool, Vec<String>, Vec<String>, Option<usize>) {
         let Some(annotations) = &self.annotations else {
-            return (false, Vec::new(), Vec::new());
+            return (false, Vec::new(), Vec::new(), None);
         };
         let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return (false, Vec::new(), Vec::new());
+            return (false, Vec::new(), Vec::new(), None);
         };
 
         let mut recover_enabled = false;
         let mut sync_tokens = Vec::new();
         let mut panic_until_tokens = Vec::new();
+        let mut recover_budget = None;
         for annotation in entries {
             let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
                 continue;
@@ -2042,10 +2069,15 @@ impl AstBasedGenerator {
                         panic_until_tokens = parsed;
                     }
                 }
+                "recover_budget" => {
+                    if let Some(parsed) = parse_semantic_nonnegative_usize(&payload) {
+                        recover_budget = Some(parsed);
+                    }
+                }
                 _ => {}
             }
         }
-        (recover_enabled, sync_tokens, panic_until_tokens)
+        (recover_enabled, sync_tokens, panic_until_tokens, recover_budget)
     }
 
     fn rule_associativity(&self, rule_name: &str) -> SemanticAssociativity {
@@ -2605,6 +2637,12 @@ mod semantic_usage_tests {
                         content: "[\"}\"]".to_string(),
                     },
                 },
+                SemanticAnnotation::Named {
+                    name: "recover_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "3".to_string(),
+                    },
+                },
             ],
         );
 
@@ -2617,10 +2655,12 @@ mod semantic_usage_tests {
             enable_debug: false,
         };
 
-        let (recover_enabled, sync_tokens, panic_tokens) = generator.rule_recovery_hints("stmt");
+        let (recover_enabled, sync_tokens, panic_tokens, recover_budget) =
+            generator.rule_recovery_hints("stmt");
         assert!(recover_enabled);
         assert_eq!(sync_tokens, vec![";".to_string(), "end".to_string()]);
         assert_eq!(panic_tokens, vec!["}".to_string()]);
+        assert_eq!(recover_budget, Some(3));
     }
 
     #[test]
@@ -2645,6 +2685,12 @@ mod semantic_usage_tests {
                     name: "panic_until".to_string(),
                     ast: UnifiedSemanticAST::Raw {
                         content: "[\"}\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "recover_budget".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "2".to_string(),
                     },
                 },
             ],
@@ -2672,6 +2718,11 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("\";\"") && rendered.contains("\"}\""),
             "recovery hook should carry sync/panic tokens, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("2usize"),
+            "recovery hook should carry typed recover_budget value, got: {}",
             rendered
         );
     }

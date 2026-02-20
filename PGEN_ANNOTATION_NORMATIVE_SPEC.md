@@ -83,6 +83,7 @@ Normative runtime leverage behavior for semantic annotations:
     - `priority_first`.
   - `@recover/@sync/@panic_until` are typed/validated contract directives with executable parser runtime recovery baseline:
     - recovery triggers when OR branches all fail and effective `@recover` is truthy,
+    - optional `@recover_budget` caps successful recoveries per rule per parse run (`0` disables recovery for that rule),
     - parser scans from rule start for nearest configured marker token (`panic_until` preferred over `sync` on same position),
     - parser advances past selected marker (or to EOF fallback when no marker exists),
     - recovery success continues parse flow with recovered empty branch content,
@@ -99,6 +100,10 @@ Normative runtime leverage behavior for semantic annotations:
     - when OR branch generation exhausts all alternatives and effective `@recover` is truthy,
     - generator emits deterministic marker fallback sample from recovery directives:
       - first non-empty `@panic_until` token, else first non-empty `@sync` token.
+  - `@constraint/@requires/@implies` contract baseline:
+    - directives are typed/validated by the annotation validator (`Tier 1` contract),
+    - no parser/stimuli runtime steering is enforced yet for relational constraints,
+    - validator emits relational coherence warning when `@requires`/`@implies` appear without `@constraint`.
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.
@@ -125,9 +130,15 @@ Current stable diagnostic codes include:
   - `W_SEM_DEFAULT_TYPE_MISMATCH`
   - `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`
   - `W_SEM_INVALID_RECOVER_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD`
+  - `W_SEM_INVALID_CONSTRAINT_PAYLOAD`
+  - `W_SEM_INVALID_REQUIRES_PAYLOAD`
+  - `W_SEM_INVALID_IMPLIES_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
+  - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`
   - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER`
+  - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`
 
 Strict mode behavior:
 - Semantic warning-class checks are promoted to errors when strict mode is enabled.

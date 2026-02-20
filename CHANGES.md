@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 `@recover_budget` + SC-09 Validator Contract Kickoff
+### ✅ Achievement Summary
+Extended recovery steering with typed rule-local budget enforcement, and started SC-09 with typed relational constraint validator contracts (`@constraint/@requires/@implies`).
+### Scope of Changes
+- Updated semantic directive registry in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - promoted `constraint/requires/implies` to parse+validate capability tier,
+  - added typed payload helpers:
+    - `parse_semantic_constraint_expression`
+    - `parse_semantic_reference_list`
+    - `parse_semantic_implication`
+- Updated validator contracts in:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - added payload diagnostics:
+    - `W_SEM_INVALID_CONSTRAINT_PAYLOAD`
+    - `W_SEM_INVALID_REQUIRES_PAYLOAD`
+    - `W_SEM_INVALID_IMPLIES_PAYLOAD`
+  - added relational coherence diagnostic:
+    - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`
+  - retained and documented SC-07 budget diagnostics:
+    - `W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD`
+    - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`
+- Updated parser codegen/runtime in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - `@recover_budget` is now consumed in generated recovery hook wiring and enforced per rule per parse run.
+- Updated re-exports:
+  - `rust/src/ast_pipeline/mod.rs`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_directive_registry` ✅
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator` ✅
+
 ## 2026-02-20 - User Guide Expansion: SC-07 Recovery Deep-Dive
 ### ✅ Achievement Summary
 Expanded the User Guide with a dedicated SC-07 deep-dive section so recovery semantics are easier to onboard and use correctly.

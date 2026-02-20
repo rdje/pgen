@@ -105,6 +105,8 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Promote recovery-hint contracts to executable parser runtime baseline (`@recover` + `@sync/@panic_until` token-scan recovery hooks with deterministic fallback behavior).
 - [x] Add stimuli-side SC-07 recovery baseline: OR-failure fallback marker emission driven by typed `@recover/@sync/@panic_until`.
 - [x] Add structured parser recovery event reporting baseline (`RecoveryEvent`/`RecoveryMarkerKind` + event accessors on generated parsers).
+- [x] Add typed rule-local recovery budget control (`@recover_budget`) with validator diagnostics + parser runtime enforcement.
+- [x] Start SC-09 cross-field/cross-capture constraint contract baseline with typed validator payload/coherence diagnostics (`@constraint/@requires/@implies`).
 
 ## Current Sprint: Pillar 1
 
@@ -167,3 +169,5 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Completed Phase K recovery runtime baseline by wiring generated parser OR-failure recovery hooks (`recover_with_hints`) that consume typed `@recover/@sync/@panic_until` directives, scan for nearest panic/sync tokens with deterministic precedence, advance parser position with EOF fallback, and continue parsing with explicit recovery logging.
 - 2026-02-20: Added Phase K stimuli-side recovery baseline by wiring OR-generation fallback marker emission in `StimuliGenerator` for effective `@recover` rules (first non-empty `@panic_until`, then `@sync`) and covering with semantic usage regression tests.
 - 2026-02-20: Added Phase K structured recovery reporting baseline in generated parsers by introducing typed recovery events (`RecoveryEvent`, `RecoveryMarkerKind`), parser accessors (`recovery_events`, `take_recovery_events`, `recovery_event_count`), and event recording for token-based and EOF fallback recovery paths.
+- 2026-02-20: Added Phase K typed rule-local recovery budget control (`@recover_budget`) by extending directive registry + validator diagnostics (`W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD`, `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`) and wiring generated parser enforcement (budget exhaustion blocks additional recoveries for the same rule in a parse run).
+- 2026-02-20: Started SC-09 contract baseline by adding typed validator parsing for `@constraint/@requires/@implies`, stable payload diagnostics (`W_SEM_INVALID_CONSTRAINT_PAYLOAD`, `W_SEM_INVALID_REQUIRES_PAYLOAD`, `W_SEM_INVALID_IMPLIES_PAYLOAD`), and relational coherence warning (`W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`).

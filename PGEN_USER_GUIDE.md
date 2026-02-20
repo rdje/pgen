@@ -292,6 +292,17 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - repeated occurrences of the same directive currently follow last-wins assignment per rule.
   - when `@enum` is present with `@len`/`@range`/`@regex`, validator checks satisfiability of the intersection and warns if no enum value can satisfy all active constraints.
 
+#### D) Relational constraint contract baseline (`@constraint`, `@requires`, `@implies`)
+- Current stage:
+  - typed validator contract (`Tier 1`) is implemented,
+  - parser/stimuli runtime steering for relational constraints is not implemented yet.
+- Payload expectations:
+  - `@constraint`: non-empty expression/scalar payload.
+  - `@requires`: one or more references (for example `["$1", "lhs.id"]`).
+  - `@implies`: implication expression using `=>` (for example `"$1 => $2"`).
+- Coherence rule:
+  - `@requires`/`@implies` without `@constraint` triggers `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`.
+
 ### 8.5 Parser Runtime Contract for Value-Domain Directives
 - Value-domain guards are injected into generated parser code for relevant atom token paths:
   - `quoted_string`
@@ -327,6 +338,10 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_INVALID_PRIORITY_PAYLOAD`
   - `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`
   - `W_SEM_INVALID_RECOVER_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD`
+  - `W_SEM_INVALID_CONSTRAINT_PAYLOAD`
+  - `W_SEM_INVALID_REQUIRES_PAYLOAD`
+  - `W_SEM_INVALID_IMPLIES_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
   - `W_SEM_INVALID_ENUM_PAYLOAD`
@@ -337,7 +352,9 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_PRIORITY_PRECEDENCE_CONFLICT` (`@priority` + `@precedence` both present; `@priority` takes precedence)
   - `W_SEM_DIRECTIVE_OVERRIDDEN` (same known directive repeated; last occurrence wins)
   - `W_SEM_UNSATISFIABLE_VALUE_DOMAIN` (`@enum` combined with `@len`/`@range`/`@regex` yields an empty effective domain)
+  - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER` (`@recover_budget` present while `@recover` is not enabled)
   - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER` (`@sync`/`@panic_until` present while `@recover` is not enabled)
+  - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT` (`@requires`/`@implies` present while `@constraint` is missing)
 - Grammar ambiguity diagnostics (grammar-aware validation pass):
   - `W_GRAM_AMBIGUOUS_PREFIX` (top-level alternation branches share the same leading quoted terminal; parse selection may depend on branch order)
   - `W_GRAM_FIRST_SET_OVERLAP` (top-level alternation branches have overlapping computed FIRST terminals, including overlaps introduced via nullable prefixes and rule references)
@@ -395,6 +412,26 @@ stmt = if_stmt | while_stmt ;
   - `longest_match` (default),
   - `ordered`,
   - `priority_first`.
+
+#### Example: Relational contract baseline (validator-typed, runtime follow-on)
+```ebnf
+pair = ident ":" ident ;
+@constraint: "$1 != $2"
+@requires: ["$1", "$2"]
+@implies: "$1 => $2"
+```
+- Current behavior:
+  - validator enforces payload shapes/coherence,
+  - parser/stimuli do not yet execute relational constraint logic at runtime.
+
+#### Example: Relational coherence warning
+```ebnf
+pair = ident ":" ident ;
+@requires: ["$1", "$2"]
+```
+- Validator emits:
+  - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`
+  - because `@requires` is present without a base `@constraint`.
 
 #### Example: Recovery hints runtime baseline
 ```ebnf
@@ -455,6 +492,7 @@ Return-annotation completeness reference (non-negotiable):
 
 This section focuses only on:
 - `@recover`
+- `@recover_budget`
 - `@sync`
 - `@panic_until`
 
@@ -468,6 +506,13 @@ Valid `@recover` payloads (typed bool):
 @recover: 1
 ```
 
+Valid `@recover_budget` payloads (typed non-negative integer):
+```ebnf
+@recover_budget: 0
+@recover_budget: 2
+@recover_budget: "5"
+```
+
 Valid `@sync/@panic_until` payloads:
 ```ebnf
 @sync: ";"
@@ -479,9 +524,12 @@ Valid `@sync/@panic_until` payloads:
 Invalid payload examples (validator warnings):
 ```ebnf
 @recover: maybe              # W_SEM_INVALID_RECOVER_PAYLOAD
+@recover_budget: -1          # W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD
+@recover_budget: many        # W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD
 @sync: []                    # W_SEM_INVALID_SYNC_PAYLOAD
 @panic_until: []             # W_SEM_INVALID_PANIC_UNTIL_PAYLOAD
 @sync: [";"]                 # plus @recover missing/false => W_SEM_RECOVERY_HINT_WITHOUT_RECOVER
+@recover_budget: 3           # plus @recover missing/false => W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER
 ```
 
 #### 8.12.2 Parser Runtime Behavior Examples
@@ -499,6 +547,7 @@ Example B: token-based recovery with `panic_until` priority
 ```ebnf
 stmt = declaration | assignment ;
 @recover: true
+@recover_budget: 2
 @sync: [";"]
 @panic_until: ["}"]
 ```
@@ -506,7 +555,8 @@ stmt = declaration | assignment ;
   - parser scans from rule start,
   - nearest marker wins,
   - tie on same position: `panic_until` beats `sync`,
-  - parser advances past chosen marker and continues.
+  - parser advances past chosen marker and continues,
+  - recovery for this rule is capped to `@recover_budget` successful recoveries per parse.
 
 Example C: no marker found
 ```ebnf
@@ -520,6 +570,16 @@ stmt = declaration | assignment ;
 
 Example D: no forward progress possible
 - If recovery cannot advance parser position, parse returns backtrack error (no silent success).
+
+Example E: budget exhaustion blocks further recovery
+```ebnf
+stmt = declaration | assignment ;
+@recover: true
+@recover_budget: 1
+@sync: [";"]
+```
+- First eligible failure can recover.
+- Subsequent eligible failures in the same parse for `stmt` do not recover once budget is exhausted.
 
 #### 8.12.3 Structured Recovery Event API (Generated Parser)
 
@@ -559,7 +619,7 @@ Notes:
 
 #### 8.12.4 Stimuli Behavior Examples
 
-Example E: recovery fallback sample (panic marker preferred)
+Example F: recovery fallback sample (panic marker preferred)
 ```ebnf
 start = missing_left | missing_right ;
 @recover: true
@@ -569,7 +629,7 @@ start = missing_left | missing_right ;
 - If all OR branches fail during stimuli generation:
   - emitted fallback sample is `"}"` (first non-empty `@panic_until` token).
 
-Example F: sync fallback sample
+Example G: sync fallback sample
 ```ebnf
 start = missing_left | missing_right ;
 @recover: true
@@ -577,7 +637,7 @@ start = missing_left | missing_right ;
 ```
 - With no `@panic_until`, fallback sample becomes first non-empty `@sync` token (`";"` here).
 
-Example G: fallback inactive without `@recover`
+Example H: fallback inactive without `@recover`
 ```ebnf
 start = missing_left | missing_right ;
 @sync: [";"]
@@ -590,6 +650,7 @@ Parser determinism:
 1. earliest marker location wins
 2. same location: `panic_until` before `sync`
 3. no marker: EOF fallback
+4. `@recover_budget` limits successful recoveries per rule per parse
 
 Stimuli determinism:
 1. first non-empty `@panic_until` token
@@ -608,6 +669,54 @@ Pattern 2:
 
 Pattern 3:
 - add at least one semantic usage regression test whenever recovery directives are changed
+
+### 8.13 SC-09 Relational Constraint Contract (Validator Baseline)
+
+This section focuses on:
+- `@constraint`
+- `@requires`
+- `@implies`
+
+Current stage:
+- typed validator contract is active,
+- parser/stimuli runtime relational steering is follow-on work.
+
+#### 8.13.1 Payload Forms
+
+Valid examples:
+```ebnf
+@constraint: "$1 != $2"
+@constraint: lhs.id == rhs.id
+@requires: ["$1", "$2", "lhs.id"]
+@requires: rhs
+@implies: "$1 => $2"
+@implies: lhs.ready => rhs.valid
+```
+
+Invalid examples:
+```ebnf
+@constraint: ""              # W_SEM_INVALID_CONSTRAINT_PAYLOAD
+@requires: ["1bad"]          # W_SEM_INVALID_REQUIRES_PAYLOAD
+@implies: "lhs -> rhs"       # W_SEM_INVALID_IMPLIES_PAYLOAD
+@implies: "lhs => rhs => z"  # W_SEM_INVALID_IMPLIES_PAYLOAD
+```
+
+#### 8.13.2 Coherence Rule
+
+If `@requires` or `@implies` is present without `@constraint`, validator emits:
+- `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`
+
+Example:
+```ebnf
+pair = ident ":" ident ;
+@requires: ["$1", "$2"]
+```
+
+#### 8.13.3 Deterministic Contract Notes
+
+- Same-directive duplicates are still last-wins (`W_SEM_DIRECTIVE_OVERRIDDEN`).
+- Strict mode promotes these warning-class diagnostics to errors, same as other semantic contracts.
+- These directives are now parse+validate contract surface (`Tier 1`) and are safe to use as forward-compatible metadata while runtime steering is being implemented.
 
 ## 9) Differential Testing and Drift Management
 

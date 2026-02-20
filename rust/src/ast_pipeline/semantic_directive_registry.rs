@@ -176,6 +176,10 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         capability: SemanticDirectiveCapability::ParsedOnly,
     },
     SemanticDirectiveSpec {
+        name: "recover_budget",
+        capability: SemanticDirectiveCapability::ParserSteering,
+    },
+    SemanticDirectiveSpec {
         name: "sync",
         capability: SemanticDirectiveCapability::ParsedOnly,
     },
@@ -201,15 +205,15 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
     },
     SemanticDirectiveSpec {
         name: "constraint",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParsedAndValidated,
     },
     SemanticDirectiveSpec {
         name: "requires",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParsedAndValidated,
     },
     SemanticDirectiveSpec {
         name: "implies",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParsedAndValidated,
     },
     SemanticDirectiveSpec {
         name: "token_class",
@@ -263,6 +267,16 @@ fn directive_name_regex() -> &'static Regex {
     DIRECTIVE_NAME_RE.get_or_init(|| {
         Regex::new(r"^\s*@?(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*:")
             .expect("semantic directive name regex must compile")
+    })
+}
+
+fn semantic_reference_regex() -> &'static Regex {
+    static SEMANTIC_REFERENCE_RE: OnceLock<Regex> = OnceLock::new();
+    SEMANTIC_REFERENCE_RE.get_or_init(|| {
+        Regex::new(
+            r"^(?:\$[0-9]+(?:\.[A-Za-z_][A-Za-z0-9_]*)*|[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)$",
+        )
+        .expect("semantic reference regex must compile")
     })
 }
 
@@ -401,6 +415,52 @@ pub fn parse_semantic_bool(payload: &str) -> Option<bool> {
     }
 }
 
+pub fn parse_semantic_nonnegative_usize(payload: &str) -> Option<usize> {
+    let normalized = normalize_semantic_scalar(payload);
+    if normalized.is_empty() {
+        return None;
+    }
+    normalized.parse::<usize>().ok()
+}
+
+pub fn parse_semantic_constraint_expression(payload: &str) -> Option<String> {
+    let normalized = normalize_semantic_scalar(payload);
+    if normalized.is_empty() {
+        return None;
+    }
+    Some(normalized)
+}
+
+pub fn parse_semantic_reference_list(payload: &str) -> Option<Vec<String>> {
+    let references = parse_semantic_string_list(payload)?;
+    if references
+        .iter()
+        .any(|reference| !is_semantic_reference(reference))
+    {
+        return None;
+    }
+    Some(references)
+}
+
+pub fn parse_semantic_implication(payload: &str) -> Option<(String, String)> {
+    let normalized = normalize_semantic_scalar(payload);
+    if normalized.is_empty() {
+        return None;
+    }
+
+    let mut segments = normalized.split("=>");
+    let antecedent = segments.next()?.trim();
+    let consequent = segments.next()?.trim();
+    if segments.next().is_some() {
+        return None;
+    }
+    if antecedent.is_empty() || consequent.is_empty() {
+        return None;
+    }
+
+    Some((antecedent.to_string(), consequent.to_string()))
+}
+
 pub fn parse_semantic_numeric_bounds(payload: &str) -> Option<(f64, f64)> {
     let normalized = payload.trim();
     if normalized.is_empty() {
@@ -465,6 +525,10 @@ pub fn normalize_semantic_scalar(value: &str) -> String {
     strip_optional_quotes(value).trim().to_string()
 }
 
+fn is_semantic_reference(value: &str) -> bool {
+    semantic_reference_regex().is_match(value.trim())
+}
+
 fn sorted_numeric_bounds(a: f64, b: f64) -> (f64, f64) {
     if a <= b { (a, b) } else { (b, a) }
 }
@@ -490,9 +554,12 @@ mod tests {
     use super::{
         SemanticAssociativity, SemanticBranchPolicy, UnknownSemanticDirectivePolicy,
         extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
-        parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_float_list,
-        parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
-        parse_semantic_string_list, semantic_directive_spec,
+        parse_semantic_bool, parse_semantic_branch_priorities,
+        parse_semantic_constraint_expression, parse_semantic_float_list,
+        parse_semantic_implication, parse_semantic_len_bounds,
+        parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
+        parse_semantic_numeric_list, parse_semantic_reference_list, parse_semantic_string_list,
+        semantic_directive_spec,
     };
 
     #[test]
@@ -648,13 +715,65 @@ mod tests {
     }
 
     #[test]
+    fn parses_semantic_nonnegative_usize_values() {
+        assert_eq!(parse_semantic_nonnegative_usize("0"), Some(0));
+        assert_eq!(parse_semantic_nonnegative_usize("\"8\""), Some(8));
+        assert_eq!(parse_semantic_nonnegative_usize("-1"), None);
+        assert_eq!(parse_semantic_nonnegative_usize("abc"), None);
+    }
+
+    #[test]
+    fn parses_semantic_constraint_expressions() {
+        assert_eq!(
+            parse_semantic_constraint_expression("\"$1.len >= 1\""),
+            Some("$1.len >= 1".to_string())
+        );
+        assert_eq!(
+            parse_semantic_constraint_expression("lhs == rhs"),
+            Some("lhs == rhs".to_string())
+        );
+        assert_eq!(parse_semantic_constraint_expression(""), None);
+    }
+
+    #[test]
+    fn parses_semantic_reference_lists() {
+        assert_eq!(
+            parse_semantic_reference_list("[\"$1\", \"lhs.name\"]"),
+            Some(vec!["$1".to_string(), "lhs.name".to_string()])
+        );
+        assert_eq!(
+            parse_semantic_reference_list("rhs"),
+            Some(vec!["rhs".to_string()])
+        );
+        assert_eq!(parse_semantic_reference_list("[\"1bad\"]"), None);
+    }
+
+    #[test]
+    fn parses_semantic_implication_payloads() {
+        assert_eq!(
+            parse_semantic_implication("\"$1 => $2\""),
+            Some(("$1".to_string(), "$2".to_string()))
+        );
+        assert_eq!(
+            parse_semantic_implication("lhs.ready => rhs.valid"),
+            Some(("lhs.ready".to_string(), "rhs.valid".to_string()))
+        );
+        assert_eq!(parse_semantic_implication("lhs => rhs => z"), None);
+        assert_eq!(parse_semantic_implication("lhs => "), None);
+    }
+
+    #[test]
     fn recognizes_known_directives() {
         assert!(semantic_directive_spec("transform").is_some());
         assert!(semantic_directive_spec("precedence").is_some());
         assert!(semantic_directive_spec("branch_policy").is_some());
         assert!(semantic_directive_spec("recover").is_some());
+        assert!(semantic_directive_spec("recover_budget").is_some());
         assert!(semantic_directive_spec("sync").is_some());
         assert!(semantic_directive_spec("panic_until").is_some());
+        assert!(semantic_directive_spec("constraint").is_some());
+        assert!(semantic_directive_spec("requires").is_some());
+        assert!(semantic_directive_spec("implies").is_some());
         assert!(semantic_directive_spec("unknown_directive").is_none());
     }
 }

@@ -1,4 +1,67 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Rule-Local Budget + SC-09 Typed Relational Contracts
+### Context
+SC-07 recovery hooks were already executable, but lacked a typed limiter to prevent unbounded repeated recovery in a single parse run. In parallel, SC-09 (`@constraint/@requires/@implies`) still had no typed validator contract even though directive names were already registered.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `rust/src/ast_pipeline/mod.rs`
+
+#### 1) SC-07 `@recover_budget` parser runtime enforcement
+- Generated parser struct now tracks:
+  - `recovery_counts: HashMap<String, usize>`
+- Parse lifecycle:
+  - `parse()` clears `recovery_counts` per parse run.
+- Recovery hint extraction:
+  - `rule_recovery_hints(...)` now returns `recover_budget: Option<usize>` parsed from `@recover_budget`.
+- Recovery hook:
+  - `recover_with_hints(...)` now takes `recover_budget`.
+  - When budget is present and exhausted for a rule, recovery returns `false` (normal backtrack path continues).
+  - Successful token-based and EOF-fallback recoveries increment per-rule count.
+
+#### 2) SC-09 typed payload contracts
+- Added directive payload helpers:
+  - `parse_semantic_constraint_expression(payload) -> Option<String>`
+  - `parse_semantic_reference_list(payload) -> Option<Vec<String>>`
+    - validates reference forms such as `$1`, `lhs`, `lhs.id`
+  - `parse_semantic_implication(payload) -> Option<(String, String)>`
+    - enforces exactly one `=>` separator with non-empty sides
+- Promoted directive capability tier for:
+  - `constraint`, `requires`, `implies` from `ParsedOnly` -> `ParsedAndValidated`
+
+#### 3) SC-09 validator diagnostics + coherence
+- Added payload diagnostics:
+  - `W_SEM_INVALID_CONSTRAINT_PAYLOAD`
+  - `W_SEM_INVALID_REQUIRES_PAYLOAD`
+  - `W_SEM_INVALID_IMPLIES_PAYLOAD`
+- Added coherence diagnostic:
+  - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`
+  - emitted when `@requires` and/or `@implies` appear without `@constraint`.
+
+#### 4) Contract surface/docs alignment
+- Updated living roadmap/matrix/spec/UG:
+  - SC-07 now documents rule-local budget behavior explicitly.
+  - SC-09 now marked as started at validator-contract tier (runtime steering explicitly pending).
+
+### Tests
+- Added/updated registry tests:
+  - `parses_semantic_constraint_expressions`
+  - `parses_semantic_reference_lists`
+  - `parses_semantic_implication_payloads`
+- Added validator tests:
+  - `semantic_validator_warns_on_invalid_relational_payloads`
+  - `semantic_validator_warns_when_relational_hints_present_without_constraint`
+  - `semantic_validator_does_not_warn_on_relational_hint_when_constraint_present`
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_directive_registry`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator`
+  - pass.
+
 ## 2026-02-20 - User Guide Expansion: SC-07 Recovery Deep-Dive
 ### Context
 SC-07 (`@recover/@sync/@panic_until`) now spans validator contracts, parser runtime recovery, stimuli fallback behavior, and structured recovery event APIs. The prior guide content covered this, but not as a single focused onboarding path with concentrated examples.
