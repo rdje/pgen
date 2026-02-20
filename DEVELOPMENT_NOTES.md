@@ -3484,3 +3484,84 @@ Result:
 ### Follow-on (Next Activity Candidates)
 1. Extend ambiguity detection from literal-prefix heuristic to nullable/first-set overlap analysis.
 2. Add semantic branch-policy + recovery-hint control surface (`@branch_policy`, `@recover`, `@sync`, `@panic_until`) with validator contracts.
+
+---
+
+## 2026-02-20 - Pillar 6 Phase K Step 2: FIRST-Set and Nullable Shadow Diagnostics
+
+### Context
+The first ambiguity slice (`W_GRAM_AMBIGUOUS_PREFIX`) intentionally favored low-noise literal-prefix detection.  
+That left a known blind spot for:
+- nullable prefix branches (for example via optional prefixes),
+- overlap introduced through rule references where first terminals are indirect.
+
+### Implementation
+
+#### 1) FIRST-set summary model added to validator
+File: `rust/src/ast_pipeline/annotation_validator.rs`
+
+Added internal summary type:
+- `FirstSetSummary { terminals, nullable, unresolved }`
+
+Purpose:
+- `terminals`: known deterministic leading terminals (currently tracked from quoted terminals),
+- `nullable`: whether branch can consume zero tokens at the front,
+- `unresolved`: partial-analysis marker (unknown/regex/recursive limits).
+
+#### 2) Grammar-aware ambiguity analysis extended
+File: `rust/src/ast_pipeline/annotation_validator.rs`
+
+`validate_grammar_ambiguity(...)` now performs three checks for top-level alternatives:
+1. Existing literal-prefix grouping (`W_GRAM_AMBIGUOUS_PREFIX`).
+2. FIRST terminal overlap grouping (`W_GRAM_FIRST_SET_OVERLAP`).
+3. Nullable early-branch shadow detection (`W_GRAM_NULLABLE_BRANCH_SHADOW`).
+
+Duplicate-noise control:
+- Prefix warning signatures are recorded and used to suppress equivalent FIRST-overlap duplicates.
+
+#### 3) Recursive FIRST-set walkers
+File: `rust/src/ast_pipeline/annotation_validator.rs`
+
+Added helper methods:
+- `branch_first_set(...)`
+- `atom_first_set(...)`
+- `rule_first_set(...)`
+- `quantifier_min_repeat(...)`
+
+Coverage in this increment:
+- `Sequence`: propagates FIRST across nullable-leading elements.
+- `Or`: unions FIRST terminals and nullable flag.
+- `Quantified`: adjusts nullability based on minimum repetition.
+- `rule_reference`: resolves through grammar tree with:
+  - recursion guard (`visiting_rules`),
+  - per-rule memoization cache (`first_set_cache`),
+  - depth cap (`MAX_FIRST_SET_DEPTH`).
+
+Known precision bounds:
+- Regex starts are currently marked unresolved (nullable probe only),
+- diagnostics remain warning-grade (no hard parse rejection).
+
+### Tests Added
+File: `rust/src/ast_pipeline/annotation_validator.rs`
+
+Added:
+- `grammar_aware_validation_warns_on_first_set_overlap_from_nullable_prefix`
+  - branch1: `prefix "if"` with `prefix := "a"?`
+  - branch2: `"if" expr`
+  - verifies `W_GRAM_FIRST_SET_OVERLAP`.
+- `grammar_aware_validation_warns_on_nullable_branch_shadow`
+  - branch1 nullable (`"if"?`) before branch2 (`"while" expr`)
+  - verifies `W_GRAM_NULLABLE_BRANCH_SHADOW`.
+
+### Validation
+Command:
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator`
+
+Result:
+- Passed (`21 passed, 0 failed` in annotation validator suite).
+
+### Plan Update
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Phase K second checkbox (nullable/FIRST overlap) marked complete.
+- Remaining Phase K activity:
+  - branch-policy/recovery hint control surface (`@branch_policy`, `@recover`, `@sync`, `@panic_until`).

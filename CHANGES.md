@@ -7347,3 +7347,30 @@ Start ambiguity-handling implementation with deterministic, low-noise grammar di
 ### Validation
 - `cargo test --manifest-path rust/Cargo.toml annotation_validator`
 - Result: pass (`19 passed, 0 failed` for annotation validator tests).
+
+---
+
+## 2026-02-20: Ambiguity Diagnostics Phase K Step 2 (FIRST/Nullable)
+
+### Goal
+Extend ambiguity detection beyond literal-prefix matching so nullable prefixes and rule-reference FIRST-set overlaps are caught automatically.
+
+### Changes
+- Extended grammar-aware ambiguity validator with partial FIRST-set analysis over:
+  - sequences,
+  - alternations,
+  - quantifiers (`?`, `*`, `+`, `{m,n}` min repeat),
+  - rule references (with recursion/depth guards and per-rule FIRST cache).
+- Added new grammar diagnostics:
+  - `W_GRAM_FIRST_SET_OVERLAP`
+    - emitted when top-level alternative branches share at least one computed FIRST terminal and are not already covered by the prefix warning signature.
+  - `W_GRAM_NULLABLE_BRANCH_SHADOW`
+    - emitted when a nullable earlier branch can shadow later alternatives in ordered choice.
+- Added unit tests:
+  - `grammar_aware_validation_warns_on_first_set_overlap_from_nullable_prefix`
+  - `grammar_aware_validation_warns_on_nullable_branch_shadow`
+- Updated roadmap, development notes, and user guide to mark Phase K second item complete and document the new warning codes/examples.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator`
+- Result: pass (`21 passed, 0 failed` for annotation validator tests).

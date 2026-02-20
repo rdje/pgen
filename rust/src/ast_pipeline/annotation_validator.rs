@@ -91,6 +91,13 @@ pub struct AnnotationValidator {
     config: AnnotationValidatorConfig,
 }
 
+#[derive(Debug, Clone, Default)]
+struct FirstSetSummary {
+    terminals: HashSet<String>,
+    nullable: bool,
+    unresolved: bool,
+}
+
 impl AnnotationValidator {
     pub fn new(config: AnnotationValidatorConfig) -> Self {
         Self { config }
@@ -977,6 +984,7 @@ impl AnnotationValidator {
                 continue;
             }
 
+            let mut prefix_signatures = HashSet::new();
             let mut fingerprint_to_branches: HashMap<String, Vec<usize>> = HashMap::new();
             for (idx, branch) in branches.iter().enumerate() {
                 let Some(fingerprint) = self.branch_leading_terminal_fingerprint(branch) else {
@@ -1002,6 +1010,8 @@ impl AnnotationValidator {
                     .map(|idx| idx.to_string())
                     .collect::<Vec<String>>()
                     .join(", ");
+                let signature = format!("{}|{}", fingerprint, branch_list);
+                prefix_signatures.insert(signature);
 
                 report.diagnostics.push(AnnotationDiagnostic {
                     code: "W_GRAM_AMBIGUOUS_PREFIX",
@@ -1015,6 +1025,86 @@ impl AnnotationValidator {
                     ),
                     annotation: None,
                 });
+            }
+
+            let mut first_set_cache: HashMap<String, FirstSetSummary> = HashMap::new();
+            let mut branch_first_sets = Vec::with_capacity(branches.len());
+            for (idx, branch) in branches.iter().enumerate() {
+                let mut visiting_rules = HashSet::new();
+                let summary = self.branch_first_set(
+                    branch,
+                    grammar_tree,
+                    &mut first_set_cache,
+                    &mut visiting_rules,
+                    0,
+                );
+                branch_first_sets.push((idx + 1, summary));
+            }
+
+            let mut first_to_branches: HashMap<String, Vec<usize>> = HashMap::new();
+            for (branch_index, summary) in &branch_first_sets {
+                for terminal in &summary.terminals {
+                    first_to_branches
+                        .entry(terminal.clone())
+                        .or_default()
+                        .push(*branch_index);
+                }
+            }
+
+            let mut first_overlaps: Vec<(String, Vec<usize>)> = first_to_branches.into_iter().collect();
+            first_overlaps.sort_by(|left, right| left.0.cmp(&right.0));
+
+            for (terminal, mut branch_indices) in first_overlaps {
+                branch_indices.sort_unstable();
+                branch_indices.dedup();
+                if branch_indices.len() < 2 {
+                    continue;
+                }
+
+                let branch_list = branch_indices
+                    .iter()
+                    .map(|idx| idx.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                let signature = format!("{}|{}", terminal, branch_list);
+                if prefix_signatures.contains(&signature) {
+                    continue;
+                }
+
+                report.diagnostics.push(AnnotationDiagnostic {
+                    code: "W_GRAM_FIRST_SET_OVERLAP",
+                    severity: AnnotationSeverity::Warning,
+                    kind: AnnotationKind::Grammar,
+                    rule_name: rule_name.to_string(),
+                    annotation_index: None,
+                    message: format!(
+                        "Rule '{}' has alternative branches [{}] with overlapping FIRST terminal {}; parse selection may depend on branch order.",
+                        rule_name, branch_list, terminal
+                    ),
+                    annotation: None,
+                });
+            }
+
+            for (branch_index, summary) in &branch_first_sets {
+                if summary.nullable && *branch_index < branches.len() {
+                    let unresolved_note = if summary.unresolved {
+                        " (nullable from partial FIRST analysis)"
+                    } else {
+                        ""
+                    };
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_GRAM_NULLABLE_BRANCH_SHADOW",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Grammar,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: None,
+                        message: format!(
+                            "Rule '{}' has nullable alternative branch {} before later branches; ordered choice may shadow subsequent alternatives{}.",
+                            rule_name, branch_index, unresolved_note
+                        ),
+                        annotation: None,
+                    });
+                }
             }
         }
     }
@@ -1064,6 +1154,240 @@ impl AnnotationValidator {
             Some(format!("'{}'", token_value))
         } else {
             None
+        }
+    }
+
+    fn branch_first_set(
+        &self,
+        node: &ASTNode,
+        grammar_tree: &HashMap<String, ASTNode>,
+        first_set_cache: &mut HashMap<String, FirstSetSummary>,
+        visiting_rules: &mut HashSet<String>,
+        depth: usize,
+    ) -> FirstSetSummary {
+        const MAX_FIRST_SET_DEPTH: usize = 24;
+        if depth > MAX_FIRST_SET_DEPTH {
+            return FirstSetSummary {
+                terminals: HashSet::new(),
+                nullable: false,
+                unresolved: true,
+            };
+        }
+
+        match node {
+            ASTNode::Sequence { elements } => {
+                let mut result = FirstSetSummary {
+                    terminals: HashSet::new(),
+                    nullable: true,
+                    unresolved: false,
+                };
+
+                if elements.is_empty() {
+                    return result;
+                }
+
+                for element in elements {
+                    let element_first = self.branch_first_set(
+                        element,
+                        grammar_tree,
+                        first_set_cache,
+                        visiting_rules,
+                        depth + 1,
+                    );
+                    result.terminals.extend(element_first.terminals.iter().cloned());
+                    result.unresolved |= element_first.unresolved;
+                    if !element_first.nullable {
+                        result.nullable = false;
+                        return result;
+                    }
+                }
+
+                result
+            }
+            ASTNode::Or { alternatives } => {
+                let mut result = FirstSetSummary {
+                    terminals: HashSet::new(),
+                    nullable: false,
+                    unresolved: false,
+                };
+
+                if alternatives.is_empty() {
+                    result.nullable = true;
+                    return result;
+                }
+
+                for alternative in alternatives {
+                    let alternative_first = self.branch_first_set(
+                        alternative,
+                        grammar_tree,
+                        first_set_cache,
+                        visiting_rules,
+                        depth + 1,
+                    );
+                    result
+                        .terminals
+                        .extend(alternative_first.terminals.iter().cloned());
+                    result.nullable |= alternative_first.nullable;
+                    result.unresolved |= alternative_first.unresolved;
+                }
+
+                result
+            }
+            ASTNode::Atom { value } => self.atom_first_set(
+                value,
+                grammar_tree,
+                first_set_cache,
+                visiting_rules,
+                depth + 1,
+            ),
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                let mut element_first = self.branch_first_set(
+                    element,
+                    grammar_tree,
+                    first_set_cache,
+                    visiting_rules,
+                    depth + 1,
+                );
+                let min_repeat = self.quantifier_min_repeat(quantifier);
+                if min_repeat == 0 {
+                    element_first.nullable = true;
+                }
+                element_first
+            }
+        }
+    }
+
+    fn atom_first_set(
+        &self,
+        value: &ASTValue,
+        grammar_tree: &HashMap<String, ASTNode>,
+        first_set_cache: &mut HashMap<String, FirstSetSummary>,
+        visiting_rules: &mut HashSet<String>,
+        depth: usize,
+    ) -> FirstSetSummary {
+        match value {
+            ASTValue::Node(node) => self.branch_first_set(
+                node,
+                grammar_tree,
+                first_set_cache,
+                visiting_rules,
+                depth + 1,
+            ),
+            ASTValue::Token(parts) => {
+                if parts.len() < 2 {
+                    return FirstSetSummary {
+                        terminals: HashSet::new(),
+                        nullable: false,
+                        unresolved: true,
+                    };
+                }
+
+                let token_type = match &parts[0] {
+                    super::TokenValue::String(token_type) => token_type.as_str(),
+                };
+                let token_value = match &parts[1] {
+                    super::TokenValue::String(token_value) => token_value.as_str(),
+                };
+
+                match token_type {
+                    "quoted_string" => {
+                        let mut terminals = HashSet::new();
+                        if !token_value.is_empty() {
+                            terminals.insert(format!("'{}'", token_value));
+                        }
+                        FirstSetSummary {
+                            terminals,
+                            nullable: token_value.is_empty(),
+                            unresolved: false,
+                        }
+                    }
+                    "rule_reference" => self.rule_first_set(
+                        token_value,
+                        grammar_tree,
+                        first_set_cache,
+                        visiting_rules,
+                        depth + 1,
+                    ),
+                    "regex" => {
+                        let nullable = Regex::new(token_value)
+                            .ok()
+                            .and_then(|re| re.find(""))
+                            .map(|m| m.start() == 0 && m.end() == 0)
+                            .unwrap_or(false);
+                        FirstSetSummary {
+                            terminals: HashSet::new(),
+                            nullable,
+                            unresolved: true,
+                        }
+                    }
+                    _ => FirstSetSummary {
+                        terminals: HashSet::new(),
+                        nullable: false,
+                        unresolved: true,
+                    },
+                }
+            }
+        }
+    }
+
+    fn rule_first_set(
+        &self,
+        rule_name: &str,
+        grammar_tree: &HashMap<String, ASTNode>,
+        first_set_cache: &mut HashMap<String, FirstSetSummary>,
+        visiting_rules: &mut HashSet<String>,
+        depth: usize,
+    ) -> FirstSetSummary {
+        if let Some(cached) = first_set_cache.get(rule_name) {
+            return cached.clone();
+        }
+
+        if !visiting_rules.insert(rule_name.to_string()) {
+            return FirstSetSummary {
+                terminals: HashSet::new(),
+                nullable: false,
+                unresolved: true,
+            };
+        }
+
+        let result = if let Some(rule_ast) = grammar_tree.get(rule_name) {
+            self.branch_first_set(
+                rule_ast,
+                grammar_tree,
+                first_set_cache,
+                visiting_rules,
+                depth + 1,
+            )
+        } else {
+            FirstSetSummary {
+                terminals: HashSet::new(),
+                nullable: false,
+                unresolved: true,
+            }
+        };
+
+        visiting_rules.remove(rule_name);
+        first_set_cache.insert(rule_name.to_string(), result.clone());
+        result
+    }
+
+    fn quantifier_min_repeat(&self, quantifier: &str) -> usize {
+        let trimmed = quantifier.trim();
+        match trimmed {
+            "?" | "*" => 0,
+            "+" => 1,
+            _ if trimmed.starts_with('{') && trimmed.ends_with('}') => {
+                let inner = trimmed[1..trimmed.len() - 1].trim();
+                if inner.is_empty() || inner.starts_with(',') {
+                    return 0;
+                }
+                let min_part = inner.split(',').next().unwrap_or(inner).trim();
+                min_part.parse::<usize>().unwrap_or(1)
+            }
+            _ => 1,
         }
     }
 
@@ -1717,5 +2041,121 @@ mod tests {
                 .iter()
                 .any(|d| d.code == "W_GRAM_AMBIGUOUS_PREFIX")
         );
+    }
+
+    #[test]
+    fn grammar_aware_validation_warns_on_first_set_overlap_from_nullable_prefix() {
+        let annotations = Annotations::default();
+        let grammar_tree = HashMap::from([
+            (
+                "prefix".to_string(),
+                ASTNode::Quantified {
+                    element: Box::new(ASTNode::Atom {
+                        value: ASTValue::Token(vec![
+                            TokenValue::String("quoted_string".to_string()),
+                            TokenValue::String("a".to_string()),
+                        ]),
+                    }),
+                    quantifier: "?".to_string(),
+                },
+            ),
+            (
+                "statement".to_string(),
+                ASTNode::Or {
+                    alternatives: vec![
+                        ASTNode::Sequence {
+                            elements: vec![
+                                ASTNode::Atom {
+                                    value: ASTValue::Token(vec![
+                                        TokenValue::String("rule_reference".to_string()),
+                                        TokenValue::String("prefix".to_string()),
+                                    ]),
+                                },
+                                ASTNode::Atom {
+                                    value: ASTValue::Token(vec![
+                                        TokenValue::String("quoted_string".to_string()),
+                                        TokenValue::String("if".to_string()),
+                                    ]),
+                                },
+                            ],
+                        },
+                        ASTNode::Sequence {
+                            elements: vec![
+                                ASTNode::Atom {
+                                    value: ASTValue::Token(vec![
+                                        TokenValue::String("quoted_string".to_string()),
+                                        TokenValue::String("if".to_string()),
+                                    ]),
+                                },
+                                ASTNode::Atom {
+                                    value: ASTValue::Token(vec![
+                                        TokenValue::String("rule_reference".to_string()),
+                                        TokenValue::String("expr".to_string()),
+                                    ]),
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ),
+        ]);
+
+        let report = AnnotationValidator::default()
+            .validate_annotations_with_grammar(&annotations, &grammar_tree);
+
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_GRAM_FIRST_SET_OVERLAP"
+                    && d.kind == AnnotationKind::Grammar
+                    && d.rule_name == "statement")
+        );
+    }
+
+    #[test]
+    fn grammar_aware_validation_warns_on_nullable_branch_shadow() {
+        let annotations = Annotations::default();
+        let grammar_tree = HashMap::from([(
+            "statement".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(ASTNode::Atom {
+                            value: ASTValue::Token(vec![
+                                TokenValue::String("quoted_string".to_string()),
+                                TokenValue::String("if".to_string()),
+                            ]),
+                        }),
+                        quantifier: "?".to_string(),
+                    },
+                    ASTNode::Sequence {
+                        elements: vec![
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String("while".to_string()),
+                                ]),
+                            },
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("rule_reference".to_string()),
+                                    TokenValue::String("expr".to_string()),
+                                ]),
+                            },
+                        ],
+                    },
+                ],
+            },
+        )]);
+
+        let report = AnnotationValidator::default()
+            .validate_annotations_with_grammar(&annotations, &grammar_tree);
+
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_GRAM_NULLABLE_BRANCH_SHADOW"
+                && d.kind == AnnotationKind::Grammar
+                && d.rule_name == "statement"
+        }));
     }
 }

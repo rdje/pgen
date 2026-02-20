@@ -335,6 +335,8 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_UNSATISFIABLE_VALUE_DOMAIN` (`@enum` combined with `@len`/`@range`/`@regex` yields an empty effective domain)
 - Grammar ambiguity diagnostics (grammar-aware validation pass):
   - `W_GRAM_AMBIGUOUS_PREFIX` (top-level alternation branches share the same leading quoted terminal; parse selection may depend on branch order)
+  - `W_GRAM_FIRST_SET_OVERLAP` (top-level alternation branches have overlapping computed FIRST terminals, including overlaps introduced via nullable prefixes and rule references)
+  - `W_GRAM_NULLABLE_BRANCH_SHADOW` (an earlier top-level branch is nullable and may shadow later alternatives in ordered choice)
 
 ### 8.8 Practical Examples
 
@@ -356,6 +358,19 @@ ident = regex("[A-Z]+") @enum: ["AA", "AB", "BC"] @regex: "^A[A-Z]$" @len: [2, 2
 statement = "if" expr | "if" stmt ;
 ```
 - Grammar-aware validator emits `W_GRAM_AMBIGUOUS_PREFIX` for `statement` because both branches start with the same quoted terminal (`"if"`).
+
+#### Example: FIRST-set overlap via nullable prefix
+```ebnf
+prefix = "a"? ;
+statement = prefix "if" | "if" expr ;
+```
+- Grammar-aware validator emits `W_GRAM_FIRST_SET_OVERLAP` because `prefix "if"` can start with `"if"` when `prefix` is empty.
+
+#### Example: Nullable branch shadow risk
+```ebnf
+statement = "if"? | "while" expr ;
+```
+- Grammar-aware validator emits `W_GRAM_NULLABLE_BRANCH_SHADOW` because branch 1 is nullable and appears before later alternatives.
 
 #### Example: Expression rule branch steering
 ```ebnf
