@@ -1,9 +1,10 @@
 use super::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, ExtractionTarget, SemanticAnnotation,
-    SemanticAssociativity, UnifiedReturnAST, UnifiedSemanticAST, UnknownSemanticDirectivePolicy,
-    extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
-    parse_canonical_transform_expression, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
-    parse_semantic_numeric_list, parse_semantic_string_list, semantic_directive_spec,
+    SemanticAssociativity, SemanticBranchPolicy, UnifiedReturnAST, UnifiedSemanticAST,
+    UnknownSemanticDirectivePolicy, extract_semantic_directive, extract_semantic_directive_name,
+    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
+    parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
+    parse_semantic_string_list, semantic_directive_spec,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -487,6 +488,60 @@ impl AnnotationValidator {
                     });
                 }
             }
+            "branch_policy" => {
+                if SemanticBranchPolicy::parse(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@branch_policy' expects one of: longest_match, ordered, priority_first.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "recover" => {
+                if parse_semantic_bool(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_RECOVER_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message:
+                            "Directive '@recover' expects a boolean payload such as true/false."
+                                .to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "sync" => {
+                if parse_semantic_string_list(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_SYNC_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@sync' expects one or more sync tokens, for example '[\";\", \"end\"]'.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "panic_until" => {
+                if parse_semantic_string_list(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_PANIC_UNTIL_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@panic_until' expects one or more panic-stop tokens, for example '[\";\", \"}\"]'.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             "enum" => {
                 if parse_semantic_string_list(payload_trimmed).is_none() {
                     report.diagnostics.push(AnnotationDiagnostic {
@@ -623,6 +678,7 @@ impl AnnotationValidator {
             &directive_occurrences,
             report,
         );
+        self.validate_recovery_hint_contract(rule_name, &directive_occurrences, report);
 
         for (directive_name, entries) in &directive_occurrences {
             if entries.len() <= 1 {
@@ -742,6 +798,53 @@ impl AnnotationValidator {
             rule_name: rule_name.to_string(),
             annotation_index: Some(annotation_index),
             message: "Value-domain directives are unsatisfiable: no '@enum' value satisfies all active constraints.".to_string(),
+            annotation: Some(details.join("; ")),
+        });
+    }
+
+    fn validate_recovery_hint_contract(
+        &self,
+        rule_name: &str,
+        directive_occurrences: &HashMap<String, Vec<(usize, String)>>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        let recover_enabled = Self::latest_directive_payload(directive_occurrences, "recover")
+            .and_then(|(_, payload)| parse_semantic_bool(payload))
+            .unwrap_or(false);
+
+        if recover_enabled {
+            return;
+        }
+
+        let sync_payload = Self::latest_directive_payload(directive_occurrences, "sync");
+        let panic_until_payload = Self::latest_directive_payload(directive_occurrences, "panic_until");
+        if sync_payload.is_none() && panic_until_payload.is_none() {
+            return;
+        }
+
+        let mut annotation_index = 1usize;
+        let mut details = Vec::new();
+        if let Some((idx, payload)) = sync_payload {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@sync: {}", payload));
+        }
+        if let Some((idx, payload)) = panic_until_payload {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@panic_until: {}", payload));
+        }
+        if let Some((idx, payload)) = Self::latest_directive_payload(directive_occurrences, "recover")
+        {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@recover: {}", payload));
+        }
+
+        report.diagnostics.push(AnnotationDiagnostic {
+            code: "W_SEM_RECOVERY_HINT_WITHOUT_RECOVER",
+            severity: AnnotationSeverity::Warning,
+            kind: AnnotationKind::Semantic,
+            rule_name: rule_name.to_string(),
+            annotation_index: Some(annotation_index),
+            message: "Recovery hints '@sync/@panic_until' are present but '@recover' is not enabled; hints remain inactive until '@recover: true'.".to_string(),
             annotation: Some(details.join("; ")),
         });
     }
@@ -1777,6 +1880,126 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_INVALID_REGEX_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_invalid_recovery_payloads() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "branch_policy".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"diagonal\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "recover".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"sometimes\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "sync".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "panic_until".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_RECOVER_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_SYNC_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_PANIC_UNTIL_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_when_recovery_hints_present_without_recover() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "sync".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\";\", \"end\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "panic_until".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"}\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RECOVERY_HINT_WITHOUT_RECOVER")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_does_not_warn_when_recovery_hints_enabled() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "recover".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "sync".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\";\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RECOVERY_HINT_WITHOUT_RECOVER")
         );
     }
 

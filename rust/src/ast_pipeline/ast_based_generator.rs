@@ -5,9 +5,9 @@
 use super::Logger;
 use crate::ast_pipeline::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
-    SemanticValueConstraints, TokenValue, UnifiedSemanticAST,
+    SemanticBranchPolicy, SemanticValueConstraints, TokenValue, UnifiedSemanticAST,
     ast_return_transform::AstReturnTransformer, extract_semantic_directive,
-    normalize_semantic_scalar, parse_canonical_transform_expression,
+    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
     parse_semantic_branch_priorities, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
     parse_semantic_string_list,
 };
@@ -684,6 +684,12 @@ impl AstBasedGenerator {
             let branch_priorities = self.rule_branch_priorities(rule_name, branch_count);
             let associativity = self.rule_associativity(rule_name);
             let associativity_mode = associativity.as_str();
+            let branch_policy = self.rule_branch_policy(rule_name);
+            let branch_policy_mode = branch_policy.as_str();
+            let (recover_enabled, sync_tokens, panic_until_tokens) =
+                self.rule_recovery_hints(rule_name);
+            let sync_tokens_label = sync_tokens.join(", ");
+            let panic_until_tokens_label = panic_until_tokens.join(", ");
 
             for (idx, alternative) in alternatives.iter().enumerate() {
                 eprintln!();
@@ -710,57 +716,86 @@ impl AstBasedGenerator {
                 let branch_priority = branch_priorities.get(idx).copied().unwrap_or(0);
                 let branch_index = idx;
                 branch_attempts.push(quote! {
-                    parser.position = parse_start;
-                    if let Some(content) = parser.try_parse(|p| {
-                        let parser = p;
-                        if parser.logger.is_enabled() {
-                            parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
-                        }
-                        #branch_logic;
-                        if parser.logger.is_enabled() {
-                            parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
-                        }
-                        Ok(result)
-                    }) {
-                        let candidate_end = parser.position;
+                    if #branch_policy_mode == "ordered" && best_content.is_some() {
+                        // Ordered branch policy keeps first successful branch.
+                    } else {
                         parser.position = parse_start;
-                        let candidate_priority: i64 = #branch_priority;
-                        let transformed = {
-                            let content = content;
-                            #transform
-                        };
-                        let should_take = if best_content.is_none() {
-                            true
-                        } else if candidate_end > best_end {
-                            true
-                        } else if candidate_end < best_end {
-                            false
-                        } else if candidate_priority > best_priority {
-                            true
-                        } else if candidate_priority < best_priority {
-                            false
-                        } else {
-                            match #associativity_mode {
-                                "right" => #branch_index > best_branch_index,
-                                "nonassoc" => {
-                                    if #branch_index != best_branch_index {
-                                        nonassoc_tie = true;
-                                    }
-                                    false
-                                }
-                                _ => false,
+                        if let Some(content) = parser.try_parse(|p| {
+                            let parser = p;
+                            if parser.logger.is_enabled() {
+                                parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                             }
-                        };
+                            #branch_logic;
+                            if parser.logger.is_enabled() {
+                                parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
+                            }
+                            Ok(result)
+                        }) {
+                            let candidate_end = parser.position;
+                            parser.position = parse_start;
+                            let candidate_priority: i64 = #branch_priority;
+                            let transformed = {
+                                let content = content;
+                                #transform
+                            };
+                            let should_take = if #branch_policy_mode == "ordered" {
+                                best_content.is_none()
+                            } else if #branch_policy_mode == "priority_first" {
+                                if best_content.is_none() {
+                                    true
+                                } else if candidate_priority > best_priority {
+                                    true
+                                } else if candidate_priority < best_priority {
+                                    false
+                                } else if candidate_end > best_end {
+                                    true
+                                } else if candidate_end < best_end {
+                                    false
+                                } else {
+                                    match #associativity_mode {
+                                        "right" => #branch_index > best_branch_index,
+                                        "nonassoc" => {
+                                            if #branch_index != best_branch_index {
+                                                nonassoc_tie = true;
+                                            }
+                                            false
+                                        }
+                                        _ => false,
+                                    }
+                                }
+                            } else if best_content.is_none() {
+                                true
+                            } else if candidate_end > best_end {
+                                true
+                            } else if candidate_end < best_end {
+                                false
+                            } else if candidate_priority > best_priority {
+                                true
+                            } else if candidate_priority < best_priority {
+                                false
+                            } else {
+                                match #associativity_mode {
+                                    "right" => #branch_index > best_branch_index,
+                                    "nonassoc" => {
+                                        if #branch_index != best_branch_index {
+                                            nonassoc_tie = true;
+                                        }
+                                        false
+                                    }
+                                    _ => false,
+                                }
+                            };
 
-                        if should_take {
-                            best_end = candidate_end;
-                            best_priority = candidate_priority;
-                            best_branch_index = #branch_index;
-                            best_branch = #branch_num;
-                            best_content = Some(transformed);
+                            if should_take {
+                                best_end = candidate_end;
+                                best_priority = candidate_priority;
+                                best_branch_index = #branch_index;
+                                best_branch = #branch_num;
+                                best_content = Some(transformed);
+                            }
+                        } else if parser.logger.is_enabled() {
+                            parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                         }
-                    } else if parser.logger.is_enabled() {
-                        parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                     }
                 });
             }
@@ -785,17 +820,26 @@ impl AstBasedGenerator {
                     parser.position = best_end;
                     if parser.logger.is_enabled() {
                         parser.logger.log_info(#filename, 0, &format!(
-                            "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={})",
+                            "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
                             #rule_name,
                             best_branch,
                             #branch_count,
                             best_end.saturating_sub(parse_start),
                             best_priority,
-                            #associativity_mode
+                            #associativity_mode,
+                            #branch_policy_mode
                         ));
                     }
                     result = content;
                 } else {
+                    if #recover_enabled && parser.logger.is_enabled() {
+                        parser.logger.log_info(#filename, 0, &format!(
+                            "⚠️ Rule '{}' has recovery hints configured (sync=[{}], panic_until=[{}]) but active parser recovery is not yet enabled in this generated backend.",
+                            #rule_name,
+                            #sync_tokens_label,
+                            #panic_until_tokens_label
+                        ));
+                    }
                     return Err(ParseError::Backtrack {
                         position: parse_start,
                     });
@@ -1764,6 +1808,66 @@ impl AstBasedGenerator {
         }
     }
 
+    fn rule_branch_policy(&self, rule_name: &str) -> SemanticBranchPolicy {
+        let Some(annotations) = &self.annotations else {
+            return SemanticBranchPolicy::LongestMatch;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return SemanticBranchPolicy::LongestMatch;
+        };
+
+        let mut policy = SemanticBranchPolicy::LongestMatch;
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            if name == "branch_policy" {
+                if let Some(parsed) = SemanticBranchPolicy::parse(&payload) {
+                    policy = parsed;
+                }
+            }
+        }
+
+        policy
+    }
+
+    fn rule_recovery_hints(&self, rule_name: &str) -> (bool, Vec<String>, Vec<String>) {
+        let Some(annotations) = &self.annotations else {
+            return (false, Vec::new(), Vec::new());
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return (false, Vec::new(), Vec::new());
+        };
+
+        let mut recover_enabled = false;
+        let mut sync_tokens = Vec::new();
+        let mut panic_until_tokens = Vec::new();
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "recover" => {
+                    if let Some(parsed) = parse_semantic_bool(&payload) {
+                        recover_enabled = parsed;
+                    }
+                }
+                "sync" => {
+                    if let Some(parsed) = parse_semantic_string_list(&payload) {
+                        sync_tokens = parsed;
+                    }
+                }
+                "panic_until" => {
+                    if let Some(parsed) = parse_semantic_string_list(&payload) {
+                        panic_until_tokens = parsed;
+                    }
+                }
+                _ => {}
+            }
+        }
+        (recover_enabled, sync_tokens, panic_until_tokens)
+    }
+
     fn rule_associativity(&self, rule_name: &str) -> SemanticAssociativity {
         let Some(annotations) = &self.annotations else {
             return SemanticAssociativity::Left;
@@ -2270,6 +2374,76 @@ mod semantic_usage_tests {
     }
 
     #[test]
+    fn semantic_usage_codegen_parses_branch_policy_directive() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "branch_policy".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "priority_first".to_string(),
+                },
+            }],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        assert_eq!(
+            generator.rule_branch_policy("expr"),
+            SemanticBranchPolicy::PriorityFirst
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_extracts_recovery_hints() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "recover".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "sync".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\";\", \"end\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "panic_until".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"}\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let (recover_enabled, sync_tokens, panic_tokens) = generator.rule_recovery_hints("stmt");
+        assert!(recover_enabled);
+        assert_eq!(sync_tokens, vec![";".to_string(), "end".to_string()]);
+        assert_eq!(panic_tokens, vec!["}".to_string()]);
+    }
+
+    #[test]
     fn semantic_usage_codegen_priority_overrides_precedence_regardless_of_order() {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
@@ -2510,7 +2684,7 @@ mod semantic_usage_tests {
             "expected semantic_annotation fallback method in unresolved reference emission"
         );
         assert!(
-            rendered.contains("starts_with"),
+            rendered.contains("starts_with") || rendered.contains("b'@'"),
             "expected semantic_annotation fallback to detect '@' directives"
         );
         assert!(

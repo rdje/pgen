@@ -7374,3 +7374,39 @@ Extend ambiguity detection beyond literal-prefix matching so nullable prefixes a
 ### Validation
 - `cargo test --manifest-path rust/Cargo.toml annotation_validator`
 - Result: pass (`21 passed, 0 failed` for annotation validator tests).
+
+---
+
+## 2026-02-20: Ambiguity/Recovery Phase K Step 3 (Control Surface)
+
+### Goal
+Complete Phase K by introducing typed branch-policy and recovery-hint contracts with active branch steering and explicit staged recovery integration.
+
+### Changes
+- Added typed semantic directive parsing utilities in `semantic_directive_registry`:
+  - `SemanticBranchPolicy` (`longest_match`, `ordered`, `priority_first`)
+  - `parse_semantic_bool(...)`
+- Extended validator payload diagnostics:
+  - `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_PAYLOAD`
+  - `W_SEM_INVALID_SYNC_PAYLOAD`
+  - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
+  - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER`
+- Parser codegen integration (`ast_based_generator`):
+  - `@branch_policy` now steers OR-branch winner policy.
+  - Recovery hints (`@recover/@sync/@panic_until`) are parsed and surfaced via explicit runtime log signaling to avoid silent ignore while full recovery engine is still staged.
+- Stimuli integration (`stimuli_generator`):
+  - `@branch_policy` now steers OR-branch selection mode:
+    - `ordered` => first-success branch order
+    - `priority_first` => semantic priority-first order
+    - `longest_match` => existing weighted/guided strategy (default)
+- Added/updated tests across validator, directive registry, parser codegen, and stimuli branch-policy usage.
+- Updated roadmap and docs to mark Phase K complete and document current recovery-hint stage.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator`
+- `cargo test --manifest-path rust/Cargo.toml semantic_directive_registry`
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage`
+- `cargo test --manifest-path rust/Cargo.toml semantic_branch_policy`
+- `cargo test --manifest-path rust/Cargo.toml unresolved_reference_codegen_emits_semantic_and_boolean_fallbacks`
+- Result: all pass.

@@ -325,6 +325,10 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Value/branch payload diagnostics:
   - `W_SEM_INVALID_ASSOCIATIVITY_PAYLOAD`
   - `W_SEM_INVALID_PRIORITY_PAYLOAD`
+  - `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_PAYLOAD`
+  - `W_SEM_INVALID_SYNC_PAYLOAD`
+  - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
   - `W_SEM_INVALID_ENUM_PAYLOAD`
   - `W_SEM_INVALID_RANGE_PAYLOAD`
   - `W_SEM_INVALID_LEN_PAYLOAD`
@@ -333,6 +337,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_PRIORITY_PRECEDENCE_CONFLICT` (`@priority` + `@precedence` both present; `@priority` takes precedence)
   - `W_SEM_DIRECTIVE_OVERRIDDEN` (same known directive repeated; last occurrence wins)
   - `W_SEM_UNSATISFIABLE_VALUE_DOMAIN` (`@enum` combined with `@len`/`@range`/`@regex` yields an empty effective domain)
+  - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER` (`@sync`/`@panic_until` present while `@recover` is not enabled)
 - Grammar ambiguity diagnostics (grammar-aware validation pass):
   - `W_GRAM_AMBIGUOUS_PREFIX` (top-level alternation branches share the same leading quoted terminal; parse selection may depend on branch order)
   - `W_GRAM_FIRST_SET_OVERLAP` (top-level alternation branches have overlapping computed FIRST terminals, including overlaps introduced via nullable prefixes and rule references)
@@ -379,6 +384,30 @@ expr = term | expr "+" term ;
 @associativity: right
 ```
 - Parser and stimuli both bias toward later branch under exact ties because of right associativity and higher branch precedence value.
+
+#### Example: Explicit branch policy steering
+```ebnf
+stmt = if_stmt | while_stmt ;
+@branch_policy: priority_first
+@priority: [1, 10]
+```
+- Parser and stimuli apply branch policy before fallback tie-breaks:
+  - `longest_match` (default),
+  - `ordered`,
+  - `priority_first`.
+
+#### Example: Recovery hints contract (current stage)
+```ebnf
+stmt = declaration | assignment ;
+@recover: true
+@sync: [";", "end"]
+@panic_until: ["}"]
+```
+- Validator enforces typed payloads and contract coherence.
+- Current generated parser/stimuli stage:
+  - branch policy is active,
+  - recovery hints are accepted/validated and surfaced for staged integration,
+  - full panic/sync runtime recovery engine is not yet enabled.
 
 ### 8.9 Gate/Test Coverage for Semantic Steering
 - `make -C rust semantic_usage_gate`

@@ -1,5 +1,6 @@
 use super::{
     ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
+    SemanticBranchPolicy,
     SemanticValueConstraints, TokenValue, UnifiedSemanticAST, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_len_bounds,
     parse_semantic_branch_priorities, parse_semantic_numeric_bounds, parse_semantic_string_list,
@@ -1455,7 +1456,7 @@ impl<'a> StimuliGenerator<'a> {
             return Ok(String::new());
         }
 
-        let mut prepared: Vec<(Option<u32>, ASTNode)> = alternatives
+        let prepared: Vec<(Option<u32>, ASTNode)> = alternatives
             .iter()
             .map(|node| self.strip_probability_prefix(node))
             .collect();
@@ -1481,50 +1482,75 @@ impl<'a> StimuliGenerator<'a> {
             ));
         }
 
-        let probabilities: Vec<Option<u32>> = candidate_indices
-            .iter()
-            .map(|idx| prepared[*idx].0)
-            .collect();
-        let base_weights = self.build_weights(&probabilities)?;
-        let (associativity, branch_priorities) =
+        let (branch_policy, associativity, branch_priorities) =
             self.rule_branch_controls(current_rule, prepared.len());
-        let guided_weights: Vec<u64> = candidate_indices
-            .iter()
-            .enumerate()
-            .map(|(local_idx, global_idx)| {
-                let multiplier = self.coverage_guidance_multiplier(
-                    current_rule,
-                    node_path,
-                    *global_idx,
-                    &prepared[*global_idx].1,
-                );
-                let recursion_penalty =
-                    self.recursion_pressure_penalty(&prepared[*global_idx].1, call_stack, depth);
-                let adjusted_multiplier = (multiplier / recursion_penalty).max(1);
-                let semantic_multiplier = self.semantic_branch_multiplier(
-                    associativity,
-                    &branch_priorities,
-                    *global_idx,
-                    prepared.len(),
-                );
-                u64::from(base_weights[local_idx])
-                    .saturating_mul(adjusted_multiplier)
-                    .saturating_mul(semantic_multiplier)
-            })
-            .collect();
+        let attempt_order: Vec<usize> = match branch_policy {
+            SemanticBranchPolicy::Ordered => (0..candidate_indices.len()).collect(),
+            SemanticBranchPolicy::PriorityFirst => {
+                let mut ordered: Vec<usize> = (0..candidate_indices.len()).collect();
+                ordered.sort_by(|left, right| {
+                    let left_global = candidate_indices[*left];
+                    let right_global = candidate_indices[*right];
+                    let left_priority = branch_priorities.get(left_global).copied().unwrap_or(0);
+                    let right_priority = branch_priorities.get(right_global).copied().unwrap_or(0);
+                    right_priority
+                        .cmp(&left_priority)
+                        .then_with(|| match associativity {
+                            SemanticAssociativity::Right => right_global.cmp(&left_global),
+                            _ => left_global.cmp(&right_global),
+                        })
+                });
+                ordered
+            }
+            SemanticBranchPolicy::LongestMatch => {
+                let probabilities: Vec<Option<u32>> = candidate_indices
+                    .iter()
+                    .map(|idx| prepared[*idx].0)
+                    .collect();
+                let base_weights = self.build_weights(&probabilities)?;
+                let guided_weights: Vec<u64> = candidate_indices
+                    .iter()
+                    .enumerate()
+                    .map(|(local_idx, global_idx)| {
+                        let multiplier = self.coverage_guidance_multiplier(
+                            current_rule,
+                            node_path,
+                            *global_idx,
+                            &prepared[*global_idx].1,
+                        );
+                        let recursion_penalty = self.recursion_pressure_penalty(
+                            &prepared[*global_idx].1,
+                            call_stack,
+                            depth,
+                        );
+                        let adjusted_multiplier = (multiplier / recursion_penalty).max(1);
+                        let semantic_multiplier = self.semantic_branch_multiplier(
+                            associativity,
+                            &branch_priorities,
+                            *global_idx,
+                            prepared.len(),
+                        );
+                        u64::from(base_weights[local_idx])
+                            .saturating_mul(adjusted_multiplier)
+                            .saturating_mul(semantic_multiplier)
+                    })
+                    .collect();
 
-        let dist = WeightedIndex::new(&guided_weights).with_context(|| {
-            format!(
-                "Invalid branch weights for rule '{}': {:?}",
-                current_rule, guided_weights
-            )
-        })?;
-        let selected_local = dist.sample(&mut self.rng);
-        let mut attempt_order: Vec<usize> = (0..candidate_indices.len()).collect();
-        attempt_order.swap(0, selected_local);
-        if attempt_order.len() > 2 {
-            attempt_order[1..].shuffle(&mut self.rng);
-        }
+                let dist = WeightedIndex::new(&guided_weights).with_context(|| {
+                    format!(
+                        "Invalid branch weights for rule '{}': {:?}",
+                        current_rule, guided_weights
+                    )
+                })?;
+                let selected_local = dist.sample(&mut self.rng);
+                let mut ordered: Vec<usize> = (0..candidate_indices.len()).collect();
+                ordered.swap(0, selected_local);
+                if ordered.len() > 2 {
+                    ordered[1..].shuffle(&mut self.rng);
+                }
+                ordered
+            }
+        };
 
         let mut last_error: Option<anyhow::Error> = None;
         for local_idx in attempt_order {
@@ -2374,14 +2400,15 @@ impl<'a> StimuliGenerator<'a> {
         &self,
         rule_name: &str,
         branch_count: usize,
-    ) -> (SemanticAssociativity, Vec<i64>) {
+    ) -> (SemanticBranchPolicy, SemanticAssociativity, Vec<i64>) {
+        let mut branch_policy = SemanticBranchPolicy::LongestMatch;
         let mut associativity = SemanticAssociativity::Left;
         let default_priorities = vec![0i64; branch_count];
         let Some(annotations) = self.annotations else {
-            return (associativity, default_priorities);
+            return (branch_policy, associativity, default_priorities);
         };
         let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
-            return (associativity, default_priorities);
+            return (branch_policy, associativity, default_priorities);
         };
 
         let mut precedence_priorities: Option<Vec<i64>> = None;
@@ -2395,6 +2422,11 @@ impl<'a> StimuliGenerator<'a> {
                 "associativity" => {
                     if let Some(parsed) = SemanticAssociativity::parse(&payload) {
                         associativity = parsed;
+                    }
+                }
+                "branch_policy" => {
+                    if let Some(parsed) = SemanticBranchPolicy::parse(&payload) {
+                        branch_policy = parsed;
                     }
                 }
                 "precedence" => {
@@ -2418,7 +2450,7 @@ impl<'a> StimuliGenerator<'a> {
         let priorities = explicit_priorities
             .or(precedence_priorities)
             .unwrap_or(default_priorities);
-        (associativity, priorities)
+        (branch_policy, associativity, priorities)
     }
 
     fn rule_value_constraints(&self, rule_name: &str) -> SemanticValueConstraints {
@@ -2724,6 +2756,90 @@ mod tests {
         assert!(
             right_count > left_count,
             "priority should deterministically override precedence for branch steering"
+        );
+    }
+
+    #[test]
+    fn semantic_branch_policy_ordered_prefers_first_successful_branch() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "branch_policy".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "ordered".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "priority".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[1, 99]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 2110);
+        let values = generator
+            .generate_many(24, None)
+            .expect("ordered branch policy generation should succeed");
+
+        assert!(
+            values.iter().all(|value| value == "L"),
+            "ordered policy should keep first successful branch, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_branch_policy_priority_first_prefers_high_priority_branch() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "branch_policy".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "priority_first".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "priority".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[1, 99]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 2111);
+        let values = generator
+            .generate_many(24, None)
+            .expect("priority-first branch policy generation should succeed");
+
+        assert!(
+            values.iter().all(|value| value == "R"),
+            "priority_first policy should prioritize highest-priority branch, got {:?}",
+            values
         );
     }
 

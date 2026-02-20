@@ -3565,3 +3565,151 @@ Result:
   - Phase K second checkbox (nullable/FIRST overlap) marked complete.
 - Remaining Phase K activity:
   - branch-policy/recovery hint control surface (`@branch_policy`, `@recover`, `@sync`, `@panic_until`).
+
+---
+
+## 2026-02-20 - Pillar 6 Phase K Step 3: Branch Policy + Recovery Hint Contract Surface
+
+### Context
+Phase K still required an explicit control contract for:
+- deterministic branch selection policy (`@branch_policy`),
+- staged recovery hints (`@recover`, `@sync`, `@panic_until`).
+
+The implementation target was:
+1. typed payload validation with stable diagnostics,
+2. active branch-policy steering in parser/stimuli,
+3. explicit recovery-hint integration signaling (no silent ignore).
+
+### Implementation
+
+#### 1) Typed directive parsing primitives
+Files:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/src/ast_pipeline/mod.rs` (re-exports)
+
+Added:
+- `SemanticBranchPolicy` enum:
+  - `LongestMatch`
+  - `Ordered`
+  - `PriorityFirst`
+- `SemanticBranchPolicy::parse(...)` with accepted aliases:
+  - `longest_match|longest|max_consumed`
+  - `ordered|first|first_match`
+  - `priority_first|priority`
+- `parse_semantic_bool(...)` for typed `@recover` payload parsing:
+  - truthy: `true|1|yes|on`
+  - falsy: `false|0|no|off`
+
+#### 2) Validator contract extensions
+File:
+- `rust/src/ast_pipeline/annotation_validator.rs`
+
+Added payload diagnostics:
+- `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`
+- `W_SEM_INVALID_RECOVER_PAYLOAD`
+- `W_SEM_INVALID_SYNC_PAYLOAD`
+- `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
+
+Added cross-directive coherence diagnostic:
+- `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER`
+  - emitted when `@sync` and/or `@panic_until` is present but latest typed `@recover` is not enabled.
+
+Validator behavior in this increment:
+- `@branch_policy` must parse to known policy enum.
+- `@recover` must parse to typed boolean.
+- `@sync/@panic_until` must parse to one-or-more scalar tokens (list or scalar form).
+- Recovery hints remain warning-grade contractual checks.
+
+#### 3) Parser codegen integration
+File:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Added rule-level semantic extraction helpers:
+- `rule_branch_policy(...)`
+- `rule_recovery_hints(...)`
+
+`generate_or_logic(...)` now applies branch policy:
+- `ordered`: first successful branch wins (later branches skipped once winner exists),
+- `priority_first`: priority dominates selection, then consumed length, then associativity tie-break,
+- `longest_match` (default): existing consumed-length-first policy.
+
+Recovery hints integration in parser backend (stage-1):
+- when all branches fail and `@recover: true` exists, generated parser emits explicit runtime log signaling with configured `sync/panic_until` hints,
+- parser still returns backtrack (full panic/sync recovery engine is intentionally staged for follow-on work).
+
+#### 4) Stimuli integration
+File:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+`rule_branch_controls(...)` now returns:
+- `(branch_policy, associativity, priorities)`
+
+`generate_or(...)` uses policy-specific attempt ordering:
+- `ordered`: deterministic branch order,
+- `priority_first`: deterministic high-priority-first ordering (associativity tie-break),
+- `longest_match`: existing weighted/guided sampling behavior.
+
+This provides semantic branch-policy steering parity between parser and stimuli selection logic.
+
+### Tests Added/Updated
+
+#### Semantic directive registry tests
+File:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+
+Added:
+- `parses_semantic_branch_policy_values`
+- `parses_semantic_bool_values`
+- directive-recognition coverage for:
+  - `branch_policy`
+  - `recover`
+  - `sync`
+  - `panic_until`
+
+#### Validator tests
+File:
+- `rust/src/ast_pipeline/annotation_validator.rs`
+
+Added:
+- `semantic_validator_warns_on_invalid_recovery_payloads`
+- `semantic_validator_warns_when_recovery_hints_present_without_recover`
+- `semantic_validator_does_not_warn_when_recovery_hints_enabled`
+
+#### Parser codegen semantic-usage tests
+File:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Added:
+- `semantic_usage_codegen_parses_branch_policy_directive`
+- `semantic_usage_codegen_extracts_recovery_hints`
+
+Adjusted:
+- unresolved semantic fallback assertion to accept either:
+  - `starts_with(...)` style detection, or
+  - byte-level `b'@'` detection.
+
+#### Stimuli semantic tests
+File:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+Added:
+- `semantic_branch_policy_ordered_prefers_first_successful_branch`
+- `semantic_branch_policy_priority_first_prefers_high_priority_branch`
+
+### Validation
+Commands:
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator`
+- `cargo test --manifest-path rust/Cargo.toml semantic_directive_registry`
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage`
+- `cargo test --manifest-path rust/Cargo.toml semantic_branch_policy`
+- `cargo test --manifest-path rust/Cargo.toml unresolved_reference_codegen_emits_semantic_and_boolean_fallbacks`
+
+Results:
+- All commands passed.
+
+### Plan Update
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Phase K third checkbox marked complete.
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `SC-06` promoted to implemented branch-policy steering baseline.
+  - `SC-07` promoted to typed contract-surface stage with staged runtime recovery follow-on.

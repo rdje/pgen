@@ -1,6 +1,6 @@
 # PGEN Semantic Steering Control Matrix (Living)
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 ## Intent
 Semantic annotations are a language-level superset. The Rust AST pipeline is an implementation-level subset at any given time.
@@ -52,8 +52,8 @@ Hard boundary:
 | `SC-03` | Name-based directive routing | Select behavior by semantic annotation name | Same | `@sample`, `@weight`, `@recover`, `@token`, `@constraint` | Foundation implemented: typed name routing + unknown-directive policy + transform/literal routing guards; broader directive steering still pending | Tier 3 | P0 |
 | `SC-04` | Token-class steering | Choose tokenizer/matcher strategy per atom/rule | Generate samples by token class family | `@token_class`, `@charset`, `@pattern` | Not implemented | Tier 3 | P1 |
 | `SC-05` | Precedence/associativity steering | Resolve ambiguity/branching deterministically | Generate precedence-respecting trees | `@precedence`, `@associativity`, `@priority` | Implemented: parser tie-break uses priority+associativity; stimuli branch sampling uses semantic priority/precedence + associativity multipliers; conflict contract enforces `priority > precedence` with deterministic duplicate last-wins diagnostics | Tier 3 | P0 |
-| `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | External gap-priority exists; semantic-driven route not implemented | Tier 3 | P1 |
-| `SC-07` | Error recovery and sync strategy | Production-grade parser recovery hints | Generate recovery-focused stimuli sets | `@recover`, `@sync`, `@panic_until` | Not implemented | Tier 2 | P1 |
+| `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | Implemented baseline: typed `@branch_policy` with parser/stimuli branch steering (`longest_match`, `ordered`, `priority_first`) + validator payload contracts | Tier 3 | P1 |
+| `SC-07` | Error recovery and sync strategy | Production-grade parser recovery hints | Generate recovery-focused stimuli sets | `@recover`, `@sync`, `@panic_until` | Implemented contract surface: typed validator payload/coherence diagnostics + staged parser signaling; full runtime recovery engine still pending | Tier 1 | P1 |
 | `SC-08` | Value-domain constraints | Enforce value contracts at parse/validation boundaries | Generate in-domain samples | `@range`, `@enum`, `@regex`, `@len` | Implemented with conflict diagnostics: parser value guards + stimuli domain steering + typed payload diagnostics + unsatisfiable intersection warning (`W_SEM_UNSATISFIABLE_VALUE_DOMAIN`) + semantic usage gate coverage | Tier 3 | P0 |
 | `SC-09` | Cross-field/cross-capture constraints | Validate relational constraints between captures | Generate constraint-satisfying combinations | `@constraint`, `@requires`, `@implies` | Not implemented | Tier 3 | P1 |
 | `SC-10` | Coverage target hints | Optional parser instrumentation priority tags | Rule/branch target boosting | `@coverage_target`, `@critical_path` | Coverage/gap pipeline exists; semantic hints not implemented | Tier 3 | P1 |
@@ -89,8 +89,8 @@ Required quality bar:
 4. Any temporary mismatch must be explicitly tracked in differential baselines with closure plan.
 
 ## Next Implementation Focus (Recommended)
-1. Decide strictness policy for known-invalid semantic directive payloads (warning vs error in strict CI paths).
-2. Add dedicated return-annotation closure work to drive differential return mismatches to zero.
+1. Promote `SC-07` from contract-surface stage to executable recovery behavior (panic/sync runtime hooks).
+2. Decide strictness policy for known-invalid semantic directive payloads (warning vs error in strict CI paths).
 3. Start `SC-09` cross-field/cross-capture constraint design and validator contract.
 4. Define policy for promoting selected semantic warnings to strict-mode errors without harming bootstrap compatibility.
 

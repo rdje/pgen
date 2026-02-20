@@ -1,6 +1,6 @@
 # PGEN Annotation Normative Specification (Living)
 
-Last updated: 2026-02-18
+Last updated: 2026-02-20
 
 ## Purpose
 This document defines the normative contract for PGEN return and semantic annotations across bootstrap and generated pipelines.
@@ -76,7 +76,12 @@ Normative runtime leverage behavior for semantic annotations:
 - Shared canonical-transform parser utility:
   - `rust/src/ast_pipeline/semantic_transform.rs`
   - Used by validator, parser codegen, and stimuli hinting paths.
-- Annotation names are not yet a first-class steering key in these leverage paths; current contract is AST-shape + transform-expression driven.
+- Additional semantic steering contract (Phase K):
+  - `@branch_policy` is a typed steering directive used in parser/stimuli OR-branch selection:
+    - `longest_match` (default),
+    - `ordered`,
+    - `priority_first`.
+  - `@recover/@sync/@panic_until` are typed/validated contract directives with staged parser integration signaling (full runtime panic/sync recovery engine remains follow-on).
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.
@@ -101,6 +106,11 @@ Current stable diagnostic codes include:
   - `E_SEM_EMPTY_COMPONENT`
   - `W_SEM_UNKNOWN_TARGET_TYPE`
   - `W_SEM_DEFAULT_TYPE_MISMATCH`
+  - `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`
+  - `W_SEM_INVALID_RECOVER_PAYLOAD`
+  - `W_SEM_INVALID_SYNC_PAYLOAD`
+  - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
+  - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER`
 
 Strict mode behavior:
 - Semantic warning-class checks are promoted to errors when strict mode is enabled.

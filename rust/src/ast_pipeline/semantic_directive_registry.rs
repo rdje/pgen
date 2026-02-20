@@ -39,6 +39,35 @@ impl SemanticAssociativity {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SemanticBranchPolicy {
+    LongestMatch,
+    Ordered,
+    PriorityFirst,
+}
+
+impl SemanticBranchPolicy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SemanticBranchPolicy::LongestMatch => "longest_match",
+            SemanticBranchPolicy::Ordered => "ordered",
+            SemanticBranchPolicy::PriorityFirst => "priority_first",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        let normalized = strip_optional_quotes(value).to_ascii_lowercase();
+        match normalized.as_str() {
+            "longest_match" | "longest" | "max_consumed" => {
+                Some(SemanticBranchPolicy::LongestMatch)
+            }
+            "ordered" | "first" | "first_match" => Some(SemanticBranchPolicy::Ordered),
+            "priority_first" | "priority" => Some(SemanticBranchPolicy::PriorityFirst),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SemanticValueConstraints {
     pub enum_values: Vec<String>,
@@ -363,6 +392,15 @@ pub fn parse_semantic_string_list(payload: &str) -> Option<Vec<String>> {
     Some(values)
 }
 
+pub fn parse_semantic_bool(payload: &str) -> Option<bool> {
+    let normalized = normalize_semantic_scalar(payload).to_ascii_lowercase();
+    match normalized.as_str() {
+        "true" | "1" | "yes" | "on" => Some(true),
+        "false" | "0" | "no" | "off" => Some(false),
+        _ => None,
+    }
+}
+
 pub fn parse_semantic_numeric_bounds(payload: &str) -> Option<(f64, f64)> {
     let normalized = payload.trim();
     if normalized.is_empty() {
@@ -450,10 +488,11 @@ fn strip_optional_quotes(value: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::{
-        SemanticAssociativity, UnknownSemanticDirectivePolicy, extract_semantic_directive,
-        extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_float_list,
+        SemanticAssociativity, SemanticBranchPolicy, UnknownSemanticDirectivePolicy,
+        extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
+        parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_float_list,
         parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
-        parse_semantic_string_list, semantic_directive_spec, parse_semantic_branch_priorities,
+        parse_semantic_string_list, semantic_directive_spec,
     };
 
     #[test]
@@ -583,9 +622,39 @@ mod tests {
     }
 
     #[test]
+    fn parses_semantic_branch_policy_values() {
+        assert_eq!(
+            SemanticBranchPolicy::parse("longest_match"),
+            Some(SemanticBranchPolicy::LongestMatch)
+        );
+        assert_eq!(
+            SemanticBranchPolicy::parse("\"ordered\""),
+            Some(SemanticBranchPolicy::Ordered)
+        );
+        assert_eq!(
+            SemanticBranchPolicy::parse("priority"),
+            Some(SemanticBranchPolicy::PriorityFirst)
+        );
+        assert_eq!(SemanticBranchPolicy::parse("diagonal"), None);
+    }
+
+    #[test]
+    fn parses_semantic_bool_values() {
+        assert_eq!(parse_semantic_bool("true"), Some(true));
+        assert_eq!(parse_semantic_bool("\"on\""), Some(true));
+        assert_eq!(parse_semantic_bool("0"), Some(false));
+        assert_eq!(parse_semantic_bool("'no'"), Some(false));
+        assert_eq!(parse_semantic_bool("maybe"), None);
+    }
+
+    #[test]
     fn recognizes_known_directives() {
         assert!(semantic_directive_spec("transform").is_some());
         assert!(semantic_directive_spec("precedence").is_some());
+        assert!(semantic_directive_spec("branch_policy").is_some());
+        assert!(semantic_directive_spec("recover").is_some());
+        assert!(semantic_directive_spec("sync").is_some());
+        assert!(semantic_directive_spec("panic_until").is_some());
         assert!(semantic_directive_spec("unknown_directive").is_none());
     }
 }
