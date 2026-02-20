@@ -451,6 +451,164 @@ Return-annotation completeness reference (non-negotiable):
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` ("Return Annotation No-Compromise Contract")
 - Return annotations remain critical-path AST-shaping behavior with no intentional feature compromise.
 
+### 8.12 SC-07 Recovery Deep-Dive (Parser + Stimuli)
+
+This section focuses only on:
+- `@recover`
+- `@sync`
+- `@panic_until`
+
+#### 8.12.1 Directive Payload Forms
+
+Valid `@recover` payloads (typed bool):
+```ebnf
+@recover: true
+@recover: false
+@recover: "yes"
+@recover: 1
+```
+
+Valid `@sync/@panic_until` payloads:
+```ebnf
+@sync: ";"
+@sync: [";", "end", "\n"]
+@panic_until: "}"
+@panic_until: ["}", "endmodule"]
+```
+
+Invalid payload examples (validator warnings):
+```ebnf
+@recover: maybe              # W_SEM_INVALID_RECOVER_PAYLOAD
+@sync: []                    # W_SEM_INVALID_SYNC_PAYLOAD
+@panic_until: []             # W_SEM_INVALID_PANIC_UNTIL_PAYLOAD
+@sync: [";"]                 # plus @recover missing/false => W_SEM_RECOVERY_HINT_WITHOUT_RECOVER
+```
+
+#### 8.12.2 Parser Runtime Behavior Examples
+
+Example A: `@recover` disabled
+```ebnf
+stmt = declaration | assignment ;
+@recover: false
+@sync: [";"]
+```
+- OR-branch failure returns normal backtrack error.
+- Recovery hints are inactive.
+
+Example B: token-based recovery with `panic_until` priority
+```ebnf
+stmt = declaration | assignment ;
+@recover: true
+@sync: [";"]
+@panic_until: ["}"]
+```
+- On full OR failure:
+  - parser scans from rule start,
+  - nearest marker wins,
+  - tie on same position: `panic_until` beats `sync`,
+  - parser advances past chosen marker and continues.
+
+Example C: no marker found
+```ebnf
+stmt = declaration | assignment ;
+@recover: true
+@sync: [";"]
+@panic_until: ["}"]
+```
+- If none of the markers are found in remaining input:
+  - parser falls back to EOF advance.
+
+Example D: no forward progress possible
+- If recovery cannot advance parser position, parse returns backtrack error (no silent success).
+
+#### 8.12.3 Structured Recovery Event API (Generated Parser)
+
+Generated parsers expose:
+- `recovery_events()`
+- `take_recovery_events()`
+- `recovery_event_count()`
+
+Event model:
+- `RecoveryEvent`
+  - `rule_name`
+  - `parse_start`
+  - `previous_position`
+  - `new_position`
+  - `marker_kind` (`PanicUntil`, `Sync`, `EofFallback`)
+  - `marker_position` (`Option<usize>`)
+  - `marker_value` (`Option<String>`)
+
+Minimal usage pattern:
+```rust
+let logger = Box::new(crate::NoOpLogger);
+let mut parser = GeneratedParser::new(input, logger);
+let result = parser.parse();
+
+for ev in parser.recovery_events() {
+    println!(
+        "rule={} kind={:?} {}->{} marker={:?}",
+        ev.rule_name, ev.marker_kind, ev.previous_position, ev.new_position, ev.marker_value
+    );
+}
+```
+
+Notes:
+- `parse()` clears prior recovery events at parse start.
+- `parse_full()` delegates through `parse()` and uses the same event lifecycle.
+- `take_recovery_events()` drains current events for one-shot consumers.
+
+#### 8.12.4 Stimuli Behavior Examples
+
+Example E: recovery fallback sample (panic marker preferred)
+```ebnf
+start = missing_left | missing_right ;
+@recover: true
+@sync: [";"]
+@panic_until: ["}"]
+```
+- If all OR branches fail during stimuli generation:
+  - emitted fallback sample is `"}"` (first non-empty `@panic_until` token).
+
+Example F: sync fallback sample
+```ebnf
+start = missing_left | missing_right ;
+@recover: true
+@sync: [";"]
+```
+- With no `@panic_until`, fallback sample becomes first non-empty `@sync` token (`";"` here).
+
+Example G: fallback inactive without `@recover`
+```ebnf
+start = missing_left | missing_right ;
+@sync: [";"]
+```
+- OR exhaustion remains an error; no recovery fallback sample is emitted.
+
+#### 8.12.5 Determinism + Precedence Summary
+
+Parser determinism:
+1. earliest marker location wins
+2. same location: `panic_until` before `sync`
+3. no marker: EOF fallback
+
+Stimuli determinism:
+1. first non-empty `@panic_until` token
+2. else first non-empty `@sync` token
+3. only active when effective `@recover` is true
+
+#### 8.12.6 Recommended Authoring Patterns
+
+Pattern 1:
+- keep `@recover` explicit (`true`/`false`), do not rely on ambiguous raw text
+
+Pattern 2:
+- set both `@panic_until` and `@sync`:
+  - `@panic_until` for hard stop markers (`"}"`, `"endmodule"`)
+  - `@sync` for statement separators (`";"`, `"end"`)
+
+Pattern 3:
+- add at least one semantic usage regression test whenever recovery directives are changed
+
 ## 9) Differential Testing and Drift Management
 
 Reference help:

@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-02-20 - User Guide Expansion: SC-07 Recovery Deep-Dive
+### ✅ Achievement Summary
+Expanded the User Guide with a dedicated SC-07 deep-dive section so recovery semantics are easier to onboard and use correctly.
+### Scope of Changes
+- Updated:
+  - `PGEN_USER_GUIDE.md`
+- Added a new recovery-focused section:
+  - `8.12 SC-07 Recovery Deep-Dive (Parser + Stimuli)`
+- Coverage in this guide section:
+  - typed payload forms (`@recover/@sync/@panic_until`) with valid and invalid examples,
+  - parser recovery runtime examples (token-based, EOF fallback, no-progress),
+  - structured recovery event API usage examples (`recovery_events`, `take_recovery_events`, `recovery_event_count`),
+  - stimuli recovery fallback examples and deterministic precedence summary,
+  - recommended authoring patterns for robust grammar annotations.
+### Validation Results
+- Documentation review pass on section structure and example consistency with current SC-07 implementation baseline.
+
 ## 2026-02-20 - Phase K Follow-Up: Structured Recovery Event Reporting Baseline
 ### ✅ Achievement Summary
 Added typed, machine-readable recovery event reporting to generated parsers so recovery outcomes are observable beyond log text.

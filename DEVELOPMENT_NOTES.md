@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - User Guide Expansion: SC-07 Recovery Deep-Dive
+### Context
+SC-07 (`@recover/@sync/@panic_until`) now spans validator contracts, parser runtime recovery, stimuli fallback behavior, and structured recovery event APIs. The prior guide content covered this, but not as a single focused onboarding path with concentrated examples.
+### Implementation
+- Expanded `PGEN_USER_GUIDE.md` with:
+  - `8.12 SC-07 Recovery Deep-Dive (Parser + Stimuli)`
+- Added detailed user-facing coverage:
+  - valid/invalid directive payload forms and associated warning expectations,
+  - parser runtime recovery scenarios (disabled, token-based, EOF fallback, no-progress),
+  - generated parser recovery event API usage and event-field shape,
+  - stimuli OR-failure fallback behavior and determinism rules,
+  - practical authoring patterns for resilient annotation usage.
+### Why This Matters
+- Lowers onboarding friction for a high-impact feature surface.
+- Makes behavior contracts easier to reason about without reading source code.
+- Reduces ambiguity around what is implemented now vs still follow-on in SC-07.
+
 ## 2026-02-20 - Phase K Follow-Up: Structured Recovery Event Reporting (Parser Codegen)
 ### Context
 With parser runtime recovery and stimuli fallback already wired for `@recover/@sync/@panic_until`, the next SC-07 hardening gap was observability: recovery outcomes were mostly log-only and not machine-readable for programmatic consumers.
