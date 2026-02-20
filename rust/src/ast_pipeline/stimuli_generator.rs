@@ -1,13 +1,13 @@
 use super::{
     ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
-    SemanticBranchPolicy,
-    SemanticValueConstraints, TokenValue, UnifiedSemanticAST, extract_semantic_directive,
-    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_branch_priorities, parse_semantic_constraint_expression,
-    parse_semantic_coverage_target_weight,
-    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
-    parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_reference_list,
-    parse_semantic_string_list, stimuli_hint_for_target_type,
+    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue,
+    UnifiedSemanticAST, extract_semantic_directive, normalize_semantic_scalar,
+    parse_canonical_transform_expression, parse_semantic_bool, parse_semantic_branch_priorities,
+    parse_semantic_charset, parse_semantic_constraint_expression,
+    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
+    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
+    parse_semantic_numeric_bounds, parse_semantic_pattern, parse_semantic_reference_list,
+    parse_semantic_string_list, parse_semantic_token_class, stimuli_hint_for_target_type,
 };
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
@@ -587,6 +587,13 @@ struct StimuliNegativeCasePolicy {
 struct StimuliDeterminismPartitionPolicy {
     enabled: bool,
     group_label: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct StimuliTokenSteeringPolicy {
+    token_class: Option<SemanticTokenClass>,
+    charset_pattern: Option<String>,
+    explicit_pattern: Option<String>,
 }
 
 pub struct StimuliGenerator<'a> {
@@ -1819,10 +1826,10 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         if !violation_counts.is_empty() {
-            let mut ranked_violations: Vec<(String, usize)> = violation_counts.into_iter().collect();
-            ranked_violations.sort_by(|left, right| {
-                right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0))
-            });
+            let mut ranked_violations: Vec<(String, usize)> =
+                violation_counts.into_iter().collect();
+            ranked_violations
+                .sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
 
             let top_violations = ranked_violations
                 .iter()
@@ -1879,7 +1886,11 @@ impl<'a> StimuliGenerator<'a> {
                 match token_type {
                     "quoted_string" => Ok(token_value.to_string()),
                     "rule_reference" => self.generate_rule(token_value, depth + 1, call_stack),
-                    "regex" => Ok(self.generate_regex_sample(token_value, current_rule)),
+                    "regex" => {
+                        let effective_pattern =
+                            self.effective_regex_pattern(current_rule, token_value);
+                        Ok(self.generate_regex_sample(&effective_pattern, current_rule))
+                    }
                     "probability" => Ok(String::new()),
                     "number" | "include_dir" | "include_file" | "rule" => {
                         Ok(token_value.to_string())
@@ -2746,6 +2757,56 @@ impl<'a> StimuliGenerator<'a> {
         constraints
     }
 
+    fn rule_token_steering_policy(&self, rule_name: &str) -> StimuliTokenSteeringPolicy {
+        let Some(annotations) = self.annotations else {
+            return StimuliTokenSteeringPolicy::default();
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return StimuliTokenSteeringPolicy::default();
+        };
+
+        let mut policy = StimuliTokenSteeringPolicy::default();
+        for annotation in entries {
+            let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "token_class" => {
+                    if let Some(parsed) = parse_semantic_token_class(&payload) {
+                        policy.token_class = Some(parsed);
+                    }
+                }
+                "charset" => {
+                    if let Some(pattern) = parse_semantic_charset(&payload) {
+                        policy.charset_pattern = Some(pattern);
+                    }
+                }
+                "pattern" => {
+                    if let Some(pattern) = parse_semantic_pattern(&payload) {
+                        policy.explicit_pattern = Some(pattern);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        policy
+    }
+
+    fn effective_regex_pattern(&self, rule_name: &str, grammar_pattern: &str) -> String {
+        let policy = self.rule_token_steering_policy(rule_name);
+        if let Some(pattern) = policy.explicit_pattern {
+            return pattern;
+        }
+        if let Some(pattern) = policy.charset_pattern {
+            return pattern;
+        }
+        if let Some(token_class) = policy.token_class {
+            return token_class.regex_pattern().to_string();
+        }
+        grammar_pattern.to_string()
+    }
+
     fn rule_coverage_steering_policy(&self, rule_name: &str) -> StimuliCoverageSteeringPolicy {
         let mut policy = StimuliCoverageSteeringPolicy::default();
         let Some(annotations) = self.annotations else {
@@ -2895,8 +2956,8 @@ impl<'a> StimuliGenerator<'a> {
         let mut multiplier = 1u64;
 
         if current_policy.coverage_target_weight > 0 {
-            multiplier = multiplier
-                .saturating_mul(2 + current_policy.coverage_target_weight.min(16));
+            multiplier =
+                multiplier.saturating_mul(2 + current_policy.coverage_target_weight.min(16));
         }
         if current_policy.critical_path {
             multiplier = multiplier.saturating_mul(4);
@@ -3034,13 +3095,15 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         if let Some((antecedent, consequent)) = &policy.implication {
-            if self.evaluate_relational_expression_for_sample(captures, named_captures, antecedent)?
-                && !self.evaluate_relational_expression_for_sample(
-                    captures,
-                    named_captures,
-                    consequent,
-                )?
-            {
+            if self.evaluate_relational_expression_for_sample(
+                captures,
+                named_captures,
+                antecedent,
+            )? && !self.evaluate_relational_expression_for_sample(
+                captures,
+                named_captures,
+                consequent,
+            )? {
                 return Err(anyhow!(
                     "Semantic implication failed for rule '{}': {} => {}",
                     rule_name,
@@ -3352,7 +3415,10 @@ impl<'a> StimuliGenerator<'a> {
             return Some(value.clone());
         }
 
-        let mut segments = normalized.split('.').map(str::trim).filter(|s| !s.is_empty());
+        let mut segments = normalized
+            .split('.')
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
         let first = segments.next()?;
         if !Self::semantic_identifier(first) {
             return None;
@@ -3573,10 +3639,7 @@ impl<'a> StimuliGenerator<'a> {
                 break;
             };
             let first = bytes[0];
-            let wraps = matches!(
-                (first, last),
-                (b'{', b'}') | (b'(', b')') | (b'[', b']')
-            );
+            let wraps = matches!((first, last), (b'{', b'}') | (b'(', b')') | (b'[', b']'));
             if !wraps || !Self::capture_encloses_full_wrapper(candidate) {
                 break;
             }
@@ -3741,10 +3804,7 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn matching_brace(open: u8, close: u8) -> bool {
-        matches!(
-            (open, close),
-            (b'(', b')') | (b'[', b']') | (b'{', b'}')
-        )
+        matches!((open, close), (b'(', b')') | (b'[', b']') | (b'{', b'}'))
     }
 
     fn json_value_to_scalar_string(value: &JsonValue) -> Option<String> {
@@ -4010,7 +4070,8 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn recovery_stimulus_fallback(&self, rule_name: &str) -> Option<String> {
-        let (recover_enabled, sync_tokens, panic_until_tokens) = self.rule_recovery_controls(rule_name);
+        let (recover_enabled, sync_tokens, panic_until_tokens) =
+            self.rule_recovery_controls(rule_name);
         if !recover_enabled {
             return None;
         }
@@ -5120,6 +5181,115 @@ mod tests {
     }
 
     #[test]
+    fn semantic_usage_stimuli_token_class_overrides_regex_sampling_pattern() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[0-9]{3}$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "token_class".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "identifier".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9205);
+        let values = generator
+            .generate_many(20, Some("start"))
+            .expect("token_class steering generation should succeed");
+        let ident_re = Regex::new(r"^[A-Za-z_][A-Za-z0-9_]*$").expect("valid regex");
+        assert!(
+            values.iter().all(|value| ident_re.is_match(value)),
+            "token_class steering should enforce identifier family samples, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_charset_overrides_token_class_pattern() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[a-z]+$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "token_class".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "identifier".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "charset".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[A-F0-9]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9206);
+        let values = generator
+            .generate_many(20, Some("start"))
+            .expect("charset steering generation should succeed");
+        let charset_re = Regex::new(r"^[A-F0-9]+$").expect("valid regex");
+        assert!(
+            values.iter().all(|value| charset_re.is_match(value)),
+            "charset steering should override token_class pattern, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_pattern_overrides_charset_and_token_class() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "^[a-z]+$"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "token_class".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "identifier".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "charset".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[A-F0-9]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "pattern".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "^[Q]{2}$".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9207);
+        let values = generator
+            .generate_many(20, Some("start"))
+            .expect("pattern steering generation should succeed");
+        let pattern_re = Regex::new(r"^[Q]{2}$").expect("valid regex");
+        assert!(
+            values.iter().all(|value| pattern_re.is_match(value)),
+            "pattern steering should have highest precedence over charset/token_class, got {:?}",
+            values
+        );
+    }
+
+    #[test]
     fn semantic_usage_stimuli_enum_constraints_filter_regex_sampling() {
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{2}$"));
@@ -5459,9 +5629,9 @@ mod tests {
             9313,
             RecoveryStimuliMode::NearSyncNegative,
         );
-        let values = generator
-            .generate_many(3, Some("start"))
-            .expect("near-sync-negative mode should fall back to baseline generation without recover");
+        let values = generator.generate_many(3, Some("start")).expect(
+            "near-sync-negative mode should fall back to baseline generation without recover",
+        );
 
         assert!(
             values.iter().all(|value| value == "ok"),

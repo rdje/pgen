@@ -5,14 +5,14 @@
 use super::Logger;
 use crate::ast_pipeline::{
     ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
-    SemanticBranchPolicy, SemanticValueConstraints, TokenValue, UnifiedSemanticAST,
-    ast_return_transform::AstReturnTransformer, extract_semantic_directive,
+    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue,
+    UnifiedSemanticAST, ast_return_transform::AstReturnTransformer, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_branch_priorities, parse_semantic_constraint_expression,
+    parse_semantic_branch_priorities, parse_semantic_charset, parse_semantic_constraint_expression,
     parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
     parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
-    parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
-    parse_semantic_reference_list, parse_semantic_string_list,
+    parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_pattern,
+    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
 };
 use anyhow::Result;
 use prettyplease;
@@ -54,6 +54,13 @@ struct SemanticNegativeCasePolicy {
 struct SemanticDeterminismPartitionPolicy {
     enabled: bool,
     group_label: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct SemanticTokenSteeringPolicy {
+    token_class: Option<SemanticTokenClass>,
+    charset_pattern: Option<String>,
+    explicit_pattern: Option<String>,
 }
 
 impl AstBasedGenerator {
@@ -408,10 +415,8 @@ impl AstBasedGenerator {
             ASTNode::Atom { value } => {
                 if let ASTValue::Token(parts) = value {
                     if parts.len() >= 2 {
-                        if let (
-                            TokenValue::String(token_type),
-                            TokenValue::String(token_value),
-                        ) = (&parts[0], &parts[1])
+                        if let (TokenValue::String(token_type), TokenValue::String(token_value)) =
+                            (&parts[0], &parts[1])
                         {
                             if token_type == "rule_reference" {
                                 out.insert(token_value.clone());
@@ -913,7 +918,9 @@ impl AstBasedGenerator {
                 0usize
             };
             let mut evaluation_order: Vec<usize> = (0..branch_count).collect();
-            if deterministic_partition_enabled && branch_count > 1 && deterministic_partition_offset > 0
+            if deterministic_partition_enabled
+                && branch_count > 1
+                && deterministic_partition_offset > 0
             {
                 evaluation_order.rotate_left(deterministic_partition_offset);
             }
@@ -1277,14 +1284,8 @@ impl AstBasedGenerator {
                         );
                         let skip_leading_whitespace =
                             !matches!(rule_name, "string_content_double" | "string_content_single");
-                        let effective_regex_pattern = if self.grammar_name == "semantic_annotation"
-                            && rule_name == "identifier_literal"
-                            && token_value_str == "([a-zA-Z_][a-zA-Z0-9_]*)"
-                        {
-                            "([a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)*)".to_string()
-                        } else {
-                            token_value_str.to_string()
-                        };
+                        let effective_regex_pattern =
+                            self.effective_regex_pattern(rule_name, token_value_str);
                         // Check for semantic annotations that should transform the matched string
                         if let Some(annotations) = &self.annotations {
                             if let Some(semantic_annotations) =
@@ -1415,7 +1416,11 @@ impl AstBasedGenerator {
         //   sequence := sequence_element+
         let stop_at_rule_boundary = self.rule_has_semantic_bool_directive(
             rule_name,
-            &["stop_at_rule_boundary", "stop_on_rule_boundary", "line_delimited_sequence"],
+            &[
+                "stop_at_rule_boundary",
+                "stop_on_rule_boundary",
+                "line_delimited_sequence",
+            ],
         );
 
         match quantifier {
@@ -2907,7 +2912,9 @@ impl AstBasedGenerator {
             let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
                 return false;
             };
-            let name_matches = names.iter().any(|candidate| name.eq_ignore_ascii_case(candidate));
+            let name_matches = names
+                .iter()
+                .any(|candidate| name.eq_ignore_ascii_case(candidate));
             if !name_matches {
                 return false;
             }
@@ -3266,6 +3273,67 @@ impl AstBasedGenerator {
         constraints
     }
 
+    fn rule_token_steering_policy(&self, rule_name: &str) -> SemanticTokenSteeringPolicy {
+        let Some(annotations) = &self.annotations else {
+            return SemanticTokenSteeringPolicy::default();
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return SemanticTokenSteeringPolicy::default();
+        };
+
+        let mut policy = SemanticTokenSteeringPolicy::default();
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "token_class" => {
+                    if let Some(parsed) = parse_semantic_token_class(&payload) {
+                        policy.token_class = Some(parsed);
+                    }
+                }
+                "charset" => {
+                    if let Some(pattern) = parse_semantic_charset(&payload) {
+                        policy.charset_pattern = Some(pattern);
+                    }
+                }
+                "pattern" => {
+                    if let Some(pattern) = parse_semantic_pattern(&payload) {
+                        policy.explicit_pattern = Some(pattern);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        policy
+    }
+
+    fn effective_regex_pattern(&self, rule_name: &str, grammar_pattern: &str) -> String {
+        let mut effective = if self.grammar_name == "semantic_annotation"
+            && rule_name == "identifier_literal"
+            && grammar_pattern == "([a-zA-Z_][a-zA-Z0-9_]*)"
+        {
+            "([a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)*)".to_string()
+        } else {
+            grammar_pattern.to_string()
+        };
+
+        let policy = self.rule_token_steering_policy(rule_name);
+        if let Some(pattern) = policy.explicit_pattern {
+            return pattern;
+        }
+        if let Some(pattern) = policy.charset_pattern {
+            return pattern;
+        }
+        if let Some(token_class) = policy.token_class {
+            return token_class.regex_pattern().to_string();
+        }
+
+        effective.shrink_to_fit();
+        effective
+    }
+
     fn rule_relational_constraints(&self, rule_name: &str) -> SemanticRelationalConstraintPolicy {
         let mut policy = SemanticRelationalConstraintPolicy::default();
         let Some(annotations) = &self.annotations else {
@@ -3573,6 +3641,34 @@ mod semantic_usage_tests {
         }
     }
 
+    fn generator_with_named_semantic(
+        rule_name: &str,
+        directives: Vec<(&str, &str)>,
+    ) -> AstBasedGenerator {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            rule_name.to_string(),
+            directives
+                .into_iter()
+                .map(|(name, payload)| SemanticAnnotation::Named {
+                    name: name.to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: payload.to_string(),
+                    },
+                })
+                .collect(),
+        );
+
+        AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        }
+    }
+
     fn or_rule() -> ASTNode {
         ASTNode::Or {
             alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
@@ -3707,6 +3803,64 @@ mod semantic_usage_tests {
         assert!(
             !rendered.contains("ParseContent :: TransformedTerminal"),
             "non-transform directive should not force transformed terminal output, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_token_class_overrides_regex_atom_pattern() {
+        let generator = generator_with_named_semantic("ident", vec![("token_class", "identifier")]);
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[0-9]+"), "ident", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("[A-Za-z_][A-Za-z0-9_]*"),
+            "token_class steering should replace grammar regex with token-class matcher, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_charset_overrides_token_class_pattern() {
+        let generator = generator_with_named_semantic(
+            "ident",
+            vec![("token_class", "identifier"), ("charset", "[A-F0-9]")],
+        );
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[a-z]+"), "ident", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("[A-F0-9]+"),
+            "charset steering should override token_class matcher, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_pattern_overrides_charset_and_token_class() {
+        let generator = generator_with_named_semantic(
+            "ident",
+            vec![
+                ("token_class", "identifier"),
+                ("charset", "[A-F0-9]"),
+                ("pattern", "^[A-Z]{2}$"),
+            ],
+        );
+
+        let logic = generator
+            .generate_node_parsing_logic(&regex_atom("[a-z]+"), "ident", "semantic_usage.rs")
+            .expect("regex atom logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("^[A-Z]{2}$"),
+            "pattern steering should take precedence over charset/token_class, got: {}",
             rendered
         );
     }
@@ -3853,8 +4007,7 @@ mod semantic_usage_tests {
             recover_budget,
             recover_parse_budget,
             recover_global_budget,
-        ) =
-            generator.rule_recovery_hints("stmt");
+        ) = generator.rule_recovery_hints("stmt");
         assert!(recover_enabled);
         assert_eq!(sync_tokens, vec![";".to_string(), "end".to_string()]);
         assert_eq!(panic_tokens, vec!["}".to_string()]);
@@ -4057,7 +4210,9 @@ mod semantic_usage_tests {
             enable_debug: false,
         };
 
-        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        let rendered = generator
+            .generate_helper_methods("semantic_usage.rs")
+            .to_string();
         assert!(
             rendered.contains("self . recovery_events . push"),
             "helper methods should record recovery events, got: {}",
@@ -4185,7 +4340,12 @@ mod semantic_usage_tests {
         };
 
         let method = generator
-            .generate_rule_method("stmt", &or_rule(), &["stmt".to_string()], "semantic_usage.rs")
+            .generate_rule_method(
+                "stmt",
+                &or_rule(),
+                &["stmt".to_string()],
+                "semantic_usage.rs",
+            )
             .expect("rule method generation should succeed");
         let rendered = method.to_string();
 
@@ -4217,7 +4377,9 @@ mod semantic_usage_tests {
             enable_debug: false,
         };
 
-        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        let rendered = generator
+            .generate_helper_methods("semantic_usage.rs")
+            .to_string();
         assert!(
             rendered.contains("fn record_coverage_target_event"),
             "helper methods should define SC-10 recording helper, got: {}",
@@ -4339,7 +4501,12 @@ mod semantic_usage_tests {
         };
 
         let method = generator
-            .generate_rule_method("stmt", &or_rule(), &["stmt".to_string()], "semantic_usage.rs")
+            .generate_rule_method(
+                "stmt",
+                &or_rule(),
+                &["stmt".to_string()],
+                "semantic_usage.rs",
+            )
             .expect("rule method generation should succeed");
         let rendered = method.to_string();
 
@@ -4349,7 +4516,9 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("record_negative_case_failure (\"stmt\" , start_pos , self . position , true ,"),
+            rendered.contains(
+                "record_negative_case_failure (\"stmt\" , start_pos , self . position , true ,"
+            ),
             "SC-11 hook should carry typed invalid_case/negative payload state, got: {}",
             rendered
         );
@@ -4366,7 +4535,9 @@ mod semantic_usage_tests {
             enable_debug: false,
         };
 
-        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        let rendered = generator
+            .generate_helper_methods("semantic_usage.rs")
+            .to_string();
         assert!(
             rendered.contains("fn record_negative_case_failure"),
             "helper methods should define SC-11 expected-failure recording helper, got: {}",
@@ -4482,7 +4653,12 @@ mod semantic_usage_tests {
         };
 
         let method = generator
-            .generate_rule_method("stmt", &or_rule(), &["stmt".to_string()], "semantic_usage.rs")
+            .generate_rule_method(
+                "stmt",
+                &or_rule(),
+                &["stmt".to_string()],
+                "semantic_usage.rs",
+            )
             .expect("rule method generation should succeed");
         let rendered = method.to_string();
 
@@ -4509,7 +4685,9 @@ mod semantic_usage_tests {
             enable_debug: false,
         };
 
-        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        let rendered = generator
+            .generate_helper_methods("semantic_usage.rs")
+            .to_string();
         assert!(
             rendered.contains("fn record_deterministic_partition_event"),
             "helper methods should define SC-12 deterministic partition recorder, got: {}",
@@ -4610,7 +4788,9 @@ mod semantic_usage_tests {
             enable_debug: false,
         };
 
-        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        let rendered = generator
+            .generate_helper_methods("semantic_usage.rs")
+            .to_string();
         assert!(
             rendered.contains("match & best"),
             "recovery candidate tie-break should borrow best marker (to avoid move errors), got: {}",
@@ -4997,7 +5177,9 @@ mod semantic_usage_tests {
             enable_debug: false,
         };
 
-        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        let rendered = generator
+            .generate_helper_methods("semantic_usage.rs")
+            .to_string();
         assert!(
             rendered.contains("fn evaluate_relational_expression"),
             "helper methods should include runtime relational evaluation support, got: {}",

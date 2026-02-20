@@ -1,4 +1,80 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-04 Token-Family Steering Baseline (`@token_class/@charset/@pattern`)
+### ✅ Achievement Summary
+Implemented SC-04 end-to-end baseline so parser and stimuli now share deterministic token-family steering with typed payload diagnostics and explicit precedence contract.
+### Scope of Changes
+- Updated shared semantic directive contract/parsers in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - added:
+    - `SemanticTokenClass`
+    - `parse_semantic_token_class(...)`
+    - `parse_semantic_charset(...)`
+    - `parse_semantic_pattern(...)`
+  - promoted directive capabilities:
+    - `token_class` -> `ParserAndStimuliSteering`
+    - `charset` -> `ParserAndStimuliSteering`
+    - `pattern` -> `ParserAndStimuliSteering`
+  - expanded directive registry tests for SC-04 payload parsing and known-directive coverage.
+- Updated typed validator contracts in:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - added payload diagnostics:
+    - `W_SEM_INVALID_TOKEN_CLASS_PAYLOAD`
+    - `W_SEM_INVALID_CHARSET_PAYLOAD`
+    - `W_SEM_INVALID_PATTERN_PAYLOAD`
+  - added precedence/coherence diagnostics:
+    - `W_SEM_TOKEN_STEERING_PRECEDENCE`
+    - `W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM`
+  - added grammar-aware contract pass to detect inactive SC-04 steering on rules without regex atoms.
+- Updated parser codegen steering in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - added typed SC-04 policy extraction:
+    - `rule_token_steering_policy(...)`
+  - added deterministic effective matcher selection:
+    - `effective_regex_pattern(...)`
+    - precedence: `@pattern > @charset > @token_class`
+  - wired regex atom generation to consume effective SC-04 policy.
+- Updated stimuli steering in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - added typed SC-04 policy extraction:
+    - `rule_token_steering_policy(...)`
+  - added deterministic effective sampling regex selection:
+    - `effective_regex_pattern(...)`
+    - precedence: `@pattern > @charset > @token_class`
+  - wired regex atom generation path to use effective SC-04 policy.
+- Updated shared exports in:
+  - `rust/src/ast_pipeline/mod.rs`
+  - re-exported new SC-04 types/helpers for cross-module use.
+- Expanded semantic usage regression coverage:
+  - parser-side:
+    - `semantic_usage_codegen_token_class_overrides_regex_atom_pattern`
+    - `semantic_usage_codegen_charset_overrides_token_class_pattern`
+    - `semantic_usage_codegen_pattern_overrides_charset_and_token_class`
+  - stimuli-side:
+    - `semantic_usage_stimuli_token_class_overrides_regex_sampling_pattern`
+    - `semantic_usage_stimuli_charset_overrides_token_class_pattern`
+    - `semantic_usage_stimuli_pattern_overrides_charset_and_token_class`
+  - validator-side:
+    - `semantic_validator_warns_on_token_steering_precedence_overlap`
+    - `grammar_aware_validation_warns_on_token_steering_without_regex_atom`
+    - `grammar_aware_validation_accepts_token_steering_on_regex_atom`.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml parses_semantic_` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_token_steering_precedence_overlap` ✅
+- `cargo test --manifest-path rust/Cargo.toml grammar_aware_validation_warns_on_token_steering_without_regex_atom` ✅
+- `cargo test --manifest-path rust/Cargo.toml grammar_aware_validation_accepts_token_steering_on_regex_atom` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_token_class_overrides_regex_atom_pattern` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_charset_overrides_token_class_pattern` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_pattern_overrides_charset_and_token_class` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_token_class_overrides_regex_sampling_pattern` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_charset_overrides_token_class_pattern` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_pattern_overrides_charset_and_token_class` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-12 Parser-Side Deterministic Partition Steering Promotion
 ### ✅ Achievement Summary
 Promoted SC-12 from stimuli-first routing to parser+stimuli steering by adding deterministic group-aware ordered-branch partitioning and typed parser partition telemetry.

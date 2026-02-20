@@ -81,6 +81,21 @@ Normative runtime leverage behavior for semantic annotations:
     - `longest_match` (default),
     - `ordered`,
     - `priority_first`.
+  - `@token_class/@charset/@pattern` token steering baseline:
+    - directives are typed/validated by the annotation validator,
+    - payload forms:
+      - `@token_class`: known class family label (for example `identifier`, `int`, `float`, `bool`, `word`, `alnum`, `lower`, `upper`, `whitespace`, `hex`, `binary`, `printable`),
+      - `@charset`: character-class payload (for example `A-Za-z_` or `[0-9A-F]`),
+      - `@pattern`: non-empty valid regex payload.
+    - deterministic precedence:
+      - when multiple token steering directives are present, effective regex policy is:
+        - `@pattern` > `@charset` > `@token_class`.
+    - parser runtime baseline:
+      - regex atom matching uses effective steering regex selected by precedence above.
+    - stimuli runtime baseline:
+      - regex atom sample generation uses the same effective steering regex selected by precedence above.
+    - grammar-aware coherence warning:
+      - `W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM` when valid token steering directives are present but rule AST has no regex atom (steering remains inactive).
   - `@coverage_target/@critical_path` contract baseline:
     - directives are typed/validated by the annotation validator,
     - payload forms:
@@ -239,11 +254,16 @@ Current stable diagnostic codes include:
   - `W_SEM_INVALID_NEGATIVE_PAYLOAD`
   - `W_SEM_INVALID_SEED_GROUP_PAYLOAD`
   - `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`
+  - `W_SEM_INVALID_TOKEN_CLASS_PAYLOAD`
+  - `W_SEM_INVALID_CHARSET_PAYLOAD`
+  - `W_SEM_INVALID_PATTERN_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
   - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`
   - `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE`
   - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`
+  - `W_SEM_TOKEN_STEERING_PRECEDENCE`
+  - `W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM`
   - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`
   - `W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER`
   - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER`

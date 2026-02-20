@@ -74,6 +74,77 @@ impl SemanticBranchPolicy {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SemanticTokenClass {
+    Identifier,
+    Integer,
+    Float,
+    Boolean,
+    Whitespace,
+    Hexadecimal,
+    Binary,
+    Word,
+    Alnum,
+    Lower,
+    Upper,
+    PrintableAscii,
+}
+
+impl SemanticTokenClass {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SemanticTokenClass::Identifier => "identifier",
+            SemanticTokenClass::Integer => "integer",
+            SemanticTokenClass::Float => "float",
+            SemanticTokenClass::Boolean => "boolean",
+            SemanticTokenClass::Whitespace => "whitespace",
+            SemanticTokenClass::Hexadecimal => "hexadecimal",
+            SemanticTokenClass::Binary => "binary",
+            SemanticTokenClass::Word => "word",
+            SemanticTokenClass::Alnum => "alnum",
+            SemanticTokenClass::Lower => "lower",
+            SemanticTokenClass::Upper => "upper",
+            SemanticTokenClass::PrintableAscii => "printable_ascii",
+        }
+    }
+
+    pub fn regex_pattern(self) -> &'static str {
+        match self {
+            SemanticTokenClass::Identifier => r"[A-Za-z_][A-Za-z0-9_]*",
+            SemanticTokenClass::Integer => r"[+-]?[0-9]+",
+            SemanticTokenClass::Float => r"[+-]?(?:[0-9]+\.[0-9]+|[0-9]+)",
+            SemanticTokenClass::Boolean => r"(?:true|false)",
+            SemanticTokenClass::Whitespace => r"[ \t\r\n]+",
+            SemanticTokenClass::Hexadecimal => r"(?:0[xX][0-9A-Fa-f]+|[0-9A-Fa-f]+)",
+            SemanticTokenClass::Binary => r"(?:0[bB][01]+|[01]+)",
+            SemanticTokenClass::Word => r"[A-Za-z0-9_]+",
+            SemanticTokenClass::Alnum => r"[A-Za-z0-9]+",
+            SemanticTokenClass::Lower => r"[a-z]+",
+            SemanticTokenClass::Upper => r"[A-Z]+",
+            SemanticTokenClass::PrintableAscii => r"[ -~]+",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        let normalized = strip_optional_quotes(value).to_ascii_lowercase();
+        match normalized.as_str() {
+            "identifier" | "ident" | "name" => Some(SemanticTokenClass::Identifier),
+            "integer" | "int" | "signed_int" => Some(SemanticTokenClass::Integer),
+            "float" | "number" | "decimal" => Some(SemanticTokenClass::Float),
+            "boolean" | "bool" => Some(SemanticTokenClass::Boolean),
+            "whitespace" | "ws" | "space" => Some(SemanticTokenClass::Whitespace),
+            "hex" | "hexadecimal" => Some(SemanticTokenClass::Hexadecimal),
+            "bin" | "binary" => Some(SemanticTokenClass::Binary),
+            "word" => Some(SemanticTokenClass::Word),
+            "alnum" | "alphanumeric" => Some(SemanticTokenClass::Alnum),
+            "lower" | "lower_alpha" | "lowercase" => Some(SemanticTokenClass::Lower),
+            "upper" | "upper_alpha" | "uppercase" => Some(SemanticTokenClass::Upper),
+            "printable" | "ascii_printable" => Some(SemanticTokenClass::PrintableAscii),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SemanticValueConstraints {
     pub enum_values: Vec<String>,
@@ -231,15 +302,15 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
     },
     SemanticDirectiveSpec {
         name: "token_class",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "charset",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "pattern",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "coverage_target",
@@ -437,6 +508,45 @@ pub fn parse_semantic_bool(payload: &str) -> Option<bool> {
     }
 }
 
+pub fn parse_semantic_token_class(payload: &str) -> Option<SemanticTokenClass> {
+    SemanticTokenClass::parse(payload)
+}
+
+pub fn parse_semantic_charset(payload: &str) -> Option<String> {
+    let normalized = normalize_semantic_scalar(payload);
+    if normalized.is_empty() {
+        return None;
+    }
+
+    let charset_body = if normalized.starts_with('[') && normalized.ends_with(']') {
+        &normalized[1..normalized.len() - 1]
+    } else {
+        normalized.as_str()
+    };
+    if charset_body.is_empty() {
+        return None;
+    }
+    if charset_body.contains('[') || charset_body.contains(']') {
+        return None;
+    }
+
+    let pattern = format!("[{}]+", charset_body);
+    if Regex::new(pattern.as_str()).is_err() {
+        return None;
+    }
+
+    Some(pattern)
+}
+
+pub fn parse_semantic_pattern(payload: &str) -> Option<String> {
+    let pattern = normalize_semantic_scalar(payload);
+    if pattern.is_empty() {
+        return None;
+    }
+    Regex::new(pattern.as_str()).ok()?;
+    Some(pattern)
+}
+
 pub fn parse_semantic_nonnegative_usize(payload: &str) -> Option<usize> {
     let normalized = normalize_semantic_scalar(payload);
     if normalized.is_empty() {
@@ -611,15 +721,16 @@ fn strip_optional_quotes(value: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::{
-        SemanticAssociativity, SemanticBranchPolicy, UnknownSemanticDirectivePolicy,
-        extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
-        parse_semantic_bool, parse_semantic_branch_priorities,
-        parse_semantic_coverage_target_weight,
-        parse_semantic_constraint_expression, parse_semantic_deterministic_group,
-        parse_semantic_float_list, parse_semantic_group_label, parse_semantic_implication,
-        parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
-        parse_semantic_numeric_bounds, parse_semantic_numeric_list,
-        parse_semantic_reference_list, parse_semantic_string_list, semantic_directive_spec,
+        SemanticAssociativity, SemanticBranchPolicy, SemanticTokenClass,
+        UnknownSemanticDirectivePolicy, extract_semantic_directive,
+        extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_bool,
+        parse_semantic_branch_priorities, parse_semantic_charset,
+        parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
+        parse_semantic_deterministic_group, parse_semantic_float_list, parse_semantic_group_label,
+        parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
+        parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_pattern,
+        parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
+        semantic_directive_spec,
     };
 
     #[test]
@@ -775,6 +886,48 @@ mod tests {
     }
 
     #[test]
+    fn parses_semantic_token_class_payloads() {
+        assert_eq!(
+            parse_semantic_token_class("identifier"),
+            Some(SemanticTokenClass::Identifier)
+        );
+        assert_eq!(
+            parse_semantic_token_class("\"int\""),
+            Some(SemanticTokenClass::Integer)
+        );
+        assert_eq!(
+            parse_semantic_token_class("ascii_printable"),
+            Some(SemanticTokenClass::PrintableAscii)
+        );
+        assert_eq!(parse_semantic_token_class("unknown"), None);
+    }
+
+    #[test]
+    fn parses_semantic_charset_payloads() {
+        assert_eq!(
+            parse_semantic_charset("A-Za-z_"),
+            Some("[A-Za-z_]+".to_string())
+        );
+        assert_eq!(
+            parse_semantic_charset("[0-9A-Fa-f]"),
+            Some("[0-9A-Fa-f]+".to_string())
+        );
+        assert_eq!(parse_semantic_charset("[]"), None);
+        assert_eq!(parse_semantic_charset("[abc"), None);
+    }
+
+    #[test]
+    fn parses_semantic_pattern_payloads() {
+        assert_eq!(
+            parse_semantic_pattern("^[A-Z]{2}$"),
+            Some("^[A-Z]{2}$".to_string())
+        );
+        assert_eq!(parse_semantic_pattern("\"\\d+\""), Some("\\d+".to_string()));
+        assert_eq!(parse_semantic_pattern(""), None);
+        assert_eq!(parse_semantic_pattern("[A-Z+"), None);
+    }
+
+    #[test]
     fn parses_semantic_nonnegative_usize_values() {
         assert_eq!(parse_semantic_nonnegative_usize("0"), Some(0));
         assert_eq!(parse_semantic_nonnegative_usize("\"8\""), Some(8));
@@ -880,6 +1033,9 @@ mod tests {
         assert!(semantic_directive_spec("constraint").is_some());
         assert!(semantic_directive_spec("requires").is_some());
         assert!(semantic_directive_spec("implies").is_some());
+        assert!(semantic_directive_spec("token_class").is_some());
+        assert!(semantic_directive_spec("charset").is_some());
+        assert!(semantic_directive_spec("pattern").is_some());
         assert!(semantic_directive_spec("invalid_case").is_some());
         assert!(semantic_directive_spec("negative").is_some());
         assert!(semantic_directive_spec("seed_group").is_some());

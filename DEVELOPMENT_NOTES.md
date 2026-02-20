@@ -1,4 +1,128 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-04 Token-Family Steering Baseline (`@token_class/@charset/@pattern`)
+### Context
+SC-04 was still the largest semantic steering gap in the control matrix:
+- directives were registered but parse-only,
+- no typed payload diagnostics existed,
+- parser and stimuli did not consume SC-04 directives at runtime,
+- no grammar-aware signal existed for syntactically-valid but inactive token steering.
+
+This created a practical usability gap:
+- users could author `@token_class/@charset/@pattern`,
+- but behavior remained implicit/non-operational.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/src/ast_pipeline/mod.rs`
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Typed SC-04 semantic parsers and capability promotion
+- Added `SemanticTokenClass` enum with normalized aliases and canonical regex mappings.
+- Added typed helpers:
+  - `parse_semantic_token_class(...)`
+  - `parse_semantic_charset(...)`
+  - `parse_semantic_pattern(...)`
+- Promoted directive capabilities:
+  - `token_class` -> `ParserAndStimuliSteering`
+  - `charset` -> `ParserAndStimuliSteering`
+  - `pattern` -> `ParserAndStimuliSteering`
+- Updated AST pipeline re-exports in `mod.rs` so validator/parser/stimuli consume one shared parser surface.
+
+#### 2) Validator payload contracts + precedence/coherence diagnostics
+- Added payload diagnostics:
+  - `W_SEM_INVALID_TOKEN_CLASS_PAYLOAD`
+  - `W_SEM_INVALID_CHARSET_PAYLOAD`
+  - `W_SEM_INVALID_PATTERN_PAYLOAD`
+- Added overlap/precedence diagnostic:
+  - `W_SEM_TOKEN_STEERING_PRECEDENCE`
+  - emitted when 2+ SC-04 directives are present on same rule,
+  - message pins deterministic policy:
+    - `@pattern > @charset > @token_class`.
+- Added grammar-aware contract pass in `validate_annotations_with_grammar(...)`:
+  - new warning:
+    - `W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM`
+  - emitted when valid SC-04 directives exist but target rule has no regex atom, signaling inactive steering intent.
+
+#### 3) Parser runtime/codegen SC-04 steering
+- Added parser-side policy model:
+  - `SemanticTokenSteeringPolicy { token_class, charset_pattern, explicit_pattern }`
+- Added extraction helper:
+  - `rule_token_steering_policy(rule_name)`
+- Added matcher resolution helper:
+  - `effective_regex_pattern(rule_name, grammar_pattern)`
+- Precedence contract in codegen:
+  1. `@pattern` (if valid)
+  2. else `@charset` (if valid)
+  3. else `@token_class` (if valid)
+  4. else grammar regex baseline
+- Wired regex atom generation path to use effective SC-04 regex before transform/value-domain guards.
+
+#### 4) Stimuli runtime SC-04 steering
+- Added stimuli-side policy model:
+  - `StimuliTokenSteeringPolicy { token_class, charset_pattern, explicit_pattern }`
+- Added extraction helper:
+  - `rule_token_steering_policy(rule_name)`
+- Added effective pattern resolver:
+  - `effective_regex_pattern(rule_name, grammar_pattern)`
+- Same precedence contract as parser:
+  - `@pattern > @charset > @token_class`
+- Wired regex atom generation path so `generate_regex_sample(...)` receives effective SC-04 regex.
+
+#### 5) Regression coverage
+- Directive parser coverage:
+  - `parses_semantic_token_class_payloads`
+  - `parses_semantic_charset_payloads`
+  - `parses_semantic_pattern_payloads`
+- Validator coverage:
+  - `semantic_validator_warns_on_token_steering_precedence_overlap`
+  - `grammar_aware_validation_warns_on_token_steering_without_regex_atom`
+  - `grammar_aware_validation_accepts_token_steering_on_regex_atom`
+- Parser semantic usage coverage:
+  - `semantic_usage_codegen_token_class_overrides_regex_atom_pattern`
+  - `semantic_usage_codegen_charset_overrides_token_class_pattern`
+  - `semantic_usage_codegen_pattern_overrides_charset_and_token_class`
+- Stimuli semantic usage coverage:
+  - `semantic_usage_stimuli_token_class_overrides_regex_sampling_pattern`
+  - `semantic_usage_stimuli_charset_overrides_token_class_pattern`
+  - `semantic_usage_stimuli_pattern_overrides_charset_and_token_class`
+
+#### 6) Documentation sync
+- Updated matrix to mark SC-04 Tier 3 implemented baseline and adjusted next-focus list.
+- Updated roadmap checklist/changelog with SC-04 completion note.
+- Updated normative spec with formal SC-04 contract + diagnostic additions.
+- Added/expanded UG content so `@token_class/@charset/@pattern` is explicitly explained with precedence and examples.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml parses_semantic_`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_token_steering_precedence_overlap`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml grammar_aware_validation_warns_on_token_steering_without_regex_atom`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml grammar_aware_validation_accepts_token_steering_on_regex_atom`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_token_class_overrides_regex_atom_pattern`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_charset_overrides_token_class_pattern`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_codegen_pattern_overrides_charset_and_token_class`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_token_class_overrides_regex_sampling_pattern`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_charset_overrides_token_class_pattern`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_pattern_overrides_charset_and_token_class`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass (`75 semantic_usage_* tests`).
+
 ## 2026-02-20 - Phase K Follow-Up: SC-12 Parser-Side Deterministic Partition Steering Promotion
 ### Context
 SC-12 had reached a stimuli-first baseline:

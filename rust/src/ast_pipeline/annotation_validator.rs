@@ -3,11 +3,12 @@ use super::{
     SemanticAssociativity, SemanticBranchPolicy, UnifiedReturnAST, UnifiedSemanticAST,
     UnknownSemanticDirectivePolicy, extract_semantic_directive, extract_semantic_directive_name,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_coverage_target_weight,
-    parse_semantic_constraint_expression, parse_semantic_deterministic_group,
+    parse_semantic_charset, parse_semantic_constraint_expression,
+    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
     parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
     parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
-    parse_semantic_reference_list, parse_semantic_string_list, semantic_directive_spec,
+    parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_string_list,
+    parse_semantic_token_class, semantic_directive_spec,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -229,6 +230,7 @@ impl AnnotationValidator {
             }
         }
 
+        self.validate_token_steering_contracts(annotations, grammar_tree, &mut report);
         self.validate_grammar_ambiguity(grammar_tree, &mut report);
 
         report
@@ -568,7 +570,8 @@ impl AnnotationValidator {
                         kind: AnnotationKind::Semantic,
                         rule_name: rule_name.to_string(),
                         annotation_index: Some(annotation_index),
-                        message: "Directive '@constraint' expects a non-empty expression payload.".to_string(),
+                        message: "Directive '@constraint' expects a non-empty expression payload."
+                            .to_string(),
                         annotation: Some(raw_annotation),
                     });
                 }
@@ -696,6 +699,45 @@ impl AnnotationValidator {
                     });
                 }
             }
+            "token_class" => {
+                if parse_semantic_token_class(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_TOKEN_CLASS_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@token_class' expects a known token class such as identifier/int/float/bool/word/alnum/lower/upper/whitespace/hex/binary/printable.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "charset" => {
+                if parse_semantic_charset(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_CHARSET_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@charset' expects a non-empty character-class payload such as 'A-Za-z_' or '[0-9A-F]'.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "pattern" => {
+                if parse_semantic_pattern(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_PATTERN_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@pattern' expects a non-empty valid regular expression payload.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             "coverage_target" => {
                 if parse_semantic_coverage_target_weight(payload_trimmed).is_none() {
                     report.diagnostics.push(AnnotationDiagnostic {
@@ -743,7 +785,9 @@ impl AnnotationValidator {
                         kind: AnnotationKind::Semantic,
                         rule_name: rule_name.to_string(),
                         annotation_index: Some(annotation_index),
-                        message: "Directive '@negative' expects a boolean payload such as true/false.".to_string(),
+                        message:
+                            "Directive '@negative' expects a boolean payload such as true/false."
+                                .to_string(),
                         annotation: Some(raw_annotation),
                     });
                 }
@@ -844,6 +888,7 @@ impl AnnotationValidator {
         self.validate_coverage_target_contract(rule_name, &directive_occurrences, report);
         self.validate_negative_case_contract(rule_name, &directive_occurrences, report);
         self.validate_deterministic_partition_contract(rule_name, &directive_occurrences, report);
+        self.validate_token_steering_precedence_contract(rule_name, &directive_occurrences, report);
 
         for (directive_name, entries) in &directive_occurrences {
             if entries.len() <= 1 {
@@ -982,7 +1027,8 @@ impl AnnotationValidator {
         }
 
         let sync_payload = Self::latest_directive_payload(directive_occurrences, "sync");
-        let panic_until_payload = Self::latest_directive_payload(directive_occurrences, "panic_until");
+        let panic_until_payload =
+            Self::latest_directive_payload(directive_occurrences, "panic_until");
         let recover_budget_payload =
             Self::latest_directive_payload(directive_occurrences, "recover_budget");
         let recover_parse_budget_payload =
@@ -1078,7 +1124,8 @@ impl AnnotationValidator {
             annotation_index = annotation_index.max(idx);
             details.push(format!("@panic_until: {}", payload));
         }
-        if let Some((idx, payload)) = Self::latest_directive_payload(directive_occurrences, "recover")
+        if let Some((idx, payload)) =
+            Self::latest_directive_payload(directive_occurrences, "recover")
         {
             annotation_index = annotation_index.max(idx);
             details.push(format!("@recover: {}", payload));
@@ -1161,11 +1208,10 @@ impl AnnotationValidator {
             return;
         }
 
-        let annotation_index =
-            coverage_payload
-                .as_ref()
-                .map(|(idx, _)| *idx)
-                .max(Some(critical_idx));
+        let annotation_index = coverage_payload
+            .as_ref()
+            .map(|(idx, _)| *idx)
+            .max(Some(critical_idx));
         let mut details = Vec::new();
         if let Some((_, payload)) = coverage_payload {
             details.push(format!("@coverage_target: {}", payload));
@@ -1235,7 +1281,8 @@ impl AnnotationValidator {
         directive_occurrences: &HashMap<String, Vec<(usize, String)>>,
         report: &mut AnnotationValidationReport,
     ) {
-        let seed_group_payload = Self::latest_directive_payload(directive_occurrences, "seed_group");
+        let seed_group_payload =
+            Self::latest_directive_payload(directive_occurrences, "seed_group");
         let Some((seed_group_idx, seed_group_value)) = seed_group_payload else {
             return;
         };
@@ -1272,6 +1319,145 @@ impl AnnotationValidator {
             message: "Directive '@seed_group' is present but '@deterministic_group' is missing or disabled; deterministic partition routing remains inactive.".to_string(),
             annotation: Some(details.join("; ")),
         });
+    }
+
+    fn validate_token_steering_precedence_contract(
+        &self,
+        rule_name: &str,
+        directive_occurrences: &HashMap<String, Vec<(usize, String)>>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        let token_class = Self::latest_directive_payload(directive_occurrences, "token_class");
+        let charset = Self::latest_directive_payload(directive_occurrences, "charset");
+        let pattern = Self::latest_directive_payload(directive_occurrences, "pattern");
+
+        let mut annotation_index = 1usize;
+        let mut details = Vec::new();
+        let mut count = 0usize;
+
+        if let Some((idx, payload)) = token_class {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@token_class: {}", payload));
+            count += 1;
+        }
+        if let Some((idx, payload)) = charset {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@charset: {}", payload));
+            count += 1;
+        }
+        if let Some((idx, payload)) = pattern {
+            annotation_index = annotation_index.max(idx);
+            details.push(format!("@pattern: {}", payload));
+            count += 1;
+        }
+        if count <= 1 {
+            return;
+        }
+
+        report.diagnostics.push(AnnotationDiagnostic {
+            code: "W_SEM_TOKEN_STEERING_PRECEDENCE",
+            severity: AnnotationSeverity::Warning,
+            kind: AnnotationKind::Semantic,
+            rule_name: rule_name.to_string(),
+            annotation_index: Some(annotation_index),
+            message: "Multiple token steering directives are present; deterministic precedence applies: '@pattern' > '@charset' > '@token_class'.".to_string(),
+            annotation: Some(details.join("; ")),
+        });
+    }
+
+    fn validate_token_steering_contracts(
+        &self,
+        annotations: &Annotations,
+        grammar_tree: &HashMap<String, ASTNode>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        for (rule_name, semantic_annotations) in &annotations.semantic_annotations {
+            let Some(rule_ast) = grammar_tree.get(rule_name) else {
+                continue;
+            };
+
+            let mut token_class: Option<(usize, String)> = None;
+            let mut charset: Option<(usize, String)> = None;
+            let mut pattern: Option<(usize, String)> = None;
+
+            for (idx, semantic_annotation) in semantic_annotations.iter().enumerate() {
+                let Some((directive_name, payload)) =
+                    self.semantic_directive_parts(semantic_annotation)
+                else {
+                    continue;
+                };
+                match directive_name.as_str() {
+                    "token_class" => {
+                        if parse_semantic_token_class(&payload).is_some() {
+                            token_class = Some((idx + 1, payload));
+                        }
+                    }
+                    "charset" => {
+                        if parse_semantic_charset(&payload).is_some() {
+                            charset = Some((idx + 1, payload));
+                        }
+                    }
+                    "pattern" => {
+                        if parse_semantic_pattern(&payload).is_some() {
+                            pattern = Some((idx + 1, payload));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            if token_class.is_none() && charset.is_none() && pattern.is_none() {
+                continue;
+            }
+            if Self::rule_has_regex_atom(rule_ast) {
+                continue;
+            }
+
+            let mut annotation_index = 1usize;
+            let mut details = Vec::new();
+            if let Some((idx, payload)) = token_class {
+                annotation_index = annotation_index.max(idx);
+                details.push(format!("@token_class: {}", payload));
+            }
+            if let Some((idx, payload)) = charset {
+                annotation_index = annotation_index.max(idx);
+                details.push(format!("@charset: {}", payload));
+            }
+            if let Some((idx, payload)) = pattern {
+                annotation_index = annotation_index.max(idx);
+                details.push(format!("@pattern: {}", payload));
+            }
+
+            report.diagnostics.push(AnnotationDiagnostic {
+                code: "W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM",
+                severity: AnnotationSeverity::Warning,
+                kind: AnnotationKind::Semantic,
+                rule_name: rule_name.to_string(),
+                annotation_index: Some(annotation_index),
+                message: "Token steering directives are present but this rule has no regex atom; steering remains inactive until a regex token is available in the rule.".to_string(),
+                annotation: Some(details.join("; ")),
+            });
+        }
+    }
+
+    fn rule_has_regex_atom(node: &ASTNode) -> bool {
+        match node {
+            ASTNode::Or { alternatives } => alternatives.iter().any(Self::rule_has_regex_atom),
+            ASTNode::Sequence { elements } => elements.iter().any(Self::rule_has_regex_atom),
+            ASTNode::Quantified { element, .. } => Self::rule_has_regex_atom(element),
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => Self::rule_has_regex_atom(inner),
+                ASTValue::Token(parts) => {
+                    if parts.len() < 2 {
+                        return false;
+                    }
+                    matches!(
+                        &parts[0],
+                        super::TokenValue::String(token_type) if token_type == "regex"
+                    )
+                }
+            },
+        }
     }
 
     fn latest_directive_payload<'a>(
@@ -1492,10 +1678,7 @@ impl AnnotationValidator {
             return;
         }
 
-        let promote_all = self
-            .config
-            .strict_semantic_warning_codes
-            .contains("*");
+        let promote_all = self.config.strict_semantic_warning_codes.contains("*");
         for diagnostic in &mut report.diagnostics {
             if diagnostic.kind != AnnotationKind::Semantic
                 || diagnostic.severity != AnnotationSeverity::Warning
@@ -1607,7 +1790,8 @@ impl AnnotationValidator {
                 }
             }
 
-            let mut first_overlaps: Vec<(String, Vec<usize>)> = first_to_branches.into_iter().collect();
+            let mut first_overlaps: Vec<(String, Vec<usize>)> =
+                first_to_branches.into_iter().collect();
             first_overlaps.sort_by(|left, right| left.0.cmp(&right.0));
 
             for (terminal, mut branch_indices) in first_overlaps {
@@ -1750,7 +1934,9 @@ impl AnnotationValidator {
                         visiting_rules,
                         depth + 1,
                     );
-                    result.terminals.extend(element_first.terminals.iter().cloned());
+                    result
+                        .terminals
+                        .extend(element_first.terminals.iter().cloned());
                     result.unresolved |= element_first.unresolved;
                     if !element_first.nullable {
                         result.nullable = false;
@@ -2153,7 +2339,7 @@ mod tests {
             strict_semantic_transforms: false,
             unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
             strict_semantic_warning_codes: HashSet::from([
-                "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD".to_string(),
+                "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD".to_string()
             ]),
         })
         .validate_annotations(&annotations);
@@ -2183,7 +2369,7 @@ mod tests {
             strict_semantic_transforms: false,
             unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
             strict_semantic_warning_codes: HashSet::from([
-                "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD".to_string(),
+                "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD".to_string()
             ]),
         })
         .validate_annotations(&annotations);
@@ -2584,6 +2770,24 @@ mod tests {
                         content: "\"%%%\"".to_string(),
                     },
                 },
+                SemanticAnnotation::Named {
+                    name: "token_class".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"mystery\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "charset".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"[]\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "pattern".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"[A-Z+\"".to_string(),
+                    },
+                },
             ],
         );
 
@@ -2606,18 +2810,24 @@ mod tests {
                 .iter()
                 .any(|d| d.code == "W_SEM_INVALID_SYNC_PAYLOAD")
         );
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD"));
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD"));
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD")
+        );
         assert!(
             report
                 .diagnostics
@@ -2660,6 +2870,24 @@ mod tests {
                 .iter()
                 .any(|d| d.code == "W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD")
         );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_TOKEN_CLASS_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_CHARSET_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_PATTERN_PAYLOAD")
+        );
     }
 
     #[test]
@@ -2690,18 +2918,24 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER"));
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER"));
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER")
+        );
     }
 
     #[test]
@@ -2718,10 +2952,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET")
+        );
     }
 
     #[test]
@@ -2768,10 +3004,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE")
+        );
     }
 
     #[test]
@@ -2818,10 +3056,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP")
+        );
     }
 
     #[test]
@@ -2972,10 +3212,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT")
+        );
     }
 
     #[test]
@@ -3065,6 +3307,42 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_DIRECTIVE_OVERRIDDEN")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_token_steering_precedence_overlap() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "token".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "token_class".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "identifier".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "charset".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[A-Z_]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "pattern".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "^[A-Z_]+$".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_TOKEN_STEERING_PRECEDENCE")
         );
     }
 
@@ -3161,6 +3439,80 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN")
+        );
+    }
+
+    #[test]
+    fn grammar_aware_validation_warns_on_token_steering_without_regex_atom() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "identifier".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "token_class".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "identifier".to_string(),
+                },
+            }],
+        );
+
+        let grammar_tree = HashMap::from([(
+            "identifier".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![
+                    TokenValue::String("quoted_string".to_string()),
+                    TokenValue::String("id".to_string()),
+                ]),
+            },
+        )]);
+
+        let report = AnnotationValidator::default()
+            .validate_annotations_with_grammar(&annotations, &grammar_tree);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM")
+        );
+    }
+
+    #[test]
+    fn grammar_aware_validation_accepts_token_steering_on_regex_atom() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "identifier".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "token_class".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "identifier".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "charset".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[A-Za-z_]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let grammar_tree = HashMap::from([(
+            "identifier".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![
+                    TokenValue::String("regex".to_string()),
+                    TokenValue::String("[A-Za-z_][A-Za-z0-9_]*".to_string()),
+                ]),
+            },
+        )]);
+
+        let report = AnnotationValidator::default()
+            .validate_annotations_with_grammar(&annotations, &grammar_tree);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM")
         );
     }
 

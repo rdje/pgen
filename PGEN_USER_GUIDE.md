@@ -301,7 +301,30 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - semantic priority/precedence contributes branch sampling bias,
   - associativity biases equal structures toward earlier/later branch order.
 
-#### C) Value-domain steering (`@enum`, `@range`, `@len`, `@regex`)
+#### C) Token-family steering (`@token_class`, `@charset`, `@pattern`)
+- Intended scope:
+  - steering applies to regex atoms in a rule,
+  - steering is inactive for rules with no regex atom (validator emits `W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM`).
+- Payload forms:
+  - `@token_class`: known class label (for example `identifier`, `int`, `float`, `bool`, `word`, `alnum`, `lower`, `upper`, `whitespace`, `hex`, `binary`, `printable`).
+  - `@charset`: character-class payload (for example `A-Za-z_` or `[0-9A-F]`).
+  - `@pattern`: full regex payload.
+- Deterministic precedence (when multiple are present):
+  1. `@pattern`
+  2. `@charset`
+  3. `@token_class`
+- Validator diagnostics:
+  - payload diagnostics:
+    - `W_SEM_INVALID_TOKEN_CLASS_PAYLOAD`
+    - `W_SEM_INVALID_CHARSET_PAYLOAD`
+    - `W_SEM_INVALID_PATTERN_PAYLOAD`
+  - overlap diagnostic:
+    - `W_SEM_TOKEN_STEERING_PRECEDENCE` (documents precedence contract when multiple steering directives appear together).
+- Runtime behavior:
+  - parser: generated regex matcher uses effective steering pattern after precedence resolution,
+  - stimuli: regex sample generation uses the same effective steering pattern after precedence resolution.
+
+#### D) Value-domain steering (`@enum`, `@range`, `@len`, `@regex`)
 - `@enum` payload forms:
   - `["AA", "BB"]`
   - `"AA"` (single value form also accepted).
@@ -320,7 +343,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - repeated occurrences of the same directive currently follow last-wins assignment per rule.
   - when `@enum` is present with `@len`/`@range`/`@regex`, validator checks satisfiability of the intersection and warns if no enum value can satisfy all active constraints.
 
-#### D) Relational constraint contract baseline (`@constraint`, `@requires`, `@implies`)
+#### E) Relational constraint contract baseline (`@constraint`, `@requires`, `@implies`)
 - Current stage:
   - typed validator contract is implemented,
   - parser runtime baseline (`Tier 2`) is implemented,
@@ -341,7 +364,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Coherence rule:
   - `@requires`/`@implies` without `@constraint` triggers `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`.
 
-#### E) Coverage-target steering contract baseline (`@coverage_target`, `@critical_path`)
+#### F) Coverage-target steering contract baseline (`@coverage_target`, `@critical_path`)
 - Current stage:
   - typed validator contract is implemented,
   - stimuli coverage/gap steering baseline (`Tier 3` coverage pipeline) is implemented,
@@ -417,6 +440,9 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_INVALID_NEGATIVE_PAYLOAD`
   - `W_SEM_INVALID_SEED_GROUP_PAYLOAD`
   - `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`
+  - `W_SEM_INVALID_TOKEN_CLASS_PAYLOAD`
+  - `W_SEM_INVALID_CHARSET_PAYLOAD`
+  - `W_SEM_INVALID_PATTERN_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
   - `W_SEM_INVALID_ENUM_PAYLOAD`
@@ -435,6 +461,8 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET` (`@critical_path` enabled while effective `@coverage_target` is missing/zero)
   - `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE` (`@negative` enabled while `@invalid_case` is missing/disabled)
   - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP` (`@seed_group` present while `@deterministic_group` is missing/disabled)
+  - `W_SEM_TOKEN_STEERING_PRECEDENCE` (`@pattern/@charset/@token_class` overlap present; deterministic precedence contract applies)
+  - `W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM` (token steering hints present but rule has no regex atom)
 - Grammar ambiguity diagnostics (grammar-aware validation pass):
   - `W_GRAM_AMBIGUOUS_PREFIX` (top-level alternation branches share the same leading quoted terminal; parse selection may depend on branch order)
   - `W_GRAM_FIRST_SET_OVERLAP` (top-level alternation branches have overlapping computed FIRST terminals, including overlaps introduced via nullable prefixes and rule references)
@@ -569,6 +597,7 @@ stmt = declaration | assignment ;
 - Included in:
   - `make -C rust annotation_contract_gate`
 - Coverage includes parser + stimuli semantic usage tests (`semantic_usage_*`), including value-domain steering, directive routing, parser recovery-hook codegen, and stimuli recovery-fallback regressions.
+- Coverage also includes SC-04 steering precedence/runtime tests (`token_class`, `charset`, `pattern`) across parser and stimuli paths.
 
 ### 8.10 Steering Roadmap References
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
@@ -1116,6 +1145,86 @@ If `@seed_group` is present while effective `@deterministic_group` is missing or
   - else explicit group label embedded in `@deterministic_group`,
   - else fallback `rule.<entry_rule>`.
 - When `@deterministic_group` is disabled, `@seed_group` has no runtime effect.
+
+### 8.17 SC-04 Token-Family Steering Deep-Dive (`@token_class`, `@charset`, `@pattern`)
+
+This section explains the exact purpose of the three SC-04 directives and when to use each one.
+
+#### 8.17.1 Why three directives exist
+
+- `@token_class`:
+  - high-level intent-based steering.
+  - use when you want a standard lexical family and do not care about exact regex text.
+  - examples: identifier, integer, float, boolean.
+- `@charset`:
+  - medium-level steering for allowed character families.
+  - use when you want a constrained class without writing a full regex.
+  - examples: uppercase hex-like symbols, limited symbol alphabet.
+- `@pattern`:
+  - full explicit regex steering.
+  - use when you need exact lexical acceptance behavior.
+
+In short:
+1. `@token_class` is semantic intent.
+2. `@charset` is character-domain intent.
+3. `@pattern` is exact matcher intent.
+
+#### 8.17.2 Deterministic precedence contract
+
+When multiple SC-04 directives are present on the same rule, effective steering is deterministic:
+1. `@pattern` wins.
+2. else `@charset` wins.
+3. else `@token_class` wins.
+
+Validator emits `W_SEM_TOKEN_STEERING_PRECEDENCE` to make overlap visible.
+
+#### 8.17.3 Parser and stimuli use the same effective policy
+
+- Parser:
+  - generated regex matching for regex atoms uses the effective SC-04 steering regex.
+- Stimuli:
+  - regex sample generation also uses the same effective SC-04 steering regex.
+
+This avoids split behavior where parser and stimuli interpret SC-04 differently.
+
+#### 8.17.4 Inactive-steering condition
+
+SC-04 steering requires at least one regex atom in the rule.
+
+If a rule has no regex atom, validator emits:
+- `W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM`
+
+This is intentional so authors can detect directives that are syntactically valid but operationally inactive.
+
+#### 8.17.5 Practical authoring patterns
+
+Pattern A: coarse lexical class
+```ebnf
+ident = regex("[0-9]+") @token_class: identifier ;
+```
+- Effective behavior uses identifier family matching/generation.
+
+Pattern B: constrained alphabet
+```ebnf
+hex_chunk = regex("[a-z]+") @charset: [A-F0-9] ;
+```
+- Effective behavior uses `[A-F0-9]+`.
+
+Pattern C: exact override
+```ebnf
+flag = regex("[a-z]+")
+  @token_class: identifier
+  @charset: [A-F0-9]
+  @pattern: ^Q{2}$ ;
+```
+- Effective behavior uses `^Q{2}$` due to precedence.
+
+#### 8.17.6 Recommended usage guideline
+
+1. Start with `@token_class` when onboarding a grammar quickly.
+2. Move to `@charset` when class-level control is needed.
+3. Use `@pattern` for final precise behavior.
+4. Keep only one SC-04 directive when possible to reduce ambiguity/noise.
 
 ## 9) Differential Testing and Drift Management
 
