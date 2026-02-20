@@ -43,6 +43,12 @@ struct SemanticCoverageTargetPolicy {
     critical_path: bool,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct SemanticNegativeCasePolicy {
+    invalid_case: bool,
+    negative: bool,
+}
+
 impl AstBasedGenerator {
     pub fn new(grammar_name: String) -> Self {
         Self {
@@ -224,6 +230,15 @@ impl AstBasedGenerator {
                 pub coverage_target_weight: u64,
                 pub critical_path: bool,
             }
+
+            #[derive(Debug, Clone, PartialEq, Eq)]
+            pub struct NegativeCaseEvent {
+                pub rule_name: String,
+                pub parse_start: usize,
+                pub failure_position: usize,
+                pub negative: bool,
+                pub error_kind: String,
+            }
         }
     }
 
@@ -244,6 +259,8 @@ impl AstBasedGenerator {
                 coverage_target_events: Vec<CoverageTargetEvent>,
                 coverage_target_rule_hits: HashMap<String, usize>,
                 coverage_target_branch_hits: HashMap<String, usize>,
+                negative_case_events: Vec<NegativeCaseEvent>,
+                negative_case_rule_hits: HashMap<String, usize>,
                 logger: Box<dyn Logger>,
             }
         }
@@ -467,6 +484,8 @@ impl AstBasedGenerator {
                     coverage_target_events: Vec::new(),
                     coverage_target_rule_hits: HashMap::new(),
                     coverage_target_branch_hits: HashMap::new(),
+                    negative_case_events: Vec::new(),
+                    negative_case_rule_hits: HashMap::new(),
                     logger,
                 }
             }
@@ -485,6 +504,8 @@ impl AstBasedGenerator {
                 self.coverage_target_events.clear();
                 self.coverage_target_rule_hits.clear();
                 self.coverage_target_branch_hits.clear();
+                self.negative_case_events.clear();
+                self.negative_case_rule_hits.clear();
                 self.#parse_method()
             }
 
@@ -545,6 +566,22 @@ impl AstBasedGenerator {
             pub fn coverage_target_branch_hits(&self) -> &HashMap<String, usize> {
                 &self.coverage_target_branch_hits
             }
+
+            pub fn negative_case_events(&self) -> &[NegativeCaseEvent] {
+                &self.negative_case_events
+            }
+
+            pub fn take_negative_case_events(&mut self) -> Vec<NegativeCaseEvent> {
+                std::mem::take(&mut self.negative_case_events)
+            }
+
+            pub fn negative_case_event_count(&self) -> usize {
+                self.negative_case_events.len()
+            }
+
+            pub fn negative_case_rule_hits(&self) -> &HashMap<String, usize> {
+                &self.negative_case_rule_hits
+            }
         }
     }
 
@@ -578,6 +615,9 @@ impl AstBasedGenerator {
         let coverage_target_policy = self.rule_coverage_target_policy(rule_name);
         let coverage_target_weight = coverage_target_policy.coverage_target_weight;
         let coverage_critical_path = coverage_target_policy.critical_path;
+        let negative_case_policy = self.rule_negative_case_policy(rule_name);
+        let negative_case_enabled = negative_case_policy.invalid_case;
+        let negative_case_strict = negative_case_policy.negative;
 
         // Build the complete method
         Ok(quote! {
@@ -663,6 +703,15 @@ impl AstBasedGenerator {
                         }
                     }
                     Err(e) => {
+                        if #negative_case_enabled {
+                            self.record_negative_case_failure(
+                                #rule_name,
+                                start_pos,
+                                self.position,
+                                #negative_case_strict,
+                                &format!("{:?}", e),
+                            );
+                        }
                         if self.logger.is_enabled() {
                             self.logger.log_error(#filename, 0, &format!("❌ Exiting rule '{}' with error: {:?} - backtracked to {}", #rule_name, e, self.position));
                         }
@@ -1555,6 +1604,42 @@ impl AstBasedGenerator {
                         marker,
                         parse_start,
                         parse_end
+                    ));
+                }
+            }
+            fn record_negative_case_failure(
+                &mut self,
+                rule_name: &str,
+                parse_start: usize,
+                failure_position: usize,
+                negative: bool,
+                error_kind: &str,
+            ) {
+                self.negative_case_events.push(NegativeCaseEvent {
+                    rule_name: rule_name.to_string(),
+                    parse_start,
+                    failure_position,
+                    negative,
+                    error_kind: error_kind.to_string(),
+                });
+                *self
+                    .negative_case_rule_hits
+                    .entry(rule_name.to_string())
+                    .or_insert(0) += 1;
+
+                if self.logger.is_enabled() {
+                    let mode = if negative {
+                        "near-invalid"
+                    } else {
+                        "invalid-case"
+                    };
+                    self.logger.log_info(#filename, 0, &format!(
+                        "⚠️ SC-11 expected-failure path: rule='{}' mode={} start={} failure={} kind={}",
+                        rule_name,
+                        mode,
+                        parse_start,
+                        failure_position,
+                        error_kind
                     ));
                 }
             }
@@ -2815,6 +2900,40 @@ impl AstBasedGenerator {
         policy
     }
 
+    fn rule_negative_case_policy(&self, rule_name: &str) -> SemanticNegativeCasePolicy {
+        let Some(annotations) = &self.annotations else {
+            return SemanticNegativeCasePolicy::default();
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return SemanticNegativeCasePolicy::default();
+        };
+
+        let mut policy = SemanticNegativeCasePolicy::default();
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "invalid_case" => {
+                    if let Some(enabled) = parse_semantic_bool(&payload) {
+                        policy.invalid_case = enabled;
+                    }
+                }
+                "negative" => {
+                    if let Some(enabled) = parse_semantic_bool(&payload) {
+                        policy.negative = enabled;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if !policy.invalid_case {
+            policy.negative = false;
+        }
+        policy
+    }
+
     fn rule_recovery_hints(
         &self,
         rule_name: &str,
@@ -3947,6 +4066,149 @@ mod semantic_usage_tests {
                 && rendered.contains("self . coverage_target_rule_hits")
                 && rendered.contains("self . coverage_target_branch_hits"),
             "SC-10 helper should record events and counters, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_extracts_negative_case_policy() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "invalid_case".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "negative".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let policy = generator.rule_negative_case_policy("stmt");
+        assert!(policy.invalid_case);
+        assert!(policy.negative);
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_negative_case_types_and_accessors() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let types_rendered = generator.generate_types().to_string();
+        assert!(
+            types_rendered.contains("pub struct NegativeCaseEvent"),
+            "generated types should include NegativeCaseEvent, got: {}",
+            types_rendered
+        );
+
+        let parse_rendered = generator.generate_parse_method("start").to_string();
+        assert!(
+            parse_rendered.contains("pub fn negative_case_events"),
+            "parse method generation should expose negative_case_events accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn take_negative_case_events"),
+            "parse method generation should expose take_negative_case_events accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn negative_case_rule_hits"),
+            "parse method generation should expose negative_case_rule_hits accessor, got: {}",
+            parse_rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_negative_case_runtime_hooks_for_rules() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "invalid_case".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "negative".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let method = generator
+            .generate_rule_method("stmt", &or_rule(), &["stmt".to_string()], "semantic_usage.rs")
+            .expect("rule method generation should succeed");
+        let rendered = method.to_string();
+
+        assert!(
+            rendered.contains("record_negative_case_failure"),
+            "rule method should emit SC-11 expected-failure runtime hook, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("record_negative_case_failure (\"stmt\" , start_pos , self . position , true ,"),
+            "SC-11 hook should carry typed invalid_case/negative payload state, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_records_negative_case_events_in_helper_methods() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        assert!(
+            rendered.contains("fn record_negative_case_failure"),
+            "helper methods should define SC-11 expected-failure recording helper, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("self . negative_case_events . push")
+                && rendered.contains("self . negative_case_rule_hits"),
+            "SC-11 helper should record events and per-rule hit counters, got: {}",
             rendered
         );
     }

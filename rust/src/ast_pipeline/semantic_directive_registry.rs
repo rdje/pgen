@@ -10,6 +10,12 @@ pub enum SemanticDirectiveCapability {
     ParserAndStimuliSteering,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SemanticDeterministicGroupHint {
+    pub enabled: bool,
+    pub group: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SemanticAssociativity {
     Left,
@@ -244,12 +250,20 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         capability: SemanticDirectiveCapability::ParsedOnly,
     },
     SemanticDirectiveSpec {
+        name: "invalid_case",
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
+    },
+    SemanticDirectiveSpec {
+        name: "negative",
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
+    },
+    SemanticDirectiveSpec {
         name: "seed_group",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::StimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "deterministic_group",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::StimuliSteering,
     },
     // Literal-oriented generation hint directives.
     SemanticDirectiveSpec {
@@ -431,6 +445,35 @@ pub fn parse_semantic_nonnegative_usize(payload: &str) -> Option<usize> {
     normalized.parse::<usize>().ok()
 }
 
+pub fn parse_semantic_group_label(payload: &str) -> Option<String> {
+    let normalized = normalize_semantic_scalar(payload);
+    if normalized.is_empty() {
+        return None;
+    }
+    if !normalized
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.'))
+    {
+        return None;
+    }
+    Some(normalized)
+}
+
+pub fn parse_semantic_deterministic_group(payload: &str) -> Option<SemanticDeterministicGroupHint> {
+    if let Some(enabled) = parse_semantic_bool(payload) {
+        return Some(SemanticDeterministicGroupHint {
+            enabled,
+            group: None,
+        });
+    }
+
+    let group = parse_semantic_group_label(payload)?;
+    Some(SemanticDeterministicGroupHint {
+        enabled: true,
+        group: Some(group),
+    })
+}
+
 pub fn parse_semantic_coverage_target_weight(payload: &str) -> Option<u64> {
     if let Some(enabled) = parse_semantic_bool(payload) {
         return Some(if enabled { 1 } else { 0 });
@@ -572,11 +615,11 @@ mod tests {
         extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
         parse_semantic_bool, parse_semantic_branch_priorities,
         parse_semantic_coverage_target_weight,
-        parse_semantic_constraint_expression, parse_semantic_float_list,
-        parse_semantic_implication, parse_semantic_len_bounds,
-        parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
-        parse_semantic_numeric_list, parse_semantic_reference_list, parse_semantic_string_list,
-        semantic_directive_spec,
+        parse_semantic_constraint_expression, parse_semantic_deterministic_group,
+        parse_semantic_float_list, parse_semantic_group_label, parse_semantic_implication,
+        parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
+        parse_semantic_numeric_bounds, parse_semantic_numeric_list,
+        parse_semantic_reference_list, parse_semantic_string_list, semantic_directive_spec,
     };
 
     #[test]
@@ -740,6 +783,40 @@ mod tests {
     }
 
     #[test]
+    fn parses_semantic_group_labels() {
+        assert_eq!(
+            parse_semantic_group_label("\"rule.alpha_1\""),
+            Some("rule.alpha_1".to_string())
+        );
+        assert_eq!(
+            parse_semantic_group_label("partition-02"),
+            Some("partition-02".to_string())
+        );
+        assert_eq!(parse_semantic_group_label("with spaces"), None);
+        assert_eq!(parse_semantic_group_label(""), None);
+    }
+
+    #[test]
+    fn parses_semantic_deterministic_group_payloads() {
+        let enabled_bool =
+            parse_semantic_deterministic_group("true").expect("boolean payload should parse");
+        assert!(enabled_bool.enabled);
+        assert_eq!(enabled_bool.group, None);
+
+        let disabled_bool =
+            parse_semantic_deterministic_group("false").expect("boolean payload should parse");
+        assert!(!disabled_bool.enabled);
+        assert_eq!(disabled_bool.group, None);
+
+        let grouped = parse_semantic_deterministic_group("\"stable.alpha\"")
+            .expect("group payload should parse");
+        assert!(grouped.enabled);
+        assert_eq!(grouped.group.as_deref(), Some("stable.alpha"));
+
+        assert!(parse_semantic_deterministic_group("group with space").is_none());
+    }
+
+    #[test]
     fn parses_semantic_coverage_target_weights() {
         assert_eq!(parse_semantic_coverage_target_weight("true"), Some(1));
         assert_eq!(parse_semantic_coverage_target_weight("\"on\""), Some(1));
@@ -803,6 +880,10 @@ mod tests {
         assert!(semantic_directive_spec("constraint").is_some());
         assert!(semantic_directive_spec("requires").is_some());
         assert!(semantic_directive_spec("implies").is_some());
+        assert!(semantic_directive_spec("invalid_case").is_some());
+        assert!(semantic_directive_spec("negative").is_some());
+        assert!(semantic_directive_spec("seed_group").is_some());
+        assert!(semantic_directive_spec("deterministic_group").is_some());
         assert!(semantic_directive_spec("unknown_directive").is_none());
     }
 }

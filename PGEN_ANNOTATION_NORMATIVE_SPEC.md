@@ -101,6 +101,45 @@ Normative runtime leverage behavior for semantic annotations:
         - `coverage_target_rule_hits()`
         - `coverage_target_branch_hits()`
       - instrumentation remains inactive when effective `@coverage_target` weight is zero.
+  - `@invalid_case/@negative` contract baseline:
+    - directives are typed/validated by the annotation validator,
+    - payload forms:
+      - `@invalid_case`: boolean payload,
+      - `@negative`: boolean payload,
+    - payload diagnostics:
+      - `W_SEM_INVALID_INVALID_CASE_PAYLOAD`,
+      - `W_SEM_INVALID_NEGATIVE_PAYLOAD`,
+    - coherence warning:
+      - `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE` when `@negative` is enabled while effective `@invalid_case` is missing/false.
+    - parser runtime baseline:
+      - generated parsers record expected-failure semantic events on rule failure when effective `@invalid_case` is enabled,
+      - emitted event type:
+        - `NegativeCaseEvent { rule_name, parse_start, failure_position, negative, error_kind }`
+      - parser exposes deterministic accessors/counters:
+        - `negative_case_events()`
+        - `take_negative_case_events()`
+        - `negative_case_event_count()`
+        - `negative_case_rule_hits()`
+    - stimuli runtime baseline:
+      - when effective `@invalid_case` is enabled, entry samples are deterministically mutated toward invalid/near-invalid shape,
+      - when effective `@negative` is also enabled, deterministic negative-case marker suffix is appended.
+  - `@seed_group/@deterministic_group` determinism partition baseline:
+    - directives are typed/validated by the annotation validator,
+    - payload forms:
+      - `@seed_group`: non-empty label using `[A-Za-z0-9_.-]`,
+      - `@deterministic_group`: boolean payload or group-label payload.
+    - payload diagnostics:
+      - `W_SEM_INVALID_SEED_GROUP_PAYLOAD`,
+      - `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`,
+    - coherence warning:
+      - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP` when `@seed_group` is present while effective `@deterministic_group` is missing/false.
+    - stimuli runtime baseline:
+      - when effective `@deterministic_group` is enabled and seed is configured, stimuli generation uses deterministic per-group seed partition routing,
+      - group key selection:
+        - explicit `@seed_group` label when present,
+        - else explicit label embedded in `@deterministic_group`,
+        - else fallback `rule.<entry_rule>`,
+      - partition counters are maintained per group so sample streams are deterministic and interleaving-order independent across groups.
   - `@recover/@sync/@panic_until` are typed/validated contract directives with executable parser runtime recovery baseline:
     - recovery triggers when OR branches all fail and effective `@recover` is truthy,
     - optional scoped recovery budgets are enforced when present:
@@ -181,9 +220,15 @@ Current stable diagnostic codes include:
   - `W_SEM_INVALID_IMPLIES_PAYLOAD`
   - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
   - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
+  - `W_SEM_INVALID_INVALID_CASE_PAYLOAD`
+  - `W_SEM_INVALID_NEGATIVE_PAYLOAD`
+  - `W_SEM_INVALID_SEED_GROUP_PAYLOAD`
+  - `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
   - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`
+  - `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE`
+  - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`
   - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`
   - `W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER`
   - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER`

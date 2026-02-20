@@ -4,7 +4,8 @@ use super::{
     UnknownSemanticDirectivePolicy, extract_semantic_directive, extract_semantic_directive_name,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
     parse_semantic_coverage_target_weight,
-    parse_semantic_constraint_expression, parse_semantic_implication, parse_semantic_len_bounds,
+    parse_semantic_constraint_expression, parse_semantic_deterministic_group,
+    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
     parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
     parse_semantic_reference_list, parse_semantic_string_list, semantic_directive_spec,
 };
@@ -721,6 +722,58 @@ impl AnnotationValidator {
                     });
                 }
             }
+            "invalid_case" => {
+                if parse_semantic_bool(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_INVALID_CASE_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@invalid_case' expects a boolean payload such as true/false.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "negative" => {
+                if parse_semantic_bool(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_NEGATIVE_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@negative' expects a boolean payload such as true/false.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "seed_group" => {
+                if parse_semantic_group_label(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_SEED_GROUP_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@seed_group' expects a non-empty group label using [A-Za-z0-9_.-], for example 'stmt.core'.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "deterministic_group" => {
+                if parse_semantic_deterministic_group(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@deterministic_group' expects true/false or a non-empty group label such as 'stable.alpha'.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             _ => {}
         }
     }
@@ -789,6 +842,8 @@ impl AnnotationValidator {
         self.validate_recovery_hint_contract(rule_name, &directive_occurrences, report);
         self.validate_relational_constraint_contract(rule_name, &directive_occurrences, report);
         self.validate_coverage_target_contract(rule_name, &directive_occurrences, report);
+        self.validate_negative_case_contract(rule_name, &directive_occurrences, report);
+        self.validate_deterministic_partition_contract(rule_name, &directive_occurrences, report);
 
         for (directive_name, entries) in &directive_occurrences {
             if entries.len() <= 1 {
@@ -1123,6 +1178,98 @@ impl AnnotationValidator {
             rule_name: rule_name.to_string(),
             annotation_index,
             message: "Directive '@critical_path' is enabled but '@coverage_target' is missing or zero; coverage steering hint remains inactive.".to_string(),
+            annotation: Some(details.join("; ")),
+        });
+    }
+
+    fn validate_negative_case_contract(
+        &self,
+        rule_name: &str,
+        directive_occurrences: &HashMap<String, Vec<(usize, String)>>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        let negative_payload = Self::latest_directive_payload(directive_occurrences, "negative");
+        let Some((negative_idx, negative_value)) = negative_payload else {
+            return;
+        };
+        let Some(negative_enabled) = parse_semantic_bool(negative_value) else {
+            return;
+        };
+        if !negative_enabled {
+            return;
+        }
+
+        let invalid_case_payload =
+            Self::latest_directive_payload(directive_occurrences, "invalid_case");
+        let invalid_case_enabled = invalid_case_payload
+            .as_ref()
+            .and_then(|(_, payload)| parse_semantic_bool(payload))
+            .unwrap_or(false);
+        if invalid_case_enabled {
+            return;
+        }
+
+        let annotation_index = invalid_case_payload
+            .as_ref()
+            .map(|(idx, _)| *idx)
+            .max(Some(negative_idx));
+        let mut details = Vec::new();
+        if let Some((_, payload)) = invalid_case_payload {
+            details.push(format!("@invalid_case: {}", payload));
+        }
+        details.push(format!("@negative: {}", negative_value));
+        report.diagnostics.push(AnnotationDiagnostic {
+            code: "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE",
+            severity: AnnotationSeverity::Warning,
+            kind: AnnotationKind::Semantic,
+            rule_name: rule_name.to_string(),
+            annotation_index,
+            message: "Directive '@negative' is enabled but '@invalid_case' is missing or disabled; negative-case steering remains inactive.".to_string(),
+            annotation: Some(details.join("; ")),
+        });
+    }
+
+    fn validate_deterministic_partition_contract(
+        &self,
+        rule_name: &str,
+        directive_occurrences: &HashMap<String, Vec<(usize, String)>>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        let seed_group_payload = Self::latest_directive_payload(directive_occurrences, "seed_group");
+        let Some((seed_group_idx, seed_group_value)) = seed_group_payload else {
+            return;
+        };
+        let Some(seed_group_label) = parse_semantic_group_label(seed_group_value) else {
+            return;
+        };
+
+        let deterministic_payload =
+            Self::latest_directive_payload(directive_occurrences, "deterministic_group");
+        let deterministic_enabled = deterministic_payload
+            .as_ref()
+            .and_then(|(_, payload)| parse_semantic_deterministic_group(payload))
+            .map(|hint| hint.enabled)
+            .unwrap_or(false);
+        if deterministic_enabled {
+            return;
+        }
+
+        let annotation_index = deterministic_payload
+            .as_ref()
+            .map(|(idx, _)| *idx)
+            .max(Some(seed_group_idx));
+        let mut details = Vec::new();
+        details.push(format!("@seed_group: {}", seed_group_label));
+        if let Some((_, payload)) = deterministic_payload {
+            details.push(format!("@deterministic_group: {}", payload));
+        }
+        report.diagnostics.push(AnnotationDiagnostic {
+            code: "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP",
+            severity: AnnotationSeverity::Warning,
+            kind: AnnotationKind::Semantic,
+            rule_name: rule_name.to_string(),
+            annotation_index,
+            message: "Directive '@seed_group' is present but '@deterministic_group' is missing or disabled; deterministic partition routing remains inactive.".to_string(),
             annotation: Some(details.join("; ")),
         });
     }
@@ -2066,6 +2213,18 @@ mod tests {
                         content: "\"urgent\"".to_string(),
                     },
                 },
+                SemanticAnnotation::Named {
+                    name: "invalid_case".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"sometimes\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "negative".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"maybe\"".to_string(),
+                    },
+                },
             ],
         );
 
@@ -2401,6 +2560,30 @@ mod tests {
                         content: "\"urgent\"".to_string(),
                     },
                 },
+                SemanticAnnotation::Named {
+                    name: "invalid_case".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"maybe\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "negative".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"sometimes\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "seed_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"group with space\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "deterministic_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"%%%\"".to_string(),
+                    },
+                },
             ],
         );
 
@@ -2452,6 +2635,30 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_INVALID_CASE_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_NEGATIVE_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_SEED_GROUP_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD")
         );
     }
 
@@ -2544,6 +2751,106 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_when_negative_enabled_without_invalid_case() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "negative".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "true".to_string(),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE"));
+    }
+
+    #[test]
+    fn semantic_validator_does_not_warn_when_negative_and_invalid_case_enabled() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "invalid_case".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "negative".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_when_seed_group_without_deterministic_group() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "seed_group".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"stable.alpha\"".to_string(),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP"));
+    }
+
+    #[test]
+    fn semantic_validator_does_not_warn_when_seed_group_with_deterministic_group_enabled() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "seed_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"stable.alpha\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "deterministic_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP")
         );
     }
 

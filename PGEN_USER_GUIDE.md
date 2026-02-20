@@ -413,6 +413,10 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_INVALID_IMPLIES_PAYLOAD`
   - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
   - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
+  - `W_SEM_INVALID_INVALID_CASE_PAYLOAD`
+  - `W_SEM_INVALID_NEGATIVE_PAYLOAD`
+  - `W_SEM_INVALID_SEED_GROUP_PAYLOAD`
+  - `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
   - `W_SEM_INVALID_ENUM_PAYLOAD`
@@ -429,6 +433,8 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER` (`@sync`/`@panic_until` present while `@recover` is not enabled)
   - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT` (`@requires`/`@implies` present while `@constraint` is missing)
   - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET` (`@critical_path` enabled while effective `@coverage_target` is missing/zero)
+  - `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE` (`@negative` enabled while `@invalid_case` is missing/disabled)
+  - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP` (`@seed_group` present while `@deterministic_group` is missing/disabled)
 - Grammar ambiguity diagnostics (grammar-aware validation pass):
   - `W_GRAM_AMBIGUOUS_PREFIX` (top-level alternation branches share the same leading quoted terminal; parse selection may depend on branch order)
   - `W_GRAM_FIRST_SET_OVERLAP` (top-level alternation branches have overlapping computed FIRST terminals, including overlaps introduced via nullable prefixes and rule references)
@@ -992,6 +998,108 @@ expr = atom ;
   - `coverage_target_rule_hits()`
   - `coverage_target_branch_hits()`
 - Instrumentation remains inactive when effective `@coverage_target` weight is zero.
+
+### 8.15 SC-11 Negative-Case Steering Contract (Validator + Parser + Stimuli Baseline)
+
+This section focuses on:
+- `@invalid_case`
+- `@negative`
+
+Current stage:
+- typed validator contract is active,
+- parser expected-failure event baseline is active,
+- stimuli invalid/near-invalid mutation baseline is active.
+
+#### 8.15.1 Payload Forms
+
+Valid examples:
+```ebnf
+@invalid_case: true
+@invalid_case: false
+@negative: true
+@negative: false
+```
+
+Invalid examples:
+```ebnf
+@invalid_case: "maybe"      # W_SEM_INVALID_INVALID_CASE_PAYLOAD
+@negative: "sometimes"      # W_SEM_INVALID_NEGATIVE_PAYLOAD
+```
+
+#### 8.15.2 Coherence Rule
+
+If `@negative` is enabled while effective `@invalid_case` is missing or disabled, validator emits:
+- `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE`
+
+Example:
+```ebnf
+stmt = atom ;
+@negative: true
+```
+
+#### 8.15.3 Parser Runtime Behavior
+
+- On rule failure with effective `@invalid_case: true`, generated parser records `NegativeCaseEvent`:
+  - `rule_name`
+  - `parse_start`
+  - `failure_position`
+  - `negative`
+  - `error_kind`
+- Accessors available on generated parsers:
+  - `negative_case_events()`
+  - `take_negative_case_events()`
+  - `negative_case_event_count()`
+  - `negative_case_rule_hits()`
+
+#### 8.15.4 Stimuli Runtime Behavior
+
+- With effective `@invalid_case: true`, entry stimuli are deterministically mutated toward invalid/near-invalid shape.
+- With both `@invalid_case: true` and `@negative: true`, a deterministic negative-case marker suffix is appended.
+- With `@negative: true` only, steering remains inactive (coherence rule above).
+
+### 8.16 SC-12 Determinism Partition Contract (Validator + Stimuli Baseline)
+
+This section focuses on:
+- `@seed_group`
+- `@deterministic_group`
+
+Current stage:
+- typed validator contract is active,
+- stimuli deterministic seed partition routing baseline is active,
+- parser-side partition steering is still pending.
+
+#### 8.16.1 Payload Forms
+
+Valid examples:
+```ebnf
+@seed_group: "stable.expr"
+@deterministic_group: true
+@deterministic_group: false
+@deterministic_group: "stable.expr"
+```
+
+Invalid examples:
+```ebnf
+@seed_group: "group with spaces"    # W_SEM_INVALID_SEED_GROUP_PAYLOAD
+@deterministic_group: "%%%"         # W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD
+```
+
+#### 8.16.2 Coherence Rule
+
+If `@seed_group` is present while effective `@deterministic_group` is missing or false, validator emits:
+- `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`
+
+#### 8.16.3 Stimuli Deterministic Partition Behavior
+
+- When effective `@deterministic_group` is enabled and `--seed` is provided:
+  - generator derives deterministic partition seeds per semantic group,
+  - per-group counters produce stable sequences,
+  - interleaving calls across different groups does not perturb each group's sequence.
+- Group key resolution order:
+  - explicit `@seed_group`,
+  - else explicit group label embedded in `@deterministic_group`,
+  - else fallback `rule.<entry_rule>`.
+- When `@deterministic_group` is disabled, `@seed_group` has no runtime effect.
 
 ## 9) Differential Testing and Drift Management
 

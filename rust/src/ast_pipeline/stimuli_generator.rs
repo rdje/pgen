@@ -5,8 +5,9 @@ use super::{
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
     parse_semantic_branch_priorities, parse_semantic_constraint_expression,
     parse_semantic_coverage_target_weight,
-    parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
-    parse_semantic_reference_list, parse_semantic_string_list, stimuli_hint_for_target_type,
+    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
+    parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_reference_list,
+    parse_semantic_string_list, stimuli_hint_for_target_type,
 };
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
@@ -576,6 +577,18 @@ struct StimuliCoverageSteeringPolicy {
     critical_path: bool,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+struct StimuliNegativeCasePolicy {
+    invalid_case: bool,
+    negative: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+struct StimuliDeterminismPartitionPolicy {
+    enabled: bool,
+    group_label: Option<String>,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -585,6 +598,7 @@ pub struct StimuliGenerator<'a> {
     rng: StdRng,
     coverage: StimuliCoverageMetrics,
     target_plan: ActiveTargetPlan,
+    deterministic_partition_counters: HashMap<String, u64>,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -637,6 +651,7 @@ impl<'a> StimuliGenerator<'a> {
             rng,
             coverage,
             target_plan: ActiveTargetPlan::default(),
+            deterministic_partition_counters: HashMap::new(),
         }
     }
 
@@ -1386,6 +1401,7 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     pub fn generate_from_entry(&mut self, entry_rule: &str) -> Result<String> {
+        self.activate_deterministic_partition_for_entry(entry_rule);
         let mut call_stack = Vec::new();
         let result = match self.config.recovery_mode {
             RecoveryStimuliMode::Baseline => self.generate_rule(entry_rule, 0, &mut call_stack),
@@ -1395,7 +1411,8 @@ impl<'a> StimuliGenerator<'a> {
             RecoveryStimuliMode::NearSyncNegative => {
                 self.generate_near_sync_negative_entry(entry_rule, &mut call_stack)
             }
-        };
+        }
+        .map(|sample| self.apply_negative_case_policy(entry_rule, sample));
         self.coverage.record_sample_attempt(result.is_ok());
         result
     }
@@ -1447,6 +1464,32 @@ impl<'a> StimuliGenerator<'a> {
         } else {
             Ok(format!("{}{}{}", base_sample, noise, marker))
         }
+    }
+
+    fn activate_deterministic_partition_for_entry(&mut self, entry_rule: &str) {
+        let Some(base_seed) = self.config.seed else {
+            return;
+        };
+
+        let policy = self.rule_determinism_partition_policy(entry_rule);
+        if !policy.enabled {
+            return;
+        }
+
+        let group_key = policy
+            .group_label
+            .unwrap_or_else(|| format!("rule.{}", entry_rule));
+        let ordinal = {
+            let counter = self
+                .deterministic_partition_counters
+                .entry(group_key.clone())
+                .or_insert(0);
+            let current = *counter;
+            *counter = counter.saturating_add(1);
+            current
+        };
+        let partition_seed = Self::deterministic_partition_seed(base_seed, &group_key, ordinal);
+        self.rng = StdRng::seed_from_u64(partition_seed);
     }
 
     fn resolve_entry_rule(&self, entry_rule: Option<&str>) -> Result<String> {
@@ -2734,6 +2777,99 @@ impl<'a> StimuliGenerator<'a> {
         policy
     }
 
+    fn rule_negative_case_policy(&self, rule_name: &str) -> StimuliNegativeCasePolicy {
+        let mut policy = StimuliNegativeCasePolicy::default();
+        let Some(annotations) = self.annotations else {
+            return policy;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return policy;
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "invalid_case" => {
+                    if let Some(enabled) = parse_semantic_bool(&payload) {
+                        policy.invalid_case = enabled;
+                    }
+                }
+                "negative" => {
+                    if let Some(enabled) = parse_semantic_bool(&payload) {
+                        policy.negative = enabled;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if !policy.invalid_case {
+            policy.negative = false;
+        }
+        policy
+    }
+
+    fn rule_determinism_partition_policy(
+        &self,
+        rule_name: &str,
+    ) -> StimuliDeterminismPartitionPolicy {
+        let mut policy = StimuliDeterminismPartitionPolicy::default();
+        let Some(annotations) = self.annotations else {
+            return policy;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return policy;
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "seed_group" => {
+                    if let Some(label) = parse_semantic_group_label(&payload) {
+                        policy.group_label = Some(label);
+                    }
+                }
+                "deterministic_group" => {
+                    if let Some(hint) = parse_semantic_deterministic_group(&payload) {
+                        policy.enabled = hint.enabled;
+                        if let Some(label) = hint.group {
+                            policy.group_label = Some(label);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if !policy.enabled {
+            policy.group_label = None;
+        }
+        policy
+    }
+
+    fn apply_negative_case_policy(&self, rule_name: &str, sample: String) -> String {
+        let policy = self.rule_negative_case_policy(rule_name);
+        if !policy.invalid_case {
+            return sample;
+        }
+
+        if policy.negative {
+            return format!("{}{}", sample, Self::negative_case_suffix(rule_name));
+        }
+
+        let mut chars: Vec<char> = sample.chars().collect();
+        if chars.len() > 1 {
+            chars.pop();
+            chars.into_iter().collect()
+        } else {
+            format!("{}{}", sample, Self::negative_case_suffix(rule_name))
+        }
+    }
+
     fn semantic_coverage_priority_bonus(&self, rule_name: &str) -> u64 {
         let policy = self.rule_coverage_steering_policy(rule_name);
         let mut bonus = 0u64;
@@ -2787,6 +2923,21 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         multiplier.max(1)
+    }
+
+    fn deterministic_partition_seed(base_seed: u64, group_key: &str, ordinal: u64) -> u64 {
+        let mut state = base_seed ^ 0x9E37_79B9_7F4A_7C15;
+        for byte in group_key.as_bytes() {
+            state ^= *byte as u64;
+            state = state.wrapping_mul(1_099_511_628_211);
+        }
+        state ^= ordinal.wrapping_mul(0xD6E8_FEB8_6659_FD93);
+        state ^= state >> 33;
+        state = state.wrapping_mul(0xFF51_AFD7_ED55_8CCD);
+        state ^= state >> 33;
+        state = state.wrapping_mul(0xC4CE_B9FE_1A85_EC53);
+        state ^= state >> 33;
+        if state == 0 { 1 } else { state }
     }
 
     fn relational_attempt_budget(&self) -> usize {
@@ -3889,6 +4040,21 @@ impl<'a> StimuliGenerator<'a> {
             sanitized.push_str("rule");
         }
         format!("__pgen_near_sync_{}__", sanitized)
+    }
+
+    fn negative_case_suffix(rule_name: &str) -> String {
+        let mut sanitized = String::with_capacity(rule_name.len());
+        for ch in rule_name.chars() {
+            if ch.is_ascii_alphanumeric() {
+                sanitized.push(ch);
+            } else {
+                sanitized.push('_');
+            }
+        }
+        if sanitized.is_empty() {
+            sanitized.push_str("rule");
+        }
+        format!("__pgen_negative_case_{}__", sanitized)
     }
 
     fn semantic_branch_multiplier(
@@ -5301,6 +5467,277 @@ mod tests {
             values.iter().all(|value| value == "ok"),
             "near-sync-negative mode must stay inactive without @recover: true, got {:?}",
             values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_invalid_case_mutates_entry_output() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "invalid_case".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "true".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9321);
+        let values = generator
+            .generate_many(4, Some("start"))
+            .expect("invalid_case steering should still generate deterministic samples");
+
+        assert!(
+            values.iter().all(|value| value != "ok"),
+            "invalid_case steering should mutate baseline valid sample, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_negative_requires_invalid_case_contract() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "negative".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "true".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9322);
+        let values = generator
+            .generate_many(4, Some("start"))
+            .expect("negative-only contract should stay parseable");
+
+        assert!(
+            values.iter().all(|value| value == "ok"),
+            "negative steering must stay inactive unless invalid_case is enabled, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_invalid_case_plus_negative_appends_marker() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "invalid_case".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "negative".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9323);
+        let values = generator
+            .generate_many(4, Some("start"))
+            .expect("invalid_case+negative steering should generate near-invalid samples");
+
+        assert!(
+            values
+                .iter()
+                .all(|value| value.contains("__pgen_negative_case_start__")),
+            "invalid_case+negative steering should append deterministic negative-case marker, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_seed_group_stays_inactive_without_deterministic_group() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", "A"),
+                    token("quoted_string", "B"),
+                    token("quoted_string", "C"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "seed_group".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"stable.alpha\"".to_string(),
+                },
+            }],
+        );
+
+        let mut baseline = simple_generator(&grammar_tree, &rule_order, 9911);
+        let mut hinted = annotated_generator(&grammar_tree, &rule_order, &annotations, 9911);
+
+        let baseline_values = baseline
+            .generate_many(12, Some("start"))
+            .expect("baseline generation should succeed");
+        let hinted_values = hinted
+            .generate_many(12, Some("start"))
+            .expect("hinted generation should succeed");
+
+        assert_eq!(
+            baseline_values, hinted_values,
+            "seed_group alone should not change sequence unless deterministic_group is enabled"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_deterministic_group_string_payload_enables_partition() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "deterministic_group".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"stable.alpha\"".to_string(),
+                },
+            }],
+        );
+
+        let generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9912);
+        let policy = generator.rule_determinism_partition_policy("start");
+        assert!(policy.enabled);
+        assert_eq!(policy.group_label.as_deref(), Some("stable.alpha"));
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_deterministic_partitions_are_order_independent() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "lhs".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", "L0"),
+                    token("quoted_string", "L1"),
+                    token("quoted_string", "L2"),
+                    token("quoted_string", "L3"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "rhs".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", "R0"),
+                    token("quoted_string", "R1"),
+                    token("quoted_string", "R2"),
+                    token("quoted_string", "R3"),
+                ],
+            },
+        );
+        let rule_order = vec!["lhs".to_string(), "rhs".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "lhs".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "seed_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"stable.lhs\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "deterministic_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+        annotations.semantic_annotations.insert(
+            "rhs".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "seed_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"stable.rhs\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "deterministic_group".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut a_then_b = annotated_generator(&grammar_tree, &rule_order, &annotations, 9913);
+        let lhs_seq_a = vec![
+            a_then_b
+                .generate_from_entry("lhs")
+                .expect("lhs generation should succeed"),
+            a_then_b
+                .generate_from_entry("lhs")
+                .expect("lhs generation should succeed"),
+        ];
+        let rhs_seq_a = vec![
+            a_then_b
+                .generate_from_entry("rhs")
+                .expect("rhs generation should succeed"),
+            a_then_b
+                .generate_from_entry("rhs")
+                .expect("rhs generation should succeed"),
+        ];
+
+        let mut b_then_a = annotated_generator(&grammar_tree, &rule_order, &annotations, 9913);
+        let rhs_seq_b = vec![
+            b_then_a
+                .generate_from_entry("rhs")
+                .expect("rhs generation should succeed"),
+            b_then_a
+                .generate_from_entry("rhs")
+                .expect("rhs generation should succeed"),
+        ];
+        let lhs_seq_b = vec![
+            b_then_a
+                .generate_from_entry("lhs")
+                .expect("lhs generation should succeed"),
+            b_then_a
+                .generate_from_entry("lhs")
+                .expect("lhs generation should succeed"),
+        ];
+
+        assert_eq!(
+            lhs_seq_a, lhs_seq_b,
+            "lhs partition sequence should not depend on interleaving with rhs"
+        );
+        assert_eq!(
+            rhs_seq_a, rhs_seq_b,
+            "rhs partition sequence should not depend on interleaving with lhs"
         );
     }
 

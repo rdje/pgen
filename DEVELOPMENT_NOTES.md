@@ -1,4 +1,131 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-11 Negative-Case Runtime Baseline + SC-12 Determinism Partition Baseline
+### Context
+SC-10 had already promoted semantic steering into parser/stimuli runtime. Two `P2` controls remained unimplemented in the control matrix:
+- `SC-11` negative-case semantics (`@invalid_case`, `@negative`)
+- `SC-12` determinism partitioning hints (`@seed_group`, `@deterministic_group`)
+
+Without SC-11/SC-12:
+- negative-case semantics were accepted but not fully surfaced as typed runtime contract (parser expected-failure telemetry + deterministic stimuli mutation),
+- deterministic group hints had no typed payload contract and no runtime effect on seed partition routing,
+- semantic steering matrix and UG were lagging behind runtime capability expectations.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `rust/src/ast_pipeline/mod.rs`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) SC-12 typed parsing primitives and directive-capability promotion
+- Added typed helper:
+  - `parse_semantic_group_label(...)`
+  - contract: non-empty scalar labels constrained to `[A-Za-z0-9_.-]`.
+- Added typed helper:
+  - `parse_semantic_deterministic_group(...)`
+  - contract:
+    - boolean payload (`true/false`) -> enable/disable deterministic partitioning,
+    - label payload -> enable deterministic partitioning with explicit group label.
+- Introduced typed parsed representation:
+  - `SemanticDeterministicGroupHint { enabled, group }`
+- Promoted registry capability tags:
+  - `seed_group` -> `StimuliSteering`
+  - `deterministic_group` -> `StimuliSteering`
+- Extended registry tests:
+  - group-label parsing acceptance/rejection,
+  - deterministic-group payload parsing (bool + label),
+  - known-directive registry assertions for SC-12 names.
+
+#### 2) SC-12 validator payload/coherence contracts
+- Added payload diagnostics:
+  - `W_SEM_INVALID_SEED_GROUP_PAYLOAD`
+  - `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`
+- Added coherence diagnostic:
+  - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`
+  - emitted when:
+    - `@seed_group` is present and valid,
+    - effective `@deterministic_group` is missing or disabled.
+- Contract behavior:
+  - `@seed_group` alone is allowed syntactically but treated as inactive steering intent (warning, not hard failure),
+  - deterministic-group label payload is normalized through the same typed label parser used by `@seed_group`.
+- Extended broad invalid-payload test fixture so SC-12 diagnostics remain continuously covered alongside SC-07/SC-10/SC-11 payload checks.
+
+#### 3) SC-11 validator closure and coverage hardening
+- Kept SC-11 payload diagnostics and coherence contract active:
+  - `W_SEM_INVALID_INVALID_CASE_PAYLOAD`
+  - `W_SEM_INVALID_NEGATIVE_PAYLOAD`
+  - `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE`
+- Extended invalid semantic payload regression fixture with explicit malformed `@invalid_case/@negative` values to keep SC-11 diagnostics pinned in common test paths.
+
+#### 4) SC-12 stimuli runtime partition routing
+- Added new policy extraction:
+  - `rule_determinism_partition_policy(...)`
+  - resolution order:
+    - `@seed_group` label,
+    - then optional label embedded in `@deterministic_group`,
+    - effective enable from `@deterministic_group`.
+- Added runtime activation hook:
+  - `activate_deterministic_partition_for_entry(...)`
+  - invoked on each `generate_from_entry(...)` call before sample generation.
+- Added deterministic partition seed derivation:
+  - `deterministic_partition_seed(base_seed, group_key, ordinal)`
+  - deterministic hash/mix over:
+    - configured base seed (`--seed`),
+    - resolved group key,
+    - per-group ordinal counter.
+- Added state:
+  - `deterministic_partition_counters: HashMap<String, u64>`
+- Runtime contract achieved:
+  - deterministic and stable per-group sample stream when `--seed` and `@deterministic_group` are enabled,
+  - sequence for one group is independent of interleaving calls against other groups,
+  - `@seed_group` has no runtime effect when deterministic-group enable is absent/false.
+
+#### 5) SC-11 stimuli runtime continuity
+- Existing SC-11 stimuli path remained active and covered:
+  - `@invalid_case` mutates entry output toward invalid/near-invalid shape,
+  - `@invalid_case + @negative` appends deterministic negative marker suffix,
+  - `@negative` without `@invalid_case` remains inactive by contract.
+
+#### 6) API/export wiring
+- Re-exported new deterministic-group types/helpers from `rust/src/ast_pipeline/mod.rs`:
+  - `SemanticDeterministicGroupHint`
+  - `parse_semantic_group_label(...)`
+  - `parse_semantic_deterministic_group(...)`
+- Keeps shared usage consistent across validator/stimuli and future parser-side SC-12 promotion.
+
+#### 7) Documentation alignment
+- Updated control matrix:
+  - SC-11 marked implemented Tier 3 baseline,
+  - SC-12 marked implemented stimuli-first baseline with parser-side partition steering still pending.
+- Updated roadmap:
+  - SC-11 and SC-12 added as completed Phase K checklist items + dated change-log entries.
+- Updated normative spec + user guide:
+  - added explicit SC-11 runtime/event contract,
+  - added explicit SC-12 payload/coherence/runtime partition contract,
+  - expanded stable diagnostic-code lists with SC-11/SC-12 codes.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml parses_semantic_deterministic_group_payloads`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_invalid_recovery_payloads`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_when_seed_group_without_deterministic_group`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_does_not_warn_when_seed_group_with_deterministic_group_enabled`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_seed_group_stays_inactive_without_deterministic_group`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_deterministic_group_string_payload_enables_partition`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_deterministic_partitions_are_order_independent`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: Strict Semantic Warning Promotion Policy Controls
 ### Context
 Strict annotation validation previously had two coarse behaviors:

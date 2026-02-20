@@ -1,4 +1,67 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-11 Negative-Case Baseline + SC-12 Determinism Partition Baseline
+### ✅ Achievement Summary
+Promoted SC-11 to parser+stimuli runtime baseline and started SC-12 with typed validator contracts plus deterministic stimuli seed partition routing.
+### Scope of Changes
+- Updated directive registry/contracts in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - added typed parsers:
+    - `parse_semantic_group_label(...)`
+    - `parse_semantic_deterministic_group(...)`
+  - promoted directive capabilities:
+    - `seed_group` -> `StimuliSteering`
+    - `deterministic_group` -> `StimuliSteering`
+  - expanded directive-registry regression tests:
+    - deterministic-group payload parsing
+    - seed-group label parsing
+    - known-directive coverage for `seed_group`/`deterministic_group`.
+- Updated validator contracts in:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - added SC-12 payload diagnostics:
+    - `W_SEM_INVALID_SEED_GROUP_PAYLOAD`
+    - `W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD`
+  - added SC-12 coherence diagnostic:
+    - `W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP`
+  - kept SC-11 payload/coherence diagnostics active and expanded invalid-payload regression fixture:
+    - `W_SEM_INVALID_INVALID_CASE_PAYLOAD`
+    - `W_SEM_INVALID_NEGATIVE_PAYLOAD`
+    - `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE`
+  - added SC-12 validator regression tests:
+    - `semantic_validator_warns_when_seed_group_without_deterministic_group`
+    - `semantic_validator_does_not_warn_when_seed_group_with_deterministic_group_enabled`.
+- Updated stimuli runtime in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - added SC-12 policy extraction:
+    - `rule_determinism_partition_policy(...)`
+  - added deterministic partition runtime routing:
+    - `activate_deterministic_partition_for_entry(...)`
+    - deterministic per-group partition seed derivation (`deterministic_partition_seed(...)`)
+    - per-group partition counters for order-independent interleaving behavior
+  - deterministic group key resolution contract:
+    - `@seed_group` label
+    - else label embedded in `@deterministic_group`
+    - else fallback `rule.<entry_rule>`
+  - retained SC-11 runtime behavior:
+    - invalid/near-invalid mutation path for `@invalid_case`
+    - deterministic negative-case marker append for `@invalid_case + @negative`.
+- Updated AST pipeline exports:
+  - `rust/src/ast_pipeline/mod.rs`
+  - re-exported new deterministic-group parsing types/helpers for shared validator/stimuli usage.
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml parses_semantic_deterministic_group_payloads` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_invalid_recovery_payloads` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_when_seed_group_without_deterministic_group` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_does_not_warn_when_seed_group_with_deterministic_group_enabled` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_seed_group_stays_inactive_without_deterministic_group` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_deterministic_group_string_payload_enables_partition` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_deterministic_partitions_are_order_independent` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: Strict Semantic Warning Promotion Policy Controls
 ### ✅ Achievement Summary
 Added explicit strict warning-promotion controls so selected semantic warning diagnostics can be promoted to errors in strict mode without blanket warning escalation.
