@@ -1,0 +1,86 @@
+[
+  {
+    "name": "recover_enabled_bool",
+    "description": "SC-07 shared contract: recover flag payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@recover: true",
+    "expected_round_trip": "@recover: true",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc07", "recover"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "sync_marker_list",
+    "description": "SC-07 shared contract: sync marker list payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@sync: [\";\", \"end\"]",
+    "expected_round_trip": "@sync: [\";\", \"end\"]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc07", "sync"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "panic_until_marker_list",
+    "description": "SC-07 shared contract: panic-until marker list payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@panic_until: [\"}\"]",
+    "expected_round_trip": "@panic_until: [\"}\"]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc07", "panic_until"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "recover_rule_budget",
+    "description": "SC-07 shared contract: rule-scope recovery budget payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@recover_budget: 3",
+    "expected_round_trip": "@recover_budget: 3",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc07", "recover_budget"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "recover_parse_budget",
+    "description": "SC-07 shared contract: parse-scope recovery budget payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@recover_parse_budget: 5",
+    "expected_round_trip": "@recover_parse_budget: 5",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc07", "recover_parse_budget"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "recover_global_budget",
+    "description": "SC-07 shared contract: global-scope recovery budget payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@recover_global_budget: 7",
+    "expected_round_trip": "@recover_global_budget: 7",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc07", "recover_global_budget"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

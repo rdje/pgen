@@ -126,6 +126,38 @@ Normative runtime leverage behavior for semantic annotations:
       - allowed mismatch categories are constrained to the differential taxonomy set,
       - category-count totals must match `mismatched_cases`,
       - SC-06 comparable corpus currently requires `mismatched_cases == 0`.
+  - SC-07 recovery/sync Tier-4 contract:
+    - typed recovery payload/coherence validator contracts:
+      - invalid payloads must emit stable diagnostics:
+        - `W_SEM_INVALID_RECOVER_PAYLOAD`
+        - `W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD`
+        - `W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD`
+        - `W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD`
+        - `W_SEM_INVALID_SYNC_PAYLOAD`
+        - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
+      - coherence warnings remain mandatory when recovery steering is not effectively enabled:
+        - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`
+        - `W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER`
+        - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER`
+        - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER`
+    - parser/stimuli runtime contracts:
+      - parser codegen extracts typed recovery policies and emits runtime recovery hooks only when `@recover: true` is effectively enabled,
+      - generated parser runtime exposes structured recovery telemetry contracts:
+        - `recovery_events()`
+        - `take_recovery_events()`
+        - `recovery_event_count()`
+        - `recovery_parse_count()`
+        - `recovery_global_count()`
+      - stimuli runtime recovery fallback prefers `@panic_until` markers over `@sync` markers and stays inactive without `@recover: true`,
+      - recovery-focused stimuli modes (`recovery_biased`, `near_sync_negative`) are contract-tested for deterministic behavior.
+    - dedicated shared semantic contract slice:
+      - `rust/test_data/semantic_annotation/sc07_contract.json`
+    - dedicated gate target:
+      - `make -C rust sc07_contract_gate`
+    - gate includes differential mismatch taxonomy parity checks over the SC-07 suite:
+      - allowed mismatch categories are constrained to the differential taxonomy set,
+      - category-count totals must match `mismatched_cases`,
+      - SC-07 comparable corpus currently requires `mismatched_cases == 0`.
   - `@token_class/@charset/@pattern` token steering baseline:
     - directives are typed/validated by the annotation validator,
     - payload forms:
@@ -363,6 +395,8 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/semantic_annotation/sc03_contract.json`
 - SC-06 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc06_contract.json`
+- SC-07 shared semantic contract suite:
+  - `rust/test_data/semantic_annotation/sc07_contract.json`
 - SC-04 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc04_contract.json`
 - Semantic leverage usage suite:
@@ -370,6 +404,7 @@ Normative contract checks are executable, not only documented:
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust sc07_contract_gate`
   - `make -C rust sc06_contract_gate`
   - `make -C rust sc03_contract_gate`
   - `make -C rust sc04_contract_gate`
@@ -383,6 +418,7 @@ The gate runs:
 - shared return contract suite (bootstrap + generated)
 - shared semantic contract suite (bootstrap + generated)
 - SC-06 semantic contract slice + differential taxonomy parity check
+- SC-07 semantic contract slice + differential taxonomy parity check
 - SC-03 semantic contract slice + differential taxonomy parity check
 - SC-04 semantic contract slice + differential taxonomy parity check
 - semantic leverage unit contract suite (parser + stimuli)

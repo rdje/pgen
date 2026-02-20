@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Tier-4 Recovery/Sync Contract Gate Promotion
+### ✅ Achievement Summary
+Promoted SC-07 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-07 gate slice with typed recovery validator/coherence checks, parser/stimuli runtime recovery contracts, and differential taxonomy parity checks.
+
+### Scope of Changes
+- Added SC-07 semantic contract corpus:
+  - `rust/test_data/semantic_annotation/sc07_contract.json`
+  - includes shared bootstrap/generated parseability slices for:
+    - `@recover`
+    - `@sync`
+    - `@panic_until`
+    - `@recover_budget`
+    - `@recover_parse_budget`
+    - `@recover_global_budget`
+- Added dedicated SC-07 gate script:
+  - `rust/scripts/sc07_contract_gate.sh`
+  - enforces:
+    - typed recovery payload/coherence validator contracts,
+    - parser codegen recovery policy/rule-hook contracts,
+    - generated parser structured recovery telemetry contracts,
+    - stimuli recovery fallback + recovery-focused mode contracts,
+    - bootstrap/generated SC-07 suite parity and differential taxonomy integrity (`mismatched_cases == 0`).
+- Updated gate wiring:
+  - `rust/Makefile`
+    - added target: `sc07_contract_gate`
+    - wired `sc07_contract_gate` into `annotation_contract_gate`
+    - updated help text.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` (SC-07 promoted to Tier 4)
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `make -C rust sc07_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-06 Tier-4 Branch Weighting/Selection Contract Gate Promotion
 ### ✅ Achievement Summary
 Promoted SC-06 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-06 gate slice with parser/stimuli branch-selection runtime checks and differential taxonomy parity checks.

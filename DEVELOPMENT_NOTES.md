@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Tier-4 Recovery/Sync Contract Gate Promotion
+### Context
+SC-07 (error recovery and sync strategy) had parser/stimuli runtime coverage, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06.
+
+That left a closure gap:
+- no SC-07 shared semantic contract corpus slice,
+- no dedicated differential taxonomy parity check scoped to SC-07,
+- no single gate-level enforcement for typed recovery payload/coherence contracts plus parser/stimuli recovery runtime behavior.
+
+### Implementation
+Primary files:
+- `rust/test_data/semantic_annotation/sc07_contract.json`
+- `rust/scripts/sc07_contract_gate.sh`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) SC-07 shared contract corpus
+- Added `semantic_annotation/sc07_contract.json`.
+- Corpus covers parseability of SC-07 directive payload forms in bootstrap/generated semantic parsers:
+  - `@recover: true`
+  - `@sync: [";", "end"]`
+  - `@panic_until: ["}"]`
+  - `@recover_budget: 3`
+  - `@recover_parse_budget: 5`
+  - `@recover_global_budget: 7`
+
+#### 2) Dedicated SC-07 gate
+- Added `rust/scripts/sc07_contract_gate.sh`.
+- Gate stages:
+  - typed directive parser contracts for SC-07 payload classes (bool/list/non-negative integer + known directives),
+  - typed validator payload/coherence contracts for invalid payloads and recover-enabled/disabled coherence,
+  - parser recovery runtime/codegen contracts (policy extraction, hook enable/disable guards, structured recovery API/accessor/event recording),
+  - stimuli recovery runtime contracts (fallback marker precedence + recovery-focused mode behavior/guards),
+  - bootstrap/generated SC-07 contract suite runs,
+  - SC-07 differential taxonomy parity assertions:
+    - known category set only,
+    - category total must equal `mismatched_cases`,
+    - SC-07 comparable corpus currently requires `mismatched_cases == 0`.
+
+#### 3) Gate wiring
+- Added `sc07_contract_gate` Make target.
+- Wired `sc07_contract_gate` into `annotation_contract_gate`.
+- Updated Make help text accordingly.
+
+### Validation
+- `make -C rust sc07_contract_gate`:
+  - pass.
+- `make -C rust annotation_contract_gate`:
+  - pass with SC-07 gate included.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-06 Tier-4 Branch Weighting/Selection Contract Gate Promotion
 ### Context
 SC-06 (branch weighting and selection policy) had runtime baseline behavior but no dedicated Tier-4 contract gate slice equivalent to SC-03/SC-04.
