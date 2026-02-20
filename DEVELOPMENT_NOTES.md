@@ -1,4 +1,67 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Dedicated Stimuli Modes (`recovery_biased`, `near_sync_negative`)
+### Context
+SC-07 stimuli support already handled OR-failure fallback markers, but lacked explicit operating modes for deliberately recovery-focused datasets and near-sync negative-case synthesis.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `rust/src/main.rs`
+
+#### 1) Stimuli runtime mode surface
+- Added `RecoveryStimuliMode` enum in stimuli generator:
+  - `Baseline`
+  - `RecoveryBiased`
+  - `NearSyncNegative`
+- Extended `StimuliConfig` with `recovery_mode` (default `Baseline`).
+
+#### 2) Mode-aware entry generation
+- Updated `generate_from_entry(...)` to dispatch by mode:
+  - baseline path keeps existing behavior.
+  - `RecoveryBiased`:
+    - generates base sample from entry rule,
+    - injects recovery marker context for recover-enabled entry rules,
+    - falls back to marker-only output when base generation fails but marker exists.
+  - `NearSyncNegative`:
+    - for recover-enabled entry rules, emits negative-case samples by adding deterministic invalid noise (`__pgen_near_sync_<rule>__`) adjacent to recovery marker,
+    - if recover contract is absent, falls back to baseline generation path.
+
+#### 3) CLI wiring
+- Added `--recovery-stimuli-mode` to `ast_pipeline`:
+  - `baseline`
+  - `recovery_biased`
+  - `near_sync_negative`
+- Added typed mapping helper from CLI value to `RecoveryStimuliMode`.
+
+#### 4) Regression coverage
+- Added semantic usage tests:
+  - `semantic_usage_stimuli_recovery_biased_mode_wraps_output_with_recovery_markers`
+  - `semantic_usage_stimuli_near_sync_negative_mode_emits_noise_plus_marker`
+  - `semantic_usage_stimuli_near_sync_negative_mode_requires_recover_contract`
+- Existing recovery-fallback tests remain green, confirming no baseline regression.
+
+#### 5) Living docs alignment
+- Updated:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+- SC-07 status now reflects dedicated stimuli modes as implemented baseline behavior.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_fallback_requires_recover_enabled`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_biased_mode_wraps_output_with_recovery_markers`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_near_sync_negative_mode_emits_noise_plus_marker`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_near_sync_negative_mode_requires_recover_contract`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Scoped Recovery Budgets (Rule/Parse/Global)
 ### Context
 SC-07 already had executable recovery hooks, structured events, and rule-local `@recover_budget`, but still lacked scoped guardrails for whole-parse and long-lived parser-instance recovery behavior.

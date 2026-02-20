@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-07 Dedicated Stimuli Modes (`recovery_biased`, `near_sync_negative`)
+### ✅ Achievement Summary
+Expanded SC-07 stimuli steering beyond OR-failure fallback by adding explicit recovery-focused generation modes for recover-enabled grammars.
+### Scope of Changes
+- Updated stimuli runtime in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - added `RecoveryStimuliMode`:
+    - `Baseline` (default behavior)
+    - `RecoveryBiased` (inject marker context around generated entry samples)
+    - `NearSyncNegative` (inject deterministic near-sync negative noise next to recovery marker)
+  - wired mode-aware entry generation path in `generate_from_entry(...)`
+  - preserved existing OR-failure fallback behavior for baseline mode.
+- Updated CLI in:
+  - `rust/src/main.rs`
+  - added `--recovery-stimuli-mode` with values:
+    - `baseline`
+    - `recovery_biased`
+    - `near_sync_negative`
+- Added semantic usage regression tests in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - `semantic_usage_stimuli_recovery_biased_mode_wraps_output_with_recovery_markers`
+  - `semantic_usage_stimuli_near_sync_negative_mode_emits_noise_plus_marker`
+  - `semantic_usage_stimuli_near_sync_negative_mode_requires_recover_contract`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_fallback_prefers_panic_until_marker` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_fallback_requires_recover_enabled` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_recovery_biased_mode_wraps_output_with_recovery_markers` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_near_sync_negative_mode_emits_noise_plus_marker` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_near_sync_negative_mode_requires_recover_contract` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Scoped Recovery Budgets (Rule + Parse + Global)
 ### ✅ Achievement Summary
 Hardened SC-07 recovery steering by extending budget control beyond rule-local scope and documenting the full behavior contract for users.

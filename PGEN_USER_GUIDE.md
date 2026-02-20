@@ -104,6 +104,7 @@ High-value stimuli flags:
 - `--entry-rule`
 - `--max-depth`
 - `--max-repeat`
+- `--recovery-stimuli-mode` (`baseline`, `recovery_biased`, `near_sync_negative`)
 - `--validate-parseability`
 - `--coverage-input`
 - `--coverage-output`
@@ -180,6 +181,25 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast
   --coverage-guided-fuzz-seed-start 1000 \
   --coverage-guided-fuzz-replay-output /tmp/semantic_fuzz_replay.json \
   --output /tmp/semantic_fuzz_minimized.txt
+```
+
+### F) Recovery-focused and near-sync negative-case stimuli modes
+```bash
+# Recovery-biased samples (inject recovery marker context around generated samples)
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 50 \
+  --recovery-stimuli-mode recovery_biased \
+  --output /tmp/recovery_biased_samples.txt
+
+# Near-sync negative-case samples (inject deterministic invalid noise adjacent to marker)
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 50 \
+  --recovery-stimuli-mode near_sync_negative \
+  --output /tmp/near_sync_negative_samples.txt
 ```
 
 ## 7) Return Annotation Features
@@ -710,7 +730,37 @@ start = missing_left | missing_right ;
 ```
 - OR exhaustion remains an error; no recovery fallback sample is emitted.
 
-#### 8.12.5 Determinism + Precedence Summary
+#### 8.12.5 Dedicated Stimuli Modes (`--recovery-stimuli-mode`)
+
+Supported values:
+- `baseline` (default)
+  - standard generation behavior.
+- `recovery_biased`
+  - for recover-enabled entry rules, generate a base sample then inject recovery marker context.
+  - if base generation fails but recovery marker exists, marker-only sample is emitted.
+- `near_sync_negative`
+  - for recover-enabled entry rules, generate near-sync negative-case sample by injecting deterministic invalid noise adjacent to selected marker.
+  - without recover-enabled contract, mode falls back to baseline behavior.
+
+Example K: recovery-biased mode
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 20 \
+  --recovery-stimuli-mode recovery_biased
+```
+
+Example L: near-sync negative mode
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 20 \
+  --recovery-stimuli-mode near_sync_negative
+```
+
+#### 8.12.6 Determinism + Precedence Summary
 
 Parser determinism:
 1. earliest marker location wins
@@ -724,7 +774,7 @@ Stimuli determinism:
 2. else first non-empty `@sync` token
 3. only active when effective `@recover` is true
 
-#### 8.12.6 Recommended Authoring Patterns
+#### 8.12.7 Recommended Authoring Patterns
 
 Pattern 1:
 - keep `@recover` explicit (`true`/`false`), do not rely on ambiguous raw text

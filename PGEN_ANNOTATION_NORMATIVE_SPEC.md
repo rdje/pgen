@@ -105,6 +105,10 @@ Normative runtime leverage behavior for semantic annotations:
     - when OR branch generation exhausts all alternatives and effective `@recover` is truthy,
     - generator emits deterministic marker fallback sample from recovery directives:
       - first non-empty `@panic_until` token, else first non-empty `@sync` token.
+    - dedicated recovery-focused generation modes are available through stimuli config/CLI:
+      - `baseline`: standard generation behavior (default),
+      - `recovery_biased`: generates base sample then injects recovery marker context for recover-enabled entry rules,
+      - `near_sync_negative`: emits near-sync negative-case samples by injecting deterministic invalid noise adjacent to selected recovery marker for recover-enabled entry rules.
   - `@constraint/@requires/@implies` contract baseline:
     - directives are typed/validated by the annotation validator,
     - parser runtime baseline is active when `@constraint` is present:

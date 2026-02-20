@@ -5,7 +5,8 @@
 use anyhow::Result;
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
-    StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics, StimuliGenerator,
+    RecoveryStimuliMode, StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics,
+    StimuliGenerator,
 };
 use pgen::ast_pipeline::{
     ast_generator_direct::generate_parser_ast_based,
@@ -78,6 +79,15 @@ struct Args {
     /// Maximum repetitions generated for quantifiers (*, +, {n,m})
     #[arg(long, default_value_t = 4)]
     max_repeat: usize,
+
+    /// Recovery-focused stimuli mode: baseline, recovery_biased, near_sync_negative
+    #[arg(
+        long,
+        default_value = "baseline",
+        requires = "generate_stimuli",
+        value_parser = ["baseline", "recovery_biased", "near_sync_negative"]
+    )]
+    recovery_stimuli_mode: String,
 
     /// Validate generated stimuli by parsing each sample with the matching generated parser
     #[arg(long, requires = "generate_stimuli")]
@@ -272,11 +282,13 @@ fn main() -> Result<()> {
             &mut pipeline,
             args.emit_raw_ast_json.as_deref(),
         )?;
+        let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
         let stimuli_config = StimuliConfig {
             seed: args.seed,
             max_depth: args.max_depth,
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
+            recovery_mode,
         };
 
         let mut generator = StimuliGenerator::new(
@@ -594,6 +606,18 @@ fn default_parser_output_path(input_path: &str) -> String {
         parent.join(output_file_name).to_string_lossy().into_owned()
     } else {
         output_file_name
+    }
+}
+
+fn parse_recovery_stimuli_mode(value: &str) -> Result<RecoveryStimuliMode> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "baseline" => Ok(RecoveryStimuliMode::Baseline),
+        "recovery_biased" => Ok(RecoveryStimuliMode::RecoveryBiased),
+        "near_sync_negative" => Ok(RecoveryStimuliMode::NearSyncNegative),
+        other => Err(anyhow::anyhow!(
+            "Unsupported recovery stimuli mode '{}'. Supported values: baseline, recovery_biased, near_sync_negative",
+            other
+        )),
     }
 }
 
@@ -1196,11 +1220,11 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 mod tests {
     use super::{
         coverage_branch_hit_delta, default_parser_output_path, is_ebnf_input_path,
-        minimize_failing_input, minimize_fuzz_corpus_cases, supported_generated_parseability_grammars,
-        supports_generated_parseability,
+        minimize_failing_input, minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
+        supported_generated_parseability_grammars, supports_generated_parseability,
         FuzzCorpusCandidate, StimuliCoverageMetrics,
     };
-    use pgen::ast_pipeline::stimuli_generator::BranchCoverageGroup;
+    use pgen::ast_pipeline::stimuli_generator::{BranchCoverageGroup, RecoveryStimuliMode};
     use std::collections::{HashMap, HashSet};
 
     #[test]
@@ -1348,6 +1372,36 @@ mod tests {
         assert_eq!(
             default_parser_output_path("generated/return_annotation.json"),
             "generated/return_annotation.rs"
+        );
+    }
+
+    #[test]
+    fn parses_recovery_stimuli_mode_values() {
+        assert!(matches!(
+            parse_recovery_stimuli_mode("baseline").expect("baseline mode should parse"),
+            RecoveryStimuliMode::Baseline
+        ));
+        assert!(matches!(
+            parse_recovery_stimuli_mode("recovery_biased")
+                .expect("recovery_biased mode should parse"),
+            RecoveryStimuliMode::RecoveryBiased
+        ));
+        assert!(matches!(
+            parse_recovery_stimuli_mode("near_sync_negative")
+                .expect("near_sync_negative mode should parse"),
+            RecoveryStimuliMode::NearSyncNegative
+        ));
+    }
+
+    #[test]
+    fn rejects_unknown_recovery_stimuli_mode_values() {
+        let err = parse_recovery_stimuli_mode("unknown_mode")
+            .expect_err("unknown recovery mode must be rejected");
+        let message = err.to_string();
+        assert!(
+            message.contains("Unsupported recovery stimuli mode"),
+            "unexpected recovery mode parse error message: {}",
+            message
         );
     }
 }

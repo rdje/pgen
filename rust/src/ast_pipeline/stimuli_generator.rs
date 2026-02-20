@@ -16,12 +16,26 @@ use regex_syntax::hir::{Class, Hir, HirKind, Literal, Repetition};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecoveryStimuliMode {
+    Baseline,
+    RecoveryBiased,
+    NearSyncNegative,
+}
+
+impl Default for RecoveryStimuliMode {
+    fn default() -> Self {
+        Self::Baseline
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct StimuliConfig {
     pub seed: Option<u64>,
     pub max_depth: usize,
     pub max_repeat: usize,
     pub max_rule_visits: usize,
+    pub recovery_mode: RecoveryStimuliMode,
 }
 
 impl Default for StimuliConfig {
@@ -31,6 +45,7 @@ impl Default for StimuliConfig {
             max_depth: 24,
             max_repeat: 4,
             max_rule_visits: 8,
+            recovery_mode: RecoveryStimuliMode::Baseline,
         }
     }
 }
@@ -1353,9 +1368,66 @@ impl<'a> StimuliGenerator<'a> {
 
     pub fn generate_from_entry(&mut self, entry_rule: &str) -> Result<String> {
         let mut call_stack = Vec::new();
-        let result = self.generate_rule(entry_rule, 0, &mut call_stack);
+        let result = match self.config.recovery_mode {
+            RecoveryStimuliMode::Baseline => self.generate_rule(entry_rule, 0, &mut call_stack),
+            RecoveryStimuliMode::RecoveryBiased => {
+                self.generate_recovery_biased_entry(entry_rule, &mut call_stack)
+            }
+            RecoveryStimuliMode::NearSyncNegative => {
+                self.generate_near_sync_negative_entry(entry_rule, &mut call_stack)
+            }
+        };
         self.coverage.record_sample_attempt(result.is_ok());
         result
+    }
+
+    fn generate_recovery_biased_entry(
+        &mut self,
+        entry_rule: &str,
+        call_stack: &mut Vec<String>,
+    ) -> Result<String> {
+        let marker = self.recovery_stimulus_fallback(entry_rule);
+        let base_result = self.generate_rule(entry_rule, 0, call_stack);
+        match base_result {
+            Ok(base_sample) => {
+                let Some(marker) = marker else {
+                    return Ok(base_sample);
+                };
+                let wrapped = match self.rng.gen_range(0..3) {
+                    0 => format!("{}{}", base_sample, marker),
+                    1 => format!("{}{}", marker, base_sample),
+                    _ => format!("{}{}{}", marker, base_sample, marker),
+                };
+                Ok(wrapped)
+            }
+            Err(base_error) => {
+                if let Some(marker) = marker {
+                    Ok(marker)
+                } else {
+                    Err(base_error)
+                }
+            }
+        }
+    }
+
+    fn generate_near_sync_negative_entry(
+        &mut self,
+        entry_rule: &str,
+        call_stack: &mut Vec<String>,
+    ) -> Result<String> {
+        let Some(marker) = self.recovery_stimulus_fallback(entry_rule) else {
+            return self.generate_rule(entry_rule, 0, call_stack);
+        };
+
+        let noise = Self::near_sync_negative_prefix(entry_rule);
+        let base_sample = self
+            .generate_rule(entry_rule, 0, call_stack)
+            .unwrap_or_default();
+        if base_sample.is_empty() {
+            Ok(format!("{}{}", noise, marker))
+        } else {
+            Ok(format!("{}{}{}", base_sample, noise, marker))
+        }
     }
 
     fn resolve_entry_rule(&self, entry_rule: Option<&str>) -> Result<String> {
@@ -3266,6 +3338,21 @@ impl<'a> StimuliGenerator<'a> {
             .find(|token| !token.trim().is_empty())
     }
 
+    fn near_sync_negative_prefix(rule_name: &str) -> String {
+        let mut sanitized = String::with_capacity(rule_name.len());
+        for ch in rule_name.chars() {
+            if ch.is_ascii_alphanumeric() {
+                sanitized.push(ch);
+            } else {
+                sanitized.push('_');
+            }
+        }
+        if sanitized.is_empty() {
+            sanitized.push_str("rule");
+        }
+        format!("__pgen_near_sync_{}__", sanitized)
+    }
+
     fn semantic_branch_multiplier(
         &self,
         associativity: SemanticAssociativity,
@@ -3366,6 +3453,7 @@ mod tests {
                 max_depth: 8,
                 max_repeat: 4,
                 max_rule_visits: 4,
+                recovery_mode: RecoveryStimuliMode::Baseline,
             },
         )
     }
@@ -3386,6 +3474,29 @@ mod tests {
                 max_depth: 8,
                 max_repeat: 4,
                 max_rule_visits: 4,
+                recovery_mode: RecoveryStimuliMode::Baseline,
+            },
+        )
+    }
+
+    fn annotated_generator_with_mode<'a>(
+        grammar_tree: &'a HashMap<String, ASTNode>,
+        rule_order: &'a [String],
+        annotations: &'a Annotations,
+        seed: u64,
+        recovery_mode: RecoveryStimuliMode,
+    ) -> StimuliGenerator<'a> {
+        StimuliGenerator::new(
+            "test".to_string(),
+            grammar_tree,
+            rule_order,
+            Some(annotations),
+            StimuliConfig {
+                seed: Some(seed),
+                max_depth: 8,
+                max_repeat: 4,
+                max_rule_visits: 4,
+                recovery_mode,
             },
         )
     }
@@ -3701,6 +3812,7 @@ mod tests {
                 max_depth: 2,
                 max_repeat: 2,
                 max_rule_visits: 2,
+                recovery_mode: RecoveryStimuliMode::Baseline,
             },
         );
 
@@ -4408,6 +4520,139 @@ mod tests {
         assert!(
             result.is_err(),
             "recovery fallback must stay inactive when @recover is not enabled"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_recovery_biased_mode_wraps_output_with_recovery_markers() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "recover".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "panic_until".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"}\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator_with_mode(
+            &grammar_tree,
+            &rule_order,
+            &annotations,
+            9311,
+            RecoveryStimuliMode::RecoveryBiased,
+        );
+        let values = generator
+            .generate_many(6, Some("start"))
+            .expect("recovery-biased mode should generate wrapped samples");
+
+        assert!(
+            values.iter().all(|value| value.contains('}')),
+            "recovery-biased mode should inject recovery markers, got {:?}",
+            values
+        );
+        assert!(
+            values.iter().all(|value| value.contains("ok")),
+            "recovery-biased mode should preserve base sample content, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_near_sync_negative_mode_emits_noise_plus_marker() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "recover".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "sync".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\";\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator_with_mode(
+            &grammar_tree,
+            &rule_order,
+            &annotations,
+            9312,
+            RecoveryStimuliMode::NearSyncNegative,
+        );
+        let values = generator
+            .generate_many(4, Some("start"))
+            .expect("near-sync-negative mode should generate marker-adjacent negative samples");
+
+        assert!(
+            values
+                .iter()
+                .all(|value| value.contains("__pgen_near_sync_start__")),
+            "near-sync-negative mode should inject deterministic near-sync noise, got {:?}",
+            values
+        );
+        assert!(
+            values.iter().all(|value| value.ends_with(';')),
+            "near-sync-negative mode should terminate with sync marker token, got {:?}",
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_near_sync_negative_mode_requires_recover_contract() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sync".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\";\"]".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = annotated_generator_with_mode(
+            &grammar_tree,
+            &rule_order,
+            &annotations,
+            9313,
+            RecoveryStimuliMode::NearSyncNegative,
+        );
+        let values = generator
+            .generate_many(3, Some("start"))
+            .expect("near-sync-negative mode should fall back to baseline generation without recover");
+
+        assert!(
+            values.iter().all(|value| value == "ok"),
+            "near-sync-negative mode must stay inactive without @recover: true, got {:?}",
+            values
         );
     }
 
