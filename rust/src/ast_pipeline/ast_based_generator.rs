@@ -690,6 +690,39 @@ impl AstBasedGenerator {
                 self.rule_recovery_hints(rule_name);
             let sync_tokens_label = sync_tokens.join(", ");
             let panic_until_tokens_label = panic_until_tokens.join(", ");
+            let sync_tokens_for_code = sync_tokens.clone();
+            let panic_until_tokens_for_code = panic_until_tokens.clone();
+
+            let recovery_failure_path = if recover_enabled {
+                quote! {
+                    if parser.recover_with_hints(
+                        #rule_name,
+                        parse_start,
+                        &[#(#sync_tokens_for_code),*],
+                        &[#(#panic_until_tokens_for_code),*],
+                    ) {
+                        if parser.logger.is_enabled() {
+                            parser.logger.log_warning(#filename, 0, &format!(
+                                "🛟 Rule '{}' recovered from branch failure using sync=[{}] panic_until=[{}]",
+                                #rule_name,
+                                #sync_tokens_label,
+                                #panic_until_tokens_label
+                            ));
+                        }
+                        result = ParseContent::Sequence(Vec::new());
+                    } else {
+                        return Err(ParseError::Backtrack {
+                            position: parse_start,
+                        });
+                    }
+                }
+            } else {
+                quote! {
+                    return Err(ParseError::Backtrack {
+                        position: parse_start,
+                    });
+                }
+            };
 
             for (idx, alternative) in alternatives.iter().enumerate() {
                 eprintln!();
@@ -801,7 +834,7 @@ impl AstBasedGenerator {
             }
 
             Ok(quote! {
-                // Multi-branch parsing logic (longest-match winner)
+                // Multi-branch parsing logic (branch-policy guided)
                 let parse_start = parser.position;
                 let mut best_content: Option<ParseContent<'input>> = None;
                 let mut best_end = parse_start;
@@ -832,17 +865,7 @@ impl AstBasedGenerator {
                     }
                     result = content;
                 } else {
-                    if #recover_enabled && parser.logger.is_enabled() {
-                        parser.logger.log_info(#filename, 0, &format!(
-                            "⚠️ Rule '{}' has recovery hints configured (sync=[{}], panic_until=[{}]) but active parser recovery is not yet enabled in this generated backend.",
-                            #rule_name,
-                            #sync_tokens_label,
-                            #panic_until_tokens_label
-                        ));
-                    }
-                    return Err(ParseError::Backtrack {
-                        position: parse_start,
-                    });
+                    #recovery_failure_path
                 }
             })
         }
@@ -1332,6 +1355,111 @@ impl AstBasedGenerator {
                     return false;
                 }
                 &self.input.as_bytes()[start..end] == expected
+            }
+            fn find_token_from(&self, start: usize, token: &str) -> Option<usize> {
+                if token.is_empty() || start >= self.input.len() {
+                    return None;
+                }
+                let token_bytes = token.as_bytes();
+                if token_bytes.len() > self.input.len() {
+                    return None;
+                }
+                let max_start = self.input.len().saturating_sub(token_bytes.len());
+                for idx in start..=max_start {
+                    if self.bytes_match_at(idx, token_bytes) {
+                        return Some(idx);
+                    }
+                }
+                None
+            }
+            fn recover_with_hints(
+                &mut self,
+                rule_name: &str,
+                parse_start: usize,
+                sync_tokens: &[&str],
+                panic_until_tokens: &[&str],
+            ) -> bool {
+                let recovery_start = parse_start.min(self.input.len());
+                let mut best: Option<(usize, usize, u8)> = None;
+
+                for token in panic_until_tokens {
+                    if token.is_empty() {
+                        continue;
+                    }
+                    if let Some(pos) = self.find_token_from(recovery_start, token) {
+                        let candidate = (pos, token.len(), 0u8);
+                        let take_candidate = match best {
+                            None => true,
+                            Some((best_pos, _best_len, best_priority)) => {
+                                pos < best_pos || (pos == best_pos && candidate.2 < best_priority)
+                            }
+                        };
+                        if take_candidate {
+                            best = Some(candidate);
+                        }
+                    }
+                }
+
+                for token in sync_tokens {
+                    if token.is_empty() {
+                        continue;
+                    }
+                    if let Some(pos) = self.find_token_from(recovery_start, token) {
+                        let candidate = (pos, token.len(), 1u8);
+                        let take_candidate = match best {
+                            None => true,
+                            Some((best_pos, _best_len, best_priority)) => {
+                                pos < best_pos || (pos == best_pos && candidate.2 < best_priority)
+                            }
+                        };
+                        if take_candidate {
+                            best = Some(candidate);
+                        }
+                    }
+                }
+
+                if let Some((token_pos, token_len, token_priority)) = best {
+                    let previous = self.position;
+                    let token_end = token_pos.saturating_add(token_len).min(self.input.len());
+                    let mut new_position = token_end;
+                    if new_position <= previous && previous < self.input.len() {
+                        new_position = previous + 1;
+                    }
+                    self.position = new_position.min(self.input.len());
+
+                    if self.logger.is_enabled() {
+                        let marker = if token_priority == 0 {
+                            "panic_until"
+                        } else {
+                            "sync"
+                        };
+                        self.logger.log_warning(#filename, 0, &format!(
+                            "🛟 Recovery for rule '{}': moved parser from {} to {} using {} token at {}",
+                            rule_name,
+                            previous,
+                            self.position,
+                            marker,
+                            token_pos
+                        ));
+                    }
+                    return self.position > parse_start;
+                }
+
+                if self.position < self.input.len() {
+                    let previous = self.position;
+                    self.position = self.input.len();
+                    if self.logger.is_enabled() {
+                        self.logger.log_warning(#filename, 0, &format!(
+                            "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
+                            rule_name,
+                            previous,
+                            self.position
+                        ));
+                    }
+                    return true;
+                }
+
+                false
             }
             fn consume_optional_whitespace(&mut self) {
                 while self.position < self.input.len() {
@@ -2441,6 +2569,93 @@ mod semantic_usage_tests {
         assert!(recover_enabled);
         assert_eq!(sync_tokens, vec![";".to_string(), "end".to_string()]);
         assert_eq!(panic_tokens, vec!["}".to_string()]);
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_runtime_recovery_hook_when_recover_enabled() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "recover".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "sync".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\";\", \"end\"]".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "panic_until".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[\"}\"]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let logic = generator
+            .generate_node_parsing_logic(&or_rule(), "stmt", "semantic_usage.rs")
+            .expect("or-node logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            rendered.contains("recover_with_hints"),
+            "recover-enabled rule should emit runtime recovery hook, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("\";\"") && rendered.contains("\"}\""),
+            "recovery hook should carry sync/panic tokens, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_skips_runtime_recovery_hook_when_recover_not_enabled() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sync".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "[\";\"]".to_string(),
+                },
+            }],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let logic = generator
+            .generate_node_parsing_logic(&or_rule(), "stmt", "semantic_usage.rs")
+            .expect("or-node logic generation should succeed");
+        let rendered = logic.to_string();
+
+        assert!(
+            !rendered.contains("recover_with_hints"),
+            "recover-disabled rule should not emit runtime recovery hook, got: {}",
+            rendered
+        );
     }
 
     #[test]

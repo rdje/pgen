@@ -102,6 +102,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add grammar-aware ambiguity prefix diagnostics (`W_GRAM_AMBIGUOUS_PREFIX`) for top-level alternation branches sharing identical leading quoted terminals.
 - [x] Extend ambiguity diagnostics from literal-prefix heuristics to nullable/first-set overlap analysis.
 - [x] Add branch-policy + recovery hint contract surface (`@branch_policy`, `@recover`, `@sync`, `@panic_until`) with validator diagnostics and parser/stimuli integration plan.
+- [x] Promote recovery-hint contracts to executable parser runtime baseline (`@recover` + `@sync/@panic_until` token-scan recovery hooks with deterministic fallback behavior).
 
 ## Current Sprint: Pillar 1
 
@@ -161,3 +162,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Started Pillar 6/Phase K by adding grammar-aware ambiguity diagnostics (`W_GRAM_AMBIGUOUS_PREFIX`) in annotation validator grammar-aware pass with unit tests for overlapping-vs-distinct literal-prefix alternation branches.
 - 2026-02-20: Completed Phase K nullable/FIRST overlap milestone by adding `W_GRAM_FIRST_SET_OVERLAP` and `W_GRAM_NULLABLE_BRANCH_SHADOW` diagnostics (including nullable-prefix rule-reference overlap coverage) in the grammar-aware annotation validator pass.
 - 2026-02-20: Completed Phase K branch-policy/recovery contract surface by adding typed directive parsing/validation (`@branch_policy`, `@recover`, `@sync`, `@panic_until`), parser+stimuli branch-policy steering baseline (`longest_match`/`ordered`/`priority_first`), and staged recovery-hint integration signaling.
+- 2026-02-20: Completed Phase K recovery runtime baseline by wiring generated parser OR-failure recovery hooks (`recover_with_hints`) that consume typed `@recover/@sync/@panic_until` directives, scan for nearest panic/sync tokens with deterministic precedence, advance parser position with EOF fallback, and continue parsing with explicit recovery logging.

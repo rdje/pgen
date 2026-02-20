@@ -396,7 +396,7 @@ stmt = if_stmt | while_stmt ;
   - `ordered`,
   - `priority_first`.
 
-#### Example: Recovery hints contract (current stage)
+#### Example: Recovery hints runtime baseline
 ```ebnf
 stmt = declaration | assignment ;
 @recover: true
@@ -404,16 +404,21 @@ stmt = declaration | assignment ;
 @panic_until: ["}"]
 ```
 - Validator enforces typed payloads and contract coherence.
-- Current generated parser/stimuli stage:
-  - branch policy is active,
-  - recovery hints are accepted/validated and surfaced for staged integration,
-  - full panic/sync runtime recovery engine is not yet enabled.
+- Current generated parser behavior:
+  - if all OR branches fail and effective `@recover` is truthy, runtime recovery is attempted,
+  - parser scans from rule start for nearest configured marker token,
+  - token precedence on same location is deterministic: `panic_until` over `sync`,
+  - parser advances past the chosen marker, or falls back to EOF skip when no marker is found,
+  - unrecoverable no-progress cases still return normal backtrack errors.
+- Stimuli behavior in this stage:
+  - recovery directives are validated/typed and available for future recovery-targeted generation,
+  - dedicated recovery-focused stimuli steering remains follow-on work.
 
 ### 8.9 Gate/Test Coverage for Semantic Steering
 - `make -C rust semantic_usage_gate`
 - Included in:
   - `make -C rust annotation_contract_gate`
-- Coverage includes parser + stimuli semantic usage tests (`semantic_usage_*`), including value-domain steering and directive routing regressions.
+- Coverage includes parser + stimuli semantic usage tests (`semantic_usage_*`), including value-domain steering, directive routing, and recovery-hook codegen regressions.
 
 ### 8.10 Steering Roadmap References
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`

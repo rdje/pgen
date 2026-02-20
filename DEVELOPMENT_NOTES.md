@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: Recovery Runtime Hook Wiring (Parser Codegen)
+### Context
+Phase K previously delivered:
+- typed semantic contracts for `@recover`, `@sync`, `@panic_until`,
+- validator diagnostics for invalid/coherence payloads,
+- branch-policy runtime steering.
+
+However, recovery handling was still stage-1 signaling only (explicit log mention + backtrack). This left a contract gap: directives were validated but not functionally consumed by parser runtime behavior.
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+#### 1) OR-failure path switched from staged log-only to executable hook
+- Function area:
+  - `generate_or_logic(...)`
+- Added generation-time conditional emission:
+  - if effective `@recover` is truthy:
+    - emit `parser.recover_with_hints(rule_name, parse_start, sync_tokens, panic_until_tokens)`
+    - on success:
+      - emit warning log with configured token lists,
+      - continue parse with `ParseContent::Sequence(Vec::new())` as recovered branch content.
+    - on failure:
+      - return `ParseError::Backtrack { position: parse_start }`.
+  - if effective `@recover` is not truthy:
+    - preserve direct backtrack behavior.
+
+#### 2) Generated parser helper methods added
+- `find_token_from(start, token) -> Option<usize>`
+  - linear scan from `start` for next literal marker token occurrence.
+- `recover_with_hints(rule_name, parse_start, sync_tokens, panic_until_tokens) -> bool`
+  - computes nearest available recovery marker from `parse_start`,
+  - deterministic tie resolution:
+    - earlier offset wins,
+    - at equal offset: `panic_until` priority over `sync`,
+  - advances parser position to marker end when marker exists,
+  - ensures monotonic progress with a one-byte floor when needed,
+  - if no marker exists and parser is not at EOF, advances to EOF fallback,
+  - logs selected recovery mode (`panic_until` or `sync`) and movement bounds,
+  - returns `false` only when no forward movement was possible.
+
+#### 3) Semantic usage regression coverage added
+- Added parser-codegen tests:
+  - `semantic_usage_codegen_emits_runtime_recovery_hook_when_recover_enabled`
+  - `semantic_usage_codegen_skips_runtime_recovery_hook_when_recover_not_enabled`
+- Assertions verify:
+  - hook presence/absence in generated token stream,
+  - configured sync/panic markers are emitted into generated code only when contract conditions are met.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator`
+  - pass (`24 passed, 0 failed` for validator slice).
+- `make -C rust SHELL=/bin/bash semantic_usage_gate`
+  - pass (`27 semantic_usage_* tests`).
+
+### Contract/Docs Updates
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - added Phase K item for executable recovery runtime baseline and completion log entry.
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `SC-07` promoted from Tier 1 (contract-only) to Tier 2 (parser runtime steering baseline).
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - documented runtime recovery semantics (`panic_until > sync` tie-break, EOF fallback, backtrack on no-progress).
+- `PGEN_USER_GUIDE.md`
+  - replaced staged wording with current runtime baseline behavior and explicit remaining stimuli-side follow-on.
+
 ## 2026-02-19 - Phase I Follow-Up: Aggregate + CI Enforcement of Non-Bootstrap Annotation E2E Gate
 ### Context
 We had already added a local non-bootstrap annotation end-to-end gate target (`annotation_nonbootstrap_e2e_gate`) that verifies generated-parser annotation handling across:

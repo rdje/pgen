@@ -81,7 +81,12 @@ Normative runtime leverage behavior for semantic annotations:
     - `longest_match` (default),
     - `ordered`,
     - `priority_first`.
-  - `@recover/@sync/@panic_until` are typed/validated contract directives with staged parser integration signaling (full runtime panic/sync recovery engine remains follow-on).
+  - `@recover/@sync/@panic_until` are typed/validated contract directives with executable parser runtime recovery baseline:
+    - recovery triggers when OR branches all fail and effective `@recover` is truthy,
+    - parser scans from rule start for nearest configured marker token (`panic_until` preferred over `sync` on same position),
+    - parser advances past selected marker (or to EOF fallback when no marker exists),
+    - recovery success continues parse flow with recovered empty branch content,
+    - if no forward progress is possible, parser still backtracks.
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.

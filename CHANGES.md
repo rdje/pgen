@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: Executable Recovery Runtime Baseline
+### ✅ Achievement Summary
+Promoted semantic recovery directives from staged signaling to executable parser runtime behavior in generated OR-branch parsing paths.
+### Scope of Changes
+- Updated parser code generation in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+- Runtime behavior changes:
+  - OR-branch failure path now conditionally calls generated runtime helper:
+    - `recover_with_hints(rule_name, parse_start, sync_tokens, panic_until_tokens)`
+  - recovery hook is emitted only when effective `@recover` is enabled.
+  - nearest-token recovery selection is deterministic:
+    - earliest token position wins,
+    - tie-break favors `panic_until` over `sync`.
+  - recovery action:
+    - advance parser to end of selected marker token,
+    - if no marker found and input remains, skip to EOF fallback.
+  - no-progress cases still return `ParseError::Backtrack`.
+- Added generated parser helper methods:
+  - `find_token_from(...)`
+  - `recover_with_hints(...)`
+- Added semantic usage regression tests:
+  - `semantic_usage_codegen_emits_runtime_recovery_hook_when_recover_enabled`
+  - `semantic_usage_codegen_skips_runtime_recovery_hook_when_recover_not_enabled`
+- Updated living docs/roadmap/control matrix/spec/UG to reflect executable recovery baseline status:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator` ✅
+- `make -C rust SHELL=/bin/bash semantic_usage_gate` ✅
+
 ## 2026-02-19 - Phase I Follow-Up: Non-Bootstrap Annotation E2E Gate Enforcement
 ### ✅ Achievement Summary
 Promoted non-bootstrap annotation end-to-end verification from local Make target into both standalone CI and aggregate SOTA required-check policy.
