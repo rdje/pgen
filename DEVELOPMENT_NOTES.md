@@ -1,4 +1,238 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase M: Non-Annotation EBNF Closed-Loop Quality Gate (Second Loop)
+### Context
+Quality closure was previously strongest for annotation grammars only.
+
+Given the requirement for the same no-compromise standard on any EBNF-driven parser/stimuli flow, we split enforcement into two loops:
+1. Annotation-specialized loop (already in `annotation_stimuli_quality_gate`).
+2. Non-annotation generic EBNF loop (new in this phase).
+
+This preserves annotation-specific rigor while preventing non-annotation grammars from being second-class quality paths.
+
+### Implementation
+Primary files:
+- `rust/scripts/ebnf_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+- `rust/Makefile`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+
+#### 1) Contract-driven non-annotation grammar roster
+- Added `ebnf_stimuli_contract.json` as explicit binding contract for the second loop.
+- Contract fields per grammar:
+  - `id`
+  - `grammar_name`
+  - `ebnf_path`
+  - `seed_base`
+  - `require_parseability`
+- Current included grammars:
+  - `ebnf`
+  - `json`
+  - `regex`
+  - `builtin_return_annotation`
+  - `builtin_semantic_annotation`
+
+#### 2) New strict gate script
+- Added `ebnf_stimuli_quality_gate.sh`.
+- For each contract grammar:
+  1. Convert `EBNF -> JSON` via `ebnf_to_json.pl`.
+  2. Assert JSON contract integrity (`grammar_name` match, `raw_ast` shape).
+  3. Generate parser (`ast_pipeline --generate-parser`).
+  4. Execute strict 4-stage stimuli/coverage/gap closed loop.
+
+Stages:
+1. Baseline generation with coverage + gap report.
+2. Gap-priority generation with prior coverage+gap reinjection.
+3. Target-driven generation from baseline gap targets.
+4. Final gap recompute using merged coverage.
+
+#### 3) Hard invariants (non-negotiable)
+- Artifact contracts:
+  - expected stage artifacts must exist and be non-empty where applicable.
+- Coverage accounting integrity:
+  - `sample_attempts == sample_successes + sample_errors` for every stage.
+- Grammar identity consistency:
+  - coverage/gap `grammar_name` must match contract `grammar_name`.
+- No-regression monotonic checks:
+  - stage1 strictly increases attempts/successes vs stage0,
+  - stage2 does not regress attempts/successes/covered rules/covered branches vs stage1.
+- Target-drive integrity:
+  - parsed summary must satisfy `resolved <= total`,
+  - `total` must match baseline initial target count.
+- Closure condition:
+  - final target count may not exceed baseline target count.
+
+#### 4) Parseability requirement handling
+- Contract-controlled per grammar (`require_parseability`).
+- If `true`, stage commands include `--validate-parseability`.
+- If `false`, loop still enforces parser generation + strict closed-loop invariants.
+- This keeps enforcement strict while acknowledging current generated-parser registry coverage is grammar-dependent.
+
+#### 5) Aggregate gate policy promotion
+- Added `ebnf_stimuli_quality_gate` Make target.
+- Added corresponding required-check dispatch in `sota_exit_gate.sh`.
+- Promoted it into required aggregate SOTA policy checks in `rust/config/sota_exit_policy.env`.
+
+### Validation
+- `make -C rust ebnf_stimuli_quality_gate`
+  - pass across all contract grammars.
+  - emitted per-grammar closure summaries + consolidated table under:
+    - `rust/target/ebnf_stimuli_quality_gate/summary.txt`
+
+## 2026-02-20 - Phase L: Annotation Closed-Loop Stimuli Quality Gate Implementation
+### Context
+We already had:
+- advanced annotation robustness checks (`annotation_robustness_gate`),
+- non-bootstrap end-to-end checks (`annotation_nonbootstrap_e2e_gate`),
+- parseability + coverage + gap artifact generation.
+
+What was still missing was a **single strict closed-loop verifier** with explicit stage-by-stage invariants that proves the feedback pipeline behaves correctly and non-regressively:
+1. baseline stimuli/coverage/gap snapshot,
+2. gap-priority reinjection step,
+3. target-driven reinforcement step,
+4. final gap recompute and no-regression closure check.
+
+Given the no-compromise quality objective, this needed to be executable and pre-merge enforced.
+
+### Implementation
+Primary files:
+- `rust/scripts/annotation_stimuli_quality_gate.sh`
+- `rust/Makefile`
+- `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) New strict gate script
+- Added `annotation_stimuli_quality_gate.sh`.
+- Scope:
+  - runs closed-loop checks for both `return_annotation` and `semantic_annotation`.
+- Determinism:
+  - fixed seed bases per grammar; fixed stage progression (`seed`, `seed+1`, `seed+2`, `seed+3`).
+- Pipeline stages per grammar:
+  1. Stage 0 baseline:
+     - `--generate-stimuli --validate-parseability --coverage-output --gap-report-json`
+  2. Stage 1 gap-priority:
+     - `--coverage-input stage0_coverage --gap-priority-report-input stage0_gap`
+  3. Stage 2 target-driven:
+     - `--coverage-input stage1_coverage --target-report-input stage0_gap --target-max-attempts ...`
+  4. Stage 3 recompute:
+     - `--coverage-input stage2_coverage --gap-report-json final_gap`
+
+#### 2) Stage-level invariant checks
+- Artifact checks:
+  - required outputs exist and are non-empty where appropriate.
+- Coverage metric integrity:
+  - `sample_attempts == sample_successes + sample_errors`.
+  - grammar-name matches expected grammar in coverage and gap artifacts.
+- Monotonic regression guards:
+  - Stage1 vs Stage0:
+    - `sample_attempts` strictly increases,
+    - `sample_successes` strictly increases,
+    - covered-rule count does not decrease,
+    - covered-branch count does not decrease.
+  - Stage2 vs Stage1:
+    - `sample_attempts`, `sample_successes`, covered rules/branches do not decrease.
+- Target-drive summary integrity:
+  - parses emitted summary line (`resolved X/Y targets in Z attempts`),
+  - requires `Y == initial_targets` from Stage0 gap report,
+  - requires `X <= Y`.
+- Final closure assertion:
+  - final actionable target count must not regress:
+    - `final_targets <= initial_targets`.
+
+This turns the feedback loop into a contract with explicit failure points rather than an implicit best-effort workflow.
+
+#### 3) Make and gate wiring
+- Added Make target:
+  - `annotation_stimuli_quality_gate`
+- Wired into:
+  - `annotation_contract_gate`
+- Result:
+  - existing annotation contract CI path now includes closed-loop stimuli quality checks.
+
+#### 4) Contract/doc synchronization
+- Added explicit references and status updates in:
+  - 100% closure roadmap,
+  - main SOTA roadmap Phase L,
+  - normative spec executable conformance section,
+  - user guide gate catalog and command examples.
+
+### Validation
+- `make -C rust annotation_stimuli_quality_gate`
+  - pass.
+  - observed deterministic closure summaries:
+    - return: `initial_targets=6 resolved=6 final_targets=0`
+    - semantic: `initial_targets=159 resolved=159 final_targets=0`
+- `make -C rust annotation_contract_gate`
+  - pass (with new gate integrated).
+
+## 2026-02-20 - Phase K Follow-Up: SC-03 Tier-4 Routing/Strictness Gate Hardening
+### Context
+SC-03 (name-based directive routing + unknown-directive policy) had solid runtime behavior but lacked an explicit gate slice equivalent to SC-04 Tier-4.
+
+This left two gaps:
+- no dedicated shared contract corpus for SC-03 routing directives,
+- no dedicated differential taxonomy parity check scoped to SC-03 behavior.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/test_data/semantic_annotation/sc03_contract.json`
+- `rust/scripts/sc03_contract_gate.sh`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Typed capability taxonomy hardening
+- Updated directive capability metadata in `semantic_directive_registry.rs` to match active runtime surfaces.
+- Added regression assertion:
+  - `directive_capability_matrix_reflects_runtime_surface`
+- This prevents silent drift between registry-declared capability and parser/stimuli behavior.
+
+#### 2) SC-03 shared contract corpus
+- Added `semantic_annotation/sc03_contract.json` with expectation-aligned bootstrap/generated cases for named directive routing:
+  - `@sample`, `@weight`, `@recover`, `@branch_policy`, `@constraint`, `@literal`, `@example`.
+- Suite name:
+  - `semantic_annotation_sc03_contract`
+
+#### 3) Dedicated SC-03 gate
+- Added `rust/scripts/sc03_contract_gate.sh`.
+- Gate stages:
+  - directive registry contract tests,
+  - unknown-directive warn/strict validator contracts,
+  - strict warning-code selector contracts,
+  - parser/stimuli transform/literal named-routing guard tests,
+  - bootstrap/generated contract suite runs,
+  - differential taxonomy parity checks over SC-03 suite report.
+- Differential assertions:
+  - taxonomy keys restricted to known categories,
+  - taxonomy count sum must equal `mismatched_cases`,
+  - comparable SC-03 suite currently requires `mismatched_cases == 0`.
+
+#### 4) Gate wiring and CI path
+- Added Make target:
+  - `sc03_contract_gate`
+- Wired into:
+  - `annotation_contract_gate`
+- Since CI already requires `annotation_contract_gate`, SC-03 Tier-4 contract enforcement is now pre-merge by default.
+
+#### 5) Documentation sync
+- Matrix:
+  - SC-03 status promoted to Tier-4 gate-hardened baseline.
+- Roadmap:
+  - added SC-03 Tier-4 completion checklist/changelog item.
+- Normative spec + UG:
+  - added SC-03 gate corpus/commands and taxonomy parity contract language.
+
+### Validation
+- `make -C rust sc03_contract_gate`
+  - pass.
+- `make -C rust annotation_contract_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-04 Tier-4 Contract Gate Promotion
 ### Context
 SC-04 token-family steering was already implemented at runtime (parser + stimuli), but coverage was still distributed across validator tests and semantic usage tests.

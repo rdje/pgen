@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "description": "Strict non-annotation EBNF parser/stimuli quality contract for closed-loop no-regression checks.",
+  "grammars": [
+    {
+      "id": "ebnf",
+      "grammar_name": "ebnf",
+      "ebnf_path": "grammars/ebnf.ebnf",
+      "seed_base": 9101,
+      "require_parseability": false
+    },
+    {
+      "id": "json",
+      "grammar_name": "json",
+      "ebnf_path": "grammars/json.ebnf",
+      "seed_base": 9201,
+      "require_parseability": false
+    },
+    {
+      "id": "regex",
+      "grammar_name": "regex",
+      "ebnf_path": "grammars/regex.ebnf",
+      "seed_base": 9301,
+      "require_parseability": false
+    },
+    {
+      "id": "builtin_return_annotation",
+      "grammar_name": "builtin_return_annotation",
+      "ebnf_path": "grammars/builtin_return_annotation.ebnf",
+      "seed_base": 9401,
+      "require_parseability": false
+    },
+    {
+      "id": "builtin_semantic_annotation",
+      "grammar_name": "builtin_semantic_annotation",
+      "ebnf_path": "grammars/builtin_semantic_annotation.ebnf",
+      "seed_base": 9501,
+      "require_parseability": false
+    }
+  ]
+}

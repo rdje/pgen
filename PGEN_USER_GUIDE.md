@@ -45,6 +45,7 @@ make -C rust SHELL=/bin/bash sota_exit_gate
 make -C rust SHELL=/bin/bash sota_release_policy
 make -C rust SHELL=/bin/bash fixed_point_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
+make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate
 make -C rust SHELL=/bin/bash performance_gate
 make -C rust SHELL=/bin/bash differential_regression_gate
 make -C rust SHELL=/bin/bash embedding_api_gate
@@ -265,6 +266,30 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Directive routing is name-aware:
   - transform steering is only active for directive `transform`,
   - raw literal hint steering is only active for literal/sample directive family in named mode.
+
+#### 8.3.1 SC-03 Tier-4 Contract Gate
+
+SC-03 routing/strictness behavior is gate-enforced.
+
+Contract corpus:
+- `rust/test_data/semantic_annotation/sc03_contract.json`
+
+Gate commands:
+```bash
+make -C rust sc03_contract_gate
+```
+
+Also included in:
+```bash
+make -C rust annotation_contract_gate
+```
+
+`sc03_contract_gate` enforces:
+1. Typed directive registry + capability taxonomy contracts.
+2. Unknown-directive warn/strict policy validator contracts.
+3. Strict warning-code selection policy contracts.
+4. Parser/stimuli name-aware transform/literal routing guard tests.
+5. Bootstrap/generated SC-03 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-03 comparable corpus).
 
 ### 8.4 Steering Behaviors Implemented Today
 
@@ -1310,13 +1335,25 @@ Tracked baselines:
 - `fixed-point-gate`
   - deterministic bootstrap artifact regeneration
 - `sota_exit_gate` (local aggregate target)
-  - one-shot release-grade aggregate check for fixed-point, annotation, differential, performance, embedding, and EBNF readiness reporting
+  - one-shot release-grade aggregate check for fixed-point, annotation, non-annotation EBNF quality loop, differential, performance, embedding, and EBNF readiness reporting
 - `sota_release_policy` (local utility target)
   - prints the tracked machine policy consumed by `sota_exit_gate`
 - `annotation_contract_gate` (local gate target)
   - validator + built-in/shared contracts + semantic leverage + advanced robustness checks
 - `annotation_robustness_gate` (local gate target)
   - advanced return/semantic suites in bootstrap/generated modes + generated parseability/coverage/gap checks
+- `annotation_stimuli_quality_gate` (local gate target)
+  - strict deterministic closed-loop verification for return/semantic annotation grammars:
+    - baseline parseability/coverage/gap,
+    - gap-priority generation with merged-coverage invariants,
+    - target-driven generation summary integrity,
+    - final gap no-regression checks
+- `ebnf_stimuli_quality_gate` (local gate target)
+  - strict deterministic closed-loop verification for tracked non-annotation EBNFs (separate from annotation loop):
+    - `EBNF -> JSON` frontend success (`ebnf_to_json.pl`),
+    - parser generation success,
+    - baseline/gap-priority/target-driven/final-gap no-regression checks,
+    - contract-driven grammar roster from `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
 - `ebnf_frontend_readiness` (local report target)
   - executes `EBNF -> JSON -> parser/stimuli` readiness checks for `ebnf/json/regex` grammars
 - `ebnf_frontend_gate` (local strict target)
@@ -1345,8 +1382,14 @@ make -C rust SHELL=/bin/bash ebnf_frontend_gate
 Annotation contract/robustness commands:
 ```bash
 make -C rust SHELL=/bin/bash annotation_robustness_gate
+make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
 make -C rust SHELL=/bin/bash return_parity_gate
+```
+
+Non-annotation EBNF closed-loop command:
+```bash
+make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate
 ```
 
 Aggregate SOTA gate command:
@@ -1371,6 +1414,12 @@ Optional robustness-gate tuning:
 - `PGEN_ANNOTATION_ROBUSTNESS_COUNT` (default `32`)
 - `PGEN_ANNOTATION_ROBUSTNESS_RETURN_SEED` (default `4242`)
 - `PGEN_ANNOTATION_ROBUSTNESS_SEMANTIC_SEED` (default `4343`)
+
+Optional non-annotation EBNF quality-gate tuning:
+- `PGEN_EBNF_STIMULI_QUALITY_COUNT` (default `12`)
+- `PGEN_EBNF_STIMULI_QUALITY_GAP_THRESHOLD` (default `1`)
+- `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` (default `5000`)
+- `PGEN_EBNF_STIMULI_QUALITY_CONTRACT` (override grammar contract manifest path)
 
 ## 11) Embedding API (Rust)
 
@@ -1402,6 +1451,8 @@ Ephemeral/runtime reports:
 - `rust/target/performance_gate/report.json`
 - `rust/target/fixed_point_gate/*`
 - `rust/target/annotation_robustness_gate/*`
+- `rust/target/annotation_stimuli_quality_gate/*`
+- `rust/target/ebnf_stimuli_quality_gate/*`
 - `rust/target/sota_exit_gate/*`
 
 Important:
@@ -1434,8 +1485,10 @@ make -C rust SHELL=/bin/bash differential_refresh_baseline
 1. Regenerate/build the parser path you touched.
 2. Run focused universal tests for return/semantic.
 3. Run annotation contract gate (`annotation_contract_gate`) for annotation-heavy changes.
-4. Run differential regression gate.
-5. Run fixed-point gate before merge-sensitive changes.
-6. Run performance gate for parser/runtime-impacting changes.
-7. Run the aggregate release gate (`sota_exit_gate`) before merge/release cuts.
-8. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.
+4. Run strict closed-loop stimuli verification (`annotation_stimuli_quality_gate`) when touching stimuli/coverage/gap logic.
+5. Run non-annotation closed-loop verification (`ebnf_stimuli_quality_gate`) when touching generic EBNF frontend/parser/stimuli logic.
+6. Run differential regression gate.
+7. Run fixed-point gate before merge-sensitive changes.
+8. Run performance gate for parser/runtime-impacting changes.
+9. Run the aggregate release gate (`sota_exit_gate`) before merge/release cuts.
+10. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.

@@ -1,6 +1,6 @@
 # PGEN Release Policy (Living)
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 ## Purpose
 Define objective, machine-enforced pass criteria for release-grade validation of PGEN.
@@ -16,9 +16,9 @@ Tracked policy file:
 
 Current policy values:
 - `PGEN_SOTA_POLICY_VERSION=1`
-- `PGEN_SOTA_POLICY_REQUIRED_CHECKS="differential_baseline_contract fixed_point_gate annotation_contract_gate differential_regression_gate performance_gate embedding_api_gate"`
+- `PGEN_SOTA_POLICY_REQUIRED_CHECKS="differential_baseline_contract fixed_point_gate annotation_contract_gate annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate differential_regression_gate performance_gate embedding_api_gate"`
 - `PGEN_SOTA_POLICY_RUN_EBNF_READINESS=1`
-- `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=0`
+- `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
 - `PGEN_SOTA_POLICY_ALLOW_INFORMATIONAL_FAILURES=1`
 
 ## Required Gate Criteria
@@ -26,12 +26,15 @@ The following checks must pass (`required_failures == 0`):
 1. `differential_baseline_contract`
 2. `fixed_point_gate`
 3. `annotation_contract_gate`
-4. `differential_regression_gate`
-5. `performance_gate`
-6. `embedding_api_gate`
+4. `annotation_nonbootstrap_e2e_gate`
+5. `ebnf_stimuli_quality_gate`
+6. `differential_regression_gate`
+7. `performance_gate`
+8. `embedding_api_gate`
 
 Current informational policy:
-- EBNF frontend runs in report mode and is non-blocking until `grammars/ebnf.ebnf` strict readiness debt is closed.
+- EBNF frontend strict readiness is required (`PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`).
+- Perl-vs-Rust EBNF dual-run differential remains report-mode by default (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=0`).
 
 ## Local Release Validation
 Primary command:

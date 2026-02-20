@@ -19,7 +19,7 @@ fi
 source "$POLICY_FILE"
 
 POLICY_VERSION="${PGEN_SOTA_POLICY_VERSION:-1}"
-POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-differential_baseline_contract fixed_point_gate annotation_contract_gate annotation_nonbootstrap_e2e_gate differential_regression_gate performance_gate embedding_api_gate}"
+POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-differential_baseline_contract fixed_point_gate annotation_contract_gate annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate differential_regression_gate performance_gate embedding_api_gate}"
 POLICY_RUN_EBNF_READINESS="${PGEN_SOTA_POLICY_RUN_EBNF_READINESS:-1}"
 POLICY_REQUIRE_EBNF_STRICT="${PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT:-0}"
 POLICY_RUN_EBNF_DUAL_RUN_DIFF="${PGEN_SOTA_POLICY_RUN_EBNF_DUAL_RUN_DIFF:-1}"
@@ -157,6 +157,13 @@ run_required_check_by_name() {
                 "required" \
                 "non-bootstrap annotation parser/stimuli end-to-end checks" \
                 make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate
+            ;;
+        ebnf_stimuli_quality_gate)
+            run_check \
+                "ebnf_stimuli_quality_gate" \
+                "required" \
+                "non-annotation EBNF parser/stimuli closed-loop quality checks" \
+                make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate
             ;;
         differential_regression_gate)
             run_check \

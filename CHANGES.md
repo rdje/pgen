@@ -1,4 +1,136 @@
 # CHANGES.md
+## 2026-02-20 - Phase M: Non-Annotation EBNF Closed-Loop Quality Gate (Second Loop)
+### ✅ Achievement Summary
+Implemented a second strict closed-loop gate for non-annotation EBNFs so quality enforcement is split into two independent loops:
+- annotation-specialized loop (`annotation_stimuli_quality_gate`),
+- non-annotation generic EBNF loop (`ebnf_stimuli_quality_gate`).
+
+### Scope of Changes
+- Added new gate script:
+  - `rust/scripts/ebnf_stimuli_quality_gate.sh`
+  - contract-driven grammar roster from:
+    - `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+  - current contract scope:
+    - `ebnf`
+    - `json`
+    - `regex`
+    - `builtin_return_annotation`
+    - `builtin_semantic_annotation`
+  - each grammar enforces:
+    1. `EBNF -> JSON` frontend conversion (`ebnf_to_json.pl`)
+    2. parser generation from JSON (`ast_pipeline --generate-parser`)
+    3. strict 4-stage closed loop:
+       - baseline (`coverage + gap`),
+       - gap-priority reinjection,
+       - target-driven generation from baseline targets,
+       - final gap recomputation.
+  - hard invariant checks include:
+    - artifact existence/non-empty checks,
+    - grammar-name alignment between contract/input/coverage/gap artifacts,
+    - coverage metric consistency (`sample_attempts == sample_successes + sample_errors`),
+    - monotonic no-regression checks across stages (attempts/successes/covered rules/covered branches),
+    - target-summary integrity (`resolved <= total`, total equals baseline target count),
+    - final actionable targets not exceeding baseline (`final_targets <= initial_targets`).
+
+- Added contract manifest for non-annotation loop:
+  - `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+  - includes per-grammar deterministic seed base and parseability requirement flag.
+
+- Updated gate wiring:
+  - `rust/Makefile`
+    - added target:
+      - `ebnf_stimuli_quality_gate`
+    - updated help text.
+  - `rust/scripts/sota_exit_gate.sh`
+    - added required-check handler:
+      - `ebnf_stimuli_quality_gate`
+    - updated default required-check list to include it.
+  - `rust/config/sota_exit_policy.env`
+    - promoted `ebnf_stimuli_quality_gate` into required aggregate SOTA checks.
+
+### Validation Results
+- `make -C rust ebnf_stimuli_quality_gate` ✅
+  - all contract grammars passed strict closed-loop checks.
+
+## 2026-02-20 - Phase L: Annotation Closed-Loop Stimuli Quality Gate
+### ✅ Achievement Summary
+Implemented and wired a strict closed-loop gate for annotation grammars that verifies the full stimuli/coverage/gap feedback loop end-to-end with deterministic stage-level invariants.
+
+### Scope of Changes
+- Added new gate script:
+  - `rust/scripts/annotation_stimuli_quality_gate.sh`
+  - enforces closed-loop flow for:
+    - `return_annotation`
+    - `semantic_annotation`
+  - staged flow:
+    1. baseline generation with parseability validation + coverage + gap report
+    2. gap-priority generation with merged coverage input
+    3. target-driven generation from baseline target plan
+    4. final gap recomputation with merged coverage
+  - stage-level hard checks include:
+    - artifact presence/non-empty validation,
+    - coverage metric consistency (`sample_attempts == sample_successes + sample_errors`),
+    - grammar-name alignment between inputs/coverage/gap artifacts,
+    - monotonic no-regression checks for attempts/successes/covered rules/covered branches,
+    - target-driven summary integrity (`resolved <= total`, total matches baseline target count),
+    - final actionable-target count must not regress vs baseline (`final_targets <= initial_targets`).
+
+- Updated Make wiring:
+  - `rust/Makefile`
+  - added target:
+    - `annotation_stimuli_quality_gate`
+  - integrated into:
+    - `annotation_contract_gate`
+  - updated help text.
+
+- Updated docs:
+  - `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `make -C rust annotation_stimuli_quality_gate` ✅
+  - return summary: `initial_targets=6 resolved=6 final_targets=0`
+  - semantic summary: `initial_targets=159 resolved=159 final_targets=0`
+- `make -C rust annotation_contract_gate` ✅ (includes the new gate)
+
+## 2026-02-20 - Phase K Follow-Up: SC-03 Tier-4 Routing/Strictness Gate Hardening
+### ✅ Achievement Summary
+Hardened SC-03 from routing foundation to gate-enforced Tier-4 contract by adding dedicated directive-routing/strict-policy contract slices and differential taxonomy parity checks.
+### Scope of Changes
+- Expanded typed directive capability taxonomy in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - promoted capability metadata to reflect active runtime steering surfaces (for example `precedence/associativity/priority/branch_policy/recover/sync/panic_until/range/enum/regex/len/constraint/requires/implies/coverage_target/critical_path`),
+  - added contract test:
+    - `directive_capability_matrix_reflects_runtime_surface`.
+- Added SC-03 shared semantic contract corpus:
+  - `rust/test_data/semantic_annotation/sc03_contract.json`
+  - includes named-directive routing cases for `sample`, `weight`, `recover`, `branch_policy`, `constraint`, `literal`, `example`.
+- Added dedicated SC-03 gate script:
+  - `rust/scripts/sc03_contract_gate.sh`
+  - gate covers:
+    - directive registry contract tests,
+    - unknown-directive warn/strict policy tests,
+    - strict warning-code selector tests,
+    - parser/stimuli transform/literal named-routing guard tests,
+    - bootstrap/generated `semantic_annotation_sc03_contract` suite runs,
+    - SC-03 differential taxonomy parity checks (`mismatched_cases == 0` + known-category integrity checks).
+- Updated gate wiring:
+  - `rust/Makefile`
+  - added `sc03_contract_gate` target,
+  - wired `sc03_contract_gate` into `annotation_contract_gate`,
+  - updated Make help text.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+  - `DEVELOPMENT_NOTES.md`
+### Validation Results
+- `make -C rust sc03_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-04 Tier-4 Contract Gate Promotion
 ### ✅ Achievement Summary
 Promoted SC-04 token-family steering from Tier-3 runtime baseline to Tier-4 gate-enforced contract with explicit semantic contract slices and differential taxonomy parity checks.

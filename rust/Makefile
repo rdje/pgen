@@ -231,8 +231,11 @@ help:
 	@echo "  ebnf_frontend_dual_run_gate - Strict Perl-vs-Rust EBNF frontend differential gate"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
+	@echo "  annotation_stimuli_quality_gate - Enforce strict closed-loop stimuli/coverage/gap checks (no-regression) for annotation grammars"
+	@echo "  ebnf_stimuli_quality_gate - Enforce strict closed-loop parser/stimuli quality checks for non-annotation tracked EBNFs"
 	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
+	@echo "  sc03_contract_gate - Enforce SC-03 directive routing + strict policy contract slices and differential taxonomy checks"
 	@echo "  sc04_contract_gate - Enforce SC-04 token steering Tier-4 contract slices + differential taxonomy checks"
 	@echo "  semantic_usage_gate - Enforce semantic-annotation leverage contract (parser/stimuli)"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
@@ -447,11 +450,19 @@ annotation_contract_gate:
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_builtin_contract
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract
 	@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate
+	@$(MAKE) -C $(RUST_DIR) sc03_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc04_contract_gate
 	@$(MAKE) -C $(RUST_DIR) return_parity_gate
 	@$(MAKE) -C $(RUST_DIR) semantic_usage_gate
 	@$(MAKE) -C $(RUST_DIR) annotation_robustness_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_stimuli_quality_gate
 	@echo "✅ Annotation normative contract gate passed."
+
+.PHONY: sc03_contract_gate
+sc03_contract_gate:
+	@echo "🧪 Running SC-03 directive routing contract gate..."
+	cd $(RUST_DIR) && ./scripts/sc03_contract_gate.sh
+	@echo "✅ SC-03 directive routing contract gate passed."
 
 .PHONY: sc04_contract_gate
 sc04_contract_gate:
@@ -464,6 +475,18 @@ annotation_robustness_gate:
 	@echo "🧪 Running annotation robustness gate..."
 	cd $(RUST_DIR) && ./scripts/annotation_robustness_gate.sh
 	@echo "✅ Annotation robustness gate passed."
+
+.PHONY: annotation_stimuli_quality_gate
+annotation_stimuli_quality_gate:
+	@echo "🧪 Running annotation stimuli quality gate..."
+	cd $(RUST_DIR) && ./scripts/annotation_stimuli_quality_gate.sh
+	@echo "✅ Annotation stimuli quality gate passed."
+
+.PHONY: ebnf_stimuli_quality_gate
+ebnf_stimuli_quality_gate:
+	@echo "🧪 Running non-annotation EBNF stimuli quality gate..."
+	cd $(RUST_DIR) && ./scripts/ebnf_stimuli_quality_gate.sh
+	@echo "✅ Non-annotation EBNF stimuli quality gate passed."
 
 .PHONY: annotation_nonbootstrap_e2e_gate
 annotation_nonbootstrap_e2e_gate:
