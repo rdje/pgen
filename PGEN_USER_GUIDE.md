@@ -351,6 +351,30 @@ make -C rust annotation_contract_gate
 4. Stimuli recovery fallback and recovery-focused mode contracts (`recovery_biased`, `near_sync_negative`).
 5. Bootstrap/generated SC-07 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-07 comparable corpus).
 
+#### 8.3.4 SC-09 Tier-4 Contract Gate
+
+SC-09 relational constraint behavior is gate-enforced.
+
+Contract corpus:
+- `rust/test_data/semantic_annotation/sc09_contract.json`
+
+Gate commands:
+```bash
+make -C rust sc09_contract_gate
+```
+
+Also included in:
+```bash
+make -C rust annotation_contract_gate
+```
+
+`sc09_contract_gate` enforces:
+1. Typed relational payload parser contracts (`@constraint/@requires/@implies`).
+2. Typed relational validator/coherence contracts (`W_SEM_INVALID_*` and `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT` behavior).
+3. Parser codegen/runtime relational guard contracts (policy extraction + helper/runtime guard surfaces).
+4. Stimuli relational steering contracts including nested structured/non-structured reference paths and ranked unsatisfiable diagnostics.
+5. Bootstrap/generated SC-09 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-09 comparable corpus).
+
 ### 8.4 Steering Behaviors Implemented Today
 
 #### A) Canonical transform steering (`@transform`)
@@ -1412,6 +1436,12 @@ Tracked baselines:
     - parser runtime recovery hook + structured telemetry contract checks,
     - stimuli recovery fallback and recovery-focused mode contract checks,
     - SC-07 bootstrap/generated contract slice + differential taxonomy parity checks
+- `sc09_contract_gate` (local gate target)
+  - SC-09 relational-constraint Tier-4 contract:
+    - typed relational payload/coherence validator contracts,
+    - parser relational policy/runtime guard contract checks,
+    - stimuli relational synthesis + unsatisfiable diagnostics contract checks,
+    - SC-09 bootstrap/generated contract slice + differential taxonomy parity checks
 - `annotation_robustness_gate` (local gate target)
   - advanced return/semantic suites in bootstrap/generated modes + generated parseability/coverage/gap checks
 - `annotation_stimuli_quality_gate` (local gate target)
@@ -1455,6 +1485,7 @@ Annotation contract/robustness commands:
 ```bash
 make -C rust SHELL=/bin/bash annotation_robustness_gate
 make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate
+make -C rust SHELL=/bin/bash sc09_contract_gate
 make -C rust SHELL=/bin/bash sc06_contract_gate
 make -C rust SHELL=/bin/bash sc07_contract_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate

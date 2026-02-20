@@ -1,0 +1,72 @@
+[
+  {
+    "name": "constraint_expression_basic",
+    "description": "SC-09 shared contract: constraint expression payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@constraint: \"$1 != $2\"",
+    "expected_round_trip": "@constraint: \"$1 != $2\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc09", "constraint"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "constraint_unquoted_expression",
+    "description": "SC-09 shared contract: unquoted relational expression payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@constraint: lhs.id != rhs.id",
+    "expected_round_trip": "@constraint: lhs.id != rhs.id",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc09", "constraint"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "requires_reference_list",
+    "description": "SC-09 shared contract: requires reference-list payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@requires: [\"$1\", \"lhs.id\", \"$2.meta\"]",
+    "expected_round_trip": "@requires: [\"$1\", \"lhs.id\", \"$2.meta\"]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc09", "requires"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "implies_expression_basic",
+    "description": "SC-09 shared contract: implication payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@implies: \"$1 => $2\"",
+    "expected_round_trip": "@implies: \"$1 => $2\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc09", "implies"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "implies_expression_named_paths",
+    "description": "SC-09 shared contract: implication payload with named nested paths remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@implies: lhs.ready => rhs.valid",
+    "expected_round_trip": "@implies: lhs.ready => rhs.valid",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc09", "implies"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

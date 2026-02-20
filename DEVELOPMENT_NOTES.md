@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Tier-4 Relational-Constraint Contract Gate Promotion
+### Context
+SC-09 (cross-field/cross-capture relational constraints) had strong parser/stimuli runtime behavior, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06/SC-07.
+
+That left a closure gap:
+- no SC-09 shared semantic contract corpus slice,
+- no dedicated differential taxonomy parity check scoped to SC-09,
+- no single gate-level enforcement for typed relational payload/coherence contracts plus parser/stimuli runtime relational behavior.
+
+### Implementation
+Primary files:
+- `rust/test_data/semantic_annotation/sc09_contract.json`
+- `rust/scripts/sc09_contract_gate.sh`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) SC-09 shared contract corpus
+- Added `semantic_annotation/sc09_contract.json`.
+- Corpus covers parseability of SC-09 directive payload forms in bootstrap/generated semantic parsers:
+  - `@constraint` quoted/unquoted relational expressions,
+  - `@requires` reference-list payload,
+  - `@implies` implication expressions.
+
+#### 2) Dedicated SC-09 gate
+- Added `rust/scripts/sc09_contract_gate.sh`.
+- Gate stages:
+  - typed relational payload parser contracts (`constraint/requires/implies` payload parsers),
+  - typed validator payload/coherence contracts (invalid payload diagnostics + missing-constraint coherence behavior),
+  - parser codegen/runtime relational contracts (`rule_relational_constraints` extraction, runtime guard injection, helper-surface contracts),
+  - stimuli runtime relational contracts (cross-capture filtering, implication enforcement, nested structured/non-structured path support, inactive-hint behavior, unsatisfiable diagnostics),
+  - bootstrap/generated SC-09 contract suite runs,
+  - SC-09 differential taxonomy parity assertions:
+    - known category set only,
+    - category total must equal `mismatched_cases`,
+    - SC-09 comparable corpus currently requires `mismatched_cases == 0`.
+
+#### 3) Gate wiring
+- Added `sc09_contract_gate` Make target.
+- Wired `sc09_contract_gate` into `annotation_contract_gate`.
+- Updated Make help text accordingly.
+
+### Validation
+- `make -C rust sc09_contract_gate`:
+  - pass.
+- `make -C rust annotation_contract_gate`:
+  - pass with SC-09 gate included.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Tier-4 Recovery/Sync Contract Gate Promotion
 ### Context
 SC-07 (error recovery and sync strategy) had parser/stimuli runtime coverage, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06.

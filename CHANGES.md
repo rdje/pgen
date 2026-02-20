@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Tier-4 Relational-Constraint Contract Gate Promotion
+### ✅ Achievement Summary
+Promoted SC-09 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-09 gate slice with typed relational validator/coherence checks, parser/stimuli relational runtime contracts, and differential taxonomy parity checks.
+
+### Scope of Changes
+- Added SC-09 semantic contract corpus:
+  - `rust/test_data/semantic_annotation/sc09_contract.json`
+  - includes shared bootstrap/generated parseability slices for:
+    - `@constraint`
+    - `@requires`
+    - `@implies`
+- Added dedicated SC-09 gate script:
+  - `rust/scripts/sc09_contract_gate.sh`
+  - enforces:
+    - typed relational payload parser contracts,
+    - typed relational validator/coherence contracts,
+    - parser codegen/runtime relational policy and guard contracts,
+    - stimuli relational synthesis contracts (nested structured/non-structured references + unsatisfiable diagnostics),
+    - bootstrap/generated SC-09 suite parity and differential taxonomy integrity (`mismatched_cases == 0`).
+- Updated gate wiring:
+  - `rust/Makefile`
+    - added target: `sc09_contract_gate`
+    - wired `sc09_contract_gate` into `annotation_contract_gate`
+    - updated help text.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` (SC-09 promoted to Tier 4)
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `make -C rust sc09_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-07 Tier-4 Recovery/Sync Contract Gate Promotion
 ### ✅ Achievement Summary
 Promoted SC-07 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-07 gate slice with typed recovery validator/coherence checks, parser/stimuli runtime recovery contracts, and differential taxonomy parity checks.
