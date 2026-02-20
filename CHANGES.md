@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: Strict Semantic Warning Promotion Policy Controls
+### ✅ Achievement Summary
+Added explicit strict warning-promotion controls so selected semantic warning diagnostics can be promoted to errors in strict mode without blanket warning escalation.
+### Scope of Changes
+- Updated validator policy surface in:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - extended `AnnotationValidatorConfig` with:
+    - `strict_semantic_warning_codes`
+  - added post-validation policy pass:
+    - `promote_configured_semantic_warnings(...)`
+  - promotion semantics:
+    - warning promotion applies only to semantic diagnostics,
+    - explicit code-list promotion,
+    - wildcard promotion with `*`.
+- Updated AST generator integration config in:
+  - `rust/src/ast_pipeline/ast_generator_direct.rs`
+  - added env-backed policy hook:
+    - `PGEN_STRICT_SEMANTIC_WARNING_CODES=<comma-separated-codes|all|none>`
+  - strict-default promotion profile (when strict validation is enabled and env policy is unset):
+    - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+    - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
+  - explicit override behavior:
+    - `all` -> wildcard promotion (`*`)
+    - `none` -> disable warning-code promotion.
+- Added validator regression tests in:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - `semantic_validator_promotes_selected_warning_codes_to_error`
+  - `semantic_validator_keeps_unselected_warning_codes_as_warning`
+  - `semantic_validator_promotes_all_semantic_warnings_with_wildcard`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_promotes_selected_warning_codes_to_error` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_keeps_unselected_warning_codes_as_warning` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_promotes_all_semantic_warnings_with_wildcard` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_invalid_recovery_payloads` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-10 Parser Runtime Instrumentation Hooks
 ### ✅ Achievement Summary
 Extended SC-10 beyond validator+stimuli steering by wiring parser runtime instrumentation hooks for `@coverage_target/@critical_path` into generated parsers.

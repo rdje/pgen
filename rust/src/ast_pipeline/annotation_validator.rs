@@ -87,6 +87,7 @@ pub struct AnnotationValidatorConfig {
     pub max_capture_index: Option<usize>,
     pub strict_semantic_transforms: bool,
     pub unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy,
+    pub strict_semantic_warning_codes: HashSet<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -133,6 +134,7 @@ impl AnnotationValidator {
             );
         }
 
+        self.promote_configured_semantic_warnings(&mut report);
         report
     }
 
@@ -1338,6 +1340,34 @@ impl AnnotationValidator {
         }
     }
 
+    fn promote_configured_semantic_warnings(&self, report: &mut AnnotationValidationReport) {
+        if self.config.strict_semantic_warning_codes.is_empty() {
+            return;
+        }
+
+        let promote_all = self
+            .config
+            .strict_semantic_warning_codes
+            .contains("*");
+        for diagnostic in &mut report.diagnostics {
+            if diagnostic.kind != AnnotationKind::Semantic
+                || diagnostic.severity != AnnotationSeverity::Warning
+            {
+                continue;
+            }
+
+            let normalized_code = diagnostic.code.to_ascii_uppercase();
+            if promote_all
+                || self
+                    .config
+                    .strict_semantic_warning_codes
+                    .contains(normalized_code.as_str())
+            {
+                diagnostic.severity = AnnotationSeverity::Error;
+            }
+        }
+    }
+
     fn top_level_branches<'a>(&self, rule_ast: &'a ASTNode) -> Vec<&'a ASTNode> {
         match rule_ast {
             ASTNode::Or { alternatives } => alternatives.iter().collect(),
@@ -1887,6 +1917,7 @@ mod tests {
             max_capture_index: None,
             strict_semantic_transforms: true,
             unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
+            strict_semantic_warning_codes: HashSet::new(),
         })
         .validate_annotations(&annotations);
 
@@ -1917,6 +1948,7 @@ mod tests {
             max_capture_index: None,
             strict_semantic_transforms: false,
             unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
+            strict_semantic_warning_codes: HashSet::new(),
         })
         .validate_annotations(&annotations);
 
@@ -1946,6 +1978,7 @@ mod tests {
             max_capture_index: None,
             strict_semantic_transforms: false,
             unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Strict,
+            strict_semantic_warning_codes: HashSet::new(),
         })
         .validate_annotations(&annotations);
 
@@ -1953,6 +1986,106 @@ mod tests {
         assert!(report.diagnostics.iter().any(
             |d| d.code == "W_SEM_UNKNOWN_DIRECTIVE" && d.severity == AnnotationSeverity::Error
         ));
+    }
+
+    #[test]
+    fn semantic_validator_promotes_selected_warning_codes_to_error() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "coverage_target".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"boost\"".to_string(),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::new(AnnotationValidatorConfig {
+            max_capture_index: None,
+            strict_semantic_transforms: false,
+            unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
+            strict_semantic_warning_codes: HashSet::from([
+                "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD".to_string(),
+            ]),
+        })
+        .validate_annotations(&annotations);
+
+        assert!(report.has_errors());
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD"
+                && d.severity == AnnotationSeverity::Error
+        }));
+    }
+
+    #[test]
+    fn semantic_validator_keeps_unselected_warning_codes_as_warning() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "coverage_target".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"boost\"".to_string(),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::new(AnnotationValidatorConfig {
+            max_capture_index: None,
+            strict_semantic_transforms: false,
+            unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
+            strict_semantic_warning_codes: HashSet::from([
+                "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD".to_string(),
+            ]),
+        })
+        .validate_annotations(&annotations);
+
+        assert!(!report.has_errors());
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD"
+                && d.severity == AnnotationSeverity::Warning
+        }));
+    }
+
+    #[test]
+    fn semantic_validator_promotes_all_semantic_warnings_with_wildcard() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "coverage_target".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"boost\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "critical_path".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"urgent\"".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::new(AnnotationValidatorConfig {
+            max_capture_index: None,
+            strict_semantic_transforms: false,
+            unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
+            strict_semantic_warning_codes: HashSet::from(["*".to_string()]),
+        })
+        .validate_annotations(&annotations);
+
+        assert!(report.has_errors());
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD"
+                && d.severity == AnnotationSeverity::Error
+        }));
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD"
+                && d.severity == AnnotationSeverity::Error
+        }));
     }
 
     #[test]
@@ -1971,6 +2104,7 @@ mod tests {
             max_capture_index: Some(3),
             strict_semantic_transforms: false,
             unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
+            strict_semantic_warning_codes: HashSet::new(),
         })
         .validate_annotations(&annotations);
 

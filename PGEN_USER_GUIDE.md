@@ -254,6 +254,14 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `PGEN_UNKNOWN_SEMANTIC_DIRECTIVE_POLICY=ignore|warn|strict` (default `warn`).
   - `warn`: emits `W_SEM_UNKNOWN_DIRECTIVE`.
   - `strict`: promotes unknown directive to `error`.
+- Strict warning-promotion policy is explicit:
+  - `PGEN_STRICT_SEMANTIC_WARNING_CODES=<comma-separated-codes|all|none>`
+  - applies when strict annotation validation is enabled (`CI` default, or `PGEN_STRICT_ANNOTATION_VALIDATION=1`),
+  - `all` (or `*`) promotes all semantic warning-class diagnostics to errors,
+  - `none` disables warning-code promotion while keeping strict validation enabled.
+- Strict default warning promotions (when strict validation is enabled and no explicit warning policy is set):
+  - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+  - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
 - Directive routing is name-aware:
   - transform steering is only active for directive `transform`,
   - raw literal hint steering is only active for literal/sample directive family in named mode.
@@ -885,7 +893,7 @@ pair = ident ":" ident ;
 #### 8.13.3 Deterministic Contract Notes
 
 - Same-directive duplicates are still last-wins (`W_SEM_DIRECTIVE_OVERRIDDEN`).
-- Strict mode promotes these warning-class diagnostics to errors, same as other semantic contracts.
+- Strict mode warning-class promotion is policy-controlled via `PGEN_STRICT_SEMANTIC_WARNING_CODES`.
 - Runtime parser enforcement activates only when `@constraint` is present:
   - `@requires` references must resolve and be non-empty.
   - `@constraint` expression is evaluated against capture/reference values.
@@ -931,6 +939,7 @@ Current stage:
 - typed validator contract is active,
 - stimuli coverage/gap steering baseline is active,
 - parser instrumentation baseline from SC-10 hints is active.
+- strict warning policy default promotes malformed SC-10 payload diagnostics to errors when strict validation is enabled.
 
 #### 8.14.1 Payload Forms
 

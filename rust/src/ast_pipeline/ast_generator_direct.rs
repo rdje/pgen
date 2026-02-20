@@ -8,7 +8,7 @@ use crate::ast_pipeline::{
     ast_based_generator::AstBasedGenerator,
 };
 use anyhow::{Context, Result};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Direct integration point for AST-based parser generation
 pub struct AstGeneratorIntegration {
@@ -66,6 +66,7 @@ pub fn generate_parser_ast_based(
             max_capture_index: None,
             strict_semantic_transforms: strict_validation,
             unknown_semantic_directive_policy: unknown_semantic_directive_policy(),
+            strict_semantic_warning_codes: strict_semantic_warning_codes(strict_validation),
         });
         let validation_report = validator.validate_annotations_with_grammar(annotations, grammar);
 
@@ -148,6 +149,33 @@ fn unknown_semantic_directive_policy() -> UnknownSemanticDirectivePolicy {
         .ok()
         .and_then(|raw| UnknownSemanticDirectivePolicy::parse(&raw))
         .unwrap_or_default()
+}
+
+fn strict_semantic_warning_codes(strict_validation: bool) -> HashSet<String> {
+    if let Ok(raw) = std::env::var("PGEN_STRICT_SEMANTIC_WARNING_CODES") {
+        let mut codes = HashSet::new();
+        for token in raw.split(',') {
+            let normalized = token.trim().to_ascii_uppercase();
+            if normalized.is_empty() || normalized == "NONE" {
+                continue;
+            }
+            if normalized == "ALL" {
+                codes.insert("*".to_string());
+                continue;
+            }
+            codes.insert(normalized);
+        }
+        return codes;
+    }
+
+    if strict_validation {
+        return HashSet::from([
+            "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD".to_string(),
+            "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD".to_string(),
+        ]);
+    }
+
+    HashSet::new()
 }
 
 fn parse_bool_env(var_name: &str) -> Option<bool> {

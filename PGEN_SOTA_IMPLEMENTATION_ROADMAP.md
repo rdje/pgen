@@ -116,6 +116,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Harden SC-09 stimuli nested reference synthesis for non-structured object-like captures (`=/:` pairs, wrapper-aware parsing, dotted-key path materialization).
 - [x] Start SC-10 typed semantic coverage-target hinting (`@coverage_target/@critical_path`) with validator contracts and stimuli coverage/gap steering integration.
 - [x] Extend SC-10 to parser runtime instrumentation hooks (`CoverageTargetEvent`, selected-branch tagging, rule/branch hit counters + accessors) while keeping built-in behavior minimal/invariant-only.
+- [x] Promote selected semantic warning diagnostics to strict-mode errors under explicit policy controls (`PGEN_STRICT_SEMANTIC_WARNING_CODES`) with bootstrap-compatible defaults.
 
 ## Current Sprint: Pillar 1
 
@@ -189,3 +190,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Hardened SC-09 stimuli nested-path resolution for non-structured object-like captures by adding wrapper-aware loose key/value parsing (`=/:`, `,`/`;`/newline delimiters), dotted-key materialization (for example `meta.id=AA`), and semantic usage regression coverage for named/positional non-structured relational references.
 - 2026-02-20: Started SC-10 semantic coverage-target steering baseline by adding typed parser helpers and validator contracts for `@coverage_target/@critical_path` (including coherence warning `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`), and wiring stimuli branch guidance + gap-report/target priority bonuses from semantic coverage hints.
 - 2026-02-20: Extended SC-10 to parser runtime instrumentation baseline by wiring generated-parser coverage-target hooks (`record_coverage_target_event`), selected-branch tagging for OR rules, typed event surface (`CoverageTargetEvent`), and parser accessors/counters (`coverage_target_events`, `take_coverage_target_events`, `coverage_target_rule_hits`, `coverage_target_branch_hits`).
+- 2026-02-20: Added strict semantic warning promotion policy controls in validator/codegen (`PGEN_STRICT_SEMANTIC_WARNING_CODES`) with targeted strict-default escalations for malformed SC-10 payload diagnostics (`W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`, `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`), plus wildcard/all/none policy overrides and regression tests.

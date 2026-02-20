@@ -89,8 +89,8 @@ Required quality bar:
 4. Any temporary mismatch must be explicitly tracked in differential baselines with closure plan.
 
 ## Next Implementation Focus (Recommended)
-1. Define policy for promoting selected semantic warnings to strict-mode errors without harming bootstrap compatibility.
-2. Promote selected semantic warnings to strict-mode errors under explicit policy controls that preserve bootstrap compatibility.
+1. Start `SC-11` negative-case semantic steering (`@invalid_case/@negative`) with typed validator contracts and parser/stimuli baseline behavior.
+2. Start `SC-12` determinism partitioning hints (`@seed_group/@deterministic_group`) with deterministic seed partition routing contract.
 
 ## Priority Queue (Balance-Oriented)
 - `P0` Keep built-in core minimal and invariant-only (correctness/safety/return completeness).
@@ -102,4 +102,5 @@ Required quality bar:
 - `P1` Promote `SC-09` to stimuli runtime relational synthesis steering baseline. (Completed 2026-02-20)
 - `P1` Start `SC-10` typed coverage-target semantic hinting (`@coverage_target/@critical_path`) with validator contracts and stimuli coverage/gap steering integration. (Completed 2026-02-20)
 - `P1` Extend `SC-10` to parser runtime instrumentation hooks (`CoverageTargetEvent`, selected-branch tagging, rule/branch hit counters + accessors). (Completed 2026-02-20)
+- `P1` Promote selected semantic warnings to strict-mode errors under explicit policy controls (`PGEN_STRICT_SEMANTIC_WARNING_CODES`) with strict-default SC-10 invalid payload escalations. (Completed 2026-02-20)
 - `P1` Drive return differential mismatch debt to zero and tighten release gate criteria.

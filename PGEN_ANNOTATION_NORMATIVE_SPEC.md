@@ -191,7 +191,13 @@ Current stable diagnostic codes include:
   - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`
 
 Strict mode behavior:
-- Semantic warning-class checks are promoted to errors when strict mode is enabled.
+- Strict mode warning promotion is policy-controlled, not blanket:
+  - `PGEN_STRICT_SEMANTIC_WARNING_CODES=<comma-separated-codes|all|none>`
+  - `all` (or `*`) promotes all semantic warning-class diagnostics to errors,
+  - `none` disables strict warning promotions while keeping strict mode enabled for existing error-class checks.
+- Strict default profile (when strict mode is enabled and no explicit warning policy is provided):
+  - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+  - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
 - CI/fixed-point paths are expected to run with strict validation enabled.
 
 Source contract reference:

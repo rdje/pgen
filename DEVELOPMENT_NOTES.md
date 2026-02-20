@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: Strict Semantic Warning Promotion Policy Controls
+### Context
+Strict annotation validation previously had two coarse behaviors:
+- non-canonical transform checks could be promoted via `strict_semantic_transforms`,
+- unknown semantic directives could be policy-promoted via `ignore|warn|strict`.
+
+There was no explicit policy to promote selected semantic warning diagnostics (by code) to error severity while preserving compatibility for other warning-class checks.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/ast_pipeline/ast_generator_direct.rs`
+
+#### 1) Validator-side promotion policy
+- Extended `AnnotationValidatorConfig`:
+  - `strict_semantic_warning_codes: HashSet<String>`
+- Added post-validation severity promotion pass:
+  - `promote_configured_semantic_warnings(...)`
+- Promotion contract:
+  - applies only to semantic diagnostics currently at warning severity,
+  - code-list match promotes warning -> error,
+  - wildcard (`*`) promotes all semantic warning diagnostics.
+
+#### 2) Generator integration + env policy control
+- Added strict warning policy parsing in AST generator integration:
+  - `PGEN_STRICT_SEMANTIC_WARNING_CODES=<comma-separated-codes|all|none>`
+- Policy behavior:
+  - `all` -> wildcard promotion (`*`)
+  - `none` -> no warning promotion
+  - code list -> selected warning-code promotion
+- Strict default profile when strict annotation validation is enabled and no explicit warning policy is set:
+  - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+  - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
+- This keeps strict mode actionable for malformed SC-10 payloads while avoiding blanket semantic warning escalation.
+
+#### 3) Regression tests
+- Added validator coverage:
+  - `semantic_validator_promotes_selected_warning_codes_to_error`
+  - `semantic_validator_keeps_unselected_warning_codes_as_warning`
+  - `semantic_validator_promotes_all_semantic_warnings_with_wildcard`
+- Verified existing warning contracts remain unchanged when promotion is not selected:
+  - `semantic_validator_warns_on_invalid_recovery_payloads`
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_promotes_selected_warning_codes_to_error`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_keeps_unselected_warning_codes_as_warning`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_promotes_all_semantic_warnings_with_wildcard`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_invalid_recovery_payloads`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-10 Parser Runtime Instrumentation Hooks
 ### Context
 SC-10 baseline had typed validator contracts and stimuli steering, but parser runtime still ignored coverage-target semantic intent.
