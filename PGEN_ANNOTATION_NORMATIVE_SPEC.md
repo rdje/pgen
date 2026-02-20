@@ -110,6 +110,22 @@ Normative runtime leverage behavior for semantic annotations:
     - `longest_match` (default),
     - `ordered`,
     - `priority_first`.
+  - SC-06 branch weighting/selection Tier-4 contract:
+    - branch-policy payload validation:
+      - invalid payloads must emit `W_SEM_INVALID_BRANCH_POLICY_PAYLOAD`,
+      - valid payloads (`longest_match|ordered|priority_first`) must not emit that diagnostic.
+    - parser/stimuli runtime contracts:
+      - parser codegen resolves effective branch policy from typed semantic directives,
+      - stimuli branch-policy selection behavior is exercised for `ordered` and `priority_first`,
+      - weighted-probability sampling remains deterministic under fixed seed and has explicit fallback behavior when probabilities are omitted.
+    - dedicated shared semantic contract slice:
+      - `rust/test_data/semantic_annotation/sc06_contract.json`
+    - dedicated gate target:
+      - `make -C rust sc06_contract_gate`
+    - gate includes differential mismatch taxonomy parity checks over the SC-06 suite:
+      - allowed mismatch categories are constrained to the differential taxonomy set,
+      - category-count totals must match `mismatched_cases`,
+      - SC-06 comparable corpus currently requires `mismatched_cases == 0`.
   - `@token_class/@charset/@pattern` token steering baseline:
     - directives are typed/validated by the annotation validator,
     - payload forms:
@@ -345,6 +361,8 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/semantic_annotation/normative_shared_contract.json`
 - SC-03 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc03_contract.json`
+- SC-06 shared semantic contract suite:
+  - `rust/test_data/semantic_annotation/sc06_contract.json`
 - SC-04 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc04_contract.json`
 - Semantic leverage usage suite:
@@ -352,6 +370,7 @@ Normative contract checks are executable, not only documented:
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust sc06_contract_gate`
   - `make -C rust sc03_contract_gate`
   - `make -C rust sc04_contract_gate`
   - `make -C rust semantic_usage_gate`
@@ -363,6 +382,7 @@ The gate runs:
 - bootstrap semantic contract suite
 - shared return contract suite (bootstrap + generated)
 - shared semantic contract suite (bootstrap + generated)
+- SC-06 semantic contract slice + differential taxonomy parity check
 - SC-03 semantic contract slice + differential taxonomy parity check
 - SC-04 semantic contract slice + differential taxonomy parity check
 - semantic leverage unit contract suite (parser + stimuli)

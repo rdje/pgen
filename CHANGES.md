@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-06 Tier-4 Branch Weighting/Selection Contract Gate Promotion
+### ✅ Achievement Summary
+Promoted SC-06 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-06 gate slice with parser/stimuli branch-selection runtime checks and differential taxonomy parity checks.
+
+### Scope of Changes
+- Added SC-06 semantic contract corpus:
+  - `rust/test_data/semantic_annotation/sc06_contract.json`
+  - includes shared bootstrap/generated parseability slices for:
+    - `@branch_policy: ordered`
+    - `@branch_policy: priority_first`
+    - `@branch_policy: longest_match`
+    - `@weight` numeric payload forms.
+- Added dedicated SC-06 gate script:
+  - `rust/scripts/sc06_contract_gate.sh`
+  - enforces:
+    - typed branch-policy parser/validator contracts,
+    - parser codegen branch-policy routing contracts,
+    - stimuli branch-policy runtime contracts (`ordered`, `priority_first`),
+    - weighted-probability determinism/fallback contracts,
+    - bootstrap/generated SC-06 suite parity and differential taxonomy integrity (`mismatched_cases == 0`).
+- Expanded validator/registry unit coverage:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+    - added explicit branch-policy valid/invalid payload tests.
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+    - extended capability matrix contract assertion to include `weight`.
+- Updated gate wiring:
+  - `rust/Makefile`
+    - added target: `sc06_contract_gate`
+    - wired `sc06_contract_gate` into `annotation_contract_gate`
+    - updated help text.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` (SC-06 promoted to Tier 4)
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `make -C rust sc06_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase M: Non-Annotation EBNF Closed-Loop Quality Gate (Second Loop)
 ### ✅ Achievement Summary
 Implemented a second strict closed-loop gate for non-annotation EBNFs so quality enforcement is split into two independent loops:

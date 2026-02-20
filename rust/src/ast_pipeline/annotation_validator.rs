@@ -2891,6 +2891,64 @@ mod tests {
     }
 
     #[test]
+    fn semantic_validator_warns_on_invalid_branch_policy_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "branch_policy".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "\"diagonal\"".to_string(),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_accepts_valid_branch_policy_payloads() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "branch_policy".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "ordered".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "branch_policy".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "priority_first".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "branch_policy".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "longest_match".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD")
+        );
+    }
+
+    #[test]
     fn semantic_validator_warns_when_recover_budget_present_without_recover() {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(

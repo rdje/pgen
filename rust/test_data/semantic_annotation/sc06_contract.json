@@ -1,0 +1,72 @@
+[
+  {
+    "name": "branch_policy_ordered",
+    "description": "SC-06 shared contract: ordered branch policy payload must parse in bootstrap and generated semantic parsers.",
+    "input": "@branch_policy: ordered",
+    "expected_round_trip": "@branch_policy: ordered",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc06", "branch_policy"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "branch_policy_priority_first",
+    "description": "SC-06 shared contract: priority_first branch policy payload must parse in bootstrap and generated semantic parsers.",
+    "input": "@branch_policy: priority_first",
+    "expected_round_trip": "@branch_policy: priority_first",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc06", "branch_policy"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "branch_policy_longest_match",
+    "description": "SC-06 shared contract: longest_match branch policy payload must parse in bootstrap and generated semantic parsers.",
+    "input": "@branch_policy: longest_match",
+    "expected_round_trip": "@branch_policy: longest_match",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc06", "branch_policy"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "weight_integer",
+    "description": "SC-06 shared contract: weight numeric payload remains parseable for branch weighting policy routing.",
+    "input": "@weight: 3",
+    "expected_round_trip": "@weight: 3",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc06", "weight"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "weight_decimal",
+    "description": "SC-06 shared contract: weight decimal payload remains parseable for branch weighting policy routing.",
+    "input": "@weight: 0.75",
+    "expected_round_trip": "@weight: 0.75",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc06", "weight"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

@@ -1,4 +1,63 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-06 Tier-4 Branch Weighting/Selection Contract Gate Promotion
+### Context
+SC-06 (branch weighting and selection policy) had runtime baseline behavior but no dedicated Tier-4 contract gate slice equivalent to SC-03/SC-04.
+
+That left a closure gap:
+- no SC-06 shared semantic contract corpus slice,
+- no dedicated differential taxonomy parity check scoped to SC-06,
+- no explicit gate-level enforcement of branch-policy payload validity and branch-selection runtime contracts.
+
+### Implementation
+Primary files:
+- `rust/test_data/semantic_annotation/sc06_contract.json`
+- `rust/scripts/sc06_contract_gate.sh`
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) SC-06 shared contract corpus
+- Added `semantic_annotation/sc06_contract.json`.
+- Corpus covers parseability of branch-selection controls and weight forms in bootstrap/generated semantic parsers:
+  - `@branch_policy: ordered`
+  - `@branch_policy: priority_first`
+  - `@branch_policy: longest_match`
+  - `@weight` numeric payloads.
+
+#### 2) Dedicated SC-06 gate
+- Added `rust/scripts/sc06_contract_gate.sh`.
+- Gate stages:
+  - typed directive parser and capability matrix checks,
+  - branch-policy validator contracts (invalid payload warning + valid payload acceptance),
+  - parser/stimuli branch-selection runtime tests,
+  - weighted-probability determinism/fallback tests,
+  - bootstrap/generated SC-06 round-trip suite runs,
+  - SC-06 differential taxonomy parity assertions:
+    - known category set only,
+    - category total must equal `mismatched_cases`,
+    - SC-06 comparable corpus currently requires `mismatched_cases == 0`.
+
+#### 3) Validator and registry contract hardening
+- Added explicit annotation validator tests:
+  - `semantic_validator_warns_on_invalid_branch_policy_payload`
+  - `semantic_validator_accepts_valid_branch_policy_payloads`
+- Extended directive capability matrix test to include `weight` capability assertion.
+
+#### 4) Gate wiring
+- Added `sc06_contract_gate` Make target.
+- Wired `sc06_contract_gate` into `annotation_contract_gate`.
+- Updated help text accordingly.
+
+### Validation
+- `make -C rust sc06_contract_gate`:
+  - pass.
+- `make -C rust annotation_contract_gate`:
+  - pass with SC-06 gate included.
+
 ## 2026-02-20 - Phase M: Non-Annotation EBNF Closed-Loop Quality Gate (Second Loop)
 ### Context
 Quality closure was previously strongest for annotation grammars only.

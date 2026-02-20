@@ -242,7 +242,7 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
     },
     SemanticDirectiveSpec {
         name: "weight",
-        capability: SemanticDirectiveCapability::ParsedOnly,
+        capability: SemanticDirectiveCapability::StimuliSteering,
     },
     SemanticDirectiveSpec {
         name: "branch_policy",
@@ -1052,6 +1052,10 @@ mod tests {
         );
         assert_eq!(
             semantic_directive_spec("sample").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::StimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("weight").map(|s| s.capability),
             Some(SemanticDirectiveCapability::StimuliSteering)
         );
         assert_eq!(

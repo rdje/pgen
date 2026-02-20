@@ -303,6 +303,30 @@ make -C rust annotation_contract_gate
 4. Parser/stimuli name-aware transform/literal routing guard tests.
 5. Bootstrap/generated SC-03 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-03 comparable corpus).
 
+#### 8.3.2 SC-06 Tier-4 Contract Gate
+
+SC-06 branch weighting/selection behavior is gate-enforced.
+
+Contract corpus:
+- `rust/test_data/semantic_annotation/sc06_contract.json`
+
+Gate commands:
+```bash
+make -C rust sc06_contract_gate
+```
+
+Also included in:
+```bash
+make -C rust annotation_contract_gate
+```
+
+`sc06_contract_gate` enforces:
+1. Typed branch-policy payload contracts (`W_SEM_INVALID_BRANCH_POLICY_PAYLOAD` + valid payload acceptance).
+2. Parser codegen branch-policy routing contract coverage.
+3. Stimuli branch-selection behavior for `ordered` and `priority_first`.
+4. Weighted-probability deterministic sampling and equal-weight fallback contracts.
+5. Bootstrap/generated SC-06 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-06 comparable corpus).
+
 ### 8.4 Steering Behaviors Implemented Today
 
 #### A) Canonical transform steering (`@transform`)
@@ -1352,6 +1376,12 @@ Tracked baselines:
   - prints the tracked machine policy consumed by `sota_exit_gate`
 - `annotation_contract_gate` (local gate target)
   - validator + built-in/shared contracts + semantic leverage + advanced robustness checks
+- `sc06_contract_gate` (local gate target)
+  - SC-06 branch weighting/selection Tier-4 contract:
+    - typed branch-policy payload validation contracts,
+    - parser/stimuli branch-selection runtime tests,
+    - weighted-probability determinism/fallback tests,
+    - SC-06 bootstrap/generated contract slice + differential taxonomy parity checks
 - `annotation_robustness_gate` (local gate target)
   - advanced return/semantic suites in bootstrap/generated modes + generated parseability/coverage/gap checks
 - `annotation_stimuli_quality_gate` (local gate target)
@@ -1395,6 +1425,7 @@ Annotation contract/robustness commands:
 ```bash
 make -C rust SHELL=/bin/bash annotation_robustness_gate
 make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate
+make -C rust SHELL=/bin/bash sc06_contract_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
 make -C rust SHELL=/bin/bash return_parity_gate
 ```
