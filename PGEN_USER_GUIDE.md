@@ -337,7 +337,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Current stage:
   - typed validator contract is implemented,
   - stimuli coverage/gap steering baseline (`Tier 3` coverage pipeline) is implemented,
-  - parser instrumentation behavior is pending follow-on hardening.
+  - parser runtime instrumentation baseline is implemented (`CoverageTargetEvent` + rule/branch hit counters).
 - Payload expectations:
   - `@coverage_target`: non-negative integer or boolean payload (for example `3`, `true`, `false`).
   - `@critical_path`: boolean payload (for example `true`/`false`).
@@ -351,6 +351,16 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - branch guidance multipliers are boosted for SC-10-tagged rules,
   - branches referencing SC-10-tagged rules are also boosted,
   - gap-report target priorities include semantic SC-10 bonus scores for rule and branch debt ordering.
+- Parser instrumentation behavior:
+  - successful targeted-rule parses emit `CoverageTargetEvent`,
+  - OR rules tag selected branch index in the event,
+  - generated parser exposes:
+    - `coverage_target_events()`
+    - `take_coverage_target_events()`
+    - `coverage_target_event_count()`
+    - `coverage_target_rule_hits()`
+    - `coverage_target_branch_hits()`
+  - instrumentation is inactive when effective `@coverage_target` weight is zero.
 
 ### 8.5 Parser Runtime Contract for Value-Domain Directives
 - Value-domain guards are injected into generated parser code for relevant atom token paths:
@@ -478,7 +488,7 @@ expr = additive | multiplicative ;
 - Current behavior:
   - validator enforces typed payloads and coherence warnings,
   - stimuli branch exploration and gap-report priority ordering are boosted for this rule,
-  - parser instrumentation hooks are follow-on work.
+  - generated parser records SC-10 events/counters for this rule and selected branches.
 
 #### Example: Relational contract baseline (validator + parser runtime)
 ```ebnf
@@ -535,7 +545,10 @@ stmt = declaration | assignment ;
 - Stimuli behavior in this stage:
   - when all OR branches fail and effective `@recover` is truthy, fallback samples can be emitted from recovery markers,
   - marker preference is deterministic: first non-empty `@panic_until` token, then first non-empty `@sync` token,
-  - dedicated recovery-focused negative-case generation modes remain follow-on work.
+  - dedicated recovery-focused negative-case generation modes are available:
+    - `baseline`
+    - `recovery_biased`
+    - `near_sync_negative`
 
 ### 8.9 Gate/Test Coverage for Semantic Steering
 - `make -C rust semantic_usage_gate`
@@ -908,7 +921,7 @@ Expected behavior:
 - stimuli retries sequence synthesis until constraint holds,
 - emitted samples satisfy the contract (for example `{"id":"AA"}|{"id":"BB"}`).
 
-### 8.14 SC-10 Coverage-Target Steering Contract (Validator + Stimuli Baseline)
+### 8.14 SC-10 Coverage-Target Steering Contract (Validator + Parser + Stimuli Baseline)
 
 This section focuses on:
 - `@coverage_target`
@@ -917,7 +930,7 @@ This section focuses on:
 Current stage:
 - typed validator contract is active,
 - stimuli coverage/gap steering baseline is active,
-- parser instrumentation from SC-10 hints is follow-on.
+- parser instrumentation baseline from SC-10 hints is active.
 
 #### 8.14.1 Payload Forms
 
@@ -953,6 +966,23 @@ expr = atom ;
 - Branches in tagged rules and branches referencing tagged rules receive higher exploration pressure.
 - Gap-report rule/branch priority scores include SC-10 semantic bonuses.
 - This affects target ordering for gap-driven injection without changing grammar semantics.
+
+#### 8.14.4 Parser Instrumentation Behavior
+
+- Successful parses on effective SC-10 rules emit `CoverageTargetEvent` with:
+  - `rule_name`
+  - `parse_start`
+  - `parse_end`
+  - `branch_index` (for OR rules)
+  - `coverage_target_weight`
+  - `critical_path`
+- Accessors available on generated parsers:
+  - `coverage_target_events()`
+  - `take_coverage_target_events()`
+  - `coverage_target_event_count()`
+  - `coverage_target_rule_hits()`
+  - `coverage_target_branch_hits()`
+- Instrumentation remains inactive when effective `@coverage_target` weight is zero.
 
 ## 9) Differential Testing and Drift Management
 

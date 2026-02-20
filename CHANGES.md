@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-10 Parser Runtime Instrumentation Hooks
+### ✅ Achievement Summary
+Extended SC-10 beyond validator+stimuli steering by wiring parser runtime instrumentation hooks for `@coverage_target/@critical_path` into generated parsers.
+### Scope of Changes
+- Updated parser codegen in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - added typed SC-10 policy extraction for parser codegen:
+    - `rule_coverage_target_policy(...)`
+  - added generated parser instrumentation event type:
+    - `CoverageTargetEvent` (`rule_name`, `parse_start`, `parse_end`, `branch_index`, `coverage_target_weight`, `critical_path`)
+  - added generated parser instrumentation storage/counters:
+    - `coverage_target_events`
+    - `coverage_target_rule_hits`
+    - `coverage_target_branch_hits`
+  - added generated parser accessors:
+    - `coverage_target_events()`
+    - `take_coverage_target_events()`
+    - `coverage_target_event_count()`
+    - `coverage_target_rule_hits()`
+    - `coverage_target_branch_hits()`
+  - wired rule-method runtime hook:
+    - `record_coverage_target_event(...)` invoked on successful rule parses
+  - wired OR-branch selected-index tagging:
+    - selected branch index is propagated into SC-10 events for multi-branch rules.
+  - instrumentation activation contract:
+    - remains inactive when effective `@coverage_target` weight is zero.
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_extracts_coverage_target_policy` ✅
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_emits_coverage_target_types_and_accessors` ✅
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_emits_coverage_target_runtime_hooks_for_rules` ✅
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_records_coverage_target_events_in_helper_methods` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-10 Coverage-Target Semantic Steering Baseline
 ### ✅ Achievement Summary
 Started SC-10 by making `@coverage_target/@critical_path` typed and validator-enforced, then wiring those hints into stimuli coverage/gap steering for rule and branch prioritization.

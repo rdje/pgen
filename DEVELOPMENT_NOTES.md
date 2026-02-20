@@ -1,4 +1,76 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-10 Parser Runtime Instrumentation Hooks
+### Context
+SC-10 baseline had typed validator contracts and stimuli steering, but parser runtime still ignored coverage-target semantic intent.
+
+That left observability asymmetric:
+- stimuli coverage/gap flow honored `@coverage_target/@critical_path`,
+- generated parsers had no machine-readable SC-10 event/counter surface,
+- branch-level parser behavior could not be correlated with semantic coverage-target contracts.
+
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+#### 1) Typed SC-10 policy extraction for parser codegen
+- Added `SemanticCoverageTargetPolicy` and `rule_coverage_target_policy(...)`.
+- Policy extraction behavior:
+  - reads named semantic directives from rule annotations,
+  - `coverage_target` -> `parse_semantic_coverage_target_weight(...)`,
+  - `critical_path` -> `parse_semantic_bool(...)`,
+  - keeps deterministic last-wins behavior consistent with existing semantic directive policy extraction.
+
+#### 2) Generated parser instrumentation surface
+- Added generated type:
+  - `CoverageTargetEvent`
+  - fields:
+    - `rule_name`
+    - `parse_start`
+    - `parse_end`
+    - `branch_index`
+    - `coverage_target_weight`
+    - `critical_path`
+- Added parser state:
+  - `coverage_target_events: Vec<CoverageTargetEvent>`
+  - `coverage_target_rule_hits: HashMap<String, usize>`
+  - `coverage_target_branch_hits: HashMap<String, usize>`
+- Added parser accessors:
+  - `coverage_target_events()`
+  - `take_coverage_target_events()`
+  - `coverage_target_event_count()`
+  - `coverage_target_rule_hits()`
+  - `coverage_target_branch_hits()`
+
+#### 3) Runtime hook wiring
+- Added helper:
+  - `record_coverage_target_event(...)`
+  - emits event + updates counters on successful targeted-rule parses.
+- Rule-method integration:
+  - successful parse paths call `record_coverage_target_event(...)` with typed SC-10 payloads.
+- OR-branch integration:
+  - selected branch index is captured and propagated to SC-10 events (`semantic_selected_branch_index`).
+- Activation guard:
+  - instrumentation remains inactive when effective `coverage_target_weight == 0`.
+
+#### 4) Regression coverage
+- Added semantic usage tests:
+  - `semantic_usage_codegen_extracts_coverage_target_policy`
+  - `semantic_usage_codegen_emits_coverage_target_types_and_accessors`
+  - `semantic_usage_codegen_emits_coverage_target_runtime_hooks_for_rules`
+  - `semantic_usage_codegen_records_coverage_target_events_in_helper_methods`
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_extracts_coverage_target_policy`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_emits_coverage_target_types_and_accessors`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_emits_coverage_target_runtime_hooks_for_rules`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_records_coverage_target_events_in_helper_methods`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-10 Coverage-Target Semantic Steering Baseline
 ### Context
 SC-10 (`@coverage_target`, `@critical_path`) existed as parsed-only directives and had no typed payload validation or runtime effect in stimuli coverage steering.
@@ -56,7 +128,7 @@ Primary files:
   - typed SC-10 payload/coherence validator contracts,
   - stimuli-side semantic coverage steering baseline.
 - Not yet completed:
-  - parser instrumentation behavior based on SC-10 hints (explicitly tracked as follow-on).
+  - parser instrumentation behavior based on SC-10 hints (completed later in the follow-up section above: "SC-10 Parser Runtime Instrumentation Hooks").
 
 ### Validation
 - `cargo test --manifest-path rust/Cargo.toml parses_semantic_coverage_target_weights`

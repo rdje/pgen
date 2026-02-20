@@ -115,6 +115,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Harden SC-09 stimuli retry exhaustion diagnostics with ranked unsatisfiable-contract reporting (`relational_failures`, `generation_failures`, `top_violations`, `likely_unsatisfiable`).
 - [x] Harden SC-09 stimuli nested reference synthesis for non-structured object-like captures (`=/:` pairs, wrapper-aware parsing, dotted-key path materialization).
 - [x] Start SC-10 typed semantic coverage-target hinting (`@coverage_target/@critical_path`) with validator contracts and stimuli coverage/gap steering integration.
+- [x] Extend SC-10 to parser runtime instrumentation hooks (`CoverageTargetEvent`, selected-branch tagging, rule/branch hit counters + accessors) while keeping built-in behavior minimal/invariant-only.
 
 ## Current Sprint: Pillar 1
 
@@ -187,3 +188,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Hardened SC-09 retry-exhaustion diagnostics in stimuli synthesis by adding aggregated relational failure reporting (`relational_failures`, `generation_failures`, ranked `top_violations`, and `likely_unsatisfiable` flag) plus semantic usage regression coverage for unsatisfiable contracts.
 - 2026-02-20: Hardened SC-09 stimuli nested-path resolution for non-structured object-like captures by adding wrapper-aware loose key/value parsing (`=/:`, `,`/`;`/newline delimiters), dotted-key materialization (for example `meta.id=AA`), and semantic usage regression coverage for named/positional non-structured relational references.
 - 2026-02-20: Started SC-10 semantic coverage-target steering baseline by adding typed parser helpers and validator contracts for `@coverage_target/@critical_path` (including coherence warning `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`), and wiring stimuli branch guidance + gap-report/target priority bonuses from semantic coverage hints.
+- 2026-02-20: Extended SC-10 to parser runtime instrumentation baseline by wiring generated-parser coverage-target hooks (`record_coverage_target_event`), selected-branch tagging for OR rules, typed event surface (`CoverageTargetEvent`), and parser accessors/counters (`coverage_target_events`, `take_coverage_target_events`, `coverage_target_rule_hits`, `coverage_target_branch_hits`).

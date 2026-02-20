@@ -9,6 +9,7 @@ use crate::ast_pipeline::{
     ast_return_transform::AstReturnTransformer, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
     parse_semantic_branch_priorities, parse_semantic_constraint_expression,
+    parse_semantic_coverage_target_weight,
     parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
     parse_semantic_numeric_bounds, parse_semantic_reference_list, parse_semantic_string_list,
 };
@@ -34,6 +35,12 @@ struct SemanticRelationalConstraintPolicy {
     constraint_expression: Option<String>,
     requires_references: Vec<String>,
     implication: Option<(String, String)>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct SemanticCoverageTargetPolicy {
+    coverage_target_weight: u64,
+    critical_path: bool,
 }
 
 impl AstBasedGenerator {
@@ -207,6 +214,16 @@ impl AstBasedGenerator {
                 pub marker_position: Option<usize>,
                 pub marker_value: Option<String>,
             }
+
+            #[derive(Debug, Clone, PartialEq, Eq)]
+            pub struct CoverageTargetEvent {
+                pub rule_name: String,
+                pub parse_start: usize,
+                pub parse_end: usize,
+                pub branch_index: Option<usize>,
+                pub coverage_target_weight: u64,
+                pub critical_path: bool,
+            }
         }
     }
 
@@ -224,6 +241,9 @@ impl AstBasedGenerator {
                 recovery_counts: HashMap<String, usize>,
                 recovery_parse_count: usize,
                 recovery_global_count: usize,
+                coverage_target_events: Vec<CoverageTargetEvent>,
+                coverage_target_rule_hits: HashMap<String, usize>,
+                coverage_target_branch_hits: HashMap<String, usize>,
                 logger: Box<dyn Logger>,
             }
         }
@@ -444,6 +464,9 @@ impl AstBasedGenerator {
                     recovery_counts: HashMap::new(),
                     recovery_parse_count: 0,
                     recovery_global_count: 0,
+                    coverage_target_events: Vec::new(),
+                    coverage_target_rule_hits: HashMap::new(),
+                    coverage_target_branch_hits: HashMap::new(),
                     logger,
                 }
             }
@@ -459,6 +482,9 @@ impl AstBasedGenerator {
                 self.recovery_events.clear();
                 self.recovery_counts.clear();
                 self.recovery_parse_count = 0;
+                self.coverage_target_events.clear();
+                self.coverage_target_rule_hits.clear();
+                self.coverage_target_branch_hits.clear();
                 self.#parse_method()
             }
 
@@ -499,6 +525,26 @@ impl AstBasedGenerator {
             pub fn recovery_global_count(&self) -> usize {
                 self.recovery_global_count
             }
+
+            pub fn coverage_target_events(&self) -> &[CoverageTargetEvent] {
+                &self.coverage_target_events
+            }
+
+            pub fn take_coverage_target_events(&mut self) -> Vec<CoverageTargetEvent> {
+                std::mem::take(&mut self.coverage_target_events)
+            }
+
+            pub fn coverage_target_event_count(&self) -> usize {
+                self.coverage_target_events.len()
+            }
+
+            pub fn coverage_target_rule_hits(&self) -> &HashMap<String, usize> {
+                &self.coverage_target_rule_hits
+            }
+
+            pub fn coverage_target_branch_hits(&self) -> &HashMap<String, usize> {
+                &self.coverage_target_branch_hits
+            }
         }
     }
 
@@ -529,6 +575,9 @@ impl AstBasedGenerator {
             line!()
         );
         let relational_guards = self.semantic_relational_constraint_tokens(rule_name);
+        let coverage_target_policy = self.rule_coverage_target_policy(rule_name);
+        let coverage_target_weight = coverage_target_policy.coverage_target_weight;
+        let coverage_critical_path = coverage_target_policy.critical_path;
 
         // Build the complete method
         Ok(quote! {
@@ -575,12 +624,21 @@ impl AstBasedGenerator {
                 let start_pos = self.position;
 
                 let result = self.memoized_call(Self::#rule_const, |parser| {
+                    let mut semantic_selected_branch_index: Option<usize> = None;
                     // Main parsing logic - produces the 'result' variable
                     #parse_logic;
 
                     #relational_guards
 
                     let end_pos = parser.position;
+                    parser.record_coverage_target_event(
+                        #rule_name,
+                        start_pos,
+                        end_pos,
+                        semantic_selected_branch_index,
+                        #coverage_target_weight,
+                        #coverage_critical_path,
+                    );
 
                     Ok(ParseNode {
                         rule_name: #rule_name,
@@ -716,7 +774,8 @@ impl AstBasedGenerator {
                 if transform.to_string() == "result" {
                     Ok(quote! {
                         // Single-branch rule, no transformation needed
-                        #branch_logic  // Sets result
+                        #branch_logic;  // Sets result
+                        semantic_selected_branch_index = Some(1usize);
                     })
                 } else {
                     Ok(quote! {
@@ -724,14 +783,16 @@ impl AstBasedGenerator {
                         #branch_logic;
 
                         // Apply transformation (reassign result)
-                        result = #transform
+                        result = #transform;
+                        semantic_selected_branch_index = Some(1usize);
                     })
                 }
             } else {
                 // No transformation needed - simpler code
                 Ok(quote! {
                     // Single-branch rule
-                    #branch_logic  // Sets result directly
+                    #branch_logic;  // Sets result directly
+                    semantic_selected_branch_index = Some(1usize);
                 })
             }
         } else {
@@ -928,6 +989,7 @@ impl AstBasedGenerator {
                     });
                 } else if let Some(content) = best_content {
                     parser.position = best_end;
+                    semantic_selected_branch_index = Some(best_branch);
                     if parser.logger.is_enabled() {
                         parser.logger.log_info(#filename, 0, &format!(
                             "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
@@ -1448,6 +1510,53 @@ impl AstBasedGenerator {
                     }
                 }
                 None
+            }
+            fn record_coverage_target_event(
+                &mut self,
+                rule_name: &str,
+                parse_start: usize,
+                parse_end: usize,
+                branch_index: Option<usize>,
+                coverage_target_weight: u64,
+                critical_path: bool,
+            ) {
+                if coverage_target_weight == 0 {
+                    return;
+                }
+
+                self.coverage_target_events.push(CoverageTargetEvent {
+                    rule_name: rule_name.to_string(),
+                    parse_start,
+                    parse_end,
+                    branch_index,
+                    coverage_target_weight,
+                    critical_path,
+                });
+                *self
+                    .coverage_target_rule_hits
+                    .entry(rule_name.to_string())
+                    .or_insert(0) += 1;
+                if let Some(branch) = branch_index {
+                    let branch_key = format!("{}::{}", rule_name, branch);
+                    *self.coverage_target_branch_hits.entry(branch_key).or_insert(0) += 1;
+                }
+
+                if self.logger.is_enabled() {
+                    let marker = if critical_path {
+                        "critical"
+                    } else {
+                        "target"
+                    };
+                    self.logger.log_info(#filename, 0, &format!(
+                        "🎯 SC-10 parser instrumentation: rule='{}' branch={:?} weight={} kind={} span={}..{}",
+                        rule_name,
+                        branch_index,
+                        coverage_target_weight,
+                        marker,
+                        parse_start,
+                        parse_end
+                    ));
+                }
             }
             fn recover_with_hints(
                 &mut self,
@@ -2675,6 +2784,37 @@ impl AstBasedGenerator {
         policy
     }
 
+    fn rule_coverage_target_policy(&self, rule_name: &str) -> SemanticCoverageTargetPolicy {
+        let Some(annotations) = &self.annotations else {
+            return SemanticCoverageTargetPolicy::default();
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return SemanticCoverageTargetPolicy::default();
+        };
+
+        let mut policy = SemanticCoverageTargetPolicy::default();
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "coverage_target" => {
+                    if let Some(weight) = parse_semantic_coverage_target_weight(&payload) {
+                        policy.coverage_target_weight = weight;
+                    }
+                }
+                "critical_path" => {
+                    if let Some(enabled) = parse_semantic_bool(&payload) {
+                        policy.critical_path = enabled;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        policy
+    }
+
     fn rule_recovery_hints(
         &self,
         rule_name: &str,
@@ -3648,6 +3788,165 @@ mod semantic_usage_tests {
             rendered.contains("self . recovery_parse_count += 1")
                 && rendered.contains("self . recovery_global_count += 1"),
             "helper methods should update parse/global recovery counters, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_extracts_coverage_target_policy() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "coverage_target".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "3".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "critical_path".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let policy = generator.rule_coverage_target_policy("stmt");
+        assert_eq!(policy.coverage_target_weight, 3);
+        assert!(policy.critical_path);
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_coverage_target_types_and_accessors() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let types_rendered = generator.generate_types().to_string();
+        assert!(
+            types_rendered.contains("pub struct CoverageTargetEvent"),
+            "generated types should include CoverageTargetEvent, got: {}",
+            types_rendered
+        );
+
+        let parse_rendered = generator.generate_parse_method("start").to_string();
+        assert!(
+            parse_rendered.contains("pub fn coverage_target_events"),
+            "parse method generation should expose coverage_target_events accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn take_coverage_target_events"),
+            "parse method generation should expose take_coverage_target_events accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn coverage_target_rule_hits"),
+            "parse method generation should expose coverage_target_rule_hits accessor, got: {}",
+            parse_rendered
+        );
+        assert!(
+            parse_rendered.contains("pub fn coverage_target_branch_hits"),
+            "parse method generation should expose coverage_target_branch_hits accessor, got: {}",
+            parse_rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_coverage_target_runtime_hooks_for_rules() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "coverage_target".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "5".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "critical_path".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let method = generator
+            .generate_rule_method("stmt", &or_rule(), &["stmt".to_string()], "semantic_usage.rs")
+            .expect("rule method generation should succeed");
+        let rendered = method.to_string();
+
+        assert!(
+            rendered.contains("record_coverage_target_event"),
+            "rule method should emit SC-10 instrumentation recording hook, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("5u64") && rendered.contains("true"),
+            "SC-10 hook should carry typed coverage_target/critical_path payloads, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("semantic_selected_branch_index = Some (best_branch)"),
+            "OR rule should pass selected branch index into SC-10 instrumentation hook, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_records_coverage_target_events_in_helper_methods() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let rendered = generator.generate_helper_methods("semantic_usage.rs").to_string();
+        assert!(
+            rendered.contains("fn record_coverage_target_event"),
+            "helper methods should define SC-10 recording helper, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("if coverage_target_weight == 0"),
+            "SC-10 helper should remain inactive when effective coverage_target weight is zero, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("self . coverage_target_events . push")
+                && rendered.contains("self . coverage_target_rule_hits")
+                && rendered.contains("self . coverage_target_branch_hits"),
+            "SC-10 helper should record events and counters, got: {}",
             rendered
         );
     }

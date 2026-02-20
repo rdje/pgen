@@ -91,7 +91,16 @@ Normative runtime leverage behavior for semantic annotations:
     - stimuli runtime baseline uses SC-10 hints to steer coverage exploration:
       - OR-branch guidance multipliers consider current rule SC-10 hints and SC-10 hints on referenced rules,
       - gap-report priority scoring adds semantic bonuses for SC-10-tagged rules/branches.
-    - parser instrumentation from SC-10 hints remains follow-on work.
+    - parser runtime instrumentation baseline consumes SC-10 hints in generated parsers:
+      - successful parses on SC-10-targeted rules emit `CoverageTargetEvent` records,
+      - OR rules tag selected branch index in emitted events,
+      - parser exposes deterministic accessors and counters:
+        - `coverage_target_events()`
+        - `take_coverage_target_events()`
+        - `coverage_target_event_count()`
+        - `coverage_target_rule_hits()`
+        - `coverage_target_branch_hits()`
+      - instrumentation remains inactive when effective `@coverage_target` weight is zero.
   - `@recover/@sync/@panic_until` are typed/validated contract directives with executable parser runtime recovery baseline:
     - recovery triggers when OR branches all fail and effective `@recover` is truthy,
     - optional scoped recovery budgets are enforced when present:
