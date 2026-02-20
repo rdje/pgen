@@ -333,6 +333,25 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 - Coherence rule:
   - `@requires`/`@implies` without `@constraint` triggers `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`.
 
+#### E) Coverage-target steering contract baseline (`@coverage_target`, `@critical_path`)
+- Current stage:
+  - typed validator contract is implemented,
+  - stimuli coverage/gap steering baseline (`Tier 3` coverage pipeline) is implemented,
+  - parser instrumentation behavior is pending follow-on hardening.
+- Payload expectations:
+  - `@coverage_target`: non-negative integer or boolean payload (for example `3`, `true`, `false`).
+  - `@critical_path`: boolean payload (for example `true`/`false`).
+- Validator behavior:
+  - invalid payloads emit:
+    - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+    - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
+  - coherence warning:
+    - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET` when `@critical_path` is enabled but effective `@coverage_target` is missing/zero.
+- Stimuli behavior:
+  - branch guidance multipliers are boosted for SC-10-tagged rules,
+  - branches referencing SC-10-tagged rules are also boosted,
+  - gap-report target priorities include semantic SC-10 bonus scores for rule and branch debt ordering.
+
 ### 8.5 Parser Runtime Contract for Value-Domain Directives
 - Value-domain guards are injected into generated parser code for relevant atom token paths:
   - `quoted_string`
@@ -374,6 +393,8 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_INVALID_CONSTRAINT_PAYLOAD`
   - `W_SEM_INVALID_REQUIRES_PAYLOAD`
   - `W_SEM_INVALID_IMPLIES_PAYLOAD`
+  - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+  - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
   - `W_SEM_INVALID_ENUM_PAYLOAD`
@@ -389,6 +410,7 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER` (`@recover_global_budget` present while `@recover` is not enabled)
   - `W_SEM_RECOVERY_HINT_WITHOUT_RECOVER` (`@sync`/`@panic_until` present while `@recover` is not enabled)
   - `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT` (`@requires`/`@implies` present while `@constraint` is missing)
+  - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET` (`@critical_path` enabled while effective `@coverage_target` is missing/zero)
 - Grammar ambiguity diagnostics (grammar-aware validation pass):
   - `W_GRAM_AMBIGUOUS_PREFIX` (top-level alternation branches share the same leading quoted terminal; parse selection may depend on branch order)
   - `W_GRAM_FIRST_SET_OVERLAP` (top-level alternation branches have overlapping computed FIRST terminals, including overlaps introduced via nullable prefixes and rule references)
@@ -446,6 +468,17 @@ stmt = if_stmt | while_stmt ;
   - `longest_match` (default),
   - `ordered`,
   - `priority_first`.
+
+#### Example: Coverage-target steering baseline
+```ebnf
+expr = additive | multiplicative ;
+@coverage_target: 3
+@critical_path: true
+```
+- Current behavior:
+  - validator enforces typed payloads and coherence warnings,
+  - stimuli branch exploration and gap-report priority ordering are boosted for this rule,
+  - parser instrumentation hooks are follow-on work.
 
 #### Example: Relational contract baseline (validator + parser runtime)
 ```ebnf
@@ -874,6 +907,52 @@ Expected behavior:
 - parser and stimuli both resolve nested paths (`lhs.id`, `$1.id`) and optional `.len`,
 - stimuli retries sequence synthesis until constraint holds,
 - emitted samples satisfy the contract (for example `{"id":"AA"}|{"id":"BB"}`).
+
+### 8.14 SC-10 Coverage-Target Steering Contract (Validator + Stimuli Baseline)
+
+This section focuses on:
+- `@coverage_target`
+- `@critical_path`
+
+Current stage:
+- typed validator contract is active,
+- stimuli coverage/gap steering baseline is active,
+- parser instrumentation from SC-10 hints is follow-on.
+
+#### 8.14.1 Payload Forms
+
+Valid examples:
+```ebnf
+@coverage_target: 2
+@coverage_target: true
+@coverage_target: false
+@critical_path: true
+@critical_path: false
+```
+
+Invalid examples:
+```ebnf
+@coverage_target: "boost"      # W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD
+@critical_path: "urgent"       # W_SEM_INVALID_CRITICAL_PATH_PAYLOAD
+```
+
+#### 8.14.2 Coherence Rule
+
+If `@critical_path` is enabled while effective `@coverage_target` is missing or zero, validator emits:
+- `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`
+
+Example:
+```ebnf
+expr = atom ;
+@critical_path: true
+```
+
+#### 8.14.3 Stimuli Steering Behavior
+
+- SC-10 hints participate in OR branch guidance multiplier calculation.
+- Branches in tagged rules and branches referencing tagged rules receive higher exploration pressure.
+- Gap-report rule/branch priority scores include SC-10 semantic bonuses.
+- This affects target ordering for gap-driven injection without changing grammar semantics.
 
 ## 9) Differential Testing and Drift Management
 

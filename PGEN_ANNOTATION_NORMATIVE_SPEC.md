@@ -81,6 +81,17 @@ Normative runtime leverage behavior for semantic annotations:
     - `longest_match` (default),
     - `ordered`,
     - `priority_first`.
+  - `@coverage_target/@critical_path` contract baseline:
+    - directives are typed/validated by the annotation validator,
+    - payload forms:
+      - `@coverage_target`: non-negative integer or boolean payload (`0/1/2/...`, `true/false`),
+      - `@critical_path`: boolean payload,
+    - coherence warning:
+      - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET` when `@critical_path` is enabled while effective `@coverage_target` is missing or zero,
+    - stimuli runtime baseline uses SC-10 hints to steer coverage exploration:
+      - OR-branch guidance multipliers consider current rule SC-10 hints and SC-10 hints on referenced rules,
+      - gap-report priority scoring adds semantic bonuses for SC-10-tagged rules/branches.
+    - parser instrumentation from SC-10 hints remains follow-on work.
   - `@recover/@sync/@panic_until` are typed/validated contract directives with executable parser runtime recovery baseline:
     - recovery triggers when OR branches all fail and effective `@recover` is truthy,
     - optional scoped recovery budgets are enforced when present:
@@ -159,8 +170,11 @@ Current stable diagnostic codes include:
   - `W_SEM_INVALID_CONSTRAINT_PAYLOAD`
   - `W_SEM_INVALID_REQUIRES_PAYLOAD`
   - `W_SEM_INVALID_IMPLIES_PAYLOAD`
+  - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+  - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
   - `W_SEM_INVALID_SYNC_PAYLOAD`
   - `W_SEM_INVALID_PANIC_UNTIL_PAYLOAD`
+  - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`
   - `W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER`
   - `W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER`
   - `W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER`

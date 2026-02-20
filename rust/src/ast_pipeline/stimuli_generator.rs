@@ -4,6 +4,7 @@ use super::{
     SemanticValueConstraints, TokenValue, UnifiedSemanticAST, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
     parse_semantic_branch_priorities, parse_semantic_constraint_expression,
+    parse_semantic_coverage_target_weight,
     parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
     parse_semantic_reference_list, parse_semantic_string_list, stimuli_hint_for_target_type,
 };
@@ -569,6 +570,12 @@ struct StimuliRelationalConstraintPolicy {
     implication: Option<(String, String)>,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+struct StimuliCoverageSteeringPolicy {
+    coverage_target_weight: u64,
+    critical_path: bool,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -738,6 +745,8 @@ impl<'a> StimuliGenerator<'a> {
                 priority_score = 800u64
                     .saturating_add(deficit.saturating_mul(100))
                     .saturating_add(if success_hits == 0 { 160 } else { 0 });
+                priority_score =
+                    priority_score.saturating_add(self.semantic_coverage_priority_bonus(rule_name));
             }
 
             let debt = RuleCoverageDebt {
@@ -857,6 +866,15 @@ impl<'a> StimuliGenerator<'a> {
                                 .unwrap_or(0)
                                 .saturating_mul(24),
                         );
+                    priority_score = priority_score.saturating_add(
+                        self.semantic_coverage_priority_bonus(group.rule_name.as_str()),
+                    );
+                    let semantic_ref_bonus = rule_refs
+                        .iter()
+                        .map(|rule_name| self.semantic_coverage_priority_bonus(rule_name))
+                        .fold(0u64, u64::saturating_add)
+                        .min(2048);
+                    priority_score = priority_score.saturating_add(semantic_ref_bonus);
                 }
 
                 let branch_id =
@@ -2169,6 +2187,9 @@ impl<'a> StimuliGenerator<'a> {
                 .saturating_mul(1 + u64::try_from(uncovered_rule_refs.min(4)).unwrap_or(1));
         }
 
+        multiplier = multiplier
+            .saturating_mul(self.semantic_coverage_guidance_multiplier(current_rule, branch_node));
+
         multiplier = multiplier.saturating_mul(self.target_guidance_multiplier(
             current_rule,
             node_path,
@@ -2680,6 +2701,92 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         constraints
+    }
+
+    fn rule_coverage_steering_policy(&self, rule_name: &str) -> StimuliCoverageSteeringPolicy {
+        let mut policy = StimuliCoverageSteeringPolicy::default();
+        let Some(annotations) = self.annotations else {
+            return policy;
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return policy;
+        };
+
+        for annotation in entries {
+            let Some((name, payload)) = self.semantic_directive_parts(annotation) else {
+                continue;
+            };
+            match name.as_str() {
+                "coverage_target" => {
+                    if let Some(weight) = parse_semantic_coverage_target_weight(&payload) {
+                        policy.coverage_target_weight = weight;
+                    }
+                }
+                "critical_path" => {
+                    if let Some(enabled) = parse_semantic_bool(&payload) {
+                        policy.critical_path = enabled;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        policy
+    }
+
+    fn semantic_coverage_priority_bonus(&self, rule_name: &str) -> u64 {
+        let policy = self.rule_coverage_steering_policy(rule_name);
+        let mut bonus = 0u64;
+        if policy.coverage_target_weight > 0 {
+            bonus = bonus.saturating_add(
+                200u64
+                    .saturating_mul(policy.coverage_target_weight.min(16))
+                    .max(200),
+            );
+        }
+        if policy.critical_path {
+            bonus = bonus.saturating_add(640);
+        }
+        bonus
+    }
+
+    fn semantic_coverage_guidance_multiplier(
+        &self,
+        current_rule: &str,
+        branch_node: &ASTNode,
+    ) -> u64 {
+        let current_policy = self.rule_coverage_steering_policy(current_rule);
+        let mut multiplier = 1u64;
+
+        if current_policy.coverage_target_weight > 0 {
+            multiplier = multiplier
+                .saturating_mul(2 + current_policy.coverage_target_weight.min(16));
+        }
+        if current_policy.critical_path {
+            multiplier = multiplier.saturating_mul(4);
+        }
+
+        let mut refs = HashSet::new();
+        self.collect_rule_references(branch_node, &mut refs);
+        let mut targeted_refs = 0u64;
+        let mut critical_refs = 0u64;
+        for rule_name in refs {
+            let policy = self.rule_coverage_steering_policy(rule_name.as_str());
+            if policy.coverage_target_weight > 0 {
+                targeted_refs = targeted_refs.saturating_add(1);
+            }
+            if policy.critical_path {
+                critical_refs = critical_refs.saturating_add(1);
+            }
+        }
+        if targeted_refs > 0 {
+            multiplier = multiplier.saturating_mul(1 + targeted_refs.min(8).saturating_mul(2));
+        }
+        if critical_refs > 0 {
+            multiplier = multiplier.saturating_mul(1 + critical_refs.min(8).saturating_mul(3));
+        }
+
+        multiplier.max(1)
     }
 
     fn relational_attempt_budget(&self) -> usize {
@@ -4552,6 +4659,115 @@ mod tests {
         assert!(
             summary.unresolved_targets.is_empty(),
             "no unresolved targets expected"
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_coverage_target_biases_targeted_rule_branches() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "left"),
+                    token("rule_reference", "right"),
+                ],
+            },
+        );
+        grammar_tree.insert("left".to_string(), token("quoted_string", "L"));
+        grammar_tree.insert("right".to_string(), token("quoted_string", "R"));
+        let rule_order = vec!["start".to_string(), "left".to_string(), "right".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "left".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "coverage_target".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "6".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "critical_path".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9411);
+        let values = generator
+            .generate_many(128, Some("start"))
+            .expect("coverage-target-guided generation should succeed");
+
+        let left_count = values.iter().filter(|value| value.as_str() == "L").count();
+        let right_count = values.iter().filter(|value| value.as_str() == "R").count();
+        assert!(
+            left_count > right_count.saturating_mul(2),
+            "coverage_target/critical_path hints should bias branch sampling toward targeted rule, got left={} right={} values={:?}",
+            left_count,
+            right_count,
+            values
+        );
+    }
+
+    #[test]
+    fn semantic_usage_stimuli_coverage_target_boosts_gap_report_branch_priority() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "left"),
+                    token("rule_reference", "right"),
+                ],
+            },
+        );
+        grammar_tree.insert("left".to_string(), token("quoted_string", "L"));
+        grammar_tree.insert("right".to_string(), token("quoted_string", "R"));
+        let rule_order = vec!["start".to_string(), "left".to_string(), "right".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "left".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "coverage_target".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "3".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "critical_path".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9412);
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("coverage gap report generation should succeed");
+        let left_branch = report
+            .reachable_branch_debt
+            .iter()
+            .find(|debt| debt.branch_id == "branch::start::root#0")
+            .expect("left branch debt should be present");
+        let right_branch = report
+            .reachable_branch_debt
+            .iter()
+            .find(|debt| debt.branch_id == "branch::start::root#1")
+            .expect("right branch debt should be present");
+
+        assert!(
+            left_branch.priority_score > right_branch.priority_score,
+            "coverage_target/critical_path hints should raise targeted branch priority in gap report, got left={} right={}",
+            left_branch.priority_score,
+            right_branch.priority_score
         );
     }
 

@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-10 Coverage-Target Semantic Steering Baseline
+### ✅ Achievement Summary
+Started SC-10 by making `@coverage_target/@critical_path` typed and validator-enforced, then wiring those hints into stimuli coverage/gap steering for rule and branch prioritization.
+### Scope of Changes
+- Updated semantic directive parsing/contracts in:
+  - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - added typed payload parser:
+    - `parse_semantic_coverage_target_weight(...)`
+  - accepted payload forms:
+    - `@coverage_target`: non-negative integer or boolean
+    - `@critical_path`: boolean
+- Updated typed validator in:
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - added payload diagnostics:
+    - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+    - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
+  - added coherence diagnostic:
+    - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`
+- Updated stimuli runtime steering in:
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - added semantic coverage steering policy extraction from rule annotations,
+  - coverage-guided OR branch sampling now includes semantic multipliers from:
+    - current rule `@coverage_target/@critical_path`
+    - rule references inside candidate branches
+  - gap-report priority scoring now includes semantic coverage bonuses for:
+    - rule debt priority
+    - branch debt priority
+    - branch rule-reference dependencies
+- Added semantic usage regression tests:
+  - `semantic_usage_stimuli_coverage_target_biases_targeted_rule_branches`
+  - `semantic_usage_stimuli_coverage_target_boosts_gap_report_branch_priority`
+- Updated living docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml parses_semantic_coverage_target_weights` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_invalid_recovery_payloads` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_when_critical_path_enabled_without_coverage_target` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_does_not_warn_when_critical_path_and_coverage_target_enabled` ✅
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_coverage_target_` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Non-Structured Nested Reference Extraction
 ### ✅ Achievement Summary
 Extended SC-09 stimuli relational resolution beyond JSON-only captures by adding deterministic non-structured object parsing for nested named/positional reference paths.

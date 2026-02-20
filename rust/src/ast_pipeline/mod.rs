@@ -1881,6 +1881,7 @@ pub use semantic_directive_registry::{
     SemanticDirectiveSpec, SemanticValueConstraints, UnknownSemanticDirectivePolicy,
     extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
     parse_semantic_bool, parse_semantic_branch_priorities,
+    parse_semantic_coverage_target_weight,
     parse_semantic_constraint_expression, parse_semantic_float_list,
     parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
     parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_reference_list,

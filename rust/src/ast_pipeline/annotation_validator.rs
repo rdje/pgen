@@ -3,6 +3,7 @@ use super::{
     SemanticAssociativity, SemanticBranchPolicy, UnifiedReturnAST, UnifiedSemanticAST,
     UnknownSemanticDirectivePolicy, extract_semantic_directive, extract_semantic_directive_name,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
+    parse_semantic_coverage_target_weight,
     parse_semantic_constraint_expression, parse_semantic_implication, parse_semantic_len_bounds,
     parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
     parse_semantic_reference_list, parse_semantic_string_list, semantic_directive_spec,
@@ -692,6 +693,32 @@ impl AnnotationValidator {
                     });
                 }
             }
+            "coverage_target" => {
+                if parse_semantic_coverage_target_weight(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@coverage_target' expects a non-negative integer or boolean payload (for example '2' or 'true').".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "critical_path" => {
+                if parse_semantic_bool(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@critical_path' expects a boolean payload such as true/false.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             _ => {}
         }
     }
@@ -759,6 +786,7 @@ impl AnnotationValidator {
         );
         self.validate_recovery_hint_contract(rule_name, &directive_occurrences, report);
         self.validate_relational_constraint_contract(rule_name, &directive_occurrences, report);
+        self.validate_coverage_target_contract(rule_name, &directive_occurrences, report);
 
         for (directive_name, entries) in &directive_occurrences {
             if entries.len() <= 1 {
@@ -1044,6 +1072,55 @@ impl AnnotationValidator {
             rule_name: rule_name.to_string(),
             annotation_index: Some(annotation_index),
             message: "Relational directives '@requires/@implies' are present but '@constraint' is missing; relational contract remains inactive.".to_string(),
+            annotation: Some(details.join("; ")),
+        });
+    }
+
+    fn validate_coverage_target_contract(
+        &self,
+        rule_name: &str,
+        directive_occurrences: &HashMap<String, Vec<(usize, String)>>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        let critical_payload =
+            Self::latest_directive_payload(directive_occurrences, "critical_path");
+        let Some((critical_idx, critical_value)) = critical_payload else {
+            return;
+        };
+        let Some(critical_enabled) = parse_semantic_bool(&critical_value) else {
+            return;
+        };
+        if !critical_enabled {
+            return;
+        }
+
+        let coverage_payload =
+            Self::latest_directive_payload(directive_occurrences, "coverage_target");
+        let coverage_weight = coverage_payload
+            .as_ref()
+            .and_then(|(_, payload)| parse_semantic_coverage_target_weight(payload))
+            .unwrap_or(0);
+        if coverage_weight > 0 {
+            return;
+        }
+
+        let annotation_index =
+            coverage_payload
+                .as_ref()
+                .map(|(idx, _)| *idx)
+                .max(Some(critical_idx));
+        let mut details = Vec::new();
+        if let Some((_, payload)) = coverage_payload {
+            details.push(format!("@coverage_target: {}", payload));
+        }
+        details.push(format!("@critical_path: {}", critical_value));
+        report.diagnostics.push(AnnotationDiagnostic {
+            code: "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET",
+            severity: AnnotationSeverity::Warning,
+            kind: AnnotationKind::Semantic,
+            rule_name: rule_name.to_string(),
+            annotation_index,
+            message: "Directive '@critical_path' is enabled but '@coverage_target' is missing or zero; coverage steering hint remains inactive.".to_string(),
             annotation: Some(details.join("; ")),
         });
     }
@@ -2178,6 +2255,18 @@ mod tests {
                         content: "[]".to_string(),
                     },
                 },
+                SemanticAnnotation::Named {
+                    name: "coverage_target".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"boost\"".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "critical_path".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"urgent\"".to_string(),
+                    },
+                },
             ],
         );
 
@@ -2217,6 +2306,18 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_INVALID_PANIC_UNTIL_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD")
         );
     }
 
@@ -2260,6 +2361,56 @@ mod tests {
             .diagnostics
             .iter()
             .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER"));
+    }
+
+    #[test]
+    fn semantic_validator_warns_when_critical_path_enabled_without_coverage_target() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "critical_path".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "true".to_string(),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET"));
+    }
+
+    #[test]
+    fn semantic_validator_does_not_warn_when_critical_path_and_coverage_target_enabled() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "expr".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "coverage_target".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "2".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "critical_path".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "true".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET")
+        );
     }
 
     #[test]

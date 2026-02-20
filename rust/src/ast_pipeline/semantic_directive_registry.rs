@@ -431,6 +431,14 @@ pub fn parse_semantic_nonnegative_usize(payload: &str) -> Option<usize> {
     normalized.parse::<usize>().ok()
 }
 
+pub fn parse_semantic_coverage_target_weight(payload: &str) -> Option<u64> {
+    if let Some(enabled) = parse_semantic_bool(payload) {
+        return Some(if enabled { 1 } else { 0 });
+    }
+
+    parse_semantic_nonnegative_usize(payload).map(|value| value as u64)
+}
+
 pub fn parse_semantic_constraint_expression(payload: &str) -> Option<String> {
     let normalized = normalize_semantic_scalar(payload);
     if normalized.is_empty() {
@@ -563,6 +571,7 @@ mod tests {
         SemanticAssociativity, SemanticBranchPolicy, UnknownSemanticDirectivePolicy,
         extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
         parse_semantic_bool, parse_semantic_branch_priorities,
+        parse_semantic_coverage_target_weight,
         parse_semantic_constraint_expression, parse_semantic_float_list,
         parse_semantic_implication, parse_semantic_len_bounds,
         parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
@@ -728,6 +737,16 @@ mod tests {
         assert_eq!(parse_semantic_nonnegative_usize("\"8\""), Some(8));
         assert_eq!(parse_semantic_nonnegative_usize("-1"), None);
         assert_eq!(parse_semantic_nonnegative_usize("abc"), None);
+    }
+
+    #[test]
+    fn parses_semantic_coverage_target_weights() {
+        assert_eq!(parse_semantic_coverage_target_weight("true"), Some(1));
+        assert_eq!(parse_semantic_coverage_target_weight("\"on\""), Some(1));
+        assert_eq!(parse_semantic_coverage_target_weight("false"), Some(0));
+        assert_eq!(parse_semantic_coverage_target_weight("0"), Some(0));
+        assert_eq!(parse_semantic_coverage_target_weight("4"), Some(4));
+        assert_eq!(parse_semantic_coverage_target_weight("\"high\""), None);
     }
 
     #[test]

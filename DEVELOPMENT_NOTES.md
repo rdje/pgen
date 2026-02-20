@@ -1,4 +1,77 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-10 Coverage-Target Semantic Steering Baseline
+### Context
+SC-10 (`@coverage_target`, `@critical_path`) existed as parsed-only directives and had no typed payload validation or runtime effect in stimuli coverage steering.
+
+That left a gap between semantic intent and the existing gap/coverage pipeline:
+- users could annotate coverage-critical rules, but those hints did not influence branch sampling,
+- gap report priorities remained unaware of semantic coverage intent,
+- malformed SC-10 payloads were not surfaced with stable diagnostics.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `rust/src/ast_pipeline/mod.rs`
+
+#### 1) Typed SC-10 payload parsing
+- Added `parse_semantic_coverage_target_weight(...)`:
+  - accepts boolean payloads (`true/false`, `on/off`, `1/0`) mapped to weight `1/0`,
+  - accepts explicit non-negative integer weights (`0`, `2`, `8`, ...),
+  - rejects non-typed values (for example `"boost"`).
+
+#### 2) Validator payload + coherence contracts
+- Added payload diagnostics:
+  - `W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD`
+  - `W_SEM_INVALID_CRITICAL_PATH_PAYLOAD`
+- Added coherence contract:
+  - `W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET`
+  - triggers when `@critical_path` is enabled while effective `@coverage_target` is missing/zero.
+
+#### 3) Stimuli coverage steering integration
+- Added rule-level SC-10 steering policy extraction:
+  - `coverage_target_weight`
+  - `critical_path`
+- Added semantic multipliers into OR branch coverage guidance:
+  - boosts branch selection for branches in/from rules marked with SC-10 hints,
+  - boosts branches referencing coverage-targeted/critical rules.
+- Added semantic bonuses into gap-report priority scoring:
+  - rule debt priorities now include SC-10 bonus,
+  - branch debt priorities now include SC-10 bonus for owning rule and referenced rules.
+
+#### 4) Regression coverage
+- Added semantic usage tests:
+  - `semantic_usage_stimuli_coverage_target_biases_targeted_rule_branches`
+  - `semantic_usage_stimuli_coverage_target_boosts_gap_report_branch_priority`
+- Added validator tests:
+  - `semantic_validator_warns_when_critical_path_enabled_without_coverage_target`
+  - `semantic_validator_does_not_warn_when_critical_path_and_coverage_target_enabled`
+- Extended payload coverage in:
+  - `semantic_validator_warns_on_invalid_recovery_payloads`
+  - `parses_semantic_coverage_target_weights`
+
+#### 5) Scope boundary for this milestone
+- Completed:
+  - typed SC-10 payload/coherence validator contracts,
+  - stimuli-side semantic coverage steering baseline.
+- Not yet completed:
+  - parser instrumentation behavior based on SC-10 hints (explicitly tracked as follow-on).
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml parses_semantic_coverage_target_weights`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_on_invalid_recovery_payloads`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_warns_when_critical_path_enabled_without_coverage_target`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_validator_does_not_warn_when_critical_path_and_coverage_target_enabled`
+  - pass.
+- `cargo test --manifest-path rust/Cargo.toml semantic_usage_stimuli_coverage_target_`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-09 Non-Structured Nested Reference Extraction
 ### Context
 SC-09 stimuli nested reference support was previously limited to structured (JSON-like) capture payloads.
