@@ -233,6 +233,15 @@ Normative runtime leverage behavior for semantic annotations:
     - stimuli runtime baseline:
       - when effective `@invalid_case` is enabled, entry samples are deterministically mutated toward invalid/near-invalid shape,
       - when effective `@negative` is also enabled, deterministic negative-case marker suffix is appended.
+    - Tier-4 gate contract:
+      - dedicated shared semantic contract slice:
+        - `rust/test_data/semantic_annotation/sc11_contract.json`
+      - dedicated gate target:
+        - `make -C rust sc11_contract_gate`
+      - gate includes differential mismatch taxonomy parity checks over the SC-11 suite:
+        - allowed mismatch categories are constrained to the differential taxonomy set,
+        - category-count totals must match `mismatched_cases`,
+        - SC-11 comparable corpus currently requires `mismatched_cases == 0`.
   - `@seed_group/@deterministic_group` determinism partition baseline:
     - directives are typed/validated by the annotation validator,
     - payload forms:
@@ -419,6 +428,8 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/semantic_annotation/sc09_contract.json`
 - SC-10 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc10_contract.json`
+- SC-11 shared semantic contract suite:
+  - `rust/test_data/semantic_annotation/sc11_contract.json`
 - SC-04 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc04_contract.json`
 - Semantic leverage usage suite:
@@ -426,6 +437,7 @@ Normative contract checks are executable, not only documented:
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust sc11_contract_gate`
   - `make -C rust sc10_contract_gate`
   - `make -C rust sc09_contract_gate`
   - `make -C rust sc07_contract_gate`
@@ -444,6 +456,7 @@ The gate runs:
 - SC-06 semantic contract slice + differential taxonomy parity check
 - SC-09 semantic contract slice + differential taxonomy parity check
 - SC-10 semantic contract slice + differential taxonomy parity check
+- SC-11 semantic contract slice + differential taxonomy parity check
 - SC-07 semantic contract slice + differential taxonomy parity check
 - SC-03 semantic contract slice + differential taxonomy parity check
 - SC-04 semantic contract slice + differential taxonomy parity check

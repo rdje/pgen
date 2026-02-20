@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-11 Tier-4 Negative-Case Contract Gate Promotion
+### ✅ Achievement Summary
+Promoted SC-11 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-11 gate slice with typed negative-case validator/coherence checks, parser/stimuli runtime negative-case contracts, and differential taxonomy parity checks.
+
+### Scope of Changes
+- Added SC-11 semantic contract corpus:
+  - `rust/test_data/semantic_annotation/sc11_contract.json`
+  - includes shared bootstrap/generated parseability slices for:
+    - `@invalid_case`
+    - `@negative`
+- Added dedicated SC-11 gate script:
+  - `rust/scripts/sc11_contract_gate.sh`
+  - enforces:
+    - typed SC-11 payload parser contracts,
+    - typed SC-11 validator/coherence contracts,
+    - parser codegen/runtime SC-11 instrumentation contracts,
+    - stimuli SC-11 invalid/negative generation contracts,
+    - bootstrap/generated SC-11 suite parity and differential taxonomy integrity (`mismatched_cases == 0`).
+- Updated gate wiring:
+  - `rust/Makefile`
+    - added target: `sc11_contract_gate`
+    - wired `sc11_contract_gate` into `annotation_contract_gate`
+    - updated help text.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` (SC-11 promoted to Tier 4)
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `make -C rust sc11_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-10 Tier-4 Coverage-Target Contract Gate Promotion
 ### ✅ Achievement Summary
 Promoted SC-10 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-10 gate slice with typed coverage-target validator/coherence checks, parser/stimuli runtime coverage steering contracts, and differential taxonomy parity checks.

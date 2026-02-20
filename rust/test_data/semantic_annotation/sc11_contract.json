@@ -1,0 +1,58 @@
+[
+  {
+    "name": "invalid_case_enabled",
+    "description": "SC-11 shared contract: invalid_case boolean payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@invalid_case: true",
+    "expected_round_trip": "@invalid_case: true",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc11", "invalid_case"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "invalid_case_disabled",
+    "description": "SC-11 shared contract: invalid_case false payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@invalid_case: false",
+    "expected_round_trip": "@invalid_case: false",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc11", "invalid_case"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "negative_enabled",
+    "description": "SC-11 shared contract: negative boolean payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@negative: true",
+    "expected_round_trip": "@negative: true",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc11", "negative"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "negative_disabled",
+    "description": "SC-11 shared contract: negative false payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@negative: false",
+    "expected_round_trip": "@negative: false",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc11", "negative"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

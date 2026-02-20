@@ -399,6 +399,30 @@ make -C rust annotation_contract_gate
 4. Stimuli SC-10 coverage steering contracts (branch sampling bias and gap-priority target ordering bonuses).
 5. Bootstrap/generated SC-10 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-10 comparable corpus).
 
+#### 8.3.6 SC-11 Tier-4 Contract Gate
+
+SC-11 negative-case behavior is gate-enforced.
+
+Contract corpus:
+- `rust/test_data/semantic_annotation/sc11_contract.json`
+
+Gate commands:
+```bash
+make -C rust sc11_contract_gate
+```
+
+Also included in:
+```bash
+make -C rust annotation_contract_gate
+```
+
+`sc11_contract_gate` enforces:
+1. Typed SC-11 payload parser contracts (`@invalid_case/@negative`).
+2. Typed SC-11 validator/coherence contracts (`W_SEM_INVALID_INVALID_CASE_PAYLOAD`, `W_SEM_INVALID_NEGATIVE_PAYLOAD`, `W_SEM_NEGATIVE_WITHOUT_INVALID_CASE`).
+3. Parser codegen/runtime negative-case instrumentation contracts (`NegativeCaseEvent` and accessors/hit counters).
+4. Stimuli invalid/negative generation contracts (invalid mutation + negative marker guard behavior).
+5. Bootstrap/generated SC-11 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-11 comparable corpus).
+
 ### 8.4 Steering Behaviors Implemented Today
 
 #### A) Canonical transform steering (`@transform`)
@@ -1472,6 +1496,12 @@ Tracked baselines:
     - parser runtime coverage-target instrumentation contract checks,
     - stimuli coverage steering contract checks,
     - SC-10 bootstrap/generated contract slice + differential taxonomy parity checks
+- `sc11_contract_gate` (local gate target)
+  - SC-11 negative-case Tier-4 contract:
+    - typed SC-11 payload/coherence validator contracts,
+    - parser runtime negative-case instrumentation contract checks,
+    - stimuli invalid/negative generation contract checks,
+    - SC-11 bootstrap/generated contract slice + differential taxonomy parity checks
 - `annotation_robustness_gate` (local gate target)
   - advanced return/semantic suites in bootstrap/generated modes + generated parseability/coverage/gap checks
 - `annotation_stimuli_quality_gate` (local gate target)
@@ -1515,6 +1545,7 @@ Annotation contract/robustness commands:
 ```bash
 make -C rust SHELL=/bin/bash annotation_robustness_gate
 make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate
+make -C rust SHELL=/bin/bash sc11_contract_gate
 make -C rust SHELL=/bin/bash sc10_contract_gate
 make -C rust SHELL=/bin/bash sc09_contract_gate
 make -C rust SHELL=/bin/bash sc06_contract_gate
