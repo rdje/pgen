@@ -3401,3 +3401,86 @@ Local files remain present on disk; only git tracking was removed.
 
 ### Outcome
 Generated artifacts are now fully excluded from version control, reducing repository noise and avoiding churn from deterministic regeneration.
+
+---
+
+## 2026-02-20 - Pillar 6 Kickoff: Grammar Ambiguity Prefix Diagnostics
+
+### Context
+Roadmap execution had no remaining unchecked Phase A-J tasks, while Pillar 6 (Ambiguity Handling and Recovery) remained `Not Started`.
+
+To start Pillar 6 with a safe, incremental step, a low-false-positive ambiguity diagnostic was added to the existing grammar-aware validator pass.
+
+### What Was Implemented
+
+#### 1) New diagnostic classification for grammar-level issues
+File: `rust/src/ast_pipeline/annotation_validator.rs`
+
+`AnnotationKind` was extended with:
+- `Grammar`
+
+This allows grammar-structure warnings to be reported distinctly from return/semantic annotation warnings.
+
+#### 2) Grammar-aware ambiguity scan in validator
+File: `rust/src/ast_pipeline/annotation_validator.rs`
+
+`validate_annotations_with_grammar(...)` now calls:
+- `validate_grammar_ambiguity(...)`
+
+Current heuristic:
+- scan each rule’s top-level alternatives (`ASTNode::Or`),
+- compute a branch leading-terminal fingerprint (currently only deterministic quoted terminal starts),
+- if multiple branches share the same leading quoted terminal, emit:
+  - `W_GRAM_AMBIGUOUS_PREFIX`
+
+Diagnostic semantics:
+- Severity: `Warning`
+- Kind: `Grammar`
+- Rule-scoped (`annotation_index = None`)
+- Message explicitly states branch indices and shared terminal, and notes potential branch-order dependence.
+
+#### 3) Low-noise fingerprint strategy (initial version)
+File: `rust/src/ast_pipeline/annotation_validator.rs`
+
+Helper methods added:
+- `branch_leading_terminal_fingerprint(...)`
+- `atom_terminal_fingerprint(...)`
+
+Design constraints in this increment:
+- only `quoted_string` start tokens are considered,
+- excludes regex/rule-reference starts to reduce false positives,
+- supports sequence-first element and simple `+` quantified forwarding,
+- allows nested `Or` only when all alternatives share same deterministic leading fingerprint.
+
+This intentionally favors precision over recall for the first Pillar-6 slice.
+
+### Tests Added
+File: `rust/src/ast_pipeline/annotation_validator.rs`
+
+Added unit tests:
+- `grammar_aware_validation_warns_on_ambiguous_literal_prefix`
+  - verifies `W_GRAM_AMBIGUOUS_PREFIX` for:
+    - `statement := "if" expr | "if" stmt`
+- `grammar_aware_validation_does_not_warn_on_distinct_literal_prefixes`
+  - verifies no warning for:
+    - `statement := "if" expr | "while" expr`
+
+### Validation
+Command:
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator`
+
+Result:
+- Passed (`19 passed, 0 failed` in the annotation validator suite).
+
+### Documentation/Plan Updates
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Pillar 6 moved to `In Progress`.
+  - New Phase K added for ambiguity/recovery kickoff.
+  - Phase K first task (prefix ambiguity diagnostic) marked done.
+- `PGEN_USER_GUIDE.md`
+  - Added `W_GRAM_AMBIGUOUS_PREFIX` to diagnostics documentation.
+  - Added practical EBNF example demonstrating the warning.
+
+### Follow-on (Next Activity Candidates)
+1. Extend ambiguity detection from literal-prefix heuristic to nullable/first-set overlap analysis.
+2. Add semantic branch-policy + recovery-hint control surface (`@branch_policy`, `@recover`, `@sync`, `@panic_until`) with validator contracts.

@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -333,6 +333,8 @@ Main grammar: `grammars/semantic_annotation.ebnf`
   - `W_SEM_PRIORITY_PRECEDENCE_CONFLICT` (`@priority` + `@precedence` both present; `@priority` takes precedence)
   - `W_SEM_DIRECTIVE_OVERRIDDEN` (same known directive repeated; last occurrence wins)
   - `W_SEM_UNSATISFIABLE_VALUE_DOMAIN` (`@enum` combined with `@len`/`@range`/`@regex` yields an empty effective domain)
+- Grammar ambiguity diagnostics (grammar-aware validation pass):
+  - `W_GRAM_AMBIGUOUS_PREFIX` (top-level alternation branches share the same leading quoted terminal; parse selection may depend on branch order)
 
 ### 8.8 Practical Examples
 
@@ -348,6 +350,12 @@ number = regex("[0-9]+") @transform: str::parse::<i64>().unwrap_or(0) @range: 0.
 ident = regex("[A-Z]+") @enum: ["AA", "AB", "BC"] @regex: "^A[A-Z]$" @len: [2, 2] ;
 ```
 - Effective allowed values are intersection of all constraints (`AA`, `AB`).
+
+#### Example: Ambiguous alternation prefix warning
+```ebnf
+statement = "if" expr | "if" stmt ;
+```
+- Grammar-aware validator emits `W_GRAM_AMBIGUOUS_PREFIX` for `statement` because both branches start with the same quoted terminal (`"if"`).
 
 #### Example: Expression rule branch steering
 ```ebnf

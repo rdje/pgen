@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -20,7 +20,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 | 3. Typed Annotation Validation | In Progress | Compile-time validation of references/transforms with precise diagnostics. |
 | 4. Bootstrap vs Generated Behavioral Contract | In Progress | Explicitly tracked differences with required tests and closure plan. |
 | 5. Industrial Frontend Support (SV/VHDL Readiness) | Not Started | Preprocess/lex/parse pipeline robust for real-world HDL sources. |
-| 6. Ambiguity Handling and Recovery | Not Started | Deterministic branch resolution and production-grade error recovery. |
+| 6. Ambiguity Handling and Recovery | In Progress | Deterministic branch resolution and production-grade error recovery. |
 | 7. Coverage-Guided Semantic Stimuli | In Progress | Feedback loop that drives branch/rule/annotation coverage upward. |
 | 8. Differential Validation vs External Parsers | In Progress | Continuous mismatch detection against trusted external tools. |
 | 9. Performance and Scalability SLAs | In Progress | Enforced throughput/memory/latency budgets in CI. |
@@ -98,6 +98,11 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] `P1` Add comparable-corpus return parity gate (`make return_parity_gate`) and enforce inside `annotation_contract_gate`.
 - [x] `P1` Drive return-annotation differential mismatches to zero and enforce stricter return parity closure criteria (tracked debt now 0).
 
+### Phase K (New): Ambiguity Handling and Recovery Kickoff
+- [x] Add grammar-aware ambiguity prefix diagnostics (`W_GRAM_AMBIGUOUS_PREFIX`) for top-level alternation branches sharing identical leading quoted terminals.
+- [ ] Extend ambiguity diagnostics from literal-prefix heuristics to nullable/first-set overlap analysis.
+- [ ] Add branch-policy + recovery hint contract surface (`@branch_policy`, `@recover`, `@sync`, `@panic_until`) with validator diagnostics and parser/stimuli integration plan.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -153,3 +158,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-19: Completed Phase H `ebnf.ebnf` frontend compatibility by fixing include directive capture in `fx/specs/ebnf.spec` (consume full include call, parse args in action code), restoring `ebnf_to_json.pl` conversion success for `grammars/ebnf.ebnf`, and turning strict EBNF frontend enforcement on in aggregate SOTA policy (`PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`).
 - 2026-02-19: Added standalone CI workflow `annotation-nonbootstrap-e2e-gate` and promoted `annotation_nonbootstrap_e2e_gate` into aggregate SOTA required checks (`rust/scripts/sota_exit_gate.sh` + `rust/config/sota_exit_policy.env`).
 - 2026-02-19: Completed Phase H dual-run differential operationalization by adding `make ebnf_frontend_dual_run_diff`/`make ebnf_frontend_dual_run_gate`, script + Rust report binary (`rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`, `rust/src/bin/ebnf_dual_run_diff.rs`), standalone CI workflow (`ebnf-frontend-dual-run-diff`), and aggregate SOTA policy/workflow wiring with optional strictness controls.
+- 2026-02-20: Started Pillar 6/Phase K by adding grammar-aware ambiguity diagnostics (`W_GRAM_AMBIGUOUS_PREFIX`) in annotation validator grammar-aware pass with unit tests for overlapping-vs-distinct literal-prefix alternation branches.

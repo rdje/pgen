@@ -1,9 +1,9 @@
 use super::{
+    ASTNode, ASTValue, Annotations, BranchAnnotation, ExtractionTarget, SemanticAnnotation,
+    SemanticAssociativity, UnifiedReturnAST, UnifiedSemanticAST, UnknownSemanticDirectivePolicy,
     extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
     parse_canonical_transform_expression, parse_semantic_len_bounds, parse_semantic_numeric_bounds,
-    parse_semantic_numeric_list, parse_semantic_string_list, semantic_directive_spec, ASTNode,
-    Annotations, BranchAnnotation, ExtractionTarget, SemanticAnnotation, SemanticAssociativity,
-    UnifiedReturnAST, UnifiedSemanticAST, UnknownSemanticDirectivePolicy,
+    parse_semantic_numeric_list, parse_semantic_string_list, semantic_directive_spec,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -28,6 +28,7 @@ impl AnnotationSeverity {
 pub enum AnnotationKind {
     Return,
     Semantic,
+    Grammar,
 }
 
 impl AnnotationKind {
@@ -35,6 +36,7 @@ impl AnnotationKind {
         match self {
             AnnotationKind::Return => "return",
             AnnotationKind::Semantic => "semantic",
+            AnnotationKind::Grammar => "grammar",
         }
     }
 }
@@ -213,6 +215,8 @@ impl AnnotationValidator {
                 }
             }
         }
+
+        self.validate_grammar_ambiguity(grammar_tree, &mut report);
 
         report
     }
@@ -955,6 +959,114 @@ impl AnnotationValidator {
         }
     }
 
+    fn validate_grammar_ambiguity(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        let mut rule_names: Vec<&String> = grammar_tree.keys().collect();
+        rule_names.sort_unstable();
+
+        for rule_name in rule_names {
+            let Some(rule_ast) = grammar_tree.get(rule_name) else {
+                continue;
+            };
+
+            let branches = self.top_level_branches(rule_ast);
+            if branches.len() < 2 {
+                continue;
+            }
+
+            let mut fingerprint_to_branches: HashMap<String, Vec<usize>> = HashMap::new();
+            for (idx, branch) in branches.iter().enumerate() {
+                let Some(fingerprint) = self.branch_leading_terminal_fingerprint(branch) else {
+                    continue;
+                };
+                fingerprint_to_branches
+                    .entry(fingerprint)
+                    .or_default()
+                    .push(idx + 1);
+            }
+
+            let mut grouped: Vec<(String, Vec<usize>)> =
+                fingerprint_to_branches.into_iter().collect();
+            grouped.sort_by(|left, right| left.0.cmp(&right.0));
+
+            for (fingerprint, mut branch_indices) in grouped {
+                if branch_indices.len() < 2 {
+                    continue;
+                }
+                branch_indices.sort_unstable();
+                let branch_list = branch_indices
+                    .iter()
+                    .map(|idx| idx.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                report.diagnostics.push(AnnotationDiagnostic {
+                    code: "W_GRAM_AMBIGUOUS_PREFIX",
+                    severity: AnnotationSeverity::Warning,
+                    kind: AnnotationKind::Grammar,
+                    rule_name: rule_name.to_string(),
+                    annotation_index: None,
+                    message: format!(
+                        "Rule '{}' has alternative branches [{}] sharing leading terminal {}; parse selection may depend on branch order.",
+                        rule_name, branch_list, fingerprint
+                    ),
+                    annotation: None,
+                });
+            }
+        }
+    }
+
+    fn branch_leading_terminal_fingerprint(&self, node: &ASTNode) -> Option<String> {
+        match node {
+            ASTNode::Sequence { elements } => elements
+                .first()
+                .and_then(|first| self.branch_leading_terminal_fingerprint(first)),
+            ASTNode::Atom { value } => self.atom_terminal_fingerprint(value),
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } if quantifier == "+" => self.branch_leading_terminal_fingerprint(element),
+            ASTNode::Or { alternatives } => {
+                let mut shared: Option<String> = None;
+                for alternative in alternatives {
+                    let candidate = self.branch_leading_terminal_fingerprint(alternative)?;
+                    match shared.as_ref() {
+                        None => shared = Some(candidate),
+                        Some(existing) if existing == &candidate => {}
+                        Some(_) => return None,
+                    }
+                }
+                shared
+            }
+            _ => None,
+        }
+    }
+
+    fn atom_terminal_fingerprint(&self, value: &ASTValue) -> Option<String> {
+        let ASTValue::Token(parts) = value else {
+            return None;
+        };
+        if parts.len() < 2 {
+            return None;
+        }
+
+        let token_type = match &parts[0] {
+            super::TokenValue::String(token_type) => token_type.as_str(),
+        };
+        let token_value = match &parts[1] {
+            super::TokenValue::String(token_value) => token_value.as_str(),
+        };
+
+        if token_type == "quoted_string" {
+            Some(format!("'{}'", token_value))
+        } else {
+            None
+        }
+    }
+
     fn positional_capture_bound(&self, branch_ast: &ASTNode) -> usize {
         match branch_ast {
             ASTNode::Sequence { elements } => elements.len(),
@@ -1008,10 +1120,12 @@ mod tests {
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
         assert!(report.has_errors());
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "E_RET_POS_ZERO"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "E_RET_POS_ZERO")
+        );
     }
 
     #[test]
@@ -1027,10 +1141,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_RET_UNPARSED" && d.severity == AnnotationSeverity::Warning));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_RET_UNPARSED" && d.severity == AnnotationSeverity::Warning)
+        );
     }
 
     #[test]
@@ -1038,10 +1154,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "number".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<u32>().unwrap_or(0)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<u32>().unwrap_or(0)".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
@@ -1054,10 +1172,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "number".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "parse(value)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "parse(value)".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let report = AnnotationValidator::new(AnnotationValidatorConfig {
@@ -1068,11 +1188,13 @@ mod tests {
         .validate_annotations(&annotations);
 
         assert!(report.has_errors());
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_NON_CANONICAL_TRANSFORM"
-                && d.severity == AnnotationSeverity::Error));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_NON_CANONICAL_TRANSFORM"
+                    && d.severity == AnnotationSeverity::Error)
+        );
     }
 
     #[test]
@@ -1095,11 +1217,13 @@ mod tests {
         })
         .validate_annotations(&annotations);
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
-                && d.severity == AnnotationSeverity::Warning));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
+                    && d.severity == AnnotationSeverity::Warning)
+        );
     }
 
     #[test]
@@ -1148,10 +1272,12 @@ mod tests {
         .validate_annotations(&annotations);
 
         assert!(report.has_errors());
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "E_RET_POS_OUT_OF_RANGE"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "E_RET_POS_OUT_OF_RANGE")
+        );
     }
 
     #[test]
@@ -1188,10 +1314,12 @@ mod tests {
 
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_RET_POS_RULE_BOUND"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_RET_POS_RULE_BOUND")
+        );
     }
 
     #[test]
@@ -1218,10 +1346,12 @@ mod tests {
 
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_RET_BRANCH_NOT_SEQUENCE"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_RET_BRANCH_NOT_SEQUENCE")
+        );
     }
 
     #[test]
@@ -1258,10 +1388,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_INVALID_PRIORITY_PAYLOAD"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_PRIORITY_PAYLOAD")
+        );
     }
 
     #[test]
@@ -1298,22 +1430,30 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_INVALID_RANGE_PAYLOAD"));
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_INVALID_LEN_PAYLOAD"));
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_INVALID_ENUM_PAYLOAD"));
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_INVALID_REGEX_PAYLOAD"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_RANGE_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_LEN_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_ENUM_PAYLOAD")
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_REGEX_PAYLOAD")
+        );
     }
 
     #[test]
@@ -1338,10 +1478,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_PRIORITY_PRECEDENCE_CONFLICT"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_PRIORITY_PRECEDENCE_CONFLICT")
+        );
     }
 
     #[test]
@@ -1366,10 +1508,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_DIRECTIVE_OVERRIDDEN"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_DIRECTIVE_OVERRIDDEN")
+        );
     }
 
     #[test]
@@ -1394,10 +1538,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN")
+        );
     }
 
     #[test]
@@ -1422,10 +1568,12 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN")
+        );
     }
 
     #[test]
@@ -1456,9 +1604,118 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(!report
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN")
+        );
+    }
+
+    #[test]
+    fn grammar_aware_validation_warns_on_ambiguous_literal_prefix() {
+        let annotations = Annotations::default();
+        let grammar_tree = HashMap::from([(
+            "statement".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String("if".to_string()),
+                                ]),
+                            },
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("rule_reference".to_string()),
+                                    TokenValue::String("expr".to_string()),
+                                ]),
+                            },
+                        ],
+                    },
+                    ASTNode::Sequence {
+                        elements: vec![
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String("if".to_string()),
+                                ]),
+                            },
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("rule_reference".to_string()),
+                                    TokenValue::String("stmt".to_string()),
+                                ]),
+                            },
+                        ],
+                    },
+                ],
+            },
+        )]);
+
+        let report = AnnotationValidator::default()
+            .validate_annotations_with_grammar(&annotations, &grammar_tree);
+
+        assert!(report.diagnostics.iter().any(|d| {
+            d.code == "W_GRAM_AMBIGUOUS_PREFIX"
+                && d.kind == AnnotationKind::Grammar
+                && d.rule_name == "statement"
+        }));
+    }
+
+    #[test]
+    fn grammar_aware_validation_does_not_warn_on_distinct_literal_prefixes() {
+        let annotations = Annotations::default();
+        let grammar_tree = HashMap::from([(
+            "statement".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String("if".to_string()),
+                                ]),
+                            },
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("rule_reference".to_string()),
+                                    TokenValue::String("expr".to_string()),
+                                ]),
+                            },
+                        ],
+                    },
+                    ASTNode::Sequence {
+                        elements: vec![
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("quoted_string".to_string()),
+                                    TokenValue::String("while".to_string()),
+                                ]),
+                            },
+                            ASTNode::Atom {
+                                value: ASTValue::Token(vec![
+                                    TokenValue::String("rule_reference".to_string()),
+                                    TokenValue::String("expr".to_string()),
+                                ]),
+                            },
+                        ],
+                    },
+                ],
+            },
+        )]);
+
+        let report = AnnotationValidator::default()
+            .validate_annotations_with_grammar(&annotations, &grammar_tree);
+
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_GRAM_AMBIGUOUS_PREFIX")
+        );
     }
 }

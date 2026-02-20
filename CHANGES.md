@@ -7321,3 +7321,29 @@ Ensure generated artifacts do not remain under version control and can be regene
 
 ### Notes
 - This follows the project policy that generated files are reproducible artifacts and should not be tracked.
+
+---
+
+## 2026-02-20: Ambiguity Diagnostics Kickoff (Pillar 6)
+
+### Goal
+Start ambiguity-handling implementation with deterministic, low-noise grammar diagnostics that catch order-sensitive alternation patterns early.
+
+### Changes
+- Added new validator diagnostic kind:
+  - `grammar`
+- Added grammar-aware ambiguity warning:
+  - `W_GRAM_AMBIGUOUS_PREFIX`
+  - emitted when top-level `Or` branches share the same leading quoted terminal token.
+- Integrated ambiguity scan into:
+  - `validate_annotations_with_grammar(...)`
+- Added unit tests:
+  - warning emitted for overlapping literal prefixes,
+  - warning not emitted for distinct literal prefixes.
+- Updated roadmap and UG:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` (Phase K kickoff, Pillar 6 now in progress),
+  - `PGEN_USER_GUIDE.md` (new ambiguity diagnostic documentation + example).
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml annotation_validator`
+- Result: pass (`19 passed, 0 failed` for annotation validator tests).
