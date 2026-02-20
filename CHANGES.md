@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Parser Runtime Relational Enforcement Baseline
+### ✅ Achievement Summary
+Promoted SC-09 from validator-only contracts to parser runtime enforcement for `@constraint/@requires/@implies` in generated parsers.
+### Scope of Changes
+- Updated parser code generation in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+- Added typed relational contract extraction in codegen:
+  - `rule_relational_constraints(...)` parses directive payloads from semantic annotations.
+  - `semantic_relational_constraint_tokens(...)` wires relational checks into generated rule methods.
+- Added generated parser runtime helpers for relational evaluation:
+  - reference resolution for positional and named paths (`$1`, `$2.field`, `lhs.id`) with `.len` support,
+  - `@requires` enforcement (resolved + non-empty references),
+  - relational expression evaluation for `@constraint`,
+  - implication enforcement for `@implies` (`antecedent => consequent`),
+  - deterministic contextual parse errors on unresolved references and failed relational checks.
+- Added semantic usage regression coverage in:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - new tests:
+    - `semantic_usage_codegen_parses_relational_constraint_policy`
+    - `semantic_usage_codegen_disables_relational_hints_without_constraint`
+    - `semantic_usage_codegen_emits_runtime_relational_guards_for_rule_methods`
+    - `semantic_usage_codegen_declares_relational_runtime_helper_methods`
+- Updated living docs/spec status:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+### Validation Results
+- `cargo test semantic_usage_codegen_parses_relational_constraint_policy --manifest-path rust/Cargo.toml` ✅
+- `cargo test semantic_usage_codegen_disables_relational_hints_without_constraint --manifest-path rust/Cargo.toml` ✅
+- `cargo test semantic_usage_codegen_emits_runtime_relational_guards_for_rule_methods --manifest-path rust/Cargo.toml` ✅
+- `cargo test semantic_usage_codegen_declares_relational_runtime_helper_methods --manifest-path rust/Cargo.toml` ✅
+- `make -C rust semantic_usage_gate` ✅
+
 ## 2026-02-20 - Rust EBNF Frontend Hardening: Dual-Run Compile Closure + Frontend Regression Tests
 ### ✅ Achievement Summary
 Closed a generator-level compile regression that could break `ebnf_dual_run` builds, and added focused frontend regression tests for `.ebnf` path helpers and raw-ast adapter behavior.

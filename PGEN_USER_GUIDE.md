@@ -294,12 +294,18 @@ Main grammar: `grammars/semantic_annotation.ebnf`
 
 #### D) Relational constraint contract baseline (`@constraint`, `@requires`, `@implies`)
 - Current stage:
-  - typed validator contract (`Tier 1`) is implemented,
-  - parser/stimuli runtime steering for relational constraints is not implemented yet.
+  - typed validator contract is implemented,
+  - parser runtime baseline (`Tier 2`) is implemented,
+  - stimuli runtime relational synthesis is still pending.
 - Payload expectations:
   - `@constraint`: non-empty expression/scalar payload.
   - `@requires`: one or more references (for example `["$1", "lhs.id"]`).
   - `@implies`: implication expression using `=>` (for example `"$1 => $2"`).
+- Parser runtime behavior (when `@constraint` is present):
+  - `@requires`: each reference must resolve and be non-empty.
+  - `@constraint`: relational expression is evaluated against resolved capture/reference values.
+  - `@implies`: antecedent must not evaluate to true while consequent is false.
+  - unresolved references and failed checks return contextual parse errors.
 - Coherence rule:
   - `@requires`/`@implies` without `@constraint` triggers `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`.
 
@@ -413,7 +419,7 @@ stmt = if_stmt | while_stmt ;
   - `ordered`,
   - `priority_first`.
 
-#### Example: Relational contract baseline (validator-typed, runtime follow-on)
+#### Example: Relational contract baseline (validator + parser runtime)
 ```ebnf
 pair = ident ":" ident ;
 @constraint: "$1 != $2"
@@ -422,7 +428,8 @@ pair = ident ":" ident ;
 ```
 - Current behavior:
   - validator enforces payload shapes/coherence,
-  - parser/stimuli do not yet execute relational constraint logic at runtime.
+  - generated parser enforces relational contract checks at runtime,
+  - stimuli relational synthesis/steering is follow-on work.
 
 #### Example: Relational coherence warning
 ```ebnf
@@ -670,7 +677,7 @@ Pattern 2:
 Pattern 3:
 - add at least one semantic usage regression test whenever recovery directives are changed
 
-### 8.13 SC-09 Relational Constraint Contract (Validator Baseline)
+### 8.13 SC-09 Relational Constraint Contract (Validator + Parser Runtime Baseline)
 
 This section focuses on:
 - `@constraint`
@@ -679,7 +686,8 @@ This section focuses on:
 
 Current stage:
 - typed validator contract is active,
-- parser/stimuli runtime relational steering is follow-on work.
+- parser runtime relational steering is active,
+- stimuli runtime relational steering remains follow-on work.
 
 #### 8.13.1 Payload Forms
 
@@ -716,7 +724,12 @@ pair = ident ":" ident ;
 
 - Same-directive duplicates are still last-wins (`W_SEM_DIRECTIVE_OVERRIDDEN`).
 - Strict mode promotes these warning-class diagnostics to errors, same as other semantic contracts.
-- These directives are now parse+validate contract surface (`Tier 1`) and are safe to use as forward-compatible metadata while runtime steering is being implemented.
+- Runtime parser enforcement activates only when `@constraint` is present:
+  - `@requires` references must resolve and be non-empty.
+  - `@constraint` expression is evaluated against capture/reference values.
+  - `@implies` is enforced as antecedent truth implies consequent truth.
+- Reference resolution supports positional (`$1`, `$2.field`) and named dotted references (`lhs.id`) including `.len` suffix (for example `$1.len >= 1`).
+- These directives now provide parse+validate plus parser-runtime contract surface (`Tier 2`).
 
 ## 9) Differential Testing and Drift Management
 

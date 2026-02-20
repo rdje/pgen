@@ -1,4 +1,79 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-09 Parser Runtime Relational Enforcement Baseline
+### Context
+SC-09 was previously limited to typed validator contracts (`@constraint/@requires/@implies`) and coherence diagnostics, but generated parser runtime had no executable relational enforcement. That left a contract gap between semantic metadata validation and actual parse-time behavior.
+
+### Implementation
+Primary file:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+#### 1) Codegen-side relational policy extraction
+- Added `SemanticRelationalConstraintPolicy` to represent per-rule SC-09 policy.
+- Added `rule_relational_constraints(rule_name)`:
+  - parses semantic directive payloads using typed helpers:
+    - `parse_semantic_constraint_expression`
+    - `parse_semantic_reference_list`
+    - `parse_semantic_implication`
+  - preserves contract coherence:
+    - `@requires`/`@implies` are kept inactive when `@constraint` is absent.
+
+#### 2) Rule-method injection of relational guards
+- Added `semantic_relational_constraint_tokens(rule_name)` and wired it into `generate_rule_method(...)`.
+- Generated rule methods now enforce, in order:
+  1. `@requires` reference presence/non-empty contract.
+  2. `@constraint` expression truth check.
+  3. `@implies` antecedent/consequent implication check.
+- Violations produce contextual parse errors with explicit semantic failure messages.
+
+#### 3) Generated parser helper runtime for relational evaluation
+- Extended generated helper methods with reusable SC-09 runtime functions:
+  - `enforce_relational_requires(...)`
+  - `evaluate_relational_expression(...)`
+  - `resolve_semantic_reference(...)`
+  - plus supporting operand parsing, top-level expression splitting, and comparison helpers.
+- Reference support:
+  - positional references (`$1`, `$2.field`),
+  - named dotted references (`lhs.id`),
+  - `.len` suffix for length-based constraints (for example `$1.len >= 1`).
+- Expression support baseline:
+  - boolean composition (`&&`, `||`, `!`),
+  - comparisons (`==`, `!=`, `>`, `>=`, `<`, `<=`),
+  - truthiness fallback for scalar expressions.
+
+#### 4) Semantic usage regression coverage
+- Added codegen tests:
+  - `semantic_usage_codegen_parses_relational_constraint_policy`
+  - `semantic_usage_codegen_disables_relational_hints_without_constraint`
+  - `semantic_usage_codegen_emits_runtime_relational_guards_for_rule_methods`
+  - `semantic_usage_codegen_declares_relational_runtime_helper_methods`
+- These tests lock:
+  - policy extraction contract,
+  - coherence behavior with missing `@constraint`,
+  - generated rule-method injection of SC-09 runtime checks,
+  - existence of generated relational helper methods.
+
+#### 5) Living-doc/spec alignment
+- Updated:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+- New declared status:
+  - SC-09 promoted to parser runtime baseline (`Tier 2`),
+  - stimuli relational synthesis remains pending (`Tier 3` target).
+
+### Validation
+- `cargo test semantic_usage_codegen_parses_relational_constraint_policy --manifest-path rust/Cargo.toml`
+  - pass.
+- `cargo test semantic_usage_codegen_disables_relational_hints_without_constraint --manifest-path rust/Cargo.toml`
+  - pass.
+- `cargo test semantic_usage_codegen_emits_runtime_relational_guards_for_rule_methods --manifest-path rust/Cargo.toml`
+  - pass.
+- `cargo test semantic_usage_codegen_declares_relational_runtime_helper_methods --manifest-path rust/Cargo.toml`
+  - pass.
+- `make -C rust semantic_usage_gate`
+  - pass (includes full semantic usage suite).
+
 ## 2026-02-20 - Rust EBNF Frontend Hardening: Generator Move-Safety + Adapter/CLI Regression Coverage
 ### Context
 Strict dual-run frontend validation exposed a compile-time failure in generated `ebnf.rs` recovery helper logic:

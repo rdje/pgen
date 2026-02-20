@@ -101,9 +101,15 @@ Normative runtime leverage behavior for semantic annotations:
     - generator emits deterministic marker fallback sample from recovery directives:
       - first non-empty `@panic_until` token, else first non-empty `@sync` token.
   - `@constraint/@requires/@implies` contract baseline:
-    - directives are typed/validated by the annotation validator (`Tier 1` contract),
-    - no parser/stimuli runtime steering is enforced yet for relational constraints,
-    - validator emits relational coherence warning when `@requires`/`@implies` appear without `@constraint`.
+    - directives are typed/validated by the annotation validator,
+    - parser runtime baseline is active (`Tier 2`) when `@constraint` is present:
+      - `@requires`: each reference must resolve to a non-empty capture value,
+      - `@constraint`: relational expression is evaluated against captures/references,
+      - `@implies`: antecedent truth implies consequent truth.
+    - reference resolution supports positional (`$1`, `$2.field`) and named dotted paths (`lhs.id`), including `.len` suffix.
+    - unresolved references or failed relational checks return generated contextual parse errors.
+    - relational hints remain inactive when `@constraint` is missing (validator still emits `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`).
+    - stimuli relational synthesis/steering is still follow-on work.
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.
