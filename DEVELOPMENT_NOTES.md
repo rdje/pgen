@@ -1,4 +1,74 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-04 Tier-4 Contract Gate Promotion
+### Context
+SC-04 token-family steering was already implemented at runtime (parser + stimuli), but coverage was still distributed across validator tests and semantic usage tests.
+
+What was missing for Tier-4:
+- explicit SC-04 contract corpus slice,
+- explicit gate target for SC-04 policy closure,
+- explicit differential taxonomy parity checks scoped to SC-04 contract cases.
+
+### Implementation
+Primary files:
+- `rust/test_data/semantic_annotation/sc04_contract.json`
+- `rust/scripts/sc04_contract_gate.sh`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) SC-04 contract corpus slice
+- Added `semantic_annotation/sc04_contract.json` with shared bootstrap/generated semantic-parser contract inputs for:
+  - `@token_class` payload forms (identifier + quoted alias),
+  - `@charset` payload forms (unquoted + bracket-style),
+  - `@pattern` payload forms (anchored, escaped, word-boundary).
+- All cases are expectation-aligned (`bootstrap=pass`, `generated=pass`) for parity closure.
+
+#### 2) Dedicated SC-04 Tier-4 gate
+- Added `rust/scripts/sc04_contract_gate.sh`.
+- Gate stages:
+  - typed SC-04 validator contracts:
+    - payload parsing checks,
+    - precedence warning contract (`W_SEM_TOKEN_STEERING_PRECEDENCE`),
+    - grammar-aware inactive-steering warning contract (`W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM`).
+  - SC-04 runtime steering checks:
+    - parser codegen semantic usage tests (`token_class/charset/pattern` precedence behavior),
+    - stimuli semantic usage tests (`token_class/charset/pattern` precedence behavior).
+  - SC-04 round-trip contract suites:
+    - bootstrap and generated runs of `semantic_annotation_sc04_contract`.
+  - SC-04 differential taxonomy check:
+    - generated-vs-bootstrap differential report on SC-04 suite,
+    - `jq` enforcement for taxonomy integrity:
+      - only known taxonomy categories,
+      - category sum equals `mismatched_cases`,
+      - contract currently requires `mismatched_cases == 0`,
+      - ensures SC-04 parity remains closure-safe while taxonomy accounting stays consistent.
+
+#### 3) Gate integration and CI path
+- Added Make target:
+  - `sc04_contract_gate`
+- Wired into:
+  - `annotation_contract_gate`
+- Result:
+  - existing `annotation-contract-gate` CI workflow now enforces SC-04 Tier-4 contract automatically (no separate workflow needed).
+
+#### 4) Living docs sync
+- Matrix:
+  - SC-04 status promoted from Tier 3 to Tier 4.
+- Roadmap:
+  - Phase K checklist + changelog updated with SC-04 Tier-4 completion entry.
+- Normative spec:
+  - executable SC-04 Tier-4 contract/gate + taxonomy parity conditions documented.
+- User guide:
+  - SC-04 Tier-4 section added with contract suite and gate commands.
+
+### Validation
+- `make -C rust sc04_contract_gate`
+  - pass.
+- `make -C rust annotation_contract_gate`
+  - pass.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-12 Runtime Partition Mode Hardening
 ### Context
 SC-12 parser-side steering had been promoted, but partition behavior was still effectively fixed at code-generation time for each rule.

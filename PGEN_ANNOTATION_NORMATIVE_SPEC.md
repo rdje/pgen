@@ -96,6 +96,15 @@ Normative runtime leverage behavior for semantic annotations:
       - regex atom sample generation uses the same effective steering regex selected by precedence above.
     - grammar-aware coherence warning:
       - `W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM` when valid token steering directives are present but rule AST has no regex atom (steering remains inactive).
+    - Tier-4 gate contract:
+      - dedicated shared semantic contract slice:
+        - `rust/test_data/semantic_annotation/sc04_contract.json`
+      - dedicated gate target:
+        - `make -C rust sc04_contract_gate`
+      - gate includes differential mismatch taxonomy parity checks over the SC-04 suite:
+        - allowed mismatch categories are constrained to the differential taxonomy set,
+        - category-count totals must match `mismatched_cases`,
+        - SC-04 comparable corpus currently requires `mismatched_cases == 0`.
   - `@coverage_target/@critical_path` contract baseline:
     - directives are typed/validated by the annotation validator,
     - payload forms:
@@ -305,11 +314,14 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/return_annotation/normative_shared_contract.json`
 - Shared bootstrap/generated semantic contract suite:
   - `rust/test_data/semantic_annotation/normative_shared_contract.json`
+- SC-04 shared semantic contract suite:
+  - `rust/test_data/semantic_annotation/sc04_contract.json`
 - Semantic leverage usage suite:
   - parser/stimuli unit tests prefixed `semantic_usage_`
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust sc04_contract_gate`
   - `make -C rust semantic_usage_gate`
 
 The gate runs:
@@ -318,6 +330,7 @@ The gate runs:
 - bootstrap semantic contract suite
 - shared return contract suite (bootstrap + generated)
 - shared semantic contract suite (bootstrap + generated)
+- SC-04 semantic contract slice + differential taxonomy parity check
 - semantic leverage unit contract suite (parser + stimuli)
 
 ## Maintenance Rules

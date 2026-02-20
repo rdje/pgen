@@ -1,0 +1,100 @@
+[
+  {
+    "name": "token_class_identifier_annotation",
+    "description": "SC-04 shared contract: token_class identifier payload must parse in bootstrap and generated semantic parsers.",
+    "input": "@token_class: identifier",
+    "expected_round_trip": "@token_class: identifier",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc04", "token_steering", "token_class"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "token_class_quoted_alias_annotation",
+    "description": "SC-04 shared contract: quoted token_class payload should remain parseable for typed validator routing.",
+    "input": "@token_class: \"int\"",
+    "expected_round_trip": "@token_class: \"int\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc04", "token_steering", "token_class"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "charset_unquoted_annotation",
+    "description": "SC-04 shared contract: unquoted charset payload should parse consistently in bootstrap and generated parsers.",
+    "input": "@charset: A-Za-z_",
+    "expected_round_trip": "@charset: A-Za-z_",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc04", "token_steering", "charset"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "charset_bracket_annotation",
+    "description": "SC-04 shared contract: bracket-style charset payload should parse consistently in bootstrap and generated parsers.",
+    "input": "@charset: \"[0-9A-F]\"",
+    "expected_round_trip": "@charset: \"[0-9A-F]\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc04", "token_steering", "charset"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "pattern_anchored_annotation",
+    "description": "SC-04 shared contract: anchored pattern payload should parse consistently in bootstrap and generated parsers.",
+    "input": "@pattern: \"^[A-Z]{2}$\"",
+    "expected_round_trip": "@pattern: \"^[A-Z]{2}$\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc04", "token_steering", "pattern"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "pattern_escape_annotation",
+    "description": "SC-04 shared contract: escaped pattern payload should parse consistently in bootstrap and generated parsers.",
+    "input": "@pattern: \"^\\\\d{2}$\"",
+    "expected_round_trip": "@pattern: \"^\\\\d{2}$\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc04", "token_steering", "pattern"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "pattern_word_boundary_annotation",
+    "description": "SC-04 shared contract: word-boundary pattern payload should parse consistently in bootstrap and generated parsers.",
+    "input": "@pattern: \"^\\\\b[A-Za-z_][A-Za-z0-9_]*\\\\b$\"",
+    "expected_round_trip": "@pattern: \"^\\\\b[A-Za-z_][A-Za-z0-9_]*\\\\b$\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc04", "token_steering", "pattern"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

@@ -233,6 +233,7 @@ help:
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
 	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
+	@echo "  sc04_contract_gate - Enforce SC-04 token steering Tier-4 contract slices + differential taxonomy checks"
 	@echo "  semantic_usage_gate - Enforce semantic-annotation leverage contract (parser/stimuli)"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
 	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
@@ -446,10 +447,17 @@ annotation_contract_gate:
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_builtin_contract
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract
 	@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate
+	@$(MAKE) -C $(RUST_DIR) sc04_contract_gate
 	@$(MAKE) -C $(RUST_DIR) return_parity_gate
 	@$(MAKE) -C $(RUST_DIR) semantic_usage_gate
 	@$(MAKE) -C $(RUST_DIR) annotation_robustness_gate
 	@echo "✅ Annotation normative contract gate passed."
+
+.PHONY: sc04_contract_gate
+sc04_contract_gate:
+	@echo "🧪 Running SC-04 token steering contract gate..."
+	cd $(RUST_DIR) && ./scripts/sc04_contract_gate.sh
+	@echo "✅ SC-04 token steering contract gate passed."
 
 .PHONY: annotation_robustness_gate
 annotation_robustness_gate:

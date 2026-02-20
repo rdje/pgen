@@ -122,6 +122,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Start SC-12 determinism partitioning hints (`@seed_group/@deterministic_group`) with typed validator contracts and deterministic stimuli seed-partition routing baseline.
 - [x] Promote SC-12 to parser-side deterministic partition steering baseline (ordered OR branch partition offsets + typed parser partition events/counters).
 - [x] Harden SC-12 embedder controls with generated-parser runtime partition mode overrides (`AnnotationDriven`/`ForceEnabled`/`ForceDisabled`) and runtime-effective ordered-branch partition resolution.
+- [x] Promote SC-04 to Tier-4 contract gate by adding dedicated SC-04 semantic contract slices + differential mismatch taxonomy parity checks inside `annotation_contract_gate` (CI-enforced).
 
 ## Current Sprint: Pillar 1
 
@@ -201,3 +202,4 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - 2026-02-20: Promoted SC-12 to parser-side steering baseline by adding deterministic group-aware ordered OR branch evaluation offsets (group-key hashed partitioning), typed parser partition telemetry (`DeterministicPartitionEvent` + per-rule counters/accessors), and semantic usage gate coverage for generated parser hooks/order rotation.
 - 2026-02-20: Hardened SC-12 parser embedder controls by adding runtime partition override surface (`DeterministicPartitionRuntimeMode` with `AnnotationDriven`/`ForceEnabled`/`ForceDisabled`), moving ordered-OR partition ordering to runtime-effective resolution, and wiring deterministic partition event emission to runtime-effective enable/group state.
 - 2026-02-20: Started SC-04 token-class steering baseline by adding typed payload diagnostics (`W_SEM_INVALID_TOKEN_CLASS_PAYLOAD`, `W_SEM_INVALID_CHARSET_PAYLOAD`, `W_SEM_INVALID_PATTERN_PAYLOAD`), deterministic precedence contract warning (`W_SEM_TOKEN_STEERING_PRECEDENCE`), grammar-aware inactive steering warning (`W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM`), and parser/stimuli runtime steering (`@pattern > @charset > @token_class`) with semantic usage gate coverage.
+- 2026-02-20: Promoted SC-04 to Tier-4 by adding a dedicated gate (`sc04_contract_gate`) with explicit semantic token-steering contract slices (`semantic_annotation_sc04_contract`) and differential mismatch taxonomy parity checks, then wiring that gate into `annotation_contract_gate` so existing CI required checks enforce SC-04 contract closure.

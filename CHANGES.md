@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-04 Tier-4 Contract Gate Promotion
+### ✅ Achievement Summary
+Promoted SC-04 token-family steering from Tier-3 runtime baseline to Tier-4 gate-enforced contract with explicit semantic contract slices and differential taxonomy parity checks.
+### Scope of Changes
+- Added SC-04 semantic contract corpus:
+  - `rust/test_data/semantic_annotation/sc04_contract.json`
+  - includes shared bootstrap/generated semantic parser cases for:
+    - `@token_class`
+    - `@charset`
+    - `@pattern`
+- Added dedicated SC-04 gate script:
+  - `rust/scripts/sc04_contract_gate.sh`
+  - enforces:
+    - typed SC-04 validator payload/coherence contract tests,
+    - SC-04 parser/stimuli semantic usage runtime tests,
+    - bootstrap/generated round-trip contract suite for `semantic_annotation_sc04_contract`,
+    - SC-04 differential taxonomy parity checks from report JSON:
+      - known taxonomy categories only,
+      - category totals must match `mismatched_cases`,
+      - current contract requires `mismatched_cases == 0`.
+- Updated gate wiring:
+  - `rust/Makefile`
+  - added target:
+    - `sc04_contract_gate`
+  - wired `sc04_contract_gate` into:
+    - `annotation_contract_gate`
+  - updated Make help text for SC-04 Tier-4 gate visibility.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` (SC-04 promoted to Tier 4)
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` (Phase K checklist + changelog update)
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` (SC-04 Tier-4 normative gate contract + executable conformance)
+  - `PGEN_USER_GUIDE.md` (new SC-04 Tier-4 gate usage section)
+### Validation Results
+- `make -C rust sc04_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-12 Runtime Partition Mode Hardening
 ### ✅ Achievement Summary
 Hardened SC-12 parser steering by moving deterministic partition resolution fully to parser runtime and exposing embedder override modes.

@@ -1238,6 +1238,32 @@ flag = regex("[a-z]+")
 3. Use `@pattern` for final precise behavior.
 4. Keep only one SC-04 directive when possible to reduce ambiguity/noise.
 
+#### 8.17.7 Tier-4 Contract Gate (SC-04)
+
+SC-04 is now gate-enforced with an explicit contract slice and differential taxonomy checks.
+
+Contract corpus:
+- `rust/test_data/semantic_annotation/sc04_contract.json`
+
+Gate commands:
+```bash
+make -C rust sc04_contract_gate
+```
+
+Included in the main annotation contract gate:
+```bash
+make -C rust annotation_contract_gate
+```
+
+What `sc04_contract_gate` enforces:
+1. Typed SC-04 payload/coherence validator tests (`@token_class/@charset/@pattern` + precedence/inactive-steering diagnostics).
+2. Parser/stimuli semantic-usage SC-04 runtime steering tests.
+3. Bootstrap and generated semantic parser round-trip contract suite for SC-04.
+4. Differential mismatch taxonomy parity check on the SC-04 contract slice:
+- only known taxonomy categories are accepted,
+- category-count totals must match `mismatched_cases`,
+- current SC-04 parity expectation is `mismatched_cases == 0`.
+
 ## 9) Differential Testing and Drift Management
 
 Reference help:
