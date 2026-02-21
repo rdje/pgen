@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-05 Tier-4 Precedence/Associativity Contract Gate Promotion
+### Context
+SC-05 (`@priority/@precedence/@associativity`) had parser/stimuli runtime behavior, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06/SC-07/SC-09/SC-10/SC-11/SC-12.
+
+That left a closure gap:
+- no SC-05 shared semantic contract corpus slice,
+- no dedicated differential taxonomy parity check scoped to SC-05,
+- no single gate-level enforcement for typed SC-05 payload/coherence contracts plus parser/stimuli runtime SC-05 behavior.
+
+### Implementation
+Primary files:
+- `rust/test_data/semantic_annotation/sc05_contract.json`
+- `rust/scripts/sc05_contract_gate.sh`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) SC-05 shared contract corpus
+- Added `semantic_annotation/sc05_contract.json`.
+- Corpus covers parseability of SC-05 directive payload forms in bootstrap/generated semantic parsers:
+  - `@priority` scalar and vector payloads,
+  - `@precedence` vector payloads,
+  - `@associativity` payloads (`right`, `nonassoc`).
+
+#### 2) Dedicated SC-05 gate
+- Added `rust/scripts/sc05_contract_gate.sh`.
+- Gate stages:
+  - typed SC-05 payload parser contracts (`parse_semantic_branch_priorities` and `SemanticAssociativity::parse`),
+  - typed validator payload/coherence contracts (invalid payload diagnostics, `priority > precedence` conflict, duplicate last-wins diagnostics),
+  - parser runtime contracts (priority/precedence extraction and associativity tie-break routing in generated parser code),
+  - stimuli runtime contracts (priority biasing, priority-over-precedence steering, associativity tie bias),
+  - bootstrap/generated SC-05 contract suite runs,
+  - SC-05 differential taxonomy parity assertions:
+    - known category set only,
+    - category total must equal `mismatched_cases`,
+    - SC-05 comparable corpus currently requires `mismatched_cases == 0`.
+
+#### 3) Gate wiring
+- Added `sc05_contract_gate` Make target.
+- Wired `sc05_contract_gate` into `annotation_contract_gate`.
+- Updated Make help text accordingly.
+
+### Validation
+- `make -C rust sc05_contract_gate`:
+  - pass.
+- `make -C rust annotation_contract_gate`:
+  - pass with SC-05 gate included.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-12 Tier-4 Deterministic-Partition Contract Gate Promotion
 ### Context
 SC-12 (`@seed_group/@deterministic_group`) had parser/stimuli runtime behavior and embedder runtime-mode controls, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06/SC-07/SC-09/SC-10/SC-11.

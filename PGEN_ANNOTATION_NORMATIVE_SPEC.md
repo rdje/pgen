@@ -429,6 +429,8 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/semantic_annotation/normative_shared_contract.json`
 - SC-03 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc03_contract.json`
+- SC-05 shared semantic contract suite:
+  - `rust/test_data/semantic_annotation/sc05_contract.json`
 - SC-06 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc06_contract.json`
 - SC-07 shared semantic contract suite:
@@ -448,6 +450,7 @@ Normative contract checks are executable, not only documented:
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust sc05_contract_gate`
   - `make -C rust sc12_contract_gate`
   - `make -C rust sc11_contract_gate`
   - `make -C rust sc10_contract_gate`
@@ -466,6 +469,7 @@ The gate runs:
 - shared return contract suite (bootstrap + generated)
 - shared semantic contract suite (bootstrap + generated)
 - SC-06 semantic contract slice + differential taxonomy parity check
+- SC-05 semantic contract slice + differential taxonomy parity check
 - SC-09 semantic contract slice + differential taxonomy parity check
 - SC-10 semantic contract slice + differential taxonomy parity check
 - SC-11 semantic contract slice + differential taxonomy parity check

@@ -447,6 +447,30 @@ make -C rust annotation_contract_gate
 4. Stimuli deterministic-partition contracts (inactive seed-group guard, deterministic-group routing, and interleaving-order independence).
 5. Bootstrap/generated SC-12 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-12 comparable corpus).
 
+#### 8.3.8 SC-05 Tier-4 Contract Gate
+
+SC-05 precedence/associativity behavior is gate-enforced.
+
+Contract corpus:
+- `rust/test_data/semantic_annotation/sc05_contract.json`
+
+Gate commands:
+```bash
+make -C rust sc05_contract_gate
+```
+
+Also included in:
+```bash
+make -C rust annotation_contract_gate
+```
+
+`sc05_contract_gate` enforces:
+1. Typed SC-05 payload parser contracts (`@priority/@precedence/@associativity`).
+2. Typed SC-05 validator/coherence contracts (`W_SEM_INVALID_PRIORITY_PAYLOAD`, `W_SEM_INVALID_ASSOCIATIVITY_PAYLOAD`, `W_SEM_PRIORITY_PRECEDENCE_CONFLICT`, duplicate last-wins diagnostics).
+3. Parser precedence/associativity runtime contracts (directive extraction, priority-over-precedence routing, associativity tie-break policy emission).
+4. Stimuli precedence/associativity steering contracts (priority bias, priority-over-precedence steering, and associativity tie biasing behavior).
+5. Bootstrap/generated SC-05 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-05 comparable corpus).
+
 ### 8.4 Steering Behaviors Implemented Today
 
 #### A) Canonical transform steering (`@transform`)
@@ -1502,6 +1526,12 @@ Tracked baselines:
     - parser/stimuli branch-selection runtime tests,
     - weighted-probability determinism/fallback tests,
     - SC-06 bootstrap/generated contract slice + differential taxonomy parity checks
+- `sc05_contract_gate` (local gate target)
+  - SC-05 precedence/associativity Tier-4 contract:
+    - typed SC-05 payload/coherence validator contracts,
+    - parser precedence/associativity runtime contract checks,
+    - stimuli precedence/associativity steering contract checks,
+    - SC-05 bootstrap/generated contract slice + differential taxonomy parity checks
 - `sc07_contract_gate` (local gate target)
   - SC-07 recovery/sync Tier-4 contract:
     - typed recovery payload/coherence validator contracts,
@@ -1580,6 +1610,7 @@ make -C rust SHELL=/bin/bash sc11_contract_gate
 make -C rust SHELL=/bin/bash sc10_contract_gate
 make -C rust SHELL=/bin/bash sc09_contract_gate
 make -C rust SHELL=/bin/bash sc06_contract_gate
+make -C rust SHELL=/bin/bash sc05_contract_gate
 make -C rust SHELL=/bin/bash sc07_contract_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
 make -C rust SHELL=/bin/bash return_parity_gate

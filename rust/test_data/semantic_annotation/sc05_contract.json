@@ -1,0 +1,72 @@
+[
+  {
+    "name": "priority_scalar",
+    "description": "SC-05 shared contract: scalar priority payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@priority: 5",
+    "expected_round_trip": "@priority: 5",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc05", "priority"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "priority_vector",
+    "description": "SC-05 shared contract: branch priority vector payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@priority: [1, 9, 2]",
+    "expected_round_trip": "@priority: [1, 9, 2]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc05", "priority"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "precedence_vector",
+    "description": "SC-05 shared contract: precedence vector payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@precedence: [3, 7]",
+    "expected_round_trip": "@precedence: [3, 7]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc05", "precedence"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "associativity_right",
+    "description": "SC-05 shared contract: right associativity payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@associativity: right",
+    "expected_round_trip": "@associativity: right",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc05", "associativity"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "associativity_nonassoc",
+    "description": "SC-05 shared contract: nonassoc associativity payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@associativity: nonassoc",
+    "expected_round_trip": "@associativity: nonassoc",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc05", "associativity"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]
