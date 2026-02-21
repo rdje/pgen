@@ -6,11 +6,19 @@ use chrono::Utc;
 use clap::{Arg, Command};
 use lazy_static::lazy_static;
 #[cfg(feature = "generated_parsers")]
+use pgen::NoOpLogger;
+#[cfg(feature = "generated_parsers")]
+use pgen::ast_pipeline::UnifiedReturnAST;
+#[cfg(feature = "generated_parsers")]
+use pgen::ast_pipeline::UnifiedSemanticAST;
+#[cfg(feature = "generated_parsers")]
 use pgen::generated_parsers::return_annotation::Return_annotationParser;
 #[cfg(feature = "generated_parsers")]
 use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
 #[cfg(feature = "generated_parsers")]
-use pgen::test_runner::normalization::{apply_normalizer, Normalizer};
+use pgen::test_runner::Logger;
+#[cfg(feature = "generated_parsers")]
+use pgen::test_runner::normalization::{Normalizer, apply_normalizer};
 #[cfg(feature = "generated_parsers")]
 use pgen::test_runner::parsers::unparse_return_ast;
 use pgen::test_runner::parsers::{
@@ -19,13 +27,7 @@ use pgen::test_runner::parsers::{
 };
 #[cfg(feature = "generated_parsers")]
 use pgen::test_runner::round_trip_tests::{RoundTripTest, TestSuite};
-#[cfg(feature = "generated_parsers")]
-use pgen::test_runner::Logger;
 use pgen::test_runner::{FileLogger, Parser, UniversalTestRunner};
-#[cfg(feature = "generated_parsers")]
-use pgen::NoOpLogger;
-#[cfg(feature = "generated_parsers")]
-use pgen::ast_pipeline::UnifiedReturnAST;
 #[cfg(feature = "generated_parsers")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "generated_parsers")]
@@ -58,12 +60,15 @@ impl Parser for GeneratedReturnAnnotationParser {
         // Parse the input
         match parser.parse_full_return_annotation() {
             Ok(parse_node) => {
-                let ast =
-                    UnifiedReturnAST::parse_generated_return_annotation(input, &parse_node, &*self.logger)
-                    .map_err(|e| {
-                        Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
-                            as Box<dyn std::error::Error>
-                    })?;
+                let ast = UnifiedReturnAST::parse_generated_return_annotation(
+                    input,
+                    &parse_node,
+                    &*self.logger,
+                )
+                .map_err(|e| {
+                    Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+                        as Box<dyn std::error::Error>
+                })?;
                 let unparsed = unparse_return_ast(&ast);
                 let result = if has_arrow_prefix {
                     format!("-> {}", unparsed)
@@ -106,11 +111,23 @@ impl Parser for GeneratedSemanticAnnotationParser {
 
         // Parse the input
         match parser.parse_full_semantic_annotation() {
-            Ok(_parse_node) => {
-                // For now, return the input as-is since the generated parser
-                // successfully parsed the grammar structure
-                // TODO: Implement proper AST conversion and unparsing
-                Ok(input.to_string())
+            Ok(parse_node) => {
+                let ast = UnifiedSemanticAST::parse_generated_semantic_annotation(
+                    input,
+                    &parse_node,
+                    &*self.logger,
+                )
+                .map_err(|e| {
+                    Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+                        as Box<dyn std::error::Error>
+                })?;
+                let unparsed = match ast {
+                    UnifiedSemanticAST::TransformExpr { expression } => {
+                        format!("@transform: {}", expression)
+                    }
+                    UnifiedSemanticAST::Raw { content } => content,
+                };
+                Ok(unparsed)
             }
             Err(e) => Err(Box::new(e)),
         }

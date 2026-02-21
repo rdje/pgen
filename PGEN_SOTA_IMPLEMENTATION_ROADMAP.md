@@ -149,6 +149,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [ ] Implement generated-parser-backed typed AST closure for full return grammar in non-bootstrap path (remove bootstrap typed-AST fallback for conforming inputs).
   - Progress (2026-02-21): non-bootstrap return entry parsing now requires generated parser success and no longer falls back to bootstrap entry parsing; remaining work is full structural parse-tree-to-typed-AST mapping coverage across all return construct families.
 - [ ] Implement generated-parser-backed typed AST closure for full semantic grammar in non-bootstrap path (remove raw/marker fallback for conforming inputs).
+  - Progress (2026-02-21): generated semantic round-trip wrapper now uses generated parse-tree conversion (`UnifiedSemanticAST::parse_generated_semantic_annotation`) instead of identity output, and regression coverage was added for transform and named-raw directive conversion; remaining work is full typed semantic AST family expansion beyond `TransformExpr/Raw` and elimination of non-bootstrap raw fallback for all conforming semantic constructs.
 - [ ] Add full-contract gates (`return_full_contract_gate`, `semantic_full_contract_gate`, `annotation_100_gate`) and make them required in CI/SOTA aggregate policy.
 
 ### Phase M (New): Cross-EBNF Closed-Loop Quality (Non-Annotation Loop)
@@ -199,6 +200,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-21: Advanced Phase L SA-01 baseline by replacing generated semantic round-trip identity behavior with generated parse-tree conversion (`parse_generated_semantic_annotation`) in `test_runner`, adding conversion regression coverage, and validating through `semantic_usage_gate` + `annotation_contract_gate`.
 - 2026-02-21: Closed remaining RA-01 generated round-trip bootstrap dependency by switching `GeneratedReturnAnnotationParser::round_trip` to generated parse-tree typed conversion (`parse_generated_return_annotation`) before canonical unparse.
 - 2026-02-21: Advanced Phase L RA-01 from baseline to structural closure progress by replacing span-based generated return conversion with rule-aware parse-tree mapping in `UnifiedReturnAST`, aligning extraction-target and zero/signed-zero positional semantics with bootstrap parity, expanding generated conversion parity corpus tests, and broadening `return_runtime_semantics_gate` to run the full `generated_return_tree_to_typed_ast_` family.
 - 2026-02-20: Advanced Phase L RA-04 gate hardening by adding explicit return gate slices (`return_runtime_semantics_gate`, `return_ast_roundtrip_gate`, `return_full_contract_gate`) and wiring `return_full_contract_gate` into `annotation_contract_gate`.

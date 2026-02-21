@@ -1,4 +1,84 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-21 - Phase L SA-01 Increment: Generated Semantic Round-Trip Parse-Tree Conversion
+### Context
+Generated semantic round-trip in `test_runner` was still parse-only identity:
+- generated parser success returned `Ok(input.to_string())`,
+- no generated parse-tree to semantic AST conversion was exercised in that path,
+- this left SA-01 closure progress behind RA-01 on end-to-end non-bootstrap conversion behavior.
+
+This increment removes that identity shortcut and routes generated semantic round-trip through explicit generated parse-tree conversion.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/unified_semantic_ast.rs`
+- `rust/src/bin/test_runner.rs`
+
+#### 1) Added generated semantic parse-tree conversion API
+File:
+- `rust/src/ast_pipeline/unified_semantic_ast.rs`
+
+New entrypoint:
+- `UnifiedSemanticAST::parse_generated_semantic_annotation(input, parse_tree, logger)`
+
+Behavior:
+- resolves the effective `semantic_annotation` root from parse tree (direct or nested),
+- traverses parse content recursively to locate:
+  - first `annotation_name` node,
+  - first `annotation_value` node,
+- extracts source text using parse-node spans (`slice_span` helper),
+- normalizes:
+  - annotation name => lowercase trimmed,
+  - annotation value => trimmed payload text.
+
+Typed conversion policy in this increment:
+- `@transform: <payload>` => `UnifiedSemanticAST::TransformExpr { expression: <payload> }`
+- all other directives => `UnifiedSemanticAST::Raw { content: "@<name>: <payload>" }`
+
+Added support helpers:
+- `find_first_rule_node(...)` recursive parse-tree traversal over `Sequence` / `Alternative` / `Quantified`.
+- `slice_span(...)` safe span extraction with bounds checking and explicit error messages for invalid spans.
+
+#### 2) Removed generated semantic identity round-trip behavior
+File:
+- `rust/src/bin/test_runner.rs`
+
+Updated:
+- `GeneratedSemanticAnnotationParser::round_trip(...)`
+
+Old success path:
+- parse generated semantic grammar,
+- return input unchanged.
+
+New success path:
+1. parse generated semantic grammar (`parse_full_semantic_annotation`),
+2. convert parse tree to semantic AST with `UnifiedSemanticAST::parse_generated_semantic_annotation(...)`,
+3. unparse output deterministically:
+   - `TransformExpr { expression }` => `@transform: <expression>`
+   - `Raw { content }` => `<content>`
+
+This ensures generated semantic round-trip output is produced from conversion logic rather than passthrough echo.
+
+#### 3) Added conversion regression coverage
+File:
+- `rust/src/ast_pipeline/unified_semantic_ast.rs`
+
+Added test:
+- `generated_semantic_tree_to_ast_supports_transform_and_named_raw`
+
+Asserts:
+- `@transform: $1` generated parse-tree conversion yields typed `TransformExpr("$1")`.
+- `@priority: [9, 1]` generated parse-tree conversion yields canonical named raw content `@priority: [9, 1]`.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib generated_semantic_tree_to_ast_supports_transform_and_named_raw`:
+  - pass.
+- `make -C rust semantic_usage_gate`:
+  - pass.
+- `make -C rust return_full_contract_gate`:
+  - pass.
+- `make -C rust annotation_contract_gate`:
+  - pass.
+
 ## 2026-02-21 - Phase L RA-01 Increment: Generated Return Round-Trip End-to-End Non-Bootstrap Path
 ### Context
 After structural generated parse-tree mapping was added in `UnifiedReturnAST`, the generated return round-trip wrapper still built typed AST through `parse_bootstrap`. That left a residual non-bootstrap inconsistency in test-runner generated mode.

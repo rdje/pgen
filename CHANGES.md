@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-02-21 - Phase L SA-01 Increment: Generated Semantic Round-Trip Uses Parse-Tree Conversion
+### ✅ Achievement Summary
+Removed generated semantic round-trip identity behavior and replaced it with generated parse-tree to semantic AST conversion, so the generated semantic path no longer returns raw input as a successful parse placeholder.
+
+### Scope of Changes
+- Added generated semantic parse-tree conversion entrypoint:
+  - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+  - new `UnifiedSemanticAST::parse_generated_semantic_annotation(...)`:
+    - locates `semantic_annotation` root,
+    - extracts `annotation_name` and `annotation_value` spans from generated parse tree,
+    - emits typed `TransformExpr` for `@transform`,
+    - emits canonical `Raw("@name: payload")` for other semantic directives.
+- Updated generated semantic parser wrapper round-trip path:
+  - `rust/src/bin/test_runner.rs`
+  - `GeneratedSemanticAnnotationParser::round_trip(...)` now:
+    1. parses via generated semantic parser (`parse_full_semantic_annotation`),
+    2. builds semantic AST via `parse_generated_semantic_annotation(...)`,
+    3. emits canonical semantic round-trip output from typed conversion result.
+  - removed prior identity success path (`Ok(input.to_string())`).
+- Added generated semantic conversion regression test:
+  - `generated_semantic_tree_to_ast_supports_transform_and_named_raw`
+  - verifies generated parse-tree mapping for:
+    - `@transform: $1` -> typed `TransformExpr("$1")`,
+    - `@priority: [9, 1]` -> canonical named raw semantic payload.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib generated_semantic_tree_to_ast_supports_transform_and_named_raw` ✅
+- `make -C rust semantic_usage_gate` ✅
+- `make -C rust return_full_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-21 - Phase L RA-01 Increment: Generated Return Round-Trip Uses Structural Generated Mapping
 ### ✅ Achievement Summary
 Completed a remaining non-bootstrap gap in generated return round-trip by removing bootstrap AST parsing from generated parser wrapper logic and using generated parse-tree to typed AST conversion end-to-end.

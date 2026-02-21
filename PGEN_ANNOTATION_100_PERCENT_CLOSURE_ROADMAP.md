@@ -161,6 +161,10 @@ Exit criteria:
 - Expand semantic typed AST beyond marker/raw forms to represent all grammar families.
 - Implement generated-parser-backed parse tree to typed semantic AST conversion for conforming inputs.
 - In non-bootstrap mode, eliminate raw fallback for grammar-conforming semantic annotations.
+- Progress (2026-02-21):
+  - generated semantic round-trip path (`GeneratedSemanticAnnotationParser`) now consumes generated parse tree and converts via `UnifiedSemanticAST::parse_generated_semantic_annotation` instead of returning identity input,
+  - conversion currently extracts `annotation_name` / `annotation_value` spans and maps `@transform` to `TransformExpr`, other directives to canonical named `Raw`,
+  - remaining closure work is full typed semantic AST family expansion and non-bootstrap raw fallback elimination for all conforming semantic constructs.
 
 Exit criteria:
 - 0 conforming semantic inputs land in generic raw fallback in non-bootstrap mode.
@@ -279,6 +283,7 @@ Roadmap reaches 100% only when:
 - stimuli quality gate thresholds remain green in CI with no waived deficits.
 
 ## Change Log
+- 2026-02-21: Advanced SA-01 baseline by replacing generated semantic round-trip identity output with generated parse-tree conversion (`parse_generated_semantic_annotation`) and adding generated conversion regression coverage for transform and named-raw directives.
 - 2026-02-21: Advanced RA-01 end-to-end non-bootstrap generated path by updating generated return round-trip wrapper (`GeneratedReturnAnnotationParser`) to build typed AST from generated parse-tree conversion (`parse_generated_return_annotation`) instead of bootstrap parsing.
 - 2026-02-21: Advanced RA-01 from baseline to structural mapping by replacing span-based generated return conversion with rule-aware parse-tree mapping, aligning generated conversion semantics with bootstrap for extraction-index and zero/signed-zero positional handling, expanding generated conversion parity corpus tests, and broadening `return_runtime_semantics_gate` generated test coverage.
 - 2026-02-20: Initial zero-compromise roadmap published for full return and semantic annotation closure with objective proof gates.
