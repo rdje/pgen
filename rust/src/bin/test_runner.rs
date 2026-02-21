@@ -12,6 +12,7 @@ use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
 #[cfg(feature = "generated_parsers")]
 use pgen::test_runner::normalization::{apply_normalizer, Normalizer};
 use pgen::test_runner::parsers::{
+    unparse_return_ast,
     ReturnAnnotationParser as BootstrapReturnAnnotationParser,
     SemanticAnnotationParser as BootstrapSemanticAnnotationParser,
 };
@@ -22,6 +23,8 @@ use pgen::test_runner::Logger;
 use pgen::test_runner::{FileLogger, Parser, UniversalTestRunner};
 #[cfg(feature = "generated_parsers")]
 use pgen::NoOpLogger;
+#[cfg(feature = "generated_parsers")]
+use pgen::ast_pipeline::UnifiedReturnAST;
 #[cfg(feature = "generated_parsers")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "generated_parsers")]
@@ -49,14 +52,23 @@ impl Parser for GeneratedReturnAnnotationParser {
     fn round_trip(&self, input: &str) -> Result<String, Box<dyn std::error::Error>> {
         // Create a parser instance for this specific input
         let mut parser = Return_annotationParser::new(input, self.logger.clone_box());
+        let has_arrow_prefix = input.trim_start().starts_with("->");
 
         // Parse the input
         match parser.parse_full_return_annotation() {
             Ok(_parse_node) => {
-                // For now, return the input as-is since the generated parser
-                // successfully parsed the grammar structure
-                // TODO: Implement proper AST conversion and unparsing
-                Ok(input.to_string())
+                let ast = UnifiedReturnAST::parse_bootstrap(input, &*self.logger)
+                    .map_err(|e| {
+                        Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+                            as Box<dyn std::error::Error>
+                    })?;
+                let unparsed = unparse_return_ast(&ast);
+                let result = if has_arrow_prefix {
+                    format!("-> {}", unparsed)
+                } else {
+                    unparsed
+                };
+                Ok(result)
             }
             Err(e) => Err(Box::new(e)),
         }

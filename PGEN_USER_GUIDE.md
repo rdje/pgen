@@ -1621,6 +1621,7 @@ Tracked baselines:
   - no new generated-vs-bootstrap mismatches
 - `return_parity_gate` (local gate target)
   - zero return mismatches on expectation-aligned (comparable) differential corpus
+  - generated return round-trip path emits canonical typed output (not parse-only identity echo)
 - `embedding_api_gate` (local gate target)
   - contract stability for embedding API behavior
 

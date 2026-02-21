@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-02-20 - Phase L RA-03 Increment: Generated Return Round-Trip Canonicalization
+### ✅ Achievement Summary
+Removed generated return parser round-trip identity behavior in `test_runner` and replaced it with canonical typed unparse output, so generated return round-trip now reflects typed AST semantics instead of echoing raw input.
+
+### Scope of Changes
+- Added shared canonical return unparse helper:
+  - `rust/src/test_runner/parsers.rs`
+  - new `unparse_return_ast(&UnifiedReturnAST) -> String` for deterministic typed output.
+- Updated bootstrap return round-trip to use shared helper:
+  - `rust/src/test_runner/parsers.rs`
+- Updated generated return round-trip path:
+  - `rust/src/bin/test_runner.rs`
+  - behavior now:
+    1. parse with generated return parser (`parse_full_return_annotation`),
+    2. build typed return AST,
+    3. emit canonical unparse output (preserving leading `->` presence).
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash return_parity_gate` ✅
+
 ## 2026-02-20 - Phase L RA-02 Increment: Identifier + Single-Quote Return Runtime Closure
 ### ✅ Achievement Summary
 Closed a concrete RA-02 runtime gap by extending typed return handling to support identifier literals and single-quoted string/object-key forms end-to-end in the bootstrap typed AST path and downstream transform/normalization flows.

@@ -4,6 +4,55 @@ use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST
 use super::{Logger, Parser};
 use anyhow::Result;
 
+/// Canonical return-annotation unparse from typed AST.
+pub fn unparse_return_ast(ast: &UnifiedReturnAST) -> String {
+    match ast {
+        UnifiedReturnAST::PositionalRef { index } => format!("${}", index),
+        UnifiedReturnAST::StringLiteral { value } => format!("\"{}\"", value),
+        UnifiedReturnAST::NumberLiteral { value } => {
+            if value.fract() == 0.0 {
+                format!("{:.0}", value)
+            } else {
+                format!("{}", value)
+            }
+        }
+        UnifiedReturnAST::BooleanLiteral { value } => format!("{}", value),
+        UnifiedReturnAST::Identifier { name } => name.clone(),
+        UnifiedReturnAST::Array { elements } => {
+            let elem_strs: Vec<String> = elements.iter().map(unparse_return_ast).collect();
+            format!("[{}]", elem_strs.join(", "))
+        }
+        UnifiedReturnAST::Object { properties } => {
+            let mut sorted_keys: Vec<&String> = properties.keys().collect();
+            sorted_keys.sort();
+            let prop_strs: Vec<String> = sorted_keys
+                .iter()
+                .map(|k| {
+                    let v = properties.get(*k).expect("key exists");
+                    format!("{}: {}", k, unparse_return_ast(v))
+                })
+                .collect();
+            format!("{{{}}}", prop_strs.join(", "))
+        }
+        UnifiedReturnAST::Spread { base } => format!("{}*", unparse_return_ast(base)),
+        UnifiedReturnAST::PropertyAccess { base, property } => {
+            format!("{}.{}", unparse_return_ast(base), property)
+        }
+        UnifiedReturnAST::ArrayAccess { base, index } => {
+            format!("{}[{}]", unparse_return_ast(base), unparse_return_ast(index))
+        }
+        UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+            let target_str = match target {
+                ExtractionTarget::Index(idx) => format!("::{}", idx + 1),
+                ExtractionTarget::First => "::first".to_string(),
+                ExtractionTarget::Last => "::last".to_string(),
+            };
+            format!("{}{}", unparse_return_ast(base), target_str)
+        }
+        UnifiedReturnAST::Passthrough => "$1".to_string(),
+    }
+}
+
 /// Return Annotation Parser implementation
 pub struct ReturnAnnotationParser {
     logger: Box<dyn Logger>,
@@ -13,55 +62,6 @@ impl ReturnAnnotationParser {
     pub fn new() -> Self {
         Self {
             logger: Box::new(crate::NoOpLogger),
-        }
-    }
-
-    /// Convert AST back to original string format for true round-trip validation
-    fn unparse_ast(&self, ast: &UnifiedReturnAST) -> String {
-        match ast {
-            UnifiedReturnAST::PositionalRef { index } => format!("${}", index),
-            UnifiedReturnAST::StringLiteral { value } => format!("\"{}\"", value),
-            UnifiedReturnAST::NumberLiteral { value } => {
-                if value.fract() == 0.0 {
-                    format!("{:.0}", value)
-                } else {
-                    format!("{}", value)
-                }
-            }
-            UnifiedReturnAST::BooleanLiteral { value } => format!("{}", value),
-            UnifiedReturnAST::Identifier { name } => name.clone(),
-            UnifiedReturnAST::Array { elements } => {
-                let elem_strs: Vec<String> = elements.iter().map(|e| self.unparse_ast(e)).collect();
-                format!("[{}]", elem_strs.join(", "))
-            }
-            UnifiedReturnAST::Object { properties } => {
-                let mut sorted_keys: Vec<&String> = properties.keys().collect();
-                sorted_keys.sort();
-                let prop_strs: Vec<String> = sorted_keys
-                    .iter()
-                    .map(|k| {
-                        let v = properties.get(*k).expect("key exists");
-                        format!("{}: {}", k, self.unparse_ast(v))
-                    })
-                    .collect();
-                format!("{{{}}}", prop_strs.join(", "))
-            }
-            UnifiedReturnAST::Spread { base } => format!("{}*", self.unparse_ast(base)),
-            UnifiedReturnAST::PropertyAccess { base, property } => {
-                format!("{}.{}", self.unparse_ast(base), property)
-            }
-            UnifiedReturnAST::ArrayAccess { base, index } => {
-                format!("{}[{}]", self.unparse_ast(base), self.unparse_ast(index))
-            }
-            UnifiedReturnAST::QuantifiedExtraction { base, target } => {
-                let target_str = match target {
-                    ExtractionTarget::Index(idx) => format!("::{}", idx + 1),
-                    ExtractionTarget::First => "::first".to_string(),
-                    ExtractionTarget::Last => "::last".to_string(),
-                };
-                format!("{}{}", self.unparse_ast(base), target_str)
-            }
-            UnifiedReturnAST::Passthrough => "$1".to_string(),
         }
     }
 }
@@ -96,7 +96,7 @@ impl Parser for ReturnAnnotationParser {
 
         // Convert back to string representation for round-trip validation
         // Use proper unparsing that produces the original string format
-        let unparsed = self.unparse_ast(&ast);
+        let unparsed = unparse_return_ast(&ast);
         let result = if has_arrow_prefix {
             format!("-> {}", unparsed)
         } else {

@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase L RA-03 Increment: Generated Return Round-Trip Canonicalization
+### Context
+Generated return parser round-trip in `test_runner` was parse-only identity:
+- successful generated parse returned the original input string unchanged,
+- canonical round-trip behavior depended only on input normalization,
+- typed return AST semantics were not represented in the generated round-trip output path.
+
+This left RA-03 closure incomplete for generated return path observability.
+
+### Implementation
+Primary files:
+- `rust/src/test_runner/parsers.rs`
+- `rust/src/bin/test_runner.rs`
+
+#### 1) Shared canonical return unparse helper
+- Added `pub fn unparse_return_ast(ast: &UnifiedReturnAST) -> String` in `parsers.rs`.
+- Moved canonical return unparse logic into this shared helper so bootstrap and generated paths use the same deterministic AST-to-text projection.
+- Bootstrap parser round-trip now uses this helper directly.
+
+#### 2) Generated return round-trip now emits typed canonical output
+- Updated `GeneratedReturnAnnotationParser::round_trip` in `test_runner.rs`:
+  1. parse input via generated parser (`parse_full_return_annotation`),
+  2. build typed return AST for round-trip output generation,
+  3. emit canonical unparse text (preserving arrow-form presence when input uses `->`).
+- Removed prior identity-output behavior (`Ok(input.to_string())`) from generated return round-trip success path.
+
+### Validation
+- `make -C rust SHELL=/bin/bash return_parity_gate`:
+  - pass (comparable differential corpus remains zero mismatch).
+
 ## 2026-02-20 - Phase L RA-02 Increment: Identifier + Single-Quote Return Runtime Closure
 ### Context
 RA-02 runtime closure still had a concrete capability gap in the bootstrap typed return AST path:
