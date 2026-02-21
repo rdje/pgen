@@ -165,6 +165,8 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - no-regression/target-summary/final-gap integrity assertions.
 - [x] Promote `ebnf_stimuli_quality_gate` into aggregate SOTA required-check policy.
 - [ ] Promote parseability validation from optional to required grammar-by-grammar as parser registry coverage expands beyond annotation grammars.
+  - Progress (2026-02-21): `builtin_return_annotation` is now parser-registry-backed for generated parseability checks and promoted to `require_parseability=true` in the non-annotation grammar-quality contract.
+  - Remaining: `builtin_semantic_annotation` still requires a truly matching generated parseability path before promotion (forcing parseability today causes deterministic stage-0 rejection in quality-loop validation).
 
 ### Phase N (New): Generated Stimuli Module Artifacts (`<grammar>_stimuli.rs`)
 - [ ] Add explicit AST-pipeline generation mode for Rust stimuli modules (for example `--generate-stimuli-module`) from both JSON and EBNF frontend inputs.

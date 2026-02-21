@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-02-21 - Parseability Contract Clarification + Builtin Return Enforcement
+### ✅ Achievement Summary
+Clarified the project definition of parseability in the User Guide and tightened non-annotation EBNF quality contract enforcement by requiring parseability for `builtin_return_annotation` (while keeping `builtin_semantic_annotation` optional until a true matching parser path is wired).
+
+### Scope of Changes
+- User guide terminology hardening:
+  - `PGEN_USER_GUIDE.md`
+  - added explicit **Parseability (term definition)**:
+    - full-input parser acceptance (`parse_full_*`),
+    - prefix-only matches are not accepted as parseable,
+    - `--validate-parseability` only counts fully parseable samples.
+- Generated parser registry update:
+  - `rust/src/parser_registry.rs`
+  - added `builtin_return_annotation` parseability adapter (delegates to generated `return_annotation` parser path).
+- Grammar-quality contract update:
+  - `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+  - `builtin_return_annotation.require_parseability` promoted to `true`.
+  - `builtin_semantic_annotation.require_parseability` kept `false` for now (current generated semantic parser path is not equivalent to builtin semantic grammar coverage).
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry::tests::registry_exposes_expected_annotation_grammars` ✅
+- `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`:
+  - `builtin_return_annotation` parseability-required stages pass,
+  - `builtin_semantic_annotation` fails when forced parseability is required, therefore contract remains optional pending dedicated parser-path alignment.
+
 ## 2026-02-21 - Phase L Gate Closure: Annotation 100% Aggregate + Deterministic Return Object Emission
 ### ✅ Achievement Summary
 Closed the remaining Phase L gate-wiring item by adding semantic full-contract slices and an `annotation_100_gate` aggregate, wiring it into SOTA required-check policy, and fixing return object-field codegen nondeterminism that was breaking fixed-point reproducibility.

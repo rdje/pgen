@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-21 - Parseability Definition Hardening + Builtin Return Contract Promotion
+### Context
+The term `parseability` needed an explicit, stable definition in user-facing docs because it is used by multiple gates and can be confused with prefix parsing.
+
+At the same time, the non-annotation EBNF quality contract contained builtin annotation entries marked optional for parseability:
+- `builtin_return_annotation`
+- `builtin_semantic_annotation`
+
+The implementation intent was to promote parseability from optional to required, grammar by grammar, only where parser-path equivalence is proven.
+
+### Implementation
+Primary files:
+- `PGEN_USER_GUIDE.md`
+- `rust/src/parser_registry.rs`
+- `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+
+#### 1) Added precise parseability definition in UG
+File:
+- `PGEN_USER_GUIDE.md`
+
+Added `Parseability (term definition)` under core concepts:
+- parseable means full-input acceptance by the matching parser (`parse_full_*` success),
+- prefix-only success is not parseable,
+- with `--validate-parseability`, only fully parseable samples are accepted.
+
+Also updated the `ast_pipeline` parseability-support list to include:
+- `builtin_return_annotation`
+
+#### 2) Parser registry promotion for builtin return grammar
+File:
+- `rust/src/parser_registry.rs`
+
+Added parseability adapter:
+- `builtin_return_annotation` -> delegates to generated `return_annotation` parser full-parse entry.
+
+Rationale:
+- builtin return grammar is currently aligned as a subset for the parseability usage exercised by the quality gate.
+
+#### 3) Contract promotion with explicit staged boundary
+File:
+- `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+
+Updated:
+- `builtin_return_annotation.require_parseability = true`
+- `builtin_semantic_annotation.require_parseability = false`
+
+Why semantic remains optional:
+- Forcing parseability on builtin semantic currently fails stage-0 closure in `ebnf_stimuli_quality_gate` (no accepted parseable samples under generated semantic parser path),
+- so this remains a staged item until builtin semantic grammar is wired to a truly matching parser path for parseability checks.
+
+### Validation
+Commands run:
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry::tests::registry_exposes_expected_annotation_grammars`
+  - pass.
+- `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+  - builtin return parseability-required loop: pass,
+  - builtin semantic parseability-required forcing: reproducible failure (`accepted 0, rejected 150`) when required, confirming staged-optional boundary is correct today.
+
 ## 2026-02-21 - Phase L Gate Closure: `annotation_100_gate` + Deterministic Return Object Field Emission
 ### Context
 Phase L still had one explicit unchecked closure item:

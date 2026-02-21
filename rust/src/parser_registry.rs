@@ -29,6 +29,11 @@ fn parse_with_semantic_annotation(sample: &str) -> bool {
     parser.parse_full_semantic_annotation().is_ok()
 }
 
+fn parse_with_builtin_return_annotation(sample: &str) -> bool {
+    // Built-in return grammar is a strict subset of return_annotation grammar.
+    parse_with_return_annotation(sample)
+}
+
 static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "return_annotation",
@@ -37,6 +42,10 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "semantic_annotation",
         parse_sample: parse_with_semantic_annotation,
+    },
+    GeneratedParserRegistryEntry {
+        grammar_name: "builtin_return_annotation",
+        parse_sample: parse_with_builtin_return_annotation,
     },
     // Add future grammars here once their generated parser artifacts compile cleanly.
     // Examples: ebnf, json, regex, systemverilog, vhdl.
@@ -72,6 +81,7 @@ mod tests {
         let grammars = registered_grammars();
         assert!(grammars.contains(&"return_annotation"));
         assert!(grammars.contains(&"semantic_annotation"));
+        assert!(grammars.contains(&"builtin_return_annotation"));
     }
 
     #[test]

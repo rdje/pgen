@@ -28,7 +28,7 @@
       "grammar_name": "builtin_return_annotation",
       "ebnf_path": "grammars/builtin_return_annotation.ebnf",
       "seed_base": 9401,
-      "require_parseability": false
+      "require_parseability": true
     },
     {
       "id": "builtin_semantic_annotation",

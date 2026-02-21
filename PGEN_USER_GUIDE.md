@@ -49,6 +49,14 @@ For a check to be considered a gate, it is captured in all of these places:
 
 This keeps “gate” meaning aligned: it is not a guideline; it is an enforceable, versioned contract.
 
+### Parseability (term definition)
+A sample is **parseable** only when the matching generated parser accepts the **entire input** (full parse), not just a prefix.
+
+In practical terms:
+- parseability means `parse_full_*` success for the target grammar,
+- prefix-only acceptance is not considered parseable,
+- with `--validate-parseability`, only fully parseable generated samples are counted as accepted.
+
 ## 3) Fast Start
 
 ### Build and run core gates
@@ -135,6 +143,7 @@ Important:
 - Parseability validation currently supports generated parser checks for:
   - `return_annotation`
   - `semantic_annotation`
+  - `builtin_return_annotation`
 - Parseability checks require building with generated parsers:
 ```bash
 cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- ...
