@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-02-21 - Phase L RA-01 Increment: Generated Return Round-Trip Uses Structural Generated Mapping
+### ✅ Achievement Summary
+Completed a remaining non-bootstrap gap in generated return round-trip by removing bootstrap AST parsing from generated parser wrapper logic and using generated parse-tree to typed AST conversion end-to-end.
+
+### Scope of Changes
+- Updated generated return parser wrapper round-trip path:
+  - `rust/src/bin/test_runner.rs`
+  - `GeneratedReturnAnnotationParser::round_trip(...)` now:
+    1. parses with generated return parser (`parse_full_return_annotation`),
+    2. builds typed AST via `UnifiedReturnAST::parse_generated_return_annotation(...)`,
+    3. emits canonical unparse output.
+- Removed bootstrap dependency in generated return round-trip:
+  - old path used `UnifiedReturnAST::parse_bootstrap(input, ...)` after generated parse success,
+  - new path uses generated parse-tree conversion directly.
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash return_full_contract_gate` ✅
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅
+
 ## 2026-02-21 - Phase L RA-01 Increment: Structural Generated Return Typed-AST Mapping
 ### ✅ Achievement Summary
 Advanced RA-01 by replacing span-based generated-return conversion with structural parse-tree mapping over return grammar constructs, plus parity regression coverage for zero/signed-zero positional semantics and extraction-index normalization.

@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-21 - Phase L RA-01 Increment: Generated Return Round-Trip End-to-End Non-Bootstrap Path
+### Context
+After structural generated parse-tree mapping was added in `UnifiedReturnAST`, the generated return round-trip wrapper still built typed AST through `parse_bootstrap`. That left a residual non-bootstrap inconsistency in test-runner generated mode.
+
+### Implementation
+Primary file:
+- `rust/src/bin/test_runner.rs`
+
+#### Generated return wrapper path update
+- Updated `GeneratedReturnAnnotationParser::round_trip(...)`:
+  - capture generated parse tree from `parse_full_return_annotation()`,
+  - convert using `UnifiedReturnAST::parse_generated_return_annotation(input, &parse_node, ...)`,
+  - unparse through canonical return unparser.
+- Removed bootstrap typed-parse dependency from generated wrapper round-trip path.
+
+### Validation
+- `make -C rust SHELL=/bin/bash return_full_contract_gate`:
+  - pass.
+- `make -C rust SHELL=/bin/bash annotation_contract_gate`:
+  - pass.
+
 ## 2026-02-21 - Phase L RA-01 Increment: Structural Generated Return Typed-AST Mapping
 ### Context
 RA-01 requires non-bootstrap return annotations to be typed directly from generated-parser parse trees, with no bootstrap fallback and no lossy parse-tree span shortcuts. The prior baseline removed non-bootstrap fallback, but conversion still depended on extracting expression spans and reparsing text.

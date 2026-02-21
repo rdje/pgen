@@ -279,6 +279,7 @@ Roadmap reaches 100% only when:
 - stimuli quality gate thresholds remain green in CI with no waived deficits.
 
 ## Change Log
+- 2026-02-21: Advanced RA-01 end-to-end non-bootstrap generated path by updating generated return round-trip wrapper (`GeneratedReturnAnnotationParser`) to build typed AST from generated parse-tree conversion (`parse_generated_return_annotation`) instead of bootstrap parsing.
 - 2026-02-21: Advanced RA-01 from baseline to structural mapping by replacing span-based generated return conversion with rule-aware parse-tree mapping, aligning generated conversion semantics with bootstrap for extraction-index and zero/signed-zero positional handling, expanding generated conversion parity corpus tests, and broadening `return_runtime_semantics_gate` generated test coverage.
 - 2026-02-20: Initial zero-compromise roadmap published for full return and semantic annotation closure with objective proof gates.
 - 2026-02-20: Implemented `annotation_stimuli_quality_gate` baseline closed-loop verifier (return + semantic) with stage-level artifact and metric invariants; integrated into `annotation_contract_gate`.

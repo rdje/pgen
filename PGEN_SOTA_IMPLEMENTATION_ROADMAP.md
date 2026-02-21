@@ -199,6 +199,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-21: Closed remaining RA-01 generated round-trip bootstrap dependency by switching `GeneratedReturnAnnotationParser::round_trip` to generated parse-tree typed conversion (`parse_generated_return_annotation`) before canonical unparse.
 - 2026-02-21: Advanced Phase L RA-01 from baseline to structural closure progress by replacing span-based generated return conversion with rule-aware parse-tree mapping in `UnifiedReturnAST`, aligning extraction-target and zero/signed-zero positional semantics with bootstrap parity, expanding generated conversion parity corpus tests, and broadening `return_runtime_semantics_gate` to run the full `generated_return_tree_to_typed_ast_` family.
 - 2026-02-20: Advanced Phase L RA-04 gate hardening by adding explicit return gate slices (`return_runtime_semantics_gate`, `return_ast_roundtrip_gate`, `return_full_contract_gate`) and wiring `return_full_contract_gate` into `annotation_contract_gate`.
 - 2026-02-20: Advanced Phase L RA-03 by removing generated return round-trip identity behavior in `test_runner` and switching to shared typed canonical unparse output (`unparse_return_ast`), validated by `return_parity_gate` with zero comparable mismatches.

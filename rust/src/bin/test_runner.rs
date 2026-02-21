@@ -57,8 +57,9 @@ impl Parser for GeneratedReturnAnnotationParser {
 
         // Parse the input
         match parser.parse_full_return_annotation() {
-            Ok(_parse_node) => {
-                let ast = UnifiedReturnAST::parse_bootstrap(input, &*self.logger)
+            Ok(parse_node) => {
+                let ast =
+                    UnifiedReturnAST::parse_generated_return_annotation(input, &parse_node, &*self.logger)
                     .map_err(|e| {
                         Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
                             as Box<dyn std::error::Error>
