@@ -1,4 +1,82 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-21 - Phase N Kickoff: `--generate-stimuli-module` in `ast_pipeline`
+### Context
+Phase N requires explicit file-based Rust stimuli artifacts (`<grammar>_stimuli.rs`) in addition to the existing in-memory/newline text generation flow.
+
+This increment targets the first Phase N execution item:
+- add a dedicated CLI generation mode that works for both:
+  - JSON grammar input,
+  - EBNF frontend input (`.ebnf` via Rust frontend path).
+
+### Implementation
+Primary files:
+- `rust/src/main.rs`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added new CLI mode
+File:
+- `rust/src/main.rs`
+
+New CLI switch:
+- `--generate-stimuli-module`
+
+Mode behavior:
+- loads grammar through the same `load_grammar_bundle(...)` path used by parser/stimuli generation,
+- generates `count` stimuli samples via `StimuliGenerator`,
+- emits a Rust module artifact to output path:
+  - explicit `--output <path>` if provided,
+  - otherwise default: `generated/<grammar>_stimuli.rs` (sanitized grammar-name stem).
+
+#### 2) Added artifact/source helpers
+File:
+- `rust/src/main.rs`
+
+New helper functions:
+- `default_stimuli_module_output_path(grammar_name: &str) -> String`
+- `sanitize_artifact_stem(input: &str) -> String`
+- `ensure_parent_dir_exists(path: &str) -> Result<()>`
+- `generate_stimuli_module_source(...) -> String`
+
+Generated module contract in this increment:
+- metadata constants:
+  - `GRAMMAR_NAME`
+  - `REQUESTED_SAMPLE_COUNT`
+  - `GENERATED_SAMPLE_COUNT`
+  - `GENERATION_SEED`
+  - `ENTRY_RULE`
+- embedded corpus constant:
+  - `STIMULI: [&str; N]`
+- access function:
+  - `generated_stimuli() -> &'static [&'static str]`
+
+#### 3) Added unit tests for new mode helpers
+File:
+- `rust/src/main.rs` (test module)
+
+Added tests:
+- `derives_default_stimuli_module_output_path_from_grammar_name`
+- `generated_stimuli_module_source_contains_expected_contract_constants`
+
+#### 4) Documentation/roadmap updates
+Files:
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Updates:
+- documented `--generate-stimuli-module` command usage and artifact contents in UG.
+- marked Phase N first checkbox complete and logged kickoff progress.
+
+### Validation
+Commands run:
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline derives_default_stimuli_module_output_path_from_grammar_name -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline generated_stimuli_module_source_contains_expected_contract_constants -- --nocapture`
+- `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli-module --count 3 --seed 7 --output /tmp/pgen_return_stimuli.rs`
+
+Results:
+- all pass.
+- emitted module (`/tmp/pgen_return_stimuli.rs`) contains expected metadata constants and static corpus.
+
 ## 2026-02-21 - Parseability Definition Hardening + Builtin Return Contract Promotion
 ### Context
 The term `parseability` needed an explicit, stable definition in user-facing docs because it is used by multiple gates and can be confused with prefix parsing.

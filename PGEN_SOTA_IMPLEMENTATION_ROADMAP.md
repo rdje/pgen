@@ -169,7 +169,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Remaining: `builtin_semantic_annotation` still requires a truly matching generated parseability path before promotion (forcing parseability today causes deterministic stage-0 rejection in quality-loop validation).
 
 ### Phase N (New): Generated Stimuli Module Artifacts (`<grammar>_stimuli.rs`)
-- [ ] Add explicit AST-pipeline generation mode for Rust stimuli modules (for example `--generate-stimuli-module`) from both JSON and EBNF frontend inputs.
+- [x] Add explicit AST-pipeline generation mode for Rust stimuli modules (for example `--generate-stimuli-module`) from both JSON and EBNF frontend inputs.
 - [ ] Define deterministic artifact contract:
   - output path pattern: `generated/<grammar>_stimuli.rs`,
   - stable exported API surface for embedding,
@@ -202,6 +202,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-21: Started Phase N by adding explicit `ast_pipeline --generate-stimuli-module` mode (JSON and EBNF frontend inputs) that emits Rust module artifacts with embedded generated sample corpus and metadata constants.
 - 2026-02-21: Completed Phase L proof-doctrine/full-contract gate closure by adding semantic full-contract slices (`semantic_runtime_contract_gate`, `semantic_ast_roundtrip_gate`, `semantic_full_contract_gate`), introducing `annotation_100_gate` (construct coverage + typed-AST + runtime-intent + determinism + differential parity), wiring `annotation_100_gate` into SOTA required-check policy, and hardening deterministic return object-field code emission in `ast_return_transform` to stabilize `fixed_point_gate`.
 - 2026-02-21: Advanced Phase L SA-01 baseline by replacing generated semantic round-trip identity behavior with generated parse-tree conversion (`parse_generated_semantic_annotation`) in `test_runner`, adding conversion regression coverage, and validating through `semantic_usage_gate` + `annotation_contract_gate`.
 - 2026-02-21: Closed remaining RA-01 generated round-trip bootstrap dependency by switching `GeneratedReturnAnnotationParser::round_trip` to generated parse-tree typed conversion (`parse_generated_return_annotation`) before canonical unparse.

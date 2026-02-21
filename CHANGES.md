@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-02-21 - Phase N Kickoff: Rust Stimuli Module Generation Mode
+### ✅ Achievement Summary
+Added an explicit Rust stimuli-module generation mode to `ast_pipeline` so a grammar can now produce a reusable `*_stimuli.rs` artifact (in addition to in-memory/text stimuli output).
+
+### Scope of Changes
+- CLI mode extension:
+  - `rust/src/main.rs`
+  - new mode: `--generate-stimuli-module`
+  - mode supports both JSON input and EBNF frontend input via existing `load_grammar_bundle(...)` path.
+- Artifact generation behavior:
+  - default output path helper: `generated/<grammar>_stimuli.rs`.
+  - generated module includes:
+    - `GRAMMAR_NAME`,
+    - requested/generated sample count constants,
+    - seed and entry-rule metadata constants,
+    - embedded `STIMULI` corpus,
+    - `generated_stimuli()` accessor.
+- CLI/docs polish:
+  - updated long CLI usage description to include stimuli-module mode.
+  - updated User Guide with mode documentation and usage example.
+- Roadmap progress:
+  - marked Phase N first item complete in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline derives_default_stimuli_module_output_path_from_grammar_name` ✅
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline generated_stimuli_module_source_contains_expected_contract_constants` ✅
+- `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli-module --count 3 --seed 7 --output /tmp/pgen_return_stimuli.rs` ✅
+
 ## 2026-02-21 - Parseability Contract Clarification + Builtin Return Enforcement
 ### ✅ Achievement Summary
 Clarified the project definition of parseability in the User Guide and tightened non-annotation EBNF quality contract enforcement by requiring parseability for `builtin_return_annotation` (while keeping `builtin_semantic_annotation` optional until a true matching parser path is wired).

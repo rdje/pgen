@@ -9,8 +9,8 @@ use pgen::ast_pipeline::stimuli_generator::{
     StimuliGenerator,
 };
 use pgen::ast_pipeline::{
-    ast_generator_direct::generate_parser_ast_based,
-    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
+    ast_generator_direct::generate_parser_ast_based, ASTNode, Annotations, PipelineConfig,
+    RustASTPipeline, TransformedASTJson,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
@@ -25,7 +25,7 @@ use std::path::Path;
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
 #[command(
-    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, or generate grammar-valid stimuli.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF frontend: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli\n  3. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  4. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]"
+    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, or emit Rust stimuli modules.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF frontend: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module\n  3. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  4. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  5. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]"
 )]
 struct Args {
     /// Input grammar source file (.json raw/transformed AST, or .ebnf when built with --features ebnf_dual_run)
@@ -33,7 +33,7 @@ struct Args {
 
     /// Transformed AST JSON output file (optional, ignored when generation modes are used)
     output_json: Option<String>,
-    /// Output file path for generated artifact (parser source or newline-delimited stimuli)
+    /// Output file path for generated artifact (parser source, newline-delimited stimuli, or Rust stimuli module)
     #[arg(short, long)]
     output: Option<String>,
 
@@ -59,6 +59,9 @@ struct Args {
     /// Generate random grammar-valid stimuli from AST JSON
     #[arg(long, conflicts_with = "generate_parser")]
     generate_stimuli: bool,
+    /// Generate a Rust stimuli module artifact with embedded generated samples
+    #[arg(long, conflicts_with_all = ["generate_parser", "generate_stimuli"])]
+    generate_stimuli_module: bool,
 
     /// Number of stimuli samples to generate (stimuli mode)
     #[arg(long, default_value_t = 1)]
@@ -274,8 +277,53 @@ fn main() -> Result<()> {
         )?;
         std::fs::write(&output_rust, parser_code)?;
 
-        println!("SOTA regex parser generated: {}", output_rust);
+        println!("SOTA parser generated: {}", output_rust);
         (0, Vec::<String>::new())
+    } else if args.generate_stimuli_module {
+        let grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
+        let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
+        let stimuli_config = StimuliConfig {
+            seed: args.seed,
+            max_depth: args.max_depth,
+            max_repeat: args.max_repeat,
+            max_rule_visits: args.max_depth.max(2),
+            recovery_mode,
+        };
+        let mut generator = StimuliGenerator::new(
+            grammar.grammar_name.clone(),
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            grammar.annotations.as_ref(),
+            stimuli_config,
+        );
+        let resolved_entry_rule = resolve_stimuli_entry_rule(
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            args.entry_rule.as_deref(),
+        )?;
+        let samples = generator.generate_many(args.count, Some(resolved_entry_rule.as_str()))?;
+        let output_module = args
+            .output
+            .unwrap_or_else(|| default_stimuli_module_output_path(&grammar.grammar_name));
+        ensure_parent_dir_exists(&output_module)?;
+        let module_source = generate_stimuli_module_source(
+            &grammar.grammar_name,
+            args.seed,
+            args.count,
+            Some(resolved_entry_rule.as_str()),
+            &samples,
+        );
+        std::fs::write(&output_module, module_source)?;
+        println!(
+            "Generated Rust stimuli module with {} samples: {}",
+            samples.len(),
+            output_module
+        );
+        (samples.len(), grammar.rule_order)
     } else if args.generate_stimuli {
         let grammar = load_grammar_bundle(
             &args.input_path,
@@ -317,7 +365,10 @@ fn main() -> Result<()> {
         let mut replay_report: Option<CoverageGuidedFuzzReplayReport> = None;
 
         let mut samples = if args.coverage_guided_fuzz_rounds > 0 {
-            let seed_start = args.coverage_guided_fuzz_seed_start.or(args.seed).unwrap_or(1);
+            let seed_start = args
+                .coverage_guided_fuzz_seed_start
+                .or(args.seed)
+                .unwrap_or(1);
             let fuzz_outcome = run_coverage_guided_fuzz_loop(
                 &grammar.grammar_name,
                 &grammar.grammar_tree,
@@ -334,8 +385,7 @@ fn main() -> Result<()> {
             merged_coverage = fuzz_outcome.merged_coverage.clone();
             replay_report = Some(fuzz_outcome.replay_report);
             fuzz_outcome.minimized_samples
-        } else if let Some(priority_report_input_path) = args.gap_priority_report_input.as_deref()
-        {
+        } else if let Some(priority_report_input_path) = args.gap_priority_report_input.as_deref() {
             let priority_report = load_gap_report(priority_report_input_path)?;
             if priority_report.grammar_name != grammar.grammar_name {
                 return Err(anyhow::anyhow!(
@@ -417,7 +467,8 @@ fn main() -> Result<()> {
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples
         } else {
-            let generated_samples = generator.generate_many(args.count, args.entry_rule.as_deref())?;
+            let generated_samples =
+                generator.generate_many(args.count, args.entry_rule.as_deref())?;
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples
         };
@@ -567,7 +618,8 @@ fn load_grammar_bundle_from_json_value(
         let raw_ast_array = raw_ast
             .as_array()
             .ok_or_else(|| anyhow::anyhow!("Invalid raw_ast format"))?;
-        let (grammar_tree, rule_order, annotations) = pipeline.transform_from_raw_ast(raw_ast_array)?;
+        let (grammar_tree, rule_order, annotations) =
+            pipeline.transform_from_raw_ast(raw_ast_array)?;
         let grammar_name = json_value
             .get("grammar_name")
             .and_then(|n| n.as_str())
@@ -607,6 +659,91 @@ fn default_parser_output_path(input_path: &str) -> String {
     } else {
         output_file_name
     }
+}
+
+fn default_stimuli_module_output_path(grammar_name: &str) -> String {
+    format!(
+        "generated/{}_stimuli.rs",
+        sanitize_artifact_stem(grammar_name)
+    )
+}
+
+fn sanitize_artifact_stem(input: &str) -> String {
+    let mut output = String::with_capacity(input.len());
+    for ch in input.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' {
+            output.push(ch);
+        } else {
+            output.push('_');
+        }
+    }
+    if output.is_empty() {
+        "grammar".to_string()
+    } else {
+        output
+    }
+}
+
+fn ensure_parent_dir_exists(path: &str) -> Result<()> {
+    if let Some(parent) = Path::new(path).parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+    Ok(())
+}
+
+fn generate_stimuli_module_source(
+    grammar_name: &str,
+    seed: Option<u64>,
+    requested_count: usize,
+    entry_rule: Option<&str>,
+    samples: &[String],
+) -> String {
+    let mut output = String::new();
+    output.push_str("// @generated by ast_pipeline --generate-stimuli-module\n");
+    output.push_str("// Do not edit manually.\n\n");
+    output.push_str("#![allow(dead_code)]\n\n");
+    output.push_str(&format!(
+        "pub const GRAMMAR_NAME: &str = {:?};\n",
+        grammar_name
+    ));
+    output.push_str(&format!(
+        "pub const REQUESTED_SAMPLE_COUNT: usize = {};\n",
+        requested_count
+    ));
+    output.push_str(&format!(
+        "pub const GENERATED_SAMPLE_COUNT: usize = {};\n",
+        samples.len()
+    ));
+    match seed {
+        Some(value) => output.push_str(&format!(
+            "pub const GENERATION_SEED: Option<u64> = Some({value});\n"
+        )),
+        None => output.push_str("pub const GENERATION_SEED: Option<u64> = None;\n"),
+    }
+    match entry_rule {
+        Some(rule) => output.push_str(&format!(
+            "pub const ENTRY_RULE: Option<&str> = Some({:?});\n",
+            rule
+        )),
+        None => output.push_str("pub const ENTRY_RULE: Option<&str> = None;\n"),
+    }
+    output.push_str("\n");
+    output.push_str(&format!(
+        "pub const STIMULI: [&str; {}] = [\n",
+        samples.len()
+    ));
+    for sample in samples {
+        output.push_str("    ");
+        output.push_str(&format!("{sample:?}"));
+        output.push_str(",\n");
+    }
+    output.push_str("];\n\n");
+    output.push_str("pub fn generated_stimuli() -> &'static [&'static str] {\n");
+    output.push_str("    &STIMULI\n");
+    output.push_str("}\n");
+    output
 }
 
 fn parse_recovery_stimuli_mode(value: &str) -> Result<RecoveryStimuliMode> {
@@ -774,7 +911,10 @@ fn run_coverage_guided_fuzz_loop(
 
     for round_idx in 0..rounds {
         let offset = u64::try_from(round_idx).map_err(|_| {
-            anyhow::anyhow!("Coverage-guided fuzz round index overflow at round {}", round_idx)
+            anyhow::anyhow!(
+                "Coverage-guided fuzz round index overflow at round {}",
+                round_idx
+            )
         })?;
         let seed = seed_start.checked_add(offset).ok_or_else(|| {
             anyhow::anyhow!(
@@ -810,12 +950,15 @@ fn run_coverage_guided_fuzz_loop(
         let mut shrunk_counterexample = None;
         if let Some(sample_text) = sample.as_deref() {
             if validate_parseability {
-                let is_parseable = is_sample_parseable_by_generated_parser(grammar_name, sample_text)?;
+                let is_parseable =
+                    is_sample_parseable_by_generated_parser(grammar_name, sample_text)?;
                 parseable = Some(is_parseable);
                 accepted = is_parseable;
                 if !is_parseable {
-                    shrunk_counterexample =
-                        Some(shrink_parseability_counterexample(grammar_name, sample_text)?);
+                    shrunk_counterexample = Some(shrink_parseability_counterexample(
+                        grammar_name,
+                        sample_text,
+                    )?);
                 }
             }
         } else {
@@ -905,7 +1048,10 @@ fn resolve_stimuli_entry_rule(
         if grammar_tree.contains_key(rule_name) {
             return Ok(rule_name.to_string());
         }
-        return Err(anyhow::anyhow!("Entry rule '{}' not found in grammar", rule_name));
+        return Err(anyhow::anyhow!(
+            "Entry rule '{}' not found in grammar",
+            rule_name
+        ));
     }
 
     rule_order.first().cloned().ok_or_else(|| {
@@ -919,7 +1065,11 @@ fn coverage_rule_hit_delta(
 ) -> Vec<String> {
     let mut delta = Vec::new();
     for (rule_name, after_hits) in &after.rule_success_hits {
-        let before_hits = before.rule_success_hits.get(rule_name).copied().unwrap_or(0);
+        let before_hits = before
+            .rule_success_hits
+            .get(rule_name)
+            .copied()
+            .unwrap_or(0);
         if *after_hits > before_hits {
             delta.push(rule_name.clone());
         }
@@ -1219,8 +1369,9 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 #[cfg(test)]
 mod tests {
     use super::{
-        coverage_branch_hit_delta, default_parser_output_path, is_ebnf_input_path,
-        minimize_failing_input, minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
+        coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
+        generate_stimuli_module_source, is_ebnf_input_path, minimize_failing_input,
+        minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
         supported_generated_parseability_grammars, supports_generated_parseability,
         FuzzCorpusCandidate, StimuliCoverageMetrics,
     };
@@ -1341,10 +1492,8 @@ mod tests {
 
     #[test]
     fn failing_input_minimizer_reduces_to_core_token() {
-        let minimized = minimize_failing_input("zzabyy", |candidate| {
-            Ok(candidate.contains("ab"))
-        })
-        .expect("minimizer should succeed");
+        let minimized = minimize_failing_input("zzabyy", |candidate| Ok(candidate.contains("ab")))
+            .expect("minimizer should succeed");
         assert_eq!(minimized, "ab");
     }
 
@@ -1373,6 +1522,37 @@ mod tests {
             default_parser_output_path("generated/return_annotation.json"),
             "generated/return_annotation.rs"
         );
+    }
+
+    #[test]
+    fn derives_default_stimuli_module_output_path_from_grammar_name() {
+        assert_eq!(
+            default_stimuli_module_output_path("return_annotation"),
+            "generated/return_annotation_stimuli.rs"
+        );
+        assert_eq!(
+            default_stimuli_module_output_path("my grammar"),
+            "generated/my_grammar_stimuli.rs"
+        );
+    }
+
+    #[test]
+    fn generated_stimuli_module_source_contains_expected_contract_constants() {
+        let source = generate_stimuli_module_source(
+            "semantic_annotation",
+            Some(42),
+            3,
+            Some("start_rule"),
+            &["alpha".to_string(), "beta".to_string()],
+        );
+        assert!(source.contains("pub const GRAMMAR_NAME: &str = \"semantic_annotation\";"));
+        assert!(source.contains("pub const REQUESTED_SAMPLE_COUNT: usize = 3;"));
+        assert!(source.contains("pub const GENERATED_SAMPLE_COUNT: usize = 2;"));
+        assert!(source.contains("pub const GENERATION_SEED: Option<u64> = Some(42);"));
+        assert!(source.contains("pub const ENTRY_RULE: Option<&str> = Some(\"start_rule\");"));
+        assert!(source.contains("pub const STIMULI: [&str; 2] = ["));
+        assert!(source.contains("\"alpha\""));
+        assert!(source.contains("\"beta\""));
     }
 
     #[test]

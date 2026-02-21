@@ -95,6 +95,11 @@ tools/ebnf_to_json.pl --verbosity debug --pretty grammars/foolang.ebnf -o genera
 cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/foolang.json --generate-parser --output generated/foolang_parser.rs
 ```
 
+### JSON/EBNF -> Rust stimuli module artifact
+```bash
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/foolang.json --generate-stimuli-module --count 128 --seed 7 --output generated/foolang_stimuli.rs
+```
+
 ### Existing Makefile pipeline shortcuts
 ```bash
 make -C rust SHELL=/bin/bash return_annotation_parser
@@ -119,6 +124,13 @@ Primary modes:
 
 3. Generate stimuli
 - `ast_pipeline INPUT.json --generate-stimuli --count N --seed S --output samples.txt`
+
+4. Generate stimuli module
+- `ast_pipeline INPUT --generate-stimuli-module --count N --seed S [--output generated/<grammar>_stimuli.rs]`
+- Emits a Rust file containing:
+  - metadata constants (`GRAMMAR_NAME`, requested/generated sample count, seed, entry rule),
+  - embedded `STIMULI` corpus,
+  - `generated_stimuli()` accessor.
 
 High-value stimuli flags:
 
