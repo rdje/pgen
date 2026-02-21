@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-02-20 - Phase L RA-04 Increment: Return Full-Contract Gate Wiring
+### ✅ Achievement Summary
+Added dedicated return gate slices (`return_runtime_semantics_gate`, `return_ast_roundtrip_gate`, `return_full_contract_gate`) and wired `return_full_contract_gate` into `annotation_contract_gate` so return-annotation contract enforcement is explicit and reusable.
+
+### Scope of Changes
+- Added new Make targets:
+  - `return_runtime_semantics_gate`
+    - runs typed return runtime/validator checks (`unified_return_ast`, return validator suites).
+  - `return_ast_roundtrip_gate`
+    - runs canonical round-trip checks (`test_round_trip_runner` + return normative shared contract suite).
+  - `return_full_contract_gate`
+    - aggregates runtime semantics + AST round-trip + differential comparable parity (`return_parity_gate`).
+- Updated `annotation_contract_gate`:
+  - replaced direct `return_parity_gate` invocation with `return_full_contract_gate`.
+- Updated Make help text with new return gate entries.
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash return_full_contract_gate` ✅
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase L RA-03 Increment: Generated Return Round-Trip Canonicalization
 ### ✅ Achievement Summary
 Removed generated return parser round-trip identity behavior in `test_runner` and replaced it with canonical typed unparse output, so generated return round-trip now reflects typed AST semantics instead of echoing raw input.

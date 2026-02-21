@@ -198,6 +198,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-20: Advanced Phase L RA-04 gate hardening by adding explicit return gate slices (`return_runtime_semantics_gate`, `return_ast_roundtrip_gate`, `return_full_contract_gate`) and wiring `return_full_contract_gate` into `annotation_contract_gate`.
 - 2026-02-20: Advanced Phase L RA-03 by removing generated return round-trip identity behavior in `test_runner` and switching to shared typed canonical unparse output (`unparse_return_ast`), validated by `return_parity_gate` with zero comparable mismatches.
 - 2026-02-20: Advanced Phase L RA-02 runtime closure baseline by adding typed return identifier literal support and single-quoted string/object-key parsing parity in `UnifiedReturnAST`, plus exhaustive transformer/validator/test-runner normalization handling and regression coverage.
 - 2026-02-18: Initialized roadmap and marked Pillar 1 implementation started.

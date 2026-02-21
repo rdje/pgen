@@ -11,8 +11,9 @@ use pgen::generated_parsers::return_annotation::Return_annotationParser;
 use pgen::generated_parsers::semantic_annotation::Semantic_annotationParser;
 #[cfg(feature = "generated_parsers")]
 use pgen::test_runner::normalization::{apply_normalizer, Normalizer};
+#[cfg(feature = "generated_parsers")]
+use pgen::test_runner::parsers::unparse_return_ast;
 use pgen::test_runner::parsers::{
-    unparse_return_ast,
     ReturnAnnotationParser as BootstrapReturnAnnotationParser,
     SemanticAnnotationParser as BootstrapSemanticAnnotationParser,
 };

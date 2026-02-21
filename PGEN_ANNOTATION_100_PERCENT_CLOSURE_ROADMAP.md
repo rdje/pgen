@@ -276,6 +276,7 @@ Roadmap reaches 100% only when:
 - 2026-02-20: Implemented `annotation_stimuli_quality_gate` baseline closed-loop verifier (return + semantic) with stage-level artifact and metric invariants; integrated into `annotation_contract_gate`.
 - 2026-02-20: Advanced RA-02 runtime closure baseline by adding identifier literal + single-quoted string/object-key support to `UnifiedReturnAST`, wiring exhaustive transformer/validator/normalizer handling, and adding focused regression tests for these return construct families.
 - 2026-02-20: Advanced RA-03 baseline by replacing generated return round-trip identity output in `test_runner` with shared typed canonical unparse output (`unparse_return_ast`) while preserving return parity gate zero-mismatch status.
+- 2026-02-20: Advanced RA-04 baseline by adding dedicated return gate slices (`return_runtime_semantics_gate`, `return_ast_roundtrip_gate`, `return_full_contract_gate`) and wiring `return_full_contract_gate` into `annotation_contract_gate`.
 
 ## Appendix A: Exact Return Rule Inventory
 Exact nonterminal inventory extracted from `grammars/return_annotation.ebnf`:

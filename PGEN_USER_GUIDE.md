@@ -1622,6 +1622,15 @@ Tracked baselines:
 - `return_parity_gate` (local gate target)
   - zero return mismatches on expectation-aligned (comparable) differential corpus
   - generated return round-trip path emits canonical typed output (not parse-only identity echo)
+- `return_runtime_semantics_gate` (local gate target)
+  - focused return runtime contract checks (typed return AST + return validator checks)
+- `return_ast_roundtrip_gate` (local gate target)
+  - focused return canonical round-trip contract checks (`test_round_trip_runner` + return shared contract suite)
+- `return_full_contract_gate` (local gate target)
+  - aggregate return contract gate:
+    - `return_runtime_semantics_gate`
+    - `return_ast_roundtrip_gate`
+    - `return_parity_gate`
 - `embedding_api_gate` (local gate target)
   - contract stability for embedding API behavior
 
@@ -1650,6 +1659,9 @@ make -C rust SHELL=/bin/bash sc05_contract_gate
 make -C rust SHELL=/bin/bash sc08_contract_gate
 make -C rust SHELL=/bin/bash sc07_contract_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
+make -C rust SHELL=/bin/bash return_runtime_semantics_gate
+make -C rust SHELL=/bin/bash return_ast_roundtrip_gate
+make -C rust SHELL=/bin/bash return_full_contract_gate
 make -C rust SHELL=/bin/bash return_parity_gate
 ```
 

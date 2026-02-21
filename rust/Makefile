@@ -246,6 +246,9 @@ help:
 	@echo "  sc03_contract_gate - Enforce SC-03 directive routing + strict policy contract slices and differential taxonomy checks"
 	@echo "  sc04_contract_gate - Enforce SC-04 token steering Tier-4 contract slices + differential taxonomy checks"
 	@echo "  semantic_usage_gate - Enforce semantic-annotation leverage contract (parser/stimuli)"
+	@echo "  return_runtime_semantics_gate - Enforce typed return AST/runtime transform contract checks"
+	@echo "  return_ast_roundtrip_gate - Enforce canonical return AST round-trip contract checks"
+	@echo "  return_full_contract_gate - Enforce aggregate return contract gate (runtime + round-trip + parity)"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
 	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
 	@echo "  performance_gate - Run benchmark thresholds for bootstrap vs generated parsers"
@@ -468,7 +471,7 @@ annotation_contract_gate:
 	@$(MAKE) -C $(RUST_DIR) sc05_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc03_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc04_contract_gate
-	@$(MAKE) -C $(RUST_DIR) return_parity_gate
+	@$(MAKE) -C $(RUST_DIR) return_full_contract_gate
 	@$(MAKE) -C $(RUST_DIR) semantic_usage_gate
 	@$(MAKE) -C $(RUST_DIR) annotation_robustness_gate
 	@$(MAKE) -C $(RUST_DIR) annotation_stimuli_quality_gate
@@ -624,6 +627,28 @@ return_parity_gate:
 	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
 	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-comparable-only --differential-report-json target/differential_harness/return_annotation_parity_report.json
 	@echo "✅ Return parity gate passed (comparable return corpus has zero mismatches)."
+
+.PHONY: return_runtime_semantics_gate
+return_runtime_semantics_gate:
+	@echo "🧪 Running return runtime semantics gate..."
+	cd $(RUST_DIR) && cargo test --lib unified_return_ast
+	cd $(RUST_DIR) && cargo test --lib return_validator
+	@echo "✅ Return runtime semantics gate passed."
+
+.PHONY: return_ast_roundtrip_gate
+return_ast_roundtrip_gate:
+	@echo "🔁 Running return AST round-trip gate..."
+	cd $(RUST_DIR) && cargo test --lib test_round_trip_runner
+	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_normative_shared_contract
+	@echo "✅ Return AST round-trip gate passed."
+
+.PHONY: return_full_contract_gate
+return_full_contract_gate:
+	@echo "📐 Running return full-contract gate..."
+	@$(MAKE) -C $(RUST_DIR) return_runtime_semantics_gate
+	@$(MAKE) -C $(RUST_DIR) return_ast_roundtrip_gate
+	@$(MAKE) -C $(RUST_DIR) return_parity_gate
+	@echo "✅ Return full-contract gate passed."
 
 .PHONY: performance_gate
 performance_gate:

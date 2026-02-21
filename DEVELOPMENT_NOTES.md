@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase L RA-04 Increment: Return Full-Contract Gate Wiring
+### Context
+Phase L RA-04 calls for explicit return gate hardening. Before this slice:
+- `return_parity_gate` existed as a standalone target,
+- return-specific runtime semantics and AST round-trip checks were not grouped under a dedicated aggregate return gate,
+- `annotation_contract_gate` invoked parity directly rather than a full return contract bundle.
+
+### Implementation
+Primary file:
+- `rust/Makefile`
+
+#### 1) Added explicit return gate slices
+- `return_runtime_semantics_gate`
+  - runs focused return runtime contract checks:
+    - `cargo test --lib unified_return_ast`
+    - `cargo test --lib return_validator`
+- `return_ast_roundtrip_gate`
+  - runs canonical return round-trip checks:
+    - `cargo test --lib test_round_trip_runner`
+    - `cargo run --bin test_runner -- --parser return --suite return_annotation_normative_shared_contract`
+- `return_full_contract_gate`
+  - aggregates:
+    - `return_runtime_semantics_gate`
+    - `return_ast_roundtrip_gate`
+    - `return_parity_gate`
+
+#### 2) Wired return aggregate gate into annotation contract aggregate
+- Updated `annotation_contract_gate` to invoke `return_full_contract_gate` instead of directly invoking `return_parity_gate`.
+- This makes return-gate execution path explicit and reusable as a standalone Phase L RA-04 artifact.
+
+#### 3) Developer UX updates
+- Extended Make help output with:
+  - `return_runtime_semantics_gate`
+  - `return_ast_roundtrip_gate`
+  - `return_full_contract_gate`
+
+### Validation
+- `make -C rust SHELL=/bin/bash return_full_contract_gate`:
+  - pass.
+- `make -C rust SHELL=/bin/bash annotation_contract_gate`:
+  - pass with new return full-contract aggregation wired.
+
 ## 2026-02-20 - Phase L RA-03 Increment: Generated Return Round-Trip Canonicalization
 ### Context
 Generated return parser round-trip in `test_runner` was parse-only identity:
