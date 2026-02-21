@@ -1,0 +1,86 @@
+[
+  {
+    "name": "enum_list_payload",
+    "description": "SC-08 shared contract: enum list payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@enum: [\"AA\", \"BB\", \"CC\"]",
+    "expected_round_trip": "@enum: [\"AA\", \"BB\", \"CC\"]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc08", "enum"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "enum_scalar_payload",
+    "description": "SC-08 shared contract: enum scalar payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@enum: \"AA\"",
+    "expected_round_trip": "@enum: \"AA\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc08", "enum"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "range_interval_payload",
+    "description": "SC-08 shared contract: range bounds payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@range: [0, 255]",
+    "expected_round_trip": "@range: [0, 255]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc08", "range"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "len_bounds_payload",
+    "description": "SC-08 shared contract: len bounds payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@len: [2, 8]",
+    "expected_round_trip": "@len: [2, 8]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc08", "len"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "regex_pattern_payload",
+    "description": "SC-08 shared contract: regex payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@regex: \"^[A-Z]{2}$\"",
+    "expected_round_trip": "@regex: \"^[A-Z]{2}$\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc08", "regex"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "len_scalar_payload",
+    "description": "SC-08 shared contract: len scalar payload remains parseable in bootstrap and generated semantic parsers.",
+    "input": "@len: 4",
+    "expected_round_trip": "@len: 4",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc08", "len"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-02-20 - Phase K Follow-Up: SC-08 Tier-4 Value-Domain Contract Gate Promotion
+### ✅ Achievement Summary
+Promoted SC-08 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-08 gate slice with typed value-domain validator checks, parser/stimuli runtime value-domain contracts, and differential taxonomy parity checks.
+
+### Scope of Changes
+- Added SC-08 semantic contract corpus:
+  - `rust/test_data/semantic_annotation/sc08_contract.json`
+  - includes shared bootstrap/generated parseability slices for:
+    - `@range`
+    - `@enum`
+    - `@len`
+    - `@regex`
+    - scalar/list variants per directive.
+- Added dedicated SC-08 gate script:
+  - `rust/scripts/sc08_contract_gate.sh`
+  - enforces:
+    - typed SC-08 payload parser contracts,
+    - typed SC-08 validator/coherence contracts,
+    - parser value-domain runtime contracts,
+    - stimuli value-domain steering contracts,
+    - bootstrap/generated SC-08 suite parity and differential taxonomy integrity (`mismatched_cases == 0`).
+- Updated gate wiring:
+  - `rust/Makefile`
+    - added target: `sc08_contract_gate`
+    - wired `sc08_contract_gate` into `annotation_contract_gate`
+    - updated help text.
+- Updated living docs:
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` (SC-08 promoted to Tier 4)
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `make -C rust sc08_contract_gate` ✅
+- `make -C rust annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-05 Tier-4 Precedence/Associativity Contract Gate Promotion
 ### ✅ Achievement Summary
 Promoted SC-05 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-05 gate slice with typed precedence/associativity validator checks, parser/stimuli runtime branch-steering contracts, and differential taxonomy parity checks.

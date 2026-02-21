@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase K Follow-Up: SC-08 Tier-4 Value-Domain Contract Gate Promotion
+### Context
+SC-08 (`@range/@enum/@len/@regex`) had parser/stimuli runtime steering and typed validator diagnostics, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-05/SC-06/SC-07/SC-09/SC-10/SC-11/SC-12.
+
+That left a closure gap:
+- no SC-08 shared semantic contract corpus slice,
+- no dedicated differential taxonomy parity check scoped to SC-08,
+- no single gate-level enforcement for typed SC-08 payload/coherence contracts plus parser/stimuli runtime SC-08 behavior.
+
+### Implementation
+Primary files:
+- `rust/test_data/semantic_annotation/sc08_contract.json`
+- `rust/scripts/sc08_contract_gate.sh`
+- `rust/Makefile`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) SC-08 shared contract corpus
+- Added `semantic_annotation/sc08_contract.json`.
+- Corpus covers parseability of SC-08 directive payload forms in bootstrap/generated semantic parsers:
+  - `@enum` scalar/list payloads,
+  - `@range` payloads,
+  - `@len` payloads,
+  - `@regex` payloads,
+  - scalar/list variants per directive.
+
+#### 2) Dedicated SC-08 gate
+- Added `rust/scripts/sc08_contract_gate.sh`.
+- Gate stages:
+  - typed SC-08 payload parser contracts (`parse_semantic_numeric_bounds`, `parse_semantic_len_bounds`, `parse_semantic_string_list`, `parse_semantic_pattern`),
+  - typed validator payload/coherence contracts (invalid payload diagnostics and unsatisfiable intersection diagnostics),
+  - parser runtime contracts (value-constraint guard emission for regex atoms and numeric range guards),
+  - stimuli runtime contracts (enum/range/len/regex filtering and composed constraint generation),
+  - bootstrap/generated SC-08 contract suite runs,
+  - SC-08 differential taxonomy parity assertions:
+    - known category set only,
+    - category total must equal `mismatched_cases`,
+    - SC-08 comparable corpus currently requires `mismatched_cases == 0`.
+
+#### 3) Gate wiring
+- Added `sc08_contract_gate` Make target.
+- Wired `sc08_contract_gate` into `annotation_contract_gate`.
+- Updated Make help text accordingly.
+
+### Validation
+- `make -C rust sc08_contract_gate`:
+  - pass.
+- `make -C rust annotation_contract_gate`:
+  - pass with SC-08 gate included.
+
 ## 2026-02-20 - Phase K Follow-Up: SC-05 Tier-4 Precedence/Associativity Contract Gate Promotion
 ### Context
 SC-05 (`@priority/@precedence/@associativity`) had parser/stimuli runtime behavior, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-06/SC-07/SC-09/SC-10/SC-11/SC-12.

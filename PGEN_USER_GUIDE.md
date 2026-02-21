@@ -471,6 +471,30 @@ make -C rust annotation_contract_gate
 4. Stimuli precedence/associativity steering contracts (priority bias, priority-over-precedence steering, and associativity tie biasing behavior).
 5. Bootstrap/generated SC-05 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-05 comparable corpus).
 
+#### 8.3.9 SC-08 Tier-4 Contract Gate
+
+SC-08 value-domain behavior is gate-enforced.
+
+Contract corpus:
+- `rust/test_data/semantic_annotation/sc08_contract.json`
+
+Gate commands:
+```bash
+make -C rust sc08_contract_gate
+```
+
+Also included in:
+```bash
+make -C rust annotation_contract_gate
+```
+
+`sc08_contract_gate` enforces:
+1. Typed SC-08 payload parser contracts (`@range/@enum/@len/@regex`).
+2. Typed SC-08 validator/coherence contracts (invalid value-domain payload diagnostics + unsatisfiable intersection diagnostics).
+3. Parser value-domain runtime contracts (value-constraint guard emission for regex atoms and numeric range guards).
+4. Stimuli value-domain steering contracts (enum/range/len/regex filtering and composed-constraint synthesis behavior).
+5. Bootstrap/generated SC-08 semantic suite parity + differential taxonomy integrity checks (`mismatched_cases == 0` for SC-08 comparable corpus).
+
 ### 8.4 Steering Behaviors Implemented Today
 
 #### A) Canonical transform steering (`@transform`)
@@ -1532,6 +1556,12 @@ Tracked baselines:
     - parser precedence/associativity runtime contract checks,
     - stimuli precedence/associativity steering contract checks,
     - SC-05 bootstrap/generated contract slice + differential taxonomy parity checks
+- `sc08_contract_gate` (local gate target)
+  - SC-08 value-domain Tier-4 contract:
+    - typed SC-08 payload/coherence validator contracts,
+    - parser value-domain runtime contract checks,
+    - stimuli value-domain steering contract checks,
+    - SC-08 bootstrap/generated contract slice + differential taxonomy parity checks
 - `sc07_contract_gate` (local gate target)
   - SC-07 recovery/sync Tier-4 contract:
     - typed recovery payload/coherence validator contracts,
@@ -1611,6 +1641,7 @@ make -C rust SHELL=/bin/bash sc10_contract_gate
 make -C rust SHELL=/bin/bash sc09_contract_gate
 make -C rust SHELL=/bin/bash sc06_contract_gate
 make -C rust SHELL=/bin/bash sc05_contract_gate
+make -C rust SHELL=/bin/bash sc08_contract_gate
 make -C rust SHELL=/bin/bash sc07_contract_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
 make -C rust SHELL=/bin/bash return_parity_gate
