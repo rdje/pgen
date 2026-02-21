@@ -274,6 +274,7 @@ Roadmap reaches 100% only when:
 ## Change Log
 - 2026-02-20: Initial zero-compromise roadmap published for full return and semantic annotation closure with objective proof gates.
 - 2026-02-20: Implemented `annotation_stimuli_quality_gate` baseline closed-loop verifier (return + semantic) with stage-level artifact and metric invariants; integrated into `annotation_contract_gate`.
+- 2026-02-20: Advanced RA-02 runtime closure baseline by adding identifier literal + single-quoted string/object-key support to `UnifiedReturnAST`, wiring exhaustive transformer/validator/normalizer handling, and adding focused regression tests for these return construct families.
 
 ## Appendix A: Exact Return Rule Inventory
 Exact nonterminal inventory extracted from `grammars/return_annotation.ebnf`:

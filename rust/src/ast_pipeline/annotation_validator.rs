@@ -393,6 +393,7 @@ impl AnnotationValidator {
             UnifiedReturnAST::StringLiteral { .. }
             | UnifiedReturnAST::NumberLiteral { .. }
             | UnifiedReturnAST::BooleanLiteral { .. }
+            | UnifiedReturnAST::Identifier { .. }
             | UnifiedReturnAST::Passthrough => {}
         }
     }
@@ -2162,6 +2163,7 @@ impl AnnotationValidator {
             UnifiedReturnAST::StringLiteral { .. }
             | UnifiedReturnAST::NumberLiteral { .. }
             | UnifiedReturnAST::BooleanLiteral { .. }
+            | UnifiedReturnAST::Identifier { .. }
             | UnifiedReturnAST::Passthrough => 0,
         }
     }

@@ -236,6 +236,11 @@ Common constructs:
   - `-> {kind: "node", lhs: $1, rhs: $3}`
 - Array shaping:
   - `-> [$1, $2::1*]`
+- String literal parity:
+  - `-> 'node'`
+  - `-> "node"`
+- Identifier literal:
+  - `-> node_kind`
 
 Bootstrap behavior notes:
 - Bootstrap parser is intentionally permissive and has known quirks.

@@ -198,6 +198,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-20: Advanced Phase L RA-02 runtime closure baseline by adding typed return identifier literal support and single-quoted string/object-key parsing parity in `UnifiedReturnAST`, plus exhaustive transformer/validator/test-runner normalization handling and regression coverage.
 - 2026-02-18: Initialized roadmap and marked Pillar 1 implementation started.
 - 2026-02-18: Added GitHub Actions `fixed-point-gate` workflow and started Phase B validator implementation with structured diagnostics.
 - 2026-02-18: Extended annotation validator with grammar-aware branch/capture checks and integrated grammar-aware validation into parser generation.

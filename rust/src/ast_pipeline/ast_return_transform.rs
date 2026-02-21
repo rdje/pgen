@@ -31,6 +31,9 @@ impl AstReturnTransformer {
                 let bool_str = value.to_string();
                 Ok(quote! { ParseContent::Terminal(#bool_str) })
             }
+            UnifiedReturnAST::Identifier { name } => {
+                Ok(quote! { ParseContent::Terminal(#name) })
+            }
             UnifiedReturnAST::Array { elements } => {
                 Self::generate_array_transform(elements, captured_vars)
             }
@@ -242,6 +245,7 @@ impl AstReturnTransformer {
             UnifiedReturnAST::StringLiteral { value } => Ok(quote! { #value }),
             UnifiedReturnAST::NumberLiteral { value } => Ok(quote! { #value }),
             UnifiedReturnAST::BooleanLiteral { value } => Ok(quote! { #value }),
+            UnifiedReturnAST::Identifier { name } => Ok(quote! { #name }),
             _ => {
                 let nested = Self::generate_transform(ast, captured_vars, "")?;
                 Ok(Self::parse_content_to_string(quote! { #nested }))

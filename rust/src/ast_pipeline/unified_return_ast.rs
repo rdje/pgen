@@ -43,6 +43,9 @@ pub enum UnifiedReturnAST {
     /// Boolean literal: true or false
     BooleanLiteral { value: bool },
 
+    /// Identifier literal: foo, bar_baz
+    Identifier { name: String },
+
     /// Object with key-value pairs: {type: "array", element: $3}
     Object {
         properties: HashMap<String, Box<UnifiedReturnAST>>,
@@ -149,10 +152,10 @@ impl UnifiedReturnAST {
             }
         }
 
-        // Check for string literal "..."
-        if trimmed.starts_with('"') && trimmed.ends_with('"') {
+        // Check for string literal ("..." or '...')
+        if let Some(value) = Self::parse_quoted_string(trimmed) {
             return Ok(UnifiedReturnAST::StringLiteral {
-                value: trimmed[1..trimmed.len() - 1].to_string(),
+                value,
             });
         }
 
@@ -176,6 +179,13 @@ impl UnifiedReturnAST {
             "true" => return Ok(UnifiedReturnAST::BooleanLiteral { value: true }),
             "false" => return Ok(UnifiedReturnAST::BooleanLiteral { value: false }),
             _ => {}
+        }
+
+        // Check for identifier literal
+        if Self::is_identifier_literal(trimmed) {
+            return Ok(UnifiedReturnAST::Identifier {
+                name: trimmed.to_string(),
+            });
         }
 
         Err(format!("Unable to parse return value: '{}'", trimmed))
@@ -410,7 +420,7 @@ impl UnifiedReturnAST {
             return None;
         }
         let mut depth = 0usize;
-        let mut in_string = false;
+        let mut string_delim: Option<char> = None;
         let mut escape_next = false;
 
         for (idx, ch) in input.char_indices() {
@@ -419,17 +429,17 @@ impl UnifiedReturnAST {
                 continue;
             }
 
-            if in_string {
+            if let Some(delim) = string_delim {
                 match ch {
                     '\\' => escape_next = true,
-                    '"' => in_string = false,
+                    c if c == delim => string_delim = None,
                     _ => {}
                 }
                 continue;
             }
 
             match ch {
-                '"' => in_string = true,
+                '"' | '\'' => string_delim = Some(ch),
                 c if c == open => depth += 1,
                 c if c == close => {
                     depth = depth.saturating_sub(1);
@@ -470,11 +480,7 @@ impl UnifiedReturnAST {
 
             // Parse key (remove quotes if present)
             let key = raw_key.trim();
-            let key = if key.starts_with('"') && key.ends_with('"') {
-                key[1..key.len() - 1].to_string()
-            } else {
-                key.to_string()
-            };
+            let key = Self::parse_quoted_string(key).unwrap_or_else(|| key.to_string());
 
             // Parse value
             let value = Self::parse_value(raw_value.trim(), logger)?;
@@ -502,7 +508,7 @@ impl UnifiedReturnAST {
                 let trimmed = item.trim();
 
                 // Check for spread operator at the end
-                if trimmed.ends_with('*') && !trimmed.starts_with('"') {
+                if trimmed.ends_with('*') && !Self::is_quoted_literal(trimmed) {
                     // It's a spread, but only if not inside a string
                     let base_str = &trimmed[..trimmed.len() - 1];
                     let base = Self::parse_value(base_str, logger)?;
@@ -523,7 +529,7 @@ impl UnifiedReturnAST {
         let mut result = Vec::new();
         let mut current = String::new();
         let mut depth = 0;
-        let mut in_string = false;
+        let mut string_delim: Option<char> = None;
         let mut escape_next = false;
 
         for ch in input.chars() {
@@ -534,11 +540,12 @@ impl UnifiedReturnAST {
             }
 
             match ch {
-                '\\' if in_string => escape_next = true,
-                '"' => in_string = !in_string,
-                '[' | '{' if !in_string => depth += 1,
-                ']' | '}' if !in_string => depth -= 1,
-                c if c == delimiter && depth == 0 && !in_string => {
+                '\\' if string_delim.is_some() => escape_next = true,
+                '"' | '\'' if string_delim.is_none() => string_delim = Some(ch),
+                c if Some(c) == string_delim => string_delim = None,
+                '[' | '{' if string_delim.is_none() => depth += 1,
+                ']' | '}' if string_delim.is_none() => depth -= 1,
+                c if c == delimiter && depth == 0 && string_delim.is_none() => {
                     if !current.trim().is_empty() {
                         result.push(current.trim().to_string());
                     }
@@ -563,7 +570,7 @@ impl UnifiedReturnAST {
         let mut result = Vec::new();
         let mut current = String::new();
         let mut depth = 0;
-        let mut in_string = false;
+        let mut string_delim: Option<char> = None;
         let mut escape_next = false;
         let mut seen_delimiter = false;
 
@@ -575,11 +582,12 @@ impl UnifiedReturnAST {
             }
 
             match ch {
-                '\\' if in_string => escape_next = true,
-                '"' => in_string = !in_string,
-                '[' | '{' if !in_string => depth += 1,
-                ']' | '}' if !in_string => depth -= 1,
-                c if c == delimiter && depth == 0 && !in_string => {
+                '\\' if string_delim.is_some() => escape_next = true,
+                '"' | '\'' if string_delim.is_none() => string_delim = Some(ch),
+                c if Some(c) == string_delim => string_delim = None,
+                '[' | '{' if string_delim.is_none() => depth += 1,
+                ']' | '}' if string_delim.is_none() => depth -= 1,
+                c if c == delimiter && depth == 0 && string_delim.is_none() => {
                     seen_delimiter = true;
                     if current.trim().is_empty() {
                         return Err(format!(
@@ -614,7 +622,7 @@ impl UnifiedReturnAST {
     /// while ignoring extraction operators ('::') and nested structures.
     fn split_object_property(input: &str) -> Option<(String, String)> {
         let mut depth = 0;
-        let mut in_string = false;
+        let mut string_delim: Option<char> = None;
         let mut escape_next = false;
 
         for (idx, ch) in input.char_indices() {
@@ -624,21 +632,24 @@ impl UnifiedReturnAST {
             }
 
             match ch {
-                '\\' if in_string => {
+                '\\' if string_delim.is_some() => {
                     escape_next = true;
                 }
-                '"' => {
-                    in_string = !in_string;
+                '"' | '\'' if string_delim.is_none() => {
+                    string_delim = Some(ch);
                 }
-                '[' | '{' if !in_string => {
+                c if Some(c) == string_delim => {
+                    string_delim = None;
+                }
+                '[' | '{' if string_delim.is_none() => {
                     depth += 1;
                 }
-                ']' | '}' if !in_string => {
+                ']' | '}' if string_delim.is_none() => {
                     if depth > 0 {
                         depth -= 1;
                     }
                 }
-                ':' if !in_string && depth == 0 => {
+                ':' if string_delim.is_none() && depth == 0 => {
                     // Skip extraction operator (::) delimiters in values like "$2::first"
                     let prev_is_colon = idx > 0 && input.as_bytes()[idx - 1] == b':';
                     let next_is_colon =
@@ -677,6 +688,9 @@ impl UnifiedReturnAST {
             }
             UnifiedReturnAST::BooleanLiteral { value } => {
                 format!("{}BooleanLiteral({})\n", indent_str, value)
+            }
+            UnifiedReturnAST::Identifier { name } => {
+                format!("{}Identifier({})\n", indent_str, name)
             }
             UnifiedReturnAST::Object { properties } => {
                 let mut result = format!("{}Object {{\n", indent_str);
@@ -822,6 +836,11 @@ impl UnifiedReturnAST {
                 indent, value
             )),
 
+            UnifiedReturnAST::Identifier { name } => Ok(format!(
+                "{}ParseContent::Terminal(r#\"{}\"#)",
+                indent, name
+            )),
+
             UnifiedReturnAST::Array { elements } => {
                 // Build a sequence node from elements
                 let mut code = format!("ParseContent::Sequence(vec![");
@@ -951,6 +970,12 @@ impl UnifiedReturnAST {
                             code.push_str(&format!(
                                 "{}    json_obj[r#\"{}\"#] = serde_json::json!({});\n",
                                 indent, key, bool_val
+                            ));
+                        }
+                        UnifiedReturnAST::Identifier { name } => {
+                            code.push_str(&format!(
+                                "{}    json_obj[r#\"{}\"#] = serde_json::json!(r#\"{}\"#);\n",
+                                indent, key, name
                             ));
                         }
                         _ => {
@@ -1092,6 +1117,33 @@ impl UnifiedReturnAST {
                 }
             }
         }
+    }
+
+    fn parse_quoted_string(input: &str) -> Option<String> {
+        if input.len() < 2 {
+            return None;
+        }
+        let first = input.chars().next()?;
+        let last = input.chars().last()?;
+        if (first == '"' || first == '\'') && first == last {
+            return Some(input[1..input.len() - 1].to_string());
+        }
+        None
+    }
+
+    fn is_quoted_literal(input: &str) -> bool {
+        Self::parse_quoted_string(input).is_some()
+    }
+
+    fn is_identifier_literal(input: &str) -> bool {
+        let mut chars = input.chars();
+        let Some(first) = chars.next() else {
+            return false;
+        };
+        if !(first == '_' || first.is_ascii_alphabetic()) {
+            return false;
+        }
+        chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
     }
 }
 
@@ -1309,6 +1361,53 @@ mod tests {
                 ));
             }
             other => panic!("expected Array, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn bootstrap_array_spread_is_not_applied_to_single_quoted_strings() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("['$1*']", &logger)
+            .expect("single-quoted string ending in '*' should remain string literal");
+        match ast {
+            UnifiedReturnAST::Array { elements } => {
+                assert_eq!(elements.len(), 1);
+                assert!(matches!(
+                    elements[0],
+                    UnifiedReturnAST::StringLiteral { ref value } if value == "$1*"
+                ));
+            }
+            other => panic!("expected Array, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn bootstrap_parses_identifier_literal() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("my_ident_01", &logger)
+            .expect("identifier literal should parse");
+        assert_eq!(
+            ast,
+            UnifiedReturnAST::Identifier {
+                name: "my_ident_01".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn bootstrap_parses_single_quoted_object_keys() {
+        let logger = crate::test_runner::NoOpLogger;
+        let ast = UnifiedReturnAST::parse_bootstrap("{'k': $1}", &logger)
+            .expect("single-quoted object key should parse");
+        match ast {
+            UnifiedReturnAST::Object { properties } => {
+                assert_eq!(properties.len(), 1);
+                assert!(matches!(
+                    properties.get("k").map(|v| v.as_ref()),
+                    Some(UnifiedReturnAST::PositionalRef { index: 1 })
+                ));
+            }
+            other => panic!("expected Object, got {:?}", other),
         }
     }
 

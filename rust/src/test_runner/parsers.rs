@@ -29,6 +29,7 @@ impl ReturnAnnotationParser {
                 }
             }
             UnifiedReturnAST::BooleanLiteral { value } => format!("{}", value),
+            UnifiedReturnAST::Identifier { name } => name.clone(),
             UnifiedReturnAST::Array { elements } => {
                 let elem_strs: Vec<String> = elements.iter().map(|e| self.unparse_ast(e)).collect();
                 format!("[{}]", elem_strs.join(", "))

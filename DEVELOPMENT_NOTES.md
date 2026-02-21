@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-20 - Phase L RA-02 Increment: Identifier + Single-Quote Return Runtime Closure
+### Context
+RA-02 runtime closure still had a concrete capability gap in the bootstrap typed return AST path:
+- identifier-like return expressions (for example `node_kind`) were not accepted as typed literals,
+- single-quoted return string/object-key forms were not treated with parity against double-quoted forms,
+- downstream canonicalization paths were not exhaustive for newly introduced return literal families.
+
+This created a mismatch against return grammar intent and blocked complete runtime-shaping behavior for valid return-annotation authoring styles.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/unified_return_ast.rs`
+- `rust/src/ast_pipeline/ast_return_transform.rs`
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/test_runner/parsers.rs`
+- `rust/src/test_runner/normalization.rs`
+
+#### 1) Typed AST expansion for identifier literals
+- Added `UnifiedReturnAST::Identifier { name: String }`.
+- Extended `parse_value` with identifier-literal detection (`[_A-Za-z][_A-Za-z0-9]*`) after boolean and numeric branches.
+- Preserves existing parse order semantics (booleans and numbers continue to parse as their specialized literal types).
+
+#### 2) Single-quote parsing parity in bootstrap return parser
+- Added shared quoted-literal parsing helper used for both `'...'` and `"..."`.
+- Updated object-key parsing so both single- and double-quoted keys map to canonical key strings.
+- Updated spread detection guards so quoted literals ending in `*` are not misinterpreted as spread in either quote style.
+- Hardened nesting/token splitting helpers (`find_matching_closer`, `split_respecting_nesting*`, `split_object_property`) to track active quote delimiter rather than hard-coding `"` only.
+
+#### 3) Runtime/codegen/validation closure for new return literal family
+- `AstReturnTransformer` now emits terminal parse content for `Identifier` literals.
+- Return annotation validator traversal and positional-reference bound computation now treat `Identifier` as terminal non-recursive nodes (same class as string/number/boolean/passthrough).
+- Return parser test-runner unparse and normalization paths now include `Identifier`, removing non-exhaustive match risks and preserving canonical round-trip behavior.
+
+#### 4) Regression tests for RA-02 gap cases
+- Added explicit tests in `unified_return_ast.rs` for:
+  - single-quoted strings in array context with trailing `*` (must remain literals, not spread),
+  - identifier literal parsing,
+  - single-quoted object key parsing.
+
+### Validation
+- `cargo test -p pgen --lib`:
+  - pass (207 passed / 0 failed).
+- `make -C rust SHELL=/bin/bash annotation_contract_gate`:
+  - pass (includes return parity and annotation robustness/quality gates).
+
 ## 2026-02-20 - Phase K Follow-Up: SC-08 Tier-4 Value-Domain Contract Gate Promotion
 ### Context
 SC-08 (`@range/@enum/@len/@regex`) had parser/stimuli runtime steering and typed validator diagnostics, but no dedicated Tier-4 gate slice equivalent to SC-03/SC-04/SC-05/SC-06/SC-07/SC-09/SC-10/SC-11/SC-12.

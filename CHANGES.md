@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-02-20 - Phase L RA-02 Increment: Identifier + Single-Quote Return Runtime Closure
+### ✅ Achievement Summary
+Closed a concrete RA-02 runtime gap by extending typed return handling to support identifier literals and single-quoted string/object-key forms end-to-end in the bootstrap typed AST path and downstream transform/normalization flows.
+
+### Scope of Changes
+- Return typed AST/parser updates:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+    - added `UnifiedReturnAST::Identifier { name }`.
+    - added identifier literal parsing (`foo`, `bar_baz`, `_x1`).
+    - added single-quoted string parsing parity alongside double-quoted strings.
+    - hardened nesting split helpers and object-property scanning to respect both quote delimiters (`'` and `"`).
+    - added single-quoted object-key parsing parity.
+- Return runtime/codegen and validator closure:
+  - `rust/src/ast_pipeline/ast_return_transform.rs`
+    - added runtime transform support for `Identifier` literals.
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+    - updated return-AST validation traversal and positional-ref bound scanning to include `Identifier`.
+- Differential/test-runner normalization closure:
+  - `rust/src/test_runner/parsers.rs`
+    - added canonical unparse support for `Identifier`.
+  - `rust/src/test_runner/normalization.rs`
+    - added canonical normalization support for `Identifier`.
+- Added regression tests:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+    - single-quoted spread-safe array literal behavior,
+    - identifier literal parsing,
+    - single-quoted object-key parsing.
+
+### Validation Results
+- `cargo test -p pgen --lib` ✅
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase K Follow-Up: SC-08 Tier-4 Value-Domain Contract Gate Promotion
 ### ✅ Achievement Summary
 Promoted SC-08 from Tier-3 baseline to Tier-4 gate-enforced contract by adding a dedicated SC-08 gate slice with typed value-domain validator checks, parser/stimuli runtime value-domain contracts, and differential taxonomy parity checks.
