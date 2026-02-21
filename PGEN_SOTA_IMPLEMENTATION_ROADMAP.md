@@ -147,6 +147,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - gap-target convergence thresholds,
   - failure-shrinking/minimization coverage.
 - [ ] Implement generated-parser-backed typed AST closure for full return grammar in non-bootstrap path (remove bootstrap typed-AST fallback for conforming inputs).
+  - Progress (2026-02-21): non-bootstrap return entry parsing now requires generated parser success and no longer falls back to bootstrap entry parsing; remaining work is full structural parse-tree-to-typed-AST mapping coverage across all return construct families.
 - [ ] Implement generated-parser-backed typed AST closure for full semantic grammar in non-bootstrap path (remove raw/marker fallback for conforming inputs).
 - [ ] Add full-contract gates (`return_full_contract_gate`, `semantic_full_contract_gate`, `annotation_100_gate`) and make them required in CI/SOTA aggregate policy.
 
@@ -198,6 +199,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-21: Advanced Phase L RA-01 baseline by removing bootstrap fallback from non-bootstrap return annotation entry parsing, adding generated parse-tree -> typed return AST adapter (`parse_generated_return_annotation`), and extending `return_runtime_semantics_gate` to enforce generated conversion coverage.
 - 2026-02-20: Advanced Phase L RA-04 gate hardening by adding explicit return gate slices (`return_runtime_semantics_gate`, `return_ast_roundtrip_gate`, `return_full_contract_gate`) and wiring `return_full_contract_gate` into `annotation_contract_gate`.
 - 2026-02-20: Advanced Phase L RA-03 by removing generated return round-trip identity behavior in `test_runner` and switching to shared typed canonical unparse output (`unparse_return_ast`), validated by `return_parity_gate` with zero comparable mismatches.
 - 2026-02-20: Advanced Phase L RA-02 runtime closure baseline by adding typed return identifier literal support and single-quoted string/object-key parsing parity in `UnifiedReturnAST`, plus exhaustive transformer/validator/test-runner normalization handling and regression coverage.

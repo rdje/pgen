@@ -970,14 +970,47 @@ impl RustASTPipeline {
             return None;
         }
 
-        if !self.validate_return_annotation_backend(content) {
-            eprintln!(
-                "[mod.rs][parse_return_annotation_ast()] ⚠️ selected backend could not validate return annotation '{}'",
-                content
-            );
+        let logger = NoOpLogger;
+        if !self.config.bootstrap_mode {
+            if !self.validate_return_annotation_backend(content) {
+                eprintln!(
+                    "[mod.rs][parse_return_annotation_ast()] ⚠️ selected backend could not validate return annotation '{}'",
+                    content
+                );
+                return None;
+            }
+
+            #[cfg(feature = "generated_parsers")]
+            {
+                let mut parser = Return_annotationParser::new(content, Box::new(NoOpLogger));
+                match parser.parse_full_return_annotation() {
+                    Ok(parse_tree) => {
+                        return match UnifiedReturnAST::parse_generated_return_annotation(
+                            content,
+                            &parse_tree,
+                            &logger,
+                        ) {
+                            Ok(ast) => Some(ast),
+                            Err(err) => {
+                                eprintln!(
+                                    "[mod.rs][parse_return_annotation_ast()] ⚠️ generated return tree -> typed AST failed for '{}' ({})",
+                                    content, err
+                                );
+                                None
+                            }
+                        };
+                    }
+                    Err(err) => {
+                        eprintln!(
+                            "[mod.rs][parse_return_annotation_ast()] ⚠️ generated parser failed for '{}' ({})",
+                            content, err
+                        );
+                        return None;
+                    }
+                }
+            }
         }
 
-        let logger = NoOpLogger;
         match UnifiedReturnAST::parse_bootstrap(content, &logger) {
             Ok(ast) => Some(ast),
             Err(err) => {

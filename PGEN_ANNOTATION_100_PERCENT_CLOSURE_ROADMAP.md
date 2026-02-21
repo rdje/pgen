@@ -1,6 +1,6 @@
 # PGEN Annotation 100% Closure Roadmap (Living)
 
-Last updated: 2026-02-20
+Last updated: 2026-02-21
 
 ## Non-Negotiable Contract
 PGEN must support annotation behavior with zero functional gaps against:
@@ -65,15 +65,17 @@ The roadmap is complete only when all conditions below are true:
 - No placeholder behaviors are allowed for grammar-conforming annotation inputs.
 - No silent fallback is allowed in non-bootstrap mode for grammar-conforming annotation inputs.
 
-## Current Baseline Snapshot (2026-02-20)
+## Current Baseline Snapshot (2026-02-21)
 Verified facts from the current Rust AST pipeline:
 
-- Non-bootstrap return annotations are validated with generated parser but typed AST construction still uses bootstrap parser:
+- Non-bootstrap return annotation entry path now requires generated parser success and no longer falls back to `parse_bootstrap`:
   - `rust/src/ast_pipeline/mod.rs` (`parse_return_annotation_ast`)
+  - `rust/src/ast_pipeline/unified_return_ast.rs` (`parse_generated_return_annotation`)
+- Return typed-AST conversion in non-bootstrap mode currently uses generated parse-tree span extraction + shared typed return value parser for expression payload mapping; full structural parse-tree-to-AST mapping remains tracked under RA-01 completion.
 - Semantic annotation typed parsing in pipeline is still bootstrap marker/raw-oriented:
   - `rust/src/ast_pipeline/unified_semantic_ast.rs`
   - `rust/src/ast_pipeline/mod.rs` (`parse_semantic_annotation_entry`)
-- Generated parser test runner round-trip is currently parse-only identity for generated annotation parsers:
+- Generated return parser round-trip now emits canonical typed unparse output (identity shortcut removed):
   - `rust/src/bin/test_runner.rs`
 
 Implication: existing gates are strong, but they do not yet prove full typed-AST/runtime closure for every construct defined in the two full EBNFs.
@@ -94,6 +96,10 @@ Implication: existing gates are strong, but they do not yet prove full typed-AST
 - Implement generated-parser-backed parse tree to `UnifiedReturnAST` conversion for all return grammar constructs.
 - In non-bootstrap mode, remove bootstrap parser as typed AST source for conforming return inputs.
 - Keep bootstrap parser only for explicit bootstrap mode.
+Status (2026-02-21):
+- In progress.
+- Non-bootstrap return entry path now enforces generated parse success and no bootstrap fallback.
+- Remaining closure item: complete full structural parse-tree-to-typed-AST mapping across all return grammar construct families.
 
 Exit criteria:
 - 0 conforming return samples use bootstrap fallback in non-bootstrap mode.
@@ -272,6 +278,7 @@ Roadmap reaches 100% only when:
 - stimuli quality gate thresholds remain green in CI with no waived deficits.
 
 ## Change Log
+- 2026-02-21: Advanced RA-01 baseline by removing bootstrap fallback from non-bootstrap return annotation entry parsing, adding generated parse-tree -> typed return AST adapter (`parse_generated_return_annotation`), and enforcing generated conversion coverage in `return_runtime_semantics_gate`.
 - 2026-02-20: Initial zero-compromise roadmap published for full return and semantic annotation closure with objective proof gates.
 - 2026-02-20: Implemented `annotation_stimuli_quality_gate` baseline closed-loop verifier (return + semantic) with stage-level artifact and metric invariants; integrated into `annotation_contract_gate`.
 - 2026-02-20: Advanced RA-02 runtime closure baseline by adding identifier literal + single-quoted string/object-key support to `UnifiedReturnAST`, wiring exhaustive transformer/validator/normalizer handling, and adding focused regression tests for these return construct families.

@@ -1623,7 +1623,10 @@ Tracked baselines:
   - zero return mismatches on expectation-aligned (comparable) differential corpus
   - generated return round-trip path emits canonical typed output (not parse-only identity echo)
 - `return_runtime_semantics_gate` (local gate target)
-  - focused return runtime contract checks (typed return AST + return validator checks)
+  - focused return runtime contract checks:
+    - typed return AST bootstrap/runtime checks,
+    - generated-parser return parse-tree -> typed-AST conversion regression check,
+    - return validator checks
 - `return_ast_roundtrip_gate` (local gate target)
   - focused return canonical round-trip contract checks (`test_round_trip_runner` + return shared contract suite)
 - `return_full_contract_gate` (local gate target)

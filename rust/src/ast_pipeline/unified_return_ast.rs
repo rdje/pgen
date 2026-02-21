@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 
-use super::Logger;
+use super::{Logger, ParseContent, ParseNode};
 
 /// Extraction target for quantified groups
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -82,6 +82,28 @@ pub enum UnifiedReturnAST {
 }
 
 impl UnifiedReturnAST {
+    /// Build typed return AST from a generated-parser parse tree.
+    /// This is used by non-bootstrap paths after full grammar validation succeeds.
+    pub fn parse_generated_return_annotation<'input>(
+        input: &'input str,
+        parse_tree: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        if let Some(expression_span) = Self::find_first_rule_span(parse_tree, "expression") {
+            if expression_span.start > expression_span.end || expression_span.end > input.len() {
+                return Err("Generated parse tree returned invalid expression span".to_string());
+            }
+            let expr = input[expression_span].trim();
+            if expr.is_empty() {
+                return Ok(UnifiedReturnAST::Passthrough);
+            }
+            return Self::parse_value(expr, logger);
+        }
+
+        // Arrow-only form (`->`) has no expression payload and maps to passthrough.
+        Ok(UnifiedReturnAST::Passthrough)
+    }
+
     /// Parse a return annotation string into the unified AST
     /// This is the bootstrap parser used when the external parser isn't available
     pub fn parse_bootstrap(
@@ -1145,6 +1167,24 @@ impl UnifiedReturnAST {
         }
         chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
     }
+
+    fn find_first_rule_span(node: &ParseNode<'_>, target_rule: &str) -> Option<std::ops::Range<usize>> {
+        if node.rule_name == target_rule {
+            return Some(node.span.clone());
+        }
+        match &node.content {
+            ParseContent::Alternative(inner) => Self::find_first_rule_span(inner, target_rule),
+            ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
+                for child in elements {
+                    if let Some(span) = Self::find_first_rule_span(child, target_rule) {
+                        return Some(span);
+                    }
+                }
+                None
+            }
+            ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => None,
+        }
+    }
 }
 
 impl fmt::Display for UnifiedReturnAST {
@@ -1517,5 +1557,28 @@ mod tests {
         let ast = UnifiedReturnAST::parse_bootstrap("   $+0.A.A000[($0::first)[$00]]", &logger)
             .expect("leading whitespace should be tolerated before accessor chain");
         assert!(matches!(ast, UnifiedReturnAST::ArrayAccess { .. }));
+    }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms() {
+        use crate::generated_parsers::return_annotation::Return_annotationParser;
+
+        let logger = crate::test_runner::NoOpLogger;
+        let samples = vec![
+            ("-> my_ident_01", UnifiedReturnAST::Identifier { name: "my_ident_01".to_string() }),
+            ("-> 'x'", UnifiedReturnAST::StringLiteral { value: "x".to_string() }),
+            ("->", UnifiedReturnAST::Passthrough),
+        ];
+
+        for (input, expected) in samples {
+            let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
+            let parse_tree = parser
+                .parse_full_return_annotation()
+                .expect("generated parser should parse sample");
+            let ast = UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
+                .expect("generated tree -> typed return ast should succeed");
+            assert_eq!(ast, expected);
+        }
     }
 }

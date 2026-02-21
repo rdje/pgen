@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-02-21 - Phase L RA-01 Increment: Non-Bootstrap Generated Return Typed-AST Entry Path
+### ✅ Achievement Summary
+Started RA-01 closure by removing bootstrap typed-return fallback from the non-bootstrap return-annotation entry path and requiring generated-parser-backed parsing before typed AST construction.
+
+### Scope of Changes
+- Non-bootstrap return annotation entry path hardening:
+  - `rust/src/ast_pipeline/mod.rs`
+  - `parse_return_annotation_ast` now:
+    - validates backend parseability,
+    - parses full return annotation with generated parser in non-bootstrap mode,
+    - converts generated parse result into typed return AST,
+    - returns failure on generated parse/tree-conversion failure (no bootstrap fallback in non-bootstrap path).
+- Added generated parse-tree to typed return AST adapter:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+  - new `parse_generated_return_annotation` flow:
+    - locates generated parse-tree `expression` span,
+    - parses payload through typed return value parser,
+    - preserves arrow-only form (`->`) as `Passthrough`.
+- Added generated parser conversion regression coverage:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+  - new feature-gated test:
+    - `generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms`
+- Hardened return runtime gate to enforce generated conversion path:
+  - `rust/Makefile`
+  - `return_runtime_semantics_gate` now also runs:
+    - `cargo test --features generated_parsers --lib generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms`
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash return_runtime_semantics_gate` ✅
+- `make -C rust SHELL=/bin/bash return_full_contract_gate` ✅
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` ✅
+
 ## 2026-02-20 - Phase L RA-04 Increment: Return Full-Contract Gate Wiring
 ### ✅ Achievement Summary
 Added dedicated return gate slices (`return_runtime_semantics_gate`, `return_ast_roundtrip_gate`, `return_full_contract_gate`) and wired `return_full_contract_gate` into `annotation_contract_gate` so return-annotation contract enforcement is explicit and reusable.
