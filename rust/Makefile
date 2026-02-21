@@ -632,7 +632,7 @@ return_parity_gate:
 return_runtime_semantics_gate:
 	@echo "🧪 Running return runtime semantics gate..."
 	cd $(RUST_DIR) && cargo test --lib unified_return_ast
-	cd $(RUST_DIR) && cargo test --features generated_parsers --lib generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms
+	cd $(RUST_DIR) && cargo test --features generated_parsers --lib generated_return_tree_to_typed_ast_
 	cd $(RUST_DIR) && cargo test --lib return_validator
 	@echo "✅ Return runtime semantics gate passed."
 

@@ -1,53 +1,47 @@
 # DEVELOPMENT_NOTES.md
-## 2026-02-21 - Phase L RA-01 Increment: Non-Bootstrap Generated Return Typed-AST Entry Path
+## 2026-02-21 - Phase L RA-01 Increment: Structural Generated Return Typed-AST Mapping
 ### Context
-RA-01 requires non-bootstrap return annotations to use generated parser outputs as the typed AST source, not bootstrap parser fallback. Before this increment:
-- non-bootstrap path validated generated backend parseability,
-- but typed AST construction still routed through bootstrap return parser.
+RA-01 requires non-bootstrap return annotations to be typed directly from generated-parser parse trees, with no bootstrap fallback and no lossy parse-tree span shortcuts. The prior baseline removed non-bootstrap fallback, but conversion still depended on extracting expression spans and reparsing text.
 
-That left a closure gap against RA-01 no-fallback intent for non-bootstrap conforming return annotations.
+This increment replaces that shortcut with structural parse-tree mapping and closes key bootstrap/generated semantic parity gaps discovered during corpus validation.
 
 ### Implementation
 Primary files:
-- `rust/src/ast_pipeline/mod.rs`
 - `rust/src/ast_pipeline/unified_return_ast.rs`
+- `rust/src/ast_pipeline/mod.rs`
 - `rust/Makefile`
 
-#### 1) Non-bootstrap return entry path now requires generated parse success
-- Updated `parse_return_annotation_ast` in `mod.rs`:
-  - non-bootstrap mode now:
-    - validates selected backend parseability,
-    - runs generated parser full entry parse (`parse_full_return_annotation`),
-    - converts generated parse output into typed return AST,
-    - returns `None` on generated parse/conversion failure.
-- Bootstrap parser fallback is preserved only for explicit bootstrap mode and non-generated build paths.
+#### 1) Structural generated parse-tree to typed AST conversion
+- `UnifiedReturnAST::parse_generated_return_annotation(...)` now routes into structural rule-aware mapping helpers instead of span extraction.
+- Added dispatch + typed mapping helpers across return grammar families:
+  - entry/dispatch: `return_annotation`, `expression`, `primary_expression`, `parenthesized`,
+  - literals/references: `positional_reference`, `string_literal`, `number_literal`, `boolean_literal`, `identifier`,
+  - structured values: `object_literal`, `object_properties`, `object_property`, `property_key`, `array_literal`, `array_elements`, `array_element`,
+  - access/extraction/spread: `property_access_expression`, `array_access_expression`, `accessor_base`, `accessor_base_lr_base`, `extraction_expression`, `extraction_target`, `spread_expression`, `spreadable_expression`.
+- Added explicit parse-tree utility helpers for rule/alternative/quantifier traversal and deterministic typed reconstruction.
 
-#### 2) Added generated parse-tree -> typed return AST adapter
-- Added `UnifiedReturnAST::parse_generated_return_annotation(...)`.
-- Adapter behavior:
-  - traverses generated parse tree to locate first `expression` rule span,
-  - extracts expression text from original input span,
-  - feeds expression into typed value parser (`parse_value`) for canonical AST construction,
-  - maps arrow-only form (`->`) to `UnifiedReturnAST::Passthrough`.
-- Added recursive helper `find_first_rule_span(...)` over generated parse-node content variants.
+#### 2) Semantic parity fixes in generated conversion
+- Normalized extraction numeric target handling to bootstrap contract:
+  - `::N` now maps to `ExtractionTarget::Index(N-1)` in generated conversion.
+- Normalized positional-reference handling to bootstrap contract:
+  - zero/signed-zero forms now accepted (`$0`, `$+0`, `$00`),
+  - negative indices remain rejected.
 
-#### 3) Regression coverage for generated entry conversion
-- Added feature-gated unit test:
+#### 3) Regression coverage expansion
+- Added feature-gated generated conversion tests:
   - `generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms`
-- Verifies generated parser + adapter behavior for:
-  - identifier expression (`-> my_ident_01`),
-  - single-quoted string expression (`-> 'x'`),
-  - arrow-only passthrough (`->`).
+  - `generated_return_tree_to_typed_ast_matches_bootstrap_for_structural_corpus`
+  - `generated_return_tree_to_typed_ast_accepts_zero_and_signed_zero_indices`
+  - `generated_return_tree_to_typed_ast_rejects_negative_positional_indices`
+- Structural corpus test asserts generated typed mapping equals bootstrap typed mapping over mixed construct families (arrays/objects/access/extraction/spread/identifier).
 
 #### 4) Gate hardening
-- Updated `return_runtime_semantics_gate` in `rust/Makefile` to include generated-parser conversion test:
-  - `cargo test --features generated_parsers --lib generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms`
-- This prevents silent regressions of the non-bootstrap generated conversion entry path.
+- Updated `return_runtime_semantics_gate` in `rust/Makefile` to run the full generated conversion test family via:
+  - `cargo test --features generated_parsers --lib generated_return_tree_to_typed_ast_`
+- This prevents partial-gate coverage where only a single generated conversion test name is exercised.
 
 ### Validation
-- `cargo test -p pgen --lib unified_return_ast`:
-  - pass.
-- `cargo test -p pgen --features generated_parsers --lib generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms`:
+- `cargo test -p pgen --features generated_parsers --lib generated_return_tree_to_typed_ast_`:
   - pass.
 - `make -C rust SHELL=/bin/bash return_runtime_semantics_gate`:
   - pass.

@@ -81,6 +81,12 @@ pub enum UnifiedReturnAST {
     Passthrough,
 }
 
+#[derive(Debug, Clone)]
+enum AccessPostfix {
+    Property(String),
+    Index(UnifiedReturnAST),
+}
+
 impl UnifiedReturnAST {
     /// Build typed return AST from a generated-parser parse tree.
     /// This is used by non-bootstrap paths after full grammar validation succeeds.
@@ -89,19 +95,26 @@ impl UnifiedReturnAST {
         parse_tree: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
-        if let Some(expression_span) = Self::find_first_rule_span(parse_tree, "expression") {
-            if expression_span.start > expression_span.end || expression_span.end > input.len() {
-                return Err("Generated parse tree returned invalid expression span".to_string());
-            }
-            let expr = input[expression_span].trim();
-            if expr.is_empty() {
-                return Ok(UnifiedReturnAST::Passthrough);
-            }
-            return Self::parse_value(expr, logger);
+        let root = if parse_tree.rule_name == "return_annotation" {
+            parse_tree
+        } else if let Some(node) = Self::find_first_rule_node(parse_tree, "return_annotation") {
+            node
+        } else {
+            parse_tree
+        };
+
+        if logger.is_enabled() {
+            logger.log_debug(
+                "unified_return_ast.rs",
+                line!(),
+                &format!(
+                    "Parsing generated return tree from rule '{}' (span={}..{})",
+                    root.rule_name, root.span.start, root.span.end
+                ),
+            );
         }
 
-        // Arrow-only form (`->`) has no expression payload and maps to passthrough.
-        Ok(UnifiedReturnAST::Passthrough)
+        Self::parse_generated_return_annotation_node(input, root, logger)
     }
 
     /// Parse a return annotation string into the unified AST
@@ -1168,22 +1181,710 @@ impl UnifiedReturnAST {
         chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
     }
 
-    fn find_first_rule_span(node: &ParseNode<'_>, target_rule: &str) -> Option<std::ops::Range<usize>> {
-        if node.rule_name == target_rule {
-            return Some(node.span.clone());
+    fn parse_generated_return_annotation_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        if node.rule_name != "return_annotation" {
+            return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
-            ParseContent::Alternative(inner) => Self::find_first_rule_span(inner, target_rule),
+            ParseContent::Alternative(inner) => {
+                if inner.rule_name == "arrow" {
+                    Ok(UnifiedReturnAST::Passthrough)
+                } else {
+                    Self::parse_generated_value_node(input, inner, logger)
+                }
+            }
+            ParseContent::Sequence(elements) => {
+                if let Some(expr_node) = Self::sequence_child_rule(elements, "expression") {
+                    return Self::parse_generated_value_node(input, expr_node, logger);
+                }
+                Ok(UnifiedReturnAST::Passthrough)
+            }
+            ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => {
+                Err("Unsupported terminal-only return_annotation parse node".to_string())
+            }
+            ParseContent::Quantified(_, _) => {
+                Err("Unsupported quantified-only return_annotation parse node".to_string())
+            }
+        }
+    }
+
+    fn parse_generated_value_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        match node.rule_name {
+            "return_annotation" => Self::parse_generated_return_annotation_node(input, node, logger),
+            "expression" => Self::parse_generated_expression_node(input, node, logger),
+            "primary_expression" => Self::parse_generated_primary_expression_node(input, node, logger),
+            "spread_expression" => Self::parse_generated_spread_expression_node(input, node, logger),
+            "spreadable_expression" => Self::parse_generated_spreadable_expression_node(input, node, logger),
+            "extraction_expression" => Self::parse_generated_extraction_expression_node(input, node, logger),
+            "property_access_expression" => {
+                Self::parse_generated_property_access_expression_node(input, node, logger)
+            }
+            "array_access_expression" => {
+                Self::parse_generated_array_access_expression_node(input, node, logger)
+            }
+            "accessor_base" => Self::parse_generated_accessor_base_node(input, node, logger),
+            "accessor_base_lr_base" => Self::parse_generated_accessor_base_lr_base_node(input, node, logger),
+            "positional_reference" => Self::parse_generated_positional_reference_node(input, node),
+            "string_literal" => Self::parse_generated_string_literal_node(input, node),
+            "number_literal" | "integer" | "float" => {
+                Self::parse_generated_number_literal_node(input, node)
+            }
+            "boolean_literal" => Self::parse_generated_boolean_literal_node(input, node),
+            "identifier" => Self::parse_generated_identifier_node(input, node),
+            "object_literal" => Self::parse_generated_object_literal_node(input, node, logger),
+            "array_literal" => Self::parse_generated_array_literal_node(input, node, logger),
+            "parenthesized" => Self::parse_generated_parenthesized_node(input, node, logger),
+            _ => match &node.content {
+                ParseContent::Alternative(inner) => Self::parse_generated_value_node(input, inner, logger),
+                ParseContent::Sequence(elements) => {
+                    if let Some(expr_node) = Self::sequence_child_rule(elements, "expression") {
+                        Self::parse_generated_value_node(input, expr_node, logger)
+                    } else {
+                        Err(format!(
+                            "Unsupported generated return parse node '{}' with sequence payload",
+                            node.rule_name
+                        ))
+                    }
+                }
+                ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => Err(format!(
+                    "Unsupported generated return parse node '{}' with terminal payload",
+                    node.rule_name
+                )),
+                ParseContent::Quantified(_, _) => Err(format!(
+                    "Unsupported generated return parse node '{}' with quantified payload",
+                    node.rule_name
+                )),
+            },
+        }
+    }
+
+    fn parse_generated_expression_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        if node.rule_name != "expression" {
+            return Self::parse_generated_value_node(input, node, logger);
+        }
+        let selected = Self::alternative_child(node)
+            .ok_or_else(|| "Expression node did not carry alternative content".to_string())?;
+        Self::parse_generated_value_node(input, selected, logger)
+    }
+
+    fn parse_generated_primary_expression_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        if node.rule_name != "primary_expression" {
+            return Self::parse_generated_value_node(input, node, logger);
+        }
+        match &node.content {
+            ParseContent::Alternative(inner) => Self::parse_generated_value_node(input, inner, logger),
+            ParseContent::Sequence(elements) => {
+                Self::parse_generated_parenthesized_sequence(input, elements, logger)
+            }
+            _ => Err("primary_expression had unsupported parse content".to_string()),
+        }
+    }
+
+    fn parse_generated_spread_expression_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "spread_expression")?;
+        let base_node = Self::sequence_child_rule(elements, "spreadable_expression").ok_or_else(|| {
+            "spread_expression missing spreadable_expression child".to_string()
+        })?;
+        let base = Self::parse_generated_value_node(input, base_node, logger)?;
+        Ok(UnifiedReturnAST::Spread {
+            base: Box::new(base),
+        })
+    }
+
+    fn parse_generated_spreadable_expression_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        if node.rule_name != "spreadable_expression" {
+            return Self::parse_generated_value_node(input, node, logger);
+        }
+        match &node.content {
+            ParseContent::Alternative(inner) => Self::parse_generated_value_node(input, inner, logger),
+            ParseContent::Sequence(elements) => {
+                Self::parse_generated_parenthesized_sequence(input, elements, logger)
+            }
+            _ => Err("spreadable_expression had unsupported parse content".to_string()),
+        }
+    }
+
+    fn parse_generated_extraction_expression_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "extraction_expression")?;
+        let base_node = Self::sequence_child_rule(elements, "positional_reference").ok_or_else(|| {
+            "extraction_expression missing positional_reference child".to_string()
+        })?;
+        let target_node = Self::sequence_child_rule(elements, "extraction_target").ok_or_else(|| {
+            "extraction_expression missing extraction_target child".to_string()
+        })?;
+        let has_spread_suffix = Self::sequence_child_rule(elements, "spread_suffix").is_some();
+
+        let base = Self::parse_generated_positional_reference_node(input, base_node)?;
+        let target = Self::parse_generated_extraction_target_node(input, target_node)?;
+        let extraction = UnifiedReturnAST::QuantifiedExtraction {
+            base: Box::new(base),
+            target,
+        };
+
+        if has_spread_suffix {
+            Ok(UnifiedReturnAST::Spread {
+                base: Box::new(extraction),
+            })
+        } else {
+            Ok(extraction)
+        }
+    }
+
+    fn parse_generated_extraction_target_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+    ) -> Result<ExtractionTarget, String> {
+        match node.rule_name {
+            "extraction_target" => match &node.content {
+                ParseContent::Alternative(inner) => Self::parse_generated_extraction_target_node(input, inner),
+                ParseContent::Terminal(text) => match text.trim() {
+                    "first" => Ok(ExtractionTarget::First),
+                    "last" => Ok(ExtractionTarget::Last),
+                    other => Err(format!(
+                        "Unsupported extraction_target terminal '{}'",
+                        other
+                    )),
+                },
+                _ => Err("Unsupported extraction_target parse content".to_string()),
+            },
+            "positive_integer" => {
+                let token = Self::node_text(input, node)?.trim();
+                let value = token.parse::<usize>().map_err(|e| {
+                    format!("Invalid positive extraction target '{}': {}", token, e)
+                })?;
+                if value == 0 {
+                    return Err(format!("Invalid positive extraction target '{}'", token));
+                }
+                Ok(ExtractionTarget::Index(value - 1))
+            }
+            _ => Err(format!(
+                "Unexpected extraction target rule '{}'",
+                node.rule_name
+            )),
+        }
+    }
+
+    fn parse_generated_property_access_expression_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "property_access_expression")?;
+        if elements.len() < 3 {
+            return Err("property_access_expression sequence too short".to_string());
+        }
+        let base = Self::parse_generated_value_node(input, &elements[0], logger)?;
+        let first_postfix = Self::parse_generated_postfix_node(input, &elements[1], logger)?;
+        if !matches!(first_postfix, AccessPostfix::Property(_)) {
+            return Err("property_access_expression first postfix was not property access".to_string());
+        }
+        let mut current = Self::apply_postfix(base, first_postfix);
+        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[2], logger)? {
+            current = Self::apply_postfix(current, postfix);
+        }
+        Ok(current)
+    }
+
+    fn parse_generated_array_access_expression_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "array_access_expression")?;
+        if elements.len() < 3 {
+            return Err("array_access_expression sequence too short".to_string());
+        }
+        let base = Self::parse_generated_value_node(input, &elements[0], logger)?;
+        let first_postfix = Self::parse_generated_postfix_node(input, &elements[1], logger)?;
+        if !matches!(first_postfix, AccessPostfix::Index(_)) {
+            return Err("array_access_expression first postfix was not array index access".to_string());
+        }
+        let mut current = Self::apply_postfix(base, first_postfix);
+        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[2], logger)? {
+            current = Self::apply_postfix(current, postfix);
+        }
+        Ok(current)
+    }
+
+    fn parse_generated_accessor_base_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "accessor_base")?;
+        if elements.len() < 2 {
+            return Err("accessor_base sequence too short".to_string());
+        }
+        let mut current = Self::parse_generated_value_node(input, &elements[0], logger)?;
+        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[1], logger)? {
+            current = Self::apply_postfix(current, postfix);
+        }
+        Ok(current)
+    }
+
+    fn parse_generated_accessor_base_lr_base_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        if node.rule_name != "accessor_base_lr_base" {
+            return Self::parse_generated_value_node(input, node, logger);
+        }
+        match &node.content {
+            ParseContent::Alternative(inner) => Self::parse_generated_value_node(input, inner, logger),
+            ParseContent::Sequence(elements) => {
+                Self::parse_generated_parenthesized_sequence(input, elements, logger)
+            }
+            _ => Err("accessor_base_lr_base had unsupported parse content".to_string()),
+        }
+    }
+
+    fn parse_generated_postfix_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<AccessPostfix, String> {
+        if let ParseContent::Alternative(inner) = &node.content {
+            return Self::parse_generated_postfix_node(input, inner, logger);
+        }
+
+        let elements = Self::sequence_elements(node, "postfix")?;
+        if elements.is_empty() {
+            return Err("Empty postfix sequence".to_string());
+        }
+        let op = Self::terminal_from_node(&elements[0])
+            .ok_or_else(|| "Postfix sequence missing operator terminal".to_string())?;
+        match op {
+            "." => {
+                let ident_node = Self::sequence_child_rule(elements, "identifier").ok_or_else(|| {
+                    "Property postfix missing identifier child".to_string()
+                })?;
+                let property = Self::node_text(input, ident_node)?.trim().to_string();
+                Ok(AccessPostfix::Property(property))
+            }
+            "[" => {
+                let index_node = Self::sequence_child_rule(elements, "expression").ok_or_else(|| {
+                    "Array postfix missing expression child".to_string()
+                })?;
+                let index = Self::parse_generated_value_node(input, index_node, logger)?;
+                Ok(AccessPostfix::Index(index))
+            }
+            other => Err(format!("Unsupported postfix operator '{}'", other)),
+        }
+    }
+
+    fn parse_generated_postfixes_from_quantifier<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<Vec<AccessPostfix>, String> {
+        if Self::is_empty_sequence_node(node) {
+            return Ok(Vec::new());
+        }
+        let mut postfixes = Vec::new();
+        match Self::quantified_items(node) {
+            Some(items) => {
+                for item in items {
+                    postfixes.push(Self::parse_generated_postfix_node(input, item, logger)?);
+                }
+                Ok(postfixes)
+            }
+            None => Err("Expected quantified postfix node".to_string()),
+        }
+    }
+
+    fn apply_postfix(base: UnifiedReturnAST, postfix: AccessPostfix) -> UnifiedReturnAST {
+        match postfix {
+            AccessPostfix::Property(property) => UnifiedReturnAST::PropertyAccess {
+                base: Box::new(base),
+                property,
+            },
+            AccessPostfix::Index(index) => UnifiedReturnAST::ArrayAccess {
+                base: Box::new(base),
+                index: Box::new(index),
+            },
+        }
+    }
+
+    fn parse_generated_positional_reference_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "positional_reference")?;
+        let integer_node = Self::sequence_child_rule(elements, "integer")
+            .ok_or_else(|| "positional_reference missing integer child".to_string())?;
+        let raw = Self::node_text(input, integer_node)?.trim();
+        let index_value = raw
+            .parse::<i64>()
+            .map_err(|e| format!("Invalid positional index '{}': {}", raw, e))?;
+        if index_value < 0 {
+            return Err(format!(
+                "Invalid positional index '{}'",
+                index_value
+            ));
+        }
+        let index = usize::try_from(index_value)
+            .map_err(|_| format!("Positional index '{}' overflows usize", index_value))?;
+        Ok(UnifiedReturnAST::PositionalRef { index })
+    }
+
+    fn parse_generated_string_literal_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+    ) -> Result<UnifiedReturnAST, String> {
+        let value = if node.rule_name == "string_literal" {
+            match &node.content {
+                ParseContent::Alternative(inner) => {
+                    let inner_elements = Self::sequence_elements(inner, "string_literal_inner")?;
+                    if let Some(content_node) =
+                        Self::sequence_child_rule(inner_elements, "string_content_double")
+                    {
+                        Self::node_text(input, content_node)?.to_string()
+                    } else if let Some(content_node) =
+                        Self::sequence_child_rule(inner_elements, "string_content_single")
+                    {
+                        Self::node_text(input, content_node)?.to_string()
+                    } else {
+                        let literal = Self::node_text(input, inner)?.trim();
+                        Self::parse_quoted_string(literal).ok_or_else(|| {
+                            format!("Unable to decode quoted string literal '{}'", literal)
+                        })?
+                    }
+                }
+                _ => {
+                    let literal = Self::node_text(input, node)?.trim();
+                    Self::parse_quoted_string(literal).ok_or_else(|| {
+                        format!("Unable to decode quoted string literal '{}'", literal)
+                    })?
+                }
+            }
+        } else {
+            Self::node_text(input, node)?.to_string()
+        };
+        Ok(UnifiedReturnAST::StringLiteral { value })
+    }
+
+    fn parse_generated_number_literal_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+    ) -> Result<UnifiedReturnAST, String> {
+        let numeric_node = if node.rule_name == "number_literal" {
+            Self::alternative_child(node)
+                .ok_or_else(|| "number_literal missing selected branch".to_string())?
+        } else {
+            node
+        };
+        let raw = Self::node_text(input, numeric_node)?.trim();
+        let value = raw
+            .parse::<f64>()
+            .map_err(|e| format!("Invalid number literal '{}': {}", raw, e))?;
+        Ok(UnifiedReturnAST::NumberLiteral { value })
+    }
+
+    fn parse_generated_boolean_literal_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+    ) -> Result<UnifiedReturnAST, String> {
+        let raw = if let Some(text) = Self::terminal_from_node(node) {
+            text
+        } else {
+            Self::node_text(input, node)?
+        };
+        match raw.trim() {
+            "true" => Ok(UnifiedReturnAST::BooleanLiteral { value: true }),
+            "false" => Ok(UnifiedReturnAST::BooleanLiteral { value: false }),
+            other => Err(format!("Invalid boolean literal '{}'", other)),
+        }
+    }
+
+    fn parse_generated_identifier_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+    ) -> Result<UnifiedReturnAST, String> {
+        let name = Self::node_text(input, node)?.trim().to_string();
+        if !Self::is_identifier_literal(&name) {
+            return Err(format!("Invalid identifier literal '{}'", name));
+        }
+        Ok(UnifiedReturnAST::Identifier { name })
+    }
+
+    fn parse_generated_object_literal_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "object_literal")?;
+        let properties = if let Some(props_node) = Self::sequence_child_rule(elements, "object_properties") {
+            Self::parse_generated_object_properties_node(input, props_node, logger)?
+        } else {
+            HashMap::new()
+        };
+        Ok(UnifiedReturnAST::Object { properties })
+    }
+
+    fn parse_generated_object_properties_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<HashMap<String, Box<UnifiedReturnAST>>, String> {
+        let elements = Self::sequence_elements(node, "object_properties")?;
+        let mut properties = HashMap::new();
+
+        let first_property = Self::sequence_child_rule(elements, "object_property")
+            .ok_or_else(|| "object_properties missing first object_property".to_string())?;
+        let (key, value) = Self::parse_generated_object_property_node(input, first_property, logger)?;
+        properties.insert(key, Box::new(value));
+
+        if let Some(quantified_node) = elements.get(1) {
+            if let Some(items) = Self::quantified_items(quantified_node) {
+                for item in items {
+                    let item_elements = Self::sequence_elements(item, "object_properties tail")?;
+                    let property_node =
+                        Self::sequence_child_rule(item_elements, "object_property").ok_or_else(|| {
+                            "object_properties tail missing object_property".to_string()
+                        })?;
+                    let (k, v) = Self::parse_generated_object_property_node(input, property_node, logger)?;
+                    properties.insert(k, Box::new(v));
+                }
+            }
+        }
+
+        Ok(properties)
+    }
+
+    fn parse_generated_object_property_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<(String, UnifiedReturnAST), String> {
+        let elements = Self::sequence_elements(node, "object_property")?;
+        let key_node = Self::sequence_child_rule(elements, "property_key")
+            .ok_or_else(|| "object_property missing property_key".to_string())?;
+        let expr_node = Self::sequence_child_rule(elements, "expression")
+            .ok_or_else(|| "object_property missing expression value".to_string())?;
+
+        let key = Self::parse_generated_property_key_node(input, key_node)?;
+        let value = Self::parse_generated_value_node(input, expr_node, logger)?;
+        Ok((key, value))
+    }
+
+    fn parse_generated_property_key_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+    ) -> Result<String, String> {
+        if node.rule_name != "property_key" {
+            return Err(format!(
+                "Expected property_key node, found '{}'",
+                node.rule_name
+            ));
+        }
+        let selected = Self::alternative_child(node)
+            .ok_or_else(|| "property_key missing selected branch".to_string())?;
+        match selected.rule_name {
+            "identifier" => Ok(Self::node_text(input, selected)?.trim().to_string()),
+            "string_literal" => match Self::parse_generated_string_literal_node(input, selected)? {
+                UnifiedReturnAST::StringLiteral { value } => Ok(value),
+                _ => Err("property_key string branch did not decode to StringLiteral".to_string()),
+            },
+            other => Err(format!("Unsupported property_key branch '{}'", other)),
+        }
+    }
+
+    fn parse_generated_array_literal_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "array_literal")?;
+        let parsed_elements =
+            if let Some(array_elements_node) = Self::sequence_child_rule(elements, "array_elements") {
+                Self::parse_generated_array_elements_node(input, array_elements_node, logger)?
+            } else {
+                Vec::new()
+            };
+        Ok(UnifiedReturnAST::Array {
+            elements: parsed_elements,
+        })
+    }
+
+    fn parse_generated_array_elements_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<Vec<UnifiedReturnAST>, String> {
+        let elements = Self::sequence_elements(node, "array_elements")?;
+        let mut parsed = Vec::new();
+
+        let first_element = Self::sequence_child_rule(elements, "array_element")
+            .ok_or_else(|| "array_elements missing first array_element".to_string())?;
+        parsed.push(Self::parse_generated_array_element_node(input, first_element, logger)?);
+
+        if let Some(quantified_node) = elements.get(1) {
+            if let Some(items) = Self::quantified_items(quantified_node) {
+                for item in items {
+                    let item_elements = Self::sequence_elements(item, "array_elements tail")?;
+                    let element_node =
+                        Self::sequence_child_rule(item_elements, "array_element").ok_or_else(|| {
+                            "array_elements tail missing array_element".to_string()
+                        })?;
+                    parsed.push(Self::parse_generated_array_element_node(input, element_node, logger)?);
+                }
+            }
+        }
+
+        Ok(parsed)
+    }
+
+    fn parse_generated_array_element_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        if node.rule_name != "array_element" {
+            return Self::parse_generated_value_node(input, node, logger);
+        }
+        let expr_node = Self::alternative_child(node)
+            .ok_or_else(|| "array_element missing expression branch".to_string())?;
+        Self::parse_generated_value_node(input, expr_node, logger)
+    }
+
+    fn parse_generated_parenthesized_node<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let elements = Self::sequence_elements(node, "parenthesized")?;
+        Self::parse_generated_parenthesized_sequence(input, elements, logger)
+    }
+
+    fn parse_generated_parenthesized_sequence<'input>(
+        input: &'input str,
+        elements: &[ParseNode<'input>],
+        logger: &dyn Logger,
+    ) -> Result<UnifiedReturnAST, String> {
+        let expr_node = Self::sequence_child_rule(elements, "expression")
+            .ok_or_else(|| "parenthesized sequence missing expression child".to_string())?;
+        Self::parse_generated_value_node(input, expr_node, logger)
+    }
+
+    fn find_first_rule_node<'a, 'input>(
+        node: &'a ParseNode<'input>,
+        target_rule: &str,
+    ) -> Option<&'a ParseNode<'input>> {
+        if node.rule_name == target_rule {
+            return Some(node);
+        }
+        match &node.content {
+            ParseContent::Alternative(inner) => Self::find_first_rule_node(inner, target_rule),
             ParseContent::Sequence(elements) | ParseContent::Quantified(elements, _) => {
                 for child in elements {
-                    if let Some(span) = Self::find_first_rule_span(child, target_rule) {
-                        return Some(span);
+                    if let Some(found) = Self::find_first_rule_node(child, target_rule) {
+                        return Some(found);
                     }
                 }
                 None
             }
             ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => None,
         }
+    }
+
+    fn sequence_elements<'a, 'input>(
+        node: &'a ParseNode<'input>,
+        context: &str,
+    ) -> Result<&'a [ParseNode<'input>], String> {
+        match &node.content {
+            ParseContent::Sequence(elements) => Ok(elements.as_slice()),
+            other => Err(format!(
+                "{} expected sequence content, found {:?}",
+                context, other
+            )),
+        }
+    }
+
+    fn sequence_child_rule<'a, 'input>(
+        elements: &'a [ParseNode<'input>],
+        target_rule: &str,
+    ) -> Option<&'a ParseNode<'input>> {
+        for element in elements {
+            if element.rule_name == target_rule {
+                return Some(element);
+            }
+            if let ParseContent::Alternative(inner) = &element.content {
+                if inner.rule_name == target_rule {
+                    return Some(inner);
+                }
+            }
+        }
+        None
+    }
+
+    fn alternative_child<'a, 'input>(
+        node: &'a ParseNode<'input>,
+    ) -> Option<&'a ParseNode<'input>> {
+        if let ParseContent::Alternative(inner) = &node.content {
+            Some(inner)
+        } else {
+            None
+        }
+    }
+
+    fn terminal_from_node<'input>(node: &ParseNode<'input>) -> Option<&'input str> {
+        match &node.content {
+            ParseContent::Terminal(text) => Some(*text),
+            ParseContent::Alternative(inner) => Self::terminal_from_node(inner),
+            _ => None,
+        }
+    }
+
+    fn quantified_items<'a, 'input>(
+        node: &'a ParseNode<'input>,
+    ) -> Option<&'a [ParseNode<'input>]> {
+        match &node.content {
+            ParseContent::Quantified(items, _) => Some(items.as_slice()),
+            _ => None,
+        }
+    }
+
+    fn is_empty_sequence_node(node: &ParseNode<'_>) -> bool {
+        matches!(&node.content, ParseContent::Sequence(elements) if elements.is_empty())
+    }
+
+    fn node_text<'input>(input: &'input str, node: &ParseNode<'input>) -> Result<&'input str, String> {
+        if node.span.start > node.span.end || node.span.end > input.len() {
+            return Err(format!(
+                "Invalid span {}..{} for rule '{}'",
+                node.span.start, node.span.end, node.rule_name
+            ));
+        }
+        Ok(&input[node.span.clone()])
     }
 }
 
@@ -1580,5 +2281,94 @@ mod tests {
                 .expect("generated tree -> typed return ast should succeed");
             assert_eq!(ast, expected);
         }
+    }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn generated_return_tree_to_typed_ast_matches_bootstrap_for_structural_corpus() {
+        use crate::generated_parsers::return_annotation::Return_annotationParser;
+
+        let logger = crate::test_runner::NoOpLogger;
+        let samples = vec![
+            "->",
+            "-> $1",
+            "-> [$1, $2, $3*]",
+            "-> {kind: \"node\", payload: $2}",
+            "-> $2::first",
+            "-> $2::2*",
+            "-> ($1).field[0]",
+            "-> (($1)).field[($2::first)]",
+            "$1",
+            "my_ident_01",
+        ];
+
+        for input in samples {
+            let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
+            let parse_tree = parser
+                .parse_full_return_annotation()
+                .expect("generated parser should parse sample");
+            let generated_ast = UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
+                .expect("generated tree -> typed return ast should succeed");
+            let bootstrap_ast = UnifiedReturnAST::parse_bootstrap(input, &logger)
+                .expect("bootstrap parser should parse sample");
+            assert_eq!(
+                generated_ast, bootstrap_ast,
+                "generated and bootstrap typed AST mismatch for input '{}'",
+                input
+            );
+        }
+    }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn generated_return_tree_to_typed_ast_accepts_zero_and_signed_zero_indices() {
+        use crate::generated_parsers::return_annotation::Return_annotationParser;
+
+        let logger = crate::test_runner::NoOpLogger;
+        let samples = vec![
+            "-> $0",
+            "-> $+0",
+            "-> $00",
+            "-> $0::first",
+            "-> $+0.A[0]",
+        ];
+
+        for input in samples {
+            let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
+            let parse_tree = parser
+                .parse_full_return_annotation()
+                .expect("generated parser should parse sample");
+            let generated_ast = UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
+                .expect("generated tree -> typed return ast should succeed");
+            let bootstrap_ast = UnifiedReturnAST::parse_bootstrap(input, &logger)
+                .expect("bootstrap parser should parse sample");
+            assert_eq!(
+                generated_ast, bootstrap_ast,
+                "zero-index handling mismatch for '{}'",
+                input
+            );
+        }
+    }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn generated_return_tree_to_typed_ast_rejects_negative_positional_indices() {
+        use crate::generated_parsers::return_annotation::Return_annotationParser;
+
+        let logger = crate::test_runner::NoOpLogger;
+        let input = "-> $-1";
+        let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
+        let parse_tree = parser
+            .parse_full_return_annotation()
+            .expect("generated parser should lex/parse signed integer reference");
+
+        assert!(
+            UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger).is_err(),
+            "generated typed AST conversion should reject negative positional index"
+        );
+        assert!(
+            UnifiedReturnAST::parse_bootstrap(input, &logger).is_err(),
+            "bootstrap parser should reject negative positional index"
+        );
     }
 }

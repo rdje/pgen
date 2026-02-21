@@ -71,7 +71,7 @@ Verified facts from the current Rust AST pipeline:
 - Non-bootstrap return annotation entry path now requires generated parser success and no longer falls back to `parse_bootstrap`:
   - `rust/src/ast_pipeline/mod.rs` (`parse_return_annotation_ast`)
   - `rust/src/ast_pipeline/unified_return_ast.rs` (`parse_generated_return_annotation`)
-- Return typed-AST conversion in non-bootstrap mode currently uses generated parse-tree span extraction + shared typed return value parser for expression payload mapping; full structural parse-tree-to-AST mapping remains tracked under RA-01 completion.
+- Return typed-AST conversion in non-bootstrap mode now uses structural generated parse-tree mapping (no span-reparse shortcut) across return construct families, with generated-vs-bootstrap structural corpus parity tests including zero/signed-zero positional semantics and extraction-index normalization.
 - Semantic annotation typed parsing in pipeline is still bootstrap marker/raw-oriented:
   - `rust/src/ast_pipeline/unified_semantic_ast.rs`
   - `rust/src/ast_pipeline/mod.rs` (`parse_semantic_annotation_entry`)
@@ -99,7 +99,8 @@ Implication: existing gates are strong, but they do not yet prove full typed-AST
 Status (2026-02-21):
 - In progress.
 - Non-bootstrap return entry path now enforces generated parse success and no bootstrap fallback.
-- Remaining closure item: complete full structural parse-tree-to-typed-AST mapping across all return grammar construct families.
+- Structural parse-tree-to-typed-AST mapping is now implemented for return construct families exercised by contract/parity suites.
+- Remaining closure item: objective RA-01 proof closure via explicit construct/alternative manifest coverage gating (`PX-01`) to prove 100% mapping coverage.
 
 Exit criteria:
 - 0 conforming return samples use bootstrap fallback in non-bootstrap mode.
@@ -278,7 +279,7 @@ Roadmap reaches 100% only when:
 - stimuli quality gate thresholds remain green in CI with no waived deficits.
 
 ## Change Log
-- 2026-02-21: Advanced RA-01 baseline by removing bootstrap fallback from non-bootstrap return annotation entry parsing, adding generated parse-tree -> typed return AST adapter (`parse_generated_return_annotation`), and enforcing generated conversion coverage in `return_runtime_semantics_gate`.
+- 2026-02-21: Advanced RA-01 from baseline to structural mapping by replacing span-based generated return conversion with rule-aware parse-tree mapping, aligning generated conversion semantics with bootstrap for extraction-index and zero/signed-zero positional handling, expanding generated conversion parity corpus tests, and broadening `return_runtime_semantics_gate` generated test coverage.
 - 2026-02-20: Initial zero-compromise roadmap published for full return and semantic annotation closure with objective proof gates.
 - 2026-02-20: Implemented `annotation_stimuli_quality_gate` baseline closed-loop verifier (return + semantic) with stage-level artifact and metric invariants; integrated into `annotation_contract_gate`.
 - 2026-02-20: Advanced RA-02 runtime closure baseline by adding identifier literal + single-quoted string/object-key support to `UnifiedReturnAST`, wiring exhaustive transformer/validator/normalizer handling, and adding focused regression tests for these return construct families.
