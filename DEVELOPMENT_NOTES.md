@@ -1,4 +1,86 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-21 - Phase L Gate Closure: `annotation_100_gate` + Deterministic Return Object Field Emission
+### Context
+Phase L still had one explicit unchecked closure item:
+- add full-contract/aggregate annotation closure gates and enforce them in required policy paths.
+
+During gate integration validation, the aggregate run exposed a determinism regression:
+- `fixed_point_gate` failed because generated `return_annotation_parser.rs` and `semantic_annotation_parser.rs` differed between cycle 1 and cycle 2.
+- The diff pattern showed semantically equivalent but reordered object-field assignments in generated return-transform code (for example `base/property`, `index/base`, `type` ordering changes).
+
+Root cause:
+- object return AST properties are stored in `HashMap`,
+- transform emission iterated that map directly,
+- `HashMap` iteration order is randomized per process seed.
+
+### Implementation
+Primary files:
+- `rust/Makefile`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `rust/src/ast_pipeline/ast_return_transform.rs`
+
+#### 1) Added semantic full-contract gate slices and annotation-100 aggregate
+File:
+- `rust/Makefile`
+
+Added semantic gate slices:
+- `semantic_runtime_contract_gate`
+  - runs semantic validator/runtime and usage checks.
+- `semantic_ast_roundtrip_gate`
+  - runs bootstrap/generated semantic shared-contract round-trip suites.
+- `semantic_differential_regression_gate`
+  - semantic-only differential regression against tracked baseline.
+- `semantic_full_contract_gate`
+  - aggregates runtime + roundtrip + semantic differential regression.
+
+Added annotation aggregate slices:
+- `annotation_construct_coverage_gate`
+  - wraps annotation stimuli quality closure gate.
+- `annotation_typed_ast_gate`
+  - return runtime + semantic runtime + non-bootstrap E2E gate.
+- `annotation_runtime_intent_gate`
+  - return + semantic full-contract gates.
+- `annotation_determinism_gate`
+  - fixed-point deterministic reproducibility gate.
+- `annotation_differential_parity_gate`
+  - return parity + semantic differential regression parity.
+- `annotation_100_gate`
+  - aggregates all above to represent the explicit Phase L proof-doctrine closure contract.
+
+Also updated:
+- `annotation_contract_gate` now depends on `semantic_full_contract_gate` (not just `semantic_usage_gate`).
+
+#### 2) Wired `annotation_100_gate` into aggregate required-check policy
+Files:
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+
+Changes:
+- Added `annotation_100_gate` required-check handler path in aggregate gate script.
+- Added `annotation_100_gate` to `PGEN_SOTA_REQUIRED_CHECKS`, making it policy-required under SOTA aggregate enforcement.
+
+#### 3) Fixed return-transform nondeterminism in generated code emission
+File:
+- `rust/src/ast_pipeline/ast_return_transform.rs`
+
+Change:
+- In `generate_object_transform(...)`, replaced direct `HashMap` iteration with sorted key iteration:
+  - collect `properties.iter()` into a vector,
+  - sort by key lexicographically,
+  - emit `json_obj[...]` assignments in stable key order.
+
+Effect:
+- preserves semantics of key->value mapping,
+- guarantees byte-stable field assignment ordering across process runs/cycles.
+
+### Validation
+- `make -C rust SHELL=/bin/bash fixed_point_gate`
+  - pass after deterministic key-order emission change.
+- `make -C rust SHELL=/bin/bash annotation_100_gate`
+  - pass end-to-end.
+  - includes repeated full-contract and stimuli-quality slices plus determinism/differential parity paths.
+
 ## 2026-02-21 - Phase L SA-01 Increment: Generated Semantic Round-Trip Parse-Tree Conversion
 ### Context
 Generated semantic round-trip in `test_runner` was still parse-only identity:

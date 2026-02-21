@@ -185,7 +185,12 @@ impl AstReturnTransformer {
     ) -> Result<TokenStream> {
         let mut field_assignments = Vec::new();
 
-        for (key, value_ast) in properties {
+        // Stabilize field emission order so generated parser code is deterministic
+        // across process runs (HashMap iteration order is randomized).
+        let mut sorted_properties: Vec<_> = properties.iter().collect();
+        sorted_properties.sort_by(|(left_key, _), (right_key, _)| left_key.cmp(right_key));
+
+        for (key, value_ast) in sorted_properties {
             let value_code = Self::generate_value_extraction(value_ast, captured_vars)?;
             field_assignments.push(quote! {
                 json_obj[#key] = serde_json::json!((#value_code));

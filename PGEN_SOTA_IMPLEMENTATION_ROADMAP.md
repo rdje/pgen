@@ -136,7 +136,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 ### Phase L (New): Annotation 100% Closure (Return + Semantic)
 - [x] Publish dedicated zero-compromise closure roadmap mapped to full annotation grammars:
   - `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
-- [ ] Implement annotation proof doctrine gates with uncompromising quality criteria:
+- [x] Implement annotation proof doctrine gates with uncompromising quality criteria:
   - full construct/alternative coverage manifests,
   - typed-AST no-fallback assertions in non-bootstrap mode,
   - runtime-intent conformance suites for parser/stimuli behavior,
@@ -150,7 +150,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Progress (2026-02-21): non-bootstrap return entry parsing now requires generated parser success and no longer falls back to bootstrap entry parsing; remaining work is full structural parse-tree-to-typed-AST mapping coverage across all return construct families.
 - [ ] Implement generated-parser-backed typed AST closure for full semantic grammar in non-bootstrap path (remove raw/marker fallback for conforming inputs).
   - Progress (2026-02-21): generated semantic round-trip wrapper now uses generated parse-tree conversion (`UnifiedSemanticAST::parse_generated_semantic_annotation`) instead of identity output, and regression coverage was added for transform and named-raw directive conversion; remaining work is full typed semantic AST family expansion beyond `TransformExpr/Raw` and elimination of non-bootstrap raw fallback for all conforming semantic constructs.
-- [ ] Add full-contract gates (`return_full_contract_gate`, `semantic_full_contract_gate`, `annotation_100_gate`) and make them required in CI/SOTA aggregate policy.
+- [x] Add full-contract gates (`return_full_contract_gate`, `semantic_full_contract_gate`, `annotation_100_gate`) and make them required in CI/SOTA aggregate policy.
 
 ### Phase M (New): Cross-EBNF Closed-Loop Quality (Non-Annotation Loop)
 - [x] Split quality enforcement into two independent loops:
@@ -200,6 +200,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-21: Completed Phase L proof-doctrine/full-contract gate closure by adding semantic full-contract slices (`semantic_runtime_contract_gate`, `semantic_ast_roundtrip_gate`, `semantic_full_contract_gate`), introducing `annotation_100_gate` (construct coverage + typed-AST + runtime-intent + determinism + differential parity), wiring `annotation_100_gate` into SOTA required-check policy, and hardening deterministic return object-field code emission in `ast_return_transform` to stabilize `fixed_point_gate`.
 - 2026-02-21: Advanced Phase L SA-01 baseline by replacing generated semantic round-trip identity behavior with generated parse-tree conversion (`parse_generated_semantic_annotation`) in `test_runner`, adding conversion regression coverage, and validating through `semantic_usage_gate` + `annotation_contract_gate`.
 - 2026-02-21: Closed remaining RA-01 generated round-trip bootstrap dependency by switching `GeneratedReturnAnnotationParser::round_trip` to generated parse-tree typed conversion (`parse_generated_return_annotation`) before canonical unparse.
 - 2026-02-21: Advanced Phase L RA-01 from baseline to structural closure progress by replacing span-based generated return conversion with rule-aware parse-tree mapping in `UnifiedReturnAST`, aligning extraction-target and zero/signed-zero positional semantics with bootstrap parity, expanding generated conversion parity corpus tests, and broadening `return_runtime_semantics_gate` to run the full `generated_return_tree_to_typed_ast_` family.

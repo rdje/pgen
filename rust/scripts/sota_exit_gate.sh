@@ -151,6 +151,13 @@ run_required_check_by_name() {
                 "annotation validator/contracts/robustness" \
                 make -C rust SHELL=/bin/bash annotation_contract_gate
             ;;
+        annotation_100_gate)
+            run_check \
+                "annotation_100_gate" \
+                "required" \
+                "aggregate annotation proof gate (coverage/typed-ast/runtime/determinism/parity)" \
+                make -C rust SHELL=/bin/bash annotation_100_gate
+            ;;
         annotation_nonbootstrap_e2e_gate)
             run_check \
                 "annotation_nonbootstrap_e2e_gate" \

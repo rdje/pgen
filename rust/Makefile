@@ -246,9 +246,13 @@ help:
 	@echo "  sc03_contract_gate - Enforce SC-03 directive routing + strict policy contract slices and differential taxonomy checks"
 	@echo "  sc04_contract_gate - Enforce SC-04 token steering Tier-4 contract slices + differential taxonomy checks"
 	@echo "  semantic_usage_gate - Enforce semantic-annotation leverage contract (parser/stimuli)"
+	@echo "  semantic_runtime_contract_gate - Enforce semantic runtime/typed-AST contract checks"
+	@echo "  semantic_ast_roundtrip_gate - Enforce semantic AST round-trip contract checks"
+	@echo "  semantic_full_contract_gate - Enforce aggregate semantic contract gate (runtime + round-trip + regression)"
 	@echo "  return_runtime_semantics_gate - Enforce typed return AST/runtime transform contract checks"
 	@echo "  return_ast_roundtrip_gate - Enforce canonical return AST round-trip contract checks"
 	@echo "  return_full_contract_gate - Enforce aggregate return contract gate (runtime + round-trip + parity)"
+	@echo "  annotation_100_gate - Enforce aggregate annotation 100% proof gate"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
 	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
 	@echo "  performance_gate - Run benchmark thresholds for bootstrap vs generated parsers"
@@ -472,7 +476,7 @@ annotation_contract_gate:
 	@$(MAKE) -C $(RUST_DIR) sc03_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc04_contract_gate
 	@$(MAKE) -C $(RUST_DIR) return_full_contract_gate
-	@$(MAKE) -C $(RUST_DIR) semantic_usage_gate
+	@$(MAKE) -C $(RUST_DIR) semantic_full_contract_gate
 	@$(MAKE) -C $(RUST_DIR) annotation_robustness_gate
 	@$(MAKE) -C $(RUST_DIR) annotation_stimuli_quality_gate
 	@echo "✅ Annotation normative contract gate passed."
@@ -576,6 +580,37 @@ semantic_usage_gate:
 	cd $(RUST_DIR) && cargo test --lib semantic_usage_
 	@echo "✅ Semantic annotation usage gate passed."
 
+.PHONY: semantic_runtime_contract_gate
+semantic_runtime_contract_gate:
+	@echo "🧪 Running semantic runtime contract gate..."
+	cd $(RUST_DIR) && cargo test --lib semantic_validator_
+	cd $(RUST_DIR) && cargo test --features generated_parsers --lib generated_semantic_tree_to_ast_
+	@$(MAKE) -C $(RUST_DIR) semantic_usage_gate
+	@echo "✅ Semantic runtime contract gate passed."
+
+.PHONY: semantic_ast_roundtrip_gate
+semantic_ast_roundtrip_gate:
+	@echo "🔁 Running semantic AST round-trip gate..."
+	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_normative_shared_contract
+	cd $(RUST_DIR) && cargo run --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_normative_shared_contract
+	@echo "✅ Semantic AST round-trip gate passed."
+
+.PHONY: semantic_differential_regression_gate
+semantic_differential_regression_gate:
+	@echo "🧩 Running semantic differential regression gate..."
+	@mkdir -p $(DIFFERENTIAL_REPORT_DIR)
+	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/semantic_annotation_diff_report.json
+	@echo "✅ Semantic differential regression gate passed."
+
+.PHONY: semantic_full_contract_gate
+semantic_full_contract_gate:
+	@echo "📐 Running semantic full-contract gate..."
+	@$(MAKE) -C $(RUST_DIR) semantic_runtime_contract_gate
+	@$(MAKE) -C $(RUST_DIR) semantic_ast_roundtrip_gate
+	@$(MAKE) -C $(RUST_DIR) semantic_differential_regression_gate
+	@echo "✅ Semantic full-contract gate passed."
+
 .PHONY: differential_report
 differential_report:
 	@echo "🧪 Running differential harness (generated vs bootstrap)..."
@@ -650,6 +685,51 @@ return_full_contract_gate:
 	@$(MAKE) -C $(RUST_DIR) return_ast_roundtrip_gate
 	@$(MAKE) -C $(RUST_DIR) return_parity_gate
 	@echo "✅ Return full-contract gate passed."
+
+.PHONY: annotation_construct_coverage_gate
+annotation_construct_coverage_gate:
+	@echo "🧮 Running annotation construct coverage gate..."
+	@$(MAKE) -C $(RUST_DIR) annotation_stimuli_quality_gate
+	@echo "✅ Annotation construct coverage gate passed."
+
+.PHONY: annotation_typed_ast_gate
+annotation_typed_ast_gate:
+	@echo "🧬 Running annotation typed-AST gate..."
+	@$(MAKE) -C $(RUST_DIR) return_runtime_semantics_gate
+	@$(MAKE) -C $(RUST_DIR) semantic_runtime_contract_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_nonbootstrap_e2e_gate
+	@echo "✅ Annotation typed-AST gate passed."
+
+.PHONY: annotation_runtime_intent_gate
+annotation_runtime_intent_gate:
+	@echo "🎯 Running annotation runtime-intent gate..."
+	@$(MAKE) -C $(RUST_DIR) return_full_contract_gate
+	@$(MAKE) -C $(RUST_DIR) semantic_full_contract_gate
+	@echo "✅ Annotation runtime-intent gate passed."
+
+.PHONY: annotation_determinism_gate
+annotation_determinism_gate:
+	@echo "🔁 Running annotation determinism gate..."
+	@$(MAKE) -C $(RUST_DIR) fixed_point_gate
+	@echo "✅ Annotation determinism gate passed."
+
+.PHONY: annotation_differential_parity_gate
+annotation_differential_parity_gate:
+	@echo "🧩 Running annotation differential parity gate..."
+	@$(MAKE) -C $(RUST_DIR) return_parity_gate
+	@$(MAKE) -C $(RUST_DIR) semantic_differential_regression_gate
+	@echo "✅ Annotation differential parity gate passed."
+
+.PHONY: annotation_100_gate
+annotation_100_gate:
+	@echo "💯 Running annotation 100% aggregate gate..."
+	@$(MAKE) -C $(RUST_DIR) annotation_contract_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_construct_coverage_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_typed_ast_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_runtime_intent_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_determinism_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_differential_parity_gate
+	@echo "✅ Annotation 100% aggregate gate passed."
 
 .PHONY: performance_gate
 performance_gate:

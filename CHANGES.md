@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-02-21 - Phase L Gate Closure: Annotation 100% Aggregate + Deterministic Return Object Emission
+### ✅ Achievement Summary
+Closed the remaining Phase L gate-wiring item by adding semantic full-contract slices and an `annotation_100_gate` aggregate, wiring it into SOTA required-check policy, and fixing return object-field codegen nondeterminism that was breaking fixed-point reproducibility.
+
+### Scope of Changes
+- Gate topology and aggregation updates:
+  - `rust/Makefile`
+  - added:
+    - `semantic_runtime_contract_gate`
+    - `semantic_ast_roundtrip_gate`
+    - `semantic_differential_regression_gate`
+    - `semantic_full_contract_gate`
+    - `annotation_construct_coverage_gate`
+    - `annotation_typed_ast_gate`
+    - `annotation_runtime_intent_gate`
+    - `annotation_determinism_gate`
+    - `annotation_differential_parity_gate`
+    - `annotation_100_gate`
+  - updated `annotation_contract_gate` to consume `semantic_full_contract_gate` instead of directly invoking only `semantic_usage_gate`.
+- SOTA aggregate required-check policy wiring:
+  - `rust/scripts/sota_exit_gate.sh`
+    - added `annotation_100_gate` execution path in required-check dispatch.
+  - `rust/config/sota_exit_policy.env`
+    - added `annotation_100_gate` to `PGEN_SOTA_REQUIRED_CHECKS`.
+- Determinism hardening for return transform codegen:
+  - `rust/src/ast_pipeline/ast_return_transform.rs`
+  - stabilized object property emission by sorting `HashMap` keys before emitting `json_obj[...]` assignments.
+  - removes process-seed-dependent field-order drift that previously caused cycle-to-cycle parser source diffs.
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash fixed_point_gate` ✅
+  - confirms byte-identical bootstrap outputs across cycles after deterministic field-order fix.
+- `make -C rust SHELL=/bin/bash annotation_100_gate` ✅
+  - confirms aggregate closure gate passes end-to-end, including determinism and semantic differential regression policy checks.
+
 ## 2026-02-21 - Phase L SA-01 Increment: Generated Semantic Round-Trip Uses Parse-Tree Conversion
 ### ✅ Achievement Summary
 Removed generated semantic round-trip identity behavior and replaced it with generated parse-tree to semantic AST conversion, so the generated semantic path no longer returns raw input as a successful parse placeholder.
