@@ -1,4 +1,82 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-22 - Phase L Typed-AST Closure Proof Upgrade (Return Full Corpus + Semantic Full Corpus Contracts)
+### Context
+Phase L still had two typed-AST closure tasks open in the roadmap:
+- return closure: structural parse-tree-to-typed-AST proof across the full generated-pass return corpus,
+- semantic closure: broader generated parse-tree conversion contract coverage beyond small hand-picked samples.
+
+The generated conversion paths were already wired, but objective closure proof needed to scale from sample tests to the discovered corpus.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/unified_return_ast.rs`
+- `rust/src/ast_pipeline/unified_semantic_ast.rs`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Return full generated-pass corpus closure proof
+File:
+- `rust/src/ast_pipeline/unified_return_ast.rs`
+
+Added test:
+- `generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus`
+
+Behavior:
+- loads all round-trip suites through `RoundTripTestRunner::discover_test_suites()`,
+- filters to return parser cases (`return|return_annotation|return_annotations`),
+- excludes `skip` and generated-expected non-pass cases,
+- for each generated-pass case:
+  - parses with generated return parser,
+  - converts parse tree with `UnifiedReturnAST::parse_generated_return_annotation(...)`,
+  - for bootstrap-pass comparable cases, parses with bootstrap and asserts exact typed AST parity.
+
+Result:
+- return typed-AST closure is now proven against the full generated-pass corpus, not just curated structural samples.
+
+#### 2) Semantic full generated-pass corpus contract proof
+File:
+- `rust/src/ast_pipeline/unified_semantic_ast.rs`
+
+Added test:
+- `generated_semantic_tree_to_ast_matches_expected_pass_semantic_corpus_contract`
+
+Behavior:
+- loads all round-trip suites through `RoundTripTestRunner::discover_test_suites()`,
+- filters to semantic parser cases (`semantic|semantic_annotation|semantic_annotations`),
+- excludes `skip` and generated-expected non-pass cases,
+- for each generated-pass case:
+  - parses with generated semantic parser,
+  - converts both with:
+    - `parse_generated_semantic_annotation(...)` (direct AST),
+    - `parse_generated_semantic_annotation_entry(...)` (name + AST),
+  - asserts direct/entry AST parity,
+  - asserts directive-family invariant:
+    - `transform` => `TransformExpr`,
+    - non-transform => `Raw`,
+  - reconstructs canonical `@name: value`, reparses, and asserts stable `(name, ast)` round-trip,
+  - for bootstrap-pass non-transform comparable payloads, asserts bootstrap payload AST parity.
+
+Result:
+- semantic generated conversion proof now scales to the full generated-pass semantic corpus and explicitly checks canonical reconstruction stability.
+
+#### 3) Roadmap closure/progress bookkeeping
+File:
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Updates:
+- marked Phase L return typed-AST closure item complete,
+- added a new semantic typed-AST closure progress milestone for corpus-level conversion contracts,
+- added a roadmap change-log entry covering both return closure and semantic closure advancement.
+
+### Validation
+Commands run:
+- `cd rust && cargo test --features generated_parsers generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus -- --nocapture`
+- `cd rust && cargo test --features generated_parsers generated_semantic_tree_to_ast_matches_expected_pass_semantic_corpus_contract -- --nocapture`
+- `cd rust && make return_runtime_semantics_gate`
+- `cd rust && make semantic_runtime_contract_gate`
+
+Results:
+- all pass.
+
 ## 2026-02-22 - Phase L Semantic Differential Debt Burn-Down (Comparable Corpus = 0)
 ### Context
 Semantic differential drift accounting still carried non-zero debt because bootstrap-only legacy semantic cases were mixed into parity accounting:

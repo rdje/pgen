@@ -313,4 +313,166 @@ mod tests {
             UnifiedSemanticAST::Raw { ref content } if content == "[9, 1]"
         ));
     }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn generated_semantic_tree_to_ast_matches_expected_pass_semantic_corpus_contract() {
+        use crate::generated_parsers::semantic_annotation::Semantic_annotationParser;
+        use crate::test_runner::round_trip_tests::RoundTripTestRunner;
+
+        fn expectation_is_pass(expectation: &str) -> bool {
+            !matches!(
+                expectation.trim().to_ascii_lowercase().as_str(),
+                "fail" | "expected_fail" | "skip"
+            )
+        }
+
+        fn is_semantic_parser_type(parser_type: &str) -> bool {
+            matches!(
+                parser_type.trim().to_ascii_lowercase().as_str(),
+                "semantic" | "semantic_annotation" | "semantic_annotations"
+            )
+        }
+
+        fn ast_payload(ast: &UnifiedSemanticAST) -> &str {
+            match ast {
+                UnifiedSemanticAST::TransformExpr { expression } => expression.as_str(),
+                UnifiedSemanticAST::Raw { content } => content.as_str(),
+            }
+        }
+
+        let logger = crate::test_runner::NoOpLogger;
+        let suites = RoundTripTestRunner::new()
+            .discover_test_suites()
+            .expect("semantic corpus suites should load");
+
+        let mut checked = 0usize;
+        let mut bootstrap_comparable_checked = 0usize;
+        for suite in suites {
+            for test in suite.tests {
+                if test.skip || !is_semantic_parser_type(&test.parser_type) {
+                    continue;
+                }
+                if !expectation_is_pass(&test.expectations.generated_parser) {
+                    continue;
+                }
+
+                let mut parser =
+                    Semantic_annotationParser::new(&test.input, Box::new(crate::NoOpLogger));
+                let parse_tree = parser.parse_full_semantic_annotation().unwrap_or_else(|err| {
+                    panic!(
+                        "generated parser should parse semantic corpus case '{} / {}' (input='{}'): {}",
+                        suite.name, test.name, test.input, err
+                    )
+                });
+                let direct_ast = UnifiedSemanticAST::parse_generated_semantic_annotation(
+                    &test.input,
+                    &parse_tree,
+                    &logger,
+                )
+                .unwrap_or_else(|err| {
+                    panic!(
+                        "generated semantic tree -> ast should succeed for '{} / {}' (input='{}'): {}",
+                        suite.name, test.name, test.input, err
+                    )
+                });
+                let (name, entry_ast) = UnifiedSemanticAST::parse_generated_semantic_annotation_entry(
+                    &test.input,
+                    &parse_tree,
+                    &logger,
+                )
+                .unwrap_or_else(|err| {
+                    panic!(
+                        "generated semantic tree -> entry should succeed for '{} / {}' (input='{}'): {}",
+                        suite.name, test.name, test.input, err
+                    )
+                });
+
+                assert_eq!(
+                    direct_ast, entry_ast,
+                    "entry and direct semantic AST conversion mismatch for '{} / {}' (input='{}')",
+                    suite.name, test.name, test.input
+                );
+                if name == "transform" {
+                    assert!(
+                        matches!(entry_ast, UnifiedSemanticAST::TransformExpr { .. }),
+                        "transform directive should convert to TransformExpr for '{} / {}' (input='{}')",
+                        suite.name,
+                        test.name,
+                        test.input
+                    );
+                } else {
+                    assert!(
+                        matches!(entry_ast, UnifiedSemanticAST::Raw { .. }),
+                        "non-transform directive should convert to Raw payload AST for '{} / {}' (input='{}')",
+                        suite.name,
+                        test.name,
+                        test.input
+                    );
+                }
+
+                let payload = ast_payload(&entry_ast).to_string();
+                let canonical = format!("@{}: {}", name, payload);
+                let mut canonical_parser =
+                    Semantic_annotationParser::new(&canonical, Box::new(crate::NoOpLogger));
+                let canonical_tree = canonical_parser
+                    .parse_full_semantic_annotation()
+                    .unwrap_or_else(|err| {
+                        panic!(
+                            "canonical semantic annotation should parse for '{} / {}' (canonical='{}'): {}",
+                            suite.name, test.name, canonical, err
+                        )
+                    });
+                let (canonical_name, canonical_ast) =
+                    UnifiedSemanticAST::parse_generated_semantic_annotation_entry(
+                        &canonical,
+                        &canonical_tree,
+                        &logger,
+                    )
+                    .unwrap_or_else(|err| {
+                        panic!(
+                            "canonical semantic tree -> entry should succeed for '{} / {}' (canonical='{}'): {}",
+                            suite.name, test.name, canonical, err
+                        )
+                    });
+                assert_eq!(
+                    canonical_name, name,
+                    "canonical semantic name changed for '{} / {}' (canonical='{}')",
+                    suite.name, test.name, canonical
+                );
+                assert_eq!(
+                    canonical_ast, entry_ast,
+                    "canonical semantic AST changed for '{} / {}' (canonical='{}')",
+                    suite.name, test.name, canonical
+                );
+
+                if expectation_is_pass(&test.expectations.bootstrap_parser) && name != "transform" {
+                    let bootstrap_ast = UnifiedSemanticAST::parse_bootstrap(&payload, &logger)
+                        .unwrap_or_else(|err| {
+                            panic!(
+                                "bootstrap parser should parse comparable semantic payload for '{} / {}' (payload='{}'): {}",
+                                suite.name, test.name, payload, err
+                            )
+                        });
+                    assert_eq!(
+                        entry_ast, bootstrap_ast,
+                        "generated/bootstrap payload AST mismatch for semantic corpus case '{} / {}' (payload='{}')",
+                        suite.name, test.name, payload
+                    );
+                    bootstrap_comparable_checked += 1;
+                }
+
+                checked += 1;
+            }
+        }
+
+        assert!(
+            checked > 0,
+            "expected at least one generated-pass semantic corpus case"
+        );
+        assert!(
+            bootstrap_comparable_checked > 0,
+            "expected at least one bootstrap-comparable semantic corpus case"
+        );
+    }
 }

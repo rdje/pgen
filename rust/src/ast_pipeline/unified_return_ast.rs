@@ -2402,4 +2402,86 @@ mod tests {
             "bootstrap parser should reject negative positional index"
         );
     }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus() {
+        use crate::generated_parsers::return_annotation::Return_annotationParser;
+        use crate::test_runner::round_trip_tests::RoundTripTestRunner;
+
+        fn expectation_is_pass(expectation: &str) -> bool {
+            !matches!(
+                expectation.trim().to_ascii_lowercase().as_str(),
+                "fail" | "expected_fail" | "skip"
+            )
+        }
+
+        fn is_return_parser_type(parser_type: &str) -> bool {
+            matches!(
+                parser_type.trim().to_ascii_lowercase().as_str(),
+                "return" | "return_annotation" | "return_annotations"
+            )
+        }
+
+        let logger = crate::test_runner::NoOpLogger;
+        let suites = RoundTripTestRunner::new()
+            .discover_test_suites()
+            .expect("return corpus suites should load");
+
+        let mut checked = 0usize;
+        for suite in suites {
+            for test in suite.tests {
+                if test.skip || !is_return_parser_type(&test.parser_type) {
+                    continue;
+                }
+                if !expectation_is_pass(&test.expectations.generated_parser) {
+                    continue;
+                }
+
+                let mut parser =
+                    Return_annotationParser::new(&test.input, Box::new(crate::NoOpLogger));
+                let parse_tree = parser.parse_full_return_annotation().unwrap_or_else(|err| {
+                    panic!(
+                        "generated parser should parse return corpus case '{} / {}' (input='{}'): {}",
+                        suite.name, test.name, test.input, err
+                    )
+                });
+                let generated_ast = UnifiedReturnAST::parse_generated_return_annotation(
+                    &test.input,
+                    &parse_tree,
+                    &logger,
+                )
+                .unwrap_or_else(|err| {
+                    panic!(
+                        "generated return tree -> typed AST should succeed for '{} / {}' (input='{}'): {}",
+                        suite.name, test.name, test.input, err
+                    )
+                });
+
+                if expectation_is_pass(&test.expectations.bootstrap_parser) {
+                    let bootstrap_ast =
+                        UnifiedReturnAST::parse_bootstrap(&test.input, &logger).unwrap_or_else(
+                            |err| {
+                                panic!(
+                                    "bootstrap parser should parse comparable return corpus case '{} / {}' (input='{}'): {}",
+                                    suite.name, test.name, test.input, err
+                                )
+                            },
+                        );
+                    assert_eq!(
+                        generated_ast, bootstrap_ast,
+                        "generated/bootstrap typed AST mismatch for return corpus case '{} / {}' (input='{}')",
+                        suite.name, test.name, test.input
+                    );
+                }
+
+                checked += 1;
+            }
+        }
+
+        assert!(
+            checked > 0,
+            "expected at least one generated-pass return corpus case"
+        );
+    }
 }

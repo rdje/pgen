@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-02-22 - Phase L Typed-AST Closure Proof Upgrade (Return Closed, Semantic Advanced)
+### ✅ Achievement Summary
+Promoted return typed-AST closure to complete with full generated-pass corpus proof, and advanced semantic typed-AST closure with a corpus-level generated conversion contract test that checks entry/direct parity and canonical reconstruction stability.
+
+### Scope of Changes
+- Return typed-AST corpus closure proof:
+  - `rust/src/ast_pipeline/unified_return_ast.rs`
+  - added:
+    - `generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus`
+  - behavior:
+    - discovers all round-trip suites via `RoundTripTestRunner`,
+    - filters to return parser tests with generated expectation `pass`,
+    - enforces generated parse-tree -> typed AST success,
+    - asserts generated/bootstrap typed AST parity for bootstrap-comparable pass cases.
+- Semantic typed-AST corpus contract proof:
+  - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+  - added:
+    - `generated_semantic_tree_to_ast_matches_expected_pass_semantic_corpus_contract`
+  - behavior:
+    - discovers full semantic generated-pass corpus via `RoundTripTestRunner`,
+    - enforces generated parse-tree entry/direct conversion parity,
+    - enforces directive mapping invariants (`transform -> TransformExpr`, others -> `Raw`),
+    - enforces canonical `@name: value` reconstruction reparse stability,
+    - asserts bootstrap parity for non-transform comparable payload cases.
+- Roadmap updates:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - marked Phase L return typed-AST closure checkbox complete,
+  - recorded new semantic closure progress milestone and change-log entry.
+
+### Validation Results
+- `cd rust && cargo test --features generated_parsers generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus -- --nocapture` ✅
+- `cd rust && cargo test --features generated_parsers generated_semantic_tree_to_ast_matches_expected_pass_semantic_corpus_contract -- --nocapture` ✅
+- `cd rust && make return_runtime_semantics_gate` ✅
+- `cd rust && make semantic_runtime_contract_gate` ✅
+
 ## 2026-02-22 - Phase L Semantic Parity Debt Burn-Down: Expectation-Aligned Differential Closure
 ### ✅ Achievement Summary
 Reduced semantic differential debt to zero on the comparable corpus by aligning semantic differential gates/baselines with explicit test expectations, while preserving bootstrap-only legacy semantic behavior outside parity debt accounting.

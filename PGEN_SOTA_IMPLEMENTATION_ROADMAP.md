@@ -146,12 +146,14 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - deterministic replay guarantees,
   - gap-target convergence thresholds,
   - failure-shrinking/minimization coverage.
-- [ ] Implement generated-parser-backed typed AST closure for full return grammar in non-bootstrap path (remove bootstrap typed-AST fallback for conforming inputs).
-  - Progress (2026-02-21): non-bootstrap return entry parsing now requires generated parser success and no longer falls back to bootstrap entry parsing; remaining work is full structural parse-tree-to-typed-AST mapping coverage across all return construct families.
+- [x] Implement generated-parser-backed typed AST closure for full return grammar in non-bootstrap path (remove bootstrap typed-AST fallback for conforming inputs).
+  - Progress (2026-02-21): non-bootstrap return entry parsing now requires generated parser success and no longer falls back to bootstrap entry parsing.
+  - Progress (2026-02-22): added full generated-pass return corpus typed-AST closure proof (`generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus`) with expectation-aware suite discovery and bootstrap parity assertions for comparable cases.
 - [ ] Implement generated-parser-backed typed AST closure for full semantic grammar in non-bootstrap path (remove raw/marker fallback for conforming inputs).
   - Progress (2026-02-21): generated semantic round-trip wrapper now uses generated parse-tree conversion (`UnifiedSemanticAST::parse_generated_semantic_annotation`) instead of identity output, and regression coverage was added for transform and named-raw directive conversion; remaining work is full typed semantic AST family expansion beyond `TransformExpr/Raw` and elimination of non-bootstrap raw fallback for all conforming semantic constructs.
   - Progress (2026-02-22): non-bootstrap pipeline now routes named semantic annotations through generated parse-tree conversion (`parse_generated_semantic_annotation_entry`) and removes bootstrap marker-based legacy fallback for non-directive string payloads (legacy payloads remain raw unless bootstrap mode is explicitly enabled); generated round-trip canonicalization now reconstructs `@name: value` from parsed entry name + payload AST.
   - Progress (2026-02-22): semantic differential regression/parity gates are now expectation-aligned (`--differential-comparable-only`) with a zero-mismatch semantic comparable baseline, so bootstrap-only/legacy semantic corpus cases no longer count as open parity debt.
+  - Progress (2026-02-22): added full generated-pass semantic corpus typed conversion contract test (`generated_semantic_tree_to_ast_matches_expected_pass_semantic_corpus_contract`) covering entry/direct conversion parity, transform-vs-raw directive mapping invariants, canonical `@name: value` reconstruction stability, and bootstrap-parity checks for non-transform comparable payloads.
 - [x] Add full-contract gates (`return_full_contract_gate`, `semantic_full_contract_gate`, `annotation_100_gate`) and make them required in CI/SOTA aggregate policy.
 
 ### Phase M (New): Cross-EBNF Closed-Loop Quality (Non-Annotation Loop)
@@ -204,6 +206,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-22: Closed Phase L return typed-AST closure item by adding full generated-pass return corpus parity proof in `UnifiedReturnAST`, and advanced semantic typed-AST closure with a full generated-pass corpus conversion contract test in `UnifiedSemanticAST` (entry/direct parity + canonical reconstruction invariants + comparable bootstrap checks).
 - 2026-02-22: Completed Phase M parseability-promotion closure by adding `builtin_semantic_annotation` parser-registry parseability adapter aligned to builtin semantic parser behavior and promoting builtin semantic parseability to required in the non-annotation grammar-quality contract.
 - 2026-02-22: Completed Phase N documentation closure by expanding `PGEN_USER_GUIDE.md` with in-memory-vs-module usage guidance, concrete embedding/replay command examples, deterministic seed compatibility rules, and publishing dedicated normative stimuli-module contract spec in `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`.
 - 2026-02-22: Closed Phase N parity gate wiring by adding `stimuli_module_parity_gate` (contract-driven in-memory vs module parity checks over samples/coverage/gap), promoting it into aggregate SOTA required-check policy (`rust/config/sota_exit_policy.env` + `rust/scripts/sota_exit_gate.sh`), and retaining parity artifacts under `rust/target/stimuli_module_parity_gate` in CI aggregate uploads.
