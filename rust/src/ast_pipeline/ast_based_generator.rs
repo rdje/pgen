@@ -4848,8 +4848,10 @@ mod semantic_usage_tests {
             .generate_node_parsing_logic(&or_rule_three(), "expr", "semantic_usage.rs")
             .expect("or-node logic generation should succeed");
         let rendered = logic.to_string();
-        let has_rotate = rendered.contains("evaluation_order . rotate_left (deterministic_partition_offset)")
-            || rendered.contains("evaluation_order . rotate_left ( deterministic_partition_offset )");
+        let has_rotate = rendered
+            .contains("evaluation_order . rotate_left (deterministic_partition_offset)")
+            || rendered
+                .contains("evaluation_order . rotate_left ( deterministic_partition_offset )");
 
         assert!(
             rendered.contains("effective_deterministic_partition_enabled")

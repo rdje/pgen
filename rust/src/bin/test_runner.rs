@@ -112,7 +112,7 @@ impl Parser for GeneratedSemanticAnnotationParser {
         // Parse the input
         match parser.parse_full_semantic_annotation() {
             Ok(parse_node) => {
-                let ast = UnifiedSemanticAST::parse_generated_semantic_annotation(
+                let (name, ast) = UnifiedSemanticAST::parse_generated_semantic_annotation_entry(
                     input,
                     &parse_node,
                     &*self.logger,
@@ -123,9 +123,9 @@ impl Parser for GeneratedSemanticAnnotationParser {
                 })?;
                 let unparsed = match ast {
                     UnifiedSemanticAST::TransformExpr { expression } => {
-                        format!("@transform: {}", expression)
+                        format!("@{}: {}", name, expression)
                     }
-                    UnifiedSemanticAST::Raw { content } => content,
+                    UnifiedSemanticAST::Raw { content } => format!("@{}: {}", name, content),
                 };
                 Ok(unparsed)
             }

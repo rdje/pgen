@@ -34,6 +34,18 @@ impl UnifiedSemanticAST {
         parse_tree: &ParseNode<'input>,
         logger: &dyn Logger,
     ) -> Result<Self, String> {
+        let (_name, ast) =
+            Self::parse_generated_semantic_annotation_entry(input, parse_tree, logger)?;
+        Ok(ast)
+    }
+
+    /// Build semantic AST entry (name + AST) from a generated-parser parse tree.
+    /// This is used when caller needs the parsed directive name in addition to the AST.
+    pub fn parse_generated_semantic_annotation_entry<'input>(
+        input: &'input str,
+        parse_tree: &ParseNode<'input>,
+        logger: &dyn Logger,
+    ) -> Result<(String, Self), String> {
         let root = if parse_tree.rule_name == "semantic_annotation" {
             parse_tree
         } else if let Some(node) = Self::find_first_rule_node(parse_tree, "semantic_annotation") {
@@ -81,15 +93,20 @@ impl UnifiedSemanticAST {
             );
         }
 
-        if name_text == "transform" {
-            Ok(UnifiedSemanticAST::TransformExpr {
+        let ast = if name_text == "transform" {
+            UnifiedSemanticAST::TransformExpr {
                 expression: value_text,
-            })
+            }
         } else {
-            Ok(UnifiedSemanticAST::Raw {
-                content: format!("@{}: {}", name_text, value_text),
-            })
-        }
+            // Named semantic directives already carry their key out-of-band in the
+            // pipeline (`SemanticAnnotation::Named { name, ast }`), so raw payload
+            // stores only the value text.
+            UnifiedSemanticAST::Raw {
+                content: value_text,
+            }
+        };
+
+        Ok((name_text, ast))
     }
 
     /// Parse a semantic annotation in bootstrap mode (minimal support)
@@ -269,7 +286,31 @@ mod tests {
                 .expect("generated tree -> semantic ast should succeed for named raw");
         assert!(matches!(
             raw_ast,
-            UnifiedSemanticAST::Raw { ref content } if content == "@priority: [9, 1]"
+            UnifiedSemanticAST::Raw { ref content } if content == "[9, 1]"
+        ));
+    }
+
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn generated_semantic_tree_to_entry_returns_name_and_payload_ast() {
+        use crate::generated_parsers::semantic_annotation::Semantic_annotationParser;
+
+        let logger = crate::test_runner::NoOpLogger;
+        let input = "@priority: [9, 1]";
+        let mut parser = Semantic_annotationParser::new(input, Box::new(crate::NoOpLogger));
+        let parse_tree = parser
+            .parse_full_semantic_annotation()
+            .expect("generated parser should parse sample");
+        let (name, ast) = UnifiedSemanticAST::parse_generated_semantic_annotation_entry(
+            input,
+            &parse_tree,
+            &logger,
+        )
+        .expect("generated tree -> semantic entry should succeed");
+        assert_eq!(name, "priority");
+        assert!(matches!(
+            ast,
+            UnifiedSemanticAST::Raw { ref content } if content == "[9, 1]"
         ));
     }
 }

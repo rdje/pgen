@@ -9,8 +9,8 @@ use pgen::ast_pipeline::stimuli_generator::{
     StimuliGenerator,
 };
 use pgen::ast_pipeline::{
-    ast_generator_direct::generate_parser_ast_based, ASTNode, Annotations, PipelineConfig,
-    RustASTPipeline, TransformedASTJson,
+    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
+    ast_generator_direct::generate_parser_ast_based,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
@@ -1439,12 +1439,11 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 #[cfg(test)]
 mod tests {
     use super::{
-        coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
+        FuzzCorpusCandidate, StimuliCoverageMetrics, coverage_branch_hit_delta,
+        default_parser_output_path, default_stimuli_module_output_path,
         generate_stimuli_module_source, is_ebnf_input_path, minimize_failing_input,
-        minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
-        resolve_stimuli_module_seed, supported_generated_parseability_grammars,
-        supports_generated_parseability,
-        FuzzCorpusCandidate, StimuliCoverageMetrics,
+        minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode, resolve_stimuli_module_seed,
+        supported_generated_parseability_grammars, supports_generated_parseability,
     };
     use pgen::ast_pipeline::stimuli_generator::{BranchCoverageGroup, RecoveryStimuliMode};
     use std::collections::{HashMap, HashSet};

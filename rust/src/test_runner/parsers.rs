@@ -39,7 +39,11 @@ pub fn unparse_return_ast(ast: &UnifiedReturnAST) -> String {
             format!("{}.{}", unparse_return_ast(base), property)
         }
         UnifiedReturnAST::ArrayAccess { base, index } => {
-            format!("{}[{}]", unparse_return_ast(base), unparse_return_ast(index))
+            format!(
+                "{}[{}]",
+                unparse_return_ast(base),
+                unparse_return_ast(index)
+            )
         }
         UnifiedReturnAST::QuantifiedExtraction { base, target } => {
             let target_str = match target {

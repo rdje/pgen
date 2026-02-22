@@ -722,8 +722,7 @@ fn strip_optional_quotes(value: &str) -> &str {
 mod tests {
     use super::{
         SemanticAssociativity, SemanticBranchPolicy, SemanticDirectiveCapability,
-        SemanticTokenClass,
-        UnknownSemanticDirectivePolicy, extract_semantic_directive,
+        SemanticTokenClass, UnknownSemanticDirectivePolicy, extract_semantic_directive,
         extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_bool,
         parse_semantic_branch_priorities, parse_semantic_charset,
         parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,

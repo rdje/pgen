@@ -64,11 +64,21 @@ fn extract_raw_ast_rules(input: &str, root: &ParseNode<'_>) -> Result<Vec<Value>
 
 fn convert_grammar_rule(input: &str, grammar_rule: &ParseNode<'_>) -> Result<Value> {
     let rule_definition = find_first_descendant_by_rule(grammar_rule, "rule_definition")
-        .ok_or_else(|| anyhow!("missing rule_definition in grammar_rule at {:?}", grammar_rule.span))?;
-    let rule_name_node = find_first_descendant_by_rule(rule_definition, "rule_name")
-        .ok_or_else(|| anyhow!("missing rule_name in rule_definition at {:?}", rule_definition.span))?;
-    let rule_expression_node =
-        find_first_descendant_by_rule(rule_definition, "rule_expression").ok_or_else(|| {
+        .ok_or_else(|| {
+            anyhow!(
+                "missing rule_definition in grammar_rule at {:?}",
+                grammar_rule.span
+            )
+        })?;
+    let rule_name_node =
+        find_first_descendant_by_rule(rule_definition, "rule_name").ok_or_else(|| {
+            anyhow!(
+                "missing rule_name in rule_definition at {:?}",
+                rule_definition.span
+            )
+        })?;
+    let rule_expression_node = find_first_descendant_by_rule(rule_definition, "rule_expression")
+        .ok_or_else(|| {
             anyhow!(
                 "missing rule_expression in rule_definition at {:?}",
                 rule_definition.span
@@ -128,9 +138,13 @@ fn node_text(input: &str, node: &ParseNode<'_>) -> Result<String> {
 }
 
 fn slice_span<'a>(input: &'a str, span: std::ops::Range<usize>) -> Result<&'a str> {
-    input
-        .get(span.clone())
-        .ok_or_else(|| anyhow!("invalid parser span {:?} for input length {}", span, input.len()))
+    input.get(span.clone()).ok_or_else(|| {
+        anyhow!(
+            "invalid parser span {:?} for input length {}",
+            span,
+            input.len()
+        )
+    })
 }
 
 fn collect_descendants_by_rule<'a>(
@@ -231,7 +245,8 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
                 }
             }
             '@' => {
-                if let Some((probability, next_idx)) = parse_probability_quantifier(expression, idx) {
+                if let Some((probability, next_idx)) = parse_probability_quantifier(expression, idx)
+                {
                     tokens.push(json!(["probability", probability]));
                     idx = next_idx;
                 } else {
@@ -430,7 +445,13 @@ fn parse_probability_quantifier(input: &str, start: usize) -> Option<(String, us
         idx += 1;
     }
 
-    Some((input.get(digits_start..idx)?.trim_end_matches('%').to_string(), idx))
+    Some((
+        input
+            .get(digits_start..idx)?
+            .trim_end_matches('%')
+            .to_string(),
+        idx,
+    ))
 }
 
 fn parse_semantic_annotation_text(annotation: &str) -> Option<(String, String)> {
@@ -488,14 +509,11 @@ fn find_top_level_colon(content: &str) -> Option<usize> {
 
 fn normalize_return_annotation_text(raw_return: &str) -> Option<String> {
     let trimmed = raw_return.trim();
-    let body = trimmed
-        .strip_prefix("->")
-        .map(str::trim)
-        .or_else(|| {
-            trimmed
-                .find("->")
-                .and_then(|idx| trimmed.get(idx + 2..).map(str::trim))
-        })?;
+    let body = trimmed.strip_prefix("->").map(str::trim).or_else(|| {
+        trimmed
+            .find("->")
+            .and_then(|idx| trimmed.get(idx + 2..).map(str::trim))
+    })?;
     if body.is_empty() {
         None
     } else {
@@ -603,8 +621,8 @@ entry := "a" -> {type: "node"}
             .and_then(serde_json::Value::as_array)
             .expect("raw_ast array should exist");
         assert_eq!(raw_ast.len(), 1, "expected one rule in raw_ast");
-        let first_rule = serde_json::to_string(raw_ast[0].as_array().expect("rule array"))
-            .expect("rule json");
+        let first_rule =
+            serde_json::to_string(raw_ast[0].as_array().expect("rule array")).expect("rule json");
         assert!(
             first_rule.contains("[\"rule\",\"entry\"]"),
             "expected rule token in raw_ast, got: {}",

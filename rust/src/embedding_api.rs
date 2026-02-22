@@ -1,5 +1,5 @@
-use crate::ast_pipeline::{UnifiedReturnAST, UnifiedSemanticAST};
 use crate::NoOpLogger;
+use crate::ast_pipeline::{UnifiedReturnAST, UnifiedSemanticAST};
 use serde::{Deserialize, Serialize};
 
 /// Stable embedding API contract version.
@@ -249,12 +249,16 @@ mod tests {
         let contract = embedding_api_contract();
         assert_eq!(contract.api_version, EMBEDDING_API_VERSION);
         assert_eq!(contract.schema_version, EMBEDDING_API_SCHEMA_VERSION);
-        assert!(contract
-            .supported_families
-            .contains(&AnnotationFamily::Return));
-        assert!(contract
-            .supported_families
-            .contains(&AnnotationFamily::Semantic));
+        assert!(
+            contract
+                .supported_families
+                .contains(&AnnotationFamily::Return)
+        );
+        assert!(
+            contract
+                .supported_families
+                .contains(&AnnotationFamily::Semantic)
+        );
     }
 
     #[test]

@@ -20,7 +20,9 @@ use generated_ebnf::EbnfParser;
 
 #[derive(Parser, Debug)]
 #[command(name = "ebnf_dual_run_diff")]
-#[command(about = "Parse EBNF text with generated/ebnf.rs and emit structured parse/full-parse diagnostics.")]
+#[command(
+    about = "Parse EBNF text with generated/ebnf.rs and emit structured parse/full-parse diagnostics."
+)]
 struct Args {
     /// Input EBNF grammar file
     #[arg(long)]
@@ -85,9 +87,11 @@ fn parse_error_fields(error: &ParseError) -> (String, String, Option<usize>) {
             (*message).to_string(),
             Some(*position),
         ),
-        ParseError::Backtrack { position } => {
-            ("Backtrack".to_string(), "Backtrack".to_string(), Some(*position))
-        }
+        ParseError::Backtrack { position } => (
+            "Backtrack".to_string(),
+            "Backtrack".to_string(),
+            Some(*position),
+        ),
         ParseError::RecursionDepthExceeded { position, depth } => (
             "RecursionDepthExceeded".to_string(),
             format!("Recursion depth exceeded: depth={}", depth),
@@ -199,12 +203,8 @@ fn main() -> Result<()> {
 
     let json = serde_json::to_string_pretty(&report)?;
     if let Some(parent) = args.output.parent() {
-        fs::create_dir_all(parent).with_context(|| {
-            format!(
-                "failed to create report directory '{}'",
-                parent.display()
-            )
-        })?;
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create report directory '{}'", parent.display()))?;
     }
     fs::write(&args.output, json)
         .with_context(|| format!("failed to write output file '{}'", args.output.display()))?;

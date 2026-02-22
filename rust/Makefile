@@ -607,7 +607,7 @@ semantic_differential_regression_gate:
 	@echo "🧩 Running semantic differential regression gate..."
 	@mkdir -p $(DIFFERENTIAL_REPORT_DIR)
 	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
-	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/semantic_annotation_diff_report.json
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-comparable-only --differential-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/semantic_annotation_diff_report.json
 	@echo "✅ Semantic differential regression gate passed."
 
 .PHONY: semantic_full_contract_gate
@@ -645,7 +645,7 @@ differential_refresh_baseline:
 	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
 	@set +e; \
 	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-write-baseline-json test_data/differential_baseline/return_annotation_baseline.json; rc_return=$$?; \
-	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-write-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json; rc_semantic=$$?; \
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-comparable-only --differential-write-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json; rc_semantic=$$?; \
 	set -e; \
 	if [ $$rc_return -gt 1 ] || [ $$rc_semantic -gt 1 ]; then \
 		echo "❌ differential_refresh_baseline failed (unexpected harness error)."; \
@@ -659,7 +659,7 @@ differential_regression_gate:
 	@mkdir -p $(DIFFERENTIAL_REPORT_DIR)
 	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
 	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-baseline-json test_data/differential_baseline/return_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/return_annotation_diff_report.json
-	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/semantic_annotation_diff_report.json
+	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser semantic --differential-comparable-only --differential-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json --differential-regression-only --differential-report-json target/differential_harness/semantic_annotation_diff_report.json
 	@echo "✅ Differential regression gate passed (no new mismatches vs baseline)."
 
 .PHONY: return_parity_gate

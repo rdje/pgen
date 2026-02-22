@@ -1051,7 +1051,7 @@ impl RustASTPipeline {
 
                 Ok(Some(SemanticAnnotation::Named {
                     name: annotation_name.clone(),
-                    ast: self.semantic_named_ast(&annotation_name, &payload_text),
+                    ast: self.parse_semantic_annotation_ast(&annotation_name, &payload_text),
                 }))
             }
             serde_json::Value::String(text) => {
@@ -1071,17 +1071,29 @@ impl RustASTPipeline {
                     }
                     return Ok(Some(SemanticAnnotation::Named {
                         name: name.clone(),
-                        ast: self.semantic_named_ast(&name, &payload),
+                        ast: self.parse_semantic_annotation_ast(&name, &payload),
                     }));
                 }
 
-                let logger = NoOpLogger;
-                let ast =
+                let ast = if self.config.bootstrap_mode {
+                    let logger = NoOpLogger;
                     UnifiedSemanticAST::parse_bootstrap(trimmed, &logger).unwrap_or_else(|_| {
                         UnifiedSemanticAST::Raw {
                             content: trimmed.to_string(),
                         }
-                    });
+                    })
+                } else {
+                    if let Some((name, ast)) =
+                        self.parse_semantic_annotation_with_generated_parser(trimmed)
+                    {
+                        return Ok(Some(SemanticAnnotation::Named { name, ast }));
+                    }
+                    // In non-bootstrap mode, do not apply bootstrap marker heuristics.
+                    // Non-directive payload is intentionally preserved as raw content.
+                    UnifiedSemanticAST::Raw {
+                        content: trimmed.to_string(),
+                    }
+                };
                 Ok(Some(SemanticAnnotation::Legacy(ast)))
             }
             _ => {
@@ -1093,6 +1105,75 @@ impl RustASTPipeline {
                     content: raw,
                 })))
             }
+        }
+    }
+
+    fn parse_semantic_annotation_ast(
+        &self,
+        annotation_name: &str,
+        payload: &str,
+    ) -> UnifiedSemanticAST {
+        let normalized_name = annotation_name.trim().to_ascii_lowercase();
+        let canonical = format!("@{}: {}", normalized_name, payload.trim());
+
+        if let Some((parsed_name, ast)) =
+            self.parse_semantic_annotation_with_generated_parser(&canonical)
+        {
+            if parsed_name != normalized_name {
+                eprintln!(
+                    "[mod.rs][parse_semantic_annotation_ast()] ⚠️ parsed semantic name '{}' does not match expected '{}'",
+                    parsed_name, normalized_name
+                );
+            }
+            return ast;
+        }
+
+        self.semantic_named_ast(&normalized_name, payload)
+    }
+
+    fn parse_semantic_annotation_with_generated_parser(
+        &self,
+        annotation_text: &str,
+    ) -> Option<(String, UnifiedSemanticAST)> {
+        if self.config.bootstrap_mode {
+            return None;
+        }
+
+        #[cfg(feature = "generated_parsers")]
+        {
+            let logger = NoOpLogger;
+            let mut parser = Semantic_annotationParser::new(annotation_text, Box::new(NoOpLogger));
+            return match parser.parse_full_semantic_annotation() {
+                Ok(parse_tree) => {
+                    match UnifiedSemanticAST::parse_generated_semantic_annotation_entry(
+                        annotation_text,
+                        &parse_tree,
+                        &logger,
+                    ) {
+                        Ok(entry) => Some(entry),
+                        Err(err) => {
+                            eprintln!(
+                                "[mod.rs][parse_semantic_annotation_with_generated_parser()] ⚠️ generated semantic tree -> typed AST failed for '{}' ({})",
+                                annotation_text, err
+                            );
+                            None
+                        }
+                    }
+                }
+                Err(err) => {
+                    eprintln!(
+                        "[mod.rs][parse_semantic_annotation_with_generated_parser()] ⚠️ generated semantic parser failed for '{}' ({})",
+                        annotation_text, err
+                    );
+                    None
+                }
+            };
+        }
+
+        #[cfg(not(feature = "generated_parsers"))]
+        {
+            let _ = annotation_text;
+            None
         }
     }
 
@@ -1886,6 +1967,37 @@ mod tests {
                 ));
             }
             _ => panic!("transform semantic annotation should be named"),
+        }
+    }
+
+    #[test]
+    fn transform_from_raw_ast_nonbootstrap_legacy_semantic_does_not_use_marker_transform_fallback()
+    {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![json!([
+            ["rule", "legacy_sem_rule"],
+            ["semantic_annotation", "str::parse::<i64>().unwrap_or(0)"],
+            ["regex", "[-+]?[0-9]+"]
+        ])];
+
+        let (_grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        let semantic_annotations = annotations
+            .semantic_annotations
+            .get("legacy_sem_rule")
+            .expect("legacy semantic annotation should be present");
+        assert_eq!(semantic_annotations.len(), 1);
+        match &semantic_annotations[0] {
+            SemanticAnnotation::Legacy(UnifiedSemanticAST::Raw { content }) => {
+                assert_eq!(content, "str::parse::<i64>().unwrap_or(0)")
+            }
+            other => panic!(
+                "non-bootstrap legacy semantic should stay raw and not transform fallback: {:?}",
+                other
+            ),
         }
     }
 }

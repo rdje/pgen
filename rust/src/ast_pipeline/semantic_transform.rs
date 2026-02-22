@@ -35,11 +35,15 @@ pub fn parse_canonical_transform_expression(
 }
 
 pub fn stimuli_hint_for_target_type(target_type: &str) -> Option<&'static str> {
-    let leaf_type = target_type.rsplit("::").next().unwrap_or(target_type).trim();
+    let leaf_type = target_type
+        .rsplit("::")
+        .next()
+        .unwrap_or(target_type)
+        .trim();
     match leaf_type {
         "f32" | "f64" => Some("1.0"),
-        "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64"
-        | "u128" | "usize" => Some("1"),
+        "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64" | "u128"
+        | "usize" => Some("1"),
         "bool" => Some("true"),
         _ => None,
     }
@@ -47,9 +51,7 @@ pub fn stimuli_hint_for_target_type(target_type: &str) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        parse_canonical_transform_expression, stimuli_hint_for_target_type,
-    };
+    use super::{parse_canonical_transform_expression, stimuli_hint_for_target_type};
 
     #[test]
     fn parses_canonical_transform_expression() {
@@ -70,7 +72,8 @@ mod tests {
     #[test]
     fn rejects_noncanonical_transform_expression() {
         assert!(
-            parse_canonical_transform_expression("str::parse::<i64>().unwrap_or_default()").is_none()
+            parse_canonical_transform_expression("str::parse::<i64>().unwrap_or_default()")
+                .is_none()
         );
     }
 

@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-02-22 - Phase L Semantic Parity Debt Burn-Down: Expectation-Aligned Differential Closure
+### ✅ Achievement Summary
+Reduced semantic differential debt to zero on the comparable corpus by aligning semantic differential gates/baselines with explicit test expectations, while preserving bootstrap-only legacy semantic behavior outside parity debt accounting.
+
+### Scope of Changes
+- Non-bootstrap semantic annotation hardening:
+  - `rust/src/ast_pipeline/mod.rs`
+  - named semantic directives now route through generated parse-tree conversion.
+  - non-directive legacy string payloads in non-bootstrap mode no longer use bootstrap marker fallback; they remain raw unless bootstrap mode is explicitly enabled.
+- Generated semantic parse-tree entry conversion:
+  - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+  - added `parse_generated_semantic_annotation_entry(...) -> (name, ast)`.
+  - normalized named raw directive AST payload to value-only content (name stays out-of-band in `SemanticAnnotation::Named`).
+- Generated semantic round-trip canonicalization:
+  - `rust/src/bin/test_runner.rs`
+  - generated semantic round-trip now reconstructs canonical `@name: value` from parsed entry name + payload AST.
+- Differential gate/baseline policy alignment:
+  - `rust/Makefile`
+  - semantic differential regression and refresh flows now run with `--differential-comparable-only`.
+  - aggregate `differential_regression_gate` semantic leg now also uses comparable-only mode.
+  - `rust/test_data/differential_baseline/semantic_annotation_baseline.json` refreshed to zero allowed mismatches on comparable corpus.
+- Documentation/roadmap updates:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - recorded semantic comparable-parity closure progress and updated differential usage/gate semantics.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers generated_semantic_tree_to_entry_returns_name_and_payload_ast` ✅
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers generated_semantic_tree_to_ast_supports_transform_and_named_raw` ✅
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers transform_from_raw_ast_nonbootstrap_legacy_semantic_does_not_use_marker_transform_fallback` ✅
+- `make -C rust SHELL=/bin/bash semantic_differential_regression_gate` ✅
+- `make -C rust SHELL=/bin/bash differential_regression_gate` ✅
+
 ## 2026-02-22 - Phase M Parseability Promotion Closure: Builtin Semantic Required
 ### ✅ Achievement Summary
 Closed the remaining Phase M parseability-promotion item by wiring a matching parseability adapter for `builtin_semantic_annotation` and promoting builtin semantic parseability to required in the non-annotation EBNF quality contract.

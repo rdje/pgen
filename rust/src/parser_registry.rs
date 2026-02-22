@@ -2,11 +2,11 @@
 //!
 //! This centralizes grammar-name dispatch so new generated grammars are added in one place.
 
+use crate::NoOpLogger;
 use crate::ast_pipeline::UnifiedSemanticAST;
 use crate::generated_parsers::{
     return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser,
 };
-use crate::NoOpLogger;
 
 type ParseSampleFn = fn(&str) -> bool;
 

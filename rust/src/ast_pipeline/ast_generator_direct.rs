@@ -2,8 +2,7 @@
 // No adapter layer needed - string-based generator has been removed
 
 use crate::ast_pipeline::{
-    ASTNode, Annotations, BranchAnnotation, TransformedASTJson,
-    UnknownSemanticDirectivePolicy,
+    ASTNode, Annotations, BranchAnnotation, TransformedASTJson, UnknownSemanticDirectivePolicy,
     annotation_validator::{AnnotationSeverity, AnnotationValidator, AnnotationValidatorConfig},
     ast_based_generator::AstBasedGenerator,
 };
@@ -77,7 +76,10 @@ pub fn generate_parser_ast_based(
                 diagnostic.code,
                 diagnostic.kind.as_str(),
                 diagnostic.rule_name,
-                diagnostic.annotation_index.map(|i| i.to_string()).unwrap_or_else(|| "-".to_string()),
+                diagnostic
+                    .annotation_index
+                    .map(|i| i.to_string())
+                    .unwrap_or_else(|| "-".to_string()),
                 diagnostic.message
             );
 

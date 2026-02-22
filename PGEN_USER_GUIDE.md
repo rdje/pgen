@@ -1617,6 +1617,10 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin tes
 cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- \
   --differential --parser return --differential-comparable-only \
   --differential-report-json /tmp/return_parity_diff.json
+
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- \
+  --differential --parser semantic --differential-comparable-only \
+  --differential-report-json /tmp/semantic_parity_diff.json
 ```
 
 3. Refresh tracked mismatch baseline:
@@ -1727,6 +1731,9 @@ Tracked baselines:
 - `return_parity_gate` (local gate target)
   - zero return mismatches on expectation-aligned (comparable) differential corpus
   - generated return round-trip path emits canonical typed output (not parse-only identity echo)
+- `semantic_differential_regression_gate` (local gate target)
+  - semantic differential regression on expectation-aligned (comparable) corpus only
+  - tracks zero baseline debt for comparable semantic cases while allowing explicit bootstrap-only legacy cases to stay outside parity debt accounting
 - `return_runtime_semantics_gate` (local gate target)
   - focused return runtime contract checks:
     - typed return AST bootstrap/runtime checks,

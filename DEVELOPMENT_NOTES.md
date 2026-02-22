@@ -1,4 +1,102 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-22 - Phase L Semantic Differential Debt Burn-Down (Comparable Corpus = 0)
+### Context
+Semantic differential drift accounting still carried non-zero debt because bootstrap-only legacy semantic cases were mixed into parity accounting:
+- bare expression payloads (no `@name: value`) intentionally pass bootstrap parser but are not comparable with generated semantic grammar entrypoint,
+- builtin semantic permissive-marker contract cases are bootstrap-specific by design.
+
+This produced persistent baseline debt despite comparable semantic contract slices being stable.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/mod.rs`
+- `rust/src/ast_pipeline/unified_semantic_ast.rs`
+- `rust/src/bin/test_runner.rs`
+- `rust/Makefile`
+- `rust/test_data/differential_baseline/semantic_annotation_baseline.json`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Non-bootstrap semantic extraction no longer relies on bootstrap marker fallback
+File:
+- `rust/src/ast_pipeline/mod.rs`
+
+Changes:
+- Named semantic entries (`["semantic_annotation", [name, payload]]` and `@name: payload` strings) now use generated semantic parse-tree conversion for AST shaping (`parse_semantic_annotation_with_generated_parser` + `parse_semantic_annotation_ast`).
+- For legacy non-directive semantic strings in non-bootstrap mode:
+  - removed bootstrap marker fallback,
+  - payload remains `UnifiedSemanticAST::Raw { content }`.
+- Bootstrap mode behavior remains unchanged (per builtin semantic contract).
+
+#### 2) Added generated semantic entry conversion API
+File:
+- `rust/src/ast_pipeline/unified_semantic_ast.rs`
+
+Added:
+- `parse_generated_semantic_annotation_entry(...) -> Result<(String, UnifiedSemanticAST), String>`
+
+Behavior:
+- extracts directive name and payload from generated parse tree,
+- returns:
+  - `TransformExpr` for `@transform`,
+  - `Raw { content: <value-only> }` for other named directives.
+
+Notes:
+- `parse_generated_semantic_annotation(...)` is retained and now delegates to entry conversion.
+- added regression coverage for entry extraction and payload normalization.
+
+#### 3) Generated semantic round-trip now canonicalizes from parsed entry components
+File:
+- `rust/src/bin/test_runner.rs`
+
+Change:
+- generated semantic parser wrapper now unparses as canonical `@name: value` using `(name, ast)` from parse-tree entry conversion.
+
+#### 4) Differential gate policy aligned to expectation-comparable corpus
+File:
+- `rust/Makefile`
+
+Updated targets:
+- `semantic_differential_regression_gate`
+- semantic leg of `differential_regression_gate`
+- semantic leg of `differential_refresh_baseline`
+
+All now run with:
+- `--differential-comparable-only`
+
+Rationale:
+- parity debt should measure only expectation-aligned comparable cases,
+- explicit bootstrap-only legacy suites remain testable but outside semantic parity debt accounting.
+
+#### 5) Semantic comparable baseline refreshed to zero
+File:
+- `rust/test_data/differential_baseline/semantic_annotation_baseline.json`
+
+Result after refresh:
+- `allowed_mismatches = []` for semantic comparable corpus.
+
+#### 6) Docs/roadmap update
+Files:
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+Updated:
+- Phase L semantic closure progress notes now state semantic comparable differential debt is zero.
+- UG differential section now documents semantic comparable run command and clarifies `semantic_differential_regression_gate` semantics.
+
+### Validation
+Commands run:
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers generated_semantic_tree_to_entry_returns_name_and_payload_ast`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers generated_semantic_tree_to_ast_supports_transform_and_named_raw`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers transform_from_raw_ast_nonbootstrap_legacy_semantic_does_not_use_marker_transform_fallback`
+- `cd rust && ./target/debug/test_runner --differential --parser semantic --differential-comparable-only --differential-write-baseline-json test_data/differential_baseline/semantic_annotation_baseline.json`
+- `make -C rust SHELL=/bin/bash semantic_differential_regression_gate`
+- `make -C rust SHELL=/bin/bash differential_regression_gate`
+
+Results:
+- pass.
+- semantic comparable corpus differential report: `matched=70 mismatched=0`, `skipped_non_comparable=26`, baseline allowed/new/resolved = `0/0/0`.
+
 ## 2026-02-22 - Phase M Parseability Closure: `builtin_semantic_annotation` Required
 ### Context
 Phase M still had one unresolved promotion item:

@@ -189,9 +189,7 @@ impl UnifiedReturnAST {
 
         // Check for string literal ("..." or '...')
         if let Some(value) = Self::parse_quoted_string(trimmed) {
-            return Ok(UnifiedReturnAST::StringLiteral {
-                value,
-            });
+            return Ok(UnifiedReturnAST::StringLiteral { value });
         }
 
         // Check for object {...}
@@ -601,7 +599,10 @@ impl UnifiedReturnAST {
 
     /// Strict variant of split_respecting_nesting:
     /// rejects leading/trailing/consecutive top-level delimiters.
-    fn split_respecting_nesting_strict(input: &str, delimiter: char) -> Result<Vec<String>, String> {
+    fn split_respecting_nesting_strict(
+        input: &str,
+        delimiter: char,
+    ) -> Result<Vec<String>, String> {
         let mut result = Vec::new();
         let mut current = String::new();
         let mut depth = 0;
@@ -871,10 +872,9 @@ impl UnifiedReturnAST {
                 indent, value
             )),
 
-            UnifiedReturnAST::Identifier { name } => Ok(format!(
-                "{}ParseContent::Terminal(r#\"{}\"#)",
-                indent, name
-            )),
+            UnifiedReturnAST::Identifier { name } => {
+                Ok(format!("{}ParseContent::Terminal(r#\"{}\"#)", indent, name))
+            }
 
             UnifiedReturnAST::Array { elements } => {
                 // Build a sequence node from elements
@@ -1218,12 +1218,22 @@ impl UnifiedReturnAST {
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         match node.rule_name {
-            "return_annotation" => Self::parse_generated_return_annotation_node(input, node, logger),
+            "return_annotation" => {
+                Self::parse_generated_return_annotation_node(input, node, logger)
+            }
             "expression" => Self::parse_generated_expression_node(input, node, logger),
-            "primary_expression" => Self::parse_generated_primary_expression_node(input, node, logger),
-            "spread_expression" => Self::parse_generated_spread_expression_node(input, node, logger),
-            "spreadable_expression" => Self::parse_generated_spreadable_expression_node(input, node, logger),
-            "extraction_expression" => Self::parse_generated_extraction_expression_node(input, node, logger),
+            "primary_expression" => {
+                Self::parse_generated_primary_expression_node(input, node, logger)
+            }
+            "spread_expression" => {
+                Self::parse_generated_spread_expression_node(input, node, logger)
+            }
+            "spreadable_expression" => {
+                Self::parse_generated_spreadable_expression_node(input, node, logger)
+            }
+            "extraction_expression" => {
+                Self::parse_generated_extraction_expression_node(input, node, logger)
+            }
             "property_access_expression" => {
                 Self::parse_generated_property_access_expression_node(input, node, logger)
             }
@@ -1231,7 +1241,9 @@ impl UnifiedReturnAST {
                 Self::parse_generated_array_access_expression_node(input, node, logger)
             }
             "accessor_base" => Self::parse_generated_accessor_base_node(input, node, logger),
-            "accessor_base_lr_base" => Self::parse_generated_accessor_base_lr_base_node(input, node, logger),
+            "accessor_base_lr_base" => {
+                Self::parse_generated_accessor_base_lr_base_node(input, node, logger)
+            }
             "positional_reference" => Self::parse_generated_positional_reference_node(input, node),
             "string_literal" => Self::parse_generated_string_literal_node(input, node),
             "number_literal" | "integer" | "float" => {
@@ -1243,7 +1255,9 @@ impl UnifiedReturnAST {
             "array_literal" => Self::parse_generated_array_literal_node(input, node, logger),
             "parenthesized" => Self::parse_generated_parenthesized_node(input, node, logger),
             _ => match &node.content {
-                ParseContent::Alternative(inner) => Self::parse_generated_value_node(input, inner, logger),
+                ParseContent::Alternative(inner) => {
+                    Self::parse_generated_value_node(input, inner, logger)
+                }
                 ParseContent::Sequence(elements) => {
                     if let Some(expr_node) = Self::sequence_child_rule(elements, "expression") {
                         Self::parse_generated_value_node(input, expr_node, logger)
@@ -1288,7 +1302,9 @@ impl UnifiedReturnAST {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
-            ParseContent::Alternative(inner) => Self::parse_generated_value_node(input, inner, logger),
+            ParseContent::Alternative(inner) => {
+                Self::parse_generated_value_node(input, inner, logger)
+            }
             ParseContent::Sequence(elements) => {
                 Self::parse_generated_parenthesized_sequence(input, elements, logger)
             }
@@ -1302,9 +1318,8 @@ impl UnifiedReturnAST {
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         let elements = Self::sequence_elements(node, "spread_expression")?;
-        let base_node = Self::sequence_child_rule(elements, "spreadable_expression").ok_or_else(|| {
-            "spread_expression missing spreadable_expression child".to_string()
-        })?;
+        let base_node = Self::sequence_child_rule(elements, "spreadable_expression")
+            .ok_or_else(|| "spread_expression missing spreadable_expression child".to_string())?;
         let base = Self::parse_generated_value_node(input, base_node, logger)?;
         Ok(UnifiedReturnAST::Spread {
             base: Box::new(base),
@@ -1320,7 +1335,9 @@ impl UnifiedReturnAST {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
-            ParseContent::Alternative(inner) => Self::parse_generated_value_node(input, inner, logger),
+            ParseContent::Alternative(inner) => {
+                Self::parse_generated_value_node(input, inner, logger)
+            }
             ParseContent::Sequence(elements) => {
                 Self::parse_generated_parenthesized_sequence(input, elements, logger)
             }
@@ -1334,12 +1351,12 @@ impl UnifiedReturnAST {
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         let elements = Self::sequence_elements(node, "extraction_expression")?;
-        let base_node = Self::sequence_child_rule(elements, "positional_reference").ok_or_else(|| {
-            "extraction_expression missing positional_reference child".to_string()
-        })?;
-        let target_node = Self::sequence_child_rule(elements, "extraction_target").ok_or_else(|| {
-            "extraction_expression missing extraction_target child".to_string()
-        })?;
+        let base_node =
+            Self::sequence_child_rule(elements, "positional_reference").ok_or_else(|| {
+                "extraction_expression missing positional_reference child".to_string()
+            })?;
+        let target_node = Self::sequence_child_rule(elements, "extraction_target")
+            .ok_or_else(|| "extraction_expression missing extraction_target child".to_string())?;
         let has_spread_suffix = Self::sequence_child_rule(elements, "spread_suffix").is_some();
 
         let base = Self::parse_generated_positional_reference_node(input, base_node)?;
@@ -1364,7 +1381,9 @@ impl UnifiedReturnAST {
     ) -> Result<ExtractionTarget, String> {
         match node.rule_name {
             "extraction_target" => match &node.content {
-                ParseContent::Alternative(inner) => Self::parse_generated_extraction_target_node(input, inner),
+                ParseContent::Alternative(inner) => {
+                    Self::parse_generated_extraction_target_node(input, inner)
+                }
                 ParseContent::Terminal(text) => match text.trim() {
                     "first" => Ok(ExtractionTarget::First),
                     "last" => Ok(ExtractionTarget::Last),
@@ -1404,10 +1423,13 @@ impl UnifiedReturnAST {
         let base = Self::parse_generated_value_node(input, &elements[0], logger)?;
         let first_postfix = Self::parse_generated_postfix_node(input, &elements[1], logger)?;
         if !matches!(first_postfix, AccessPostfix::Property(_)) {
-            return Err("property_access_expression first postfix was not property access".to_string());
+            return Err(
+                "property_access_expression first postfix was not property access".to_string(),
+            );
         }
         let mut current = Self::apply_postfix(base, first_postfix);
-        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[2], logger)? {
+        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[2], logger)?
+        {
             current = Self::apply_postfix(current, postfix);
         }
         Ok(current)
@@ -1425,10 +1447,13 @@ impl UnifiedReturnAST {
         let base = Self::parse_generated_value_node(input, &elements[0], logger)?;
         let first_postfix = Self::parse_generated_postfix_node(input, &elements[1], logger)?;
         if !matches!(first_postfix, AccessPostfix::Index(_)) {
-            return Err("array_access_expression first postfix was not array index access".to_string());
+            return Err(
+                "array_access_expression first postfix was not array index access".to_string(),
+            );
         }
         let mut current = Self::apply_postfix(base, first_postfix);
-        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[2], logger)? {
+        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[2], logger)?
+        {
             current = Self::apply_postfix(current, postfix);
         }
         Ok(current)
@@ -1444,7 +1469,8 @@ impl UnifiedReturnAST {
             return Err("accessor_base sequence too short".to_string());
         }
         let mut current = Self::parse_generated_value_node(input, &elements[0], logger)?;
-        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[1], logger)? {
+        for postfix in Self::parse_generated_postfixes_from_quantifier(input, &elements[1], logger)?
+        {
             current = Self::apply_postfix(current, postfix);
         }
         Ok(current)
@@ -1459,7 +1485,9 @@ impl UnifiedReturnAST {
             return Self::parse_generated_value_node(input, node, logger);
         }
         match &node.content {
-            ParseContent::Alternative(inner) => Self::parse_generated_value_node(input, inner, logger),
+            ParseContent::Alternative(inner) => {
+                Self::parse_generated_value_node(input, inner, logger)
+            }
             ParseContent::Sequence(elements) => {
                 Self::parse_generated_parenthesized_sequence(input, elements, logger)
             }
@@ -1484,16 +1512,14 @@ impl UnifiedReturnAST {
             .ok_or_else(|| "Postfix sequence missing operator terminal".to_string())?;
         match op {
             "." => {
-                let ident_node = Self::sequence_child_rule(elements, "identifier").ok_or_else(|| {
-                    "Property postfix missing identifier child".to_string()
-                })?;
+                let ident_node = Self::sequence_child_rule(elements, "identifier")
+                    .ok_or_else(|| "Property postfix missing identifier child".to_string())?;
                 let property = Self::node_text(input, ident_node)?.trim().to_string();
                 Ok(AccessPostfix::Property(property))
             }
             "[" => {
-                let index_node = Self::sequence_child_rule(elements, "expression").ok_or_else(|| {
-                    "Array postfix missing expression child".to_string()
-                })?;
+                let index_node = Self::sequence_child_rule(elements, "expression")
+                    .ok_or_else(|| "Array postfix missing expression child".to_string())?;
                 let index = Self::parse_generated_value_node(input, index_node, logger)?;
                 Ok(AccessPostfix::Index(index))
             }
@@ -1546,10 +1572,7 @@ impl UnifiedReturnAST {
             .parse::<i64>()
             .map_err(|e| format!("Invalid positional index '{}': {}", raw, e))?;
         if index_value < 0 {
-            return Err(format!(
-                "Invalid positional index '{}'",
-                index_value
-            ));
+            return Err(format!("Invalid positional index '{}'", index_value));
         }
         let index = usize::try_from(index_value)
             .map_err(|_| format!("Positional index '{}' overflows usize", index_value))?;
@@ -1642,11 +1665,12 @@ impl UnifiedReturnAST {
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         let elements = Self::sequence_elements(node, "object_literal")?;
-        let properties = if let Some(props_node) = Self::sequence_child_rule(elements, "object_properties") {
-            Self::parse_generated_object_properties_node(input, props_node, logger)?
-        } else {
-            HashMap::new()
-        };
+        let properties =
+            if let Some(props_node) = Self::sequence_child_rule(elements, "object_properties") {
+                Self::parse_generated_object_properties_node(input, props_node, logger)?
+            } else {
+                HashMap::new()
+            };
         Ok(UnifiedReturnAST::Object { properties })
     }
 
@@ -1660,18 +1684,20 @@ impl UnifiedReturnAST {
 
         let first_property = Self::sequence_child_rule(elements, "object_property")
             .ok_or_else(|| "object_properties missing first object_property".to_string())?;
-        let (key, value) = Self::parse_generated_object_property_node(input, first_property, logger)?;
+        let (key, value) =
+            Self::parse_generated_object_property_node(input, first_property, logger)?;
         properties.insert(key, Box::new(value));
 
         if let Some(quantified_node) = elements.get(1) {
             if let Some(items) = Self::quantified_items(quantified_node) {
                 for item in items {
                     let item_elements = Self::sequence_elements(item, "object_properties tail")?;
-                    let property_node =
-                        Self::sequence_child_rule(item_elements, "object_property").ok_or_else(|| {
+                    let property_node = Self::sequence_child_rule(item_elements, "object_property")
+                        .ok_or_else(|| {
                             "object_properties tail missing object_property".to_string()
                         })?;
-                    let (k, v) = Self::parse_generated_object_property_node(input, property_node, logger)?;
+                    let (k, v) =
+                        Self::parse_generated_object_property_node(input, property_node, logger)?;
                     properties.insert(k, Box::new(v));
                 }
             }
@@ -1724,12 +1750,13 @@ impl UnifiedReturnAST {
         logger: &dyn Logger,
     ) -> Result<UnifiedReturnAST, String> {
         let elements = Self::sequence_elements(node, "array_literal")?;
-        let parsed_elements =
-            if let Some(array_elements_node) = Self::sequence_child_rule(elements, "array_elements") {
-                Self::parse_generated_array_elements_node(input, array_elements_node, logger)?
-            } else {
-                Vec::new()
-            };
+        let parsed_elements = if let Some(array_elements_node) =
+            Self::sequence_child_rule(elements, "array_elements")
+        {
+            Self::parse_generated_array_elements_node(input, array_elements_node, logger)?
+        } else {
+            Vec::new()
+        };
         Ok(UnifiedReturnAST::Array {
             elements: parsed_elements,
         })
@@ -1745,17 +1772,23 @@ impl UnifiedReturnAST {
 
         let first_element = Self::sequence_child_rule(elements, "array_element")
             .ok_or_else(|| "array_elements missing first array_element".to_string())?;
-        parsed.push(Self::parse_generated_array_element_node(input, first_element, logger)?);
+        parsed.push(Self::parse_generated_array_element_node(
+            input,
+            first_element,
+            logger,
+        )?);
 
         if let Some(quantified_node) = elements.get(1) {
             if let Some(items) = Self::quantified_items(quantified_node) {
                 for item in items {
                     let item_elements = Self::sequence_elements(item, "array_elements tail")?;
-                    let element_node =
-                        Self::sequence_child_rule(item_elements, "array_element").ok_or_else(|| {
-                            "array_elements tail missing array_element".to_string()
-                        })?;
-                    parsed.push(Self::parse_generated_array_element_node(input, element_node, logger)?);
+                    let element_node = Self::sequence_child_rule(item_elements, "array_element")
+                        .ok_or_else(|| "array_elements tail missing array_element".to_string())?;
+                    parsed.push(Self::parse_generated_array_element_node(
+                        input,
+                        element_node,
+                        logger,
+                    )?);
                 }
             }
         }
@@ -1846,9 +1879,7 @@ impl UnifiedReturnAST {
         None
     }
 
-    fn alternative_child<'a, 'input>(
-        node: &'a ParseNode<'input>,
-    ) -> Option<&'a ParseNode<'input>> {
+    fn alternative_child<'a, 'input>(node: &'a ParseNode<'input>) -> Option<&'a ParseNode<'input>> {
         if let ParseContent::Alternative(inner) = &node.content {
             Some(inner)
         } else {
@@ -1877,7 +1908,10 @@ impl UnifiedReturnAST {
         matches!(&node.content, ParseContent::Sequence(elements) if elements.is_empty())
     }
 
-    fn node_text<'input>(input: &'input str, node: &ParseNode<'input>) -> Result<&'input str, String> {
+    fn node_text<'input>(
+        input: &'input str,
+        node: &ParseNode<'input>,
+    ) -> Result<&'input str, String> {
         if node.span.start > node.span.end || node.span.end > input.len() {
             return Err(format!(
                 "Invalid span {}..{} for rule '{}'",
@@ -2073,10 +2107,7 @@ mod tests {
         let err = UnifiedReturnAST::parse_bootstrap("$1*trailing", &logger).expect_err(
             "bootstrap parser should reject trailing text after positional spread star",
         );
-        assert_eq!(
-            err,
-            "Invalid positional reference modifier: '*trailing'"
-        );
+        assert_eq!(err, "Invalid positional reference modifier: '*trailing'");
     }
 
     #[test]
@@ -2155,27 +2186,17 @@ mod tests {
     #[test]
     fn bootstrap_array_rejects_empty_segments_from_extra_commas() {
         let logger = crate::test_runner::NoOpLogger;
-        let err = UnifiedReturnAST::parse_bootstrap("[, $1,, $2,]", &logger).expect_err(
-            "bootstrap array parser should reject empty comma segments",
-        );
-        assert!(
-            err.contains("Empty segment"),
-            "unexpected error: {}",
-            err
-        );
+        let err = UnifiedReturnAST::parse_bootstrap("[, $1,, $2,]", &logger)
+            .expect_err("bootstrap array parser should reject empty comma segments");
+        assert!(err.contains("Empty segment"), "unexpected error: {}", err);
     }
 
     #[test]
     fn bootstrap_object_rejects_empty_segments_from_extra_commas() {
         let logger = crate::test_runner::NoOpLogger;
-        let err = UnifiedReturnAST::parse_bootstrap("{, a: $1,, b: $2,}", &logger).expect_err(
-            "bootstrap object parser should reject empty comma segments",
-        );
-        assert!(
-            err.contains("Empty segment"),
-            "unexpected error: {}",
-            err
-        );
+        let err = UnifiedReturnAST::parse_bootstrap("{, a: $1,, b: $2,}", &logger)
+            .expect_err("bootstrap object parser should reject empty comma segments");
+        assert!(err.contains("Empty segment"), "unexpected error: {}", err);
     }
 
     #[test]
@@ -2221,7 +2242,9 @@ mod tests {
                                     UnifiedReturnAST::PositionalRef { index: 0 }
                                 ));
                             }
-                            other => panic!("expected first property access level, got {:?}", other),
+                            other => {
+                                panic!("expected first property access level, got {:?}", other)
+                            }
                         }
                     }
                     other => panic!("expected property access base, got {:?}", other),
@@ -2267,8 +2290,18 @@ mod tests {
 
         let logger = crate::test_runner::NoOpLogger;
         let samples = vec![
-            ("-> my_ident_01", UnifiedReturnAST::Identifier { name: "my_ident_01".to_string() }),
-            ("-> 'x'", UnifiedReturnAST::StringLiteral { value: "x".to_string() }),
+            (
+                "-> my_ident_01",
+                UnifiedReturnAST::Identifier {
+                    name: "my_ident_01".to_string(),
+                },
+            ),
+            (
+                "-> 'x'",
+                UnifiedReturnAST::StringLiteral {
+                    value: "x".to_string(),
+                },
+            ),
             ("->", UnifiedReturnAST::Passthrough),
         ];
 
@@ -2277,8 +2310,9 @@ mod tests {
             let parse_tree = parser
                 .parse_full_return_annotation()
                 .expect("generated parser should parse sample");
-            let ast = UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
-                .expect("generated tree -> typed return ast should succeed");
+            let ast =
+                UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
+                    .expect("generated tree -> typed return ast should succeed");
             assert_eq!(ast, expected);
         }
     }
@@ -2307,8 +2341,9 @@ mod tests {
             let parse_tree = parser
                 .parse_full_return_annotation()
                 .expect("generated parser should parse sample");
-            let generated_ast = UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
-                .expect("generated tree -> typed return ast should succeed");
+            let generated_ast =
+                UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
+                    .expect("generated tree -> typed return ast should succeed");
             let bootstrap_ast = UnifiedReturnAST::parse_bootstrap(input, &logger)
                 .expect("bootstrap parser should parse sample");
             assert_eq!(
@@ -2325,21 +2360,16 @@ mod tests {
         use crate::generated_parsers::return_annotation::Return_annotationParser;
 
         let logger = crate::test_runner::NoOpLogger;
-        let samples = vec![
-            "-> $0",
-            "-> $+0",
-            "-> $00",
-            "-> $0::first",
-            "-> $+0.A[0]",
-        ];
+        let samples = vec!["-> $0", "-> $+0", "-> $00", "-> $0::first", "-> $+0.A[0]"];
 
         for input in samples {
             let mut parser = Return_annotationParser::new(input, Box::new(crate::NoOpLogger));
             let parse_tree = parser
                 .parse_full_return_annotation()
                 .expect("generated parser should parse sample");
-            let generated_ast = UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
-                .expect("generated tree -> typed return ast should succeed");
+            let generated_ast =
+                UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
+                    .expect("generated tree -> typed return ast should succeed");
             let bootstrap_ast = UnifiedReturnAST::parse_bootstrap(input, &logger)
                 .expect("bootstrap parser should parse sample");
             assert_eq!(
@@ -2363,7 +2393,8 @@ mod tests {
             .expect("generated parser should lex/parse signed integer reference");
 
         assert!(
-            UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger).is_err(),
+            UnifiedReturnAST::parse_generated_return_annotation(input, &parse_tree, &logger)
+                .is_err(),
             "generated typed AST conversion should reject negative positional index"
         );
         assert!(
