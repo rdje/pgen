@@ -1,4 +1,95 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-22 - Phase N Deterministic Stimuli-Module Contract Hardening
+### Context
+Phase N required closure of deterministic artifact guarantees for generated stimuli modules:
+- stable metadata/API surface suitable for embedding,
+- deterministic module bytes for fixed grammar + config,
+- explicit statement that module artifacts are opt-in and do not replace default in-memory stimuli flow.
+
+The initial `--generate-stimuli-module` mode existed, but contract details were still partially implicit (seed omission behavior and exported metadata strictness).
+
+### Implementation
+Primary files:
+- `rust/src/main.rs`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Deterministic seed enforcement for module mode
+File:
+- `rust/src/main.rs`
+
+Added contract constants:
+- `DEFAULT_STIMULI_MODULE_SEED: u64 = 1`
+- `STIMULI_MODULE_API_VERSION: u32 = 1`
+
+Added helper:
+- `resolve_stimuli_module_seed(seed: Option<u64>) -> u64`
+
+Wiring in `--generate-stimuli-module` path:
+- effective seed is always concrete (`u64`),
+- omitted `--seed` now deterministically resolves to `1`,
+- informational CLI log emitted when default seed is injected.
+
+Why:
+- prevents hidden nondeterminism from implicit RNG seeding,
+- guarantees replayability of generated module corpus without requiring caller-provided seed.
+
+#### 2) Stable exported metadata surface
+File:
+- `rust/src/main.rs`
+
+Updated generator function contract:
+- `generate_stimuli_module_source(..., seed: u64, entry_rule: &str, ...)`
+
+Generated module now always exports:
+- `STIMULI_MODULE_API_VERSION: u32`
+- `GRAMMAR_NAME: &str`
+- `REQUESTED_SAMPLE_COUNT: usize`
+- `GENERATED_SAMPLE_COUNT: usize`
+- `GENERATION_SEED: u64`
+- `ENTRY_RULE: &str`
+- `STIMULI: [&str; N]`
+- `generated_stimuli() -> &'static [&'static str]`
+
+Important strictness change:
+- `GENERATION_SEED` and `ENTRY_RULE` are no longer optional in generated artifact contract.
+- entry rule is resolved before generation and stored as concrete metadata.
+
+#### 3) Determinism regression tests
+File:
+- `rust/src/main.rs` test module
+
+Added/updated tests:
+- `generated_stimuli_module_source_contains_expected_contract_constants`
+  - validates new constant shapes/types (API version, seed `u64`, entry rule `&str`).
+- `generated_stimuli_module_source_is_deterministic_for_identical_inputs`
+  - verifies byte-identical source output for fixed identical generation inputs.
+- `stimuli_module_seed_defaults_to_contract_seed_when_unspecified`
+  - validates deterministic default seed fallback contract.
+
+#### 4) Roadmap and UG closure updates
+Files:
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+Updates:
+- marked Phase N deterministic contract item complete,
+- marked explicit opt-in module generation + default in-memory stimuli behavior item complete,
+- documented module contract details:
+  - default output path pattern,
+  - deterministic default seed (`1`) when omitted,
+  - stable exported metadata constants including `STIMULI_MODULE_API_VERSION`.
+
+### Validation
+Commands run:
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline generated_stimuli_module_source_contains_expected_contract_constants -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline generated_stimuli_module_source_is_deterministic_for_identical_inputs -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_module_seed_defaults_to_contract_seed_when_unspecified -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline -- --nocapture`
+
+Results:
+- all pass.
+
 ## 2026-02-21 - Phase N Kickoff: `--generate-stimuli-module` in `ast_pipeline`
 ### Context
 Phase N requires explicit file-based Rust stimuli artifacts (`<grammar>_stimuli.rs`) in addition to the existing in-memory/newline text generation flow.

@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-02-22 - Phase N Deterministic Stimuli-Module Contract Closure
+### ✅ Achievement Summary
+Finalized the deterministic contract for `--generate-stimuli-module` artifacts so generated `*_stimuli.rs` output is stable for embedding and replay under fixed grammar/config.
+
+### Scope of Changes
+- Deterministic/contract hardening:
+  - `rust/src/main.rs`
+  - module generation now enforces deterministic seed behavior:
+    - `--seed` omitted -> fixed default `1` for module mode.
+  - module metadata surface is stabilized with explicit:
+    - `STIMULI_MODULE_API_VERSION`,
+    - non-optional `GENERATION_SEED: u64`,
+    - non-optional `ENTRY_RULE: &str` (resolved prior to generation).
+- Regression coverage additions:
+  - `rust/src/main.rs` test module
+  - added deterministic output equality test for identical inputs,
+  - added seed-resolution contract test for omitted/provided seed cases.
+- Roadmap/user guide updates:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - marked Phase N deterministic-contract + explicit opt-in/default-behavior items complete and documented concrete contract semantics.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline generated_stimuli_module_source_contains_expected_contract_constants` ✅
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline generated_stimuli_module_source_is_deterministic_for_identical_inputs` ✅
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_module_seed_defaults_to_contract_seed_when_unspecified` ✅
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline -- --nocapture` ✅
+
 ## 2026-02-21 - Phase N Kickoff: Rust Stimuli Module Generation Mode
 ### ✅ Achievement Summary
 Added an explicit Rust stimuli-module generation mode to `ast_pipeline` so a grammar can now produce a reusable `*_stimuli.rs` artifact (in addition to in-memory/text stimuli output).

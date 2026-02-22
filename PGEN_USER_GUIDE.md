@@ -124,13 +124,18 @@ Primary modes:
 
 3. Generate stimuli
 - `ast_pipeline INPUT.json --generate-stimuli --count N --seed S --output samples.txt`
+- This is the default stimuli flow (in-memory generation, optional newline output artifact).
 
 4. Generate stimuli module
-- `ast_pipeline INPUT --generate-stimuli-module --count N --seed S [--output generated/<grammar>_stimuli.rs]`
+- `ast_pipeline INPUT --generate-stimuli-module --count N [--seed S] [--output generated/<grammar>_stimuli.rs]`
 - Emits a Rust file containing:
-  - metadata constants (`GRAMMAR_NAME`, requested/generated sample count, seed, entry rule),
+  - metadata constants (`STIMULI_MODULE_API_VERSION`, `GRAMMAR_NAME`, requested/generated sample count, seed, entry rule),
   - embedded `STIMULI` corpus,
   - `generated_stimuli()` accessor.
+- Contract details:
+  - default output path is `generated/<grammar>_stimuli.rs` when `--output` is omitted,
+  - when `--seed` is omitted, module generation uses deterministic default seed `1`,
+  - `ENTRY_RULE` is always resolved and exported as a concrete string constant.
 
 High-value stimuli flags:
 

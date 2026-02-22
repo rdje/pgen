@@ -170,11 +170,11 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 
 ### Phase N (New): Generated Stimuli Module Artifacts (`<grammar>_stimuli.rs`)
 - [x] Add explicit AST-pipeline generation mode for Rust stimuli modules (for example `--generate-stimuli-module`) from both JSON and EBNF frontend inputs.
-- [ ] Define deterministic artifact contract:
+- [x] Define deterministic artifact contract:
   - output path pattern: `generated/<grammar>_stimuli.rs`,
   - stable exported API surface for embedding,
   - deterministic output under fixed grammar + config.
-- [ ] Preserve current in-memory stimuli path as default behavior while enabling file artifact generation via explicit opt-in CLI flag.
+- [x] Preserve current in-memory stimuli path as default behavior while enabling file artifact generation via explicit opt-in CLI flag.
 - [ ] Add parity gate between in-memory stimuli generation and generated stimuli-module behavior:
   - same grammar,
   - same seed/config,
@@ -202,6 +202,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-22: Completed Phase N deterministic artifact contract closure by hardening `--generate-stimuli-module` output invariants (stable API version constant, deterministic default seed when omitted, non-optional entry-rule metadata), adding deterministic source regression tests in `ast_pipeline`, and explicitly marking opt-in stimuli-module generation while preserving default in-memory stimuli behavior.
 - 2026-02-21: Started Phase N by adding explicit `ast_pipeline --generate-stimuli-module` mode (JSON and EBNF frontend inputs) that emits Rust module artifacts with embedded generated sample corpus and metadata constants.
 - 2026-02-21: Completed Phase L proof-doctrine/full-contract gate closure by adding semantic full-contract slices (`semantic_runtime_contract_gate`, `semantic_ast_roundtrip_gate`, `semantic_full_contract_gate`), introducing `annotation_100_gate` (construct coverage + typed-AST + runtime-intent + determinism + differential parity), wiring `annotation_100_gate` into SOTA required-check policy, and hardening deterministic return object-field code emission in `ast_return_transform` to stabilize `fixed_point_gate`.
 - 2026-02-21: Advanced Phase L SA-01 baseline by replacing generated semantic round-trip identity behavior with generated parse-tree conversion (`parse_generated_semantic_annotation`) in `test_runner`, adding conversion regression coverage, and validating through `semantic_usage_gate` + `annotation_contract_gate`.
