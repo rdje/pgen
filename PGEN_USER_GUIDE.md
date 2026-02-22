@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-02-20
+Last updated: 2026-02-22
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -165,6 +165,77 @@ Important:
 - Parseability checks require building with generated parsers:
 ```bash
 cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- ...
+```
+
+### In-Memory vs Module Mode (When to Use Which)
+- Use `--generate-stimuli` when:
+  - you need quick ad-hoc generation,
+  - you only need newline output or direct stdout samples,
+  - you do not need a reusable Rust artifact.
+- Use `--generate-stimuli-module` when:
+  - you need a reusable, checked-in/attached Rust artifact for embedding,
+  - you want explicit metadata constants (`SEED`, `ENTRY_RULE`, counts) in the artifact,
+  - you need deterministic replay defaults even when caller omits `--seed` (defaults to `1` in module mode).
+
+### Embedding Workflow Examples (`generated/<grammar>_stimuli.rs`)
+1. Generate module from EBNF (frontend + module artifact):
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  grammars/semantic_annotation.ebnf \
+  --generate-stimuli-module \
+  --count 64 \
+  --seed 7201 \
+  --validate-parseability \
+  --coverage-output /tmp/semantic_cov.json \
+  --gap-report-json /tmp/semantic_gap.json \
+  --output generated/semantic_annotation_stimuli.rs
+```
+
+2. Consume generated module in Rust (recommended import style):
+```rust
+#[path = "../generated/semantic_annotation_stimuli.rs"]
+mod semantic_annotation_stimuli;
+
+fn main() {
+    assert_eq!(semantic_annotation_stimuli::STIMULI_MODULE_API_VERSION, 1);
+    for sample in semantic_annotation_stimuli::generated_stimuli() {
+        println!("{}", sample);
+    }
+}
+```
+
+3. Replay the exact same corpus using in-memory mode:
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 64 \
+  --seed 7201 \
+  --entry-rule semantic_annotation \
+  --validate-parseability \
+  --output /tmp/semantic_replay.txt
+```
+
+### Deterministic Replay and Seed Compatibility Guarantees
+- In-memory mode (`--generate-stimuli`):
+  - deterministic only when `--seed` is explicitly provided,
+  - without `--seed`, generation uses entropy (`StdRng::from_entropy`) and is not replay-stable.
+- Module mode (`--generate-stimuli-module`):
+  - deterministic with explicit `--seed`,
+  - deterministic with omitted `--seed` due to enforced default seed `1`.
+- Cross-mode replay compatibility requires matching all of:
+  - grammar content + grammar name,
+  - `entry_rule`,
+  - `count`,
+  - `seed`,
+  - `max_depth`,
+  - `max_repeat`,
+  - `recovery_stimuli_mode`,
+  - parseability filter setting,
+  - coverage merge input (if used).
+- Cross-mode parity (samples + coverage + gap) is enforced by:
+```bash
+make -C rust SHELL=/bin/bash stimuli_module_parity_gate
 ```
 
 ## 6) Coverage and Gap Workflows
@@ -1728,6 +1799,7 @@ Aggregate gate tuning:
 Release policy references:
 - machine policy: `rust/config/sota_exit_policy.env`
 - release checklist/policy doc: `PGEN_RELEASE_POLICY.md`
+- stimuli-module normative contract: `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
 
 Optional robustness-gate tuning:
 - `PGEN_ANNOTATION_ROBUSTNESS_COUNT` (default `32`)
@@ -1754,6 +1826,7 @@ Stable module:
 
 Contract docs:
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
 
 Local check:
 ```bash
@@ -1771,6 +1844,7 @@ Sources:
 Generated parser artifacts:
 - `generated/*.json`
 - `generated/*_parser.rs`
+- `generated/*_stimuli.rs`
 
 Ephemeral/runtime reports:
 - `rust/target/differential_harness/*`

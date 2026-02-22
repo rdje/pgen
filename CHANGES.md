@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-02-22 - Phase N Documentation Closure: UG + Normative Stimuli-Module Spec
+### ✅ Achievement Summary
+Completed the last remaining Phase N item by publishing full end-user and normative documentation for generated stimuli-module usage, embedding workflows, and deterministic replay/seed compatibility guarantees.
+
+### Scope of Changes
+- New normative spec:
+  - `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+  - defines binding contract for:
+    - module API surface/constants,
+    - determinism/replay identity tuple,
+    - in-memory vs module parity semantics,
+    - contract-change update requirements.
+- User Guide expansion:
+  - `PGEN_USER_GUIDE.md`
+  - added:
+    - explicit guidance for when to use in-memory mode vs module mode,
+    - concrete embedding workflow examples for `generated/<grammar>_stimuli.rs`,
+    - deterministic replay/seed compatibility rules and caveats,
+    - references to the new normative stimuli-module contract doc.
+- Roadmap closure:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - marked final Phase N documentation checkbox complete.
+
+### Validation Results
+- Documentation consistency check:
+  - roadmap/item status now aligns with implemented code and parity-gate policy wiring.
+
 ## 2026-02-22 - Phase N Parity Gate: In-Memory vs Generated Stimuli Module
 ### ✅ Achievement Summary
 Implemented and promoted `stimuli_module_parity_gate` as a required aggregate SOTA check, with objective parity comparison across sample corpus, coverage metrics, and gap reports between in-memory stimuli generation and generated `*_stimuli.rs` artifacts.

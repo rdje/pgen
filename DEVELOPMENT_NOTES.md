@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-22 - Phase N Final Item Closure: Stimuli-Module Documentation + Normative Spec
+### Context
+Phase N still had one unchecked item: complete end-user and normative documentation for stimuli-module behavior.
+
+The required closure points were:
+- explicit in-memory vs module usage guidance,
+- concrete embedding workflow examples,
+- deterministic replay/seed compatibility guarantees.
+
+### Implementation
+Primary files:
+- `PGEN_USER_GUIDE.md`
+- `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added dedicated normative stimuli-module contract spec
+File:
+- `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+
+Normative coverage includes:
+- required generated module constants and API shape,
+- default-path and default-seed (`1`) contract,
+- deterministic replay identity tuple definition,
+- in-memory vs module parity contract semantics,
+- binding change-control rules (what must be updated on contract changes).
+
+#### 2) Expanded UG with concrete usage and replay guidance
+File:
+- `PGEN_USER_GUIDE.md`
+
+Added:
+- clear “when to use which mode” guidance:
+  - `--generate-stimuli` (in-memory/default flow),
+  - `--generate-stimuli-module` (artifact/embed/replay flow).
+- full embedding workflow examples:
+  - generation command using parseability/coverage/gap options,
+  - Rust import/usage snippet for generated module artifact,
+  - replay command mapping module metadata back to in-memory generation.
+- deterministic replay section:
+  - explicit difference between entropy-based in-memory runs without `--seed`
+    and deterministic module-mode default seed behavior,
+  - cross-mode compatibility tuple requirements,
+  - parity gate command reference.
+- references to `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md` in policy/docs map sections.
+
+#### 3) Closed roadmap checkbox
+File:
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Updated:
+- marked final Phase N “Extend User Guide and normative docs …” item complete,
+- added roadmap changelog entry for documentation closure.
+
+### Validation
+Checks performed:
+- verified roadmap now has all Phase N checkboxes completed,
+- verified UG + normative spec contents are aligned with implemented module/parity behavior.
+
 ## 2026-02-22 - Phase N Parity Closure: `stimuli_module_parity_gate` + Policy Wiring
 ### Context
 Phase N required objective parity enforcement between:

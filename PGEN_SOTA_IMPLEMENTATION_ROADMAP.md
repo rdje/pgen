@@ -180,7 +180,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - same seed/config,
   - equivalent acceptance/coverage/gap outcomes.
 - [x] Add gate target (for example `stimuli_module_parity_gate`) and wire into aggregate SOTA required-check policy once parity is stable.
-- [ ] Extend User Guide and normative docs with:
+- [x] Extend User Guide and normative docs with:
   - when to use in-memory vs generated stimuli module,
   - embedding workflow examples for `generated/<grammar>_stimuli.rs`,
   - deterministic replay/seed compatibility guarantees.
@@ -202,6 +202,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-22: Completed Phase N documentation closure by expanding `PGEN_USER_GUIDE.md` with in-memory-vs-module usage guidance, concrete embedding/replay command examples, deterministic seed compatibility rules, and publishing dedicated normative stimuli-module contract spec in `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`.
 - 2026-02-22: Closed Phase N parity gate wiring by adding `stimuli_module_parity_gate` (contract-driven in-memory vs module parity checks over samples/coverage/gap), promoting it into aggregate SOTA required-check policy (`rust/config/sota_exit_policy.env` + `rust/scripts/sota_exit_gate.sh`), and retaining parity artifacts under `rust/target/stimuli_module_parity_gate` in CI aggregate uploads.
 - 2026-02-22: Completed Phase N deterministic artifact contract closure by hardening `--generate-stimuli-module` output invariants (stable API version constant, deterministic default seed when omitted, non-optional entry-rule metadata), adding deterministic source regression tests in `ast_pipeline`, and explicitly marking opt-in stimuli-module generation while preserving default in-memory stimuli behavior.
 - 2026-02-21: Started Phase N by adding explicit `ast_pipeline --generate-stimuli-module` mode (JSON and EBNF frontend inputs) that emits Rust module artifacts with embedded generated sample corpus and metadata constants.

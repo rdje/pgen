@@ -35,6 +35,12 @@ cd ../go && go run ast_pipeline.go ../raw_ast.json transformed.json
 cd ../python && python ast_pipeline.py ../raw_ast.json transformed.json
 ```
 
+## 📚 Primary Docs
+- User guide: `PGEN_USER_GUIDE.md`
+- SOTA implementation roadmap: `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Annotation normative contract: `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- Stimuli-module normative contract: `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+
 ## 📋 Project Status
 
 ### Implementation Status
