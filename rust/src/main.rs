@@ -90,33 +90,32 @@ struct Args {
     #[arg(
         long,
         default_value = "baseline",
-        requires = "generate_stimuli",
         value_parser = ["baseline", "recovery_biased", "near_sync_negative"]
     )]
     recovery_stimuli_mode: String,
 
     /// Validate generated stimuli by parsing each sample with the matching generated parser
-    #[arg(long, requires = "generate_stimuli")]
+    #[arg(long)]
     validate_parseability: bool,
 
     /// Load prior stimuli coverage JSON and merge new generation coverage into it
-    #[arg(long, requires = "generate_stimuli")]
+    #[arg(long)]
     coverage_input: Option<String>,
 
     /// Write merged stimuli coverage metrics JSON to this path
-    #[arg(long, requires = "generate_stimuli")]
+    #[arg(long)]
     coverage_output: Option<String>,
 
     /// Write detailed coverage gap report JSON (reachable/unreachable rules+branches and target plan)
-    #[arg(long, requires = "generate_stimuli")]
+    #[arg(long)]
     gap_report_json: Option<String>,
 
     /// Write human-readable detailed coverage gap report text
-    #[arg(long, requires = "generate_stimuli")]
+    #[arg(long)]
     gap_report_text: Option<String>,
 
     /// Required successful hits per rule/branch target when building gap report debt/targets
-    #[arg(long, default_value_t = 1, requires = "generate_stimuli")]
+    #[arg(long, default_value_t = 1)]
     gap_report_threshold: u64,
 
     /// Load a prior gap report JSON and drive generation until its targets hit threshold (or attempt budget)
@@ -241,6 +240,21 @@ struct FuzzCorpusCandidate {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    let stimuli_like_mode = args.generate_stimuli || args.generate_stimuli_module;
+    if !stimuli_like_mode {
+        let has_shared_stimuli_flags = args.validate_parseability
+            || args.coverage_input.is_some()
+            || args.coverage_output.is_some()
+            || args.gap_report_json.is_some()
+            || args.gap_report_text.is_some()
+            || args.gap_report_threshold != 1
+            || args.recovery_stimuli_mode != "baseline";
+        if has_shared_stimuli_flags {
+            return Err(anyhow::anyhow!(
+                "--validate-parseability/--coverage-*/--gap-report-*/--recovery-stimuli-mode require --generate-stimuli or --generate-stimuli-module"
+            ));
+        }
+    }
 
     // Start with default config and override only specified options
     let mut config = PipelineConfig::default();
@@ -310,12 +324,26 @@ fn main() -> Result<()> {
             grammar.annotations.as_ref(),
             stimuli_config,
         );
+        if let Some(coverage_input_path) = args.coverage_input.as_deref() {
+            let existing_coverage = load_coverage_metrics(coverage_input_path)?;
+            generator.merge_coverage_metrics(&existing_coverage)?;
+        }
         let resolved_entry_rule = resolve_stimuli_entry_rule(
             &grammar.grammar_tree,
             &grammar.rule_order,
             args.entry_rule.as_deref(),
         )?;
-        let samples = generator.generate_many(args.count, Some(resolved_entry_rule.as_str()))?;
+        let samples = if args.validate_parseability {
+            generate_parseable_stimuli(
+                &grammar.grammar_name,
+                &mut generator,
+                args.count,
+                Some(resolved_entry_rule.as_str()),
+            )?
+        } else {
+            generator.generate_many(args.count, Some(resolved_entry_rule.as_str()))?
+        };
+        let merged_coverage = generator.coverage_metrics().clone();
         let output_module = args
             .output
             .unwrap_or_else(|| default_stimuli_module_output_path(&grammar.grammar_name));
@@ -333,6 +361,41 @@ fn main() -> Result<()> {
             samples.len(),
             output_module
         );
+        println!("{}", merged_coverage.summary_line());
+        if let Some(coverage_output_path) = args.coverage_output.as_deref() {
+            let coverage_json = serde_json::to_string_pretty(&merged_coverage)?;
+            std::fs::write(coverage_output_path, coverage_json)?;
+            println!("Wrote stimuli coverage metrics to {}", coverage_output_path);
+        }
+        if args.gap_report_json.is_some() || args.gap_report_text.is_some() {
+            let mut gap_generator = StimuliGenerator::new(
+                grammar.grammar_name.clone(),
+                &grammar.grammar_tree,
+                &grammar.rule_order,
+                grammar.annotations.as_ref(),
+                StimuliConfig {
+                    seed: Some(effective_seed),
+                    max_depth: args.max_depth,
+                    max_repeat: args.max_repeat,
+                    max_rule_visits: args.max_depth.max(2),
+                    recovery_mode,
+                },
+            );
+            gap_generator.merge_coverage_metrics(&merged_coverage)?;
+            let gap_report = gap_generator.generate_gap_report(
+                Some(resolved_entry_rule.as_str()),
+                args.gap_report_threshold,
+            )?;
+            if let Some(gap_report_json_path) = args.gap_report_json.as_deref() {
+                let report_json = serde_json::to_string_pretty(&gap_report)?;
+                std::fs::write(gap_report_json_path, report_json)?;
+                println!("Wrote coverage gap report JSON to {}", gap_report_json_path);
+            }
+            if let Some(gap_report_text_path) = args.gap_report_text.as_deref() {
+                std::fs::write(gap_report_text_path, gap_report.to_pretty_text())?;
+                println!("Wrote coverage gap report text to {}", gap_report_text_path);
+            }
+        }
         (samples.len(), grammar.rule_order)
     } else if args.generate_stimuli {
         let grammar = load_grammar_bundle(

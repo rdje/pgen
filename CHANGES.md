@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-02-22 - Phase N Parity Gate: In-Memory vs Generated Stimuli Module
+### ✅ Achievement Summary
+Implemented and promoted `stimuli_module_parity_gate` as a required aggregate SOTA check, with objective parity comparison across sample corpus, coverage metrics, and gap reports between in-memory stimuli generation and generated `*_stimuli.rs` artifacts.
+
+### Scope of Changes
+- New parity gate implementation:
+  - `rust/scripts/stimuli_module_parity_gate.sh`
+  - `rust/test_data/grammar_quality/stimuli_module_parity_contract.json`
+  - contract-driven parity checks for:
+    - `return_annotation`
+    - `semantic_annotation`
+- Build/policy wiring:
+  - `rust/Makefile`
+    - added `stimuli_module_parity_gate` target + help text.
+  - `rust/scripts/sota_exit_gate.sh`
+    - added required-check dispatch case for `stimuli_module_parity_gate`.
+  - `rust/config/sota_exit_policy.env`
+    - promoted `stimuli_module_parity_gate` into `PGEN_SOTA_POLICY_REQUIRED_CHECKS`.
+  - `.github/workflows/sota-exit-gate.yml`
+    - added parity gate artifact path (`rust/target/stimuli_module_parity_gate`) to upload bundle.
+- CLI parity-support expansion for module mode:
+  - `rust/src/main.rs`
+  - `--generate-stimuli-module` now supports:
+    - `--validate-parseability`,
+    - `--coverage-input` / `--coverage-output`,
+    - `--gap-report-json` / `--gap-report-text` / `--gap-report-threshold`.
+  - module mode now emits coverage summary and optional coverage/gap artifacts, enabling direct parity comparison with in-memory mode.
+- Documentation/roadmap updates:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - marked Phase N parity gate + policy wiring checkboxes complete.
+  - `PGEN_USER_GUIDE.md`
+    - documented parity gate purpose, command, and tuning knobs.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline -- --nocapture` ✅
+- `make -C rust SHELL=/bin/bash stimuli_module_parity_gate` ✅
+
 ## 2026-02-22 - Phase N Deterministic Stimuli-Module Contract Closure
 ### ✅ Achievement Summary
 Finalized the deterministic contract for `--generate-stimuli-module` artifacts so generated `*_stimuli.rs` output is stable for embedding and replay under fixed grammar/config.

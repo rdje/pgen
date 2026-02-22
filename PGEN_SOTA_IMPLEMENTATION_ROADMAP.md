@@ -175,11 +175,11 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - stable exported API surface for embedding,
   - deterministic output under fixed grammar + config.
 - [x] Preserve current in-memory stimuli path as default behavior while enabling file artifact generation via explicit opt-in CLI flag.
-- [ ] Add parity gate between in-memory stimuli generation and generated stimuli-module behavior:
+- [x] Add parity gate between in-memory stimuli generation and generated stimuli-module behavior:
   - same grammar,
   - same seed/config,
   - equivalent acceptance/coverage/gap outcomes.
-- [ ] Add gate target (for example `stimuli_module_parity_gate`) and wire into aggregate SOTA required-check policy once parity is stable.
+- [x] Add gate target (for example `stimuli_module_parity_gate`) and wire into aggregate SOTA required-check policy once parity is stable.
 - [ ] Extend User Guide and normative docs with:
   - when to use in-memory vs generated stimuli module,
   - embedding workflow examples for `generated/<grammar>_stimuli.rs`,
@@ -202,6 +202,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-22: Closed Phase N parity gate wiring by adding `stimuli_module_parity_gate` (contract-driven in-memory vs module parity checks over samples/coverage/gap), promoting it into aggregate SOTA required-check policy (`rust/config/sota_exit_policy.env` + `rust/scripts/sota_exit_gate.sh`), and retaining parity artifacts under `rust/target/stimuli_module_parity_gate` in CI aggregate uploads.
 - 2026-02-22: Completed Phase N deterministic artifact contract closure by hardening `--generate-stimuli-module` output invariants (stable API version constant, deterministic default seed when omitted, non-optional entry-rule metadata), adding deterministic source regression tests in `ast_pipeline`, and explicitly marking opt-in stimuli-module generation while preserving default in-memory stimuli behavior.
 - 2026-02-21: Started Phase N by adding explicit `ast_pipeline --generate-stimuli-module` mode (JSON and EBNF frontend inputs) that emits Rust module artifacts with embedded generated sample corpus and metadata constants.
 - 2026-02-21: Completed Phase L proof-doctrine/full-contract gate closure by adding semantic full-contract slices (`semantic_runtime_contract_gate`, `semantic_ast_roundtrip_gate`, `semantic_full_contract_gate`), introducing `annotation_100_gate` (construct coverage + typed-AST + runtime-intent + determinism + differential parity), wiring `annotation_100_gate` into SOTA required-check policy, and hardening deterministic return object-field code emission in `ast_return_transform` to stabilize `fixed_point_gate`.

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "description": "Parity contract for in-memory stimuli generation vs generated Rust stimuli-module artifacts.",
+  "grammars": [
+    {
+      "id": "return_annotation",
+      "grammar_name": "return_annotation",
+      "ebnf_path": "grammars/return_annotation.ebnf",
+      "seed": 7101,
+      "require_parseability": true
+    },
+    {
+      "id": "semantic_annotation",
+      "grammar_name": "semantic_annotation",
+      "ebnf_path": "grammars/semantic_annotation.ebnf",
+      "seed": 7201,
+      "require_parseability": true
+    }
+  ]
+}

@@ -1,4 +1,120 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-22 - Phase N Parity Closure: `stimuli_module_parity_gate` + Policy Wiring
+### Context
+Phase N required objective parity enforcement between:
+- in-memory stimuli generation (`--generate-stimuli`), and
+- generated module artifact mode (`--generate-stimuli-module`).
+
+The parity contract explicitly demanded equivalence on:
+- sample corpus,
+- acceptance behavior,
+- coverage outcomes,
+- gap-report outcomes,
+under the same grammar + seed + generation configuration.
+
+### Implementation
+Primary files:
+- `rust/scripts/stimuli_module_parity_gate.sh`
+- `rust/test_data/grammar_quality/stimuli_module_parity_contract.json`
+- `rust/src/main.rs`
+- `rust/Makefile`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `.github/workflows/sota-exit-gate.yml`
+
+#### 1) Added contract-driven parity gate script
+File:
+- `rust/scripts/stimuli_module_parity_gate.sh`
+
+Gate behavior:
+- builds `ast_pipeline` with `--features generated_parsers`,
+- reads grammar roster from `rust/test_data/grammar_quality/stimuli_module_parity_contract.json`,
+- for each grammar:
+  1. `EBNF -> JSON` frontend conversion via `tools/ebnf_to_json.pl`,
+  2. run in-memory mode (`--generate-stimuli`) with fixed seed/config,
+  3. run module mode (`--generate-stimuli-module`) with the same seed/config,
+  4. compile a tiny extractor that `include!`s generated `*_stimuli.rs` and prints `generated_stimuli()` corpus,
+  5. assert exact sample-corpus parity (byte compare),
+  6. canonicalize and compare coverage JSON parity (`jq -S`),
+  7. canonicalize and compare gap-report JSON parity (`jq -S`).
+
+Additional contract assertions:
+- module exports `STIMULI_MODULE_API_VERSION`,
+- module `REQUESTED_SAMPLE_COUNT` equals requested count,
+- module `GENERATION_SEED` equals configured seed.
+
+Why the extractor approach:
+- avoids fragile text parsing of Rust source literals,
+- validates the module as a real embedder would consume it (compiled Rust API call).
+
+#### 2) Added parity contract manifest
+File:
+- `rust/test_data/grammar_quality/stimuli_module_parity_contract.json`
+
+Current roster:
+- `return_annotation` (parseability required)
+- `semantic_annotation` (parseability required)
+
+Each entry declares:
+- stable grammar id/name,
+- source EBNF path,
+- deterministic seed,
+- parseability requirement.
+
+#### 3) Extended module-mode CLI to emit parity-comparable artifacts
+File:
+- `rust/src/main.rs`
+
+`--generate-stimuli-module` now supports:
+- parseability filter (`--validate-parseability`),
+- coverage merge/output (`--coverage-input`, `--coverage-output`),
+- gap-report output (`--gap-report-json`, `--gap-report-text`, `--gap-report-threshold`).
+
+Implementation details:
+- module path now merges coverage input when provided,
+- module path can generate parseable-only corpus using generated parser registry,
+- module path emits `StimuliCoverageMetrics` summary/output,
+- module path computes optional gap report from merged coverage with same entry-rule/config inputs as in-memory mode.
+
+Also added strict runtime flag validation in `main()`:
+- shared parseability/coverage/gap flags are rejected unless either
+  `--generate-stimuli` or `--generate-stimuli-module` is active.
+
+#### 4) Added gate target and aggregate-policy promotion
+Files:
+- `rust/Makefile`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `.github/workflows/sota-exit-gate.yml`
+
+Changes:
+- new Make target:
+  - `make -C rust SHELL=/bin/bash stimuli_module_parity_gate`
+- new aggregate required-check dispatch case:
+  - `stimuli_module_parity_gate`
+- promoted to required checks in policy env:
+  - appended to `PGEN_SOTA_POLICY_REQUIRED_CHECKS`
+- aggregate workflow now retains parity artifacts:
+  - `rust/target/stimuli_module_parity_gate`
+
+#### 5) Roadmap and UG updates
+Files:
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+Updates:
+- marked Phase N parity gate + policy wiring items complete,
+- documented parity gate contract, command, and tuning env vars.
+
+### Validation
+Commands run:
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline -- --nocapture`
+- `make -C rust SHELL=/bin/bash stimuli_module_parity_gate`
+
+Results:
+- pass.
+- parity gate produced matching in-memory/module samples, coverage JSON, and gap JSON for the tracked grammar roster.
+
 ## 2026-02-22 - Phase N Deterministic Stimuli-Module Contract Hardening
 ### Context
 Phase N required closure of deterministic artifact guarantees for generated stimuli modules:

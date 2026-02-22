@@ -233,6 +233,7 @@ help:
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
 	@echo "  annotation_stimuli_quality_gate - Enforce strict closed-loop stimuli/coverage/gap checks (no-regression) for annotation grammars"
 	@echo "  ebnf_stimuli_quality_gate - Enforce strict closed-loop parser/stimuli quality checks for non-annotation tracked EBNFs"
+	@echo "  stimuli_module_parity_gate - Enforce in-memory vs generated stimuli-module parity (samples + coverage + gap)"
 	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
 	@echo "  sc08_contract_gate - Enforce SC-08 value-domain Tier-4 contract slices + differential taxonomy checks"
@@ -558,6 +559,12 @@ ebnf_stimuli_quality_gate:
 	@echo "🧪 Running non-annotation EBNF stimuli quality gate..."
 	cd $(RUST_DIR) && ./scripts/ebnf_stimuli_quality_gate.sh
 	@echo "✅ Non-annotation EBNF stimuli quality gate passed."
+
+.PHONY: stimuli_module_parity_gate
+stimuli_module_parity_gate:
+	@echo "🧪 Running stimuli-module parity gate..."
+	cd $(RUST_DIR) && ./scripts/stimuli_module_parity_gate.sh
+	@echo "✅ Stimuli-module parity gate passed."
 
 .PHONY: annotation_nonbootstrap_e2e_gate
 annotation_nonbootstrap_e2e_gate:

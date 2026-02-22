@@ -50,5 +50,6 @@ jobs:
             rust/target/performance_gate
             rust/target/ebnf_frontend_gate
             rust/target/ebnf_frontend_dual_run_gate
+            rust/target/stimuli_module_parity_gate
           if-no-files-found: warn
           retention-days: 14

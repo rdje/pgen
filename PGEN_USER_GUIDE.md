@@ -135,7 +135,8 @@ Primary modes:
 - Contract details:
   - default output path is `generated/<grammar>_stimuli.rs` when `--output` is omitted,
   - when `--seed` is omitted, module generation uses deterministic default seed `1`,
-  - `ENTRY_RULE` is always resolved and exported as a concrete string constant.
+  - `ENTRY_RULE` is always resolved and exported as a concrete string constant,
+  - module mode supports the same parseability/coverage/gap-report flags used by in-memory stimuli mode for parity and regression workflows.
 
 High-value stimuli flags:
 
@@ -1570,7 +1571,7 @@ Tracked baselines:
 - `fixed-point-gate`
   - deterministic bootstrap artifact regeneration
 - `sota_exit_gate` (local aggregate target)
-  - one-shot release-grade aggregate check for fixed-point, annotation, non-annotation EBNF quality loop, differential, performance, embedding, and EBNF readiness reporting
+  - one-shot release-grade aggregate check for fixed-point, annotation, non-annotation EBNF quality loop, stimuli-module parity, differential, performance, embedding, and EBNF readiness reporting
 - `sota_release_policy` (local utility target)
   - prints the tracked machine policy consumed by `sota_exit_gate`
 - `annotation_contract_gate` (local gate target)
@@ -1637,6 +1638,12 @@ Tracked baselines:
     - parser generation success,
     - baseline/gap-priority/target-driven/final-gap no-regression checks,
     - contract-driven grammar roster from `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+- `stimuli_module_parity_gate` (local gate target)
+  - strict deterministic parity verification between in-memory stimuli generation and generated `*_stimuli.rs` artifacts:
+    - same grammar + seed + generation config,
+    - identical sample corpus,
+    - identical coverage metrics JSON and gap report JSON (canonicalized compare),
+    - contract-driven grammar roster from `rust/test_data/grammar_quality/stimuli_module_parity_contract.json`
 - `ebnf_frontend_readiness` (local report target)
   - executes `EBNF -> JSON -> parser/stimuli` readiness checks for `ebnf/json/regex` grammars
 - `ebnf_frontend_gate` (local strict target)
@@ -1699,6 +1706,11 @@ Non-annotation EBNF closed-loop command:
 make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate
 ```
 
+Stimuli-module parity command:
+```bash
+make -C rust SHELL=/bin/bash stimuli_module_parity_gate
+```
+
 Aggregate SOTA gate command:
 ```bash
 make -C rust SHELL=/bin/bash sota_exit_gate
@@ -1727,6 +1739,13 @@ Optional non-annotation EBNF quality-gate tuning:
 - `PGEN_EBNF_STIMULI_QUALITY_GAP_THRESHOLD` (default `1`)
 - `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` (default `5000`)
 - `PGEN_EBNF_STIMULI_QUALITY_CONTRACT` (override grammar contract manifest path)
+
+Optional stimuli-module parity-gate tuning:
+- `PGEN_STIMULI_MODULE_PARITY_COUNT` (default `16`)
+- `PGEN_STIMULI_MODULE_PARITY_GAP_THRESHOLD` (default `1`)
+- `PGEN_STIMULI_MODULE_PARITY_MAX_DEPTH` (default `24`)
+- `PGEN_STIMULI_MODULE_PARITY_MAX_REPEAT` (default `4`)
+- `PGEN_STIMULI_MODULE_PARITY_CONTRACT` (override grammar contract manifest path)
 
 ## 11) Embedding API (Rust)
 
