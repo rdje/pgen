@@ -2,7 +2,10 @@
 //!
 //! This centralizes grammar-name dispatch so new generated grammars are added in one place.
 
-use crate::generated_parsers::{return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser};
+use crate::ast_pipeline::UnifiedSemanticAST;
+use crate::generated_parsers::{
+    return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser,
+};
 use crate::NoOpLogger;
 
 type ParseSampleFn = fn(&str) -> bool;
@@ -34,6 +37,14 @@ fn parse_with_builtin_return_annotation(sample: &str) -> bool {
     parse_with_return_annotation(sample)
 }
 
+fn parse_with_builtin_semantic_annotation(sample: &str) -> bool {
+    // Built-in semantic parser behavior is intentionally permissive and marker-based.
+    // Parseability for builtin_semantic_annotation must follow this bootstrap contract,
+    // not the stricter full semantic_annotation grammar.
+    let logger = NoOpLogger;
+    UnifiedSemanticAST::parse_bootstrap(sample, &logger).is_ok()
+}
+
 static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "return_annotation",
@@ -46,6 +57,10 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "builtin_return_annotation",
         parse_sample: parse_with_builtin_return_annotation,
+    },
+    GeneratedParserRegistryEntry {
+        grammar_name: "builtin_semantic_annotation",
+        parse_sample: parse_with_builtin_semantic_annotation,
     },
     // Add future grammars here once their generated parser artifacts compile cleanly.
     // Examples: ebnf, json, regex, systemverilog, vhdl.
@@ -82,11 +97,27 @@ mod tests {
         assert!(grammars.contains(&"return_annotation"));
         assert!(grammars.contains(&"semantic_annotation"));
         assert!(grammars.contains(&"builtin_return_annotation"));
+        assert!(grammars.contains(&"builtin_semantic_annotation"));
     }
 
     #[test]
     fn unknown_grammar_is_not_supported() {
         assert!(!supports_grammar("unknown"));
         assert!(parse_sample("unknown", "anything").is_none());
+    }
+
+    #[test]
+    fn builtin_semantic_parseability_adapter_accepts_marker_and_raw_inputs() {
+        assert_eq!(
+            parse_sample("builtin_semantic_annotation", "@priority: [9, 1]"),
+            Some(true)
+        );
+        assert_eq!(
+            parse_sample(
+                "builtin_semantic_annotation",
+                "str::parse::<u32>().unwrap_or(0)"
+            ),
+            Some(true)
+        );
     }
 }

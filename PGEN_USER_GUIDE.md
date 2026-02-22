@@ -162,6 +162,7 @@ Important:
   - `return_annotation`
   - `semantic_annotation`
   - `builtin_return_annotation`
+  - `builtin_semantic_annotation`
 - Parseability checks require building with generated parsers:
 ```bash
 cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- ...

@@ -164,9 +164,9 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - deterministic 4-stage stimuli/coverage/gap closed-loop checks,
   - no-regression/target-summary/final-gap integrity assertions.
 - [x] Promote `ebnf_stimuli_quality_gate` into aggregate SOTA required-check policy.
-- [ ] Promote parseability validation from optional to required grammar-by-grammar as parser registry coverage expands beyond annotation grammars.
-  - Progress (2026-02-21): `builtin_return_annotation` is now parser-registry-backed for generated parseability checks and promoted to `require_parseability=true` in the non-annotation grammar-quality contract.
-  - Remaining: `builtin_semantic_annotation` still requires a truly matching generated parseability path before promotion (forcing parseability today causes deterministic stage-0 rejection in quality-loop validation).
+- [x] Promote parseability validation from optional to required grammar-by-grammar as parser registry coverage expands beyond annotation grammars.
+  - Progress (2026-02-21): `builtin_return_annotation` is parser-registry-backed for generated parseability checks and promoted to `require_parseability=true`.
+  - Closure (2026-02-22): `builtin_semantic_annotation` now uses a matching builtin-semantic parseability adapter in `parser_registry` (bootstrap semantic contract behavior via `UnifiedSemanticAST::parse_bootstrap`), and is promoted to `require_parseability=true` in `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`.
 
 ### Phase N (New): Generated Stimuli Module Artifacts (`<grammar>_stimuli.rs`)
 - [x] Add explicit AST-pipeline generation mode for Rust stimuli modules (for example `--generate-stimuli-module`) from both JSON and EBNF frontend inputs.
@@ -202,6 +202,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-22: Completed Phase M parseability-promotion closure by adding `builtin_semantic_annotation` parser-registry parseability adapter aligned to builtin semantic parser behavior and promoting builtin semantic parseability to required in the non-annotation grammar-quality contract.
 - 2026-02-22: Completed Phase N documentation closure by expanding `PGEN_USER_GUIDE.md` with in-memory-vs-module usage guidance, concrete embedding/replay command examples, deterministic seed compatibility rules, and publishing dedicated normative stimuli-module contract spec in `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`.
 - 2026-02-22: Closed Phase N parity gate wiring by adding `stimuli_module_parity_gate` (contract-driven in-memory vs module parity checks over samples/coverage/gap), promoting it into aggregate SOTA required-check policy (`rust/config/sota_exit_policy.env` + `rust/scripts/sota_exit_gate.sh`), and retaining parity artifacts under `rust/target/stimuli_module_parity_gate` in CI aggregate uploads.
 - 2026-02-22: Completed Phase N deterministic artifact contract closure by hardening `--generate-stimuli-module` output invariants (stable API version constant, deterministic default seed when omitted, non-optional entry-rule metadata), adding deterministic source regression tests in `ast_pipeline`, and explicitly marking opt-in stimuli-module generation while preserving default in-memory stimuli behavior.

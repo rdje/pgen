@@ -1,4 +1,73 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-22 - Phase M Parseability Closure: `builtin_semantic_annotation` Required
+### Context
+Phase M still had one unresolved promotion item:
+- `builtin_semantic_annotation` parseability remained optional in
+  `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`.
+
+Reason previously:
+- generated semantic parser full-parse path did not match builtin semantic parser behavior,
+- forcing parseability required caused deterministic stage-0 quality-loop rejection.
+
+### Implementation
+Primary files:
+- `rust/src/parser_registry.rs`
+- `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Added matching builtin semantic parseability adapter
+File:
+- `rust/src/parser_registry.rs`
+
+Added adapter:
+- `builtin_semantic_annotation` -> parseability check uses
+  `UnifiedSemanticAST::parse_bootstrap(sample, &NoOpLogger)`.
+
+Rationale:
+- this matches the builtin semantic parser contract (intentionally permissive, marker-based transform detection, raw fallback, no hard-fail behavior),
+- avoids incorrect substitution with the stricter full `semantic_annotation` generated grammar parser.
+
+#### 2) Promoted builtin semantic parseability to required
+File:
+- `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+
+Updated:
+- `builtin_semantic_annotation.require_parseability = true`
+
+Effect:
+- non-annotation EBNF quality loop now enforces parseability for both builtin annotation grammars:
+  - `builtin_return_annotation`
+  - `builtin_semantic_annotation`
+
+#### 3) Registry test coverage updates
+File:
+- `rust/src/parser_registry.rs`
+
+Added/updated tests:
+- `registry_exposes_expected_annotation_grammars` now expects `builtin_semantic_annotation`.
+- `builtin_semantic_parseability_adapter_accepts_marker_and_raw_inputs` verifies parseability adapter behavior for:
+  - raw named semantic payload (`@priority: [9, 1]`)
+  - marker-based transform payload (`str::parse::<u32>().unwrap_or(0)`).
+
+#### 4) Roadmap and UG updates
+Files:
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+Updates:
+- marked Phase M parseability-promotion item complete,
+- updated UG parseability-supported grammar list to include `builtin_semantic_annotation`.
+
+### Validation
+Commands run:
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry::tests::registry_exposes_expected_annotation_grammars`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry::tests::builtin_semantic_parseability_adapter_accepts_marker_and_raw_inputs`
+- `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+
+Results:
+- pass.
+
 ## 2026-02-22 - Phase N Final Item Closure: Stimuli-Module Documentation + Normative Spec
 ### Context
 Phase N still had one unchecked item: complete end-user and normative documentation for stimuli-module behavior.

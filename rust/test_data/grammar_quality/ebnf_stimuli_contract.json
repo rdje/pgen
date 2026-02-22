@@ -35,7 +35,7 @@
       "grammar_name": "builtin_semantic_annotation",
       "ebnf_path": "grammars/builtin_semantic_annotation.ebnf",
       "seed_base": 9501,
-      "require_parseability": false
+      "require_parseability": true
     }
   ]
 }
