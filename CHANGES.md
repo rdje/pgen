@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-02-26 - Phase M Parseability Promotion: EBNF Required
+### ✅ Achievement Summary
+Promoted non-annotation `ebnf` grammar from optional parseability to required parseability in the closed-loop quality contract, with executable gate wiring that bootstraps and compiles the Rust EBNF parser path when needed.
+
+### Scope of Changes
+- Parser registry expansion:
+  - `rust/src/parser_registry.rs`
+  - added `ebnf` parseability adapter using generated `EbnfParser::parse_full_grammar_file` (feature-gated by `ebnf_dual_run`).
+  - added coverage tests for registry exposure and basic valid/invalid EBNF parseability behavior under `ebnf_dual_run`.
+- Non-annotation contract promotion:
+  - `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+  - changed `ebnf.require_parseability` from `false` to `true`.
+- Gate hardening for executable enforcement:
+  - `rust/scripts/ebnf_stimuli_quality_gate.sh`
+  - detects whether contract requires `ebnf` parseability,
+  - bootstraps `generated/ebnf.json` + `generated/ebnf.rs`,
+  - rebuilds `ast_pipeline` with `generated_parsers + ebnf_dual_run` before closed-loop checks.
+- Documentation updates:
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - parseability support list and roadmap progress/changelog now reflect required `ebnf` parseability path.
+
+### Validation Results
+- `cd rust && cargo test --features generated_parsers --lib parser_registry::tests::registry_exposes_expected_annotation_grammars -- --nocapture` ✅
+- `cd rust && cargo test --features "generated_parsers ebnf_dual_run" --lib parser_registry::tests::registry_exposes_ebnf_when_dual_run_enabled -- --nocapture` ✅
+- `cd rust && cargo test --features "generated_parsers ebnf_dual_run" --lib parser_registry::tests::ebnf_parseability_adapter_accepts_valid_rule_and_rejects_garbage -- --nocapture` ✅
+- `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh` ✅
+
 ## 2026-02-22 - Phase L Semantic Typed-AST Closure Marked Complete
 ### ✅ Achievement Summary
 Closed the remaining Phase L semantic typed-AST closure roadmap item after aggregate typed-AST gate validation.

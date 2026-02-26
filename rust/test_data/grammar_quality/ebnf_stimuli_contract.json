@@ -7,7 +7,7 @@
       "grammar_name": "ebnf",
       "ebnf_path": "grammars/ebnf.ebnf",
       "seed_base": 9101,
-      "require_parseability": false
+      "require_parseability": true
     },
     {
       "id": "json",

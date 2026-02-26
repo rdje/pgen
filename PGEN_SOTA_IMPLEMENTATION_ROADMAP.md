@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-02-20
+Last updated: 2026-02-26
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -173,6 +173,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Promote parseability validation from optional to required grammar-by-grammar as parser registry coverage expands beyond annotation grammars.
   - Progress (2026-02-21): `builtin_return_annotation` is parser-registry-backed for generated parseability checks and promoted to `require_parseability=true`.
   - Closure (2026-02-22): `builtin_semantic_annotation` now uses a matching builtin-semantic parseability adapter in `parser_registry` (bootstrap semantic contract behavior via `UnifiedSemanticAST::parse_bootstrap`), and is promoted to `require_parseability=true` in `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`.
+  - Progress (2026-02-26): added parser-registry `ebnf` parseability adapter (feature-gated by `ebnf_dual_run`), promoted `ebnf` contract entry to `require_parseability=true`, and hardened `ebnf_stimuli_quality_gate` with two-phase build/bootstrap (`generated_parsers` then `generated_parsers+ebnf_dual_run` after generating `generated/ebnf.rs`) so required parseability is executable in gate paths.
 
 ### Phase N (New): Generated Stimuli Module Artifacts (`<grammar>_stimuli.rs`)
 - [x] Add explicit AST-pipeline generation mode for Rust stimuli modules (for example `--generate-stimuli-module`) from both JSON and EBNF frontend inputs.
@@ -208,6 +209,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-26: Advanced Phase M parseability promotion beyond annotation grammars by adding an `ebnf` generated-parser adapter in `parser_registry`, promoting `ebnf` to required parseability in `ebnf_stimuli_contract.json`, and hardening `ebnf_stimuli_quality_gate` with explicit `generated/ebnf.rs` bootstrap + `ebnf_dual_run` rebuild for executable enforcement.
 - 2026-02-22: Closed Phase L semantic typed-AST closure item after full aggregate validation (`annotation_typed_ast_gate`) with strict generated conversion for backend-validated named semantic directives, corpus-level generated semantic conversion contracts, and non-bootstrap E2E pass.
 - 2026-02-22: Hardened non-bootstrap named semantic extraction policy: enforce generated parse-tree conversion for backend-validated named directives and keep compatibility fallback only for backend-rejected named payloads; added regression coverage and validated with `annotation_nonbootstrap_e2e_gate`.
 - 2026-02-22: Closed Phase L return typed-AST closure item by adding full generated-pass return corpus parity proof in `UnifiedReturnAST`, and advanced semantic typed-AST closure with a full generated-pass corpus conversion contract test in `UnifiedSemanticAST` (entry/direct parity + canonical reconstruction invariants + comparable bootstrap checks).

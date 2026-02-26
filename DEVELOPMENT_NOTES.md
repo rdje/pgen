@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-26 - Phase M Parseability Promotion: EBNF Required Parseability Path
+### Context
+Phase M parseability promotion had moved built-in annotation grammars (`builtin_return_annotation`, `builtin_semantic_annotation`) to required parseability, but non-annotation `ebnf` was still contract-marked optional.  
+To tighten cross-EBNF quality guarantees, `ebnf` parseability had to become required and executable in the quality gate.
+
+### Implementation
+Primary files:
+- `rust/src/parser_registry.rs`
+- `rust/scripts/ebnf_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added `ebnf` parseability adapter in parser registry
+In `parser_registry`:
+- imported generated `EbnfParser` behind `#[cfg(feature = "ebnf_dual_run")]`,
+- added `parse_with_ebnf(sample)` using `parse_full_grammar_file()` (full-consumption parseability),
+- registered grammar name `ebnf` conditionally under the same feature.
+
+This keeps default generated-parser builds unchanged unless `ebnf_dual_run` is enabled.
+
+#### 2) Promoted contract to required parseability
+In `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`:
+- changed:
+  - `ebnf.require_parseability: false -> true`
+
+This makes parseability filtering/checking mandatory for `ebnf` in the non-annotation closed-loop gate.
+
+#### 3) Hardened gate execution to bootstrap EBNF parser source before dual-run build
+In `rust/scripts/ebnf_stimuli_quality_gate.sh`:
+- added contract-level detection: whether `ebnf` is required-parseability,
+- retained initial `cargo build --features generated_parsers --bin ast_pipeline`,
+- when required:
+  - generate `generated/ebnf.json` via `tools/ebnf_to_json.pl`,
+  - generate `generated/ebnf.rs` via `ast_pipeline --generate-parser`,
+  - rebuild `ast_pipeline` with `--features "generated_parsers ebnf_dual_run"`.
+
+Rationale:
+- `ebnf` parseability adapter depends on generated `EbnfParser` (`generated/ebnf.rs`),
+- `generated/ebnf.rs` is not tracked and must be regenerated in-gate before enabling `ebnf_dual_run`,
+- this preserves reproducible gate behavior and avoids hidden local prerequisites.
+
+#### 4) Documentation sync
+- `PGEN_USER_GUIDE.md`:
+  - parseability support matrix now documents `ebnf` support and the required feature set.
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+  - Phase M progress/changelog updated to record required `ebnf` parseability enforcement.
+
+### Validation
+Executed:
+- `cd rust && cargo test --features generated_parsers --lib parser_registry::tests::registry_exposes_expected_annotation_grammars -- --nocapture`
+- `cd rust && cargo test --features "generated_parsers ebnf_dual_run" --lib parser_registry::tests::registry_exposes_ebnf_when_dual_run_enabled -- --nocapture`
+- `cd rust && cargo test --features "generated_parsers ebnf_dual_run" --lib parser_registry::tests::ebnf_parseability_adapter_accepts_valid_rule_and_rejects_garbage -- --nocapture`
+- `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+
+Results:
+- all pass.
+
 ## 2026-02-22 - Phase L Semantic Typed-AST Closure Finalization
 ### Context
 After strict-on-validated named semantic routing and corpus-level generated semantic conversion contracts were in place, the remaining step was objective aggregate validation and closure bookkeeping for the last open Phase L semantic typed-AST roadmap item.

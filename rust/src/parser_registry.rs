@@ -7,6 +7,8 @@ use crate::ast_pipeline::UnifiedSemanticAST;
 use crate::generated_parsers::{
     return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser,
 };
+#[cfg(feature = "ebnf_dual_run")]
+use crate::ebnf_generated_parser::EbnfParser;
 
 type ParseSampleFn = fn(&str) -> bool;
 
@@ -45,6 +47,12 @@ fn parse_with_builtin_semantic_annotation(sample: &str) -> bool {
     UnifiedSemanticAST::parse_bootstrap(sample, &logger).is_ok()
 }
 
+#[cfg(feature = "ebnf_dual_run")]
+fn parse_with_ebnf(sample: &str) -> bool {
+    let mut parser = EbnfParser::new(sample, Box::new(NoOpLogger));
+    parser.parse_full_grammar_file().is_ok()
+}
+
 static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "return_annotation",
@@ -62,8 +70,13 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "builtin_semantic_annotation",
         parse_sample: parse_with_builtin_semantic_annotation,
     },
+    #[cfg(feature = "ebnf_dual_run")]
+    GeneratedParserRegistryEntry {
+        grammar_name: "ebnf",
+        parse_sample: parse_with_ebnf,
+    },
     // Add future grammars here once their generated parser artifacts compile cleanly.
-    // Examples: ebnf, json, regex, systemverilog, vhdl.
+    // Examples: json, regex, systemverilog, vhdl.
 ];
 
 fn find_entry(grammar_name: &str) -> Option<&'static GeneratedParserRegistryEntry> {
@@ -100,6 +113,13 @@ mod tests {
         assert!(grammars.contains(&"builtin_semantic_annotation"));
     }
 
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn registry_exposes_ebnf_when_dual_run_enabled() {
+        let grammars = registered_grammars();
+        assert!(grammars.contains(&"ebnf"));
+    }
+
     #[test]
     fn unknown_grammar_is_not_supported() {
         assert!(!supports_grammar("unknown"));
@@ -119,5 +139,15 @@ mod tests {
             ),
             Some(true)
         );
+    }
+
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn ebnf_parseability_adapter_accepts_valid_rule_and_rejects_garbage() {
+        assert_eq!(
+            parse_sample("ebnf", r#"rule_name := /([a-zA-Z_][a-zA-Z0-9_]*)/"#),
+            Some(true)
+        );
+        assert_eq!(parse_sample("ebnf", ":::not-ebnf:::"), Some(false));
     }
 }

@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-02-22
+Last updated: 2026-02-26
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -159,6 +159,7 @@ High-value stimuli flags:
 
 Important:
 - Parseability validation currently supports generated parser checks for:
+  - `ebnf` (requires `generated/ebnf.rs` and building with `--features "generated_parsers ebnf_dual_run"`)
   - `return_annotation`
   - `semantic_annotation`
   - `builtin_return_annotation`
@@ -166,6 +167,10 @@ Important:
 - Parseability checks require building with generated parsers:
 ```bash
 cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- ...
+```
+- For `ebnf` parseability checks, use:
+```bash
+cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline -- ...
 ```
 
 ### In-Memory vs Module Mode (When to Use Which)

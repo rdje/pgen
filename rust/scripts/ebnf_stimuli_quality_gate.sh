@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
 TOOLS_DIR="$ROOT_DIR/tools"
+GRAMMARS_DIR="$ROOT_DIR/grammars"
+GENERATED_DIR="$ROOT_DIR/generated"
 
 STATE_DIR="${PGEN_EBNF_STIMULI_QUALITY_STATE_DIR:-$RUST_DIR/target/ebnf_stimuli_quality_gate}"
 LOG_DIR="$STATE_DIR/logs"
@@ -18,6 +20,9 @@ CONTRACT_FILE="${PGEN_EBNF_STIMULI_QUALITY_CONTRACT:-$RUST_DIR/test_data/grammar
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
+EBNF_BOOTSTRAP_GRAMMAR="$GRAMMARS_DIR/ebnf.ebnf"
+EBNF_BOOTSTRAP_JSON="$GENERATED_DIR/ebnf.json"
+EBNF_BOOTSTRAP_RS="$GENERATED_DIR/ebnf.rs"
 
 if ! [[ "$SAMPLE_COUNT" =~ ^[0-9]+$ ]] || [[ "$SAMPLE_COUNT" -lt 1 ]]; then
     echo "error: PGEN_EBNF_STIMULI_QUALITY_COUNT must be an integer >= 1" >&2
@@ -317,6 +322,7 @@ require_file "$CONTRACT_FILE"
 
 grammar_count="$(jq -er '.grammars | length | numbers' "$CONTRACT_FILE")"
 contract_version="$(jq -er '.version | numbers' "$CONTRACT_FILE")"
+require_ebnf_parseability="$(jq -er '[.grammars[] | select(.grammar_name == "ebnf" and .require_parseability == true)] | if length > 0 then 1 else 0 end' "$CONTRACT_FILE")"
 if [[ "$grammar_count" -lt 1 ]]; then
     echo "error: contract '$CONTRACT_FILE' must contain at least one grammar entry" >&2
     exit 1
@@ -330,6 +336,7 @@ echo "grammar_count: $grammar_count"
 echo "sample_count: $SAMPLE_COUNT"
 echo "gap_threshold: $GAP_THRESHOLD"
 echo "target_max_attempts: $TARGET_MAX_ATTEMPTS"
+echo "require_ebnf_parseability: $require_ebnf_parseability"
 
 echo "grammar,grammar_name,parseability_required,initial_targets,resolved_targets,final_targets,target_attempts,stage0_successes,stage3_successes,status" >"$SUMMARY_CSV"
 
@@ -339,6 +346,30 @@ run_logged_rust "build_generated_ast_pipeline" \
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2
     exit 1
+fi
+
+if [[ "$require_ebnf_parseability" -eq 1 ]]; then
+    mkdir -p "$GENERATED_DIR"
+    require_file "$EBNF_BOOTSTRAP_GRAMMAR"
+
+    run_logged "prepare_ebnf_frontend_json_for_parseability" \
+        "$EBNF_TO_JSON" --pretty --quiet "$EBNF_BOOTSTRAP_GRAMMAR" -o "$EBNF_BOOTSTRAP_JSON"
+    require_nonempty_file "$EBNF_BOOTSTRAP_JSON"
+
+    run_logged "prepare_ebnf_generated_parser_for_parseability" \
+        "$AST_PIPELINE_BIN" "$EBNF_BOOTSTRAP_JSON" \
+        --generate-parser \
+        --eliminate-left-recursion \
+        --output "$EBNF_BOOTSTRAP_RS"
+    require_nonempty_file "$EBNF_BOOTSTRAP_RS"
+
+    run_logged_rust "rebuild_generated_ast_pipeline_with_ebnf_dual_run" \
+        cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+
+    if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
+        echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after ebnf_dual_run rebuild" >&2
+        exit 1
+    fi
 fi
 
 mapfile -t grammar_rows < <(jq -r '.grammars[] | @base64' "$CONTRACT_FILE")
