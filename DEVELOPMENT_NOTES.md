@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-22 - Phase L Semantic Typed-AST Closure Finalization
+### Context
+After strict-on-validated named semantic routing and corpus-level generated semantic conversion contracts were in place, the remaining step was objective aggregate validation and closure bookkeeping for the last open Phase L semantic typed-AST roadmap item.
+
+### Implementation
+Primary file:
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Updates:
+- promoted the semantic typed-AST closure checkbox to complete,
+- added final closure progress note explicitly tied to aggregate typed-AST validation.
+
+### Validation
+Command:
+- `cd rust && make annotation_typed_ast_gate`
+
+Coverage of this aggregate gate:
+- return runtime semantics gate,
+- semantic runtime contract gate,
+- annotation non-bootstrap end-to-end gate.
+
+Result:
+- pass.
+
 ## 2026-02-22 - Phase L Semantic Closure Hardening: Strict-on-Validated Named Semantics
 ### Context
 Non-bootstrap semantic extraction still had a silent fallback path for named directives:

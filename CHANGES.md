@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-02-22 - Phase L Semantic Typed-AST Closure Marked Complete
+### ✅ Achievement Summary
+Closed the remaining Phase L semantic typed-AST closure roadmap item after aggregate typed-AST gate validation.
+
+### Scope of Changes
+- Roadmap closure update:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - marked semantic typed-AST closure checkbox complete.
+  - added explicit closure validation note referencing `annotation_typed_ast_gate`.
+  - added roadmap changelog entry for semantic closure completion.
+
+### Validation Results
+- `cd rust && make annotation_typed_ast_gate` ✅
+
 ## 2026-02-22 - Phase L Semantic Closure Hardening: Strict-on-Validated Named Path
 ### ✅ Achievement Summary
 Hardened non-bootstrap named semantic annotation handling so backend-validated directives must use generated parse-tree conversion, while keeping compatibility fallback only for backend-rejected named payloads.
