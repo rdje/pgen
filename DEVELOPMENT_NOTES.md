@@ -1,4 +1,71 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-22 - Phase L Semantic Closure Hardening: Strict-on-Validated Named Semantics
+### Context
+Non-bootstrap semantic extraction still had a silent fallback path for named directives:
+- named directives were validated by backend parseability checks,
+- but typed AST shaping still fell back to local `semantic_named_ast` whenever generated parse-tree conversion failed.
+
+This weakened closure guarantees for conforming named semantic constructs, while still needing compatibility for currently unsupported but historically accepted payload forms (for example some `@transform` payload strings used in existing grammar generation flows).
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/mod.rs`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Thread backend parseability state into named semantic shaping
+In `parse_semantic_annotation_entry(...)`:
+- for array form (`["semantic_annotation", [name, payload]]`) and directive string form (`@name: payload`),
+- capture `backend_valid = validate_semantic_annotation_backend(...)`,
+- pass `backend_valid` into `parse_semantic_annotation_ast(...)`.
+
+#### 2) Enforce strict generated conversion only for backend-validated named directives
+`parse_semantic_annotation_ast(...)` now takes:
+- `(annotation_name, payload, backend_valid)`.
+
+Behavior:
+- if `backend_valid == true`:
+  - require generated parse-tree conversion via `parse_semantic_annotation_with_generated_parser(...)`,
+  - enforce parsed-name match with expected normalized directive name,
+  - return error on mismatch/conversion failure (no silent local fallback on validated paths).
+- if `backend_valid == false`:
+  - preserve compatibility by returning local `semantic_named_ast` fallback.
+
+Result:
+- conforming/validated named semantic inputs are now guaranteed to go through generated parse-tree conversion.
+- unsupported named payloads (backend-rejected) remain forward-compatible and non-breaking.
+
+#### 3) Structured generated-parser error propagation
+`parse_semantic_annotation_with_generated_parser(...)` now returns:
+- `Result<Option<(String, UnifiedSemanticAST)>>`
+
+This keeps:
+- explicit error context for strict named-path failures,
+- `Ok(None)` behavior for bootstrap mode / generated-parser-disabled builds.
+
+#### 4) Compatibility regression fix for non-bootstrap E2E
+Initial strict-always named path caused:
+- `annotation_nonbootstrap_e2e_gate` failure on existing transform payload forms backend currently rejects in semantic full-parse mode.
+
+Final policy (strict-on-validated only) restored compatibility while preserving stronger guarantees on validated paths.
+
+#### 5) Added regression test
+New test in `mod.rs`:
+- `transform_from_raw_ast_nonbootstrap_named_semantic_preserves_payload_when_backend_rejects`
+
+Asserts:
+- malformed named payload rejected by backend parseability does not hard-fail transform,
+- named annotation is preserved with raw payload AST (for compatibility).
+
+### Validation
+Commands:
+- `cd rust && cargo test --features generated_parsers --lib transform_from_raw_ast_nonbootstrap_named_semantic_preserves_payload_when_backend_rejects -- --nocapture`
+- `cd rust && cargo test --lib transform_from_raw_ast_ -- --nocapture`
+- `cd rust && make semantic_runtime_contract_gate`
+- `cd rust && make annotation_nonbootstrap_e2e_gate`
+
+Results:
+- all pass.
+
 ## 2026-02-22 - Phase L Typed-AST Closure Proof Upgrade (Return Full Corpus + Semantic Full Corpus Contracts)
 ### Context
 Phase L still had two typed-AST closure tasks open in the roadmap:

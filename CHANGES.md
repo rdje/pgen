@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-02-22 - Phase L Semantic Closure Hardening: Strict-on-Validated Named Path
+### ✅ Achievement Summary
+Hardened non-bootstrap named semantic annotation handling so backend-validated directives must use generated parse-tree conversion, while keeping compatibility fallback only for backend-rejected named payloads.
+
+### Scope of Changes
+- Non-bootstrap named semantic policy update:
+  - `rust/src/ast_pipeline/mod.rs`
+  - `parse_semantic_annotation_entry(...)` now threads backend-parseability status into named payload parsing.
+  - `parse_semantic_annotation_ast(...)` now:
+    - requires generated parse-tree conversion when backend parseability is true,
+    - preserves `semantic_named_ast` fallback only when backend parseability is false.
+- Error-surface and conversion plumbing:
+  - `parse_semantic_annotation_with_generated_parser(...)` now returns `Result<Option<(name, ast)>>` with explicit conversion/parser error context for strict paths.
+  - Non-directive legacy semantic strings remain raw in non-bootstrap mode (no marker fallback), unchanged.
+- Regression coverage:
+  - added `transform_from_raw_ast_nonbootstrap_named_semantic_preserves_payload_when_backend_rejects` in `mod.rs` tests.
+  - verifies malformed named payloads remain preserved as raw payload under the named directive when backend parseability fails.
+
+### Validation Results
+- `cd rust && cargo test --features generated_parsers --lib transform_from_raw_ast_nonbootstrap_named_semantic_preserves_payload_when_backend_rejects -- --nocapture` ✅
+- `cd rust && cargo test --lib transform_from_raw_ast_ -- --nocapture` ✅
+- `cd rust && make semantic_runtime_contract_gate` ✅
+- `cd rust && make annotation_nonbootstrap_e2e_gate` ✅
+
 ## 2026-02-22 - Phase L Typed-AST Closure Proof Upgrade (Return Closed, Semantic Advanced)
 ### ✅ Achievement Summary
 Promoted return typed-AST closure to complete with full generated-pass corpus proof, and advanced semantic typed-AST closure with a corpus-level generated conversion contract test that checks entry/direct parity and canonical reconstruction stability.
