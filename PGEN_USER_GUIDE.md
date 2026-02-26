@@ -1729,6 +1729,10 @@ Tracked baselines:
   - executes `EBNF -> JSON -> parser/stimuli` readiness checks for `ebnf/json/regex` grammars
 - `ebnf_frontend_gate` (local strict target)
   - same checks, but fails on any grammar-flow failure
+- `ebnf_frontend_dual_run_diff` (local report target)
+  - executes Perl-vs-Rust (`generated/ebnf.rs`) frontend differential report for `ebnf/json/regex`
+- `ebnf_frontend_dual_run_gate` (local strict target)
+  - same dual-run differential checks, but fails on any mismatch/failure
 - `performance-gate`
   - throughput/latency/failure thresholds
 - `differential-regression-gate`
@@ -1759,12 +1763,22 @@ Workflow files:
 - `.github/workflows/performance-gate.yml`
 - `.github/workflows/differential-regression-gate.yml`
 - `.github/workflows/sota-exit-gate.yml`
+- `.github/workflows/ebnf-frontend-dual-run-diff.yml`
 
 EBNF frontend readiness commands:
 ```bash
 make -C rust SHELL=/bin/bash ebnf_frontend_readiness
 make -C rust SHELL=/bin/bash ebnf_frontend_gate
 ```
+
+EBNF frontend dual-run commands:
+```bash
+make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff
+make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate
+```
+
+Aggregate SOTA policy note:
+- dual-run strict mode is required by default in `rust/config/sota_exit_policy.env` (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`).
 
 Annotation contract/robustness commands:
 ```bash

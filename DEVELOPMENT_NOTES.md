@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-26 - Aggregate SOTA Policy Promotion: EBNF Dual-Run Strict Required
+### Context
+Dual-run differential (`Perl ebnf_to_json.pl` vs Rust `generated/ebnf.rs`) was already implemented and available in both report and strict modes, but aggregate SOTA policy still treated it as informational (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=0`).
+
+With strict gate runs now passing on tracked grammars (`ebnf/json/regex`), policy could be promoted to required enforcement.
+
+### Implementation
+Primary files:
+- `rust/config/sota_exit_policy.env`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+- `CHANGES.md`
+
+Changes:
+- policy flip:
+  - `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT: 0 -> 1`
+- effect in aggregate gate:
+  - `rust/scripts/sota_exit_gate.sh` already supports required-vs-informational selection based on this policy variable.
+  - with value `1`, aggregate runs execute `ebnf_frontend_dual_run_gate` as required.
+- docs updated to reflect:
+  - dual-run gate is now required by default in aggregate policy,
+  - local dual-run commands and workflow references remain explicit for operators/users.
+
+### Validation
+Executed:
+- `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
+- focused aggregate policy-path run:
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=1 PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT=1 bash rust/scripts/sota_exit_gate.sh`
+
+Results:
+- strict dual-run gate: pass.
+- focused aggregate policy-path check: pass, with dual-run enforced as required.
+
 ## 2026-02-26 - Phase M Parseability Promotion: EBNF Required Parseability Path
 ### Context
 Phase M parseability promotion had moved built-in annotation grammars (`builtin_return_annotation`, `builtin_semantic_annotation`) to required parseability, but non-annotation `ebnf` was still contract-marked optional.  

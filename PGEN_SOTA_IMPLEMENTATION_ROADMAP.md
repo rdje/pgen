@@ -209,6 +209,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-26: Promoted Perl-vs-Rust EBNF dual-run differential from informational/report mode to required strict aggregate SOTA policy check (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`) after strict gate validation passed on tracked grammars (`ebnf/json/regex`).
 - 2026-02-26: Advanced Phase M parseability promotion beyond annotation grammars by adding an `ebnf` generated-parser adapter in `parser_registry`, promoting `ebnf` to required parseability in `ebnf_stimuli_contract.json`, and hardening `ebnf_stimuli_quality_gate` with explicit `generated/ebnf.rs` bootstrap + `ebnf_dual_run` rebuild for executable enforcement.
 - 2026-02-22: Closed Phase L semantic typed-AST closure item after full aggregate validation (`annotation_typed_ast_gate`) with strict generated conversion for backend-validated named semantic directives, corpus-level generated semantic conversion contracts, and non-bootstrap E2E pass.
 - 2026-02-22: Hardened non-bootstrap named semantic extraction policy: enforce generated parse-tree conversion for backend-validated named directives and keep compatibility fallback only for backend-rejected named payloads; added regression coverage and validated with `annotation_nonbootstrap_e2e_gate`.
