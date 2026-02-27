@@ -228,9 +228,14 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
 - [x] Add dual-LRM source ingestion tooling/workspaces for clause-based conversion (`PDF -> section txt -> section md -> grammar extraction`) targeting IEEE 1800-2023 and IEEE 1076-2019.
   - Progress (2026-02-27): added adapted scripts under `tools/` (`split_sections.py`, `txt_to_md_converter.py`, `extract_grammar.py`, `extract_grammar_v2.py`, `create_clean_grammar.py`, `ieee_lrm_converter.py`) and local workspaces under `docs/systemverilog/` and `docs/vhdl/`.
-- [ ] Build syntax-closure burn-down loop:
+- [x] Build syntax-closure burn-down loop:
   - grow `systemverilog.ebnf` clause-by-clause under deterministic no-regression gates.
   - Progress (2026-02-27): first syntax-consistency hardening step complete: unresolved symbol references reduced to zero in the current seed grammar.
+  - Progress (2026-02-27): added deterministic `sv_syntax_closure_gate` (`rust/scripts/sv_syntax_closure_gate.sh`) + contract manifest (`rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`) enforcing no-regression syntax baselines:
+    - parser generation must remain executable,
+    - unresolved rule references capped (`max_unresolved_rule_references=0`),
+    - entry rule and rule-name uniqueness invariants,
+    - reachable/unreachable rule/branch thresholds from deterministic gap summary.
 - [ ] Build semantic-closure profile and validator pass for generated SV stimuli:
   - declaration-before-use,
   - scope/package import resolution,
@@ -325,6 +330,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Closed Phase P syntax-closure burn-down loop by adding `sv_syntax_closure_gate` with contractized no-regression thresholds (parser generation viability, unresolved refs, entry-rule/rule-name invariants, reachable/unreachable summary caps).
 - 2026-02-27: Promoted `sv_stimuli_quality_gate` from skeleton to deterministic closed-loop baseline with per-profile `coverage/gap -> target-driven replay` stages, contractized closed-loop controls (`systemverilog_core_v0_contract.json` v4), and non-increasing target-debt enforcement.
 - 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.
 - 2026-02-27: Added initial executable `grammars/vhdl.ebnf` seed grammar and turned strict HDL frontend readiness (`make hdl_frontend_gate`) green for both tracked HDL grammars.

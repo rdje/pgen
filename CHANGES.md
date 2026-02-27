@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Syntax Closure: Added `sv_syntax_closure_gate` No-Regression Contract
+### ✅ Achievement Summary
+Implemented a deterministic syntax-closure burn-down gate for `systemverilog.ebnf` so clause-by-clause grammar growth is guarded by explicit no-regression thresholds instead of manual checks.
+
+### Scope of Changes
+- Added new gate script:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_syntax_closure_gate.sh`
+  - deterministic flow:
+    - `EBNF -> JSON -> parser` generation
+    - syntax-probe stimuli pass with `coverage/gap` summary output
+    - unresolved reference extraction from grammar AST
+  - enforced contract metrics:
+    - `min_total_rules`
+    - `min_reachable_rules`
+    - `max_unresolved_rule_references`
+    - `require_unique_rule_names`
+    - `require_entry_rule_defined`
+    - `max_unreachable_rules`
+    - `max_unreachable_branches`
+- Added syntax-closure contract manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`
+- Added Make target and help text:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - new target: `make -C rust sv_syntax_closure_gate`
+- Updated planning/docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - marked syntax-closure burn-down loop as implemented.
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+    - documented command, env tuning, and contract semantics.
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_syntax_closure_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_syntax_closure_gate` ✅
+
 ## 2026-02-27 - Phase P Closure Step: Promote `sv_stimuli_quality_gate` to Deterministic Closed-Loop Baseline
 ### ✅ Achievement Summary
 Promoted `sv_stimuli_quality_gate` from preprocess-first skeleton mode to a deterministic closed-loop SV quality gate with contractized `coverage/gap -> replay` enforcement, while preserving per-sample preprocess/semantic/parse-full checks for both SV LRM profiles (`2017`, `2023`).

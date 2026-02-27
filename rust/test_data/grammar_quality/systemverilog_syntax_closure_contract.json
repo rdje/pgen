@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "description": "Deterministic syntax-closure burn-down contract for systemverilog.ebnf (no-regression baseline).",
+  "grammar_name": "systemverilog",
+  "ebnf_path": "grammars/systemverilog.ebnf",
+  "entry_rule": "systemverilog_file",
+  "pipeline": {
+    "stimuli_seed": 24001,
+    "stimuli_count": 1,
+    "gap_report_threshold": 1
+  },
+  "constraints": {
+    "min_total_rules": 366,
+    "min_reachable_rules": 365,
+    "max_unresolved_rule_references": 0,
+    "require_unique_rule_names": true,
+    "require_entry_rule_defined": true,
+    "max_unreachable_rules": 1,
+    "max_unreachable_branches": 0
+  }
+}

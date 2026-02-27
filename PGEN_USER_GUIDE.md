@@ -1954,6 +1954,11 @@ SV parser/stimuli preprocess-first closed-loop command:
 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
 ```
 
+SV syntax-closure burn-down no-regression command:
+```bash
+make -C rust SHELL=/bin/bash sv_syntax_closure_gate
+```
+
 Stimuli-module parity command:
 ```bash
 make -C rust SHELL=/bin/bash stimuli_module_parity_gate
@@ -2020,6 +2025,10 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
 
+Optional SV syntax-closure gate tuning:
+- `PGEN_SV_SYNTAX_CLOSURE_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`)
+- `PGEN_SV_SYNTAX_CLOSURE_STATE_DIR` (default `rust/target/sv_syntax_closure_gate`)
+
 `sv_stimuli_quality_gate` closed-loop stage contract:
 - per-profile closed loop:
   - `coverage/gap(initial) -> target-driven replay -> non-increasing target debt check`.
@@ -2042,6 +2051,16 @@ Optional SV stimuli quality-gate tuning:
   - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,
   - `1`: required and strict (fails gate if adapter is unavailable or if any sample parse-full rejects).
+
+`sv_syntax_closure_gate` no-regression contract:
+- deterministic flow:
+  - `EBNF -> JSON -> parser` + one-pass deterministic syntax probe (`coverage/gap` summary).
+- contract-enforced invariants:
+  - unresolved rule-reference budget (`max_unresolved_rule_references`),
+  - entry-rule defined and unique rule-name constraints,
+  - reachable/unreachable rule and branch summary caps.
+- default contract artifact:
+  - `rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`
 
 Optional stimuli-module parity-gate tuning:
 - `PGEN_STIMULI_MODULE_PARITY_COUNT` (default `16`)

@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Syntax Burn-Down: Deterministic `sv_syntax_closure_gate`
+### Context
+Phase P required a deterministic no-regression loop for syntax closure of `grammars/systemverilog.ebnf` so incremental clause additions are objectively gated.
+
+Before this increment:
+- unresolved-reference status and closure drift were primarily tracked manually (`SV_GRAMMAR_COVERAGE_MATRIX.md`) plus ad hoc checks.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_syntax_closure_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`
+
+#### 1) Added dedicated syntax-closure gate script
+New gate executes deterministic syntax viability stages:
+1. `EBNF -> JSON` via `ebnf_to_json.pl`
+2. `JSON -> parser` via `ast_pipeline --generate-parser`
+3. deterministic syntax probe (`--generate-stimuli` with fixed seed/count) emitting:
+   - coverage summary JSON
+   - gap report JSON/TXT
+4. unresolved rule-reference extraction directly from grammar AST JSON.
+
+#### 2) Added contractized no-regression thresholds
+Contract file `systemverilog_syntax_closure_contract.json` defines:
+- grammar identity and entry rule,
+- deterministic probe params (`stimuli_seed`, `stimuli_count`, `gap_report_threshold`),
+- hard constraints:
+  - unresolved rule reference budget,
+  - minimum total/reachable rule counts,
+  - maximum unreachable rules/branches,
+  - unique rule-name and entry-rule-defined invariants.
+
+This turns syntax closure from implicit/manual expectations into executable contract checks.
+
+#### 3) Wiring and documentation
+- Added Make target:
+  - `make -C rust sv_syntax_closure_gate`
+- Updated roadmap:
+  - Phase P syntax-closure burn-down loop now marked implemented.
+- Updated UG with:
+  - command usage,
+  - env knobs,
+  - contract semantics.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_syntax_closure_gate.sh`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_syntax_closure_gate`
+
+Observed:
+- gate passes on current grammar baseline,
+- summary artifacts include deterministic metrics and explicit pass/fail constraint accounting.
+
 ## 2026-02-27 - Phase P: `sv_stimuli_quality_gate` Closed-Loop Promotion (Contract v4)
 ### Context
 The roadmap item to freeze `systemverilog_core_v0` and move `sv_stimuli_quality_gate` beyond skeleton status required explicit `coverage/gap/replay` wiring with deterministic policy controls.

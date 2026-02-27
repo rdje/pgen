@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-closed-loop-freeze)
+Last updated: 2026-02-27 (+0100, task: phase-p-syntax-closure-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV closed-loop contract/gate freeze increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV syntax-closure gate increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `158`
+- Commit count at last refresh (before current uncommitted changes): `159`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- e86f217 Promote SV stimuli gate to closed-loop baseline and freeze systemverilog_core_v0 v4
 - f465acf Nexsim HDL closure: parser replay gate hardening and API convenience wrappers
 - fb4dc4e Harden embedding API ergonomics for zero-friction Rust and FFI use
 - 34d1f4f Add parser-profile embedding API scaffold for Nexsim integration
@@ -200,6 +201,24 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P syntax-closure burn-down loop implementation
+- Root cause:
+  - Phase P still lacked an executable deterministic no-regression gate specifically for SystemVerilog syntax closure; closure state was mostly tracked by docs/manual scans.
+- Fix:
+  - added `rust/scripts/sv_syntax_closure_gate.sh` and contract `rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`.
+  - gate enforces:
+    - parser generation viability (`EBNF -> JSON -> parser`),
+    - unresolved reference budget,
+    - unique rule names + entry-rule presence,
+    - reachable/unreachable rule+branch caps from deterministic gap summary.
+  - added Make target: `make -C rust sv_syntax_closure_gate`.
+  - updated roadmap/UG to mark syntax burn-down loop as implemented and documented.
+- Validation:
+  - `bash -n rust/scripts/sv_syntax_closure_gate.sh`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_syntax_closure_gate`
+- Status:
+  - Phase P syntax closure now has an executable, contractized burn-down gate.
 
 ### 2026-02-27: Phase P `systemverilog_core_v0` freeze and `sv_stimuli_quality_gate` closed-loop promotion
 - Root cause:
