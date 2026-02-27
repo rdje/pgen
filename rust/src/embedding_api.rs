@@ -1,5 +1,5 @@
 use crate::ast_pipeline::{
-    UnifiedReturnAST, UnifiedSemanticAST, runtime_logger, runtime_logger_box,
+    runtime_logger, runtime_logger_box, UnifiedReturnAST, UnifiedSemanticAST,
 };
 use serde::{Deserialize, Serialize};
 
@@ -256,16 +256,12 @@ mod tests {
         let contract = embedding_api_contract();
         assert_eq!(contract.api_version, EMBEDDING_API_VERSION);
         assert_eq!(contract.schema_version, EMBEDDING_API_SCHEMA_VERSION);
-        assert!(
-            contract
-                .supported_families
-                .contains(&AnnotationFamily::Return)
-        );
-        assert!(
-            contract
-                .supported_families
-                .contains(&AnnotationFamily::Semantic)
-        );
+        assert!(contract
+            .supported_families
+            .contains(&AnnotationFamily::Return));
+        assert!(contract
+            .supported_families
+            .contains(&AnnotationFamily::Semantic));
     }
 
     #[test]

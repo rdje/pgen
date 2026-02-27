@@ -699,11 +699,19 @@ fn is_semantic_reference(value: &str) -> bool {
 }
 
 fn sorted_numeric_bounds(a: f64, b: f64) -> (f64, f64) {
-    if a <= b { (a, b) } else { (b, a) }
+    if a <= b {
+        (a, b)
+    } else {
+        (b, a)
+    }
 }
 
 fn sorted_len_bounds(a: usize, b: usize) -> (usize, usize) {
-    if a <= b { (a, b) } else { (b, a) }
+    if a <= b {
+        (a, b)
+    } else {
+        (b, a)
+    }
 }
 
 fn strip_optional_quotes(value: &str) -> &str {
@@ -721,16 +729,15 @@ fn strip_optional_quotes(value: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::{
-        SemanticAssociativity, SemanticBranchPolicy, SemanticDirectiveCapability,
-        SemanticTokenClass, UnknownSemanticDirectivePolicy, extract_semantic_directive,
-        extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_bool,
-        parse_semantic_branch_priorities, parse_semantic_charset,
+        extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
+        parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
         parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
         parse_semantic_deterministic_group, parse_semantic_float_list, parse_semantic_group_label,
         parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
         parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_pattern,
         parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
-        semantic_directive_spec,
+        semantic_directive_spec, SemanticAssociativity, SemanticBranchPolicy,
+        SemanticDirectiveCapability, SemanticTokenClass, UnknownSemanticDirectivePolicy,
     };
 
     #[test]

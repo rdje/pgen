@@ -1,14 +1,14 @@
 use super::{
-    ASTNode, ASTValue, Annotations, BranchAnnotation, ExtractionTarget, SemanticAnnotation,
+    extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
+    parse_canonical_transform_expression, parse_semantic_bool, parse_semantic_charset,
+    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
+    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
+    parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
+    parse_semantic_numeric_list, parse_semantic_pattern, parse_semantic_reference_list,
+    parse_semantic_string_list, parse_semantic_token_class, semantic_directive_spec, ASTNode,
+    ASTValue, Annotations, BranchAnnotation, ExtractionTarget, SemanticAnnotation,
     SemanticAssociativity, SemanticBranchPolicy, UnifiedReturnAST, UnifiedSemanticAST,
-    UnknownSemanticDirectivePolicy, extract_semantic_directive, extract_semantic_directive_name,
-    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_charset, parse_semantic_constraint_expression,
-    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
-    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
-    parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
-    parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_string_list,
-    parse_semantic_token_class, semantic_directive_spec,
+    UnknownSemanticDirectivePolicy,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -2188,12 +2188,10 @@ mod tests {
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
         assert!(report.has_errors());
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "E_RET_POS_ZERO")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "E_RET_POS_ZERO"));
     }
 
     #[test]
@@ -2209,12 +2207,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_RET_UNPARSED" && d.severity == AnnotationSeverity::Warning)
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_RET_UNPARSED" && d.severity == AnnotationSeverity::Warning));
     }
 
     #[test]
@@ -2222,12 +2218,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "number".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<u32>().unwrap_or(0)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<u32>().unwrap_or(0)".to_string(),
+            }
+            .into()],
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
@@ -2240,12 +2234,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "number".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "parse(value)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "parse(value)".to_string(),
+            }
+            .into()],
         );
 
         let report = AnnotationValidator::new(AnnotationValidatorConfig {
@@ -2257,13 +2249,11 @@ mod tests {
         .validate_annotations(&annotations);
 
         assert!(report.has_errors());
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_NON_CANONICAL_TRANSFORM"
-                    && d.severity == AnnotationSeverity::Error)
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_NON_CANONICAL_TRANSFORM"
+                && d.severity == AnnotationSeverity::Error));
     }
 
     #[test]
@@ -2287,13 +2277,11 @@ mod tests {
         })
         .validate_annotations(&annotations);
 
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
-                    && d.severity == AnnotationSeverity::Warning)
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
+                && d.severity == AnnotationSeverity::Warning));
     }
 
     #[test]
@@ -2456,12 +2444,10 @@ mod tests {
         .validate_annotations(&annotations);
 
         assert!(report.has_errors());
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "E_RET_POS_OUT_OF_RANGE")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "E_RET_POS_OUT_OF_RANGE"));
     }
 
     #[test]
@@ -2498,12 +2484,10 @@ mod tests {
 
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_RET_POS_RULE_BOUND")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_RET_POS_RULE_BOUND"));
     }
 
     #[test]
@@ -2530,12 +2514,10 @@ mod tests {
 
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_RET_BRANCH_NOT_SEQUENCE")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_RET_BRANCH_NOT_SEQUENCE"));
     }
 
     #[test]
@@ -2572,12 +2554,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_PRIORITY_PAYLOAD")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_PRIORITY_PAYLOAD"));
     }
 
     #[test]
@@ -2614,30 +2594,22 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_RANGE_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_LEN_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_ENUM_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_REGEX_PAYLOAD")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_RANGE_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_LEN_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_ENUM_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_REGEX_PAYLOAD"));
     }
 
     #[test]
@@ -2668,24 +2640,18 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_CONSTRAINT_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_REQUIRES_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_IMPLIES_PAYLOAD")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_CONSTRAINT_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_REQUIRES_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_IMPLIES_PAYLOAD"));
     }
 
     #[test]
@@ -2794,102 +2760,70 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_RECOVER_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_SYNC_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_PANIC_UNTIL_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_INVALID_CASE_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_NEGATIVE_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_SEED_GROUP_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_TOKEN_CLASS_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_CHARSET_PAYLOAD")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_PATTERN_PAYLOAD")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_RECOVER_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_SYNC_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_RECOVER_BUDGET_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_RECOVER_PARSE_BUDGET_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_RECOVER_GLOBAL_BUDGET_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_PANIC_UNTIL_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_COVERAGE_TARGET_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_CRITICAL_PATH_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_INVALID_CASE_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_NEGATIVE_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_SEED_GROUP_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_DETERMINISTIC_GROUP_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_TOKEN_CLASS_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_CHARSET_PAYLOAD"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_PATTERN_PAYLOAD"));
     }
 
     #[test]
@@ -2906,12 +2840,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD"));
     }
 
     #[test]
@@ -2942,12 +2874,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_INVALID_BRANCH_POLICY_PAYLOAD"));
     }
 
     #[test]
@@ -2978,24 +2908,18 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER")
-        );
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER"));
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER"));
     }
 
     #[test]
@@ -3012,12 +2936,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET"));
     }
 
     #[test]
@@ -3042,12 +2964,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_CRITICAL_PATH_WITHOUT_COVERAGE_TARGET"));
     }
 
     #[test]
@@ -3064,12 +2984,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE"));
     }
 
     #[test]
@@ -3094,12 +3012,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_NEGATIVE_WITHOUT_INVALID_CASE"));
     }
 
     #[test]
@@ -3116,12 +3032,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP"));
     }
 
     #[test]
@@ -3146,12 +3060,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_SEED_GROUP_WITHOUT_DETERMINISTIC_GROUP"));
     }
 
     #[test]
@@ -3176,12 +3088,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RECOVERY_HINT_WITHOUT_RECOVER")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVERY_HINT_WITHOUT_RECOVER"));
     }
 
     #[test]
@@ -3224,30 +3134,22 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RECOVERY_HINT_WITHOUT_RECOVER")
-        );
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER")
-        );
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER")
-        );
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVERY_HINT_WITHOUT_RECOVER"));
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVER_BUDGET_WITHOUT_RECOVER"));
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVER_PARSE_BUDGET_WITHOUT_RECOVER"));
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RECOVER_GLOBAL_BUDGET_WITHOUT_RECOVER"));
     }
 
     #[test]
@@ -3272,12 +3174,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT"));
     }
 
     #[test]
@@ -3302,12 +3202,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT"));
     }
 
     #[test]
@@ -3332,12 +3230,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_PRIORITY_PRECEDENCE_CONFLICT")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_PRIORITY_PRECEDENCE_CONFLICT"));
     }
 
     #[test]
@@ -3362,12 +3258,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_DIRECTIVE_OVERRIDDEN")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_DIRECTIVE_OVERRIDDEN"));
     }
 
     #[test]
@@ -3398,12 +3292,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_TOKEN_STEERING_PRECEDENCE")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_TOKEN_STEERING_PRECEDENCE"));
     }
 
     #[test]
@@ -3428,12 +3320,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
     }
 
     #[test]
@@ -3458,12 +3348,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
     }
 
     #[test]
@@ -3494,12 +3382,10 @@ mod tests {
         );
 
         let report = AnnotationValidator::default().validate_annotations(&annotations);
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_UNSATISFIABLE_VALUE_DOMAIN"));
     }
 
     #[test]
@@ -3527,12 +3413,10 @@ mod tests {
 
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM"));
     }
 
     #[test]
@@ -3568,12 +3452,10 @@ mod tests {
 
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM"));
     }
 
     #[test]
@@ -3675,12 +3557,10 @@ mod tests {
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
 
-        assert!(
-            !report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_GRAM_AMBIGUOUS_PREFIX")
-        );
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_GRAM_AMBIGUOUS_PREFIX"));
     }
 
     #[test]
@@ -3743,14 +3623,12 @@ mod tests {
         let report = AnnotationValidator::default()
             .validate_annotations_with_grammar(&annotations, &grammar_tree);
 
-        assert!(
-            report
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "W_GRAM_FIRST_SET_OVERLAP"
-                    && d.kind == AnnotationKind::Grammar
-                    && d.rule_name == "statement")
-        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "W_GRAM_FIRST_SET_OVERLAP"
+                && d.kind == AnnotationKind::Grammar
+                && d.rule_name == "statement"));
     }
 
     #[test]

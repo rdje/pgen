@@ -1,15 +1,16 @@
 use super::{
-    ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
-    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
-    TraceVerbosity, UnifiedSemanticAST, extract_semantic_directive, global_trace_verbosity,
-    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_branch_priorities, parse_semantic_charset, parse_semantic_constraint_expression,
+    extract_semantic_directive, global_trace_verbosity, normalize_semantic_scalar,
+    parse_canonical_transform_expression, parse_semantic_bool, parse_semantic_branch_priorities,
+    parse_semantic_charset, parse_semantic_constraint_expression,
     parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
     parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
     parse_semantic_numeric_bounds, parse_semantic_pattern, parse_semantic_reference_list,
-    parse_semantic_string_list, parse_semantic_token_class, stimuli_hint_for_target_type,
+    parse_semantic_string_list, parse_semantic_token_class, stimuli_hint_for_target_type, ASTNode,
+    ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy,
+    SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel, TraceVerbosity,
+    UnifiedSemanticAST,
 };
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
@@ -2321,7 +2322,11 @@ impl<'a> StimuliGenerator<'a> {
                     return 0;
                 };
                 if token_type == "rule_reference" {
-                    if token_value == current_rule { 2 } else { 1 }
+                    if token_value == current_rule {
+                        2
+                    } else {
+                        1
+                    }
                 } else {
                     0
                 }
@@ -3230,7 +3235,11 @@ impl<'a> StimuliGenerator<'a> {
         state ^= state >> 33;
         state = state.wrapping_mul(0xC4CE_B9FE_1A85_EC53);
         state ^= state >> 33;
-        if state == 0 { 1 } else { state }
+        if state == 0 {
+            1
+        } else {
+            state
+        }
     }
 
     fn relational_attempt_budget(&self) -> usize {
@@ -5074,24 +5083,18 @@ mod tests {
             .generate_gap_report(Some("start"), 1)
             .expect("gap report generation should succeed");
 
-        assert!(
-            report
-                .unreachable_rule_debt
-                .iter()
-                .any(|debt| debt.rule_name == "unreachable")
-        );
-        assert!(
-            report
-                .unreachable_branch_debt
-                .iter()
-                .any(|debt| debt.rule_name == "unreachable")
-        );
-        assert!(
-            report
-                .targets
-                .iter()
-                .all(|target| target.rule_name != "unreachable")
-        );
+        assert!(report
+            .unreachable_rule_debt
+            .iter()
+            .any(|debt| debt.rule_name == "unreachable"));
+        assert!(report
+            .unreachable_branch_debt
+            .iter()
+            .any(|debt| debt.rule_name == "unreachable"));
+        assert!(report
+            .targets
+            .iter()
+            .all(|target| target.rule_name != "unreachable"));
     }
 
     #[test]
@@ -5243,12 +5246,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9090);
@@ -5274,21 +5275,17 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "float_rule".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
+            }
+            .into()],
         );
         annotations.semantic_annotations.insert(
             "bool_rule".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
+            }
+            .into()],
         );
 
         let mut float_generator =
@@ -5315,12 +5312,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9094);
@@ -5339,12 +5334,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9095);
@@ -5370,12 +5363,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![
-                UnifiedSemanticAST::Raw {
-                    content: "\"literal-token\"".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::Raw {
+                content: "\"literal-token\"".to_string(),
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9093);
