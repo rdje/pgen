@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-02-27 - Promoted Aggregate HDL Readiness Policy to Required Strict
+### ✅ Achievement Summary
+Raised aggregate SOTA policy for HDL readiness from informational to required strict after both tracked HDL seed grammars (`systemverilog`, `vhdl`) passed strict frontend gate checks.
+
+### Scope of Changes
+- Updated machine policy defaults:
+  - `rust/config/sota_exit_policy.env`
+  - set:
+    - `PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1`
+    - (kept) `PGEN_SOTA_POLICY_RUN_HDL_FRONTEND_READINESS=1`
+- Updated roadmap and docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with strict-promotion progress.
+  - `PGEN_USER_GUIDE.md` to reflect current aggregate strict HDL default.
+
+### Validation Results
+- scoped aggregate run (HDL strict now policy-default):
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 make -C rust SHELL=/bin/bash sota_exit_gate` ✅
+  - confirms aggregate summary records `hdl_frontend_gate` as required and passing.
+
 ## 2026-02-27 - Added `grammars/vhdl.ebnf` Seed Grammar and Closed Strict HDL Readiness Gap
 ### ✅ Achievement Summary
 Added an executable VHDL seed grammar and turned strict HDL frontend readiness green for both tracked HDL grammars (`systemverilog`, `vhdl`).

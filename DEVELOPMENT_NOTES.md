@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Aggregate HDL Readiness Policy Promotion to Required Strict
+### Context
+After `grammars/vhdl.ebnf` was added and strict `hdl_frontend_gate` turned green for both tracked HDL grammars, Phase O policy needed promotion from informational to required strict in aggregate SOTA runs.
+
+### Implementation
+Primary files:
+- `rust/config/sota_exit_policy.env`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+Policy change:
+- `PGEN_SOTA_POLICY_RUN_HDL_FRONTEND_READINESS=1` (unchanged)
+- `PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1` (promoted from `0` to `1`)
+
+Resulting aggregate behavior:
+- `sota_exit_gate` now executes `hdl_frontend_gate` as a required check by default.
+
+### Validation
+Executed scoped aggregate probe:
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract`
+- `PGEN_SOTA_RUN_EBNF_READINESS=0`
+- `PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0`
+- `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0`
+- `PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0`
+- `make -C rust SHELL=/bin/bash sota_exit_gate`
+
+Observed:
+- aggregate summary includes `hdl_frontend_gate` as `required`,
+- required checks remain green with strict HDL mode enabled by policy default.
+
 ## 2026-02-27 - Added Initial `vhdl.ebnf` Seed and Closed Strict HDL Frontend Gap
 ### Context
 Phase O still had one open blocker: strict HDL frontend gate could not pass because `grammars/vhdl.ebnf` did not exist.

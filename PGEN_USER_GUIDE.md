@@ -1897,6 +1897,7 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
   - `grammars/systemverilog.ebnf` passes `EBNF -> JSON -> parser -> stimuli`.
   - `grammars/vhdl.ebnf` passes `EBNF -> JSON -> parser -> stimuli` (initial seed baseline).
   - strict HDL gate (`make -C rust SHELL=/bin/bash hdl_frontend_gate`) is now green for both tracked grammars.
+  - aggregate policy default now promotes HDL readiness to strict required mode (`PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1`).
 - SystemVerilog syntax-closure tracking artifact:
   - `SV_GRAMMAR_COVERAGE_MATRIX.md`
   - contains Annex-A-aligned anchor mapping, grouped per-rule coverage status, and explicit unresolved-reference closure debt for the current seed grammar.

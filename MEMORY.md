@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: vhdl seed grammar + strict HDL gate)
+Last updated: 2026-02-27 (+0100, task: HDL aggregate strict promotion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for `vhdl.ebnf` seed grammar + synced docs/roadmap updates; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for HDL aggregate strict-policy promotion + synced docs/roadmap updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,21 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Promoted aggregate HDL readiness to required strict
+- Root cause:
+  - after strict HDL gate turned green for both tracked grammars, aggregate policy was still informational for HDL readiness.
+- Fix:
+  - set `PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1` in `rust/config/sota_exit_policy.env`.
+  - updated roadmap/user-guide/doc logs to reflect strict promotion.
+- Validation:
+  - scoped aggregate run with required baseline + HDL strict path:
+    - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract`
+    - `PGEN_SOTA_RUN_EBNF_READINESS=0`
+    - `PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0`
+    - `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0`
+    - `PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0`
+    - `make -C rust SHELL=/bin/bash sota_exit_gate`
 
 ### 2026-02-27: Added `vhdl.ebnf` seed grammar and turned strict HDL readiness green
 - Root cause:
@@ -508,13 +523,11 @@ Use this file to resume work without replaying full chat history.
    - move from preprocess-diagnostics baseline to explicit SV semantic contract checks (declaration/use, binding legality, scoped references).
 2. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
    - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
-3. Promote HDL aggregate mode to strict now that both HDL grammars pass strict gate:
-   - set `PGEN_SOTA_REQUIRE_HDL_FRONTEND_STRICT=1`.
-4. Continue Rust-native EBNF migration hardening:
+3. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-5. Expand parser-registry coverage beyond annotations/ebnf:
+4. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-6. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+5. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
