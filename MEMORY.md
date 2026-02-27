@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-mode-semantic-overrides)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-mode-recovery-steering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV mode-level semantic override increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV mode-level recovery steering increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `165`
+- Commit count at last refresh (before current uncommitted changes): `166`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 1b10f2a Add mode-level semantic override profiles to SV stimuli gate (contract v9)
 - 53d7881 Extend SV context legality baseline with generate-loop genvar checks
 - d840b68 Add SV semantic baseline port-binding legality toggle (contract v8)
 - a8a99b3 Harden SV closed-loop gate with deterministic failure replay/shrinking (contract v7)
@@ -207,6 +208,26 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P stimuli-mode recovery steering (contract v10)
+- Root cause:
+  - stimuli modes were present, but per-mode recovery strategy steering was not contractized/routed to generator invocations.
+- Fix:
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - added `stimuli_modes.profiles.<mode>.recovery_stimuli_mode` resolution + validation,
+    - forwarded `--recovery-stimuli-mode` on closed-loop initial/replay and per-sample generation calls,
+    - exposed effective `stimuli_mode_recovery_stimuli_mode` in gate summary header.
+  - bumped `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `v10`:
+    - `sv_file.recovery_stimuli_mode = baseline`
+    - `sv_snippet.recovery_stimuli_mode = near_sync_negative`
+  - updated roadmap + UG documentation for mode-level recovery steering.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - mode-level stimuli steering now includes deterministic recovery strategy selection; further annotation-driven branch/value steering expansion remains pending.
 
 ### 2026-02-27: Phase P stimuli-mode semantic overrides (contract v9)
 - Root cause:

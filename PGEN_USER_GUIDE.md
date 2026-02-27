@@ -2042,11 +2042,21 @@ Optional SV syntax-closure gate tuning:
   - `sv_file`:
     - entry rule: `systemverilog_file`,
     - closed-loop enabled by default,
-    - parse-full eligible.
+    - parse-full eligible,
+    - default recovery stimuli mode: `baseline`.
   - `sv_snippet`:
     - entry rule: `source_item`,
     - closed-loop disabled by default,
-    - parse-full ineligible (auto mode skips parse-full; strict parse-full mode errors out).
+    - parse-full ineligible (auto mode skips parse-full; strict parse-full mode errors out),
+    - default recovery stimuli mode: `near_sync_negative`.
+  - mode-level recovery steering:
+    - optional profile key:
+      - `stimuli_modes.profiles.<mode>.recovery_stimuli_mode`
+    - allowed values:
+      - `baseline`
+      - `recovery_biased`
+      - `near_sync_negative`
+    - gate forwards this to all mode-run stimuli generation calls via `--recovery-stimuli-mode`.
   - mode-level semantic overrides:
     - optional profile key:
       - `stimuli_modes.profiles.<mode>.semantic_overrides.<semantic_baseline_toggle>`

@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Stimuli Modes: Added Mode-Level Recovery Steering (v10)
+### ✅ Achievement Summary
+Extended SV stimuli mode profiles with contractized recovery steering so each mode can deterministically select a stimuli-generation strategy.
+
+### Scope of Changes
+- Updated mode steering in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - added mode key resolution:
+    - `stimuli_modes.profiles.<mode>.recovery_stimuli_mode`
+  - supported values:
+    - `baseline`
+    - `recovery_biased`
+    - `near_sync_negative`
+  - gate now passes mode-selected `--recovery-stimuli-mode` to all stimuli generation paths:
+    - closed-loop initial run
+    - closed-loop replay run
+    - per-sample generation run
+- Updated contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `9 -> 10`
+  - initial profile policy:
+    - `sv_file.recovery_stimuli_mode = baseline`
+    - `sv_snippet.recovery_stimuli_mode = near_sync_negative`
+- Updated planning/docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Stimuli Modes: Added Mode-Level Semantic Override Profiles (v9)
 ### ✅ Achievement Summary
 Added mode-level semantic strictness control for SV stimuli gate so `sv_file` and `sv_snippet` can run different semantic baseline policies from one shared grammar contract.

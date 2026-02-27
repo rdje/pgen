@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Stimuli Modes: Mode-Level Recovery Steering Routing (Contract v10)
+### Context
+Mode-level semantic overrides were in place, but mode-specific steering of the stimuli engine strategy was not yet contractized.
+
+The next step for mode-driven steering was to wire per-mode recovery stimuli strategy selection into the gate.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+#### 1) Added per-mode recovery steering key
+Gate now resolves:
+- `stimuli_modes.profiles.<mode>.recovery_stimuli_mode`
+
+Allowed values are validated strictly:
+- `baseline`
+- `recovery_biased`
+- `near_sync_negative`
+
+#### 2) Routed steering to all stimuli generation paths
+Gate now forwards mode-selected steering to `ast_pipeline` on:
+- closed-loop initial generation,
+- closed-loop replay generation,
+- per-sample generation.
+
+Forwarded flag:
+- `--recovery-stimuli-mode <value>`
+
+#### 3) Contract v10 profile defaults
+Contract bumped `v9 -> v10` with initial mode policy:
+- `sv_file.recovery_stimuli_mode = baseline`
+- `sv_snippet.recovery_stimuli_mode = near_sync_negative`
+
+This yields deterministic mode-specific stimuli strategy without changing generator internals.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- `sv_file` reports `stimuli_mode_recovery_stimuli_mode: baseline`,
+- `sv_snippet` reports `stimuli_mode_recovery_stimuli_mode: near_sync_negative`,
+- both mode runs remain stable.
+
 ## 2026-02-27 - Phase P Stimuli Modes: Mode-Level Semantic Override Wiring (Contract v9)
 ### Context
 Phase P mode support (`sv_file`/`sv_snippet`) existed, but semantic strictness remained globally configured only.

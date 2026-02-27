@@ -586,6 +586,12 @@ fi
 mode_entry_rule="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].entry_rule // (if $mode == "sv_snippet" then "source_item" else "systemverilog_file" end)) | strings' "$CONTRACT_FILE")"
 mode_closed_loop_enabled="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].closed_loop_enabled // ($mode != "sv_snippet")) then 1 else 0 end' "$CONTRACT_FILE")"
 mode_parse_full_eligible="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].parse_full_eligible // ($mode == "sv_file")) then 1 else 0 end' "$CONTRACT_FILE")"
+mode_recovery_stimuli_mode="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].recovery_stimuli_mode // "baseline") | strings' "$CONTRACT_FILE")"
+
+if [[ "$mode_recovery_stimuli_mode" != "baseline" && "$mode_recovery_stimuli_mode" != "recovery_biased" && "$mode_recovery_stimuli_mode" != "near_sync_negative" ]]; then
+    echo "error: unsupported recovery stimuli mode '$mode_recovery_stimuli_mode' for stimuli mode '$stimuli_mode' (supported: baseline, recovery_biased, near_sync_negative)" >&2
+    exit 2
+fi
 
 closed_loop_effective_enabled=0
 if [[ "$closed_loop_enabled" -eq 1 && "$mode_closed_loop_enabled" -eq 1 ]]; then
@@ -689,6 +695,7 @@ echo "stimuli_mode: $stimuli_mode"
 echo "stimuli_mode_entry_rule: $mode_entry_rule"
 echo "stimuli_mode_closed_loop_enabled: $mode_closed_loop_enabled"
 echo "stimuli_mode_parse_full_eligible: $mode_parse_full_eligible"
+echo "stimuli_mode_recovery_stimuli_mode: $mode_recovery_stimuli_mode"
 echo "closed_loop_enabled: $closed_loop_enabled"
 echo "closed_loop_effective_enabled: $closed_loop_effective_enabled"
 echo "closed_loop_gap_report_threshold: $gap_report_threshold"
@@ -812,6 +819,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --count "$sample_count" \
             --seed "$profile_seed_base" \
             --entry-rule "$mode_entry_rule" \
+            --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             --output "$closed_loop_initial_stimuli" \
             --coverage-output "$closed_loop_initial_coverage" \
             --gap-report-json "$closed_loop_initial_gap_json" \
@@ -831,6 +839,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --count "$replay_sample_count" \
             --seed "$closed_loop_replay_seed" \
             --entry-rule "$mode_entry_rule" \
+            --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             --output "$closed_loop_replay_stimuli" \
             --coverage-output "$closed_loop_replay_coverage" \
             --gap-report-json "$closed_loop_replay_gap_json" \
@@ -869,6 +878,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --count 1 \
             --seed "$seed" \
             --entry-rule "$mode_entry_rule" \
+            --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             --output "$sample_file"
         require_nonempty_file "$sample_file"
 
