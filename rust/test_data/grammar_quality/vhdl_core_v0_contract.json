@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "description": "Phase O VHDL pre-merge quality contract for deterministic closed-loop stimuli generation and optional parse-full validation.",
+  "grammar_name": "vhdl",
+  "ebnf_path": "grammars/vhdl.ebnf",
+  "entry_rule": "vhdl_file",
+  "sample_count": 8,
+  "seed_base": 22001,
+  "closed_loop": {
+    "enabled": true,
+    "gap_report_threshold": 1,
+    "target_max_attempts": 5000,
+    "replay_sample_count": 8,
+    "require_non_increasing_target_debt": true
+  }
+}

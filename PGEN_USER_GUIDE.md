@@ -1954,6 +1954,11 @@ SV parser/stimuli preprocess-first closed-loop command:
 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
 ```
 
+VHDL parser/stimuli closed-loop command:
+```bash
+make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate
+```
+
 SV syntax-closure burn-down no-regression command:
 ```bash
 make -C rust SHELL=/bin/bash sv_syntax_closure_gate
@@ -2026,6 +2031,13 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
 
+Optional VHDL stimuli quality-gate tuning:
+- `PGEN_VHDL_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/vhdl_core_v0_contract.json`)
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT` (override contract sample count)
+- `PGEN_VHDL_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
+- `PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_VHDL_STIMULI_QUALITY_STATE_DIR` (default `rust/target/vhdl_stimuli_quality_gate`)
+
 Optional SV syntax-closure gate tuning:
 - `PGEN_SV_SYNTAX_CLOSURE_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`)
 - `PGEN_SV_SYNTAX_CLOSURE_STATE_DIR` (default `rust/target/sv_syntax_closure_gate`)
@@ -2097,6 +2109,22 @@ Optional SV syntax-closure gate tuning:
   - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,
   - `1`: required and strict (fails gate if adapter is unavailable or if any sample parse-full rejects).
+
+`vhdl_stimuli_quality_gate` closed-loop stage contract:
+- deterministic flow:
+  - `EBNF -> JSON -> parser -> coverage/gap(initial) -> target-driven replay -> parse_full(optional)`.
+- contract controls (from `vhdl_core_v0_contract.json`):
+  - `entry_rule`
+  - `sample_count`
+  - `seed_base`
+  - `closed_loop.gap_report_threshold`
+  - `closed_loop.target_max_attempts`
+  - `closed_loop.replay_sample_count`
+  - `closed_loop.require_non_increasing_target_debt`
+- parse-full stage behavior:
+  - `auto`: gate builds a temporary `vhdl` parser-registry adapter from generated parser artifact and runs parse-full when available,
+  - `0`: disabled,
+  - `1`: strict required mode (fails gate when adapter unavailable or any sample parse-full rejects).
 
 `sv_syntax_closure_gate` no-regression contract:
 - deterministic flow:

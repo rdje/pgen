@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-02-27 - Phase O Nexsim VHDL Hardening: Added `vhdl_stimuli_quality_gate` + Core Contract
+### ✅ Achievement Summary
+Added a dedicated deterministic VHDL closed-loop stimuli quality gate to harden the Nexsim VHDL parser path with executable `coverage/gap/replay` and optional parse-full validation.
+
+### Scope of Changes
+- Added new VHDL quality gate script:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+  - flow:
+    - `EBNF -> JSON -> parser -> closed-loop coverage/gap -> replay -> parse_full(optional)`.
+  - gate behavior:
+    - dynamic VHDL parser-registry adapter build (`PGEN_VHDL_PARSER_PATH`),
+    - parse-full policy modes (`auto|0|1`),
+    - closed-loop non-increasing target debt enforcement.
+- Added VHDL contract manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+  - initial contractized controls:
+    - `entry_rule`
+    - `sample_count`
+    - `seed_base`
+    - `closed_loop.*` controls.
+- Added Make target:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - new target:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - help text updated accordingly.
+- Updated roadmap and user guide:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json` ✅
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate` ✅
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Stimuli Modes: Added Mode-Level Recovery Steering (v10)
 ### ✅ Achievement Summary
 Extended SV stimuli mode profiles with contractized recovery steering so each mode can deterministically select a stimuli-generation strategy.

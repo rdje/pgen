@@ -233,6 +233,7 @@ help:
 	@echo "  hdl_frontend_gate - Strict HDL frontend readiness gate (fails on missing/failing HDL grammar flows)"
 	@echo "  sv_preprocessor_quality_gate - Enforce deterministic closed-loop quality checks for systemverilog_preprocessor grammar"
 	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog closed-loop quality gate (coverage/gap/replay -> preprocess -> parse_full -> semantic baseline)"
+	@echo "  vhdl_stimuli_quality_gate - Enforce deterministic VHDL closed-loop stimuli quality gate (coverage/gap/replay -> parse_full)"
 	@echo "  sv_syntax_closure_gate - Enforce deterministic SystemVerilog syntax-closure burn-down no-regression contract"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
@@ -478,6 +479,12 @@ sv_stimuli_quality_gate:
 	@echo "🧪 Running SystemVerilog stimuli closed-loop quality gate..."
 	cd $(RUST_DIR) && ./scripts/sv_stimuli_quality_gate.sh
 	@echo "✅ SystemVerilog stimuli closed-loop quality gate passed."
+
+.PHONY: vhdl_stimuli_quality_gate
+vhdl_stimuli_quality_gate:
+	@echo "🧪 Running VHDL stimuli closed-loop quality gate..."
+	cd $(RUST_DIR) && ./scripts/vhdl_stimuli_quality_gate.sh
+	@echo "✅ VHDL stimuli closed-loop quality gate passed."
 
 .PHONY: sv_syntax_closure_gate
 sv_syntax_closure_gate:

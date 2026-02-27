@@ -1,4 +1,60 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase O Nexsim VHDL Focus: Dedicated Closed-Loop `vhdl_stimuli_quality_gate`
+### Context
+Nexsim delivery needs both SystemVerilog and VHDL parser flows hardened with deterministic gates.
+
+SV had a dedicated contractized stimuli quality gate; VHDL only had aggregate HDL readiness coverage. We needed a dedicated VHDL closed-loop gate with explicit controls and artifacts.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+
+#### 1) New gate script
+`vhdl_stimuli_quality_gate.sh` implements deterministic flow:
+1. build `ast_pipeline` (generated parser features),
+2. `grammars/vhdl.ebnf -> vhdl.json`,
+3. `vhdl.json -> generated parser`,
+4. build parseability probe with dynamic VHDL adapter (`PGEN_VHDL_PARSER_PATH`),
+5. closed-loop `coverage/gap(initial) -> target replay`,
+6. per-sample stimuli generation and optional parse-full checks.
+
+#### 2) Contractized gate controls
+`vhdl_core_v0_contract.json` (v1) defines:
+- `grammar_name`, `ebnf_path`, `entry_rule`,
+- `sample_count`, `seed_base`,
+- `closed_loop.gap_report_threshold`,
+- `closed_loop.target_max_attempts`,
+- `closed_loop.replay_sample_count`,
+- `closed_loop.require_non_increasing_target_debt`.
+
+The gate also supports env overrides:
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT`
+- `PGEN_VHDL_STIMULI_QUALITY_SEED_BASE`
+- `PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto|0|1`)
+- `PGEN_VHDL_STIMULI_QUALITY_CONTRACT`
+- `PGEN_VHDL_STIMULI_QUALITY_STATE_DIR`
+
+#### 3) Make integration
+Added new target:
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+
+Help section updated so the gate is discoverable alongside SV gates.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+
+Observed:
+- deterministic closed-loop progression is functional,
+- replay target debt does not increase,
+- parse-full adapter path executes and accepts generated sample in `auto` mode,
+- gate artifacts/logs are emitted under `rust/target/vhdl_stimuli_quality_gate`.
+
 ## 2026-02-27 - Phase P Stimuli Modes: Mode-Level Recovery Steering Routing (Contract v10)
 ### Context
 Mode-level semantic overrides were in place, but mode-specific steering of the stimuli engine strategy was not yet contractized.
