@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Semantic Closure Wiring: `sv_stimuli_quality_gate` Validator Expansion (Contract v5)
+### Context
+Phase P semantic closure still needed executable validator hooks for the target semantic classes:
+- declaration-before-use,
+- scope/package qualification/import resolution,
+- type/width compatibility,
+- context legality (`always_ff`, `always_comb`).
+
+`sv_stimuli_quality_gate` previously had semantic baseline checks, but only structural/preprocess-oriented checks were implemented.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+#### 1) Added semantic validator functions in gate script
+New optional checks:
+- `check_declared_identifiers_before_use`:
+  - heuristic undeclared-identifier detection after preprocess stage.
+- `check_package_qualification_resolution`:
+  - validates `pkg::symbol` references against in-file package declarations/imports.
+- `check_width_compatibility_simple`:
+  - checks literal width against packed `logic [msb:lsb]` lhs width for simple assignments.
+- `check_context_legality_basic`:
+  - rejects `always_comb` blocks containing event controls,
+  - rejects `always_ff` blocks containing blocking assignments.
+
+Each check is contract-gated and only runs when enabled.
+
+#### 2) Contractized semantic toggle surface (v5)
+`systemverilog_core_v0_contract.json` now includes:
+- `semantic_baseline.require_declared_identifiers_before_use`
+- `semantic_baseline.require_package_qualification_resolution`
+- `semantic_baseline.require_width_compatibility_simple`
+- `semantic_baseline.require_context_legality_basic`
+
+All are currently defaulted to `false` for stability on the existing random corpus while the semantic profile is hardened incrementally.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- gate and closed-loop stages remain stable with defaults,
+- semantic-closure hooks are now executable and contract-controlled.
+
 ## 2026-02-27 - Phase P Syntax Burn-Down: Deterministic `sv_syntax_closure_gate`
 ### Context
 Phase P required a deterministic no-regression loop for syntax closure of `grammars/systemverilog.ebnf` so incremental clause additions are objectively gated.

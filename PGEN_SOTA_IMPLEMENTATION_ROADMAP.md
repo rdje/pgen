@@ -243,6 +243,12 @@ Toolbox baseline to leverage end-to-end:
   - type/width compatibility,
   - context legality (`always_ff`, `always_comb`, generate constraints).
   - Progress (2026-02-27): extended `sv_stimuli_quality_gate` semantic stage beyond preprocessor-only baseline with contract-driven structural checks (`require_unique_named_port_bindings`; optional `require_balanced_structural_keywords`) and promoted contract manifest to version `2`.
+  - Progress (2026-02-27): added semantic-closure validator toggles in `sv_stimuli_quality_gate` and contractized them in `systemverilog_core_v0_contract.json` (v5):
+    - `require_declared_identifiers_before_use`
+    - `require_package_qualification_resolution`
+    - `require_width_compatibility_simple`
+    - `require_context_legality_basic`
+    The checks are wired and executable (disabled by default until stricter corpora/modes are promoted).
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -330,6 +336,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Advanced Phase P semantic-closure validator wiring by adding contractized semantic checks in `sv_stimuli_quality_gate` (`declared-before-use`, package qualification resolution, simple width compatibility, basic always-context legality) and bumping `systemverilog_core_v0_contract.json` to v5.
 - 2026-02-27: Closed Phase P syntax-closure burn-down loop by adding `sv_syntax_closure_gate` with contractized no-regression thresholds (parser generation viability, unresolved refs, entry-rule/rule-name invariants, reachable/unreachable summary caps).
 - 2026-02-27: Promoted `sv_stimuli_quality_gate` from skeleton to deterministic closed-loop baseline with per-profile `coverage/gap -> target-driven replay` stages, contractized closed-loop controls (`systemverilog_core_v0_contract.json` v4), and non-increasing target-debt enforcement.
 - 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.

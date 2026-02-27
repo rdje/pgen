@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Semantic Closure Wiring: Added Contractized SV Semantic Validator Toggles (v5)
+### ✅ Achievement Summary
+Extended `sv_stimuli_quality_gate` with additional semantic-closure validators aligned to the Phase P semantic closure objective, and exposed them as explicit contract toggles in `systemverilog_core_v0_contract.json`.
+
+### Scope of Changes
+- Extended semantic validator functions in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- Added optional semantic checks:
+  - declaration-before-use heuristic:
+    - `require_declared_identifiers_before_use`
+  - package qualification/import resolution heuristic:
+    - `require_package_qualification_resolution`
+  - simple packed-width vs literal-width assignment compatibility:
+    - `require_width_compatibility_simple`
+  - basic context legality checks:
+    - `always_comb` event-control rejection
+    - `always_ff` blocking-assignment rejection
+    - toggle: `require_context_legality_basic`
+- Updated contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `4 -> 5`
+  - added semantic toggles above (default `false` to preserve current deterministic baseline stability).
+- Updated docs/roadmap:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Syntax Closure: Added `sv_syntax_closure_gate` No-Regression Contract
 ### ✅ Achievement Summary
 Implemented a deterministic syntax-closure burn-down gate for `systemverilog.ebnf` so clause-by-clause grammar growth is guarded by explicit no-regression thresholds instead of manual checks.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-syntax-closure-gate)
+Last updated: 2026-02-27 (+0100, task: phase-p-semantic-closure-validator-wiring)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV syntax-closure gate increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV semantic-closure validator wiring increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `159`
+- Commit count at last refresh (before current uncommitted changes): `160`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 3966b88 Add deterministic sv_syntax_closure_gate and close Phase P syntax burn-down loop
 - e86f217 Promote SV stimuli gate to closed-loop baseline and freeze systemverilog_core_v0 v4
 - f465acf Nexsim HDL closure: parser replay gate hardening and API convenience wrappers
 - fb4dc4e Harden embedding API ergonomics for zero-friction Rust and FFI use
@@ -201,6 +202,28 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P semantic-closure validator wiring (SV stimuli gate)
+- Root cause:
+  - semantic-closure profile item needed executable checks for declaration/use, package qualification resolution, width compatibility, and basic always-context legality; existing gate only had structural/preprocess checks.
+- Fix:
+  - expanded `rust/scripts/sv_stimuli_quality_gate.sh` with new optional validators:
+    - `check_declared_identifiers_before_use`
+    - `check_package_qualification_resolution`
+    - `check_width_compatibility_simple`
+    - `check_context_legality_basic`
+  - contractized toggles in `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` (version `5`):
+    - `require_declared_identifiers_before_use`
+    - `require_package_qualification_resolution`
+    - `require_width_compatibility_simple`
+    - `require_context_legality_basic`
+    (defaulted `false` to keep current corpus baseline stable while wiring lands.)
+  - updated roadmap + UG to reflect semantic-closure validator availability.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - semantic-closure validator infrastructure is wired and contract-controlled; stricter enablement can now be phased profile-by-profile.
 
 ### 2026-02-27: Phase P syntax-closure burn-down loop implementation
 - Root cause:

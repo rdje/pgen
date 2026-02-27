@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, and dual LRM profile matrix support.",
+  "version": 5,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, and dual LRM profile matrix support.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -29,6 +29,10 @@
     "require_nonempty_preprocessed_output": true,
     "require_no_preprocess_errors": true,
     "require_balanced_structural_keywords": false,
-    "require_unique_named_port_bindings": true
+    "require_unique_named_port_bindings": true,
+    "require_declared_identifiers_before_use": false,
+    "require_package_qualification_resolution": false,
+    "require_width_compatibility_simple": false,
+    "require_context_legality_basic": false
   }
 }

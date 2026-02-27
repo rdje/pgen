@@ -102,6 +102,170 @@ check_unique_named_port_bindings() {
     return 0
 }
 
+check_declared_identifiers_before_use() {
+    local file="$1"
+    local out
+    if ! out="$(
+        perl -0777 -e '
+            use strict;
+            use warnings;
+            local $/;
+            my $text = <>;
+            $text =~ s!/\*.*?\*/!!gs;
+            $text =~ s!//.*?$!!gm;
+
+            my %keywords = map { $_ => 1 } qw(
+                module endmodule interface endinterface program endprogram package endpackage class endclass
+                begin end if else case endcase for foreach while repeat do
+                always always_ff always_comb always_latch
+                assign wire logic reg bit byte shortint int integer longint string chandle event time realtime
+                signed unsigned input output inout ref var parameter localparam type typedef enum struct union
+                packed unpacked function endfunction task endtask import export virtual static automatic const
+                generate endgenerate genvar return break continue default initial final disable wait fork join
+                join_any join_none
+            );
+
+            my %declared;
+            while ($text =~ /\b(?:module|interface|program|package|class|function|task)\s+([A-Za-z_][A-Za-z0-9_]*)/g) {
+                $declared{$1} = 1;
+            }
+            while ($text =~ /\b(?:logic|reg|wire|bit|byte|shortint|int|integer|longint|string|chandle|event|time|realtime)\b(?:\s+(?:signed|unsigned))?\s+([^;]+)/g) {
+                my $tail = $1;
+                while ($tail =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
+                    $declared{$1} = 1;
+                }
+            }
+            while ($text =~ /\b(?:parameter|localparam|genvar|typedef)\b([^;]*);/g) {
+                my $tail = $1;
+                while ($tail =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
+                    $declared{$1} = 1;
+                }
+            }
+
+            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
+                my $id = $1;
+                next if $keywords{$id};
+                next if $declared{$id};
+                next if $id =~ /^(?:[A-Z_][A-Z0-9_]*|x|z)$/;
+                print "undeclared identifier use detected (first=\"$id\")\n";
+                exit 1;
+            }
+            exit 0;
+        ' "$file" 2>&1
+    )"; then
+        echo "$out"
+        return 1
+    fi
+    return 0
+}
+
+check_package_qualification_resolution() {
+    local file="$1"
+    local out
+    if ! out="$(
+        perl -0777 -e '
+            use strict;
+            use warnings;
+            local $/;
+            my $text = <>;
+            $text =~ s!/\*.*?\*/!!gs;
+            $text =~ s!//.*?$!!gm;
+
+            my %pkg_declared;
+            while ($text =~ /\bpackage\s+([A-Za-z_][A-Za-z0-9_]*)/g) {
+                $pkg_declared{$1} = 1;
+            }
+            my %pkg_imported;
+            while ($text =~ /\bimport\s+([A-Za-z_][A-Za-z0-9_]*)::(?:\*|[A-Za-z_][A-Za-z0-9_]*)/g) {
+                $pkg_imported{$1} = 1;
+            }
+
+            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)::([A-Za-z_][A-Za-z0-9_]*)/g) {
+                my ($pkg, $symbol) = ($1, $2);
+                next if $pkg_declared{$pkg};
+                next if $pkg_imported{$pkg};
+                print "unresolved package qualification: ${pkg}::${symbol}\n";
+                exit 1;
+            }
+            exit 0;
+        ' "$file" 2>&1
+    )"; then
+        echo "$out"
+        return 1
+    fi
+    return 0
+}
+
+check_width_compatibility_simple() {
+    local file="$1"
+    local out
+    if ! out="$(
+        perl -0777 -e '
+            use strict;
+            use warnings;
+            local $/;
+            my $text = <>;
+            $text =~ s!/\*.*?\*/!!gs;
+            $text =~ s!//.*?$!!gm;
+
+            my %width_of;
+            while ($text =~ /\blogic\s*\[\s*(\d+)\s*:\s*(\d+)\s*\]\s*([A-Za-z_][A-Za-z0-9_]*)/g) {
+                my ($msb, $lsb, $name) = ($1, $2, $3);
+                my $width = $msb >= $lsb ? ($msb - $lsb + 1) : ($lsb - $msb + 1);
+                $width_of{$name} = $width;
+            }
+            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)\s*(?:<=|=)\s*(\d+)\s*'\''[bBoOdDhH][0-9a-fA-F_xXzZ]+/g) {
+                my ($lhs, $lit_width) = ($1, $2);
+                next if !exists $width_of{$lhs};
+                if ($lit_width > $width_of{$lhs}) {
+                    print "literal width overflow: ${lhs} width=${width_of{$lhs}} literal_width=${lit_width}\n";
+                    exit 1;
+                }
+            }
+            exit 0;
+        ' "$file" 2>&1
+    )"; then
+        echo "$out"
+        return 1
+    fi
+    return 0
+}
+
+check_context_legality_basic() {
+    local file="$1"
+    local out
+    if ! out="$(
+        perl -0777 -e '
+            use strict;
+            use warnings;
+            local $/;
+            my $text = <>;
+            $text =~ s!/\*.*?\*/!!gs;
+            $text =~ s!//.*?$!!gm;
+
+            while ($text =~ /\balways_comb\b(.*?)(?:\bend\b|;)/sg) {
+                my $blk = $1;
+                if ($blk =~ /\@\s*\(/) {
+                    print "context legality violation: always_comb contains event control\n";
+                    exit 1;
+                }
+            }
+            while ($text =~ /\balways_ff\b(.*?)(?:\bend\b|;)/sg) {
+                my $blk = $1;
+                if ($blk =~ /\b[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]+\])?\s*(?<!<)=(?!=)/) {
+                    print "context legality violation: always_ff contains blocking assignment\n";
+                    exit 1;
+                }
+            }
+            exit 0;
+        ' "$file" 2>&1
+    )"; then
+        echo "$out"
+        return 1
+    fi
+    return 0
+}
+
 run_logged() {
     local label="$1"
     shift
@@ -198,6 +362,10 @@ require_nonempty_preprocessed_output="$(jq -er 'if .semantic_baseline.require_no
 require_no_preprocess_errors="$(jq -er 'if .semantic_baseline.require_no_preprocess_errors then 1 else 0 end' "$CONTRACT_FILE")"
 require_balanced_structural_keywords="$(jq -er 'if .semantic_baseline.require_balanced_structural_keywords then 1 else 0 end' "$CONTRACT_FILE")"
 require_unique_named_port_bindings="$(jq -er 'if .semantic_baseline.require_unique_named_port_bindings then 1 else 0 end' "$CONTRACT_FILE")"
+require_declared_identifiers_before_use="$(jq -er 'if (.semantic_baseline.require_declared_identifiers_before_use // false) then 1 else 0 end' "$CONTRACT_FILE")"
+require_package_qualification_resolution="$(jq -er 'if (.semantic_baseline.require_package_qualification_resolution // false) then 1 else 0 end' "$CONTRACT_FILE")"
+require_width_compatibility_simple="$(jq -er 'if (.semantic_baseline.require_width_compatibility_simple // false) then 1 else 0 end' "$CONTRACT_FILE")"
+require_context_legality_basic="$(jq -er 'if (.semantic_baseline.require_context_legality_basic // false) then 1 else 0 end' "$CONTRACT_FILE")"
 
 if ! [[ "$include_max_depth" =~ ^[0-9]+$ ]] || [[ "$include_max_depth" -lt 1 ]]; then
     echo "error: preprocess.include_max_depth must be an integer >= 1" >&2
@@ -270,6 +438,10 @@ echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
+echo "semantic_require_declared_identifiers_before_use: $require_declared_identifiers_before_use"
+echo "semantic_require_package_qualification_resolution: $require_package_qualification_resolution"
+echo "semantic_require_width_compatibility_simple: $require_width_compatibility_simple"
+echo "semantic_require_context_legality_basic: $require_context_legality_basic"
 
 echo "profile,sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
@@ -462,6 +634,26 @@ for profile_idx in "${!run_profiles[@]}"; do
         fi
         if [[ "$semantic_status" == "pass" ]] && [[ "$require_unique_named_port_bindings" -eq 1 ]]; then
             if ! semantic_note="$(check_unique_named_port_bindings "$preprocessed_file")"; then
+                semantic_status="fail"
+            fi
+        fi
+        if [[ "$semantic_status" == "pass" ]] && [[ "$require_declared_identifiers_before_use" -eq 1 ]]; then
+            if ! semantic_note="$(check_declared_identifiers_before_use "$preprocessed_file")"; then
+                semantic_status="fail"
+            fi
+        fi
+        if [[ "$semantic_status" == "pass" ]] && [[ "$require_package_qualification_resolution" -eq 1 ]]; then
+            if ! semantic_note="$(check_package_qualification_resolution "$preprocessed_file")"; then
+                semantic_status="fail"
+            fi
+        fi
+        if [[ "$semantic_status" == "pass" ]] && [[ "$require_width_compatibility_simple" -eq 1 ]]; then
+            if ! semantic_note="$(check_width_compatibility_simple "$preprocessed_file")"; then
+                semantic_status="fail"
+            fi
+        fi
+        if [[ "$semantic_status" == "pass" ]] && [[ "$require_context_legality_basic" -eq 1 ]]; then
+            if ! semantic_note="$(check_context_legality_basic "$preprocessed_file")"; then
                 semantic_status="fail"
             fi
         fi
