@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending initial SystemVerilog grammar + docs updates; run `git status -sb`).
+- Worktree: dirty (pending roadmap/docs updates for SV preprocessor-first execution contract; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,19 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Added explicit SV preprocessor-first closure strategy to roadmap
+- Root cause:
+  - Nexsim-targeted SV closure needed explicit sequencing; parser/stimuli semantic closure without preprocessing closure would leave a major correctness gap.
+- Fix:
+  - updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with:
+    - hard prerequisite contract: Phase P depends on Phase Q,
+    - new `Phase Q` (`SystemVerilog Preprocessor Frontend Closure`) covering dedicated preprocessor grammar, preprocess execution stage, preprocessor quality gate, preprocess-aware stimuli modes, and staged gate policy promotion.
+  - mirrored decision in:
+    - `CHANGES.md`
+    - `DEVELOPMENT_NOTES.md`
+- Validation:
+  - roadmap/doc sections updated and aligned on the same execution order (`preprocess -> parse_full -> semantic validate`).
 
 ### 2026-02-27: Roadmap expansion for Nexsim-targeted SV syntax+semantic closure
 - Root cause:

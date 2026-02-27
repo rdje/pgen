@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Strategy Decision: SystemVerilog Preprocessor Comes First
+### Context
+During Nexsim-focused planning, we clarified that a SystemVerilog parser-only closure is insufficient for production confidence because real SV sources are heavily shaped by preprocessor behavior (`define/include/ifdef` family).
+
+The closure target for Nexsim is syntax + semantic correctness on realistic inputs, which requires preprocessing to be executable, deterministic, and test-gated before strict parser closure.
+
+### Decision
+- Introduce a dedicated roadmap phase:
+  - `Phase Q: SystemVerilog Preprocessor Frontend Closure (Preprocessor-First)`.
+- Make Phase Q a hard prerequisite for strict completion of:
+  - `Phase P: SOTA SystemVerilog Parser + Stimuli Semantic Closure`.
+
+### Execution Plan Captured in Roadmap
+1. Create dedicated preprocessor grammar:
+   - `grammars/systemverilog_preprocessor.ebnf`
+   - scope includes directive syntax families and macro forms.
+2. Add preprocess execution stage in Rust pipeline:
+   - `raw SV -> preprocessor AST/events -> expanded SV stream`.
+   - produce source mapping metadata for diagnostics and embedding.
+3. Add dedicated quality gate:
+   - `sv_preprocessor_quality_gate` with deterministic replay + coverage/gap feedback + shrink on failures.
+4. Integrate with SV parser/stimuli closure:
+   - Phase P quality gate path becomes `preprocess -> parse_full -> semantic validate`.
+   - stimuli adds preprocess-aware modes for snippet/file generation.
+5. Promote policy from informational to strict-required after stability thresholds are met.
+
+### Rationale
+- Prevents parser-phase false positives where grammar appears stable only because preprocessor behavior was not exercised.
+- Forces early closure on include/macro/conditional-compilation corner cases that otherwise become late-stage blockers.
+- Aligns gate structure with final Nexsim embedding reality where preprocessing and parsing are inseparable operationally.
+
 ## 2026-02-27 - Initial SystemVerilog Grammar (`systemverilog.ebnf`) from IEEE 1800 Markdown
 ### Context
 After introducing the HDL frontend readiness gate skeleton (`systemverilog` + `vhdl` roster), strict readiness still failed immediately because no HDL grammar files existed under `grammars/`.

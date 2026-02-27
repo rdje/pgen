@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-02-27 - Roadmap Update: SystemVerilog Preprocessor-First Execution Track
+### ✅ Achievement Summary
+Updated the living roadmap to make SystemVerilog preprocessor closure an explicit prerequisite for full Nexsim SystemVerilog parser/stimuli closure.
+
+### Scope of Changes
+- Updated:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Added explicit execution contract:
+  - Phase P (SOTA SV parser/stimuli closure) depends on Phase Q (SV preprocessor frontend closure).
+- Added new roadmap phase:
+  - `Phase Q: SystemVerilog Preprocessor Frontend Closure (Preprocessor-First)`
+  - includes dedicated grammar (`grammars/systemverilog_preprocessor.ebnf`),
+  - preprocess execution stage contract (`raw -> preprocessor -> expanded stream + source map`),
+  - dedicated gate plan (`sv_preprocessor_quality_gate`),
+  - preprocess-aware stimuli integration (`sv_pp_snippet`, `sv_pp_file`),
+  - staged policy promotion (informational then strict-required).
+
+### Why This Matters
+- SystemVerilog syntax/semantic correctness for Nexsim is not fully credible without deterministic preprocessing (`define/include/ifdef` family) ahead of parser/semantic validation.
+- This change prevents false confidence by making preprocessability a first-class closure criterion, not an implicit side assumption.
+
 ## 2026-02-27 - Added Initial `systemverilog.ebnf` from IEEE 1800-2017 Docs
 ### ✅ Achievement Summary
 Added an initial executable SystemVerilog grammar (`grammars/systemverilog.ebnf`) seeded from IEEE 1800-2017 markdown syntax sections and wired it into the existing HDL readiness flow.

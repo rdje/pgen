@@ -202,6 +202,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 
 ### Phase P (New): SOTA SystemVerilog Parser + Stimuli Semantic Closure (Nexsim)
 Objective: deliver a production-grade SystemVerilog parser/stimuli flow for Nexsim where acceptance requires both syntax correctness and semantic correctness.
+Execution contract: `Phase Q` (preprocessor closure) is a hard prerequisite for strict Phase P closure.
 
 Toolbox baseline to leverage end-to-end:
 - `grammars/systemverilog.ebnf`
@@ -235,6 +236,38 @@ Toolbox baseline to leverage end-to-end:
   - informational first,
   - required strict once syntax+semantic closure thresholds are green and stable.
 
+### Phase Q (New): SystemVerilog Preprocessor Frontend Closure (Preprocessor-First)
+Objective: deliver an executable, testable, deterministic preprocessor frontend so the main SV parser consumes preprocessed content under a defined contract.
+
+- [ ] Add `grammars/systemverilog_preprocessor.ebnf` as a dedicated grammar (separate from `systemverilog.ebnf`) and define directive-level syntax coverage baseline:
+  - define/undef directives
+  - include directives
+  - ifdef/ifndef/elsif/else/endif directives
+  - timescale, default_nettype, and celldefine flows
+  - macro formal/actual argument forms and token-paste/stringize primitives as supported.
+- [ ] Add preprocessor parser + execution stage in Rust AST pipeline:
+  - raw SV text -> preprocessor AST/events -> expanded SV text stream,
+  - deterministic include/macro expansion policy,
+  - source mapping metadata (expanded position -> original file/line/column) for diagnostics and Nexsim integration.
+- [ ] Add `sv_preprocessor_quality_gate`:
+  - deterministic replay across seeds,
+  - coverage/gap loop for preprocessor grammar,
+  - include/macro conditional-branch coverage metrics,
+  - shrinking for failing preprocessability samples.
+- [ ] Add preprocessor semantic controls and validator contracts (annotation-driven where appropriate):
+  - include path policy + depth budget,
+  - macro redefinition policy,
+  - conditional-compilation expression policy,
+  - strict warning/error promotion for unsafe directive combinations.
+- [ ] Add parser/stimuli integration contract:
+  - `sv_stimuli_quality_gate` must run `preprocess -> parse_full -> semantic-validate`,
+  - stimuli modes expanded with preprocess-aware generation (`sv_pp_snippet`, `sv_pp_file`),
+  - closed-loop feedback tracks both preprocessor and parser coverage/gap convergence.
+- [ ] Add differential hardening for preprocessor behavior against trusted references (where available) and publish mismatch taxonomy.
+- [ ] Promote preprocessor gate policy:
+  - informational first while grammar closes,
+  - required strict before declaring Phase P (Nexsim SV parser closure) complete.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -252,6 +285,7 @@ Toolbox baseline to leverage end-to-end:
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Added Phase Q (`SystemVerilog Preprocessor Frontend Closure`) and made it an explicit preprocessor-first prerequisite for Phase P closure, including dedicated grammar, preprocess execution stage, preprocess quality gate, preprocess-aware stimuli modes, and policy-promotion path.
 - 2026-02-27: Added Phase P (`SOTA SystemVerilog Parser + Stimuli Semantic Closure`) to codify the Nexsim-targeted execution plan: syntax+semantic equal acceptance contract, annotation-driven SV stimuli synthesis, and mandatory closed-loop coverage/gap convergence.
 - 2026-02-27: Added initial `grammars/systemverilog.ebnf` (IEEE 1800 markdown-seeded) and validated end-to-end (`EBNF -> JSON -> parser -> stimuli`), moving HDL readiness report row `systemverilog` from `not_ready` to `pass` while `vhdl` remains pending.
 - 2026-02-27: Started Phase O / Pillar 5 kickoff by adding `hdl_frontend_readiness` + `hdl_frontend_gate` (script: `rust/scripts/hdl_frontend_readiness_gate.sh`) with explicit `systemverilog`/`vhdl` roster, report-mode `not_ready` handling for missing grammars, and strict-mode failure semantics for merge-safe progression.
