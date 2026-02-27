@@ -263,6 +263,13 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-02-27): extended `require_context_legality_basic` checker with baseline generate legality:
     - `generate ... endgenerate` `for` iterator must be declared `genvar`.
     - no contract schema bump required; existing context-legality toggle now covers always/context + generate-context baseline.
+  - Progress (2026-02-27): added dedicated semantic-closure execution profile in `systemverilog_core_v0_contract.json` (v12):
+    - new stimuli mode: `sv_semantic_file`
+    - profile policy enables stricter semantic baseline subset during gate execution:
+      - `require_port_binding_legality_basic=true`
+      - `require_package_qualification_resolution=true`
+      - `require_context_legality_basic=true`
+    - gate now supports `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1` to auto-select `sv_semantic_file` when no explicit mode override is provided.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -290,6 +297,7 @@ Toolbox baseline to leverage end-to-end:
       - `sv_file` -> `baseline`
       - `sv_snippet` -> `near_sync_negative`
     This advances mode-level steering using existing stimuli engine controls while annotation-driven branch/value steering expansion remains pending.
+  - Progress (2026-02-27): expanded mode roster with `sv_semantic_file` and updated gate fallback parse-full eligibility defaults so semantic-closure file runs keep parse-full capability without custom script forks.
 - [x] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.
@@ -433,6 +441,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Advanced Phase P semantic-closure execution by adding `sv_semantic_file` contract mode + `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1` gate switch, promoting `systemverilog_core_v0_contract.json` to v12 with stricter package/context/port baseline policy for dedicated semantic-closure runs.
 - 2026-02-27: Closed Phase P SV closed-loop convergence item by adding deterministic initial replay equivalence assertions in `sv_stimuli_quality_gate` (`initial` vs `initial_replay` corpus/coverage/gap parity) and summary metric `closed_loop_initial_replay_determinism_passes`.
 - 2026-02-27: Advanced Phase P stimuli-mode track by adding contractized `sv_file`/`sv_snippet` mode plumbing in `sv_stimuli_quality_gate` (mode->entry rule mapping, mode-level closed-loop/parse-full eligibility controls) with `systemverilog_core_v0_contract.json` v6.
 - 2026-02-27: Advanced Phase Q parser/stimuli integration by adding preprocess-aware `sv_pp_file`/`sv_pp_snippet` profiles in `systemverilog_core_v0_contract.json` v11 and extending gate fallback mode mapping for preprocess-aware defaults.

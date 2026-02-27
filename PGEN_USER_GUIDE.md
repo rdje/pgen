@@ -2059,7 +2059,9 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_SV_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
 - `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
-- `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`, default from contract)
+- `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from contract)
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `0`)
+  - when set to `1` and `PGEN_SV_STIMULI_QUALITY_MODE` is unset, gate auto-selects `sv_semantic_file`.
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
@@ -2122,6 +2124,16 @@ Optional SV syntax-closure gate tuning:
     - closed-loop disabled by default,
     - parse-full ineligible (auto mode skips parse-full; strict parse-full mode errors out),
     - default recovery stimuli mode: `near_sync_negative`.
+  - `sv_semantic_file`:
+    - entry rule: `systemverilog_file`,
+    - semantic-closure focused file mode,
+    - closed-loop enabled by default,
+    - parse-full eligible,
+    - default recovery stimuli mode: `baseline`,
+    - mode semantic overrides currently enable:
+      - `require_port_binding_legality_basic=true`
+      - `require_package_qualification_resolution=true`
+      - `require_context_legality_basic=true`
   - mode-level recovery steering:
     - optional profile key:
       - `stimuli_modes.profiles.<mode>.recovery_stimuli_mode`
@@ -2139,6 +2151,10 @@ Optional SV syntax-closure gate tuning:
       - `sv_snippet`: `require_port_binding_legality_basic=false`
       - `sv_pp_file`: `require_port_binding_legality_basic=true`
       - `sv_pp_snippet`: `require_port_binding_legality_basic=false`
+      - `sv_semantic_file`:
+        - `require_port_binding_legality_basic=true`
+        - `require_package_qualification_resolution=true`
+        - `require_context_legality_basic=true`
 - closed-loop contract controls (from `systemverilog_core_v0_contract.json`):
   - `closed_loop.gap_report_threshold`
   - `closed_loop.target_max_attempts`

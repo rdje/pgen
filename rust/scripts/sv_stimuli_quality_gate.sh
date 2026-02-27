@@ -18,6 +18,7 @@ SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
 LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
 STIMULI_MODE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MODE:-}"
+SEMANTIC_CLOSURE_MODE="${PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE:-0}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
@@ -531,6 +532,10 @@ if [[ "$PARSE_FULL_MODE" != "auto" && "$PARSE_FULL_MODE" != "0" && "$PARSE_FULL_
     echo "error: PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE must be one of: auto, 0, 1" >&2
     exit 2
 fi
+if [[ "$SEMANTIC_CLOSURE_MODE" != "0" && "$SEMANTIC_CLOSURE_MODE" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE must be 0 or 1" >&2
+    exit 2
+fi
 if [[ -n "$LRM_PROFILE_OVERRIDE" && -n "$LRM_PROFILES_OVERRIDE" ]]; then
     echo "error: set either PGEN_SV_STIMULI_QUALITY_LRM_PROFILE or PGEN_SV_STIMULI_QUALITY_LRM_PROFILES, not both" >&2
     exit 2
@@ -552,7 +557,7 @@ default_lrm_profile="$(jq -er '(.lrm_profiles.default_profile // "2017") | strin
 supported_lrm_profiles_csv="$(jq -er '(.lrm_profiles.supported_profiles // ["2017","2023"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 required_lrm_profiles_csv="$(jq -er '(.lrm_profiles.required_profiles // [(.lrm_profiles.default_profile // "2017")]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 default_stimuli_mode="$(jq -er '(.stimuli_modes.default_mode // "sv_file") | strings' "$CONTRACT_FILE")"
-supported_stimuli_modes_csv="$(jq -er '(.stimuli_modes.supported_modes // ["sv_file","sv_snippet","sv_pp_file","sv_pp_snippet"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
+supported_stimuli_modes_csv="$(jq -er '(.stimuli_modes.supported_modes // ["sv_file","sv_snippet","sv_pp_file","sv_pp_snippet","sv_semantic_file"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
@@ -565,7 +570,13 @@ failure_shrink_max_iterations="$(jq -er '(.failure_replay.shrink_max_iterations 
 sample_count="${SAMPLE_COUNT_OVERRIDE:-$default_sample_count}"
 seed_base="${SEED_BASE_OVERRIDE:-$default_seed_base}"
 replay_sample_count="$(jq -er --argjson fallback "$sample_count" '(.closed_loop.replay_sample_count // $fallback) | numbers' "$CONTRACT_FILE")"
-stimuli_mode="${STIMULI_MODE_OVERRIDE:-$default_stimuli_mode}"
+if [[ -n "$STIMULI_MODE_OVERRIDE" ]]; then
+    stimuli_mode="$STIMULI_MODE_OVERRIDE"
+elif [[ "$SEMANTIC_CLOSURE_MODE" == "1" ]]; then
+    stimuli_mode="sv_semantic_file"
+else
+    stimuli_mode="$default_stimuli_mode"
+fi
 
 if ! [[ "$sample_count" =~ ^[0-9]+$ ]] || [[ "$sample_count" -lt 1 ]]; then
     echo "error: sample_count must be an integer >= 1 (effective value: '$sample_count')" >&2
@@ -613,7 +624,7 @@ fi
 
 mode_entry_rule="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].entry_rule // (if ($mode == "sv_snippet" or $mode == "sv_pp_snippet") then "source_item" else "systemverilog_file" end)) | strings' "$CONTRACT_FILE")"
 mode_closed_loop_enabled="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].closed_loop_enabled // ($mode != "sv_snippet" and $mode != "sv_pp_snippet")) then 1 else 0 end' "$CONTRACT_FILE")"
-mode_parse_full_eligible="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].parse_full_eligible // ($mode == "sv_file" or $mode == "sv_pp_file")) then 1 else 0 end' "$CONTRACT_FILE")"
+mode_parse_full_eligible="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].parse_full_eligible // ($mode == "sv_file" or $mode == "sv_pp_file" or $mode == "sv_semantic_file")) then 1 else 0 end' "$CONTRACT_FILE")"
 mode_recovery_stimuli_mode="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].recovery_stimuli_mode // "baseline") | strings' "$CONTRACT_FILE")"
 
 if [[ "$mode_recovery_stimuli_mode" != "baseline" && "$mode_recovery_stimuli_mode" != "recovery_biased" && "$mode_recovery_stimuli_mode" != "near_sync_negative" ]]; then
@@ -720,6 +731,7 @@ echo "lrm_default_profile: $default_lrm_profile"
 echo "lrm_supported_profiles: ${supported_profiles[*]}"
 echo "lrm_run_profiles: ${run_profiles[*]}"
 echo "stimuli_mode: $stimuli_mode"
+echo "semantic_closure_mode: $SEMANTIC_CLOSURE_MODE"
 echo "stimuli_mode_entry_rule: $mode_entry_rule"
 echo "stimuli_mode_closed_loop_enabled: $mode_closed_loop_enabled"
 echo "stimuli_mode_parse_full_eligible: $mode_parse_full_eligible"

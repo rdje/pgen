@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-nexsim-parser-embedding-contract-gate)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-semantic-closure-mode-profile)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for Nexsim parser embedding contract-gate + metadata hardening increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV semantic-closure mode/profile increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -217,6 +217,28 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P semantic-closure increment - dedicated `sv_semantic_file` mode
+- Root cause:
+  - semantic validators were wired but strict semantic-closure execution lacked a dedicated contract mode and activation switch, making focused semantic hardening clumsy.
+- Fix:
+  - updated `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` (`v11 -> v12`) with new mode:
+    - `sv_semantic_file`
+    - enabled semantic overrides:
+      - `require_port_binding_legality_basic`
+      - `require_package_qualification_resolution`
+      - `require_context_legality_basic`
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - added `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=0|1`,
+    - auto-selects `sv_semantic_file` when semantic-closure mode is enabled and explicit mode override is not provided.
+  - synced roadmap + UG semantic-closure/mode docs.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - baseline mode remains stable; semantic-closure-focused execution path is now contractized and directly runnable.
 
 ### 2026-02-27: Phase P closure - dedicated Nexsim parser embedding contract gate
 - Root cause:

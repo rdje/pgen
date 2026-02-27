@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Semantic-Closure Mode Increment: `sv_semantic_file` + `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE`
+### Context
+Phase P semantic-closure validators were already wired but mostly default-disabled to avoid destabilizing baseline gate runs. We needed an explicit execution profile that can exercise a stricter semantic subset on demand without forcing strictness into all default SV stimuli runs.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+#### 1) Added dedicated semantic-closure stimuli mode
+Contract update (`v11 -> v12`) introduces:
+- `stimuli_modes.profiles.sv_semantic_file`
+  - `entry_rule=systemverilog_file`
+  - `closed_loop_enabled=true`
+  - `parse_full_eligible=true`
+  - `recovery_stimuli_mode=baseline`
+  - semantic overrides:
+    - `require_port_binding_legality_basic=true`
+    - `require_package_qualification_resolution=true`
+    - `require_context_legality_basic=true`
+
+This provides a deterministic, contractized target for semantic-closure-focused runs.
+
+#### 2) Added gate switch for semantic-closure activation
+`sv_stimuli_quality_gate.sh` now supports:
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=0|1`
+
+Selection behavior:
+- if `PGEN_SV_STIMULI_QUALITY_MODE` is set, that explicit mode wins;
+- else if `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1`, gate auto-selects `sv_semantic_file`;
+- otherwise gate uses contract default mode.
+
+Also updated fallback mode/eligibility mappings to include `sv_semantic_file`.
+
+#### 3) Documentation and roadmap continuity
+- Roadmap semantic-closure progress now records the new dedicated mode + switch.
+- UG now documents:
+  - new mode name in supported SV stimuli modes,
+  - semantic-closure activation env var behavior,
+  - active semantic overrides for `sv_semantic_file`.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- baseline mode remains stable/passing,
+- semantic-closure mode path executes and passes with current deterministic sample policy.
+
 ## 2026-02-27 - Phase P Closure: Nexsim Parser Embedding Profile Contract Gate + Metadata Hardening
 ### Context
 Phase P still had an open roadmap item for publishing a Nexsim-facing parser embedding profile contract even though parser-profile APIs already existed. The missing piece was objective, dedicated contract enforcement for SV/VHDL parser-profile semantics and explicit publication of zero-copy/session lifecycle invariants in contract metadata.

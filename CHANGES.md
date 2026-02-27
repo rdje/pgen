@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Semantic-Closure Increment: Dedicated `sv_semantic_file` Mode + Gate Switch
+### ✅ Achievement Summary
+Added an explicit semantic-closure execution mode for SV stimuli quality runs so stricter semantic validator subsets can be exercised intentionally without changing default gate behavior.
+
+### Scope of Changes
+- Expanded SV semantic-closure contract mode set:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - bumped contract version:
+    - `11 -> 12`
+  - added new stimuli mode profile:
+    - `sv_semantic_file`
+    - parse-full eligible, closed-loop enabled, baseline recovery steering.
+  - added semantic overrides for semantic-closure runs:
+    - `require_port_binding_legality_basic=true`
+    - `require_package_qualification_resolution=true`
+    - `require_context_legality_basic=true`
+- Added semantic-closure activation switch in gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env control:
+    - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=0|1`
+    - when set to `1` and no explicit `PGEN_SV_STIMULI_QUALITY_MODE` is provided, gate auto-selects `sv_semantic_file`.
+  - updated fallback supported-mode and parse-full-eligibility mappings to include `sv_semantic_file`.
+- Updated roadmap/UG continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Contract Closure: Dedicated Nexsim Parser Embedding Contract Gate
 ### ✅ Achievement Summary
 Closed the "Publish Nexsim-facing parser embedding API profile contract (SV/VHDL)" roadmap item by adding executable contract-gate enforcement and explicit parser-profile integration invariants in contract metadata.
