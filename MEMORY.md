@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-o-vhdl-stimuli-quality-gate)
+Last updated: 2026-02-27 (+0100, task: aggregate-vhdl-stimuli-policy-wiring)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for Phase O VHDL stimuli quality gate increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for aggregate VHDL stimuli policy wiring increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `167`
+- Commit count at last refresh (before current uncommitted changes): `168`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- d757fbe Add dedicated VHDL closed-loop stimuli quality gate for Nexsim hardening
 - a997a78 Add mode-level recovery steering to SV stimuli gate (contract v10)
 - 1b10f2a Add mode-level semantic override profiles to SV stimuli gate (contract v9)
 - 53d7881 Extend SV context legality baseline with generate-loop genvar checks
@@ -209,6 +210,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Aggregate SOTA wiring for dedicated VHDL quality gate
+- Root cause:
+  - `vhdl_stimuli_quality_gate` existed but aggregate `sota_exit_gate` did not execute it, so VHDL closed-loop hardening was not part of default aggregate quality flow.
+- Fix:
+  - updated `rust/config/sota_exit_policy.env` with default VHDL aggregate toggles:
+    - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0`
+  - updated `rust/scripts/sota_exit_gate.sh` to:
+    - ingest policy/runtime VHDL toggles,
+    - validate both toggles as `0|1`,
+    - print effective VHDL mode in summary,
+    - execute `vhdl_stimuli_quality_gate` as informational or required based on strictness.
+  - updated roadmap/UG/changelog/dev-notes continuity docs.
+- Validation:
+  - `bash -n rust/scripts/sota_exit_gate.sh`
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_REQUIRE_EBNF_STRICT=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0 PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+- Status:
+  - aggregate SOTA now executes VHDL closed-loop quality checks by policy default (informational-first), with strict promotion switch available.
 
 ### 2026-02-27: Phase O Nexsim VHDL closure increment - dedicated `vhdl_stimuli_quality_gate`
 - Root cause:
@@ -834,25 +854,23 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Build actual profile-specific syntax/semantic deltas in common `systemverilog.ebnf`:
-   - activate `2017` vs `2023` branch acceptance differences (currently scaffold and reporting are in place).
-2. Extend semantic-validation stage beyond baseline:
-   - continue from current contract-v2 baseline toward declaration-before-use, scoped reference checks, and type/width compatibility checks.
-3. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
-   - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
-4. Run full (non-limited) IEEE conversion pipeline snapshots:
-   - `docs/systemverilog` from `1800-2023.pdf`
-   - `docs/vhdl` from `ieee-1076-2019.pdf`
+1. Continue Phase P semantic-closure implementation for SV:
+   - promote currently optional semantic baseline toggles toward required contract checks once false-positive rate is controlled.
+2. Add annotation-driven SV stimuli steering:
+   - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
+3. Expand contractized SV/VHDL corpora:
+   - add deterministic targeted families for declaration/use, port binding, generate, and preprocess-heavy cases.
+4. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
+   - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
 5. Continue Rust-native EBNF migration hardening:
-   - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-6. Expand parser-registry coverage beyond annotations/ebnf:
-   - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-7. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+   - preserve parity/dual-run contracts while reducing Perl frontend dependence.
+6. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
-- Pillar 5 is now started and `systemverilog.ebnf` is present/flowing; `vhdl.ebnf` is still missing, so strict HDL readiness is expected to fail.
+- Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
+- Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 
 ## Quick Commands
 - HDL frontend readiness (report):
@@ -863,5 +881,7 @@ Use this file to resume work without replaying full chat history.
   - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
 - Non-annotation closed-loop quality:
   - `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+- VHDL closed-loop quality:
+  - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
 - Aggregate gate:
   - `make -C rust SHELL=/bin/bash sota_exit_gate`

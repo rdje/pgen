@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-02-27 - Aggregate SOTA Policy: Wired `vhdl_stimuli_quality_gate` Into `sota_exit_gate`
+### ✅ Achievement Summary
+Integrated dedicated VHDL closed-loop quality checking into the aggregate SOTA exit gate with policy/runtime controls so Nexsim-focused VHDL hardening runs automatically in aggregate quality flow.
+
+### Scope of Changes
+- Updated aggregate policy defaults:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - added:
+    - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0`
+- Updated aggregate runner:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - added:
+    - policy/runtime env ingestion for VHDL quality gate flags,
+    - env value validation (`0|1`) for both flags,
+    - summary output lines for effective VHDL gate mode,
+    - execution wiring for `make -C rust ... vhdl_stimuli_quality_gate` as:
+      - `required` when strict flag is `1`,
+      - `informational` when strict flag is `0`.
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_REQUIRE_EBNF_STRICT=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0 PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sota_exit_gate` ✅
+
 ## 2026-02-27 - Phase O Nexsim VHDL Hardening: Added `vhdl_stimuli_quality_gate` + Core Contract
 ### ✅ Achievement Summary
 Added a dedicated deterministic VHDL closed-loop stimuli quality gate to harden the Nexsim VHDL parser path with executable `coverage/gap/replay` and optional parse-full validation.

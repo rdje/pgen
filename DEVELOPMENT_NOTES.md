@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Aggregate SOTA Wiring: `vhdl_stimuli_quality_gate` Policy + Runner Integration
+### Context
+The dedicated VHDL closed-loop gate existed (`make vhdl_stimuli_quality_gate`) but was not yet integrated into aggregate SOTA execution policy.
+
+To keep Nexsim SV/VHDL hardening in one release flow, aggregate `sota_exit_gate` needed first-class VHDL gate controls equivalent to existing SV controls.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+
+#### 1) Added aggregate policy defaults
+In `sota_exit_policy.env`:
+- `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
+- `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0`
+
+This enables informational-first execution by default while keeping strict promotion explicit.
+
+#### 2) Added runtime env plumbing in aggregate gate
+In `sota_exit_gate.sh`:
+- loaded policy/runtime envs:
+  - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY`
+  - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT`
+- validated both values as `0|1`,
+- emitted effective values in gate summary header.
+
+#### 3) Added aggregate execution branch
+When enabled, aggregate gate now executes:
+- `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+
+Mode behavior:
+- strict required path when `REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1`,
+- informational path when `...=0`.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_REQUIRE_EBNF_STRICT=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0 PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+
+Observed:
+- aggregate summary prints effective VHDL gate mode,
+- informational VHDL gate path executes and reports pass,
+- required baseline check still enforced independently via `PGEN_SOTA_REQUIRED_CHECKS`.
+
 ## 2026-02-27 - Phase O Nexsim VHDL Focus: Dedicated Closed-Loop `vhdl_stimuli_quality_gate`
 ### Context
 Nexsim delivery needs both SystemVerilog and VHDL parser flows hardened with deterministic gates.

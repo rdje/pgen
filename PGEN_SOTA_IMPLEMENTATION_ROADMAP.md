@@ -205,6 +205,11 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add dedicated VHDL closed-loop stimuli quality gate (`make vhdl_stimuli_quality_gate`) with contractized controls.
   - Progress (2026-02-27): added `rust/scripts/vhdl_stimuli_quality_gate.sh` + contract manifest `rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to enforce deterministic `EBNF -> JSON -> parser -> coverage/gap -> replay -> parse_full(optional)` execution on `grammars/vhdl.ebnf`.
   - Progress (2026-02-27): added `rust/Makefile` target `vhdl_stimuli_quality_gate` and validated the gate with deterministic closed-loop convergence (`replay_targets <= initial_targets`) on the VHDL seed grammar.
+- [x] Wire `vhdl_stimuli_quality_gate` into aggregate SOTA exit policy with informational-first defaults.
+  - Progress (2026-02-27): added aggregate policy defaults in `rust/config/sota_exit_policy.env`:
+    - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0`
+  - Progress (2026-02-27): updated `rust/scripts/sota_exit_gate.sh` to ingest/validate runtime env flags, print effective VHDL gate mode in summary output, and execute `vhdl_stimuli_quality_gate` as informational or strict-required depending on policy.
 - [x] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
   - Progress (2026-02-27): wired HDL readiness into aggregate `sota_exit_gate` as informational-first (`run=1`, `strict=0`) via policy/runtime controls while `vhdl.ebnf` remains pending.
   - Progress (2026-02-27): promoted HDL readiness to aggregate required strict mode (`run=1`, `strict=1`) after `systemverilog` + `vhdl` strict gate stability.
