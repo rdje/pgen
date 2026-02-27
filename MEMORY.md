@@ -193,6 +193,26 @@ Use this file to resume work without replaying full chat history.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
 
+### 2026-02-27: Implemented Rust SV preprocessor execution stage in `ast_pipeline`
+- Root cause:
+  - Phase Q needed executable preprocessing behavior in Rust pipeline (not grammar/gate scaffolding only) to support true `raw SV -> expanded SV` flow and metadata handoff.
+- Fix:
+  - added `rust/src/sv_preprocessor.rs` with deterministic preprocessing engine:
+    - `define/undef/include/ifdef-family` handling,
+    - object/function macro expansion (token-paste/stringize baseline),
+    - include-depth bound and include-cycle detection,
+    - source-map metadata and structured event logs.
+  - exported module in `rust/src/lib.rs`.
+  - wired new AST-pipeline CLI mode in `rust/src/main.rs`:
+    - `--preprocess-systemverilog`,
+    - include/depth/redefine controls,
+    - optional JSON artifacts (`--sv-source-map-json`, `--sv-event-log-json`).
+  - added focused module tests for define/include/conditional/function-macro behavior.
+- Validation:
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo test --lib sv_preprocessor -- --nocapture`
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo check --bin ast_pipeline --features generated_parsers -q`
+  - manual CLI run confirms expanded output + source-map/event-log emission.
+
 ### 2026-02-27: Added executable SV preprocessor quality gate + aggregate informational wiring
 - Root cause:
   - Phase Q needed an objective, repeatable quality gate for `systemverilog_preprocessor` beyond one-shot `EBNF -> JSON -> parser -> stimuli` smoke checks.

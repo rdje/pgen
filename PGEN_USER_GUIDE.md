@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-02-26
+Last updated: 2026-02-27
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -100,6 +100,17 @@ cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/foolan
 cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/foolang.json --generate-stimuli-module --count 128 --seed 7 --output generated/foolang_stimuli.rs
 ```
 
+### SystemVerilog preprocess stage (raw SV -> expanded SV + metadata)
+```bash
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  path/to/input.sv \
+  --preprocess-systemverilog \
+  --sv-include-dir path/to/includes \
+  --output /tmp/input.preprocessed.sv \
+  --sv-source-map-json /tmp/input.preprocessed.map.json \
+  --sv-event-log-json /tmp/input.preprocessed.events.json
+```
+
 ### Existing Makefile pipeline shortcuts
 ```bash
 make -C rust SHELL=/bin/bash return_annotation_parser
@@ -138,6 +149,17 @@ Primary modes:
   - `ENTRY_RULE` is always resolved and exported as a concrete string constant,
   - module mode supports the same parseability/coverage/gap-report flags used by in-memory stimuli mode for parity and regression workflows.
 
+5. Preprocess SystemVerilog source
+- `ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]`
+- This mode executes the Rust preprocessor stage and emits:
+  - expanded/preprocessed SV text,
+  - optional source map JSON (`--sv-source-map-json`),
+  - optional event log JSON (`--sv-event-log-json`).
+- Deterministic controls:
+  - include search path order via repeated `--sv-include-dir`,
+  - bounded include recursion (`--sv-include-max-depth`),
+  - macro-redefinition policy (`--sv-disallow-macro-redefine`).
+
 High-value stimuli flags:
 
 - `--entry-rule`
@@ -156,6 +178,14 @@ High-value stimuli flags:
 - `--coverage-guided-fuzz-rounds`
 - `--coverage-guided-fuzz-seed-start`
 - `--coverage-guided-fuzz-replay-output`
+
+SystemVerilog preprocess flags:
+- `--preprocess-systemverilog`
+- `--sv-include-dir` (repeatable)
+- `--sv-include-max-depth`
+- `--sv-disallow-macro-redefine`
+- `--sv-source-map-json`
+- `--sv-event-log-json`
 
 ### Tracing and Verbosity
 Tracing in the Rust pipeline uses a single verbosity contract:

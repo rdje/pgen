@@ -7,6 +7,7 @@ pub mod ast_pipeline;
 #[cfg(feature = "ebnf_dual_run")]
 pub mod ebnf_frontend;
 pub mod embedding_api;
+pub mod sv_preprocessor;
 pub mod test_registry;
 pub mod test_runner; // Only declare once
 

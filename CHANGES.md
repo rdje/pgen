@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-02-27 - Implemented Rust SV Preprocessor Execution Stage in `ast_pipeline`
+### ✅ Achievement Summary
+Implemented the Phase Q preprocessor execution stage in Rust, including deterministic macro/include/conditional expansion and source-map/event metadata emission through a new `ast_pipeline` CLI mode.
+
+### Scope of Changes
+- Added new Rust module:
+  - `rust/src/sv_preprocessor.rs`
+- Added library export:
+  - `rust/src/lib.rs` (`pub mod sv_preprocessor`)
+- Added new `ast_pipeline` mode and flags:
+  - `--preprocess-systemverilog`
+  - `--sv-include-dir`
+  - `--sv-include-max-depth`
+  - `--sv-disallow-macro-redefine`
+  - `--sv-source-map-json`
+  - `--sv-event-log-json`
+- Implemented preprocessor execution baseline:
+  - directive handling: `` `define``, `` `undef``, `` `include``, `` `ifdef/`ifndef/`elsif/`else/`endif``,
+  - passthrough directive handling for `` `timescale``, `` `default_nettype``, `` `celldefine``, `` `endcelldefine``,
+  - object-like and function-like macro expansion,
+  - token-paste and stringize baseline support,
+  - deterministic include path resolution + include-cycle detection + include-depth bound,
+  - structured source-map metadata (`output span -> source file/line/column`),
+  - structured preprocessor event log for directives, passthrough/skipped lines, and macro expansions.
+- Added focused unit coverage in `sv_preprocessor` module:
+  - object macro expansion,
+  - include resolution + source map,
+  - conditional branch behavior,
+  - function macro expansion with token-paste/stringize.
+
+### Validation Results
+- `cd rust && RUSTFLAGS='-Awarnings' cargo test --lib sv_preprocessor -- --nocapture` ✅
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --bin ast_pipeline --features generated_parsers -q` ✅
+- Manual CLI run:
+  - `cargo run --bin ast_pipeline -- <tmp>/top.sv --preprocess-systemverilog --sv-include-dir <tmp> --output <tmp>/out.sv --sv-source-map-json <tmp>/map.json --sv-event-log-json <tmp>/events.json` ✅
+  - verified expanded output, source-map entry count, and event-log emission.
+
 ## 2026-02-27 - Added `sv_preprocessor_quality_gate` and Informational Aggregate Wiring
 ### ✅ Achievement Summary
 Implemented an executable SystemVerilog preprocessor quality gate with deterministic closed-loop checks and wired it into aggregate SOTA policy as informational-first for Phase Q.

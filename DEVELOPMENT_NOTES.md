@@ -1,4 +1,86 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase Q Core Implementation: Rust SV Preprocessor Execution Stage
+### Context
+After adding `systemverilog_preprocessor.ebnf` and its closed-loop quality gate, the next mandatory Phase Q milestone was to add an executable preprocessor stage inside the Rust pipeline itself.
+
+Goal for this increment:
+- provide real `raw SV -> expanded SV` execution behavior,
+- keep behavior deterministic and bounded,
+- emit source mapping metadata for downstream diagnostics/integration.
+
+### Implementation
+Primary files:
+- `rust/src/sv_preprocessor.rs`
+- `rust/src/lib.rs`
+- `rust/src/main.rs`
+
+#### 1) New preprocessor module (`sv_preprocessor`)
+Implemented a dedicated preprocessor execution module with:
+- config surface (`SvPreprocessorConfig`):
+  - include dirs,
+  - max include depth,
+  - macro-redefinition policy.
+- output artifact (`PreprocessedOutput`):
+  - expanded text,
+  - source-map entries (`SourceMapEntry` + `SourceLocation`),
+  - structured event log (`PreprocessorEvent` + `PreprocessorEventKind`),
+  - discovered include list.
+
+Execution engine supports:
+- directives:
+  - `` `define``, `` `undef``, `` `include``,
+  - `` `ifdef``, `` `ifndef``, `` `elsif``, `` `else``, `` `endif``,
+  - passthrough directive families:
+    - `` `timescale``, `` `default_nettype``, `` `celldefine``, `` `endcelldefine``.
+- macro expansion:
+  - object-like macros,
+  - function-like macros,
+  - token-paste baseline (` `` ` removal),
+  - stringize baseline (` `"param` -> `"arg"` behavior).
+- include handling:
+  - deterministic search order:
+    - quoted include: current-file-dir first, then include dirs,
+    - angle include: include dirs first, then current-file-dir.
+  - include recursion depth bound,
+  - include-cycle detection with explicit error.
+
+#### 2) `ast_pipeline` CLI integration
+Added new mode:
+- `--preprocess-systemverilog`
+
+Added supporting flags:
+- `--sv-include-dir` (repeatable),
+- `--sv-include-max-depth`,
+- `--sv-disallow-macro-redefine`,
+- `--sv-source-map-json`,
+- `--sv-event-log-json`.
+
+Behavior:
+- when `--preprocess-systemverilog` is set:
+  - CLI bypasses parser/stimuli flows,
+  - runs preprocessor stage directly on `input_path`,
+  - writes expanded output to `--output` (or stdout),
+  - optionally emits source-map/event-log JSON artifacts.
+
+### Tests
+Added module tests in `sv_preprocessor` for:
+- object macro expansion (`\`define WIDTH 16`),
+- include resolution + source-map provenance,
+- conditional compilation (`ifdef/else/endif`),
+- function-like macro expansion with token-paste/stringize.
+
+### Validation
+Executed:
+- `cd rust && RUSTFLAGS='-Awarnings' cargo test --lib sv_preprocessor -- --nocapture`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --bin ast_pipeline --features generated_parsers -q`
+- manual CLI probe with temp include/source files:
+  - `ast_pipeline <tmp>/top.sv --preprocess-systemverilog --sv-include-dir <tmp> --output <tmp>/out.sv --sv-source-map-json <tmp>/map.json --sv-event-log-json <tmp>/events.json`
+
+Observed:
+- compile/tests pass,
+- expanded output contains resolved include + macro + conditional results,
+- source-map and event-log JSON artifacts are emitted and populated.
+
 ## 2026-02-27 - Implemented `sv_preprocessor_quality_gate` Baseline (Phase Q)
 ### Context
 Phase Q required an executable quality gate for `systemverilog_preprocessor.ebnf` so preprocessor closure can advance with objective, deterministic checks (not just one-off manual runs).

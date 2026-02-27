@@ -245,10 +245,12 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - ifdef/ifndef/elsif/else/endif directives
   - timescale, default_nettype, and celldefine flows
   - macro formal/actual argument forms and token-paste/stringize primitives as supported.
-- [ ] Add preprocessor parser + execution stage in Rust AST pipeline:
+- [x] Add preprocessor parser + execution stage in Rust AST pipeline:
   - raw SV text -> preprocessor AST/events -> expanded SV text stream,
   - deterministic include/macro expansion policy,
   - source mapping metadata (expanded position -> original file/line/column) for diagnostics and Nexsim integration.
+  - Progress (2026-02-27): added `rust/src/sv_preprocessor.rs` with deterministic execution for `define/undef/include/ifdef-family` + object/function macro expansion (`token-paste`/`stringize` baseline), include cycle/depth controls, structured event log output, and source-map metadata.
+  - Progress (2026-02-27): wired AST-pipeline CLI mode `--preprocess-systemverilog` with include-dir/depth/redefine controls and optional JSON artifact emission (`--sv-source-map-json`, `--sv-event-log-json`).
 - [x] Add `sv_preprocessor_quality_gate`:
   - deterministic replay across seeds,
   - coverage/gap loop for preprocessor grammar,
@@ -287,6 +289,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Implemented Phase Q preprocessor execution stage in Rust AST pipeline (`sv_preprocessor` module + `ast_pipeline --preprocess-systemverilog` CLI mode), delivering deterministic include/macro expansion baseline and source-map/event metadata outputs.
 - 2026-02-27: Implemented `sv_preprocessor_quality_gate` (script + Make target) and wired it into aggregate SOTA policy as informational (`run=1`, `strict=0`) for early Phase Q closure while parser-registry parseability support is pending.
 - 2026-02-27: Added executable `grammars/systemverilog_preprocessor.ebnf` seed grammar and validated `EBNF -> JSON -> parser -> stimuli` on non-bootstrap Rust pipeline, closing Phase Q item for dedicated preprocessor grammar baseline.
 - 2026-02-27: Added Phase Q (`SystemVerilog Preprocessor Frontend Closure`) and made it an explicit preprocessor-first prerequisite for Phase P closure, including dedicated grammar, preprocess execution stage, preprocess quality gate, preprocess-aware stimuli modes, and policy-promotion path.

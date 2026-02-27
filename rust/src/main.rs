@@ -17,9 +17,10 @@ use pgen::ast_pipeline::{
 use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
+use pgen::sv_preprocessor::{SvPreprocessorConfig, preprocess_systemverilog_file};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const STIMULI_MODULE_API_VERSION: u32 = 1;
 const DEFAULT_STIMULI_MODULE_SEED: u64 = 1;
@@ -29,7 +30,7 @@ const DEFAULT_STIMULI_MODULE_SEED: u64 = 1;
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
 #[command(
-    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, or emit Rust stimuli modules.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF frontend: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module\n  3. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  4. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  5. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]"
+    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, emit Rust stimuli modules, or preprocess SystemVerilog source files.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF frontend: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module\n  3. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  4. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  5. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]\n  6. SV preprocess stage: ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]"
 )]
 struct Args {
     /// Input grammar source file (.json raw/transformed AST, or .ebnf when built with --features ebnf_dual_run)
@@ -74,6 +75,10 @@ struct Args {
     /// Generate a Rust stimuli module artifact with embedded generated samples
     #[arg(long, conflicts_with_all = ["generate_parser", "generate_stimuli"])]
     generate_stimuli_module: bool,
+
+    /// Run SystemVerilog preprocessor execution stage on INPUT (raw SV -> expanded SV + source-map metadata)
+    #[arg(long, conflicts_with_all = ["generate_parser", "generate_stimuli", "generate_stimuli_module"])]
+    preprocess_systemverilog: bool,
 
     /// Number of stimuli samples to generate (stimuli mode)
     #[arg(long, default_value_t = 1)]
@@ -171,6 +176,26 @@ struct Args {
     /// Enable left recursion elimination (helps resolve stack overflow issues)
     #[arg(long)]
     eliminate_left_recursion: bool,
+
+    /// Include search directory for SystemVerilog preprocessor mode (can be used multiple times)
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_include_dir: Vec<String>,
+
+    /// Max include depth for SystemVerilog preprocessor mode
+    #[arg(long, default_value_t = 64, requires = "preprocess_systemverilog")]
+    sv_include_max_depth: usize,
+
+    /// Disallow macro redefinition in SystemVerilog preprocessor mode
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_disallow_macro_redefine: bool,
+
+    /// Optional JSON output path for preprocessor source-map entries
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_source_map_json: Option<String>,
+
+    /// Optional JSON output path for preprocessor event log
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_event_log_json: Option<String>,
 }
 struct LoadedGrammar {
     grammar_name: String,
@@ -279,6 +304,44 @@ fn main() -> Result<()> {
                 "--validate-parseability/--coverage-*/--gap-report-*/--recovery-stimuli-mode require --generate-stimuli or --generate-stimuli-module"
             ));
         }
+    }
+
+    if args.preprocess_systemverilog {
+        let include_dirs = args
+            .sv_include_dir
+            .iter()
+            .map(PathBuf::from)
+            .collect::<Vec<_>>();
+        let config = SvPreprocessorConfig {
+            include_dirs,
+            max_include_depth: args.sv_include_max_depth,
+            allow_macro_redefine: !args.sv_disallow_macro_redefine,
+        };
+        let output = preprocess_systemverilog_file(Path::new(&args.input_path), &config)?;
+        if let Some(output_path) = args.output.as_deref() {
+            std::fs::write(output_path, &output.text)?;
+            println!("Wrote preprocessed SystemVerilog to {}", output_path);
+        } else {
+            print!("{}", output.text);
+        }
+        if let Some(source_map_path) = args.sv_source_map_json.as_deref() {
+            let json = serde_json::to_string_pretty(&output.source_map)?;
+            std::fs::write(source_map_path, json)?;
+            println!("Wrote SV preprocessor source map to {}", source_map_path);
+        }
+        if let Some(events_path) = args.sv_event_log_json.as_deref() {
+            let json = serde_json::to_string_pretty(&output.events)?;
+            std::fs::write(events_path, json)?;
+            println!("Wrote SV preprocessor event log to {}", events_path);
+        }
+        println!(
+            "SV preprocess summary: output_bytes={} source_map_entries={} events={} included_files={}",
+            output.text.len(),
+            output.source_map.len(),
+            output.events.len(),
+            output.included_files.len()
+        );
+        return Ok(());
     }
 
     // Start with default config and override only specified options
