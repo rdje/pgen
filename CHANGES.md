@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-02-27 - Hardened Embedding API for Zero-Friction Host Integration Conventions
+### ✅ Achievement Summary
+Extended the embedding API to follow common integration conventions across Rust and non-Rust consumers: idiomatic `Result`-based calls for Rust, plus named string-based entry points for binding/FFI layers.
+
+### Scope of Changes
+- Updated embedding API surface:
+  - `rust/src/embedding_api.rs`
+  - added idiomatic Rust wrappers:
+    - `parse_annotation_result(...)`
+    - `parse_annotation_with_limits_result(...)`
+    - `parse_grammar_profile_result(...)`
+    - `parse_grammar_profile_with_limits_result(...)`
+  - added named string-based APIs for non-Rust integration:
+    - `parse_annotation_named(...)`
+    - `parse_annotation_named_with_limits(...)`
+    - `parse_grammar_profile_named(...)`
+    - `parse_grammar_profile_named_with_limits(...)`
+  - added stable string conversion helpers:
+    - `as_str()` and `FromStr` for family/backend/grammar/profile enums.
+  - added `Display`/`Error` support for `ParseDiagnostic`.
+  - introduced deterministic invalid-argument diagnostic:
+    - `E_INVALID_ARGUMENT`
+- Updated docs:
+  - `rust/docs/EMBEDDING_API_CONTRACT.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --lib embedding_api` ✅
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib embedding_api` ✅
+
 ## 2026-02-27 - Added Nexsim Parser Embedding API Profile Contract Scaffold
 ### ✅ Achievement Summary
 Implemented a stable, profile-aware parser embedding API surface in Rust so host projects (including Nexsim) can call SystemVerilog/VHDL parser entry points through deterministic contracts instead of internal generator details.

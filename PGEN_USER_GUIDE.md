@@ -2053,13 +2053,23 @@ Design goal:
 - Expose stable, versioned outcomes for embedders without coupling to internal AST implementation details.
 
 Current stable surfaces:
-- Annotation parsing:
+- Idiomatic Rust `Result` APIs:
+  - `parse_annotation_result(...)`
+  - `parse_annotation_with_limits_result(...)`
+  - `parse_grammar_profile_result(...)`
+  - `parse_grammar_profile_with_limits_result(...)`
+- Deterministic outcome APIs:
   - `parse_annotation(...)`
   - `parse_annotation_with_limits(...)`
-- Parser profile embedding:
-  - `parser_embedding_api_contract()`
   - `parse_grammar_profile(...)`
   - `parse_grammar_profile_with_limits(...)`
+- Language-neutral named APIs:
+  - `parse_annotation_named(...)`
+  - `parse_annotation_named_with_limits(...)`
+  - `parse_grammar_profile_named(...)`
+  - `parse_grammar_profile_named_with_limits(...)`
+- Parser profile embedding metadata:
+  - `parser_embedding_api_contract()`
 
 Current parser profiles:
 - `systemverilog`: `sv_2017`, `sv_2023`
@@ -2068,6 +2078,7 @@ Current parser profiles:
 Deterministic integration behavior:
 - grammar/profile mismatch returns `E_UNSUPPORTED_PROFILE`.
 - missing generated backend returns `E_BACKEND_UNAVAILABLE`.
+- invalid family/backend/grammar/profile names in named APIs return `E_INVALID_ARGUMENT`.
 - per-call bounded input limits enforced via `ParseLimits`.
 
 ## 12) File and Artifact Map

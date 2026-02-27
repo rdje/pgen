@@ -1,5 +1,7 @@
 use crate::ast_pipeline::{UnifiedReturnAST, UnifiedSemanticAST, runtime_logger};
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::str::FromStr;
 
 /// Stable embedding API contract version.
 ///
@@ -44,6 +46,14 @@ pub struct ParseDiagnostic {
     pub message: String,
 }
 
+impl fmt::Display for ParseDiagnostic {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.code, self.message)
+    }
+}
+
+impl std::error::Error for ParseDiagnostic {}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParseLimits {
     pub max_input_bytes: usize,
@@ -84,11 +94,129 @@ pub enum GrammarProfile {
     Vhdl1076_2019,
 }
 
+impl AnnotationFamily {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            AnnotationFamily::Return => "return",
+            AnnotationFamily::Semantic => "semantic",
+        }
+    }
+}
+
+impl ParserBackend {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ParserBackend::Bootstrap => "bootstrap",
+            ParserBackend::Generated => "generated",
+        }
+    }
+}
+
+impl GrammarFamily {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            GrammarFamily::SystemVerilog => "systemverilog",
+            GrammarFamily::Vhdl => "vhdl",
+        }
+    }
+}
+
+impl GrammarProfile {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            GrammarProfile::Sv2017 => "sv_2017",
+            GrammarProfile::Sv2023 => "sv_2023",
+            GrammarProfile::Vhdl1076_2019 => "vhdl_1076_2019",
+        }
+    }
+}
+
+impl FromStr for AnnotationFamily {
+    type Err = ParseDiagnostic;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input.trim().to_ascii_lowercase().as_str() {
+            "return" | "return_annotation" => Ok(Self::Return),
+            "semantic" | "semantic_annotation" => Ok(Self::Semantic),
+            other => Err(invalid_argument_diagnostic(format!(
+                "unsupported annotation family '{}'",
+                other
+            ))),
+        }
+    }
+}
+
+impl FromStr for ParserBackend {
+    type Err = ParseDiagnostic;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input.trim().to_ascii_lowercase().as_str() {
+            "bootstrap" => Ok(Self::Bootstrap),
+            "generated" => Ok(Self::Generated),
+            other => Err(invalid_argument_diagnostic(format!(
+                "unsupported parser backend '{}'",
+                other
+            ))),
+        }
+    }
+}
+
+impl FromStr for GrammarFamily {
+    type Err = ParseDiagnostic;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input.trim().to_ascii_lowercase().as_str() {
+            "systemverilog" | "sv" => Ok(Self::SystemVerilog),
+            "vhdl" => Ok(Self::Vhdl),
+            other => Err(invalid_argument_diagnostic(format!(
+                "unsupported grammar family '{}'",
+                other
+            ))),
+        }
+    }
+}
+
+impl FromStr for GrammarProfile {
+    type Err = ParseDiagnostic;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input.trim().to_ascii_lowercase().as_str() {
+            "sv_2017" | "2017" | "ieee1800-2017" | "ieee_1800_2017" => Ok(Self::Sv2017),
+            "sv_2023" | "2023" | "ieee1800-2023" | "ieee_1800_2023" => Ok(Self::Sv2023),
+            "vhdl_1076_2019" | "1076-2019" | "ieee1076-2019" | "ieee_1076_2019" => {
+                Ok(Self::Vhdl1076_2019)
+            }
+            other => Err(invalid_argument_diagnostic(format!(
+                "unsupported grammar profile '{}'",
+                other
+            ))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GrammarParseOutcome {
     pub api_version: String,
     pub grammar: GrammarFamily,
     pub profile: GrammarProfile,
+    pub status: ParseStatus,
+    pub diagnostic: Option<ParseDiagnostic>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NamedAnnotationParseOutcome {
+    pub api_version: String,
+    pub family: String,
+    pub backend: String,
+    pub status: ParseStatus,
+    pub diagnostic: Option<ParseDiagnostic>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NamedGrammarParseOutcome {
+    pub api_version: String,
+    pub grammar: String,
+    pub profile: String,
     pub status: ParseStatus,
     pub diagnostic: Option<ParseDiagnostic>,
 }
@@ -144,6 +272,13 @@ pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
     }
 }
 
+fn invalid_argument_diagnostic(message: String) -> ParseDiagnostic {
+    ParseDiagnostic {
+        code: "E_INVALID_ARGUMENT".to_string(),
+        message,
+    }
+}
+
 /// Parses a single annotation payload using the selected parser family/backend.
 ///
 /// This API intentionally returns a structured outcome instead of exposing
@@ -184,6 +319,75 @@ pub fn parse_annotation_with_limits(
     }
 }
 
+/// Idiomatic Rust Result-based annotation parse API.
+///
+/// This wrapper is intended for Rust projects that prefer `Result` error flow.
+pub fn parse_annotation_result(
+    family: AnnotationFamily,
+    backend: ParserBackend,
+    input: &str,
+) -> Result<(), ParseDiagnostic> {
+    parse_annotation_with_limits_result(family, backend, input, &ParseLimits::default())
+}
+
+/// Result-based annotation parse API with explicit input limits.
+pub fn parse_annotation_with_limits_result(
+    family: AnnotationFamily,
+    backend: ParserBackend,
+    input: &str,
+    limits: &ParseLimits,
+) -> Result<(), ParseDiagnostic> {
+    run_parse(family, backend, input, limits)
+}
+
+/// Language-neutral annotation parse API using string names.
+///
+/// This entry point is useful for FFI/binding layers that pass string identifiers.
+pub fn parse_annotation_named(
+    family: &str,
+    backend: &str,
+    input: &str,
+) -> NamedAnnotationParseOutcome {
+    parse_annotation_named_with_limits(family, backend, input, &ParseLimits::default())
+}
+
+/// Language-neutral annotation parse API using string names and explicit limits.
+pub fn parse_annotation_named_with_limits(
+    family: &str,
+    backend: &str,
+    input: &str,
+    limits: &ParseLimits,
+) -> NamedAnnotationParseOutcome {
+    match parse_annotation_named_with_limits_result(family, backend, input, limits) {
+        Ok(()) => NamedAnnotationParseOutcome {
+            api_version: EMBEDDING_API_VERSION.to_string(),
+            family: family.to_string(),
+            backend: backend.to_string(),
+            status: ParseStatus::Success,
+            diagnostic: None,
+        },
+        Err(diagnostic) => NamedAnnotationParseOutcome {
+            api_version: EMBEDDING_API_VERSION.to_string(),
+            family: family.to_string(),
+            backend: backend.to_string(),
+            status: ParseStatus::Failure,
+            diagnostic: Some(diagnostic),
+        },
+    }
+}
+
+/// Result-based language-neutral annotation parse API using string names.
+pub fn parse_annotation_named_with_limits_result(
+    family: &str,
+    backend: &str,
+    input: &str,
+    limits: &ParseLimits,
+) -> Result<(), ParseDiagnostic> {
+    let family = AnnotationFamily::from_str(family)?;
+    let backend = ParserBackend::from_str(backend)?;
+    run_parse(family, backend, input, limits)
+}
+
 /// Parses a full grammar input using a stable profile-aware parser entry point.
 pub fn parse_grammar_profile(
     grammar: GrammarFamily,
@@ -216,6 +420,71 @@ pub fn parse_grammar_profile_with_limits(
             diagnostic: Some(diagnostic),
         },
     }
+}
+
+/// Idiomatic Rust Result-based grammar parse API.
+pub fn parse_grammar_profile_result(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+) -> Result<(), ParseDiagnostic> {
+    parse_grammar_profile_with_limits_result(grammar, profile, input, &ParseLimits::default())
+}
+
+/// Result-based grammar parse API with explicit input limits.
+pub fn parse_grammar_profile_with_limits_result(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+    limits: &ParseLimits,
+) -> Result<(), ParseDiagnostic> {
+    run_grammar_parse(grammar, profile, input, limits)
+}
+
+/// Language-neutral grammar parse API using string names.
+pub fn parse_grammar_profile_named(
+    grammar: &str,
+    profile: &str,
+    input: &str,
+) -> NamedGrammarParseOutcome {
+    parse_grammar_profile_named_with_limits(grammar, profile, input, &ParseLimits::default())
+}
+
+/// Language-neutral grammar parse API using string names with explicit limits.
+pub fn parse_grammar_profile_named_with_limits(
+    grammar: &str,
+    profile: &str,
+    input: &str,
+    limits: &ParseLimits,
+) -> NamedGrammarParseOutcome {
+    match parse_grammar_profile_named_with_limits_result(grammar, profile, input, limits) {
+        Ok(()) => NamedGrammarParseOutcome {
+            api_version: EMBEDDING_API_VERSION.to_string(),
+            grammar: grammar.to_string(),
+            profile: profile.to_string(),
+            status: ParseStatus::Success,
+            diagnostic: None,
+        },
+        Err(diagnostic) => NamedGrammarParseOutcome {
+            api_version: EMBEDDING_API_VERSION.to_string(),
+            grammar: grammar.to_string(),
+            profile: profile.to_string(),
+            status: ParseStatus::Failure,
+            diagnostic: Some(diagnostic),
+        },
+    }
+}
+
+/// Result-based language-neutral grammar parse API using string names.
+pub fn parse_grammar_profile_named_with_limits_result(
+    grammar: &str,
+    profile: &str,
+    input: &str,
+    limits: &ParseLimits,
+) -> Result<(), ParseDiagnostic> {
+    let grammar = GrammarFamily::from_str(grammar)?;
+    let profile = GrammarProfile::from_str(profile)?;
+    run_grammar_parse(grammar, profile, input, limits)
 }
 
 fn run_parse(
@@ -396,8 +665,10 @@ fn parse_generated_vhdl(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
     {
         use crate::generated_parsers::vhdl::VhdlParser;
-        let mut parser =
-            VhdlParser::new(input, crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"));
+        let mut parser = VhdlParser::new(
+            input,
+            crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
+        );
         return parser
             .parse_full_vhdl_file()
             .map(|_| ())
@@ -534,6 +805,67 @@ mod tests {
         );
         assert_eq!(outcome.status, ParseStatus::Success);
         assert!(outcome.diagnostic.is_none());
+    }
+
+    #[test]
+    fn result_wrapper_succeeds_for_bootstrap_return() {
+        let result = parse_annotation_result(
+            AnnotationFamily::Return,
+            ParserBackend::Bootstrap,
+            "$1.property",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn named_annotation_entry_rejects_unknown_family() {
+        let outcome = parse_annotation_named("unknown_family", "bootstrap", "$1");
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        let diagnostic = outcome
+            .diagnostic
+            .as_ref()
+            .expect("expected invalid-argument diagnostic");
+        assert_eq!(diagnostic.code, "E_INVALID_ARGUMENT");
+    }
+
+    #[test]
+    fn named_grammar_entry_rejects_unknown_profile() {
+        let outcome =
+            parse_grammar_profile_named("systemverilog", "unknown_profile", "module m; endmodule");
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        let diagnostic = outcome
+            .diagnostic
+            .as_ref()
+            .expect("expected invalid-argument diagnostic");
+        assert_eq!(diagnostic.code, "E_INVALID_ARGUMENT");
+    }
+
+    #[test]
+    fn from_str_and_as_str_aliases_are_stable() {
+        assert_eq!(
+            AnnotationFamily::from_str("return_annotation")
+                .expect("family alias")
+                .as_str(),
+            "return"
+        );
+        assert_eq!(
+            ParserBackend::from_str("generated")
+                .expect("backend alias")
+                .as_str(),
+            "generated"
+        );
+        assert_eq!(
+            GrammarFamily::from_str("sv")
+                .expect("grammar alias")
+                .as_str(),
+            "systemverilog"
+        );
+        assert_eq!(
+            GrammarProfile::from_str("ieee1800-2023")
+                .expect("profile alias")
+                .as_str(),
+            "sv_2023"
+        );
     }
 
     #[test]

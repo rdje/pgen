@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: parser-embedding-api-profile-scaffold)
+Last updated: 2026-02-27 (+0100, task: embedding-api-convention-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for parser embedding API profile scaffold; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for embedding API convention hardening; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `155`
+- Commit count at last refresh (before current uncommitted changes): `156`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 34d1f4f Add parser-profile embedding API scaffold for Nexsim integration
 - 473dbe4 hdl: add executable vhdl seed grammar and close strict readiness gap
 - 1f6a89f policy: promote aggregate hdl readiness to required strict mode
 - cb67aab sv gate: extend semantic baseline with contract-driven structural checks (v2)
@@ -197,6 +198,20 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Embedding API convention hardening (Rust + non-Rust)
+- Root cause:
+  - parser embedding API needed lower-friction host ergonomics beyond typed-outcome-only calls to align with common Rust and cross-language integration patterns.
+- Fix:
+  - added idiomatic Rust `Result` wrappers (`*_result` APIs) in `rust/src/embedding_api.rs`.
+  - added named string-based parse entry points (`*_named` APIs) for binding/FFI layers.
+  - added canonical string mapping (`as_str`) and `FromStr` aliases for family/backend/grammar/profile types.
+  - added `Display` + `std::error::Error` implementations for `ParseDiagnostic`.
+  - added deterministic invalid-argument diagnostic for named APIs: `E_INVALID_ARGUMENT`.
+  - aligned contract/UG/roadmap docs with the new dual-surface API shape.
+- Validation:
+  - `cargo test --manifest-path rust/Cargo.toml --lib embedding_api`
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib embedding_api`
 
 ### 2026-02-27: Nexsim parser embedding API profile scaffold (SV/VHDL)
 - Root cause:

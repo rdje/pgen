@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Embedding API Convention Hardening (Zero-Friction Rust + FFI)
+### Context
+Requirement: parser embedding APIs must be usable by external projects with minimal friction and align with generally accepted API shapes in Rust and other host languages.
+
+### Implementation
+Primary file:
+- `rust/src/embedding_api.rs`
+
+#### 1) Added idiomatic Rust `Result` wrappers
+Introduced explicit `Result<(), ParseDiagnostic>` entry points so Rust integrations can use normal error propagation (`?`) without decoding outcome structs:
+- `parse_annotation_result(...)`
+- `parse_annotation_with_limits_result(...)`
+- `parse_grammar_profile_result(...)`
+- `parse_grammar_profile_with_limits_result(...)`
+
+#### 2) Added named string-based entry points for non-Rust bindings
+Introduced language-neutral APIs that accept string identifiers and preserve them in outcomes:
+- `parse_annotation_named(...)`
+- `parse_annotation_named_with_limits(...)`
+- `parse_grammar_profile_named(...)`
+- `parse_grammar_profile_named_with_limits(...)`
+
+These are intended for FFI/binding layers where callers naturally pass strings for family/backend/profile.
+
+#### 3) Added canonical string mapping and conversion
+Added stable conversion helpers for typed enums:
+- `as_str()` on `AnnotationFamily`, `ParserBackend`, `GrammarFamily`, `GrammarProfile`
+- `FromStr` implementations with alias support (e.g. `sv`, `ieee1800-2023`).
+
+#### 4) Improved error ergonomics
+`ParseDiagnostic` now implements:
+- `Display`
+- `std::error::Error`
+
+Added deterministic invalid-argument diagnostic for name parsing:
+- `E_INVALID_ARGUMENT`
+
+#### 5) Documentation alignment
+Updated:
+- `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+Executed:
+- `cargo test --manifest-path rust/Cargo.toml --lib embedding_api`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib embedding_api`
+
+Observed:
+- all embedding API tests pass,
+- named APIs return deterministic `E_INVALID_ARGUMENT` on unknown names,
+- Rust `Result` wrappers align with conventional host integration flow.
+
 ## 2026-02-27 - Nexsim Parser Embedding API Profile Contract Scaffold (SV/VHDL)
 ### Context
 Phase P requires a host-facing parser API contract so Nexsim can integrate parser calls without coupling to generated parser internals. Before this increment, embedding API only covered annotation parsing.

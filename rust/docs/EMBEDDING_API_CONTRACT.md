@@ -9,10 +9,21 @@ Provide a stable, versioned surface for external projects embedding PGEN annotat
   - `embedding_api_contract() -> EmbeddingApiContract`
   - `parser_embedding_api_contract() -> ParserEmbeddingApiContract`
 - Parse API:
+  - idiomatic Rust `Result` surface:
+    - `parse_annotation_result(family, backend, input) -> Result<(), ParseDiagnostic>`
+    - `parse_annotation_with_limits_result(family, backend, input, limits) -> Result<(), ParseDiagnostic>`
+    - `parse_grammar_profile_result(grammar, profile, input) -> Result<(), ParseDiagnostic>`
+    - `parse_grammar_profile_with_limits_result(grammar, profile, input, limits) -> Result<(), ParseDiagnostic>`
+  - deterministic structured outcome surface:
   - `parse_annotation(family, backend, input) -> ParseOutcome`
   - `parse_annotation_with_limits(family, backend, input, limits) -> ParseOutcome`
   - `parse_grammar_profile(grammar, profile, input) -> GrammarParseOutcome`
   - `parse_grammar_profile_with_limits(grammar, profile, input, limits) -> GrammarParseOutcome`
+  - language-neutral named string surface:
+    - `parse_annotation_named(family_name, backend_name, input) -> NamedAnnotationParseOutcome`
+    - `parse_annotation_named_with_limits(...) -> NamedAnnotationParseOutcome`
+    - `parse_grammar_profile_named(grammar_name, profile_name, input) -> NamedGrammarParseOutcome`
+    - `parse_grammar_profile_named_with_limits(...) -> NamedGrammarParseOutcome`
 - Parse limits type:
   - `ParseLimits { max_input_bytes }`
   - default via `ParseLimits::default()`
@@ -37,6 +48,8 @@ Grammar parser API:
 - `GrammarFamily`: `systemverilog | vhdl`
 - `GrammarProfile`: `sv_2017 | sv_2023 | vhdl_1076_2019`
 - `GrammarParseOutcome`: includes API version, grammar, profile, status, optional diagnostic.
+- `NamedAnnotationParseOutcome`: structured result preserving caller-provided family/backend strings.
+- `NamedGrammarParseOutcome`: structured result preserving caller-provided grammar/profile strings.
 - `ParserEmbeddingApiContract`: stable profile matrix + backend availability flags.
 
 ## Diagnostic Code Contract
@@ -44,6 +57,7 @@ Grammar parser API:
 - `E_PARSE_FAILURE`: selected backend failed to parse the provided input.
 - `E_INPUT_TOO_LARGE`: input exceeds `max_input_bytes` parse limit.
 - `E_INVALID_LIMITS`: invalid limit configuration (for example `max_input_bytes == 0`).
+- `E_INVALID_ARGUMENT`: unknown family/backend/grammar/profile value in named string APIs.
 - `E_UNSUPPORTED_PROFILE`: grammar/profile mismatch (for example `vhdl_1076_2019` used with `systemverilog` grammar entry point).
 
 ## Determinism Contract

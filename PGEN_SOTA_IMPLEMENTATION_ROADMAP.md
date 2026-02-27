@@ -254,6 +254,10 @@ Toolbox baseline to leverage end-to-end:
     - parse entry points: `parse_grammar_profile(...)` and `parse_grammar_profile_with_limits(...)`
     - stable grammar/profile enums (`systemverilog`, `vhdl`; `sv_2017`, `sv_2023`, `vhdl_1076_2019`)
     - deterministic diagnostics for mismatch/unavailable paths (`E_UNSUPPORTED_PROFILE`, `E_BACKEND_UNAVAILABLE`) with bounded-input enforcement parity (`ParseLimits`).
+  - Progress (2026-02-27): aligned API shape to low-friction integration conventions:
+    - idiomatic Rust `Result` wrappers for direct host integration (`*_result` APIs),
+    - named string-based entry points for non-Rust bindings/FFI (`*_named` APIs),
+    - stable invalid-argument diagnostic taxonomy (`E_INVALID_ARGUMENT`) for binding layers.
 - [ ] Promote SV gates into SOTA aggregate policy:
   - informational first,
   - required strict once syntax+semantic closure thresholds are green and stable.
