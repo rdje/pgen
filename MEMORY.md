@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-semantic-closure-mode-profile)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-semantic-validator-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV semantic-closure mode/profile increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV semantic-validator hardening increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -217,6 +217,29 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P semantic-validator hardening for `sv_semantic_file`
+- Root cause:
+  - enabling both declaration-before-use and width checks in semantic-closure mode exposed lexical false positives (for example `timeunit` tokenization artifacts) on random stimuli.
+- Fix:
+  - hardened `check_declared_identifiers_before_use` in `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - strips quoted strings and `timeunit/timeprecision` lines,
+    - ignores member/namespace/macro contexts,
+    - expands declaration context extraction and keyword coverage.
+  - hardened `check_width_compatibility_simple`:
+    - added packed-width extraction for `logic|reg|wire|bit`,
+    - supports indexed LHS assignment forms.
+  - tightened `sv_semantic_file` policy in `systemverilog_core_v0_contract.json`:
+    - enabled `require_width_compatibility_simple=true`,
+    - kept `require_declared_identifiers_before_use=false` until lexical-noise debt is further reduced.
+  - synced roadmap/UG/docs notes for current semantic-closure policy posture.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - semantic-closure mode now carries stronger width checks with stable pass behavior; declaration-before-use remains intentionally deferred pending additional robustness work.
 
 ### 2026-02-27: Phase P semantic-closure increment - dedicated `sv_semantic_file` mode
 - Root cause:

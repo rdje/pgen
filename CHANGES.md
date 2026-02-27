@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Semantic-Closure Hardening: Declared/Width Validator Refinement + `sv_semantic_file` Policy Tightening
+### ✅ Achievement Summary
+Hardened SV semantic-closure validator heuristics and tightened the `sv_semantic_file` policy to include width-compatibility checks while keeping declaration-before-use disabled pending remaining lexical false-positive burn-down.
+
+### Scope of Changes
+- Hardened semantic validator implementations:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - `check_declared_identifiers_before_use` improvements:
+    - strips quoted strings before token scan,
+    - strips `timeunit/timeprecision` lines before undeclared scan,
+    - ignores member/namespace/macro contexts (`.`, `::`, `->`, `` ` ``),
+    - recognizes more declaration contexts (ports/imports/for/foreach/instantiation),
+    - expanded SystemVerilog keyword handling.
+  - `check_width_compatibility_simple` improvements:
+    - now covers packed declarations for `logic|reg|wire|bit`,
+    - supports indexed LHS assignment forms when comparing literal widths.
+- Tightened semantic-closure mode policy:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `sv_semantic_file` mode semantic overrides now include:
+    - `require_width_compatibility_simple=true`
+  - `require_declared_identifiers_before_use` remains explicitly disabled in this mode after observed lexical false positives on random stimuli.
+- Updated docs/roadmap continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Semantic-Closure Increment: Dedicated `sv_semantic_file` Mode + Gate Switch
 ### ✅ Achievement Summary
 Added an explicit semantic-closure execution mode for SV stimuli quality runs so stricter semantic validator subsets can be exercised intentionally without changing default gate behavior.

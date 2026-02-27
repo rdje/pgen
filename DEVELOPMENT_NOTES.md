@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Semantic-Closure Hardening: Validator Refinement for Declared/Width Checks
+### Context
+After introducing `sv_semantic_file`, enabling both `require_declared_identifiers_before_use` and `require_width_compatibility_simple` immediately exposed lexical false positives in declaration checking on random stimuli (for example `timeunit` tokenization artifacts). We needed to harden validator heuristics before tightening semantic-closure policy.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+#### 1) Hardened declaration-before-use checker
+`check_declared_identifiers_before_use` now:
+- strips quoted strings before token scanning,
+- strips `timeunit/timeprecision` directives before undeclared scan,
+- ignores member/namespace/macro contexts (`.`, `::`, `->`, `` ` ``),
+- tracks additional declaration contexts:
+  - import package names,
+  - typed port declarations,
+  - `for`/`foreach` loop iterator declarations,
+  - simple instantiation type/instance pairs,
+- expands language keyword allowlist.
+
+This reduced immediate lexical false positives while preserving intent for obvious undeclared symbol cases.
+
+#### 2) Hardened width-compatibility checker
+`check_width_compatibility_simple` now:
+- collects packed widths from `logic|reg|wire|bit` declarations,
+- handles declarations with multiple identifiers in one statement,
+- checks indexed LHS assignment forms (`lhs[idx] <= 8'h..`) using base identifier width.
+
+#### 3) Tightened semantic-closure mode policy safely
+In `sv_semantic_file` semantic overrides:
+- enabled:
+  - `require_width_compatibility_simple=true`
+- kept disabled:
+  - `require_declared_identifiers_before_use=false`
+
+Rationale:
+- width compatibility now behaves stably on current randomized corpus.
+- declaration-before-use still shows lexical edge debt on random invalid-ish samples; keeping it off prevents false gate noise while hardening continues.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- baseline mode remains passing,
+- semantic-closure mode remains passing with width-compatibility enabled,
+- declaration-before-use remains explicitly deferred in semantic-closure profile until additional lexical-noise handling is complete.
+
 ## 2026-02-27 - Phase P Semantic-Closure Mode Increment: `sv_semantic_file` + `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE`
 ### Context
 Phase P semantic-closure validators were already wired but mostly default-disabled to avoid destabilizing baseline gate runs. We needed an explicit execution profile that can exercise a stricter semantic subset on demand without forcing strictness into all default SV stimuli runs.

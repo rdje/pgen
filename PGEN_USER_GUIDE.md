@@ -2133,7 +2133,9 @@ Optional SV syntax-closure gate tuning:
     - mode semantic overrides currently enable:
       - `require_port_binding_legality_basic=true`
       - `require_package_qualification_resolution=true`
+      - `require_width_compatibility_simple=true`
       - `require_context_legality_basic=true`
+      - `require_declared_identifiers_before_use=false` (currently held off in this profile while lexical false-positive hardening continues).
   - mode-level recovery steering:
     - optional profile key:
       - `stimuli_modes.profiles.<mode>.recovery_stimuli_mode`
@@ -2154,7 +2156,9 @@ Optional SV syntax-closure gate tuning:
       - `sv_semantic_file`:
         - `require_port_binding_legality_basic=true`
         - `require_package_qualification_resolution=true`
+        - `require_width_compatibility_simple=true`
         - `require_context_legality_basic=true`
+        - `require_declared_identifiers_before_use=false`
 - closed-loop contract controls (from `systemverilog_core_v0_contract.json`):
   - `closed_loop.gap_report_threshold`
   - `closed_loop.target_max_attempts`
@@ -2178,8 +2182,10 @@ Optional SV syntax-closure gate tuning:
   - optional basic named-port legality check against known in-file module headers (`semantic_baseline.require_port_binding_legality_basic`).
   - optional structural keyword-balance check (`semantic_baseline.require_balanced_structural_keywords`, currently disabled in default contract due high false-positive risk on current random samples).
   - optional declaration-before-use heuristic (`semantic_baseline.require_declared_identifiers_before_use`).
+    - current implementation strips quoted strings, ignores member/namespace/macro contexts, and handles additional declaration contexts (ports/imports/for/foreach/instantiation); still not default-enabled in semantic-closure profile.
   - optional package qualification/import resolution heuristic (`semantic_baseline.require_package_qualification_resolution`).
   - optional simple packed-width vs literal-width compatibility check (`semantic_baseline.require_width_compatibility_simple`).
+    - current implementation covers packed declarations of `logic|reg|wire|bit` and indexed LHS assignment forms.
   - optional basic context legality checks (`semantic_baseline.require_context_legality_basic`):
     - `always_comb` must not contain event controls,
     - `always_ff` must not contain blocking assignments,

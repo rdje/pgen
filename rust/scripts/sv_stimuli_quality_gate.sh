@@ -204,6 +204,8 @@ check_declared_identifiers_before_use() {
             my $text = <>;
             $text =~ s!/\*.*?\*/!!gs;
             $text =~ s!//.*?$!!gm;
+            $text =~ s/"(?:\\.|[^"\\])*"/""/gs;
+            $text =~ s/\b(?:timeunit|timeprecision)\b[^;]*;//g;
 
             my %keywords = map { $_ => 1 } qw(
                 module endmodule interface endinterface program endprogram package endpackage class endclass
@@ -213,31 +215,65 @@ check_declared_identifiers_before_use() {
                 signed unsigned input output inout ref var parameter localparam type typedef enum struct union
                 packed unpacked function endfunction task endtask import export virtual static automatic const
                 generate endgenerate genvar return break continue default initial final disable wait fork join
-                join_any join_none
+                join_any join_none checker endchecker primitive endprimitive
+                this super null inside matches with let assert assume cover property sequence rand randc
+                timeunit timeprecision clocking endclocking modport randsequence endsequence
+                constraint solve before dist bins binsof cross covergroup endgroup coverpoint
             );
 
             my %declared;
-            while ($text =~ /\b(?:module|interface|program|package|class|function|task)\s+([A-Za-z_][A-Za-z0-9_]*)/g) {
+            while ($text =~ /\b(?:module|interface|program|package|class|checker|primitive|function|task)\s+([A-Za-z_][A-Za-z0-9_]*)/g) {
                 $declared{$1} = 1;
             }
-            while ($text =~ /\b(?:logic|reg|wire|bit|byte|shortint|int|integer|longint|string|chandle|event|time|realtime)\b(?:\s+(?:signed|unsigned))?\s+([^;]+)/g) {
+            while ($text =~ /\bimport\s+([A-Za-z_][A-Za-z0-9_]*)::(?:\*|[A-Za-z_][A-Za-z0-9_]*)/g) {
+                $declared{$1} = 1;
+            }
+            while ($text =~ /\b(?:input|output|inout|ref|var|logic|reg|wire|bit|byte|shortint|int|integer|longint|string|chandle|event|time|realtime)\b(?:\s+(?:signed|unsigned))?(?:\s*\[[^\]]+\])?\s+([^;]+)/g) {
                 my $tail = $1;
                 while ($tail =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
-                    $declared{$1} = 1;
+                    my $id = $1;
+                    next if $keywords{$id};
+                    $declared{$id} = 1;
                 }
             }
             while ($text =~ /\b(?:parameter|localparam|genvar|typedef)\b([^;]*);/g) {
                 my $tail = $1;
                 while ($tail =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
-                    $declared{$1} = 1;
+                    my $id = $1;
+                    next if $keywords{$id};
+                    $declared{$id} = 1;
                 }
             }
+            while ($text =~ /\bfor\s*\(\s*(?:int|integer|longint|shortint|byte|bit)\s+([A-Za-z_][A-Za-z0-9_]*)\b/g) {
+                $declared{$1} = 1;
+            }
+            while ($text =~ /\bforeach\s*\([^)]*?\b([A-Za-z_][A-Za-z0-9_]*)\s*\)/g) {
+                $declared{$1} = 1;
+            }
+            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:#\s*\([^;{}]*\)\s*)?\(/g) {
+                my ($type_name, $inst_name) = ($1, $2);
+                next if $keywords{$type_name};
+                $declared{$type_name} = 1;
+                $declared{$inst_name} = 1;
+            }
 
+            pos($text) = 0;
             while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
                 my $id = $1;
                 next if $keywords{$id};
                 next if $declared{$id};
                 next if $id =~ /^(?:[A-Z_][A-Z0-9_]*|x|z)$/;
+                my $start = $-[1];
+                my $end = $+[1];
+                my $prev = $start > 0 ? substr($text, $start - 1, 1) : "";
+                my $prev2 = $start > 1 ? substr($text, $start - 2, 2) : "";
+                my $next = substr($text, $end, 1);
+                my $next2 = substr($text, $end, 2);
+                next if $prev =~ /[0-9]/;
+                next if $prev eq "." || $prev2 eq "::" || $prev2 eq "->";
+                next if $next2 eq "::";
+                next if $next eq ":";
+                next if $prev eq "`";
                 print "undeclared identifier use detected (first=\"$id\")\n";
                 exit 1;
             }
@@ -300,12 +336,20 @@ check_width_compatibility_simple() {
             $text =~ s!//.*?$!!gm;
 
             my %width_of;
-            while ($text =~ /\blogic\s*\[\s*(\d+)\s*:\s*(\d+)\s*\]\s*([A-Za-z_][A-Za-z0-9_]*)/g) {
-                my ($msb, $lsb, $name) = ($1, $2, $3);
+            my %keywords = map { $_ => 1 } qw(
+                signed unsigned wire logic reg bit input output inout ref var
+            );
+
+            while ($text =~ /\b(?:logic|reg|wire|bit)\b(?:\s+(?:signed|unsigned))?\s*\[\s*(\d+)\s*:\s*(\d+)\s*\]\s*([^;]+);/g) {
+                my ($msb, $lsb, $tail) = ($1, $2, $3);
                 my $width = $msb >= $lsb ? ($msb - $lsb + 1) : ($lsb - $msb + 1);
-                $width_of{$name} = $width;
+                while ($tail =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
+                    my $name = $1;
+                    next if $keywords{$name};
+                    $width_of{$name} = $width;
+                }
             }
-            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)\s*(?:<=|=)\s*(\d+)\s*'\''[bBoOdDhH][0-9a-fA-F_xXzZ]+/g) {
+            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]+\])?\s*(?:<=|=)\s*(\d+)\s*'\''[bBoOdDhH][0-9a-fA-F_xXzZ]+/g) {
                 my ($lhs, $lit_width) = ($1, $2);
                 next if !exists $width_of{$lhs};
                 if ($lit_width > $width_of{$lhs}) {
