@@ -1958,6 +1958,8 @@ make -C rust SHELL=/bin/bash sota_release_policy
 Aggregate gate tuning:
 - `PGEN_SOTA_RUN_EBNF_READINESS` (`1`/`0`, default `1`)
 - `PGEN_SOTA_REQUIRE_EBNF_STRICT` (`1`/`0`, default `0`)
+- `PGEN_SOTA_RUN_HDL_FRONTEND_READINESS` (`1`/`0`, default from policy file)
+- `PGEN_SOTA_REQUIRE_HDL_FRONTEND_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_RUN_SV_STIMULI_QUALITY` (`1`/`0`, default from policy file)

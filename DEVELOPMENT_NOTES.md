@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Aggregate Policy Wiring: HDL Frontend Readiness (Informational-First)
+### Context
+Phase O required an explicit aggregate-policy decision for HDL readiness: expose the signal in `sota_exit_gate` now, but keep it non-blocking until `grammars/vhdl.ebnf` exists and strict HDL closure is feasible.
+
+### Implementation
+Primary files:
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+
+Added aggregate-policy controls:
+- policy file keys:
+  - `PGEN_SOTA_POLICY_RUN_HDL_FRONTEND_READINESS`
+  - `PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT`
+- runtime override keys:
+  - `PGEN_SOTA_RUN_HDL_FRONTEND_READINESS`
+  - `PGEN_SOTA_REQUIRE_HDL_FRONTEND_STRICT`
+
+Runner behavior:
+- validates these keys as boolean (`0|1`),
+- prints effective values in aggregate header,
+- executes:
+  - `hdl_frontend_readiness` as informational when `run=1` and `strict=0`,
+  - `hdl_frontend_gate` as required when `run=1` and `strict=1`.
+
+Policy default chosen in this increment:
+- `PGEN_SOTA_POLICY_RUN_HDL_FRONTEND_READINESS=1`
+- `PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=0`
+
+Rationale:
+- keeps HDL readiness visible in one-command SOTA reports,
+- avoids false blocking while `vhdl` grammar seed is intentionally still pending.
+
+### Validation
+Executed scoped aggregate probe:
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract`
+- `PGEN_SOTA_RUN_EBNF_READINESS=0`
+- `PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0`
+- `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0`
+- `PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0`
+- `PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=1`
+- `make -C rust SHELL=/bin/bash sota_exit_gate`
+
+Observed:
+- aggregate gate executes HDL readiness in informational mode,
+- run remains green with expected `vhdl` pending state,
+- summary now carries HDL signal alongside existing aggregate checks.
+
 ## 2026-02-27 - `systemverilog.ebnf` Internal Reference Hardening (Zero Unresolved Symbols)
 ### Context
 After publishing `SV_GRAMMAR_COVERAGE_MATRIX.md`, the unresolved-reference scan identified five missing symbols in the seed grammar:

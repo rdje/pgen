@@ -198,7 +198,8 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Define tracked initial grammar roster for readiness (`systemverilog`, `vhdl`) and report missing grammar files explicitly as `not_ready`.
 - [x] Add first executable SystemVerilog seed grammar (`grammars/systemverilog.ebnf`) from IEEE 1800 markdown syntax sections and drive `systemverilog` HDL readiness row to pass.
 - [ ] Add first executable VHDL seed grammar (`grammars/vhdl.ebnf`) and turn strict HDL frontend readiness green for both tracked HDL grammars.
-- [ ] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
+- [x] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
+  - Progress (2026-02-27): wired HDL readiness into aggregate `sota_exit_gate` as informational-first (`run=1`, `strict=0`) via policy/runtime controls while `vhdl.ebnf` remains pending.
 
 ### Phase P (New): SOTA SystemVerilog Parser + Stimuli Semantic Closure (Nexsim)
 Objective: deliver a production-grade SystemVerilog parser/stimuli flow for Nexsim where acceptance requires both syntax correctness and semantic correctness.
@@ -302,6 +303,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.
+- 2026-02-27: Wired HDL frontend readiness into aggregate SOTA policy as informational-first (`run=1`, `strict=0`) with explicit runtime/policy toggles, preserving non-blocking status while `vhdl.ebnf` closure is pending.
 - 2026-02-27: Hardened `systemverilog.ebnf` seed consistency by defining previously unresolved symbols (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed `SV_GRAMMAR_COVERAGE_MATRIX.md` to reflect zero unresolved reference debt.
 - 2026-02-27: Added `SV_GRAMMAR_COVERAGE_MATRIX.md` to operationalize Phase P syntax-closure tracking with Annex-A-aligned anchors, grouped per-rule status coverage, and explicit unresolved-reference debt for `systemverilog.ebnf`.
 - 2026-02-27: Wired dynamic build-time `systemverilog` parser-registry adapter path (`build.rs` + conditional module/registry entry) and upgraded `sv_stimuli_quality_gate` parse-full stage from adapter-skipped to executable in `auto` mode, with strict mode hard-fail behavior.

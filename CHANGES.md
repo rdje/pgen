@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-02-27 - Wired HDL Frontend Readiness into Aggregate SOTA Policy (Informational-First)
+### ✅ Achievement Summary
+Integrated HDL readiness checks into `sota_exit_gate` with informational-first policy so aggregate runs now report SystemVerilog/VHDL frontend readiness without failing merges while `vhdl.ebnf` is still pending.
+
+### Scope of Changes
+- Updated aggregate runner:
+  - `rust/scripts/sota_exit_gate.sh`
+  - added policy/runtime controls:
+    - `PGEN_SOTA_POLICY_RUN_HDL_FRONTEND_READINESS`
+    - `PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT`
+    - `PGEN_SOTA_RUN_HDL_FRONTEND_READINESS`
+    - `PGEN_SOTA_REQUIRE_HDL_FRONTEND_STRICT`
+  - added boolean validation, summary printing, and run block:
+    - informational: `make -C rust SHELL=/bin/bash hdl_frontend_readiness`
+    - strict: `make -C rust SHELL=/bin/bash hdl_frontend_gate`
+- Updated machine policy defaults:
+  - `rust/config/sota_exit_policy.env`
+  - set:
+    - `PGEN_SOTA_POLICY_RUN_HDL_FRONTEND_READINESS=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=0`
+- Updated docs/tracking:
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation Results
+- scoped aggregate run:
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=1 make -C rust SHELL=/bin/bash sota_exit_gate` ✅
+  - confirms aggregate summary includes HDL readiness as informational with current expected `vhdl` pending state.
+
 ## 2026-02-27 - Hardened `systemverilog.ebnf` Seed Consistency (Resolved Unresolved Symbols)
 ### ✅ Achievement Summary
 Closed the initial unresolved-rule debt in `grammars/systemverilog.ebnf` so the seed grammar is now internally reference-consistent.
