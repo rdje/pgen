@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Aggregate Policy Wiring: `sv_stimuli_quality_gate` in `sota_exit_gate`
+### Context
+`sv_stimuli_quality_gate` existed as a standalone command, but aggregate SOTA policy did not yet execute it. That left a gap between Phase Q/P progress and single-command release visibility.
+
+### Implementation
+Primary files:
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+
+Added aggregate-policy controls:
+- policy file keys:
+  - `PGEN_SOTA_POLICY_RUN_SV_STIMULI_QUALITY`
+  - `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT`
+- runtime override keys:
+  - `PGEN_SOTA_RUN_SV_STIMULI_QUALITY`
+  - `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT`
+
+Runner behavior:
+- validates these keys as boolean (`0|1`),
+- reports effective values in aggregate header,
+- executes:
+  - informational mode when `run=1` and `strict=0`,
+  - required mode when `run=1` and `strict=1`.
+
+Policy default chosen in this increment:
+- run enabled, strict disabled:
+  - `PGEN_SOTA_POLICY_RUN_SV_STIMULI_QUALITY=1`
+  - `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT=0`
+
+Rationale:
+- gate is now visible in aggregate release signal,
+- strict promotion can occur later when parse-full acceptance + semantic validation closure metrics are stable.
+
+### Validation
+Executed scoped aggregate probe:
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract`
+- `PGEN_SOTA_RUN_EBNF_READINESS=0`
+- `PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0`
+- `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0`
+- `PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1`
+- `make -C rust SHELL=/bin/bash sota_exit_gate`
+
+Observed:
+- aggregate gate invoked `sv_stimuli_quality_gate`,
+- check recorded as informational as expected,
+- scoped aggregate run completed successfully.
+
 ## 2026-02-27 - Dynamic `systemverilog` Parseability Adapter Wiring for `sv_stimuli_quality_gate`
 ### Context
 `sv_stimuli_quality_gate` skeleton was in place, but parse-full stage remained adapter-limited for `systemverilog` in normal `generated_parsers` builds.

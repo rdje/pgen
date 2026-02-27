@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-02-27 - Wired `sv_stimuli_quality_gate` into Aggregate SOTA Policy (Informational-First)
+### ✅ Achievement Summary
+Added aggregate policy wiring so `sota_exit_gate` can execute `sv_stimuli_quality_gate` under explicit policy controls, initially as informational while SV closure work continues.
+
+### Scope of Changes
+- Updated aggregate gate runner:
+  - `rust/scripts/sota_exit_gate.sh`
+  - added env/policy controls:
+    - `PGEN_SOTA_POLICY_RUN_SV_STIMULI_QUALITY`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT`
+    - `PGEN_SOTA_RUN_SV_STIMULI_QUALITY`
+    - `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT`
+  - added summary output and run block for `sv_stimuli_quality_gate`.
+- Updated machine policy defaults:
+  - `rust/config/sota_exit_policy.env`
+  - set:
+    - `PGEN_SOTA_POLICY_RUN_SV_STIMULI_QUALITY=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT=0`
+- Updated documentation:
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation Results
+- Scoped aggregate run:
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 make -C rust SHELL=/bin/bash sota_exit_gate` ✅
+  - confirmed aggregate runner executes `sv_stimuli_quality_gate` in informational mode and reports it in gate summary.
+
 ## 2026-02-27 - Wired Dynamic `systemverilog` Parseability Adapter into `sv_stimuli_quality_gate`
 ### ✅ Achievement Summary
 Enabled real `parse_full` execution for `systemverilog` inside `sv_stimuli_quality_gate` by adding a build-time adapter path and updated gate policy behavior for `auto` vs strict parse-full mode.

@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for dynamic `systemverilog` parseability adapter + gate strictness increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for aggregate SOTA wiring of `sv_stimuli_quality_gate`; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,28 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy (informational-first)
+- Root cause:
+  - `sv_stimuli_quality_gate` was standalone and not visible in aggregate SOTA execution policy, so release-grade one-shot gate runs did not report this Phase Q/P signal.
+- Fix:
+  - updated `rust/scripts/sota_exit_gate.sh` with policy + runtime controls:
+    - `PGEN_SOTA_POLICY_RUN_SV_STIMULI_QUALITY`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT`
+    - `PGEN_SOTA_RUN_SV_STIMULI_QUALITY`
+    - `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT`
+  - added boolean validation, summary printing, and `run_check` branch for `sv_stimuli_quality_gate`.
+  - updated `rust/config/sota_exit_policy.env` defaults:
+    - run enabled (`1`), strict disabled (`0`) for informational-first rollout.
+- Validation:
+  - scoped aggregate run with minimal required checks and only SV stimuli informational gate enabled:
+    - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract`
+    - `PGEN_SOTA_RUN_EBNF_READINESS=0`
+    - `PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0`
+    - `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0`
+    - `PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1`
+    - `make -C rust SHELL=/bin/bash sota_exit_gate`
+  - run passed and summary includes `sv_stimuli_quality_gate`.
 
 ### 2026-02-27: Wired dynamic `systemverilog` parseability adapter path for `sv_stimuli_quality_gate`
 - Root cause:

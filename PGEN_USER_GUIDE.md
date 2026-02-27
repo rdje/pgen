@@ -1956,6 +1956,8 @@ Aggregate gate tuning:
 - `PGEN_SOTA_REQUIRE_EBNF_STRICT` (`1`/`0`, default `0`)
 - `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT` (`1`/`0`, default from policy file)
+- `PGEN_SOTA_RUN_SV_STIMULI_QUALITY` (`1`/`0`, default from policy file)
+- `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRED_CHECKS` (space-separated required check override list)
 - `PGEN_SOTA_POLICY_FILE` (override machine policy file path)

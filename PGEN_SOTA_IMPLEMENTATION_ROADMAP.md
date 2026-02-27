@@ -298,6 +298,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.
 - 2026-02-27: Wired dynamic build-time `systemverilog` parser-registry adapter path (`build.rs` + conditional module/registry entry) and upgraded `sv_stimuli_quality_gate` parse-full stage from adapter-skipped to executable in `auto` mode, with strict mode hard-fail behavior.
 - 2026-02-27: Started Phase Q/P parser-stimuli integration by adding `sv_stimuli_quality_gate` skeleton + initial `systemverilog_core_v0` contract manifest (`preprocess -> semantic baseline -> parse_full(optional)` with explicit stage accounting and auto/strict parse-full policy controls).
 - 2026-02-27: Implemented Phase Q preprocessor execution stage in Rust AST pipeline (`sv_preprocessor` module + `ast_pipeline --preprocess-systemverilog` CLI mode), delivering deterministic include/macro expansion baseline and source-map/event metadata outputs.
