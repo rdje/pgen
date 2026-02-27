@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Stimuli Modes: Added Contractized `sv_file` / `sv_snippet` Mode Plumbing (v6)
+### ✅ Achievement Summary
+Implemented explicit SystemVerilog stimuli modes in `sv_stimuli_quality_gate` with contract-driven mode profiles, enabling targeted snippet generation and full-file generation through deterministic entry-rule routing.
+
+### Scope of Changes
+- Extended gate mode controls in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - added mode selection:
+    - contract default mode
+    - env override: `PGEN_SV_STIMULI_QUALITY_MODE`
+  - mode profile wiring:
+    - mode-specific `entry_rule`
+    - mode-specific closed-loop enable/disable
+    - mode-specific parse-full eligibility
+  - all stimuli generation calls now pass mode-selected `--entry-rule`.
+- Updated contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `5 -> 6`
+  - new `stimuli_modes` block:
+    - `default_mode`
+    - `supported_modes`
+    - mode profiles for `sv_file` and `sv_snippet`.
+- Updated docs/roadmap:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Semantic Closure Wiring: Added Contractized SV Semantic Validator Toggles (v5)
 ### ✅ Achievement Summary
 Extended `sv_stimuli_quality_gate` with additional semantic-closure validators aligned to the Phase P semantic closure objective, and exposed them as explicit contract toggles in `systemverilog_core_v0_contract.json`.

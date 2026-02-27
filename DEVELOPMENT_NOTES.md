@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Stimuli Modes: `sv_file` / `sv_snippet` Contractized Mode Selection (v6)
+### Context
+Phase P required explicit stimuli modes so SV generation can target either:
+- full compilation-unit style samples (`sv_file`),
+- focused construct snippets (`sv_snippet`).
+
+Before this increment, `sv_stimuli_quality_gate` always generated from the default grammar entry behavior and did not expose a deterministic mode contract.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+#### 1) Added stimuli mode control in gate
+Gate now resolves mode via:
+- contract default (`stimuli_modes.default_mode`),
+- optional env override:
+  - `PGEN_SV_STIMULI_QUALITY_MODE`.
+
+Supported modes are validated against `stimuli_modes.supported_modes`.
+
+#### 2) Added mode profiles in contract
+`systemverilog_core_v0_contract.json` (v6) now defines:
+- `stimuli_modes.profiles.<mode>.entry_rule`
+- `stimuli_modes.profiles.<mode>.closed_loop_enabled`
+- `stimuli_modes.profiles.<mode>.parse_full_eligible`
+
+Initial profiles:
+- `sv_file`:
+  - `entry_rule=systemverilog_file`
+  - closed-loop enabled
+  - parse-full eligible
+- `sv_snippet`:
+  - `entry_rule=source_item`
+  - closed-loop disabled by default
+  - parse-full ineligible
+
+#### 3) Mode-aware execution behavior
+- all stimuli generation invocations now pass explicit `--entry-rule` from mode profile.
+- closed-loop stages run only when both:
+  - global closed-loop is enabled,
+  - mode profile enables closed-loop.
+- parse-full strict mode now fails early if selected mode is parse-full ineligible.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- both modes execute deterministically under contract control,
+- snippet mode correctly bypasses parse-full eligibility in non-strict mode,
+- mode infrastructure is now ready for future semantic-annotation-driven steering.
+
 ## 2026-02-27 - Phase P Semantic Closure Wiring: `sv_stimuli_quality_gate` Validator Expansion (Contract v5)
 ### Context
 Phase P semantic closure still needed executable validator hooks for the target semantic classes:

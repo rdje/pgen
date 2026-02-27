@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-semantic-closure-validator-wiring)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-stimuli-modes-plumbing)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV semantic-closure validator wiring increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV stimuli modes plumbing increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `160`
+- Commit count at last refresh (before current uncommitted changes): `161`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 825c3dd Wire Phase P semantic-closure validator toggles into sv_stimuli_quality_gate (contract v5)
 - 3966b88 Add deterministic sv_syntax_closure_gate and close Phase P syntax burn-down loop
 - e86f217 Promote SV stimuli gate to closed-loop baseline and freeze systemverilog_core_v0 v4
 - f465acf Nexsim HDL closure: parser replay gate hardening and API convenience wrappers
@@ -202,6 +203,30 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P stimuli mode plumbing (`sv_file` / `sv_snippet`)
+- Root cause:
+  - SV stimuli gate lacked explicit mode selection for full-file vs snippet generation; entry-rule behavior was implicit and not contractized.
+- Fix:
+  - added contractized stimuli modes in `systemverilog_core_v0_contract.json` (v6):
+    - `stimuli_modes.default_mode`
+    - `stimuli_modes.supported_modes`
+    - per-mode profile fields:
+      - `entry_rule`
+      - `closed_loop_enabled`
+      - `parse_full_eligible`
+  - updated `sv_stimuli_quality_gate.sh` to:
+    - resolve mode from contract/env (`PGEN_SV_STIMULI_QUALITY_MODE`),
+    - pass mode-specific `--entry-rule` on all generation paths,
+    - gate closed-loop by mode eligibility,
+    - gate parse-full strict mode by mode eligibility.
+  - updated roadmap + UG for mode semantics and usage.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - explicit `sv_file`/`sv_snippet` generation mode infrastructure is now in place; semantic-annotation-driven steering remains a follow-up.
 
 ### 2026-02-27: Phase P semantic-closure validator wiring (SV stimuli gate)
 - Root cause:

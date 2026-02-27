@@ -17,6 +17,7 @@ SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
 LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
+STIMULI_MODE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MODE:-}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
@@ -321,6 +322,8 @@ default_seed_base="$(jq -er '.seed_base | numbers' "$CONTRACT_FILE")"
 default_lrm_profile="$(jq -er '(.lrm_profiles.default_profile // "2017") | strings' "$CONTRACT_FILE")"
 supported_lrm_profiles_csv="$(jq -er '(.lrm_profiles.supported_profiles // ["2017","2023"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 required_lrm_profiles_csv="$(jq -er '(.lrm_profiles.required_profiles // [(.lrm_profiles.default_profile // "2017")]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
+default_stimuli_mode="$(jq -er '(.stimuli_modes.default_mode // "sv_file") | strings' "$CONTRACT_FILE")"
+supported_stimuli_modes_csv="$(jq -er '(.stimuli_modes.supported_modes // ["sv_file","sv_snippet"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
@@ -329,6 +332,7 @@ require_non_increasing_target_debt="$(jq -er 'if (.closed_loop.require_non_incre
 sample_count="${SAMPLE_COUNT_OVERRIDE:-$default_sample_count}"
 seed_base="${SEED_BASE_OVERRIDE:-$default_seed_base}"
 replay_sample_count="$(jq -er --argjson fallback "$sample_count" '(.closed_loop.replay_sample_count // $fallback) | numbers' "$CONTRACT_FILE")"
+stimuli_mode="${STIMULI_MODE_OVERRIDE:-$default_stimuli_mode}"
 
 if ! [[ "$sample_count" =~ ^[0-9]+$ ]] || [[ "$sample_count" -lt 1 ]]; then
     echo "error: sample_count must be an integer >= 1 (effective value: '$sample_count')" >&2
@@ -349,6 +353,34 @@ fi
 if ! [[ "$replay_sample_count" =~ ^[0-9]+$ ]] || [[ "$replay_sample_count" -lt 1 ]]; then
     echo "error: closed_loop.replay_sample_count must be an integer >= 1" >&2
     exit 2
+fi
+
+declare -a supported_stimuli_modes=()
+declare -A supported_stimuli_modes_map=()
+IFS=',' read -r -a _supported_modes_raw <<< "$supported_stimuli_modes_csv"
+for _m in "${_supported_modes_raw[@]}"; do
+    mode="$(echo "$_m" | tr -d '[:space:]')"
+    if [[ -n "$mode" ]]; then
+        supported_stimuli_modes+=("$mode")
+        supported_stimuli_modes_map["$mode"]=1
+    fi
+done
+if [[ "${#supported_stimuli_modes[@]}" -eq 0 ]]; then
+    echo "error: no supported stimuli modes defined in contract" >&2
+    exit 2
+fi
+if [[ -z "${supported_stimuli_modes_map[$stimuli_mode]:-}" ]]; then
+    echo "error: unsupported stimuli mode '$stimuli_mode' (supported: ${supported_stimuli_modes[*]})" >&2
+    exit 2
+fi
+
+mode_entry_rule="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].entry_rule // (if $mode == "sv_snippet" then "source_item" else "systemverilog_file" end)) | strings' "$CONTRACT_FILE")"
+mode_closed_loop_enabled="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].closed_loop_enabled // ($mode != "sv_snippet")) then 1 else 0 end' "$CONTRACT_FILE")"
+mode_parse_full_eligible="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].parse_full_eligible // ($mode == "sv_file")) then 1 else 0 end' "$CONTRACT_FILE")"
+
+closed_loop_effective_enabled=0
+if [[ "$closed_loop_enabled" -eq 1 && "$mode_closed_loop_enabled" -eq 1 ]]; then
+    closed_loop_effective_enabled=1
 fi
 
 include_max_depth="$(jq -er '.preprocess.include_max_depth | numbers' "$CONTRACT_FILE")"
@@ -433,7 +465,12 @@ echo "parse_full_mode: $PARSE_FULL_MODE"
 echo "lrm_default_profile: $default_lrm_profile"
 echo "lrm_supported_profiles: ${supported_profiles[*]}"
 echo "lrm_run_profiles: ${run_profiles[*]}"
+echo "stimuli_mode: $stimuli_mode"
+echo "stimuli_mode_entry_rule: $mode_entry_rule"
+echo "stimuli_mode_closed_loop_enabled: $mode_closed_loop_enabled"
+echo "stimuli_mode_parse_full_eligible: $mode_parse_full_eligible"
 echo "closed_loop_enabled: $closed_loop_enabled"
+echo "closed_loop_effective_enabled: $closed_loop_effective_enabled"
 echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
@@ -487,6 +524,10 @@ if [[ "$PARSE_FULL_MODE" == "0" ]]; then
     parse_full_enabled=0
     parse_full_effective="disabled_by_mode"
 elif [[ "$PARSE_FULL_MODE" == "1" ]]; then
+    if [[ "$mode_parse_full_eligible" -eq 0 ]]; then
+        echo "error: parse_full mode is strict (1) but stimuli mode '$stimuli_mode' is not parse_full-eligible" >&2
+        exit 1
+    fi
     if [[ "$parse_full_supported" -eq 0 ]]; then
         echo "error: parse_full mode is strict (1) but no generated parser adapter is registered for '$grammar_name'" >&2
         exit 1
@@ -494,9 +535,12 @@ elif [[ "$PARSE_FULL_MODE" == "1" ]]; then
     parse_full_enabled=1
     parse_full_effective="enabled"
 else
-    if [[ "$parse_full_supported" -eq 1 ]]; then
+    if [[ "$mode_parse_full_eligible" -eq 1 && "$parse_full_supported" -eq 1 ]]; then
         parse_full_enabled=1
         parse_full_effective="enabled"
+    elif [[ "$mode_parse_full_eligible" -eq 0 ]]; then
+        parse_full_enabled=0
+        parse_full_effective="disabled_by_stimuli_mode"
     else
         parse_full_enabled=0
         parse_full_effective="unsupported_adapter"
@@ -524,7 +568,7 @@ for profile_idx in "${!run_profiles[@]}"; do
     profile_closed_loop_initial_status="skip"
     profile_closed_loop_replay_status="skip"
     profile_closed_loop_note="closed-loop disabled by contract"
-    if [[ "$closed_loop_enabled" -eq 1 ]]; then
+    if [[ "$closed_loop_effective_enabled" -eq 1 ]]; then
         closed_loop_initial_stimuli="$WORK_DIR/profile_${profile_key}_initial_stimuli.sv"
         closed_loop_initial_coverage="$WORK_DIR/profile_${profile_key}_initial_coverage.json"
         closed_loop_initial_gap_json="$WORK_DIR/profile_${profile_key}_initial_gap.json"
@@ -540,6 +584,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --generate-stimuli \
             --count "$sample_count" \
             --seed "$profile_seed_base" \
+            --entry-rule "$mode_entry_rule" \
             --output "$closed_loop_initial_stimuli" \
             --coverage-output "$closed_loop_initial_coverage" \
             --gap-report-json "$closed_loop_initial_gap_json" \
@@ -558,6 +603,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --generate-stimuli \
             --count "$replay_sample_count" \
             --seed "$closed_loop_replay_seed" \
+            --entry-rule "$mode_entry_rule" \
             --output "$closed_loop_replay_stimuli" \
             --coverage-output "$closed_loop_replay_coverage" \
             --gap-report-json "$closed_loop_replay_gap_json" \
@@ -595,6 +641,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             --generate-stimuli \
             --count 1 \
             --seed "$seed" \
+            --entry-rule "$mode_entry_rule" \
             --output "$sample_file"
         require_nonempty_file "$sample_file"
 

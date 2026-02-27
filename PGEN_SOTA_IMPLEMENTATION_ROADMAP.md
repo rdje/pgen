@@ -253,6 +253,14 @@ Toolbox baseline to leverage end-to-end:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
   - semantic-annotation-driven branch/value policies to synthesize legal SV.
+  - Progress (2026-02-27): added contractized stimuli mode selection in `sv_stimuli_quality_gate` + `systemverilog_core_v0_contract.json` (v6):
+    - `stimuli_modes.default_mode`
+    - `stimuli_modes.supported_modes`
+    - mode profiles with `entry_rule`, `closed_loop_enabled`, `parse_full_eligible`
+    - initial modes:
+      - `sv_file` -> `entry_rule=systemverilog_file`, closed-loop enabled, parse-full eligible
+      - `sv_snippet` -> `entry_rule=source_item`, closed-loop disabled by default, parse-full ineligible
+    This closes mode plumbing; semantic-annotation-driven branch/value steering is still pending.
 - [ ] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.
@@ -336,6 +344,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Advanced Phase P stimuli-mode track by adding contractized `sv_file`/`sv_snippet` mode plumbing in `sv_stimuli_quality_gate` (mode->entry rule mapping, mode-level closed-loop/parse-full eligibility controls) with `systemverilog_core_v0_contract.json` v6.
 - 2026-02-27: Advanced Phase P semantic-closure validator wiring by adding contractized semantic checks in `sv_stimuli_quality_gate` (`declared-before-use`, package qualification resolution, simple width compatibility, basic always-context legality) and bumping `systemverilog_core_v0_contract.json` to v5.
 - 2026-02-27: Closed Phase P syntax-closure burn-down loop by adding `sv_syntax_closure_gate` with contractized no-regression thresholds (parser generation viability, unresolved refs, entry-rule/rule-name invariants, reachable/unreachable summary caps).
 - 2026-02-27: Promoted `sv_stimuli_quality_gate` from skeleton to deterministic closed-loop baseline with per-profile `coverage/gap -> target-driven replay` stages, contractized closed-loop controls (`systemverilog_core_v0_contract.json` v4), and non-increasing target-debt enforcement.
