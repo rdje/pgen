@@ -1,4 +1,77 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Implemented `sv_preprocessor_quality_gate` Baseline (Phase Q)
+### Context
+Phase Q required an executable quality gate for `systemverilog_preprocessor.ebnf` so preprocessor closure can advance with objective, deterministic checks (not just one-off manual runs).
+
+### Implementation
+Added:
+- `rust/scripts/sv_preprocessor_quality_gate.sh`
+- `rust/Makefile` target:
+  - `sv_preprocessor_quality_gate`
+
+Gate stage model:
+1. Build `ast_pipeline` (`generated_parsers` feature).
+2. Convert `grammars/systemverilog_preprocessor.ebnf` -> JSON.
+3. Stage0 baseline generation + Stage0 replay using identical seed:
+   - assert deterministic replay for sample output and canonicalized coverage/gap JSON.
+4. Stage1 gap-priority generation:
+   - merge-coverage progression checks (attempt/success/rule/branch no-regression).
+5. Stage2 target-drive generation:
+   - parse and verify target summary (`resolved/total/attempts`) against stage0 initial targets.
+6. Stage3 final gap recompute:
+   - assert actionable target count does not regress.
+7. Stage4 coverage-guided fuzz replay:
+   - run replay twice with identical replay seeds and assert deterministic parity across:
+     - samples,
+     - coverage JSON,
+     - gap JSON,
+     - fuzz replay metadata JSON.
+
+Preprocessor-specific assertions added:
+- key rule hit checks in final coverage for:
+  - `pp_include`, `pp_define`, `pp_conditional`,
+  - `pp_if_branch`, `pp_elsif_branch`, `pp_else_branch`,
+  - `macro_formals`, `macro_body_fragment`, `macro_token_paste`, `macro_stringize`.
+- branch-family checks:
+  - `include_path::root` success counts cover both branches,
+  - `pp_if_branch::root/s0` success counts cover both branches (`ifdef`/`ifndef`).
+
+### Parseability and Shrink Mode Design
+Added adaptive parseability mode control:
+- `PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY=auto|0|1`
+
+Behavior:
+- `auto`:
+  - probes whether parseability validation is currently available for `systemverilog_preprocessor`,
+  - if unavailable (no parser-registry adapter), gate continues in deterministic coverage/gap mode and records explicit note.
+- `1`:
+  - strict requirement; gate fails if parseability adapter is unavailable.
+- `0`:
+  - parseability validation disabled intentionally.
+
+This avoids false positives while still enabling strict parseability+shrink enforcement as soon as parser-registry support lands.
+
+### Aggregate Policy Wiring
+Updated:
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+
+New policy controls:
+- `PGEN_SOTA_POLICY_RUN_SV_PREPROCESSOR_QUALITY`
+- `PGEN_SOTA_POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT`
+
+Current rollout:
+- enabled in aggregate gate as informational (`run=1`, `strict=0`) during early Phase Q closure.
+
+### Validation
+Executed:
+- `make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 make -C rust SHELL=/bin/bash sota_exit_gate`
+
+Observed:
+- preprocessor gate passes with deterministic replay and closed-loop invariants.
+- aggregate policy path includes SV preprocessor quality check as informational and completes successfully.
+
 ## 2026-02-27 - Implemented Phase Q Step 1: Executable `systemverilog_preprocessor.ebnf`
 ### Context
 After committing to a preprocessor-first closure strategy for Nexsim SystemVerilog readiness, the first concrete task was to add a dedicated preprocessor grammar executable through the current pipeline.

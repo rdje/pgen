@@ -249,11 +249,13 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - raw SV text -> preprocessor AST/events -> expanded SV text stream,
   - deterministic include/macro expansion policy,
   - source mapping metadata (expanded position -> original file/line/column) for diagnostics and Nexsim integration.
-- [ ] Add `sv_preprocessor_quality_gate`:
+- [x] Add `sv_preprocessor_quality_gate`:
   - deterministic replay across seeds,
   - coverage/gap loop for preprocessor grammar,
   - include/macro conditional-branch coverage metrics,
   - shrinking for failing preprocessability samples.
+  - Progress (2026-02-27): gate script implemented (`rust/scripts/sv_preprocessor_quality_gate.sh`) with stage-0 deterministic replay checks, closed-loop stage progression invariants, key preprocessor-rule hit assertions, target-drive integrity checks, and deterministic coverage-guided fuzz replay verification.
+  - Current behavior: parseability validation and parseability-failure shrink checks are auto-enabled when parser-registry support for `systemverilog_preprocessor` is available; until then, gate runs in coverage/gap deterministic mode and reports adapter absence explicitly.
 - [ ] Add preprocessor semantic controls and validator contracts (annotation-driven where appropriate):
   - include path policy + depth budget,
   - macro redefinition policy,
@@ -285,6 +287,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Implemented `sv_preprocessor_quality_gate` (script + Make target) and wired it into aggregate SOTA policy as informational (`run=1`, `strict=0`) for early Phase Q closure while parser-registry parseability support is pending.
 - 2026-02-27: Added executable `grammars/systemverilog_preprocessor.ebnf` seed grammar and validated `EBNF -> JSON -> parser -> stimuli` on non-bootstrap Rust pipeline, closing Phase Q item for dedicated preprocessor grammar baseline.
 - 2026-02-27: Added Phase Q (`SystemVerilog Preprocessor Frontend Closure`) and made it an explicit preprocessor-first prerequisite for Phase P closure, including dedicated grammar, preprocess execution stage, preprocess quality gate, preprocess-aware stimuli modes, and policy-promotion path.
 - 2026-02-27: Added Phase P (`SOTA SystemVerilog Parser + Stimuli Semantic Closure`) to codify the Nexsim-targeted execution plan: syntax+semantic equal acceptance contract, annotation-driven SV stimuli synthesis, and mandatory closed-loop coverage/gap convergence.

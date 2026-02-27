@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-02-27 - Added `sv_preprocessor_quality_gate` and Informational Aggregate Wiring
+### ✅ Achievement Summary
+Implemented an executable SystemVerilog preprocessor quality gate with deterministic closed-loop checks and wired it into aggregate SOTA policy as informational-first for Phase Q.
+
+### Scope of Changes
+- Added gate script:
+  - `rust/scripts/sv_preprocessor_quality_gate.sh`
+- Added Makefile target:
+  - `make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
+- Gate behavior implemented:
+  - deterministic replay check for identical-seed baseline generation (sample corpus + canonicalized coverage/gap JSON),
+  - closed-loop stage checks (baseline -> gap-priority -> target-drive -> final-gap recompute),
+  - target summary integrity checks (`resolved/total/attempts`),
+  - key preprocessor rule hit assertions (include/define/conditional + macro primitives),
+  - conditional/include branch-family coverage assertions,
+  - deterministic coverage-guided fuzz replay checks (sample/coverage/gap/replay JSON parity across identical replay seeds).
+- Aggregate policy wiring:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/config/sota_exit_policy.env`
+  - new policy controls:
+    - `PGEN_SOTA_POLICY_RUN_SV_PREPROCESSOR_QUALITY=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0`
+  - current mode: run in aggregate, informational classification (non-blocking).
+
+### Parseability Mode Note
+- Gate supports parseability validation modes via:
+  - `PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY=auto|0|1`
+- Current default (`auto`) behavior:
+  - enable parseability checks only when parser-registry adapter for `systemverilog_preprocessor` exists,
+  - otherwise run deterministic coverage/gap mode and report adapter absence explicitly.
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 make -C rust SHELL=/bin/bash sota_exit_gate` ✅
+  - confirms aggregate gate wiring executes `sv_preprocessor_quality_gate` as informational policy check.
+
 ## 2026-02-27 - Added Initial `systemverilog_preprocessor.ebnf` Seed Grammar
 ### ✅ Achievement Summary
 Added a dedicated SystemVerilog preprocessor grammar (`grammars/systemverilog_preprocessor.ebnf`) as the first executable closure step of the preprocessor-first roadmap track (Phase Q).

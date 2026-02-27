@@ -193,6 +193,24 @@ Use this file to resume work without replaying full chat history.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
 
+### 2026-02-27: Added executable SV preprocessor quality gate + aggregate informational wiring
+- Root cause:
+  - Phase Q needed an objective, repeatable quality gate for `systemverilog_preprocessor` beyond one-shot `EBNF -> JSON -> parser -> stimuli` smoke checks.
+- Fix:
+  - added `rust/scripts/sv_preprocessor_quality_gate.sh` and Make target `sv_preprocessor_quality_gate` with:
+    - deterministic replay checks (same-seed sample + canonical coverage/gap parity),
+    - closed-loop coverage/gap progression checks (baseline -> gap-priority -> target-drive -> final-gap),
+    - key preprocessor rule/branch-family coverage assertions,
+    - deterministic coverage-guided fuzz replay parity checks.
+  - added adaptive parseability mode (`auto|0|1`) so strict parseability/shrink behavior activates when parser-registry adapter support exists.
+  - wired into aggregate policy as informational-first via:
+    - `rust/scripts/sota_exit_gate.sh`
+    - `rust/config/sota_exit_policy.env` (`run=1`, `strict=0`).
+- Validation:
+  - `make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 make -C rust SHELL=/bin/bash sota_exit_gate`
+  - both passed; aggregate run confirms `sv_preprocessor_quality_gate` wiring as informational.
+
 ### 2026-02-27: Implemented Phase Q step 1 with executable SV preprocessor grammar seed
 - Root cause:
   - preprocessor-first strategy needed an executable artifact before parser/stimuli/preprocess integration could be hardened.

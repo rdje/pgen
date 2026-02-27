@@ -24,12 +24,16 @@ POLICY_RUN_EBNF_READINESS="${PGEN_SOTA_POLICY_RUN_EBNF_READINESS:-1}"
 POLICY_REQUIRE_EBNF_STRICT="${PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT:-0}"
 POLICY_RUN_EBNF_DUAL_RUN_DIFF="${PGEN_SOTA_POLICY_RUN_EBNF_DUAL_RUN_DIFF:-1}"
 POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT="${PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT:-0}"
+POLICY_RUN_SV_PREPROCESSOR_QUALITY="${PGEN_SOTA_POLICY_RUN_SV_PREPROCESSOR_QUALITY:-0}"
+POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT="${PGEN_SOTA_POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT:-0}"
 POLICY_ALLOW_INFORMATIONAL_FAILURES="${PGEN_SOTA_POLICY_ALLOW_INFORMATIONAL_FAILURES:-1}"
 
 RUN_EBNF_READINESS="${PGEN_SOTA_RUN_EBNF_READINESS:-$POLICY_RUN_EBNF_READINESS}"
 REQUIRE_EBNF_STRICT="${PGEN_SOTA_REQUIRE_EBNF_STRICT:-$POLICY_REQUIRE_EBNF_STRICT}"
 RUN_EBNF_DUAL_RUN_DIFF="${PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF:-$POLICY_RUN_EBNF_DUAL_RUN_DIFF}"
 REQUIRE_EBNF_DUAL_RUN_STRICT="${PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT:-$POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT}"
+RUN_SV_PREPROCESSOR_QUALITY="${PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY:-$POLICY_RUN_SV_PREPROCESSOR_QUALITY}"
+REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT="${PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT:-$POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT}"
 ALLOW_INFORMATIONAL_FAILURES="${PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES:-$POLICY_ALLOW_INFORMATIONAL_FAILURES}"
 REQUIRED_CHECKS="${PGEN_SOTA_REQUIRED_CHECKS:-$POLICY_REQUIRED_CHECKS}"
 
@@ -47,6 +51,14 @@ if ! [[ "$RUN_EBNF_DUAL_RUN_DIFF" =~ ^[01]$ ]]; then
 fi
 if ! [[ "$REQUIRE_EBNF_DUAL_RUN_STRICT" =~ ^[01]$ ]]; then
     echo "error: PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT must be 0 or 1" >&2
+    exit 2
+fi
+if ! [[ "$RUN_SV_PREPROCESSOR_QUALITY" =~ ^[01]$ ]]; then
+    echo "error: PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY must be 0 or 1" >&2
+    exit 2
+fi
+if ! [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" =~ ^[01]$ ]]; then
+    echo "error: PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT must be 0 or 1" >&2
     exit 2
 fi
 if ! [[ "$ALLOW_INFORMATIONAL_FAILURES" =~ ^[01]$ ]]; then
@@ -105,6 +117,8 @@ echo "run_ebnf_readiness: $RUN_EBNF_READINESS"
 echo "require_ebnf_strict: $REQUIRE_EBNF_STRICT"
 echo "run_ebnf_dual_run_diff: $RUN_EBNF_DUAL_RUN_DIFF"
 echo "require_ebnf_dual_run_strict: $REQUIRE_EBNF_DUAL_RUN_STRICT"
+echo "run_sv_preprocessor_quality: $RUN_SV_PREPROCESSOR_QUALITY"
+echo "require_sv_preprocessor_quality_strict: $REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT"
 echo "allow_informational_failures: $ALLOW_INFORMATIONAL_FAILURES"
 
 run_required_check_by_name() {
@@ -228,6 +242,16 @@ if [[ "$RUN_EBNF_DUAL_RUN_DIFF" -eq 1 ]]; then
     else
         run_check "ebnf_frontend_dual_run_diff" "informational" "report-only Perl-vs-Rust EBNF dual-run differential" \
             make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff
+    fi
+fi
+
+if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
+    if [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+        run_check "sv_preprocessor_quality_gate" "required" "strict SystemVerilog preprocessor closed-loop quality gate" \
+            make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
+    else
+        run_check "sv_preprocessor_quality_gate" "informational" "report-only SystemVerilog preprocessor closed-loop quality gate" \
+            make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
     fi
 fi
 

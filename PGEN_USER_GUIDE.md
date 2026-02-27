@@ -1767,6 +1767,16 @@ Tracked baselines:
     - parser generation success,
     - baseline/gap-priority/target-driven/final-gap no-regression checks,
     - contract-driven grammar roster from `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
+- `sv_preprocessor_quality_gate` (local gate target)
+  - deterministic closed-loop verification for `systemverilog_preprocessor` grammar:
+    - stage0 deterministic replay (same seed, same outputs),
+    - baseline/gap-priority/target-driven/final-gap no-regression checks,
+    - preprocessor-specific coverage assertions (`include/define/conditional/macro` families),
+    - deterministic coverage-guided fuzz replay parity checks
+  - parseability mode:
+    - `auto` (default): enable parseability/shrink checks when parser-registry adapter exists,
+    - `1`: require parseability adapter (fail if unavailable),
+    - `0`: coverage/gap-only mode.
 - `stimuli_module_parity_gate` (local gate target)
   - strict deterministic parity verification between in-memory stimuli generation and generated `*_stimuli.rs` artifacts:
     - same grammar + seed + generation config,
@@ -1868,6 +1878,11 @@ Non-annotation EBNF closed-loop command:
 make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate
 ```
 
+SV preprocessor closed-loop command:
+```bash
+make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
+```
+
 Stimuli-module parity command:
 ```bash
 make -C rust SHELL=/bin/bash stimuli_module_parity_gate
@@ -1882,6 +1897,8 @@ make -C rust SHELL=/bin/bash sota_release_policy
 Aggregate gate tuning:
 - `PGEN_SOTA_RUN_EBNF_READINESS` (`1`/`0`, default `1`)
 - `PGEN_SOTA_REQUIRE_EBNF_STRICT` (`1`/`0`, default `0`)
+- `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY` (`1`/`0`, default from policy file)
+- `PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRED_CHECKS` (space-separated required check override list)
 - `PGEN_SOTA_POLICY_FILE` (override machine policy file path)
@@ -1908,6 +1925,16 @@ Optional non-annotation EBNF quality-gate tuning:
 - `PGEN_EBNF_STIMULI_QUALITY_GAP_THRESHOLD` (default `1`)
 - `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` (default `5000`)
 - `PGEN_EBNF_STIMULI_QUALITY_CONTRACT` (override grammar contract manifest path)
+
+Optional SV preprocessor quality-gate tuning:
+- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT` (default `16`)
+- `PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD` (default `1`)
+- `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS` (default `6000`)
+- `PGEN_SV_PREPROCESSOR_QUALITY_SEED_BASE` (default `9101`)
+- `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS` (default `8`)
+- `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_SEED_START` (default `9201`)
+- `PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR` (default `rust/target/sv_preprocessor_quality_gate`)
 
 Optional stimuli-module parity-gate tuning:
 - `PGEN_STIMULI_MODULE_PARITY_COUNT` (default `16`)
@@ -1950,6 +1977,7 @@ Ephemeral/runtime reports:
 - `rust/target/annotation_robustness_gate/*`
 - `rust/target/annotation_stimuli_quality_gate/*`
 - `rust/target/ebnf_stimuli_quality_gate/*`
+- `rust/target/sv_preprocessor_quality_gate/*`
 - `rust/target/sota_exit_gate/*`
 
 Important:
@@ -1984,8 +2012,9 @@ make -C rust SHELL=/bin/bash differential_refresh_baseline
 3. Run annotation contract gate (`annotation_contract_gate`) for annotation-heavy changes.
 4. Run strict closed-loop stimuli verification (`annotation_stimuli_quality_gate`) when touching stimuli/coverage/gap logic.
 5. Run non-annotation closed-loop verification (`ebnf_stimuli_quality_gate`) when touching generic EBNF frontend/parser/stimuli logic.
-6. Run differential regression gate.
-7. Run fixed-point gate before merge-sensitive changes.
-8. Run performance gate for parser/runtime-impacting changes.
-9. Run the aggregate release gate (`sota_exit_gate`) before merge/release cuts.
-10. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.
+6. Run SV preprocessor closed-loop verification (`sv_preprocessor_quality_gate`) when touching `systemverilog_preprocessor.ebnf` or preprocessor-specific generation logic.
+7. Run differential regression gate.
+8. Run fixed-point gate before merge-sensitive changes.
+9. Run performance gate for parser/runtime-impacting changes.
+10. Run the aggregate release gate (`sota_exit_gate`) before merge/release cuts.
+11. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.
