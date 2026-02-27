@@ -201,10 +201,14 @@ Use this file to resume work without replaying full chat history.
   - added CLI controls:
     - `--verbosity <none|low|medium|high|debug>`
     - `--trace-log-file [PATH]` with default `trace.log` when value omitted.
+  - enforced trace origin metadata contract:
+    - every trace line now includes `file`, `function`, and `line`,
+    - function name resolved from runtime backtrace with per-callsite caching.
 - Validation:
   - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers,ebnf_dual_run --bins -q`
   - `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- ../generated/json.json --generate-stimuli --count 1 --verbosity debug --trace-log-file --output /tmp/pgen_stimuli_2.txt`
   - verified trace lines are written to `rust/trace.log` and not emitted as `[PGEN]` lines on stdout.
+  - verified trace header format includes `[<file>:<line>] [<function>]`.
 
 ### 2026-02-26: EBNF parseability promotion in non-annotation loop
 - Root cause:

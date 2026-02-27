@@ -2,6 +2,7 @@
 ## 2026-02-27 - First-Class Tracing with `trace.log` Redirection
 ### ✅ Achievement Summary
 Implemented centralized, verbosity-controlled tracing across the Rust AST pipeline and runtime parser/stimuli paths, with file-sink routing so trace output can be redirected to `trace.log` instead of stdout.
+Updated trace format so every emitted trace line carries origin metadata: file name, function name, and line number.
 
 ### Scope of Changes
 - Added unified tracing primitives in `rust/src/ast_pipeline/mod.rs`:
@@ -10,6 +11,7 @@ Implemented centralized, verbosity-controlled tracing across the Rust AST pipeli
   - global verbosity resolution from CLI/env (`PGEN_TRACE_VERBOSITY`, `PGEN_VERBOSITY`)
   - global sink routing via `configure_trace_output(...)`
   - runtime helpers/macros: `pgen_trace_*`, `runtime_logger`, `runtime_logger_box`
+  - origin resolver with per-callsite function-name caching for stable file/function/line trace headers.
 - Routed internal AST pipeline/AST-generator debug output through the centralized trace sink so trace messages follow verbosity and file routing behavior.
 - Wired generated parser/annotation runtime construction to use trace-aware runtime loggers instead of silent `NoOpLogger` in active tracing modes.
 - Added trace verbosity and trace sink controls to CLIs:
@@ -26,6 +28,8 @@ Implemented centralized, verbosity-controlled tracing across the Rust AST pipeli
 - End-to-end trace redirection check:
   - `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- ../generated/json.json --generate-stimuli --count 1 --verbosity debug --trace-log-file --output /tmp/pgen_stimuli_2.txt` ✅
   - confirms trace lines are written to `rust/trace.log` and no `[PGEN]` trace lines are emitted to stdout.
+- Trace origin metadata check:
+  - trace header now follows `[file:line] [function]` on every trace line (verified in `rust/trace.log`). ✅
 
 ## 2026-02-26 - Aggregate Policy Promotion: EBNF Dual-Run Strict Required
 ### ✅ Achievement Summary

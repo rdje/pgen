@@ -94,6 +94,7 @@ impl TraceLevel {
 
 static GLOBAL_TRACE_VERBOSITY: AtomicU8 = AtomicU8::new(TraceVerbosity::None as u8);
 static TRACE_OUTPUT_SINK: OnceLock<Mutex<Option<File>>> = OnceLock::new();
+static TRACE_FUNCTION_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
 
 pub fn parse_trace_verbosity(raw: &str) -> Option<TraceVerbosity> {
     TraceVerbosity::parse(raw)
@@ -109,6 +110,69 @@ pub fn trace_verbosity_from_env() -> Option<TraceVerbosity> {
 
 fn trace_sink() -> &'static Mutex<Option<File>> {
     TRACE_OUTPUT_SINK.get_or_init(|| Mutex::new(None))
+}
+
+fn trace_function_cache() -> &'static Mutex<HashMap<String, String>> {
+    TRACE_FUNCTION_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn is_internal_trace_symbol(symbol: &str) -> bool {
+    symbol.contains("ast_pipeline::trace_log")
+        || symbol.contains("ast_pipeline::resolve_trace_function_name")
+        || symbol.contains("ast_pipeline::trace_function_name_from_backtrace")
+        || symbol.contains("ast_pipeline::is_internal_trace_symbol")
+        || symbol.contains("pgen_trace")
+        || symbol.contains("VerbosityLogger::emit")
+        || symbol.contains("std::backtrace_rs::backtrace")
+        || symbol.contains("std::backtrace::Backtrace::")
+        || symbol.starts_with("std::")
+        || symbol.starts_with("core::")
+        || symbol.starts_with("alloc::")
+}
+
+fn normalize_trace_symbol(symbol: &str) -> String {
+    if let Some((base, hash)) = symbol.rsplit_once("::h") {
+        if hash.len() >= 8 && hash.chars().all(|ch| ch.is_ascii_hexdigit()) {
+            return base.to_string();
+        }
+    }
+    symbol.to_string()
+}
+
+fn trace_function_name_from_backtrace(module_path: &str) -> String {
+    let backtrace = format!("{:?}", std::backtrace::Backtrace::force_capture());
+    let marker = "fn: \"";
+    let mut cursor = backtrace.as_str();
+
+    while let Some(start_idx) = cursor.find(marker) {
+        let remaining = &cursor[start_idx + marker.len()..];
+        let Some(end_idx) = remaining.find('"') else {
+            break;
+        };
+        let symbol = &remaining[..end_idx];
+        if !is_internal_trace_symbol(symbol) {
+            return normalize_trace_symbol(symbol);
+        }
+        cursor = &remaining[end_idx + 1..];
+    }
+
+    module_path.to_string()
+}
+
+fn resolve_trace_function_name(file: &str, line: u32, module_path: &str) -> String {
+    let key = format!("{}:{}:{}", file, line, module_path);
+
+    if let Ok(cache) = trace_function_cache().lock() {
+        if let Some(cached) = cache.get(&key) {
+            return cached.clone();
+        }
+    }
+
+    let resolved = trace_function_name_from_backtrace(module_path);
+    if let Ok(mut cache) = trace_function_cache().lock() {
+        cache.insert(key, resolved.clone());
+    }
+    resolved
 }
 
 pub fn configure_trace_output(path: Option<&str>) -> Result<()> {
@@ -168,28 +232,69 @@ pub fn trace_enabled(level: TraceLevel) -> bool {
     global_trace_verbosity().allows(level)
 }
 
-pub fn trace_log(level: TraceLevel, args: fmt::Arguments<'_>) {
+pub fn trace_log(
+    level: TraceLevel,
+    file: &str,
+    line: u32,
+    module_path: &str,
+    args: fmt::Arguments<'_>,
+) {
     if !trace_enabled(level) {
         return;
     }
-    let line = format!("[PGEN][{}] {} {}", level.as_str(), level.emoji(), args);
+
+    let function_name = resolve_trace_function_name(file, line, module_path);
+    let rendered = format!("{}", args);
+    let output = if rendered.is_empty() {
+        format!(
+            "[PGEN][{}] {} [{}:{}] [{}]",
+            level.as_str(),
+            level.emoji(),
+            file,
+            line,
+            function_name
+        )
+    } else {
+        format!(
+            "[PGEN][{}] {} [{}:{}] [{}] {}",
+            level.as_str(),
+            level.emoji(),
+            file,
+            line,
+            function_name,
+            rendered
+        )
+    };
+
     if let Ok(mut guard) = trace_sink().lock() {
         if let Some(file) = guard.as_mut() {
-            let _ = writeln!(file, "{}", line);
+            let _ = writeln!(file, "{}", output);
             let _ = file.flush();
             return;
         }
     }
-    println!("{}", line);
+    println!("{}", output);
 }
 
 #[macro_export]
 macro_rules! pgen_trace {
     ($level:expr) => {
-        $crate::ast_pipeline::trace_log($level, format_args!(""))
+        $crate::ast_pipeline::trace_log(
+            $level,
+            file!(),
+            line!(),
+            module_path!(),
+            format_args!(""),
+        )
     };
     ($level:expr, $($arg:tt)*) => {
-        $crate::ast_pipeline::trace_log($level, format_args!($($arg)*))
+        $crate::ast_pipeline::trace_log(
+            $level,
+            file!(),
+            line!(),
+            module_path!(),
+            format_args!($($arg)*),
+        )
     };
 }
 
@@ -277,10 +382,28 @@ impl VerbosityLogger {
             level.as_str(),
             level.emoji()
         );
-        trace_log(level, format_args!("{}", title));
-        trace_log(level, format_args!("  📍 {}:{}", file, line));
-        trace_log(level, format_args!("  {}", message));
-        trace_log(level, format_args!(""));
+        trace_log(
+            level,
+            file,
+            line,
+            self.component.as_str(),
+            format_args!("{}", title),
+        );
+        trace_log(
+            level,
+            file,
+            line,
+            self.component.as_str(),
+            format_args!("  📍 {}:{}", file, line),
+        );
+        trace_log(
+            level,
+            file,
+            line,
+            self.component.as_str(),
+            format_args!("  {}", message),
+        );
+        trace_log(level, file, line, self.component.as_str(), format_args!(""));
     }
 }
 

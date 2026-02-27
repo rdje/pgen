@@ -10,6 +10,7 @@ Tracing existed in fragmented form (`debug`/`trace` booleans, ad-hoc `eprintln!`
 Requirement for this increment:
 - support dumping traces into `trace.log`,
 - when file sink is configured, trace lines that would normally print to stdout must be routed to the file instead.
+- every trace line must include explicit origin metadata (file, function, line) so source location is unambiguous.
 
 ### Implementation
 Primary files:
@@ -59,10 +60,13 @@ In `ast_pipeline/mod.rs`:
 - early-exits when verbosity does not allow the level,
 - writes to sink file when configured,
 - only falls back to stdout when no sink is configured.
+- emits canonical header metadata on every trace line:
+  - `[<file>:<line>] [<function>]`
 
 Result:
 - configured `trace.log` captures trace stream,
 - trace stream no longer appears on stdout in that mode.
+- each trace line now carries full origin metadata (file/function/line).
 
 #### 3) Trace emission surface and macros
 In `ast_pipeline/mod.rs`:
@@ -81,6 +85,11 @@ Also added `VerbosityLogger` implementing shared `Logger` trait with:
 Runtime constructors:
 - `runtime_logger(component)`
 - `runtime_logger_box(component)`
+
+Origin metadata strategy:
+- macro-origin traces use compile-time callsite (`file!()`, `line!()`, `module_path!()`),
+- function name is resolved from runtime backtrace and cached per callsite key (`file:line:module`) to avoid repeated backtrace parsing overhead,
+- stimuli internal trace helper uses `#[track_caller]` so trace location maps to the calling generation function rather than the helper itself.
 
 #### 4) Internal debug stream migration to unified trace sink
 Key AST pipeline and generator modules now route high-volume internal debug output through trace macros by local `eprintln!` macro mapping, ensuring these lines honor verbosity and file sink configuration.
@@ -149,7 +158,9 @@ Observed:
 - command succeeds,
 - stdout contains run-summary lines only,
 - trace lines are written to `rust/trace.log` (`[PGEN][DBG] ...` content),
-- trace stream is no longer emitted to stdout when sink is active.
+- trace stream is no longer emitted to stdout when sink is active,
+- trace lines include explicit origin metadata:
+  - `[src/ast_pipeline/mod.rs:<line>] [pgen::ast_pipeline::RustASTPipeline::<function>]`.
 
 ## 2026-02-26 - Aggregate SOTA Policy Promotion: EBNF Dual-Run Strict Required
 ### Context

@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::panic::Location;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryStimuliMode {
@@ -665,12 +666,17 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    #[track_caller]
     fn trace(&self, level: TraceLevel, args: fmt::Arguments<'_>) {
         if !self.config.trace_verbosity.allows(level) {
             return;
         }
+        let caller = Location::caller();
         crate::ast_pipeline::trace_log(
             level,
+            caller.file(),
+            caller.line(),
+            module_path!(),
             format_args!("🎲 [stimuli:{}] {}", self.grammar_name, args),
         );
     }

@@ -174,6 +174,14 @@ CLI controls:
 - `--trace-log-file custom.log` => writes trace to `custom.log`
 - when file routing is enabled, trace lines are written to the file instead of stdout.
 
+Trace line origin contract:
+- every trace line includes:
+  - source file name,
+  - function name,
+  - source line number.
+- header format:
+  - `[PGEN][<LEVEL>] ... [<file>:<line>] [<function>] <message>`
+
 Environment controls:
 - `PGEN_TRACE_VERBOSITY` (fallback: `PGEN_VERBOSITY`)
 - `PGEN_TRACE_LOG_FILE`
