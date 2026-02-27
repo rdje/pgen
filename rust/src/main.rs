@@ -9,8 +9,9 @@ use pgen::ast_pipeline::stimuli_generator::{
     StimuliGenerator,
 };
 use pgen::ast_pipeline::{
-    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TransformedASTJson,
-    ast_generator_direct::generate_parser_ast_based,
+    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
+    ast_generator_direct::generate_parser_ast_based, configure_trace_output,
+    resolve_trace_verbosity, set_global_trace_verbosity,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
@@ -47,6 +48,14 @@ struct Args {
     /// Enable debug output
     #[arg(long, short = 'd')]
     debug: bool,
+
+    /// Trace verbosity: none, low, medium, high, debug
+    #[arg(long, value_parser = ["none", "low", "medium", "high", "debug"])]
+    verbosity: Option<String>,
+
+    /// Route trace output to a file (defaults to trace.log when flag is provided without a value)
+    #[arg(long, num_args = 0..=1, default_missing_value = "trace.log")]
+    trace_log_file: Option<String>,
 
     /// Show transformation statistics
     #[arg(short, long)]
@@ -240,6 +249,22 @@ struct FuzzCorpusCandidate {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    let trace_log_path = args
+        .trace_log_file
+        .clone()
+        .or_else(|| std::env::var("PGEN_TRACE_LOG_FILE").ok());
+    configure_trace_output(trace_log_path.as_deref())?;
+
+    let trace_verbosity =
+        resolve_trace_verbosity(args.verbosity.as_deref(), args.debug, args.trace)?;
+    set_global_trace_verbosity(trace_verbosity);
+    if trace_verbosity != TraceVerbosity::None {
+        println!("Tracing enabled at verbosity={}", trace_verbosity.as_str());
+    }
+    if let Some(path) = trace_log_path.as_deref() {
+        println!("Trace output redirected to {}", path);
+    }
+
     let stimuli_like_mode = args.generate_stimuli || args.generate_stimuli_module;
     if !stimuli_like_mode {
         let has_shared_stimuli_flags = args.validate_parseability
@@ -258,8 +283,9 @@ fn main() -> Result<()> {
 
     // Start with default config and override only specified options
     let mut config = PipelineConfig::default();
-    config.debug = args.debug;
-    config.trace = args.trace;
+    config.debug = args.debug || trace_verbosity >= TraceVerbosity::High;
+    config.trace = args.trace || trace_verbosity >= TraceVerbosity::Debug;
+    config.trace_verbosity = trace_verbosity;
     config.validate_input = !args.no_validate;
     config.bootstrap_mode = args.bootstrap_mode;
 
@@ -316,6 +342,7 @@ fn main() -> Result<()> {
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             recovery_mode,
+            trace_verbosity,
         };
         let mut generator = StimuliGenerator::new(
             grammar.grammar_name.clone(),
@@ -379,6 +406,7 @@ fn main() -> Result<()> {
                     max_repeat: args.max_repeat,
                     max_rule_visits: args.max_depth.max(2),
                     recovery_mode,
+                    trace_verbosity,
                 },
             );
             gap_generator.merge_coverage_metrics(&merged_coverage)?;
@@ -410,6 +438,7 @@ fn main() -> Result<()> {
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             recovery_mode,
+            trace_verbosity,
         };
 
         let mut generator = StimuliGenerator::new(

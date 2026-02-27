@@ -1,4 +1,156 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Tracing Infrastructure Upgrade: Verbosity Model + `trace.log` Sink Routing
+### Context
+Tracing existed in fragmented form (`debug`/`trace` booleans, ad-hoc `eprintln!`, parser-local logging), but lacked:
+- a single global verbosity contract,
+- a shared sink abstraction,
+- deterministic routing of trace lines to file,
+- consistent runtime logger usage in generated parser entrypoints and AST/stimuli pipeline internals.
+
+Requirement for this increment:
+- support dumping traces into `trace.log`,
+- when file sink is configured, trace lines that would normally print to stdout must be routed to the file instead.
+
+### Implementation
+Primary files:
+- `rust/src/ast_pipeline/mod.rs`
+- `rust/src/main.rs`
+- `rust/src/bin/pgen_ast.rs`
+- `rust/src/bin/ebnf_dual_run_diff.rs`
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `rust/src/ast_pipeline/ast_generator_direct.rs`
+- `rust/src/parser_registry.rs`
+- `rust/src/ebnf_frontend.rs`
+- `rust/src/embedding_api.rs`
+- `rust/src/test_runner/mod.rs`
+- `rust/src/bin/test_runner.rs`
+- `PGEN_USER_GUIDE.md`
+- `CHANGES.md`
+
+#### 1) Unified trace vocabulary and gating
+In `ast_pipeline/mod.rs`:
+- added `TraceVerbosity` enum:
+  - `None`, `Low`, `Medium`, `High`, `Debug`
+- added `TraceLevel` enum:
+  - `Low`, `Medium`, `High`, `Debug`
+- added parsing/resolution helpers:
+  - `parse_trace_verbosity`
+  - `trace_verbosity_from_env` (`PGEN_TRACE_VERBOSITY`, fallback `PGEN_VERBOSITY`)
+  - `resolve_trace_verbosity(cli, debug_flag, trace_flag)`
+- added global trace verbosity state:
+  - `set_global_trace_verbosity`
+  - `global_trace_verbosity`
+  - `trace_enabled`
+
+This gives one executable contract for verbosity across pipeline, runtime parser paths, and stimuli behavior.
+
+#### 2) File sink routing (`trace.log` support)
+In `ast_pipeline/mod.rs`:
+- introduced global sink:
+  - `TRACE_OUTPUT_SINK: OnceLock<Mutex<Option<File>>>`
+- added:
+  - `configure_trace_output(path: Option<&str>)`
+- behavior:
+  - `Some(path)` => open/create/truncate path and route trace lines to file
+  - `None` => route trace lines to stdout
+
+`trace_log(...)` now:
+- early-exits when verbosity does not allow the level,
+- writes to sink file when configured,
+- only falls back to stdout when no sink is configured.
+
+Result:
+- configured `trace.log` captures trace stream,
+- trace stream no longer appears on stdout in that mode.
+
+#### 3) Trace emission surface and macros
+In `ast_pipeline/mod.rs`:
+- added macro family:
+  - `pgen_trace!`
+  - `pgen_trace_low!`
+  - `pgen_trace_medium!`
+  - `pgen_trace_high!`
+  - `pgen_trace_debug!`
+- included empty-argument support in macros to preserve blank-line formatting.
+
+Also added `VerbosityLogger` implementing shared `Logger` trait with:
+- level filtering by configured verbosity,
+- structured trace formatting with component + source location.
+
+Runtime constructors:
+- `runtime_logger(component)`
+- `runtime_logger_box(component)`
+
+#### 4) Internal debug stream migration to unified trace sink
+Key AST pipeline and generator modules now route high-volume internal debug output through trace macros by local `eprintln!` macro mapping, ensuring these lines honor verbosity and file sink configuration.
+
+Files:
+- `rust/src/ast_pipeline/mod.rs`
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Additionally, direct AST generator diagnostic points were normalized to explicit `pgen_trace_*` calls in:
+- `rust/src/ast_pipeline/ast_generator_direct.rs`
+
+#### 5) Stimuli generator tracing
+In `rust/src/ast_pipeline/stimuli_generator.rs`:
+- `StimuliConfig` now carries `trace_verbosity`,
+- default config inherits current global trace verbosity,
+- generation flow now emits structured trace lines for:
+  - batch start/finish and per-sample progress,
+  - rule entry/exit and branch attempt ordering,
+  - quantifier decisions and bounded repeat behavior,
+  - regex sample strategy selection and fallback paths,
+  - recovery-mode marker injection decisions.
+
+This closes traceability gaps for branch choice and gap-driven generation diagnostics.
+
+#### 6) Runtime parser path wiring
+Replaced silent logger construction in key runtime entrypoints with trace-aware runtime loggers:
+- `rust/src/parser_registry.rs`
+- `rust/src/ebnf_frontend.rs`
+- `rust/src/embedding_api.rs`
+
+Effect:
+- generated parser invocations can now emit trace when global verbosity is enabled.
+
+#### 7) CLI controls and `trace.log` defaults
+CLIs now expose consistent controls:
+- `--verbosity <none|low|medium|high|debug>`
+- `--trace-log-file [PATH]`
+
+If `--trace-log-file` is provided without value:
+- defaults to `trace.log`.
+
+If value is provided:
+- uses explicit path.
+
+`PGEN_TRACE_LOG_FILE` remains supported as env fallback.
+
+Files:
+- `rust/src/main.rs`
+- `rust/src/bin/pgen_ast.rs`
+- `rust/src/bin/ebnf_dual_run_diff.rs`
+
+#### 8) Test runner verbosity alignment
+`test_runner` logging path now accepts resolved verbosity and filters per level in `FileLogger`, aligning parser test execution logs with the same global verbosity contract.
+
+Files:
+- `rust/src/test_runner/mod.rs`
+- `rust/src/bin/test_runner.rs`
+
+### Validation
+Executed:
+- `cd rust && cargo fmt`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers,ebnf_dual_run --bins -q`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- ../generated/json.json --generate-stimuli --count 1 --verbosity debug --trace-log-file --output /tmp/pgen_stimuli_2.txt`
+
+Observed:
+- command succeeds,
+- stdout contains run-summary lines only,
+- trace lines are written to `rust/trace.log` (`[PGEN][DBG] ...` content),
+- trace stream is no longer emitted to stdout when sink is active.
+
 ## 2026-02-26 - Aggregate SOTA Policy Promotion: EBNF Dual-Run Strict Required
 ### Context
 Dual-run differential (`Perl ebnf_to_json.pl` vs Rust `generated/ebnf.rs`) was already implemented and available in both report and strict modes, but aggregate SOTA policy still treated it as informational (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=0`).

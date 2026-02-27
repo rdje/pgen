@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-02-27 - First-Class Tracing with `trace.log` Redirection
+### ✅ Achievement Summary
+Implemented centralized, verbosity-controlled tracing across the Rust AST pipeline and runtime parser/stimuli paths, with file-sink routing so trace output can be redirected to `trace.log` instead of stdout.
+
+### Scope of Changes
+- Added unified tracing primitives in `rust/src/ast_pipeline/mod.rs`:
+  - `TraceVerbosity`: `none|low|medium|high|debug`
+  - `TraceLevel`: `Low|Medium|High|Debug`
+  - global verbosity resolution from CLI/env (`PGEN_TRACE_VERBOSITY`, `PGEN_VERBOSITY`)
+  - global sink routing via `configure_trace_output(...)`
+  - runtime helpers/macros: `pgen_trace_*`, `runtime_logger`, `runtime_logger_box`
+- Routed internal AST pipeline/AST-generator debug output through the centralized trace sink so trace messages follow verbosity and file routing behavior.
+- Wired generated parser/annotation runtime construction to use trace-aware runtime loggers instead of silent `NoOpLogger` in active tracing modes.
+- Added trace verbosity and trace sink controls to CLIs:
+  - `rust/src/main.rs` (`ast_pipeline`)
+  - `rust/src/bin/pgen_ast.rs`
+  - `rust/src/bin/ebnf_dual_run_diff.rs`
+- Updated `--trace-log-file` UX in these CLIs to support no-value invocation with default file path:
+  - `--trace-log-file` => `trace.log`
+  - `--trace-log-file custom.log` => custom path
+- Extended stimuli generation internals with trace hooks for generation decisions, branch selection, quantifier behavior, and recovery-path signaling.
+
+### Validation Results
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers,ebnf_dual_run --bins -q` ✅
+- End-to-end trace redirection check:
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- ../generated/json.json --generate-stimuli --count 1 --verbosity debug --trace-log-file --output /tmp/pgen_stimuli_2.txt` ✅
+  - confirms trace lines are written to `rust/trace.log` and no `[PGEN]` trace lines are emitted to stdout.
+
 ## 2026-02-26 - Aggregate Policy Promotion: EBNF Dual-Run Strict Required
 ### ✅ Achievement Summary
 Promoted Perl-vs-Rust EBNF dual-run differential from informational/report mode to required strict mode in aggregate SOTA policy after confirming strict dual-run gate is green on tracked grammars.

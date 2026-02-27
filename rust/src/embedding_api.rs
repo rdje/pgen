@@ -1,5 +1,6 @@
-use crate::NoOpLogger;
-use crate::ast_pipeline::{UnifiedReturnAST, UnifiedSemanticAST};
+use crate::ast_pipeline::{
+    UnifiedReturnAST, UnifiedSemanticAST, runtime_logger, runtime_logger_box,
+};
 use serde::{Deserialize, Serialize};
 
 /// Stable embedding API contract version.
@@ -165,7 +166,7 @@ fn validate_input_limits(input: &str, limits: &ParseLimits) -> Result<(), ParseD
 }
 
 fn parse_bootstrap_return(input: &str) -> Result<(), ParseDiagnostic> {
-    let logger = NoOpLogger;
+    let logger = runtime_logger("embedding.bootstrap.return_annotation");
     UnifiedReturnAST::parse_bootstrap(input, &logger)
         .map(|_| ())
         .map_err(|err| ParseDiagnostic {
@@ -175,7 +176,7 @@ fn parse_bootstrap_return(input: &str) -> Result<(), ParseDiagnostic> {
 }
 
 fn parse_bootstrap_semantic(input: &str) -> Result<(), ParseDiagnostic> {
-    let logger = NoOpLogger;
+    let logger = runtime_logger("embedding.bootstrap.semantic_annotation");
     UnifiedSemanticAST::parse_bootstrap(input, &logger)
         .map(|_| ())
         .map_err(|err| ParseDiagnostic {
@@ -188,7 +189,10 @@ fn parse_generated_return(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(feature = "generated_parsers")]
     {
         use crate::generated_parsers::return_annotation::Return_annotationParser;
-        let mut parser = Return_annotationParser::new(input, Box::new(NoOpLogger));
+        let mut parser = Return_annotationParser::new(
+            input,
+            runtime_logger_box("embedding.generated.return_annotation"),
+        );
         return parser
             .parse_full_return_annotation()
             .map(|_| ())
@@ -211,7 +215,10 @@ fn parse_generated_semantic(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(feature = "generated_parsers")]
     {
         use crate::generated_parsers::semantic_annotation::Semantic_annotationParser;
-        let mut parser = Semantic_annotationParser::new(input, Box::new(NoOpLogger));
+        let mut parser = Semantic_annotationParser::new(
+            input,
+            runtime_logger_box("embedding.generated.semantic_annotation"),
+        );
         return parser
             .parse_full_semantic_annotation()
             .map(|_| ())

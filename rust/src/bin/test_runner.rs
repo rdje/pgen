@@ -11,6 +11,7 @@ use pgen::NoOpLogger;
 use pgen::ast_pipeline::UnifiedReturnAST;
 #[cfg(feature = "generated_parsers")]
 use pgen::ast_pipeline::UnifiedSemanticAST;
+use pgen::ast_pipeline::{TraceVerbosity, resolve_trace_verbosity};
 #[cfg(feature = "generated_parsers")]
 use pgen::generated_parsers::return_annotation::Return_annotationParser;
 #[cfg(feature = "generated_parsers")]
@@ -209,13 +210,13 @@ fn canonical_parser_type(parser_type: &str) -> String {
     }
 }
 
-fn configure_parser_logger(parser: &mut dyn Parser, debug_enabled: bool) {
-    if !debug_enabled {
+fn configure_parser_logger(parser: &mut dyn Parser, verbosity: TraceVerbosity) {
+    if verbosity == TraceVerbosity::None {
         return;
     }
     if let Ok(log_file_path) = get_current_log_file_path() {
         if let Ok(file) = OpenOptions::new().append(true).open(&log_file_path) {
-            parser.set_logger(Box::new(FileLogger::new(file)));
+            parser.set_logger(Box::new(FileLogger::new(file, verbosity)));
         }
     }
 }
@@ -393,7 +394,7 @@ fn run_differential_mode(
     suite_filter: Option<String>,
     tag_filter: Vec<String>,
     comparable_only: bool,
-    debug_enabled: bool,
+    trace_verbosity: TraceVerbosity,
     fail_fast: bool,
     baseline_json_path: Option<&str>,
     write_baseline_json_path: Option<&str>,
@@ -413,16 +414,16 @@ fn run_differential_mode(
         match canonical.as_str() {
             "return" => {
                 let mut baseline = BootstrapReturnAnnotationParser::new();
-                configure_parser_logger(&mut baseline, debug_enabled);
+                configure_parser_logger(&mut baseline, trace_verbosity);
                 let mut candidate = GeneratedReturnAnnotationParser::new(Box::new(NoOpLogger));
-                configure_parser_logger(&mut candidate, debug_enabled);
+                configure_parser_logger(&mut candidate, trace_verbosity);
                 (Box::new(baseline), Box::new(candidate))
             }
             "semantic" => {
                 let mut baseline = BootstrapSemanticAnnotationParser::new();
-                configure_parser_logger(&mut baseline, debug_enabled);
+                configure_parser_logger(&mut baseline, trace_verbosity);
                 let mut candidate = GeneratedSemanticAnnotationParser::new(Box::new(NoOpLogger));
-                configure_parser_logger(&mut candidate, debug_enabled);
+                configure_parser_logger(&mut candidate, trace_verbosity);
                 (Box::new(baseline), Box::new(candidate))
             }
             _ => unreachable!(),
@@ -672,7 +673,7 @@ fn run_differential_mode(
     _suite_filter: Option<String>,
     _tag_filter: Vec<String>,
     _comparable_only: bool,
-    _debug_enabled: bool,
+    _trace_verbosity: TraceVerbosity,
     _fail_fast: bool,
     _baseline_json_path: Option<&str>,
     _write_baseline_json_path: Option<&str>,
@@ -749,8 +750,15 @@ fn main() {
             Arg::new("debug")
                 .short('D')
                 .long("debug")
-                .help("Enable debug logging for parsers")
+                .help("Enable high-verbosity parser tracing (legacy shortcut)")
                 .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
+            Arg::new("verbosity")
+                .long("verbosity")
+                .value_name("LEVEL")
+                .value_parser(["none", "low", "medium", "high", "debug"])
+                .help("Trace verbosity for parser logs: none|low|medium|high|debug")
         )
         .arg(
             Arg::new("fail_fast")
@@ -805,6 +813,17 @@ fn main() {
     let verbose = matches.get_flag("verbose");
     let list_only = matches.get_flag("list");
     let debug_enabled = matches.get_flag("debug");
+    let trace_verbosity = match resolve_trace_verbosity(
+        matches.get_one::<String>("verbosity").map(|s| s.as_str()),
+        debug_enabled,
+        false,
+    ) {
+        Ok(level) => level,
+        Err(err) => {
+            eprintln!("Invalid --verbosity value: {}", err);
+            exit(2);
+        }
+    };
     let fail_fast = matches.get_flag("fail_fast");
     let differential_mode = matches.get_flag("differential");
 
@@ -842,7 +861,7 @@ fn main() {
             suite_filter,
             tag_filter,
             comparable_only,
-            debug_enabled,
+            trace_verbosity,
             fail_fast,
             baseline_path,
             write_baseline_path,
@@ -868,13 +887,13 @@ fn main() {
                 #[cfg(feature = "generated_parsers")]
                 {
                     let mut parser = GeneratedReturnAnnotationParser::new(Box::new(NoOpLogger));
-                    configure_parser_logger(&mut parser, debug_enabled);
+                    configure_parser_logger(&mut parser, trace_verbosity);
                     runner = runner.with_parser(Box::new(parser));
                 }
                 #[cfg(not(feature = "generated_parsers"))]
                 {
                     let mut parser = BootstrapReturnAnnotationParser::new();
-                    configure_parser_logger(&mut parser, debug_enabled);
+                    configure_parser_logger(&mut parser, trace_verbosity);
                     runner = runner.with_parser(Box::new(parser));
                 }
             }
@@ -882,13 +901,13 @@ fn main() {
                 #[cfg(feature = "generated_parsers")]
                 {
                     let mut parser = GeneratedSemanticAnnotationParser::new(Box::new(NoOpLogger));
-                    configure_parser_logger(&mut parser, debug_enabled);
+                    configure_parser_logger(&mut parser, trace_verbosity);
                     runner = runner.with_parser(Box::new(parser));
                 }
                 #[cfg(not(feature = "generated_parsers"))]
                 {
                     let mut parser = BootstrapSemanticAnnotationParser::new();
-                    configure_parser_logger(&mut parser, debug_enabled);
+                    configure_parser_logger(&mut parser, trace_verbosity);
                     runner = runner.with_parser(Box::new(parser));
                 }
             }

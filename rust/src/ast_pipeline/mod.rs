@@ -1,3 +1,244 @@
+use anyhow::{Result, anyhow};
+use serde;
+use std::collections::{HashMap, HashSet};
+use std::fmt;
+use std::fs::{File, OpenOptions};
+use std::io::Write;
+use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::{Mutex, OnceLock};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum TraceVerbosity {
+    None = 0,
+    Low = 1,
+    Medium = 2,
+    High = 3,
+    Debug = 4,
+}
+
+impl TraceVerbosity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+            Self::Debug => "debug",
+        }
+    }
+
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "none" | "off" | "0" => Some(Self::None),
+            "low" | "1" => Some(Self::Low),
+            "medium" | "med" | "2" => Some(Self::Medium),
+            "high" | "3" => Some(Self::High),
+            "debug" | "trace" | "4" => Some(Self::Debug),
+            _ => None,
+        }
+    }
+
+    pub fn from_flags(debug: bool, trace: bool) -> Self {
+        if trace {
+            Self::Debug
+        } else if debug {
+            Self::High
+        } else {
+            Self::None
+        }
+    }
+
+    pub fn allows(self, level: TraceLevel) -> bool {
+        self as u8 >= level.min_verbosity() as u8
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum TraceLevel {
+    Low = 1,
+    Medium = 2,
+    High = 3,
+    Debug = 4,
+}
+
+impl TraceLevel {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Low => "LOW",
+            Self::Medium => "MED",
+            Self::High => "HIGH",
+            Self::Debug => "DBG",
+        }
+    }
+
+    fn emoji(self) -> &'static str {
+        match self {
+            Self::Low => "🧭",
+            Self::Medium => "🧩",
+            Self::High => "🔎",
+            Self::Debug => "🧠",
+        }
+    }
+
+    fn min_verbosity(self) -> TraceVerbosity {
+        match self {
+            Self::Low => TraceVerbosity::Low,
+            Self::Medium => TraceVerbosity::Medium,
+            Self::High => TraceVerbosity::High,
+            Self::Debug => TraceVerbosity::Debug,
+        }
+    }
+}
+
+static GLOBAL_TRACE_VERBOSITY: AtomicU8 = AtomicU8::new(TraceVerbosity::None as u8);
+static TRACE_OUTPUT_SINK: OnceLock<Mutex<Option<File>>> = OnceLock::new();
+
+pub fn parse_trace_verbosity(raw: &str) -> Option<TraceVerbosity> {
+    TraceVerbosity::parse(raw)
+}
+
+pub fn trace_verbosity_from_env() -> Option<TraceVerbosity> {
+    std::env::var("PGEN_TRACE_VERBOSITY")
+        .ok()
+        .or_else(|| std::env::var("PGEN_VERBOSITY").ok())
+        .as_deref()
+        .and_then(TraceVerbosity::parse)
+}
+
+fn trace_sink() -> &'static Mutex<Option<File>> {
+    TRACE_OUTPUT_SINK.get_or_init(|| Mutex::new(None))
+}
+
+pub fn configure_trace_output(path: Option<&str>) -> Result<()> {
+    let mut guard = trace_sink()
+        .lock()
+        .map_err(|_| anyhow!("trace output sink lock poisoned"))?;
+
+    if let Some(path) = path.map(str::trim).filter(|path| !path.is_empty()) {
+        let file = OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(path)
+            .map_err(|err| anyhow!("failed to open trace output file '{}': {}", path, err))?;
+        *guard = Some(file);
+    } else {
+        *guard = None;
+    }
+
+    Ok(())
+}
+
+pub fn resolve_trace_verbosity(
+    cli_value: Option<&str>,
+    debug_flag: bool,
+    trace_flag: bool,
+) -> Result<TraceVerbosity> {
+    if let Some(raw) = cli_value {
+        return TraceVerbosity::parse(raw).ok_or_else(|| {
+            anyhow!(
+                "Invalid trace verbosity '{}'. Expected one of: none, low, medium, high, debug",
+                raw
+            )
+        });
+    }
+    if let Some(from_env) = trace_verbosity_from_env() {
+        return Ok(from_env);
+    }
+    Ok(TraceVerbosity::from_flags(debug_flag, trace_flag))
+}
+
+pub fn set_global_trace_verbosity(verbosity: TraceVerbosity) {
+    GLOBAL_TRACE_VERBOSITY.store(verbosity as u8, Ordering::Relaxed);
+}
+
+pub fn global_trace_verbosity() -> TraceVerbosity {
+    match GLOBAL_TRACE_VERBOSITY.load(Ordering::Relaxed) {
+        0 => TraceVerbosity::None,
+        1 => TraceVerbosity::Low,
+        2 => TraceVerbosity::Medium,
+        3 => TraceVerbosity::High,
+        _ => TraceVerbosity::Debug,
+    }
+}
+
+pub fn trace_enabled(level: TraceLevel) -> bool {
+    global_trace_verbosity().allows(level)
+}
+
+pub fn trace_log(level: TraceLevel, args: fmt::Arguments<'_>) {
+    if !trace_enabled(level) {
+        return;
+    }
+    let line = format!("[PGEN][{}] {} {}", level.as_str(), level.emoji(), args);
+    if let Ok(mut guard) = trace_sink().lock() {
+        if let Some(file) = guard.as_mut() {
+            let _ = writeln!(file, "{}", line);
+            let _ = file.flush();
+            return;
+        }
+    }
+    println!("{}", line);
+}
+
+#[macro_export]
+macro_rules! pgen_trace {
+    ($level:expr) => {
+        $crate::ast_pipeline::trace_log($level, format_args!(""))
+    };
+    ($level:expr, $($arg:tt)*) => {
+        $crate::ast_pipeline::trace_log($level, format_args!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! pgen_trace_low {
+    () => {
+        $crate::pgen_trace!($crate::ast_pipeline::TraceLevel::Low)
+    };
+    ($($arg:tt)*) => {
+        $crate::pgen_trace!($crate::ast_pipeline::TraceLevel::Low, $($arg)*)
+    };
+}
+
+#[macro_export]
+macro_rules! pgen_trace_medium {
+    () => {
+        $crate::pgen_trace!($crate::ast_pipeline::TraceLevel::Medium)
+    };
+    ($($arg:tt)*) => {
+        $crate::pgen_trace!($crate::ast_pipeline::TraceLevel::Medium, $($arg)*)
+    };
+}
+
+#[macro_export]
+macro_rules! pgen_trace_high {
+    () => {
+        $crate::pgen_trace!($crate::ast_pipeline::TraceLevel::High)
+    };
+    ($($arg:tt)*) => {
+        $crate::pgen_trace!($crate::ast_pipeline::TraceLevel::High, $($arg)*)
+    };
+}
+
+#[macro_export]
+macro_rules! pgen_trace_debug {
+    () => {
+        $crate::pgen_trace!($crate::ast_pipeline::TraceLevel::Debug)
+    };
+    ($($arg:tt)*) => {
+        $crate::pgen_trace!($crate::ast_pipeline::TraceLevel::Debug, $($arg)*)
+    };
+}
+
+macro_rules! eprintln {
+    ($($arg:tt)*) => {
+        crate::pgen_trace_debug!($($arg)*)
+    };
+}
+
 // Shared Logger trait that both binaries can access
 pub trait Logger: std::fmt::Debug {
     fn is_enabled(&self) -> bool;
@@ -9,6 +250,81 @@ pub trait Logger: std::fmt::Debug {
 
     // Clone method for logger instances
     fn clone_box(&self) -> Box<dyn Logger>;
+}
+
+#[derive(Debug, Clone)]
+pub struct VerbosityLogger {
+    component: String,
+    verbosity: TraceVerbosity,
+}
+
+impl VerbosityLogger {
+    pub fn new(component: impl Into<String>, verbosity: TraceVerbosity) -> Self {
+        Self {
+            component: component.into(),
+            verbosity,
+        }
+    }
+
+    fn emit(&self, level: TraceLevel, file: &str, line: u32, message: &str) {
+        if !self.verbosity.allows(level) {
+            return;
+        }
+
+        let title = format!(
+            "[TRACE][{}][{}] {}",
+            self.component,
+            level.as_str(),
+            level.emoji()
+        );
+        trace_log(level, format_args!("{}", title));
+        trace_log(level, format_args!("  📍 {}:{}", file, line));
+        trace_log(level, format_args!("  {}", message));
+        trace_log(level, format_args!(""));
+    }
+}
+
+impl Logger for VerbosityLogger {
+    fn is_enabled(&self) -> bool {
+        self.verbosity != TraceVerbosity::None
+    }
+
+    fn log_info(&self, file: &str, line: u32, message: &str) {
+        self.emit(TraceLevel::High, file, line, message);
+    }
+
+    fn log_debug(&self, file: &str, line: u32, message: &str) {
+        self.emit(TraceLevel::Debug, file, line, message);
+    }
+
+    fn log_success(&self, file: &str, line: u32, message: &str) {
+        self.emit(TraceLevel::Medium, file, line, message);
+    }
+
+    fn log_warning(&self, file: &str, line: u32, message: &str) {
+        self.emit(TraceLevel::Low, file, line, message);
+    }
+
+    fn log_error(&self, file: &str, line: u32, message: &str) {
+        self.emit(TraceLevel::Low, file, line, message);
+    }
+
+    fn clone_box(&self) -> Box<dyn Logger> {
+        Box::new(self.clone())
+    }
+}
+
+pub fn runtime_logger(component: impl Into<String>) -> VerbosityLogger {
+    VerbosityLogger::new(component, global_trace_verbosity())
+}
+
+pub fn runtime_logger_box(component: impl Into<String>) -> Box<dyn Logger> {
+    let verbosity = global_trace_verbosity();
+    if verbosity == TraceVerbosity::None {
+        Box::new(NoOpLogger)
+    } else {
+        Box::new(VerbosityLogger::new(component, verbosity))
+    }
 }
 
 // No-op logger implementation
@@ -29,10 +345,6 @@ impl Logger for NoOpLogger {
         Box::new(self.clone())
     }
 }
-
-use anyhow::Result;
-use serde;
-use std::collections::{HashMap, HashSet};
 
 #[cfg(feature = "generated_parsers")]
 use crate::generated_parsers::return_annotation::Return_annotationParser;
@@ -319,6 +631,7 @@ pub struct TransformedASTJson {
 pub struct PipelineConfig {
     pub debug: bool,
     pub trace: bool,
+    pub trace_verbosity: TraceVerbosity,
     pub bootstrap_mode: bool,
     pub preserve_annotations: bool,
     pub validate_input: bool,
@@ -332,6 +645,7 @@ impl Default for PipelineConfig {
         PipelineConfig {
             debug: false,
             trace: false,
+            trace_verbosity: trace_verbosity_from_env().unwrap_or(TraceVerbosity::None),
             bootstrap_mode: false,
             preserve_annotations: true,
             validate_input: true,
@@ -380,6 +694,7 @@ struct ExtractedRuleAnnotations {
 
 impl RustASTPipeline {
     pub fn new(config: PipelineConfig) -> Self {
+        set_global_trace_verbosity(config.trace_verbosity);
         RustASTPipeline { config }
     }
 
@@ -970,7 +1285,7 @@ impl RustASTPipeline {
             return None;
         }
 
-        let logger = NoOpLogger;
+        let logger = runtime_logger("pipeline.return_annotation.bootstrap");
         if !self.config.bootstrap_mode {
             if !self.validate_return_annotation_backend(content) {
                 eprintln!(
@@ -982,7 +1297,10 @@ impl RustASTPipeline {
 
             #[cfg(feature = "generated_parsers")]
             {
-                let mut parser = Return_annotationParser::new(content, Box::new(NoOpLogger));
+                let mut parser = Return_annotationParser::new(
+                    content,
+                    runtime_logger_box("pipeline.return_annotation.generated"),
+                );
                 match parser.parse_full_return_annotation() {
                     Ok(parse_tree) => {
                         return match UnifiedReturnAST::parse_generated_return_annotation(
@@ -1082,7 +1400,7 @@ impl RustASTPipeline {
                 }
 
                 let ast = if self.config.bootstrap_mode {
-                    let logger = NoOpLogger;
+                    let logger = runtime_logger("pipeline.semantic_annotation.bootstrap");
                     UnifiedSemanticAST::parse_bootstrap(trimmed, &logger).unwrap_or_else(|_| {
                         UnifiedSemanticAST::Raw {
                             content: trimmed.to_string(),
@@ -1156,8 +1474,11 @@ impl RustASTPipeline {
 
         #[cfg(feature = "generated_parsers")]
         {
-            let logger = NoOpLogger;
-            let mut parser = Semantic_annotationParser::new(annotation_text, Box::new(NoOpLogger));
+            let logger = runtime_logger("pipeline.semantic_annotation.generated");
+            let mut parser = Semantic_annotationParser::new(
+                annotation_text,
+                runtime_logger_box("pipeline.semantic_annotation.generated"),
+            );
             let parse_tree = parser.parse_full_semantic_annotation().map_err(|err| {
                 anyhow::anyhow!(
                     "generated semantic parser failed for '{}': {}",
@@ -1213,7 +1534,10 @@ impl RustASTPipeline {
 
         #[cfg(feature = "generated_parsers")]
         {
-            let mut parser = Return_annotationParser::new(annotation_content, Box::new(NoOpLogger));
+            let mut parser = Return_annotationParser::new(
+                annotation_content,
+                runtime_logger_box("pipeline.return_annotation.backend_validate"),
+            );
             return parser.parse_full_return_annotation().is_ok();
         }
 
@@ -1234,7 +1558,10 @@ impl RustASTPipeline {
 
         #[cfg(feature = "generated_parsers")]
         {
-            let mut parser = Semantic_annotationParser::new(annotation_text, Box::new(NoOpLogger));
+            let mut parser = Semantic_annotationParser::new(
+                annotation_text,
+                runtime_logger_box("pipeline.semantic_annotation.backend_validate"),
+            );
             return parser.parse_full_semantic_annotation().is_ok();
         }
 

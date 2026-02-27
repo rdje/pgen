@@ -5,7 +5,8 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::{
     Annotations, PipelineConfig, RustASTPipeline, TransformMetadata, TransformedASTJson,
-    ast_based_generator::AstBasedGenerator,
+    ast_based_generator::AstBasedGenerator, configure_trace_output, resolve_trace_verbosity,
+    set_global_trace_verbosity,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -29,6 +30,14 @@ struct Args {
     #[arg(short, long)]
     trace: bool,
 
+    /// Trace verbosity: none, low, medium, high, debug
+    #[arg(long, value_parser = ["none", "low", "medium", "high", "debug"])]
+    verbosity: Option<String>,
+
+    /// Route trace output to a file (defaults to trace.log when flag is provided without a value)
+    #[arg(long, num_args = 0..=1, default_missing_value = "trace.log")]
+    trace_log_file: Option<String>,
+
     /// Bootstrap mode for self-hosted parsers
     #[arg(short, long)]
     bootstrap: bool,
@@ -40,6 +49,14 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    let trace_log_path = args
+        .trace_log_file
+        .clone()
+        .or_else(|| std::env::var("PGEN_TRACE_LOG_FILE").ok());
+    configure_trace_output(trace_log_path.as_deref())?;
+    let trace_verbosity =
+        resolve_trace_verbosity(args.verbosity.as_deref(), args.debug, args.trace)?;
+    set_global_trace_verbosity(trace_verbosity);
 
     // Read input JSON
     let input_content = fs::read_to_string(&args.input)
@@ -50,7 +67,7 @@ fn main() -> Result<()> {
         run_direct_mode(&input_content, &args)
     } else {
         // Pipeline mode - use full AST transformation pipeline
-        run_pipeline_mode(&input_content, &args)
+        run_pipeline_mode(&input_content, &args, trace_verbosity)
     }
 }
 
@@ -80,13 +97,18 @@ fn run_direct_mode(input_content: &str, args: &Args) -> Result<()> {
     Ok(())
 }
 
-fn run_pipeline_mode(input_content: &str, args: &Args) -> Result<()> {
+fn run_pipeline_mode(
+    input_content: &str,
+    args: &Args,
+    trace_verbosity: pgen::ast_pipeline::TraceVerbosity,
+) -> Result<()> {
     println!("🔄 Running in PIPELINE mode - full AST transformation");
 
     // Configure pipeline
     let config = PipelineConfig {
         debug: args.debug,
         trace: args.trace,
+        trace_verbosity,
         bootstrap_mode: args.bootstrap,
         preserve_annotations: true,
         validate_input: true,

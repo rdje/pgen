@@ -21,6 +21,12 @@ use quote::{ToTokens, format_ident, quote};
 use std::collections::{HashMap, HashSet};
 use syn::Ident;
 
+macro_rules! eprintln {
+    ($($arg:tt)*) => {
+        crate::pgen_trace_debug!($($arg)*)
+    };
+}
+
 /// AST-based generator that produces guaranteed syntactically correct Rust code
 pub struct AstBasedGenerator {
     pub grammar_name: String,

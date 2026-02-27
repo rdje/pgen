@@ -1,9 +1,9 @@
 use super::{
     ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
-    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue,
-    UnifiedSemanticAST, extract_semantic_directive, normalize_semantic_scalar,
-    parse_canonical_transform_expression, parse_semantic_bool, parse_semantic_branch_priorities,
-    parse_semantic_charset, parse_semantic_constraint_expression,
+    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
+    TraceVerbosity, UnifiedSemanticAST, extract_semantic_directive, global_trace_verbosity,
+    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
+    parse_semantic_branch_priorities, parse_semantic_charset, parse_semantic_constraint_expression,
     parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
     parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
     parse_semantic_numeric_bounds, parse_semantic_pattern, parse_semantic_reference_list,
@@ -18,6 +18,7 @@ use regex_syntax::hir::{Class, Hir, HirKind, Literal, Repetition};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryStimuliMode {
@@ -39,6 +40,7 @@ pub struct StimuliConfig {
     pub max_repeat: usize,
     pub max_rule_visits: usize,
     pub recovery_mode: RecoveryStimuliMode,
+    pub trace_verbosity: TraceVerbosity,
 }
 
 impl Default for StimuliConfig {
@@ -49,6 +51,7 @@ impl Default for StimuliConfig {
             max_repeat: 4,
             max_rule_visits: 8,
             recovery_mode: RecoveryStimuliMode::Baseline,
+            trace_verbosity: global_trace_verbosity(),
         }
     }
 }
@@ -660,6 +663,16 @@ impl<'a> StimuliGenerator<'a> {
             target_plan: ActiveTargetPlan::default(),
             deterministic_partition_counters: HashMap::new(),
         }
+    }
+
+    fn trace(&self, level: TraceLevel, args: fmt::Arguments<'_>) {
+        if !self.config.trace_verbosity.allows(level) {
+            return;
+        }
+        crate::ast_pipeline::trace_log(
+            level,
+            format_args!("🎲 [stimuli:{}] {}", self.grammar_name, args),
+        );
     }
 
     pub fn coverage_metrics(&self) -> &StimuliCoverageMetrics {
@@ -1400,14 +1413,45 @@ impl<'a> StimuliGenerator<'a> {
 
     pub fn generate_many(&mut self, count: usize, entry_rule: Option<&str>) -> Result<Vec<String>> {
         let resolved_entry = self.resolve_entry_rule(entry_rule)?;
+        self.trace(
+            TraceLevel::Low,
+            format_args!(
+                "Starting batch generation: count={} entry_rule='{}' mode={:?} max_depth={} max_repeat={} max_rule_visits={}",
+                count,
+                resolved_entry,
+                self.config.recovery_mode,
+                self.config.max_depth,
+                self.config.max_repeat,
+                self.config.max_rule_visits
+            ),
+        );
         let mut outputs = Vec::with_capacity(count);
-        for _ in 0..count {
+        for idx in 0..count {
+            self.trace(
+                TraceLevel::Medium,
+                format_args!("Generating sample {}/{}", idx + 1, count),
+            );
             outputs.push(self.generate_from_entry(&resolved_entry)?);
         }
+        self.trace(
+            TraceLevel::Low,
+            format_args!(
+                "Completed batch generation: produced {} sample(s) for entry='{}'",
+                outputs.len(),
+                resolved_entry
+            ),
+        );
         Ok(outputs)
     }
 
     pub fn generate_from_entry(&mut self, entry_rule: &str) -> Result<String> {
+        self.trace(
+            TraceLevel::High,
+            format_args!(
+                "➡️ Enter generate_from_entry(entry='{}', recovery_mode={:?})",
+                entry_rule, self.config.recovery_mode
+            ),
+        );
         self.activate_deterministic_partition_for_entry(entry_rule);
         let mut call_stack = Vec::new();
         let result = match self.config.recovery_mode {
@@ -1421,6 +1465,24 @@ impl<'a> StimuliGenerator<'a> {
         }
         .map(|sample| self.apply_negative_case_policy(entry_rule, sample));
         self.coverage.record_sample_attempt(result.is_ok());
+        match &result {
+            Ok(sample) => self.trace(
+                TraceLevel::High,
+                format_args!(
+                    "✅ Exit generate_from_entry(entry='{}'): len={} preview='{}'",
+                    entry_rule,
+                    sample.len(),
+                    sample.chars().take(64).collect::<String>()
+                ),
+            ),
+            Err(err) => self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "❌ Exit generate_from_entry(entry='{}') with error: {}",
+                    entry_rule, err
+                ),
+            ),
+        }
         result
     }
 
@@ -1525,6 +1587,15 @@ impl<'a> StimuliGenerator<'a> {
         depth: usize,
         call_stack: &mut Vec<String>,
     ) -> Result<String> {
+        self.trace(
+            TraceLevel::Debug,
+            format_args!(
+                "↳ enter generate_rule(rule='{}', depth={}, active_stack={})",
+                rule_name,
+                depth,
+                call_stack.join(" > ")
+            ),
+        );
         if depth > self.config.max_depth {
             return Err(anyhow!(
                 "Stimuli generation depth exceeded max_depth={} while expanding rule '{}'",
@@ -1557,6 +1628,20 @@ impl<'a> StimuliGenerator<'a> {
         call_stack.pop();
         if result.is_ok() {
             self.coverage.record_rule_success(rule_name);
+        }
+        match &result {
+            Ok(sample) => self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "↰ exit generate_rule(rule='{}'): success len={}",
+                    rule_name,
+                    sample.len()
+                ),
+            ),
+            Err(err) => self.trace(
+                TraceLevel::High,
+                format_args!("↰ exit generate_rule(rule='{}'): error={}", rule_name, err),
+            ),
         }
         result
     }
@@ -1601,6 +1686,16 @@ impl<'a> StimuliGenerator<'a> {
         call_stack: &mut Vec<String>,
         node_path: &str,
     ) -> Result<String> {
+        self.trace(
+            TraceLevel::High,
+            format_args!(
+                "OR decision point: rule='{}' path='{}' depth={} branches={}",
+                current_rule,
+                node_path,
+                depth,
+                alternatives.len()
+            ),
+        );
         if alternatives.is_empty() {
             return Ok(String::new());
         }
@@ -1700,6 +1795,17 @@ impl<'a> StimuliGenerator<'a> {
                 ordered
             }
         };
+        self.trace(
+            TraceLevel::Debug,
+            format_args!(
+                "OR policy for rule='{}': policy={:?} associativity={:?} candidate_indices={:?} attempt_order(local)={:?}",
+                current_rule,
+                branch_policy,
+                associativity,
+                candidate_indices,
+                attempt_order
+            ),
+        );
 
         let mut last_error: Option<anyhow::Error> = None;
         for local_idx in attempt_order {
@@ -1713,6 +1819,13 @@ impl<'a> StimuliGenerator<'a> {
                 alternatives.len(),
                 selected_global,
             );
+            self.trace(
+                TraceLevel::High,
+                format_args!(
+                    "Trying OR branch: rule='{}' path='{}' local_branch={} global_branch={}",
+                    current_rule, node_path, local_idx, selected_global
+                ),
+            );
             let alt_path = format!("{}/o{}", node_path, selected_global);
             match self.generate_node(&selected_node, current_rule, depth, call_stack, &alt_path) {
                 Ok(output) => {
@@ -1723,15 +1836,41 @@ impl<'a> StimuliGenerator<'a> {
                         alternatives.len(),
                         selected_global,
                     );
+                    self.trace(
+                        TraceLevel::High,
+                        format_args!(
+                            "Selected OR branch: rule='{}' path='{}' branch={} output_len={}",
+                            current_rule,
+                            node_path,
+                            selected_global,
+                            output.len()
+                        ),
+                    );
                     return Ok(output);
                 }
                 Err(err) => {
+                    self.trace(
+                        TraceLevel::Debug,
+                        format_args!(
+                            "OR branch failed: rule='{}' path='{}' branch={} reason={}",
+                            current_rule, node_path, selected_global, err
+                        ),
+                    );
                     last_error = Some(err);
                 }
             }
         }
 
         if let Some(recovery_sample) = self.recovery_stimulus_fallback(current_rule) {
+            self.trace(
+                TraceLevel::Low,
+                format_args!(
+                    "OR fallback recovery used: rule='{}' path='{}' fallback_len={}",
+                    current_rule,
+                    node_path,
+                    recovery_sample.len()
+                ),
+            );
             return Ok(recovery_sample);
         }
 
@@ -1882,6 +2021,13 @@ impl<'a> StimuliGenerator<'a> {
                 let Some((token_type, token_value)) = Self::extract_token_pair(parts) else {
                     return Ok(String::new());
                 };
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Atom dispatch: rule='{}' depth={} path='{}' token_type='{}' token='{}'",
+                        current_rule, depth, node_path, token_type, token_value
+                    ),
+                );
 
                 match token_type {
                     "quoted_string" => Ok(token_value.to_string()),
@@ -1927,6 +2073,18 @@ impl<'a> StimuliGenerator<'a> {
             }
             candidates
         };
+        self.trace(
+            TraceLevel::High,
+            format_args!(
+                "Quantifier decision: rule='{}' path='{}' quantifier='{}' min={} max={} candidates={:?}",
+                current_rule,
+                node_path,
+                quantifier,
+                min_repeat,
+                bounded_max,
+                repeat_candidates
+            ),
+        );
 
         let quantified_path = format!("{}/q", node_path);
         let mut last_error: Option<anyhow::Error> = None;
@@ -1951,6 +2109,16 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
             if !failed {
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Quantifier success: rule='{}' path='{}' repeats={} output_len={}",
+                        current_rule,
+                        node_path,
+                        repeats,
+                        output.len()
+                    ),
+                );
                 return Ok(output);
             }
         }
@@ -2333,9 +2501,23 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn generate_regex_sample(&mut self, pattern: &str, current_rule: &str) -> String {
+        self.trace(
+            TraceLevel::High,
+            format_args!(
+                "Regex sample generation: rule='{}' pattern='{}'",
+                current_rule, pattern
+            ),
+        );
         let constraints = self.rule_value_constraints(current_rule);
         if let Some(semantic_hint) = self.semantic_hint_for_rule(current_rule) {
             if self.value_satisfies_constraints(&semantic_hint, &constraints) {
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Regex generation chose semantic hint for rule='{}': '{}'",
+                        current_rule, semantic_hint
+                    ),
+                );
                 return semantic_hint;
             }
         }
@@ -2360,11 +2542,25 @@ impl<'a> StimuliGenerator<'a> {
                 } else {
                     self.rng.gen_range(0..valid_enum_values.len())
                 };
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Regex generation chose enum candidate for rule='{}': '{}'",
+                        current_rule, valid_enum_values[idx]
+                    ),
+                );
                 return valid_enum_values[idx].to_string();
             }
         }
 
         if let Some(candidate) = self.constraint_driven_candidate(trimmed, &constraints) {
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "Regex generation chose constraint-driven candidate for rule='{}': '{}'",
+                    current_rule, candidate
+                ),
+            );
             return candidate;
         }
 
@@ -2374,23 +2570,53 @@ impl<'a> StimuliGenerator<'a> {
         };
 
         if constraints.is_empty() {
-            return sample_once(self);
+            let candidate = sample_once(self);
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "Regex generation (unconstrained) candidate for rule='{}': '{}'",
+                    current_rule, candidate
+                ),
+            );
+            return candidate;
         }
 
         for _ in 0..64 {
             let candidate = sample_once(self);
             if self.value_satisfies_constraints(&candidate, &constraints) {
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Regex generation accepted constrained candidate for rule='{}': '{}'",
+                        current_rule, candidate
+                    ),
+                );
                 return candidate;
             }
         }
 
         if let Some(fallback) = constraints.enum_values.first() {
             if Self::regex_matches_entire(trimmed, fallback) {
+                self.trace(
+                    TraceLevel::Low,
+                    format_args!(
+                        "Regex generation using enum fallback for rule='{}': '{}'",
+                        current_rule, fallback
+                    ),
+                );
                 return fallback.clone();
             }
         }
 
-        sample_once(self)
+        let fallback = sample_once(self);
+        self.trace(
+            TraceLevel::Low,
+            format_args!(
+                "Regex generation using final fallback for rule='{}': '{}'",
+                current_rule, fallback
+            ),
+        );
+        fallback
     }
 
     fn regex_matches_entire(pattern: &str, candidate: &str) -> bool {
@@ -4220,6 +4446,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                trace_verbosity: TraceVerbosity::None,
             },
         )
     }
@@ -4241,6 +4468,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                trace_verbosity: TraceVerbosity::None,
             },
         )
     }
@@ -4263,6 +4491,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode,
+                trace_verbosity: TraceVerbosity::None,
             },
         )
     }
@@ -4579,6 +4808,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 2,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                trace_verbosity: TraceVerbosity::None,
             },
         );
 

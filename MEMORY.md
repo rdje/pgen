@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: clean at last update.
+- Worktree: dirty (pending tracing infrastructure/doc updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -190,6 +190,21 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: First-class tracing + `trace.log` routing baseline
+- Root cause:
+  - tracing behavior was fragmented across ad-hoc debug prints and local logger paths,
+  - no single verbosity model or sink abstraction existed for predictable redirection.
+- Fix:
+  - added unified `TraceVerbosity`/`TraceLevel` + global sink control in `rust/src/ast_pipeline/mod.rs`,
+  - wired runtime parser/stimuli/pipeline logging to trace-aware paths,
+  - added CLI controls:
+    - `--verbosity <none|low|medium|high|debug>`
+    - `--trace-log-file [PATH]` with default `trace.log` when value omitted.
+- Validation:
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers,ebnf_dual_run --bins -q`
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- ../generated/json.json --generate-stimuli --count 1 --verbosity debug --trace-log-file --output /tmp/pgen_stimuli_2.txt`
+  - verified trace lines are written to `rust/trace.log` and not emitted as `[PGEN]` lines on stdout.
 
 ### 2026-02-26: EBNF parseability promotion in non-annotation loop
 - Root cause:

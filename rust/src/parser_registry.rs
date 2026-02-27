@@ -2,13 +2,12 @@
 //!
 //! This centralizes grammar-name dispatch so new generated grammars are added in one place.
 
-use crate::NoOpLogger;
-use crate::ast_pipeline::UnifiedSemanticAST;
+use crate::ast_pipeline::{UnifiedSemanticAST, runtime_logger, runtime_logger_box};
+#[cfg(feature = "ebnf_dual_run")]
+use crate::ebnf_generated_parser::EbnfParser;
 use crate::generated_parsers::{
     return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser,
 };
-#[cfg(feature = "ebnf_dual_run")]
-use crate::ebnf_generated_parser::EbnfParser;
 
 type ParseSampleFn = fn(&str) -> bool;
 
@@ -25,12 +24,14 @@ impl GeneratedParserRegistryEntry {
 }
 
 fn parse_with_return_annotation(sample: &str) -> bool {
-    let mut parser = Return_annotationParser::new(sample, Box::new(NoOpLogger));
+    let mut parser =
+        Return_annotationParser::new(sample, runtime_logger_box("generated.return_annotation"));
     parser.parse_full_return_annotation().is_ok()
 }
 
 fn parse_with_semantic_annotation(sample: &str) -> bool {
-    let mut parser = Semantic_annotationParser::new(sample, Box::new(NoOpLogger));
+    let mut parser =
+        Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
     parser.parse_full_semantic_annotation().is_ok()
 }
 
@@ -43,13 +44,13 @@ fn parse_with_builtin_semantic_annotation(sample: &str) -> bool {
     // Built-in semantic parser behavior is intentionally permissive and marker-based.
     // Parseability for builtin_semantic_annotation must follow this bootstrap contract,
     // not the stricter full semantic_annotation grammar.
-    let logger = NoOpLogger;
+    let logger = runtime_logger("bootstrap.semantic_annotation");
     UnifiedSemanticAST::parse_bootstrap(sample, &logger).is_ok()
 }
 
 #[cfg(feature = "ebnf_dual_run")]
 fn parse_with_ebnf(sample: &str) -> bool {
-    let mut parser = EbnfParser::new(sample, Box::new(NoOpLogger));
+    let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
     parser.parse_full_grammar_file().is_ok()
 }
 

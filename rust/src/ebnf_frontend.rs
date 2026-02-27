@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 use std::fs;
 use std::path::Path;
 
-use crate::NoOpLogger;
+use crate::ast_pipeline::runtime_logger_box;
 use crate::ast_pipeline::{ParseContent, ParseNode};
 use crate::ebnf_generated_parser::EbnfParser;
 
@@ -26,7 +26,7 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     grammar_name: &str,
     source_file: Option<&str>,
 ) -> Result<Value> {
-    let mut parser = EbnfParser::new(input, Box::new(NoOpLogger));
+    let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
     let root = parser
         .parse_full_grammar_file()
         .map_err(|err| anyhow!("Rust EBNF parser failed: {}", err))?;

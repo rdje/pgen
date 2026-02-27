@@ -157,6 +157,46 @@ High-value stimuli flags:
 - `--coverage-guided-fuzz-seed-start`
 - `--coverage-guided-fuzz-replay-output`
 
+### Tracing and Verbosity
+Tracing in the Rust pipeline uses a single verbosity contract:
+- `none`
+- `low`
+- `medium`
+- `high`
+- `debug`
+
+CLI controls:
+- `--verbosity <level>` controls how much trace is emitted.
+- `--trace-log-file [PATH]` routes trace output to a file.
+
+`--trace-log-file` behavior:
+- `--trace-log-file` (no value) => writes trace to `trace.log`
+- `--trace-log-file custom.log` => writes trace to `custom.log`
+- when file routing is enabled, trace lines are written to the file instead of stdout.
+
+Environment controls:
+- `PGEN_TRACE_VERBOSITY` (fallback: `PGEN_VERBOSITY`)
+- `PGEN_TRACE_LOG_FILE`
+
+Examples:
+```bash
+# Debug trace to default trace.log
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/json.json \
+  --generate-stimuli \
+  --count 8 \
+  --verbosity debug \
+  --trace-log-file
+
+# Medium trace to explicit file path
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/json.json \
+  --generate-parser \
+  --output generated/json_parser.rs \
+  --verbosity medium \
+  --trace-log-file /tmp/pgen_trace.log
+```
+
 Important:
 - Parseability validation currently supports generated parser checks for:
   - `ebnf` (requires `generated/ebnf.rs` and building with `--features "generated_parsers ebnf_dual_run"`)

@@ -29,7 +29,7 @@ impl AstGeneratorIntegration {
     /// Generate parser from transformed AST using AST-based generator
     pub fn generate_parser(&self, transformed_ast: &TransformedASTJson) -> Result<String> {
         if self.debug {
-            eprintln!(
+            crate::pgen_trace_high!(
                 "[ast_generator] Generating parser '{}' with {} rules",
                 transformed_ast.grammar_name,
                 transformed_ast.grammar_tree.len()
@@ -70,7 +70,7 @@ pub fn generate_parser_ast_based(
         let validation_report = validator.validate_annotations_with_grammar(annotations, grammar);
 
         for diagnostic in &validation_report.diagnostics {
-            eprintln!(
+            crate::pgen_trace_low!(
                 "[annotation-validator][{}][{}][{}][rule='{}'][annotation={}] {}",
                 diagnostic.severity.as_str(),
                 diagnostic.code,
@@ -84,7 +84,7 @@ pub fn generate_parser_ast_based(
             );
 
             if let Some(annotation_text) = &diagnostic.annotation {
-                eprintln!("  -> {}", annotation_text);
+                crate::pgen_trace_low!("  -> {}", annotation_text);
             }
         }
 
@@ -105,9 +105,10 @@ pub fn generate_parser_ast_based(
                 .iter()
                 .filter(|d| d.severity == AnnotationSeverity::Warning)
                 .count();
-            eprintln!(
+            crate::pgen_trace_medium!(
                 "[annotation-validator] Completed with {} error(s), {} warning(s).",
-                error_count, warning_count
+                error_count,
+                warning_count
             );
         }
 

@@ -8,14 +8,15 @@ pub mod ast_pipeline {
     pub use pgen::ast_pipeline::*;
 }
 
-pub use pgen::NoOpLogger;
-
 #[allow(dead_code)]
 mod generated_ebnf {
     include!("../../../generated/ebnf.rs");
 }
 
 use ast_pipeline::{ParseContent, ParseError};
+use ast_pipeline::{
+    configure_trace_output, resolve_trace_verbosity, runtime_logger_box, set_global_trace_verbosity,
+};
 use generated_ebnf::EbnfParser;
 
 #[derive(Parser, Debug)]
@@ -31,6 +32,14 @@ struct Args {
     /// Output JSON report path
     #[arg(long)]
     output: PathBuf,
+
+    /// Trace verbosity: none, low, medium, high, debug
+    #[arg(long, value_parser = ["none", "low", "medium", "high", "debug"])]
+    verbosity: Option<String>,
+
+    /// Route trace output to a file (defaults to trace.log when flag is provided without a value)
+    #[arg(long, num_args = 0..=1, default_missing_value = "trace.log")]
+    trace_log_file: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -140,7 +149,7 @@ fn snippet_at(input: &str, position: usize, radius: usize) -> String {
 }
 
 fn attempt_parse(input: &str, full: bool) -> ParseAttempt {
-    let mut parser = EbnfParser::new(input, Box::new(NoOpLogger));
+    let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_dual_run_diff"));
     let result = if full {
         parser.parse_full_grammar_file()
     } else {
@@ -178,6 +187,14 @@ fn attempt_parse(input: &str, full: bool) -> ParseAttempt {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    let trace_log_path = args
+        .trace_log_file
+        .clone()
+        .or_else(|| std::env::var("PGEN_TRACE_LOG_FILE").ok());
+    configure_trace_output(trace_log_path.as_deref())?;
+    let trace_verbosity = resolve_trace_verbosity(args.verbosity.as_deref(), false, false)?;
+    set_global_trace_verbosity(trace_verbosity);
+
     let input = fs::read_to_string(&args.input)
         .with_context(|| format!("failed to read input file '{}'", args.input.display()))?;
 
