@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-02-27 - Added Initial `systemverilog.ebnf` from IEEE 1800-2017 Docs
+### ✅ Achievement Summary
+Added an initial executable SystemVerilog grammar (`grammars/systemverilog.ebnf`) seeded from IEEE 1800-2017 markdown syntax sections and wired it into the existing HDL readiness flow.
+
+### Scope of Changes
+- New grammar:
+  - `grammars/systemverilog.ebnf`
+- Source basis used for initial rule coverage:
+  - `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-5-Lexical-conventions.md`
+  - `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-23-Modules-and-hierarchy.md`
+  - `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-24-Programs.md`
+  - `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-25-Interfaces.md`
+  - `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-26-Packages.md`
+  - `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-27-Generate-constructs.md`
+- Initial grammar coverage includes:
+  - top-level descriptions (`module/interface/program/package/class`),
+  - module/interface/program headers (seed ANSI/non-ANSI compatible form),
+  - package import/export and timeunits declarations,
+  - module/interface/program/package/class item scaffolding,
+  - module/interface/program instantiation skeletons,
+  - generate constructs (`if`/`for`/`generate` blocks),
+  - core declarations, statements, expressions, and lexical/trivia layer (whitespace + comments).
+- HDL readiness impact:
+  - `make -C rust hdl_frontend_readiness` now reports:
+    - `systemverilog`: `pass`
+    - `vhdl`: `not_ready` (still missing `grammars/vhdl.ebnf`)
+
+### Validation Results
+- `tools/ebnf_to_json.pl --pretty --quiet grammars/systemverilog.ebnf -o /tmp/systemverilog.json` ✅
+- `cargo run --bin ast_pipeline -- /tmp/systemverilog.json --generate-parser --output /tmp/systemverilog_parser.rs --eliminate-left-recursion` ✅
+- `cargo run --bin ast_pipeline -- /tmp/systemverilog.json --generate-stimuli --count 4 --seed 2026 --output /tmp/systemverilog_stimuli.txt` ✅
+- `make -C rust SHELL=/bin/bash hdl_frontend_readiness` ✅
+
 ## 2026-02-27 - Pillar 5 Kickoff: HDL Frontend Readiness Gate Skeleton
 ### ✅ Achievement Summary
 Started Industrial Frontend Support (SV/VHDL readiness) with an executable readiness gate skeleton that tracks `systemverilog` and `vhdl` grammar flow status and supports report vs strict enforcement modes.

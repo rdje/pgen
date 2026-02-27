@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending Pillar-5 HDL readiness kickoff updates; run `git status -sb`).
+- Worktree: dirty (pending initial SystemVerilog grammar + docs updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -193,6 +193,21 @@ Use this file to resume work without replaying full chat history.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
 
+### 2026-02-27: Added initial `systemverilog.ebnf` seed grammar from IEEE markdown
+- Root cause:
+  - HDL readiness gate had executable skeleton but no HDL grammar file, so both tracked rows were `not_ready`.
+- Fix:
+  - added `grammars/systemverilog.ebnf` seeded from IEEE 1800 markdown syntax sections (5/23/24/25/26/27),
+  - implemented pragmatic initial coverage for top-level design units, declarations/items, expressions/statements, instantiation, and generate constructs,
+  - validated through full non-bootstrap frontend pipeline (`EBNF -> JSON -> parser -> stimuli`).
+- Validation:
+  - `tools/ebnf_to_json.pl --pretty --quiet grammars/systemverilog.ebnf -o /tmp/systemverilog.json`
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- /tmp/systemverilog.json --generate-parser --output /tmp/systemverilog_parser.rs --eliminate-left-recursion`
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- /tmp/systemverilog.json --generate-stimuli --count 4 --seed 2026 --output /tmp/systemverilog_stimuli.txt`
+  - `make -C rust SHELL=/bin/bash hdl_frontend_readiness` now shows:
+    - `systemverilog`: `pass`
+    - `vhdl`: `not_ready` (pending `grammars/vhdl.ebnf`).
+
 ### 2026-02-27: Pillar 5 kickoff (HDL frontend readiness gate skeleton)
 - Root cause:
   - roadmap pillar 5 had no executable gate surface and no machine-readable readiness state.
@@ -252,10 +267,9 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Add first seed HDL grammars:
-   - `grammars/systemverilog.ebnf`
+1. Add first VHDL seed grammar:
    - `grammars/vhdl.ebnf`
-   - drive `make -C rust hdl_frontend_gate` to green.
+   - drive `make -C rust hdl_frontend_gate` to green for both tracked HDL grammars.
 2. Decide SOTA aggregate integration path for HDL readiness:
    - informational first in `sota_exit_gate`, then required strict when seed grammars stabilize.
 3. Continue Rust-native EBNF migration hardening:
@@ -267,7 +281,7 @@ Use this file to resume work without replaying full chat history.
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
-- Pillar 5 is now started, but seed HDL grammars (`systemverilog.ebnf`, `vhdl.ebnf`) are not yet present, so strict HDL readiness is expected to fail.
+- Pillar 5 is now started and `systemverilog.ebnf` is present/flowing; `vhdl.ebnf` is still missing, so strict HDL readiness is expected to fail.
 
 ## Quick Commands
 - HDL frontend readiness (report):

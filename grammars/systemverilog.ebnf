@@ -1,0 +1,801 @@
+# systemverilog.ebnf
+#
+# Initial SystemVerilog seed grammar derived from IEEE 1800-2017 markdown
+# sections (notably 5, 23, 24, 25, 26, 27).
+#
+# Scope of this initial version:
+# - Top-level design units: module/interface/program/package/class
+# - Module/interface/program headers (ANSI/non-ANSI compatible seed form)
+# - Package import declarations
+# - Core declarations/items and selected procedural statements
+# - Module/interface instantiation and generate constructs
+#
+# This is intentionally a pragmatic seed grammar for progressive refinement.
+
+systemverilog_file := source_item*
+
+source_item := description
+             | package_import_declaration
+             | timeunits_declaration
+             | compiler_directive
+             | semi
+
+description := module_declaration
+             | interface_declaration
+             | program_declaration
+             | package_declaration
+             | class_declaration
+
+# ---------------------------------------------------------------------------
+# Module / Interface / Program / Package / Class declarations
+# ---------------------------------------------------------------------------
+
+module_declaration := attribute_instance* module_keyword lifetime? identifier parameter_port_list? module_header_ports semi module_item* kw_endmodule module_label?
+
+module_keyword := kw_module
+                | kw_macromodule
+
+module_header_ports := lparen (dot_star | list_of_port_declarations | list_of_ports)? rparen
+module_label := colon identifier
+
+interface_declaration := attribute_instance* kw_interface lifetime? identifier parameter_port_list? module_header_ports semi interface_item* kw_endinterface module_label?
+
+program_declaration := attribute_instance* kw_program lifetime? identifier parameter_port_list? module_header_ports semi program_item* kw_endprogram module_label?
+
+package_declaration := attribute_instance* kw_package lifetime? identifier semi package_item* kw_endpackage package_label?
+package_label := colon identifier
+
+class_declaration := attribute_instance* kw_class lifetime? identifier class_extension? semi class_item* kw_endclass class_label?
+class_extension := kw_extends class_type
+class_label := colon identifier
+
+# ---------------------------------------------------------------------------
+# Items
+# ---------------------------------------------------------------------------
+
+module_item := port_declaration semi
+             | non_port_module_item
+
+non_port_module_item := generate_region
+                      | module_or_generate_item
+                      | module_declaration
+                      | interface_declaration
+                      | program_declaration
+                      | timeunits_declaration
+                      | bind_directive
+
+interface_item := port_declaration semi
+                | non_port_interface_item
+
+non_port_interface_item := generate_region
+                         | interface_or_generate_item
+                         | program_declaration
+                         | interface_declaration
+                         | modport_declaration
+                         | timeunits_declaration
+
+program_item := port_declaration semi
+              | non_port_program_item
+
+non_port_program_item := continuous_assign
+                       | module_or_generate_item_declaration
+                       | initial_construct
+                       | final_construct
+                       | timeunits_declaration
+                       | program_generate_item
+                       | semi
+
+program_generate_item := loop_generate_construct
+                       | conditional_generate_construct
+                       | generate_region
+
+package_item := package_or_generate_item_declaration
+              | anonymous_program
+              | package_export_declaration
+              | timeunits_declaration
+
+anonymous_program := kw_program semi anonymous_program_item* kw_endprogram
+anonymous_program_item := task_declaration
+                        | function_declaration
+                        | class_declaration
+                        | covergroup_declaration
+                        | class_constructor_declaration
+                        | semi
+
+module_or_generate_item := module_or_generate_item_declaration
+                         | module_instantiation
+                         | interface_instantiation
+                         | program_instantiation
+                         | continuous_assign
+                         | initial_construct
+                         | final_construct
+                         | always_construct
+                         | loop_generate_construct
+                         | conditional_generate_construct
+                         | semi
+
+interface_or_generate_item := module_or_generate_item_declaration
+                            | continuous_assign
+                            | initial_construct
+                            | final_construct
+                            | always_construct
+                            | loop_generate_construct
+                            | conditional_generate_construct
+                            | module_instantiation
+                            | interface_instantiation
+                            | program_instantiation
+                            | semi
+
+module_or_generate_item_declaration := package_import_declaration
+                                     | parameter_declaration
+                                     | local_parameter_declaration
+                                     | net_declaration
+                                     | data_declaration
+                                     | task_declaration
+                                     | function_declaration
+                                     | class_declaration
+                                     | checker_declaration
+                                     | covergroup_declaration
+                                     | class_constructor_declaration
+                                     | semi
+
+package_or_generate_item_declaration := net_declaration
+                                      | data_declaration
+                                      | task_declaration
+                                      | function_declaration
+                                      | checker_declaration
+                                      | dpi_import_export
+                                      | extern_constraint_declaration
+                                      | class_declaration
+                                      | class_constructor_declaration
+                                      | local_parameter_declaration
+                                      | parameter_declaration
+                                      | covergroup_declaration
+                                      | assertion_item_declaration
+                                      | package_import_declaration
+                                      | semi
+
+# ---------------------------------------------------------------------------
+# Ports and parameters
+# ---------------------------------------------------------------------------
+
+parameter_port_list := hash lparen parameter_port_declaration (comma parameter_port_declaration)* rparen
+                     | hash lparen rparen
+
+parameter_port_declaration := parameter_declaration
+                            | local_parameter_declaration
+                            | data_type list_of_param_assignments semi
+                            | kw_type list_of_type_assignments semi
+
+parameter_declaration := kw_parameter data_type? list_of_param_assignments semi
+local_parameter_declaration := kw_localparam data_type? list_of_param_assignments semi
+
+list_of_param_assignments := param_assignment (comma param_assignment)*
+param_assignment := identifier (assign expression)?
+
+list_of_type_assignments := type_assignment (comma type_assignment)*
+type_assignment := identifier assign data_type
+
+list_of_ports := port (comma port)*
+port := port_expression?
+port_expression := port_reference
+                | lbrace port_reference (comma port_reference)* rbrace
+port_reference := identifier (lbrack constant_expression rbrack)?
+
+list_of_port_declarations := ansi_port_declaration (comma ansi_port_declaration)*
+ansi_port_declaration := package_import_declaration
+                       | port_direction data_type_or_implicit? port_identifier (assign expression)?
+
+port_declaration := port_direction data_type_or_implicit list_of_port_identifiers
+
+list_of_port_identifiers := port_identifier (comma port_identifier)*
+port_identifier := identifier unpacked_dimension*
+
+port_direction := kw_input
+                | kw_output
+                | kw_inout
+                | kw_ref
+
+data_type_or_implicit := data_type
+                       | kw_var data_type?
+                       | implicit_data_type
+
+implicit_data_type := signing? packed_dimension*
+
+# ---------------------------------------------------------------------------
+# Instantiation
+# ---------------------------------------------------------------------------
+
+module_instantiation := module_identifier parameter_value_assignment? hierarchical_instance (comma hierarchical_instance)* semi
+interface_instantiation := interface_identifier parameter_value_assignment? hierarchical_instance (comma hierarchical_instance)* semi
+program_instantiation := program_identifier parameter_value_assignment? hierarchical_instance (comma hierarchical_instance)* semi
+
+parameter_value_assignment := hash lparen list_of_parameter_assignments? rparen
+
+list_of_parameter_assignments := ordered_parameter_assignment (comma ordered_parameter_assignment)*
+                              | named_parameter_assignment (comma named_parameter_assignment)*
+
+ordered_parameter_assignment := param_expression
+named_parameter_assignment := dot parameter_identifier lparen param_expression? rparen
+
+hierarchical_instance := name_of_instance lparen list_of_port_connections? rparen
+name_of_instance := instance_identifier unpacked_dimension*
+
+list_of_port_connections := ordered_port_connection (comma ordered_port_connection)*
+                          | named_port_connection (comma named_port_connection)*
+
+ordered_port_connection := expression?
+named_port_connection := dot port_identifier (lparen expression? rparen)?
+                       | dot_star
+
+bind_directive := kw_bind bind_target_scope (colon bind_target_instance_list)? bind_instantiation semi
+                | kw_bind bind_target_instance bind_instantiation semi
+
+bind_target_scope := module_identifier
+                   | interface_identifier
+
+bind_target_instance := hierarchical_identifier constant_bit_select?
+bind_target_instance_list := bind_target_instance (comma bind_target_instance)*
+
+bind_instantiation := program_instantiation
+                    | module_instantiation
+                    | interface_instantiation
+                    | checker_instantiation
+
+# ---------------------------------------------------------------------------
+# Generate
+# ---------------------------------------------------------------------------
+
+generate_region := kw_generate generate_item* kw_endgenerate
+
+generate_item := module_or_generate_item
+               | interface_or_generate_item
+               | conditional_generate_construct
+               | loop_generate_construct
+               | semi
+
+conditional_generate_construct := kw_if lparen constant_expression rparen generate_block (kw_else generate_block)?
+
+loop_generate_construct := kw_for lparen genvar_initialization semi genvar_expression semi genvar_iteration rparen generate_block
+
+genvar_initialization := kw_genvar? identifier assign constant_expression
+genvar_expression := constant_expression
+genvar_iteration := identifier assign expression
+                  | identifier plus_plus
+                  | identifier minus_minus
+
+generate_block := begin_end_block
+                | generate_item
+
+# ---------------------------------------------------------------------------
+# Declarations
+# ---------------------------------------------------------------------------
+
+package_import_declaration := kw_import package_import_item (comma package_import_item)* semi
+package_import_item := package_identifier scope_resolution identifier
+                     | package_identifier scope_resolution star
+
+package_export_declaration := kw_export star scope_resolution star semi
+                            | kw_export package_import_item (comma package_import_item)* semi
+
+timeunits_declaration := kw_timeunit time_literal (slash time_literal)? semi
+                       | kw_timeprecision time_literal semi
+                       | kw_timeunit time_literal semi kw_timeprecision time_literal semi
+                       | kw_timeprecision time_literal semi kw_timeunit time_literal semi
+
+net_declaration := net_type data_type_or_implicit? list_of_net_decl_assignments semi
+net_type := kw_wire
+          | kw_tri
+          | kw_logic
+          | kw_reg
+
+list_of_net_decl_assignments := net_decl_assignment (comma net_decl_assignment)*
+net_decl_assignment := identifier unpacked_dimension* (assign expression)?
+
+data_declaration := (kw_const | kw_var)? lifetime? data_type list_of_variable_decl_assignments semi
+
+list_of_variable_decl_assignments := variable_decl_assignment (comma variable_decl_assignment)*
+variable_decl_assignment := identifier variable_dimension* (assign expression)?
+variable_dimension := packed_dimension
+                    | unpacked_dimension
+
+task_declaration := kw_task lifetime? task_identifier tf_port_list? semi block_item_declaration* statement_or_null* kw_endtask task_label?
+task_label := colon task_identifier
+
+function_declaration := kw_function lifetime? function_data_type_or_implicit function_identifier tf_port_list? semi block_item_declaration* statement_or_null* kw_endfunction function_label?
+function_label := colon function_identifier
+
+function_data_type_or_implicit := data_type
+                                | kw_void
+                                | implicit_data_type
+
+tf_port_list := lparen tf_port_item (comma tf_port_item)* rparen
+tf_port_item := port_direction? data_type_or_implicit? identifier unpacked_dimension* (assign expression)?
+
+class_constructor_declaration := kw_function kw_new tf_port_list? semi block_item_declaration* statement_or_null* kw_endfunction function_label?
+
+checker_declaration := kw_checker identifier tf_port_list? semi checker_item* kw_endchecker checker_label?
+checker_label := colon identifier
+checker_item := block_item_declaration
+              | statement_or_null
+
+covergroup_declaration := kw_covergroup identifier tf_port_list? semi covergroup_item* kw_endgroup group_label?
+group_label := colon identifier
+covergroup_item := block_item_declaration
+                 | statement_or_null
+
+dpi_import_export := kw_import string_literal identifier semi
+                   | kw_export string_literal identifier semi
+
+extern_constraint_declaration := kw_extern kw_constraint identifier constraint_block
+constraint_block := lbrace constraint_expression_list? rbrace
+constraint_expression_list := expression (semi expression)* semi?
+
+assertion_item_declaration := assertion_item
+assertion_item := kw_assert lparen expression rparen semi
+
+# ---------------------------------------------------------------------------
+# Procedural constructs
+# ---------------------------------------------------------------------------
+
+continuous_assign := kw_assign list_of_net_assignments semi
+list_of_net_assignments := net_assignment (comma net_assignment)*
+net_assignment := net_lvalue assign expression
+net_lvalue := variable_lvalue
+
+initial_construct := kw_initial statement_or_null
+final_construct := kw_final statement_or_null
+always_construct := kw_always statement_or_null
+                 | kw_always_comb statement_or_null
+                 | kw_always_ff statement_or_null
+                 | kw_always_latch statement_or_null
+
+statement_or_null := statement
+                   | semi
+
+statement := begin_end_block
+           | if_statement
+           | case_statement
+           | loop_statement
+           | procedural_timing_statement
+           | jump_statement
+           | nonblocking_assignment semi
+           | blocking_assignment semi
+           | subroutine_call_statement semi
+           | continuous_assign
+           | semi
+
+begin_end_block := kw_begin block_label? block_item_declaration* statement_or_null* kw_end block_label?
+block_label := colon identifier
+
+if_statement := kw_if lparen expression rparen statement_or_null (kw_else statement_or_null)?
+
+case_statement := case_keyword lparen expression rparen case_item* kw_endcase
+case_keyword := kw_case
+              | kw_casez
+              | kw_casex
+
+case_item := case_item_expression_list colon statement_or_null
+           | kw_default colon? statement_or_null
+
+case_item_expression_list := expression (comma expression)*
+
+loop_statement := kw_forever statement_or_null
+                | kw_repeat lparen expression rparen statement_or_null
+                | kw_while lparen expression rparen statement_or_null
+                | kw_for lparen for_initialization? semi expression? semi for_step? rparen statement_or_null
+
+for_initialization := for_variable_declaration
+                    | for_step_assignment (comma for_step_assignment)*
+
+for_variable_declaration := data_type? for_step_assignment (comma for_step_assignment)*
+for_step := for_step_assignment (comma for_step_assignment)*
+for_step_assignment := variable_lvalue assign expression
+                     | variable_lvalue assignment_operator expression
+                     | variable_lvalue plus_plus
+                     | variable_lvalue minus_minus
+
+procedural_timing_statement := timing_control statement_or_null
+timing_control := delay_control
+                | event_control
+
+delay_control := hash unsigned_number
+               | hash lparen expression rparen
+               | hash hierarchical_identifier
+
+event_control := at_sign identifier
+               | at_sign lparen event_expression rparen
+
+event_expression := expression ((kw_or | comma) expression)*
+
+jump_statement := kw_return expression? semi
+                | kw_break semi
+                | kw_continue semi
+
+blocking_assignment := variable_lvalue assignment_operator expression
+nonblocking_assignment := variable_lvalue lte delay_or_event_control? expression
+
+delay_or_event_control := delay_control
+                        | event_control
+
+assignment_operator := assign
+                     | plus_assign
+                     | minus_assign
+                     | star_assign
+                     | slash_assign
+                     | percent_assign
+                     | and_assign
+                     | or_assign
+                     | xor_assign
+                     | shift_left_assign
+                     | shift_right_assign
+                     | arithmetic_shift_left_assign
+                     | arithmetic_shift_right_assign
+
+subroutine_call_statement := subroutine_call
+subroutine_call := system_tf_call
+                 | function_subroutine_call
+                 | method_call
+
+function_subroutine_call := hierarchical_identifier lparen list_of_arguments? rparen
+method_call := primary dot identifier lparen list_of_arguments? rparen
+
+system_tf_call := system_tf_identifier lparen list_of_arguments? rparen
+                | system_tf_identifier
+
+list_of_arguments := expression (comma expression)*
+
+# ---------------------------------------------------------------------------
+# Expressions
+# ---------------------------------------------------------------------------
+
+expression := conditional_expression
+constant_expression := expression
+param_expression := expression
+
+conditional_expression := binary_expression (question expression colon expression)?
+
+binary_expression := unary_expression (binary_operator unary_expression)*
+
+binary_operator := logical_or
+                 | logical_and
+                 | case_equal
+                 | case_not_equal
+                 | equal
+                 | not_equal
+                 | less_equal
+                 | greater_equal
+                 | less_than
+                 | greater_than
+                 | arithmetic_shift_left
+                 | arithmetic_shift_right
+                 | shift_left
+                 | shift_right
+                 | plus
+                 | minus
+                 | star
+                 | slash
+                 | percent
+                 | bitwise_or
+                 | bitwise_xor
+                 | bitwise_and
+                 | power
+
+unary_expression := unary_operator unary_expression
+                  | primary
+
+unary_operator := plus
+                | minus
+                | bang
+                | tilde
+                | bitwise_and
+                | bitwise_or
+                | bitwise_xor
+                | reduction_nand
+                | reduction_nor
+                | reduction_xnor
+
+primary := number
+         | string_literal
+         | unbased_unsized_literal
+         | time_literal
+         | hierarchical_identifier
+         | concatenation
+         | multiple_concatenation
+         | system_tf_call
+         | kw_null
+         | kw_this
+         | lparen expression rparen
+
+concatenation := lbrace expression (comma expression)* rbrace
+multiple_concatenation := lbrace constant_expression concatenation rbrace
+
+variable_lvalue := hierarchical_identifier
+                 | concatenation
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+data_type := integer_vector_type signing? packed_dimension*
+           | integer_atom_type signing?
+           | non_integer_type
+           | struct_union_type packed_dimension*
+           | enum_data_type
+           | class_type
+           | kw_string
+           | kw_chandle
+           | kw_event
+           | kw_type lparen expression rparen
+
+integer_vector_type := kw_bit
+                     | kw_logic
+                     | kw_reg
+
+integer_atom_type := kw_byte
+                   | kw_shortint
+                   | kw_int
+                   | kw_longint
+                   | kw_integer
+                   | kw_time
+
+non_integer_type := kw_shortreal
+                  | kw_real
+                  | kw_realtime
+
+signing := kw_signed
+         | kw_unsigned
+
+struct_union_type := (kw_struct | kw_union kw_tagged?) kw_packed? signing? lbrace struct_union_member+ rbrace
+struct_union_member := data_type list_of_variable_identifiers semi
+list_of_variable_identifiers := identifier (comma identifier)*
+
+enum_data_type := kw_enum enum_base_type? lbrace enum_name_declaration (comma enum_name_declaration)* rbrace
+enum_base_type := data_type
+enum_name_declaration := identifier (assign expression)?
+
+class_type := identifier (scope_resolution identifier)* (hash lparen list_of_type_arguments? rparen)?
+list_of_type_arguments := type_or_expr (comma type_or_expr)*
+type_or_expr := data_type
+              | expression
+
+packed_dimension := lbrack constant_range rbrack
+unpacked_dimension := lbrack constant_range rbrack
+                    | lbrack constant_expression rbrack
+                    | lbrack rbrack
+
+constant_range := constant_expression colon constant_expression
+constant_bit_select := lbrack constant_expression rbrack
+
+# ---------------------------------------------------------------------------
+# Hierarchical names
+# ---------------------------------------------------------------------------
+
+hierarchical_identifier := hierarchical_segment (hierarchy_separator hierarchical_segment)*
+hierarchical_segment := root_keyword
+                      | identifier
+
+hierarchy_separator := dot
+                     | scope_resolution
+
+root_keyword := trivia /\$root\b/
+
+# ---------------------------------------------------------------------------
+# Attributes, compiler directives, literals, and identifiers
+# ---------------------------------------------------------------------------
+
+attribute_instance := trivia "(*" attr_spec (comma attr_spec)* "*)"
+attr_spec := identifier (assign constant_expression)?
+
+compiler_directive := trivia /`[^\r\n]*/
+
+identifier := escaped_identifier
+           | simple_identifier
+
+simple_identifier := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
+escaped_identifier := trivia /\\[!-~]+/
+
+module_identifier := identifier
+interface_identifier := identifier
+program_identifier := identifier
+package_identifier := identifier
+instance_identifier := identifier
+parameter_identifier := identifier
+function_identifier := identifier
+task_identifier := identifier
+
+number := real_number
+        | integral_number
+
+integral_number := trivia /[0-9][0-9_]*/
+                 | trivia /[0-9][0-9_]*'[sS]?[dDhHoObB][0-9a-fA-FxXzZ?_]+/
+
+real_number := trivia /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/
+             | trivia /[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)/
+
+unsigned_number := integral_number
+
+time_literal := number time_unit
+time_unit := trivia /(s|ms|us|ns|ps|fs)\b/
+
+unbased_unsized_literal := trivia /'(0|1|x|X|z|Z)/
+
+string_literal := trivia /"([^"\\]|\\.)*"/
+
+lifetime := kw_static
+          | kw_automatic
+
+# ---------------------------------------------------------------------------
+# Tokens and punctuation
+# ---------------------------------------------------------------------------
+
+trivia := (white_space | line_comment | block_comment)*
+white_space := /[ \t\r\n]+/
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*/])*\*+\//
+
+semi := trivia ";"
+comma := trivia ","
+colon := trivia ":"
+dot := trivia "."
+dot_star := trivia ".*"
+question := trivia "?"
+hash := trivia "#"
+at_sign := trivia "@"
+star := trivia "*"
+plus := trivia "+"
+minus := trivia "-"
+slash := trivia "/"
+percent := trivia "%"
+bang := trivia "!"
+tilde := trivia "~"
+assign := trivia "="
+lte := trivia "<="
+plus_assign := trivia "+="
+minus_assign := trivia "-="
+star_assign := trivia "*="
+slash_assign := trivia "/="
+percent_assign := trivia "%="
+and_assign := trivia "&="
+or_assign := trivia "|="
+xor_assign := trivia "^="
+shift_left_assign := trivia "<<="
+shift_right_assign := trivia ">>="
+arithmetic_shift_left_assign := trivia "<<<="
+arithmetic_shift_right_assign := trivia ">>>="
+logical_or := trivia "||"
+logical_and := trivia "&&"
+bitwise_or := trivia "|"
+bitwise_xor := trivia "^"
+bitwise_and := trivia "&"
+reduction_nand := trivia "~&"
+reduction_nor := trivia "~|"
+reduction_xnor := trivia "~^"
+equal := trivia "=="
+not_equal := trivia "!="
+case_equal := trivia "==="
+case_not_equal := trivia "!=="
+less_equal := trivia "<="
+greater_equal := trivia ">="
+less_than := trivia "<"
+greater_than := trivia ">"
+shift_left := trivia "<<"
+shift_right := trivia ">>"
+arithmetic_shift_left := trivia "<<<"
+arithmetic_shift_right := trivia ">>>"
+power := trivia "**"
+plus_plus := trivia "++"
+minus_minus := trivia "--"
+scope_resolution := trivia "::"
+
+lparen := trivia "("
+rparen := trivia ")"
+lbrace := trivia "{"
+rbrace := trivia "}"
+lbrack := trivia "["
+rbrack := trivia "]"
+
+kw_module := trivia /module\b/
+kw_macromodule := trivia /macromodule\b/
+kw_endmodule := trivia /endmodule\b/
+kw_interface := trivia /interface\b/
+kw_endinterface := trivia /endinterface\b/
+kw_program := trivia /program\b/
+kw_endprogram := trivia /endprogram\b/
+kw_package := trivia /package\b/
+kw_endpackage := trivia /endpackage\b/
+kw_class := trivia /class\b/
+kw_endclass := trivia /endclass\b/
+kw_extends := trivia /extends\b/
+
+kw_input := trivia /input\b/
+kw_output := trivia /output\b/
+kw_inout := trivia /inout\b/
+kw_ref := trivia /ref\b/
+
+kw_parameter := trivia /parameter\b/
+kw_localparam := trivia /localparam\b/
+kw_type := trivia /type\b/
+kw_import := trivia /import\b/
+kw_export := trivia /export\b/
+kw_modport := trivia /modport\b/
+kw_clocking := trivia /clocking\b/
+
+kw_wire := trivia /wire\b/
+kw_tri := trivia /tri\b/
+kw_logic := trivia /logic\b/
+kw_reg := trivia /reg\b/
+kw_const := trivia /const\b/
+kw_var := trivia /var\b/
+kw_genvar := trivia /genvar\b/
+
+kw_task := trivia /task\b/
+kw_endtask := trivia /endtask\b/
+kw_function := trivia /function\b/
+kw_endfunction := trivia /endfunction\b/
+kw_void := trivia /void\b/
+kw_new := trivia /new\b/
+kw_checker := trivia /checker\b/
+kw_endchecker := trivia /endchecker\b/
+kw_covergroup := trivia /covergroup\b/
+kw_endgroup := trivia /endgroup\b/
+kw_constraint := trivia /constraint\b/
+kw_extern := trivia /extern\b/
+
+kw_begin := trivia /begin\b/
+kw_end := trivia /end\b/
+kw_if := trivia /if\b/
+kw_else := trivia /else\b/
+kw_case := trivia /case\b/
+kw_casez := trivia /casez\b/
+kw_casex := trivia /casex\b/
+kw_endcase := trivia /endcase\b/
+kw_for := trivia /for\b/
+kw_while := trivia /while\b/
+kw_repeat := trivia /repeat\b/
+kw_forever := trivia /forever\b/
+kw_return := trivia /return\b/
+kw_break := trivia /break\b/
+kw_continue := trivia /continue\b/
+kw_or := trivia /or\b/
+
+kw_generate := trivia /generate\b/
+kw_endgenerate := trivia /endgenerate\b/
+kw_initial := trivia /initial\b/
+kw_final := trivia /final\b/
+kw_always := trivia /always\b/
+kw_always_comb := trivia /always_comb\b/
+kw_always_ff := trivia /always_ff\b/
+kw_always_latch := trivia /always_latch\b/
+kw_assign := trivia /assign\b/
+kw_bind := trivia /bind\b/
+
+kw_static := trivia /static\b/
+kw_automatic := trivia /automatic\b/
+kw_signed := trivia /signed\b/
+kw_unsigned := trivia /unsigned\b/
+kw_struct := trivia /struct\b/
+kw_union := trivia /union\b/
+kw_tagged := trivia /tagged\b/
+kw_packed := trivia /packed\b/
+kw_enum := trivia /enum\b/
+kw_string := trivia /string\b/
+kw_chandle := trivia /chandle\b/
+kw_event := trivia /event\b/
+kw_bit := trivia /bit\b/
+kw_byte := trivia /byte\b/
+kw_shortint := trivia /shortint\b/
+kw_int := trivia /int\b/
+kw_longint := trivia /longint\b/
+kw_integer := trivia /integer\b/
+kw_time := trivia /time\b/
+kw_shortreal := trivia /shortreal\b/
+kw_real := trivia /real\b/
+kw_realtime := trivia /realtime\b/
+kw_null := trivia /null\b/
+kw_this := trivia /this\b/
+kw_timeunit := trivia /timeunit\b/
+kw_timeprecision := trivia /timeprecision\b/
+kw_default := trivia /default\b/
+
+system_tf_identifier := trivia /\$[a-zA-Z0-9_$]+/

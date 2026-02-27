@@ -196,7 +196,8 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add executable HDL frontend readiness report target (`make hdl_frontend_readiness`) with state artifacts under `rust/target/hdl_frontend_gate`.
 - [x] Add strict HDL frontend gate target (`make hdl_frontend_gate`) that fails on missing/failing grammar flows.
 - [x] Define tracked initial grammar roster for readiness (`systemverilog`, `vhdl`) and report missing grammar files explicitly as `not_ready`.
-- [ ] Add first executable seed grammars (`grammars/systemverilog.ebnf`, `grammars/vhdl.ebnf`) and turn strict HDL frontend readiness green.
+- [x] Add first executable SystemVerilog seed grammar (`grammars/systemverilog.ebnf`) from IEEE 1800 markdown syntax sections and drive `systemverilog` HDL readiness row to pass.
+- [ ] Add first executable VHDL seed grammar (`grammars/vhdl.ebnf`) and turn strict HDL frontend readiness green for both tracked HDL grammars.
 - [ ] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
 
 ## Current Sprint: Pillar 1
@@ -216,6 +217,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Added initial `grammars/systemverilog.ebnf` (IEEE 1800 markdown-seeded) and validated end-to-end (`EBNF -> JSON -> parser -> stimuli`), moving HDL readiness report row `systemverilog` from `not_ready` to `pass` while `vhdl` remains pending.
 - 2026-02-27: Started Phase O / Pillar 5 kickoff by adding `hdl_frontend_readiness` + `hdl_frontend_gate` (script: `rust/scripts/hdl_frontend_readiness_gate.sh`) with explicit `systemverilog`/`vhdl` roster, report-mode `not_ready` handling for missing grammars, and strict-mode failure semantics for merge-safe progression.
 - 2026-02-26: Promoted Perl-vs-Rust EBNF dual-run differential from informational/report mode to required strict aggregate SOTA policy check (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`) after strict gate validation passed on tracked grammars (`ebnf/json/regex`).
 - 2026-02-26: Advanced Phase M parseability promotion beyond annotation grammars by adding an `ebnf` generated-parser adapter in `parser_registry`, promoting `ebnf` to required parseability in `ebnf_stimuli_contract.json`, and hardening `ebnf_stimuli_quality_gate` with explicit `generated/ebnf.rs` bootstrap + `ebnf_dual_run` rebuild for executable enforcement.

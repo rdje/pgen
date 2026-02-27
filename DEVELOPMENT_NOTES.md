@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Initial SystemVerilog Grammar (`systemverilog.ebnf`) from IEEE 1800 Markdown
+### Context
+After introducing the HDL frontend readiness gate skeleton (`systemverilog` + `vhdl` roster), strict readiness still failed immediately because no HDL grammar files existed under `grammars/`.
+
+Next actionable step was to create a first executable SystemVerilog seed grammar from the IEEE 1800-2017 markdown corpus, so the HDL loop could move from `not_ready` to `pass` for at least one target language.
+
+### Source Analysis
+Primary reference docs analyzed in:
+- `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-5-Lexical-conventions.md`
+- `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-23-Modules-and-hierarchy.md`
+- `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-24-Programs.md`
+- `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-25-Interfaces.md`
+- `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-26-Packages.md`
+- `/Users/richarddje/Documents/github/nexsim/docs/ieee1800-2017/md/section-27-Generate-constructs.md`
+
+Key extracted Annex-A-aligned syntax anchors used:
+- module declarations/items/instantiation (`Syntax 23-1`, `23-5`, `23-6`)
+- program declarations (`Syntax 24-1`)
+- interface declarations/modports (`Syntax 25-1`)
+- package declarations/imports (`Syntax 26-1`, `26-2`)
+- generate constructs (`Syntax 27-1`)
+- lexical/number/identifier/task-function identifier forms (`Syntax 5-1`, `5-2`)
+
+### Implementation
+Added:
+- `grammars/systemverilog.ebnf`
+
+Design choices for this initial version:
+- pragmatic seed, not full Annex-A closure yet;
+- explicit `trivia` layer (whitespace + comments) to reduce parse failures on realistic formatting;
+- broad top-level support for design units:
+  - `module`, `interface`, `program`, `package`, `class`;
+- included executable skeletons for:
+  - headers/ports/parameters,
+  - declarations/items,
+  - statements and expression baseline,
+  - module/interface/program instantiation,
+  - generate constructs.
+
+Intent:
+- make the HDL readiness gate meaningful now,
+- allow iterative closure toward full SystemVerilog grammar coverage without blocking the whole pipeline on a single giant first drop.
+
+### Validation
+Executed:
+- `tools/ebnf_to_json.pl --pretty --quiet grammars/systemverilog.ebnf -o /tmp/systemverilog.json`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- /tmp/systemverilog.json --generate-parser --output /tmp/systemverilog_parser.rs --eliminate-left-recursion`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- /tmp/systemverilog.json --generate-stimuli --count 4 --seed 2026 --output /tmp/systemverilog_stimuli.txt`
+- `make -C rust SHELL=/bin/bash hdl_frontend_readiness`
+
+Observed:
+- `EBNF -> JSON` pass,
+- parser generation pass,
+- stimuli generation pass,
+- HDL readiness summary now reports:
+  - `systemverilog`: `pass`
+  - `vhdl`: `not_ready` (expected until `grammars/vhdl.ebnf` exists).
+
 ## 2026-02-27 - Pillar 5 Kickoff: HDL Frontend Readiness Gate Skeleton
 ### Context
 Roadmap pillar 5 (Industrial Frontend Support for SystemVerilog/VHDL) was still marked `Not Started` with no executable gate surface.

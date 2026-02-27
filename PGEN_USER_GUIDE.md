@@ -1831,6 +1831,9 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
   - emits `not_ready` rows when grammar files are missing.
 - strict mode (`hdl_frontend_gate`):
   - fails on missing grammar files or failing flow stages.
+- current seed status:
+  - `grammars/systemverilog.ebnf` exists and runs through `EBNF -> JSON -> parser -> stimuli` in report mode.
+  - `grammars/vhdl.ebnf` is still pending, so strict HDL gate is expected to fail until that grammar is added.
 
 EBNF frontend dual-run commands:
 ```bash
