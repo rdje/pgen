@@ -2067,6 +2067,7 @@ Optional SV syntax-closure gate tuning:
   - non-empty preprocessed output,
   - no `error` severity in preprocessor diagnostics.
   - no duplicate named-port bindings in the same statement (`semantic_baseline.require_unique_named_port_bindings`).
+  - optional basic named-port legality check against known in-file module headers (`semantic_baseline.require_port_binding_legality_basic`).
   - optional structural keyword-balance check (`semantic_baseline.require_balanced_structural_keywords`, currently disabled in default contract due high false-positive risk on current random samples).
   - optional declaration-before-use heuristic (`semantic_baseline.require_declared_identifiers_before_use`).
   - optional package qualification/import resolution heuristic (`semantic_baseline.require_package_qualification_resolution`).

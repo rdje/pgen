@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Semantic Closure: Basic Port-Binding Legality Validator (Contract v8)
+### Context
+Phase P semantic closure requires executable legality checks beyond structural checks.
+
+One missing baseline item was basic named-port legality: validating that instance named bindings correspond to known module port declarations.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+#### 1) Added named-port legality checker
+Implemented `check_port_binding_legality_basic(...)`:
+- strips comments,
+- collects in-file module headers and inferred port names,
+- scans named-port instantiations,
+- fails semantic baseline when `.port(...)` references unknown port for known module type.
+
+This is intentionally baseline-level and deterministic; external module declarations remain out of scope for this check.
+
+#### 2) Integrated into shared semantic baseline path
+Checker is called from `evaluate_semantic_baseline(...)` under toggle:
+- `semantic_baseline.require_port_binding_legality_basic`
+
+This keeps semantic runtime and replay/shrinking predicate behavior aligned.
+
+#### 3) Contract update
+`systemverilog_core_v0_contract.json` bumped `v7 -> v8` and now includes:
+- `semantic_baseline.require_port_binding_legality_basic` (default `false`)
+
+Default remains `false` while corpus hardening/false-positive burn-down continues.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- no regression in default gate behavior,
+- contract v8 loads cleanly,
+- semantic closure surface now includes basic port-binding legality control.
+
 ## 2026-02-27 - Phase P Closed-Loop Hardening: Deterministic Failure Replay + Shrinking (Contract v7)
 ### Context
 Phase P requires deterministic replay and shrinking of failing syntax/semantic samples to make debugging and closure work actionable.

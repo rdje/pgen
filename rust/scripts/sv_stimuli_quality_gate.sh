@@ -103,6 +103,67 @@ check_unique_named_port_bindings() {
     return 0
 }
 
+check_port_binding_legality_basic() {
+    local file="$1"
+    local out
+    if ! out="$(
+        perl -0777 -e '
+            use strict;
+            use warnings;
+            local $/;
+            my $text = <>;
+            $text =~ s!/\*.*?\*/!!gs;
+            $text =~ s!//.*?$!!gm;
+
+            my %keywords = map { $_ => 1 } qw(
+                module endmodule interface endinterface program endprogram package endpackage class endclass
+                if else for foreach while case endcase begin end assign always always_ff always_comb always_latch
+                function endfunction task endtask generate endgenerate
+                input output inout ref wire logic reg bit byte shortint int integer longint
+                signed unsigned var parameter localparam typedef struct union enum
+            );
+
+            my %module_ports;
+            while ($text =~ /\bmodule\s+([A-Za-z_][A-Za-z0-9_]*)\b(.*?)\bendmodule\b/sg) {
+                my ($module_name, $module_body) = ($1, $2);
+                my $header = "";
+                if ($module_body =~ /(.*?;)/s) {
+                    $header = $1;
+                }
+                next unless $header =~ /\((.*)\)\s*;/s;
+                my $ports_block = $1;
+                my @segments = split /,/, $ports_block;
+                for my $seg (@segments) {
+                    my @ids = ($seg =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g);
+                    next unless @ids;
+                    my $candidate = $ids[-1];
+                    next if $keywords{$candidate};
+                    $module_ports{$module_name}{$candidate} = 1;
+                }
+            }
+
+            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*;/sg) {
+                my ($module_type, $inst_name, $bindings) = ($1, $2, $3);
+                next if $keywords{$module_type};
+                next unless exists $module_ports{$module_type};
+                while ($bindings =~ /\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/g) {
+                    my $bound_port = $1;
+                    next if $bound_port eq "*";
+                    if (!exists $module_ports{$module_type}{$bound_port}) {
+                        print "illegal named port binding: ${module_type}.${bound_port} in instance ${inst_name}\n";
+                        exit 1;
+                    }
+                }
+            }
+            exit 0;
+        ' "$file" 2>&1
+    )"; then
+        echo "$out"
+        return 1
+    fi
+    return 0
+}
+
 check_declared_identifiers_before_use() {
     local file="$1"
     local out
@@ -295,6 +356,11 @@ evaluate_semantic_baseline() {
     fi
     if [[ "$require_unique_named_port_bindings" -eq 1 ]]; then
         if ! SEMANTIC_EVAL_NOTE="$(check_unique_named_port_bindings "$preprocessed_file")"; then
+            return 1
+        fi
+    fi
+    if [[ "$require_port_binding_legality_basic" -eq 1 ]]; then
+        if ! SEMANTIC_EVAL_NOTE="$(check_port_binding_legality_basic "$preprocessed_file")"; then
             return 1
         fi
     fi
@@ -519,6 +585,7 @@ require_nonempty_preprocessed_output="$(jq -er 'if .semantic_baseline.require_no
 require_no_preprocess_errors="$(jq -er 'if .semantic_baseline.require_no_preprocess_errors then 1 else 0 end' "$CONTRACT_FILE")"
 require_balanced_structural_keywords="$(jq -er 'if .semantic_baseline.require_balanced_structural_keywords then 1 else 0 end' "$CONTRACT_FILE")"
 require_unique_named_port_bindings="$(jq -er 'if .semantic_baseline.require_unique_named_port_bindings then 1 else 0 end' "$CONTRACT_FILE")"
+require_port_binding_legality_basic="$(jq -er 'if (.semantic_baseline.require_port_binding_legality_basic // false) then 1 else 0 end' "$CONTRACT_FILE")"
 require_declared_identifiers_before_use="$(jq -er 'if (.semantic_baseline.require_declared_identifiers_before_use // false) then 1 else 0 end' "$CONTRACT_FILE")"
 require_package_qualification_resolution="$(jq -er 'if (.semantic_baseline.require_package_qualification_resolution // false) then 1 else 0 end' "$CONTRACT_FILE")"
 require_width_compatibility_simple="$(jq -er 'if (.semantic_baseline.require_width_compatibility_simple // false) then 1 else 0 end' "$CONTRACT_FILE")"
@@ -604,6 +671,7 @@ echo "failure_replay_enabled: $failure_replay_enabled"
 echo "failure_replay_shrink_semantic_failures: $shrink_semantic_failures"
 echo "failure_replay_shrink_parse_full_failures: $shrink_parse_full_failures"
 echo "failure_replay_shrink_max_iterations: $failure_shrink_max_iterations"
+echo "semantic_require_port_binding_legality_basic: $require_port_binding_legality_basic"
 echo "semantic_require_declared_identifiers_before_use: $require_declared_identifiers_before_use"
 echo "semantic_require_package_qualification_resolution: $require_package_qualification_resolution"
 echo "semantic_require_width_compatibility_simple: $require_width_compatibility_simple"

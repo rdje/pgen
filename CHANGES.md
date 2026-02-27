@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Semantic Closure: Added Basic Port-Binding Legality Toggle (v8)
+### ✅ Achievement Summary
+Extended SV semantic-closure baseline with a contractized basic named-port legality validator for module instantiations.
+
+### Scope of Changes
+- Added new semantic checker in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - new function: `check_port_binding_legality_basic`
+  - behavior:
+    - extracts known in-file module port names from module headers,
+    - checks named-port instantiations (`.port(...)`) against known module port sets,
+    - reports deterministic semantic failure on illegal named binding.
+- Semantic baseline integration:
+  - checker is wired into shared semantic evaluation flow (`evaluate_semantic_baseline`).
+  - toggle:
+    - `semantic_baseline.require_port_binding_legality_basic`
+- Updated contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `7 -> 8`
+  - added semantic baseline toggle (default `false` for staged rollout).
+- Updated planning/docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Closed-Loop Hardening: Deterministic Failure Replay + Shrinking (v7)
 ### ✅ Achievement Summary
 Hardened `sv_stimuli_quality_gate` with deterministic failure replay and shrinking for semantic and parse-full failing samples, so failing cases are preserved as reproducible minimized artifacts.
