@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-qp-sv-stimuli-preprocess-debt-closure)
+Last updated: 2026-02-27 (+0100, task: phase-qp-sv-sample-stage-order-alignment)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV stimuli preprocess-debt convergence increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV sample-stage order alignment increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `172`
+- Commit count at last refresh (before current uncommitted changes): `173`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- f5c2928 Track preprocess convergence debt in SV stimuli closed-loop gate
 - 5115a23 Promote SV preprocessor quality gate to required aggregate policy
 - 87e6a95 Add trusted-reference mismatch taxonomy to SV preprocessor quality gate
 - d4be882 Add preprocess-aware SV stimuli modes to phase-Q quality contract
@@ -214,6 +215,24 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase Q/P stage-order alignment in `sv_stimuli_quality_gate`
+- Root cause:
+  - Phase Q parser/stimuli contract requires `preprocess -> parse_full -> semantic-validate`, but gate sample loop executed semantic validation before parse-full.
+- Fix:
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - reordered per-sample stage flow to:
+      - `stimuli_generate -> preprocess -> parse_full(optional) -> semantic_validate_baseline`
+    - retained strict parse-full immediate-fail semantics,
+    - preserved parse stage status in semantic-failure summary rows.
+  - updated roadmap + UG:
+    - parser/stimuli integration contract item marked complete,
+    - sample-stage order text aligned with implementation.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - sample-stage execution order now matches Phase Q parser/stimuli integration contract.
 
 ### 2026-02-27: Phase Q/P SV stimuli gate now tracks preprocess convergence debt in closed loop
 - Root cause:

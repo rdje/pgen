@@ -2087,7 +2087,7 @@ Optional SV syntax-closure gate tuning:
     - `replay_targets <= initial_targets`
     - `replay_preprocess_errors <= initial_preprocess_errors` (per profile)
 - per-sample deterministic flow:
-  - `stimuli_generate -> preprocess -> semantic_validate_baseline -> parse_full(optional)`.
+  - `stimuli_generate -> preprocess -> parse_full(optional) -> semantic_validate_baseline`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

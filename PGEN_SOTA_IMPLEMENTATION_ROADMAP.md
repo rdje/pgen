@@ -355,7 +355,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Progress (2026-02-27): added structured preprocessor diagnostics (`code`, `severity`, `file`, `line`, `message`, `detail`) and optional CLI artifact output (`--sv-diagnostics-json`).
   - Progress (2026-02-27): hardened conditional semantics so `ifdef`/`elsif` honor undefined-symbol policy while `ifndef` remains presence-based without undefined-symbol warning inflation.
   - Progress (2026-02-27): added focused regression coverage for macro-redefinition warn/error behavior, strict warning promotion, and conditional-policy behavior.
-- [ ] Add parser/stimuli integration contract:
+- [x] Add parser/stimuli integration contract:
   - `sv_stimuli_quality_gate` must run `preprocess -> parse_full -> semantic-validate`,
   - stimuli modes expanded with preprocess-aware generation (`sv_pp_snippet`, `sv_pp_file`),
   - closed-loop feedback tracks both preprocessor and parser coverage/gap convergence.
@@ -373,6 +373,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `closed_loop_replay_preprocess_warnings_total`
       - `closed_loop_replay_preprocess_errors_total`
     - when `closed_loop.require_non_increasing_target_debt=true`, gate now enforces non-increasing preprocess error debt (`replay_preprocess_errors <= initial_preprocess_errors`) in addition to parser target-debt non-increase.
+  - Progress (2026-02-27): aligned per-sample stage execution order to `preprocess -> parse_full(optional) -> semantic_validate_baseline` so gate sequencing matches Phase Q parser/stimuli integration contract while retaining strict parse-full failure enforcement.
 - [ ] Add differential hardening for preprocessor behavior against trusted references (where available) and publish mismatch taxonomy.
   - Progress (2026-02-27): added trusted-reference differential stage in `rust/scripts/sv_preprocessor_quality_gate.sh` with configurable mode controls:
     - `PGEN_SV_PREPROCESSOR_DIFF_MODE=auto|0|1`

@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase Q/P Contract Alignment: Per-Sample Stage Order in `sv_stimuli_quality_gate`
+### Context
+Phase Q parser/stimuli integration contract specifies sample-stage flow:
+- `preprocess -> parse_full -> semantic-validate`
+
+Gate implementation had equivalent stages but executed semantic validation before parse-full, which mismatched the documented contract ordering.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+#### 1) Reordered sample-stage execution
+Within each sample loop:
+- parse-full stage now runs immediately after preprocess,
+- semantic baseline validation runs after parse stage.
+
+This preserves existing behavior guarantees:
+- strict parse-full mode still fails immediately on parse rejection,
+- auto mode still records parse soft-fail/skip outcomes when applicable.
+
+#### 2) Kept summary semantics consistent
+On semantic failure, emitted summary rows now retain the already-evaluated parse stage status (`pass|fail|skip`) rather than forcing parse to `skip`.
+
+#### 3) Closed roadmap item
+With preprocess-aware modes, parse/full integration, and dual parser+preprocess closed-loop debt checks now wired, Phase Q parser/stimuli integration contract item was marked complete in roadmap.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- gate runs green on both LRM profiles,
+- summary stage ordering and emitted counters remain consistent.
+
 ## 2026-02-27 - Phase Q/P Integration Hardening: Preprocessor Debt in SV Stimuli Closed Loop
 ### Context
 `sv_stimuli_quality_gate` already enforced parser-side closed-loop target debt (`initial_targets` vs `replay_targets`), but did not include preprocessor convergence debt in the same loop.

@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-02-27 - Phase Q/P Integration Closure Increment: Enforce `preprocess -> parse_full -> semantic` Sample Stage Order
+### ✅ Achievement Summary
+Aligned `sv_stimuli_quality_gate` per-sample execution order with the Phase Q parser/stimuli integration contract and marked that roadmap item complete.
+
+### Scope of Changes
+- Updated SV stimuli gate execution sequence:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - per-sample stage order is now:
+    - `stimuli_generate -> preprocess -> parse_full(optional) -> semantic_validate_baseline`
+  - strict parse-full behavior remains unchanged:
+    - strict mode still fails immediately on parse rejection.
+  - semantic failure rows now preserve parse stage status (`pass|fail|skip`) in summary CSV.
+- Updated roadmap/UG:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - marked "Add parser/stimuli integration contract" as complete.
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+    - updated documented sample-stage order.
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase Q/P Integration: Add Preprocessor Debt Convergence to `sv_stimuli_quality_gate` Closed Loop
 ### ✅ Achievement Summary
 Extended SV stimuli closed-loop validation so convergence now tracks both parser target debt and preprocessor diagnostics debt.

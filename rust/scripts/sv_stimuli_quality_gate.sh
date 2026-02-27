@@ -947,26 +947,6 @@ for profile_idx in "${!run_profiles[@]}"; do
         total_warnings=$((total_warnings + warning_count))
         total_errors=$((total_errors + error_count))
 
-        semantic_status="pass"
-        semantic_note="baseline semantic validation passed"
-        if ! evaluate_semantic_baseline "$preprocessed_file" "$error_count"; then
-            semantic_status="fail"
-            semantic_note="$SEMANTIC_EVAL_NOTE"
-        fi
-
-        if [[ "$semantic_status" != "pass" ]]; then
-            if [[ "$failure_replay_enabled" -eq 1 ]] && [[ "$shrink_semantic_failures" -eq 1 ]]; then
-                semantic_shrink_file="$WORK_DIR/sample_${profile_key}_${idx}.semantic.shrunk.sv"
-                semantic_shrink_lines="$(deterministic_prefix_shrink "$preprocessed_file" "$semantic_shrink_file" "$failure_shrink_max_iterations" semantic_failure_predicate "$error_count")"
-                semantic_note="${semantic_note}; shrunk_failure=${semantic_shrink_file}; shrunk_lines=${semantic_shrink_lines}"
-                semantic_shrink_count=$((semantic_shrink_count + 1))
-            fi
-            echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,fail,skip,${warning_count},${error_count},fail,$(csv_sanitize "$semantic_note")" >>"$SUMMARY_CSV"
-            echo "error: semantic baseline validation failed for profile '${lrm_profile}' sample_${idx}: ${semantic_note}" >&2
-            exit 1
-        fi
-        semantic_pass_count=$((semantic_pass_count + 1))
-
         parse_status="skip"
         parse_note="parse_full stage skipped"
         if [[ "$parse_full_enabled" -eq 1 ]]; then
@@ -1000,7 +980,28 @@ for profile_idx in "${!run_profiles[@]}"; do
             parse_note="parse_full unavailable (${parse_full_effective})"
         fi
 
-        echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,$(csv_sanitize "$parse_note")" >>"$SUMMARY_CSV"
+        semantic_status="pass"
+        semantic_note="baseline semantic validation passed"
+        if ! evaluate_semantic_baseline "$preprocessed_file" "$error_count"; then
+            semantic_status="fail"
+            semantic_note="$SEMANTIC_EVAL_NOTE"
+        fi
+
+        if [[ "$semantic_status" != "pass" ]]; then
+            if [[ "$failure_replay_enabled" -eq 1 ]] && [[ "$shrink_semantic_failures" -eq 1 ]]; then
+                semantic_shrink_file="$WORK_DIR/sample_${profile_key}_${idx}.semantic.shrunk.sv"
+                semantic_shrink_lines="$(deterministic_prefix_shrink "$preprocessed_file" "$semantic_shrink_file" "$failure_shrink_max_iterations" semantic_failure_predicate "$error_count")"
+                semantic_note="${semantic_note}; shrunk_failure=${semantic_shrink_file}; shrunk_lines=${semantic_shrink_lines}"
+                semantic_shrink_count=$((semantic_shrink_count + 1))
+            fi
+            echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,fail,${parse_status},${warning_count},${error_count},fail,$(csv_sanitize "$semantic_note")" >>"$SUMMARY_CSV"
+            echo "error: semantic baseline validation failed for profile '${lrm_profile}' sample_${idx}: ${semantic_note}" >&2
+            exit 1
+        fi
+        semantic_pass_count=$((semantic_pass_count + 1))
+
+        final_note="$parse_note"
+        echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,$(csv_sanitize "$final_note")" >>"$SUMMARY_CSV"
     done
 done
 
