@@ -1893,6 +1893,14 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
   - emits `not_ready` rows when grammar files are missing.
 - strict mode (`hdl_frontend_gate`):
   - fails on missing grammar files or failing flow stages.
+- readiness stage outputs now include parser replay visibility:
+  - `parser_registry_support` (adapter availability),
+  - `parseability` (sample replay through generated parser adapter).
+- parseability stage behavior:
+  - generated samples are tracked as per-sample files (manifest-driven) to preserve multiline stimuli integrity.
+  - when a sample fails full parse replay, the gate deterministically retries with incremented seeds until parseable or retry budget is exhausted.
+  - retry budget env:
+    - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` (default `50`).
 - current seed status:
   - `grammars/systemverilog.ebnf` passes `EBNF -> JSON -> parser -> stimuli`.
   - `grammars/vhdl.ebnf` passes `EBNF -> JSON -> parser -> stimuli` (initial seed baseline).
@@ -2070,10 +2078,17 @@ Current stable surfaces:
   - `parse_grammar_profile_named_with_limits(...)`
 - Parser profile embedding metadata:
   - `parser_embedding_api_contract()`
+  - includes `profile_matrix` (`grammar -> supported profiles`)
 
 Current parser profiles:
 - `systemverilog`: `sv_2017`, `sv_2023`
 - `vhdl`: `vhdl_1076_2019`
+
+Nexsim-oriented convenience parser entry points:
+- `parse_systemverilog_2017(...)`
+- `parse_systemverilog_2023(...)`
+- `parse_vhdl_1076_2019(...)`
+- each has corresponding `*_with_limits`, `*_result`, and `*_with_limits_result` variants.
 
 Deterministic integration behavior:
 - grammar/profile mismatch returns `E_UNSUPPORTED_PROFILE`.

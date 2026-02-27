@@ -1373,7 +1373,18 @@ impl AstBasedGenerator {
                                                         let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                         #constraint_guards
                                                         let transformed = matched_str.parse::<#target_type>().unwrap_or(#default_expr);
-                                                        parser.debug_output.push(format!("🎯 Applied semantic transform: parsed '{}' to {}={}", matched_str, stringify!(#target_type), transformed));
+                                                        if parser.logger.is_enabled() {
+                                                            parser.logger.log_debug(
+                                                                file!(),
+                                                                line!(),
+                                                                &format!(
+                                                                    "🎯 Applied semantic transform: parsed '{}' to {}={}",
+                                                                    matched_str,
+                                                                    stringify!(#target_type),
+                                                                    transformed
+                                                                ),
+                                                            );
+                                                        }
                                                         let result = ParseContent::TransformedTerminal(transformed.to_string())
                                                     });
                                                 } else {
@@ -1397,7 +1408,18 @@ impl AstBasedGenerator {
                                             return Ok(quote! {
                                                 let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                 #constraint_guards
-                                                parser.debug_output.push(format!("🎯 Applied semantic transform: raw expression '{}' to rule '{}': matched '{}'", #expression, #rule_name, matched_str));
+                                                if parser.logger.is_enabled() {
+                                                    parser.logger.log_debug(
+                                                        file!(),
+                                                        line!(),
+                                                        &format!(
+                                                            "🎯 Applied semantic transform: raw expression '{}' to rule '{}': matched '{}'",
+                                                            #expression,
+                                                            #rule_name,
+                                                            matched_str
+                                                        ),
+                                                    );
+                                                }
                                                 let result = ParseContent::TransformedTerminal(#expression.to_string())
                                             });
                                         } else {

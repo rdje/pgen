@@ -198,6 +198,9 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Define tracked initial grammar roster for readiness (`systemverilog`, `vhdl`) and report missing grammar files explicitly as `not_ready`.
 - [x] Add first executable SystemVerilog seed grammar (`grammars/systemverilog.ebnf`) from IEEE 1800 markdown syntax sections and drive `systemverilog` HDL readiness row to pass.
 - [x] Add first executable VHDL seed grammar (`grammars/vhdl.ebnf`) and turn strict HDL frontend readiness green for both tracked HDL grammars.
+  - Progress (2026-02-27): extended `hdl_frontend_readiness_gate` with explicit parser-registry parseability stages (`parser_registry_support`, `parseability`) so tracked SV/VHDL grammar flows now report parser replay viability in addition to parser generation success.
+  - Progress (2026-02-27): resolved parseability-probe build compatibility drift by aligning generated semantic parser naming aliases and replacing stale `parser.debug_output` codegen with logger-based debug emission; regenerated annotation parsers from bootstrap pipeline.
+  - Progress (2026-02-27): hardened gate parseability stage with per-sample manifest + deterministic retry-to-parseable loop (`PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS`) so strict HDL gate remains green under multiline stimuli outputs and stochastic generation variance.
   - Progress (2026-02-27): added executable `grammars/vhdl.ebnf` seed grammar and validated strict `make hdl_frontend_gate` with both `systemverilog` and `vhdl` rows passing.
 - [x] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
   - Progress (2026-02-27): wired HDL readiness into aggregate `sota_exit_gate` as informational-first (`run=1`, `strict=0`) via policy/runtime controls while `vhdl.ebnf` remains pending.
@@ -432,3 +435,6 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 - 2026-02-20: Promoted SC-08 to Tier-4 by adding dedicated gate `sc08_contract_gate` (typed range/enum/len/regex payload contracts, parser/stimuli value-domain runtime contracts, shared SC-08 semantic contract suite, and differential taxonomy parity checks) and wiring it into `annotation_contract_gate` for CI enforcement.
 - 2026-02-20: Promoted SC-06 to Tier-4 by adding dedicated gate `sc06_contract_gate` (typed branch-policy validator contracts, parser/stimuli branch-selection runtime contracts, weighted-probability determinism checks, shared SC-06 semantic contract suite, and differential taxonomy parity checks) and wiring it into `annotation_contract_gate` for CI enforcement.
 - 2026-02-20: Added Phase N roadmap track for generated stimuli-module artifacts (`generated/<grammar>_stimuli.rs`) with explicit in-memory-vs-module parity gate requirements and embedding contract milestones.
+  - Progress (2026-02-27): added explicit Nexsim convenience parser entry points:
+    - `parse_systemverilog_2017*`, `parse_systemverilog_2023*`, `parse_vhdl_1076_2019*`
+    - parser embedding contract now exposes per-grammar `profile_matrix` for host-side routing clarity.

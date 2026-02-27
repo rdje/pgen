@@ -237,8 +237,15 @@ pub struct ParserEmbeddingApiContract {
     pub deterministic_by_default: bool,
     pub supported_grammars: Vec<GrammarFamily>,
     pub supported_profiles: Vec<GrammarProfile>,
+    pub profile_matrix: Vec<GrammarProfileBinding>,
     pub supports_systemverilog_generated_backend: bool,
     pub supports_vhdl_generated_backend: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GrammarProfileBinding {
+    pub grammar: GrammarFamily,
+    pub profiles: Vec<GrammarProfile>,
 }
 
 /// Returns stable contract metadata for embedding users.
@@ -257,15 +264,27 @@ pub fn embedding_api_contract() -> EmbeddingApiContract {
 /// This contract covers profile-aware parser entry points used by host applications
 /// (for example Nexsim) and intentionally keeps diagnostics deterministic.
 pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
+    let systemverilog_profiles = vec![GrammarProfile::Sv2017, GrammarProfile::Sv2023];
+    let vhdl_profiles = vec![GrammarProfile::Vhdl1076_2019];
     ParserEmbeddingApiContract {
         api_version: EMBEDDING_API_VERSION.to_string(),
         schema_version: EMBEDDING_API_SCHEMA_VERSION,
         deterministic_by_default: true,
         supported_grammars: vec![GrammarFamily::SystemVerilog, GrammarFamily::Vhdl],
         supported_profiles: vec![
-            GrammarProfile::Sv2017,
-            GrammarProfile::Sv2023,
-            GrammarProfile::Vhdl1076_2019,
+            systemverilog_profiles[0],
+            systemverilog_profiles[1],
+            vhdl_profiles[0],
+        ],
+        profile_matrix: vec![
+            GrammarProfileBinding {
+                grammar: GrammarFamily::SystemVerilog,
+                profiles: systemverilog_profiles,
+            },
+            GrammarProfileBinding {
+                grammar: GrammarFamily::Vhdl,
+                profiles: vhdl_profiles,
+            },
         ],
         supports_systemverilog_generated_backend: systemverilog_generated_backend_enabled(),
         supports_vhdl_generated_backend: vhdl_generated_backend_enabled(),
@@ -397,6 +416,21 @@ pub fn parse_grammar_profile(
     parse_grammar_profile_with_limits(grammar, profile, input, &ParseLimits::default())
 }
 
+/// Convenience entry point for Nexsim SV integration (`IEEE 1800-2017` profile).
+pub fn parse_systemverilog_2017(input: &str) -> GrammarParseOutcome {
+    parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, input)
+}
+
+/// Convenience entry point for Nexsim SV integration (`IEEE 1800-2023` profile).
+pub fn parse_systemverilog_2023(input: &str) -> GrammarParseOutcome {
+    parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2023, input)
+}
+
+/// Convenience entry point for Nexsim VHDL integration (`IEEE 1076-2019` profile).
+pub fn parse_vhdl_1076_2019(input: &str) -> GrammarParseOutcome {
+    parse_grammar_profile(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, input)
+}
+
 /// Parses a full grammar input using explicit input limits.
 pub fn parse_grammar_profile_with_limits(
     grammar: GrammarFamily,
@@ -422,6 +456,42 @@ pub fn parse_grammar_profile_with_limits(
     }
 }
 
+/// Convenience entry point with explicit limits for `IEEE 1800-2017`.
+pub fn parse_systemverilog_2017_with_limits(
+    input: &str,
+    limits: &ParseLimits,
+) -> GrammarParseOutcome {
+    parse_grammar_profile_with_limits(
+        GrammarFamily::SystemVerilog,
+        GrammarProfile::Sv2017,
+        input,
+        limits,
+    )
+}
+
+/// Convenience entry point with explicit limits for `IEEE 1800-2023`.
+pub fn parse_systemverilog_2023_with_limits(
+    input: &str,
+    limits: &ParseLimits,
+) -> GrammarParseOutcome {
+    parse_grammar_profile_with_limits(
+        GrammarFamily::SystemVerilog,
+        GrammarProfile::Sv2023,
+        input,
+        limits,
+    )
+}
+
+/// Convenience entry point with explicit limits for `IEEE 1076-2019`.
+pub fn parse_vhdl_1076_2019_with_limits(input: &str, limits: &ParseLimits) -> GrammarParseOutcome {
+    parse_grammar_profile_with_limits(
+        GrammarFamily::Vhdl,
+        GrammarProfile::Vhdl1076_2019,
+        input,
+        limits,
+    )
+}
+
 /// Idiomatic Rust Result-based grammar parse API.
 pub fn parse_grammar_profile_result(
     grammar: GrammarFamily,
@@ -429,6 +499,21 @@ pub fn parse_grammar_profile_result(
     input: &str,
 ) -> Result<(), ParseDiagnostic> {
     parse_grammar_profile_with_limits_result(grammar, profile, input, &ParseLimits::default())
+}
+
+/// Convenience `Result` API for `IEEE 1800-2017`.
+pub fn parse_systemverilog_2017_result(input: &str) -> Result<(), ParseDiagnostic> {
+    parse_grammar_profile_result(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, input)
+}
+
+/// Convenience `Result` API for `IEEE 1800-2023`.
+pub fn parse_systemverilog_2023_result(input: &str) -> Result<(), ParseDiagnostic> {
+    parse_grammar_profile_result(GrammarFamily::SystemVerilog, GrammarProfile::Sv2023, input)
+}
+
+/// Convenience `Result` API for `IEEE 1076-2019`.
+pub fn parse_vhdl_1076_2019_result(input: &str) -> Result<(), ParseDiagnostic> {
+    parse_grammar_profile_result(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, input)
 }
 
 /// Result-based grammar parse API with explicit input limits.
@@ -439,6 +524,45 @@ pub fn parse_grammar_profile_with_limits_result(
     limits: &ParseLimits,
 ) -> Result<(), ParseDiagnostic> {
     run_grammar_parse(grammar, profile, input, limits)
+}
+
+/// Convenience `Result` API with explicit limits for `IEEE 1800-2017`.
+pub fn parse_systemverilog_2017_with_limits_result(
+    input: &str,
+    limits: &ParseLimits,
+) -> Result<(), ParseDiagnostic> {
+    parse_grammar_profile_with_limits_result(
+        GrammarFamily::SystemVerilog,
+        GrammarProfile::Sv2017,
+        input,
+        limits,
+    )
+}
+
+/// Convenience `Result` API with explicit limits for `IEEE 1800-2023`.
+pub fn parse_systemverilog_2023_with_limits_result(
+    input: &str,
+    limits: &ParseLimits,
+) -> Result<(), ParseDiagnostic> {
+    parse_grammar_profile_with_limits_result(
+        GrammarFamily::SystemVerilog,
+        GrammarProfile::Sv2023,
+        input,
+        limits,
+    )
+}
+
+/// Convenience `Result` API with explicit limits for `IEEE 1076-2019`.
+pub fn parse_vhdl_1076_2019_with_limits_result(
+    input: &str,
+    limits: &ParseLimits,
+) -> Result<(), ParseDiagnostic> {
+    parse_grammar_profile_with_limits_result(
+        GrammarFamily::Vhdl,
+        GrammarProfile::Vhdl1076_2019,
+        input,
+        limits,
+    )
 }
 
 /// Language-neutral grammar parse API using string names.

@@ -1,4 +1,82 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Nexsim SV/VHDL Delivery Focus: Convenience API Wrappers + HDL Parseability Stage
+### Context
+Priority was clarified to remain focused on Nexsim-facing SV/VHDL parser delivery only (no regex work in this increment).
+
+Two concrete delivery-oriented needs were addressed:
+1. remove integration friction for Nexsim callers by exposing explicit SV/VHDL convenience parser entry points,
+2. strengthen HDL readiness execution by adding an explicit parseability stage through parser-registry probes.
+
+### Implementation
+Primary files:
+- `rust/src/embedding_api.rs`
+- `rust/scripts/hdl_frontend_readiness_gate.sh`
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `rust/src/lib.rs`
+
+#### 1) Added SV/VHDL convenience parser entry points
+`embedding_api` now includes profile-specific wrappers so Nexsim call sites do not need to pass explicit `(grammar, profile)` pairs each time:
+- SystemVerilog:
+  - `parse_systemverilog_2017(...)`
+  - `parse_systemverilog_2023(...)`
+  - corresponding `*_with_limits`, `*_result`, and `*_with_limits_result` variants
+- VHDL:
+  - `parse_vhdl_1076_2019(...)`
+  - corresponding `*_with_limits`, `*_result`, and `*_with_limits_result` variants
+
+The parser embedding contract now includes per-grammar profile mapping:
+- `profile_matrix: Vec<GrammarProfileBinding>`
+  - `systemverilog -> [sv_2017, sv_2023]`
+  - `vhdl -> [vhdl_1076_2019]`
+
+This keeps integration metadata explicit and removes guesswork in host-side profile routing.
+
+#### 2) Extended HDL readiness gate with parser-registry parseability stage
+`hdl_frontend_readiness_gate.sh` now includes two additional stage outputs:
+- `parser_registry_support`
+- `parseability`
+
+After EBNF->JSON->parser->stimuli generation, gate now performs:
+- grammar-specific `parseability_probe` build (with generated parser path injection),
+- adapter support check (`parseability_probe --supports <grammar>`),
+- sample replay parseability (`parseability_probe --parse <grammar> <sample_file>` for emitted stimuli samples),
+- deterministic retry-to-parseable regeneration when first-pass samples fail parseability.
+
+Key hardening details:
+- stimuli are handled as per-sample files + manifest (not line-splitting merged multiline content),
+- retry budget is configurable via:
+  - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` (default `50`).
+
+#### 3) Closed generated-annotation compatibility drift affecting probe builds
+Two compatibility issues were blocking `generated_parsers` probe builds:
+1. generated semantic parser type naming drift (`SemanticAnnotationParser` vs historical `Semantic_annotationParser`),
+2. stale debug emission in generated return parser code referencing `parser.debug_output` (field no longer present in generated parser runtime struct).
+
+Fixes:
+- `rust/src/lib.rs`:
+  - added backward-compat alias:
+    - `Semantic_annotationParser<'input> = SemanticAnnotationParser<'input>`
+- `rust/src/ast_pipeline/ast_based_generator.rs`:
+  - changed debug transform emission from `parser.debug_output.push(...)` to logger-based `parser.logger.log_debug(...)`,
+  - regenerated annotation parsers to pick up this codegen fix.
+
+### Validation
+Executed:
+- `make -C rust return_annotation_parser semantic_annotation_parser`
+- `PGEN_HDL_FRONTEND_STIMULI_COUNT=1 PGEN_HDL_FRONTEND_STRICT=0 make -C rust SHELL=/opt/homebrew/bin/bash hdl_frontend_readiness`
+- `PGEN_HDL_FRONTEND_STIMULI_COUNT=3 PGEN_HDL_FRONTEND_STRICT=1 make -C rust SHELL=/opt/homebrew/bin/bash hdl_frontend_gate`
+- `cargo test --manifest-path rust/Cargo.toml --lib embedding_api`
+
+Observed:
+- `parseability_probe` now builds successfully in grammar-specific injected-parser mode.
+- strict HDL gate is green for both tracked grammars (`systemverilog`, `vhdl`) including parseability replay stage.
+- embedding API tests remain passing with new SV/VHDL convenience surfaces.
+
+### Outcome
+- Nexsim-facing SV/VHDL API usage is now simpler at call sites.
+- HDL readiness now enforces parser replay viability end-to-end and recovers deterministic parseable samples when first-pass generation misses.
+- generated annotation compatibility drift in probe build path is resolved.
+
 ## 2026-02-27 - Embedding API Convention Hardening (Zero-Friction Rust + FFI)
 ### Context
 Requirement: parser embedding APIs must be usable by external projects with minimal friction and align with generally accepted API shapes in Rust and other host languages.

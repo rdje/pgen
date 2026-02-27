@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: embedding-api-convention-hardening)
+Last updated: 2026-02-27 (+0100, task: nexsim-hdl-parseability-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for embedding API convention hardening; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for Nexsim HDL parseability-stage increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `156`
+- Commit count at last refresh (before current uncommitted changes): `157`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- fb4dc4e Harden embedding API ergonomics for zero-friction Rust and FFI use
 - 34d1f4f Add parser-profile embedding API scaffold for Nexsim integration
 - 473dbe4 hdl: add executable vhdl seed grammar and close strict readiness gap
 - 1f6a89f policy: promote aggregate hdl readiness to required strict mode
@@ -198,6 +199,29 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Nexsim SV/VHDL focus increment (convenience APIs + HDL parseability stage)
+- Root cause:
+  - Nexsim integration needed lower-friction SV/VHDL parser call sites and explicit visibility into whether generated HDL parsers can replay emitted stimuli end-to-end.
+- Fix:
+  - added SV/VHDL convenience embedding API entry points in `rust/src/embedding_api.rs`:
+    - `parse_systemverilog_2017*`, `parse_systemverilog_2023*`, `parse_vhdl_1076_2019*`
+    - parser embedding contract now includes per-grammar `profile_matrix`.
+  - extended `rust/scripts/hdl_frontend_readiness_gate.sh` with parser replay stages:
+    - `parser_registry_support`
+    - `parseability`
+    - probe build + adapter support + per-sample replay now reported in summary.
+    - added deterministic retry-to-parseable loop (controlled by `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS`) using per-sample files/manifests to avoid multiline-sample line-splitting failures.
+  - resolved generated-parser compatibility drift used by probe builds:
+    - `rust/src/lib.rs`: semantic parser backward-compat alias (`Semantic_annotationParser` -> `SemanticAnnotationParser`).
+    - `rust/src/ast_pipeline/ast_based_generator.rs`: replaced stale `parser.debug_output` codegen with logger-based debug emission.
+    - regenerated annotation parsers (`make -C rust return_annotation_parser semantic_annotation_parser`) to absorb the codegen fix.
+- Validation:
+  - `PGEN_HDL_FRONTEND_STIMULI_COUNT=1 PGEN_HDL_FRONTEND_STRICT=0 make -C rust SHELL=/opt/homebrew/bin/bash hdl_frontend_readiness`
+  - `PGEN_HDL_FRONTEND_STIMULI_COUNT=3 PGEN_HDL_FRONTEND_STRICT=1 make -C rust SHELL=/opt/homebrew/bin/bash hdl_frontend_gate`
+  - `cargo test --manifest-path rust/Cargo.toml --lib embedding_api`
+- Status:
+  - strict HDL gate now passes for both tracked grammars (`systemverilog`, `vhdl`) including parser-registry parseability stage.
 
 ### 2026-02-27: Embedding API convention hardening (Rust + non-Rust)
 - Root cause:

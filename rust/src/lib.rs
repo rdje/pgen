@@ -34,6 +34,9 @@ pub mod generated_parsers {
     }
     pub mod semantic_annotation {
         include!("../../generated/semantic_annotation_parser.rs");
+        // Backward-compat alias for previously generated snake_case parser type.
+        #[allow(non_camel_case_types)]
+        pub type Semantic_annotationParser<'input> = SemanticAnnotationParser<'input>;
     }
     #[cfg(has_generated_systemverilog_parser)]
     pub mod systemverilog {

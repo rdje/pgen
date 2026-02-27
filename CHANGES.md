@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-02-27 - Nexsim-Focused SV/VHDL Integration Increment: Convenience APIs + HDL Parseability Stage
+### ✅ Achievement Summary
+Focused the increment on Nexsim SV/VHDL delivery by:
+- adding explicit SV/VHDL convenience parser entry points in the embedding API,
+- wiring parser-registry parseability execution into HDL readiness,
+- fixing generated-annotation parser compatibility so `generated_parsers` probe builds succeed.
+
+### Scope of Changes
+- Updated embedding API with Nexsim-first convenience entry points:
+  - `rust/src/embedding_api.rs`
+  - added profile-specific wrappers for SV/VHDL:
+    - `parse_systemverilog_2017*`
+    - `parse_systemverilog_2023*`
+    - `parse_vhdl_1076_2019*`
+  - added per-grammar profile matrix in parser embedding contract:
+    - `profile_matrix: Vec<GrammarProfileBinding>`
+- Fixed generated parser compatibility for probe build path:
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - replaced stale generated code emission (`parser.debug_output.push(...)`) with `parser.logger.log_debug(...)` to match current generated parser struct/runtime contract.
+  - `rust/src/lib.rs`
+    - added backward-compat alias:
+      - `generated_parsers::semantic_annotation::Semantic_annotationParser<'input> = SemanticAnnotationParser<'input>`
+- Updated HDL readiness gate with explicit parseability replay and recovery loop:
+  - `rust/scripts/hdl_frontend_readiness_gate.sh`
+  - new stage fields in summary:
+    - `parser_registry_support`
+    - `parseability`
+  - gate now performs:
+    - generated parser probe build per grammar (SV or VHDL parser path injection),
+    - adapter availability check (`--supports`),
+    - parseability replay on per-sample files (`--parse` per sample),
+    - deterministic retry-to-parseable regeneration using incremented seeds when first-pass stimuli fails parseability.
+  - added parseability retry control:
+    - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` (default `50`).
+  - fixed multiline stimuli handling by storing stimuli as per-sample files + manifest instead of line-splitting a merged text file.
+
+### Validation Results
+- `make -C rust return_annotation_parser semantic_annotation_parser` ✅
+  - regenerated bootstrap annotation parsers after codegen compatibility fix.
+- `PGEN_HDL_FRONTEND_STIMULI_COUNT=1 PGEN_HDL_FRONTEND_STRICT=0 make -C rust SHELL=/opt/homebrew/bin/bash hdl_frontend_readiness` ✅
+- `PGEN_HDL_FRONTEND_STIMULI_COUNT=3 PGEN_HDL_FRONTEND_STRICT=1 make -C rust SHELL=/opt/homebrew/bin/bash hdl_frontend_gate` ✅
+  - both `systemverilog` and `vhdl` now pass:
+    - `EBNF -> JSON -> parser -> stimuli -> parser_registry_support -> parseability`.
+- `cargo test --manifest-path rust/Cargo.toml --lib embedding_api` ✅
+
 ## 2026-02-27 - Hardened Embedding API for Zero-Friction Host Integration Conventions
 ### ✅ Achievement Summary
 Extended the embedding API to follow common integration conventions across Rust and non-Rust consumers: idiomatic `Result`-based calls for Rust, plus named string-based entry points for binding/FFI layers.

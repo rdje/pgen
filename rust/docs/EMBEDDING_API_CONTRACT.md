@@ -9,6 +9,11 @@ Provide a stable, versioned surface for external projects embedding PGEN annotat
   - `embedding_api_contract() -> EmbeddingApiContract`
   - `parser_embedding_api_contract() -> ParserEmbeddingApiContract`
 - Parse API:
+  - Nexsim convenience grammar entry points:
+    - `parse_systemverilog_2017(...)`
+    - `parse_systemverilog_2023(...)`
+    - `parse_vhdl_1076_2019(...)`
+    - plus `*_with_limits`, `*_result`, `*_with_limits_result` variants
   - idiomatic Rust `Result` surface:
     - `parse_annotation_result(family, backend, input) -> Result<(), ParseDiagnostic>`
     - `parse_annotation_with_limits_result(family, backend, input, limits) -> Result<(), ParseDiagnostic>`
@@ -51,6 +56,7 @@ Grammar parser API:
 - `NamedAnnotationParseOutcome`: structured result preserving caller-provided family/backend strings.
 - `NamedGrammarParseOutcome`: structured result preserving caller-provided grammar/profile strings.
 - `ParserEmbeddingApiContract`: stable profile matrix + backend availability flags.
+  - includes `profile_matrix` for per-grammar profile lookup.
 
 ## Diagnostic Code Contract
 - `E_BACKEND_UNAVAILABLE`: generated backend requested without `generated_parsers` feature.
