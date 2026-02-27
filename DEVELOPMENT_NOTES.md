@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Semantic-Closure Hardening: Structured Use-Site Declared Validation
+### Context
+Even after lexical cleanups, declaration-before-use still produced noise when scanning all identifiers globally. The next hardening step was to constrain checks to structured usage contexts so randomized lexical debris would not be interpreted as semantic symbol use.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+#### 1) Reworked declaration-before-use to structured use extraction
+`check_declared_identifiers_before_use` now collects candidate uses only from:
+- assignment LHS/RHS expressions,
+- condition expressions (`if`, `while`, `for`, `foreach`, assertion-style conditional forms),
+- event controls (`@(...)`),
+- named-port actual expressions (`.port(expr)`).
+
+This replaced the old global token sweep, reducing sensitivity to malformed random text.
+
+#### 2) Kept lexical guards in place
+The checker still:
+- strips quoted strings,
+- strips preprocessing-like directive fragments,
+- normalizes/strips `timeunit/timeprecision` statements,
+- ignores member/namespace/macro path contexts for token classification.
+
+#### 3) Contract policy stance
+`sv_semantic_file` keeps:
+- `require_declared_identifiers_before_use=false`
+- `require_width_compatibility_simple=true`
+
+Reason:
+- structured-use refinement lowered noise, but residual lexical-edge debt still exists for fully enabling declaration-before-use on random stimuli streams.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- both baseline and semantic-closure mode runs pass,
+- semantic-closure mode remains stricter than baseline while avoiding declaration-check false-positive churn.
+
 ## 2026-02-27 - Phase P Semantic-Closure Hardening: Validator Refinement for Declared/Width Checks
 ### Context
 After introducing `sv_semantic_file`, enabling both `require_declared_identifiers_before_use` and `require_width_compatibility_simple` immediately exposed lexical false positives in declaration checking on random stimuli (for example `timeunit` tokenization artifacts). We needed to harden validator heuristics before tightening semantic-closure policy.

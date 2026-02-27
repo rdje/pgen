@@ -206,6 +206,7 @@ check_declared_identifiers_before_use() {
             $text =~ s!//.*?$!!gm;
             $text =~ s/"(?:\\.|[^"\\])*"/""/gs;
             $text =~ s/\b(?:timeunit|timeprecision)\b[^;]*;//g;
+            $text =~ s/`[A-Za-z_][A-Za-z0-9_]*(?:\([^\n]*\))?//g;
 
             my %keywords = map { $_ => 1 } qw(
                 module endmodule interface endinterface program endprogram package endpackage class endclass
@@ -257,23 +258,63 @@ check_declared_identifiers_before_use() {
                 $declared{$inst_name} = 1;
             }
 
-            pos($text) = 0;
-            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
-                my $id = $1;
-                next if $keywords{$id};
+            my %used;
+
+            sub mark_chunk_uses {
+                my ($chunk, $used_ref, $keywords_ref) = @_;
+                return if !defined $chunk || $chunk eq "";
+
+                # Remove common literal forms that can look like identifiers in noisy samples.
+                $chunk =~ s/\b\d+\s*'\''\s*[sS]?[bBoOdDhH]\s*[0-9a-fA-F_xXzZ]+\b/ /g;
+                $chunk =~ s/\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[a-zA-Z_][A-Za-z0-9_]*)\b/ /g;
+
+                while ($chunk =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
+                    my $id = $1;
+                    next if $keywords_ref->{$id};
+                    next if $id =~ /^(?:x|z)$/i;
+                    my $start = $-[1];
+                    my $end = $+[1];
+                    my $prev = $start > 0 ? substr($chunk, $start - 1, 1) : "";
+                    my $prev2 = $start > 1 ? substr($chunk, $start - 2, 2) : "";
+                    my $next = substr($chunk, $end, 1);
+                    my $next2 = substr($chunk, $end, 2);
+                    next if $prev =~ /[0-9]/;
+                    next if $prev eq "." || $prev2 eq "::" || $prev2 eq "->";
+                    next if $next2 eq "::";
+                    next if $next eq ":";
+                    next if $prev eq "`";
+                    $used_ref->{$id} = 1;
+                }
+            }
+
+            # Assignment/use contexts (structured-only to avoid lexical noise false positives).
+            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]+\])?\s*(?:<=|=(?!=))/g) {
+                my $lhs = $1;
+                next if $keywords{$lhs};
+                $used{$lhs} = 1;
+            }
+            while ($text =~ /(?:<=|=(?!=))\s*([^;]+)/g) {
+                mark_chunk_uses($1, \%used, \%keywords);
+            }
+            while ($text =~ /\b(?:if|while|assert|assume|cover)\s*\(([^)]*)\)/g) {
+                mark_chunk_uses($1, \%used, \%keywords);
+            }
+            while ($text =~ /\bfor\s*\(([^;]*);([^;]*);([^\)]*)\)/g) {
+                mark_chunk_uses("$1 $2 $3", \%used, \%keywords);
+            }
+            while ($text =~ /\bforeach\s*\(([^)]*)\)/g) {
+                mark_chunk_uses($1, \%used, \%keywords);
+            }
+            while ($text =~ /\@\s*\(([^)]*)\)/g) {
+                mark_chunk_uses($1, \%used, \%keywords);
+            }
+            while ($text =~ /\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(([^)]*)\)/g) {
+                mark_chunk_uses($1, \%used, \%keywords);
+            }
+
+            for my $id (sort keys %used) {
                 next if $declared{$id};
-                next if $id =~ /^(?:[A-Z_][A-Z0-9_]*|x|z)$/;
-                my $start = $-[1];
-                my $end = $+[1];
-                my $prev = $start > 0 ? substr($text, $start - 1, 1) : "";
-                my $prev2 = $start > 1 ? substr($text, $start - 2, 2) : "";
-                my $next = substr($text, $end, 1);
-                my $next2 = substr($text, $end, 2);
-                next if $prev =~ /[0-9]/;
-                next if $prev eq "." || $prev2 eq "::" || $prev2 eq "->";
-                next if $next2 eq "::";
-                next if $next eq ":";
-                next if $prev eq "`";
+                next if $id =~ /^(?:[A-Z_][A-Z0-9_]*)$/;
                 print "undeclared identifier use detected (first=\"$id\")\n";
                 exit 1;
             }

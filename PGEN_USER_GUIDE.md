@@ -2182,7 +2182,7 @@ Optional SV syntax-closure gate tuning:
   - optional basic named-port legality check against known in-file module headers (`semantic_baseline.require_port_binding_legality_basic`).
   - optional structural keyword-balance check (`semantic_baseline.require_balanced_structural_keywords`, currently disabled in default contract due high false-positive risk on current random samples).
   - optional declaration-before-use heuristic (`semantic_baseline.require_declared_identifiers_before_use`).
-    - current implementation strips quoted strings, ignores member/namespace/macro contexts, and handles additional declaration contexts (ports/imports/for/foreach/instantiation); still not default-enabled in semantic-closure profile.
+    - current implementation uses structured use-site scanning (assignments, conditions, event controls, named-port actuals), strips quoted strings/directives, ignores member/namespace/macro contexts, and handles additional declaration contexts (ports/imports/for/foreach/instantiation); still not default-enabled in semantic-closure profile.
   - optional package qualification/import resolution heuristic (`semantic_baseline.require_package_qualification_resolution`).
   - optional simple packed-width vs literal-width compatibility check (`semantic_baseline.require_width_compatibility_simple`).
     - current implementation covers packed declarations of `logic|reg|wire|bit` and indexed LHS assignment forms.

@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Semantic-Closure Hardening: Structured Use-Site Declared-Check Refinement
+### ✅ Achievement Summary
+Reworked declaration-before-use validation to operate on structured use contexts, significantly reducing lexical-noise false positives while keeping semantic-closure mode stable.
+
+### Scope of Changes
+- Refined declared-before-use checker:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - moved from global token sweep to structured use-site extraction:
+    - assignment LHS/RHS,
+    - conditional expressions (`if`/`while`/`for`/`foreach`, assertion-style conditions),
+    - event-control expressions,
+    - named-port actual expressions.
+  - retained lexical hardening:
+    - strip quoted strings/directives,
+    - normalize/strip `timeunit`/`timeprecision` lines,
+    - context-aware skips for member/namespace/macro paths.
+- Semantic-closure profile policy remains:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `sv_semantic_file` keeps:
+    - `require_declared_identifiers_before_use=false`
+    - while `require_width_compatibility_simple=true` remains enabled.
+- Synced docs/roadmap/memory:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Semantic-Closure Hardening: Declared/Width Validator Refinement + `sv_semantic_file` Policy Tightening
 ### ✅ Achievement Summary
 Hardened SV semantic-closure validator heuristics and tightened the `sv_semantic_file` policy to include width-compatibility checks while keeping declaration-before-use disabled pending remaining lexical false-positive burn-down.

@@ -273,7 +273,7 @@ Toolbox baseline to leverage end-to-end:
       - `require_declared_identifiers_before_use=false` (kept off until remaining lexical false-positive debt is retired)
     - gate now supports `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1` to auto-select `sv_semantic_file` when no explicit mode override is provided.
   - Progress (2026-02-27): hardened semantic validator heuristics used by semantic-closure profiles:
-    - `require_declared_identifiers_before_use` now strips quoted strings, ignores member/namespace/macro contexts, handles more declaration contexts (ports/imports/for/foreach/instantiation), and normalizes `timeunit/timeprecision` lines before token scans.
+    - `require_declared_identifiers_before_use` now uses structured use-site scanning (assignments/conditions/events/port-actual expressions), strips quoted strings/directives, ignores member/namespace/macro contexts, handles more declaration contexts (ports/imports/for/foreach/instantiation), and normalizes `timeunit/timeprecision` lines before token scans.
     - `require_width_compatibility_simple` now covers packed declarations for `logic|reg|wire|bit` and accepts indexed LHS assignment forms.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
@@ -446,6 +446,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Refined `require_declared_identifiers_before_use` to structured use-site scanning (assignment/condition/event/port contexts) and retained `sv_semantic_file` policy with declaration-before-use disabled until residual lexical-edge false positives are fully retired.
 - 2026-02-27: Hardened semantic-closure validators in `sv_stimuli_quality_gate` (`declared-identifiers` and `width-compatibility` heuristics) and extended `sv_semantic_file` policy to enable `require_width_compatibility_simple` while keeping `require_declared_identifiers_before_use` disabled pending further lexical false-positive burn-down.
 - 2026-02-27: Advanced Phase P semantic-closure execution by adding `sv_semantic_file` contract mode + `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1` gate switch, promoting `systemverilog_core_v0_contract.json` to v12 with stricter package/context/port baseline policy for dedicated semantic-closure runs.
 - 2026-02-27: Closed Phase P SV closed-loop convergence item by adding deterministic initial replay equivalence assertions in `sv_stimuli_quality_gate` (`initial` vs `initial_replay` corpus/coverage/gap parity) and summary metric `closed_loop_initial_replay_determinism_passes`.

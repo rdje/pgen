@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-semantic-validator-hardening)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-declared-check-structured-use-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV semantic-validator hardening increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for structured-use declared-check hardening increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -217,6 +217,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P declared-check hardening - structured use-site extraction
+- Root cause:
+  - declaration-before-use still produced lexical-noise false positives when scanning all identifiers globally on randomized semantic-closure stimuli.
+- Fix:
+  - reworked `check_declared_identifiers_before_use` in `rust/scripts/sv_stimuli_quality_gate.sh` to structured use-site scanning:
+    - assignment LHS/RHS,
+    - condition expressions,
+    - event controls,
+    - named-port actual expressions.
+  - retained lexical sanitization/context skips (strings/directives/timeunit-timeprecision/member-namespace-macro path filtering).
+  - kept `sv_semantic_file` contract posture:
+    - `require_declared_identifiers_before_use=false`
+    - `require_width_compatibility_simple=true`
+- Validation:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - semantic-closure mode remains stable with stronger validator internals; declaration-before-use remains intentionally deferred for final lexical-edge burn-down.
 
 ### 2026-02-27: Phase P semantic-validator hardening for `sv_semantic_file`
 - Root cause:
