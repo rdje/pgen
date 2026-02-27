@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-stimuli-modes-plumbing)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-failure-replay-shrinking)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV stimuli modes plumbing increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV failure-replay/shrinking increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `161`
+- Commit count at last refresh (before current uncommitted changes): `162`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- f0a7133 Add SV stimuli mode profiles (sv_file/sv_snippet) to quality gate
 - 825c3dd Wire Phase P semantic-closure validator toggles into sv_stimuli_quality_gate (contract v5)
 - 3966b88 Add deterministic sv_syntax_closure_gate and close Phase P syntax burn-down loop
 - e86f217 Promote SV stimuli gate to closed-loop baseline and freeze systemverilog_core_v0 v4
@@ -203,6 +204,28 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P deterministic failure replay/shrinking (SV stimuli gate, contract v7)
+- Root cause:
+  - closed-loop convergence item needed deterministic failing-sample replay with minimized artifacts; gate reported failures but did not shrink failing cases.
+- Fix:
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - added unified semantic evaluator (`evaluate_semantic_baseline`) used by normal stage + replay predicates,
+    - added contract-driven deterministic prefix shrinker (`deterministic_prefix_shrink`) and failure predicates for semantic/parse-full failures,
+    - added failure-replay summary counters (`semantic_failures_shrunk`, `parse_full_failures_shrunk`),
+    - added CSV note sanitization to keep summary rows stable.
+  - bumped `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `v7` and added:
+    - `failure_replay.enabled`
+    - `failure_replay.shrink_semantic_failures`
+    - `failure_replay.shrink_parse_full_failures`
+    - `failure_replay.shrink_max_iterations`
+  - updated roadmap + UG to document failure replay/shrinking contract.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - deterministic failure replay/shrinking plumbing is in place; semantic-annotation-driven SV steering remains pending.
 
 ### 2026-02-27: Phase P stimuli mode plumbing (`sv_file` / `sv_snippet`)
 - Root cause:

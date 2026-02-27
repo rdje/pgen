@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Closed-Loop Hardening: Deterministic Failure Replay + Shrinking (Contract v7)
+### Context
+Phase P requires deterministic replay and shrinking of failing syntax/semantic samples to make debugging and closure work actionable.
+
+Before this increment, `sv_stimuli_quality_gate` reported failures but did not emit minimized deterministic artifacts for failing semantic/parse-full paths.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+#### 1) Contractized failure replay policy surface
+`systemverilog_core_v0_contract.json` bumped to version `7` and now defines:
+- `failure_replay.enabled`
+- `failure_replay.shrink_semantic_failures`
+- `failure_replay.shrink_parse_full_failures`
+- `failure_replay.shrink_max_iterations`
+
+This keeps replay/shrink behavior deterministic and policy-controlled.
+
+#### 2) Unified semantic evaluation for normal + replay paths
+Added `evaluate_semantic_baseline(...)` in gate script and routed semantic stage through it.
+
+This function is now used by:
+- per-sample semantic stage pass/fail logic,
+- semantic failure replay predicate during shrinking.
+
+Result: one implementation controls both runtime behavior and failure reproduction checks.
+
+#### 3) Deterministic shrinking implementation
+Added a deterministic prefix shrinker:
+- `deterministic_prefix_shrink(...)`
+- binary-searches shortest failing prefix under configured iteration budget.
+
+Failure predicates:
+- semantic failure predicate:
+  - `semantic_failure_predicate` -> failure if `evaluate_semantic_baseline` rejects candidate.
+- parse-full failure predicate:
+  - `parse_full_failure_predicate` -> failure if parser rejects candidate in parse-full probe.
+
+Generated artifacts are written under gate work directory:
+- semantic: `sample_<profile>_<idx>.semantic.shrunk.sv`
+- parse-full: `sample_<profile>_<idx>.parse_full.shrunk.sv`
+
+#### 4) Summary/reporting updates
+Gate summary now exposes:
+- `semantic_failures_shrunk`
+- `parse_full_failures_shrunk`
+
+CSV notes are sanitized for deterministic single-line reporting.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- no regression in `sv_file` and `sv_snippet` mode behavior,
+- contract v7 controls are visible and active,
+- shrink/report counters are emitted with deterministic defaults.
+
 ## 2026-02-27 - Phase P Stimuli Modes: `sv_file` / `sv_snippet` Contractized Mode Selection (v6)
 ### Context
 Phase P required explicit stimuli modes so SV generation can target either:

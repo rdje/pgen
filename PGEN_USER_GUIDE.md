@@ -2052,6 +2052,17 @@ Optional SV syntax-closure gate tuning:
   - `closed_loop.target_max_attempts`
   - `closed_loop.replay_sample_count`
   - `closed_loop.require_non_increasing_target_debt`
+- failure replay + shrinking controls (from `systemverilog_core_v0_contract.json`):
+  - `failure_replay.enabled`
+  - `failure_replay.shrink_semantic_failures`
+  - `failure_replay.shrink_parse_full_failures`
+  - `failure_replay.shrink_max_iterations`
+  - behavior:
+    - on semantic failure, gate can emit deterministic shrunk artifact (`*.semantic.shrunk.sv`) preserving failing semantic predicate.
+    - on parse-full rejection, gate can emit deterministic shrunk artifact (`*.parse_full.shrunk.sv`) preserving parser rejection.
+    - summary reports shrink counters:
+      - `semantic_failures_shrunk`
+      - `parse_full_failures_shrunk`
 - semantic baseline is currently:
   - non-empty preprocessed output,
   - no `error` severity in preprocessor diagnostics.

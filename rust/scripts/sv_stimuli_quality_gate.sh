@@ -267,6 +267,123 @@ check_context_legality_basic() {
     return 0
 }
 
+csv_sanitize() {
+    local text="$1"
+    text="${text//$'\r'/ }"
+    text="${text//$'\n'/ }"
+    text="${text//,/;}"
+    printf '%s' "$text"
+}
+
+evaluate_semantic_baseline() {
+    local preprocessed_file="$1"
+    local preprocess_error_count="$2"
+    SEMANTIC_EVAL_NOTE="baseline semantic validation passed"
+
+    if [[ "$require_nonempty_preprocessed_output" -eq 1 ]] && [[ ! -s "$preprocessed_file" ]]; then
+        SEMANTIC_EVAL_NOTE="preprocessed output is empty"
+        return 1
+    fi
+    if [[ "$require_no_preprocess_errors" -eq 1 ]] && (( preprocess_error_count > 0 )); then
+        SEMANTIC_EVAL_NOTE="preprocessor diagnostics contain error severity entries"
+        return 1
+    fi
+    if [[ "$require_balanced_structural_keywords" -eq 1 ]]; then
+        if ! SEMANTIC_EVAL_NOTE="$(check_balanced_structural_keywords "$preprocessed_file")"; then
+            return 1
+        fi
+    fi
+    if [[ "$require_unique_named_port_bindings" -eq 1 ]]; then
+        if ! SEMANTIC_EVAL_NOTE="$(check_unique_named_port_bindings "$preprocessed_file")"; then
+            return 1
+        fi
+    fi
+    if [[ "$require_declared_identifiers_before_use" -eq 1 ]]; then
+        if ! SEMANTIC_EVAL_NOTE="$(check_declared_identifiers_before_use "$preprocessed_file")"; then
+            return 1
+        fi
+    fi
+    if [[ "$require_package_qualification_resolution" -eq 1 ]]; then
+        if ! SEMANTIC_EVAL_NOTE="$(check_package_qualification_resolution "$preprocessed_file")"; then
+            return 1
+        fi
+    fi
+    if [[ "$require_width_compatibility_simple" -eq 1 ]]; then
+        if ! SEMANTIC_EVAL_NOTE="$(check_width_compatibility_simple "$preprocessed_file")"; then
+            return 1
+        fi
+    fi
+    if [[ "$require_context_legality_basic" -eq 1 ]]; then
+        if ! SEMANTIC_EVAL_NOTE="$(check_context_legality_basic "$preprocessed_file")"; then
+            return 1
+        fi
+    fi
+    return 0
+}
+
+semantic_failure_predicate() {
+    local candidate_file="$1"
+    local preprocess_error_count="$2"
+    if evaluate_semantic_baseline "$candidate_file" "$preprocess_error_count"; then
+        return 1
+    fi
+    return 0
+}
+
+parse_full_failure_predicate() {
+    local candidate_file="$1"
+    if "$PARSE_PROBE_BIN" --parse "$grammar_name" "$candidate_file" >/dev/null 2>&1; then
+        return 1
+    fi
+    return 0
+}
+
+deterministic_prefix_shrink() {
+    local input_file="$1"
+    local output_file="$2"
+    local max_iterations="$3"
+    local predicate_fn="$4"
+    shift 4
+    local predicate_args=("$@")
+
+    local -a _shrink_lines=()
+    mapfile -t _shrink_lines < "$input_file"
+    local total_lines="${#_shrink_lines[@]}"
+    if (( total_lines == 0 )); then
+        cp "$input_file" "$output_file"
+        echo 0
+        return 0
+    fi
+
+    cp "$input_file" "$output_file"
+    local lo=1
+    local hi="$total_lines"
+    local best_lines="$total_lines"
+    local iterations=0
+    local tmp_candidate="$WORK_DIR/.shrink_candidate.$$.$RANDOM.sv"
+
+    while (( lo <= hi )) && (( iterations < max_iterations )); do
+        iterations=$((iterations + 1))
+        local mid=$(((lo + hi) / 2))
+        : >"$tmp_candidate"
+        local i
+        for ((i = 0; i < mid; i++)); do
+            printf '%s\n' "${_shrink_lines[$i]}" >>"$tmp_candidate"
+        done
+        if "$predicate_fn" "$tmp_candidate" "${predicate_args[@]}"; then
+            best_lines="$mid"
+            cp "$tmp_candidate" "$output_file"
+            hi=$((mid - 1))
+        else
+            lo=$((mid + 1))
+        fi
+    done
+
+    rm -f "$tmp_candidate"
+    echo "$best_lines"
+    return 0
+}
+
 run_logged() {
     local label="$1"
     shift
@@ -328,6 +445,10 @@ closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 e
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
 require_non_increasing_target_debt="$(jq -er 'if (.closed_loop.require_non_increasing_target_debt // true) then 1 else 0 end' "$CONTRACT_FILE")"
+failure_replay_enabled="$(jq -er 'if (.failure_replay.enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
+shrink_semantic_failures="$(jq -er 'if (.failure_replay.shrink_semantic_failures // true) then 1 else 0 end' "$CONTRACT_FILE")"
+shrink_parse_full_failures="$(jq -er 'if (.failure_replay.shrink_parse_full_failures // true) then 1 else 0 end' "$CONTRACT_FILE")"
+failure_shrink_max_iterations="$(jq -er '(.failure_replay.shrink_max_iterations // 24) | numbers' "$CONTRACT_FILE")"
 
 sample_count="${SAMPLE_COUNT_OVERRIDE:-$default_sample_count}"
 seed_base="${SEED_BASE_OVERRIDE:-$default_seed_base}"
@@ -352,6 +473,10 @@ if ! [[ "$target_max_attempts" =~ ^[0-9]+$ ]] || [[ "$target_max_attempts" -lt 1
 fi
 if ! [[ "$replay_sample_count" =~ ^[0-9]+$ ]] || [[ "$replay_sample_count" -lt 1 ]]; then
     echo "error: closed_loop.replay_sample_count must be an integer >= 1" >&2
+    exit 2
+fi
+if ! [[ "$failure_shrink_max_iterations" =~ ^[0-9]+$ ]] || [[ "$failure_shrink_max_iterations" -lt 1 ]]; then
+    echo "error: failure_replay.shrink_max_iterations must be an integer >= 1" >&2
     exit 2
 fi
 
@@ -475,6 +600,10 @@ echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
+echo "failure_replay_enabled: $failure_replay_enabled"
+echo "failure_replay_shrink_semantic_failures: $shrink_semantic_failures"
+echo "failure_replay_shrink_parse_full_failures: $shrink_parse_full_failures"
+echo "failure_replay_shrink_max_iterations: $failure_shrink_max_iterations"
 echo "semantic_require_declared_identifiers_before_use: $require_declared_identifiers_before_use"
 echo "semantic_require_package_qualification_resolution: $require_package_qualification_resolution"
 echo "semantic_require_width_compatibility_simple: $require_width_compatibility_simple"
@@ -557,6 +686,8 @@ closed_loop_initial_targets_total=0
 closed_loop_replay_targets_total=0
 total_warnings=0
 total_errors=0
+semantic_shrink_count=0
+parse_full_shrink_count=0
 profile_count="${#run_profiles[@]}"
 total_samples=$((sample_count * profile_count))
 
@@ -665,48 +796,19 @@ for profile_idx in "${!run_profiles[@]}"; do
 
         semantic_status="pass"
         semantic_note="baseline semantic validation passed"
-
-        if [[ "$require_nonempty_preprocessed_output" -eq 1 ]] && [[ ! -s "$preprocessed_file" ]]; then
+        if ! evaluate_semantic_baseline "$preprocessed_file" "$error_count"; then
             semantic_status="fail"
-            semantic_note="preprocessed output is empty"
-        fi
-        if [[ "$require_no_preprocess_errors" -eq 1 ]] && (( error_count > 0 )); then
-            semantic_status="fail"
-            semantic_note="preprocessor diagnostics contain error severity entries"
-        fi
-        if [[ "$semantic_status" == "pass" ]] && [[ "$require_balanced_structural_keywords" -eq 1 ]]; then
-            if ! semantic_note="$(check_balanced_structural_keywords "$preprocessed_file")"; then
-                semantic_status="fail"
-            fi
-        fi
-        if [[ "$semantic_status" == "pass" ]] && [[ "$require_unique_named_port_bindings" -eq 1 ]]; then
-            if ! semantic_note="$(check_unique_named_port_bindings "$preprocessed_file")"; then
-                semantic_status="fail"
-            fi
-        fi
-        if [[ "$semantic_status" == "pass" ]] && [[ "$require_declared_identifiers_before_use" -eq 1 ]]; then
-            if ! semantic_note="$(check_declared_identifiers_before_use "$preprocessed_file")"; then
-                semantic_status="fail"
-            fi
-        fi
-        if [[ "$semantic_status" == "pass" ]] && [[ "$require_package_qualification_resolution" -eq 1 ]]; then
-            if ! semantic_note="$(check_package_qualification_resolution "$preprocessed_file")"; then
-                semantic_status="fail"
-            fi
-        fi
-        if [[ "$semantic_status" == "pass" ]] && [[ "$require_width_compatibility_simple" -eq 1 ]]; then
-            if ! semantic_note="$(check_width_compatibility_simple "$preprocessed_file")"; then
-                semantic_status="fail"
-            fi
-        fi
-        if [[ "$semantic_status" == "pass" ]] && [[ "$require_context_legality_basic" -eq 1 ]]; then
-            if ! semantic_note="$(check_context_legality_basic "$preprocessed_file")"; then
-                semantic_status="fail"
-            fi
+            semantic_note="$SEMANTIC_EVAL_NOTE"
         fi
 
         if [[ "$semantic_status" != "pass" ]]; then
-            echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,fail,skip,${warning_count},${error_count},fail,${semantic_note}" >>"$SUMMARY_CSV"
+            if [[ "$failure_replay_enabled" -eq 1 ]] && [[ "$shrink_semantic_failures" -eq 1 ]]; then
+                semantic_shrink_file="$WORK_DIR/sample_${profile_key}_${idx}.semantic.shrunk.sv"
+                semantic_shrink_lines="$(deterministic_prefix_shrink "$preprocessed_file" "$semantic_shrink_file" "$failure_shrink_max_iterations" semantic_failure_predicate "$error_count")"
+                semantic_note="${semantic_note}; shrunk_failure=${semantic_shrink_file}; shrunk_lines=${semantic_shrink_lines}"
+                semantic_shrink_count=$((semantic_shrink_count + 1))
+            fi
+            echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,fail,skip,${warning_count},${error_count},fail,$(csv_sanitize "$semantic_note")" >>"$SUMMARY_CSV"
             echo "error: semantic baseline validation failed for profile '${lrm_profile}' sample_${idx}: ${semantic_note}" >&2
             exit 1
         fi
@@ -726,6 +828,12 @@ for profile_idx in "${!run_profiles[@]}"; do
                 parse_status="fail"
                 parse_note="parse_full rejected preprocessed sample"
                 parse_full_fail_count=$((parse_full_fail_count + 1))
+                if [[ "$failure_replay_enabled" -eq 1 ]] && [[ "$shrink_parse_full_failures" -eq 1 ]]; then
+                    parse_shrink_file="$WORK_DIR/sample_${profile_key}_${idx}.parse_full.shrunk.sv"
+                    parse_shrink_lines="$(deterministic_prefix_shrink "$preprocessed_file" "$parse_shrink_file" "$failure_shrink_max_iterations" parse_full_failure_predicate)"
+                    parse_note="${parse_note}; shrunk_failure=${parse_shrink_file}; shrunk_lines=${parse_shrink_lines}"
+                    parse_full_shrink_count=$((parse_full_shrink_count + 1))
+                fi
                 if [[ "$PARSE_FULL_MODE" == "1" ]]; then
                     echo "    fail (${parse_log})" >&2
                     tail -n 80 "$parse_log" >&2 || true
@@ -739,7 +847,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             parse_note="parse_full unavailable (${parse_full_effective})"
         fi
 
-        echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,${parse_note}" >>"$SUMMARY_CSV"
+        echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,$(csv_sanitize "$parse_note")" >>"$SUMMARY_CSV"
     done
 done
 
@@ -766,6 +874,8 @@ done
     echo "parse_full_passes: $parse_full_pass_count/$total_samples"
     echo "parse_full_failures: $parse_full_fail_count"
     echo "parse_full_skips: $parse_full_skip_count"
+    echo "semantic_failures_shrunk: $semantic_shrink_count"
+    echo "parse_full_failures_shrunk: $parse_full_shrink_count"
     echo "total_warnings: $total_warnings"
     echo "total_errors: $total_errors"
     echo

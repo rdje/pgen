@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Closed-Loop Hardening: Deterministic Failure Replay + Shrinking (v7)
+### ✅ Achievement Summary
+Hardened `sv_stimuli_quality_gate` with deterministic failure replay and shrinking for semantic and parse-full failing samples, so failing cases are preserved as reproducible minimized artifacts.
+
+### Scope of Changes
+- Extended failure handling in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - added contractized failure-replay controls:
+    - `failure_replay.enabled`
+    - `failure_replay.shrink_semantic_failures`
+    - `failure_replay.shrink_parse_full_failures`
+    - `failure_replay.shrink_max_iterations`
+  - added deterministic prefix shrinker:
+    - binary-search style prefix minimization while preserving failure predicate.
+  - semantic validation path now reuses a single function (`evaluate_semantic_baseline`) for:
+    - normal stage evaluation,
+    - replay shrink predicate checks.
+  - parse-full failure path now supports optional shrinking against parser rejection predicate.
+  - summary now reports:
+    - `semantic_failures_shrunk`
+    - `parse_full_failures_shrunk`
+- Updated contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `6 -> 7`
+  - added `failure_replay` block with deterministic shrink policy defaults.
+- Updated planning/docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Stimuli Modes: Added Contractized `sv_file` / `sv_snippet` Mode Plumbing (v6)
 ### ✅ Achievement Summary
 Implemented explicit SystemVerilog stimuli modes in `sv_stimuli_quality_gate` with contract-driven mode profiles, enabling targeted snippet generation and full-file generation through deterministic entry-rule routing.

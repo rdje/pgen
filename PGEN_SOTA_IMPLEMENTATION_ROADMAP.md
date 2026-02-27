@@ -264,6 +264,16 @@ Toolbox baseline to leverage end-to-end:
 - [ ] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.
+  - Progress (2026-02-27): added deterministic failure replay/shrinking controls in `sv_stimuli_quality_gate` + `systemverilog_core_v0_contract.json` (v7):
+    - contractized failure replay knobs:
+      - `failure_replay.enabled`
+      - `failure_replay.shrink_semantic_failures`
+      - `failure_replay.shrink_parse_full_failures`
+      - `failure_replay.shrink_max_iterations`
+    - deterministic prefix shrinking for semantic and parse-full failures with shrunk artifact emission under gate workdir.
+    - summary counters for shrink actions:
+      - `semantic_failures_shrunk`
+      - `parse_full_failures_shrunk`
 - [ ] Add differential and integration hardening for Nexsim:
   - mismatch taxonomy against trusted references,
   - performance/memory budgets on realistic SV corpora,
@@ -345,6 +355,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Advanced Phase P stimuli-mode track by adding contractized `sv_file`/`sv_snippet` mode plumbing in `sv_stimuli_quality_gate` (mode->entry rule mapping, mode-level closed-loop/parse-full eligibility controls) with `systemverilog_core_v0_contract.json` v6.
+- 2026-02-27: Advanced Phase P closed-loop convergence hardening by adding deterministic failure replay/shrinking in `sv_stimuli_quality_gate` with contractized `failure_replay` controls and `systemverilog_core_v0_contract.json` v7.
 - 2026-02-27: Advanced Phase P semantic-closure validator wiring by adding contractized semantic checks in `sv_stimuli_quality_gate` (`declared-before-use`, package qualification resolution, simple width compatibility, basic always-context legality) and bumping `systemverilog_core_v0_contract.json` to v5.
 - 2026-02-27: Closed Phase P syntax-closure burn-down loop by adding `sv_syntax_closure_gate` with contractized no-regression thresholds (parser generation viability, unresolved refs, entry-rule/rule-name invariants, reachable/unreachable summary caps).
 - 2026-02-27: Promoted `sv_stimuli_quality_gate` from skeleton to deterministic closed-loop baseline with per-profile `coverage/gap -> target-driven replay` stages, contractized closed-loop controls (`systemverilog_core_v0_contract.json` v4), and non-increasing target-debt enforcement.
