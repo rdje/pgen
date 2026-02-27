@@ -249,6 +249,11 @@ Toolbox baseline to leverage end-to-end:
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
   - deterministic error/diagnostic schema for host integration,
   - zero-copy input options and parse/session lifecycle contract for simulator integration.
+  - Progress (2026-02-27): added stable profile-aware embedding API surface in `pgen::embedding_api`:
+    - contract metadata: `parser_embedding_api_contract()`
+    - parse entry points: `parse_grammar_profile(...)` and `parse_grammar_profile_with_limits(...)`
+    - stable grammar/profile enums (`systemverilog`, `vhdl`; `sv_2017`, `sv_2023`, `vhdl_1076_2019`)
+    - deterministic diagnostics for mismatch/unavailable paths (`E_UNSUPPORTED_PROFILE`, `E_BACKEND_UNAVAILABLE`) with bounded-input enforcement parity (`ParseLimits`).
 - [ ] Promote SV gates into SOTA aggregate policy:
   - informational first,
   - required strict once syntax+semantic closure thresholds are green and stable.

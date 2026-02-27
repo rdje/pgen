@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: common-SV dual-profile scaffold)
+Last updated: 2026-02-27 (+0100, task: parser-embedding-api-profile-scaffold)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV dual-profile scaffold + roadmap/docs updates; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for parser embedding API profile scaffold; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,15 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `147`
+- Commit count at last refresh (before current uncommitted changes): `155`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 473dbe4 hdl: add executable vhdl seed grammar and close strict readiness gap
+- 1f6a89f policy: promote aggregate hdl readiness to required strict mode
+- cb67aab sv gate: extend semantic baseline with contract-driven structural checks (v2)
+- 5dcf40a tools: add reusable IEEE LRM conversion pipeline for SV/VHDL docs workspaces
+- 671ed6b Add SV dual-LRM profile scaffold and roadmap/API alignment
 - ae177e2 fix: implement proper round-trip testing with correct normalization
 - 9cd9e94 fix: convert remaining JSON files to correct round-trip format
 - c2f70b4 fix: implement true round-trip testing with proper unparsing
@@ -192,6 +197,22 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Nexsim parser embedding API profile scaffold (SV/VHDL)
+- Root cause:
+  - embedding API exposed annotation parsing only; Nexsim-targeted Phase P requires stable grammar parser entry points with explicit profile contracts.
+- Fix:
+  - added build-time optional backend discovery for generated SV/VHDL parser artifacts in `rust/build.rs`.
+  - extended generated parser module exports and parser registry with optional VHDL adapter path.
+  - added profile-aware parser embedding API in `rust/src/embedding_api.rs`:
+    - `parser_embedding_api_contract()`
+    - `parse_grammar_profile(...)`
+    - `parse_grammar_profile_with_limits(...)`
+    - stable enums for grammar/profile matrix (`systemverilog`/`vhdl`, `sv_2017`/`sv_2023`/`vhdl_1076_2019`)
+    - deterministic diagnostics for profile mismatch/unavailable backends.
+  - aligned docs and roadmap entries with the new contract surface.
+- Validation:
+  - `cargo test --manifest-path rust/Cargo.toml --lib embedding_api`.
 
 ### 2026-02-27: Common `systemverilog.ebnf` dual-LRM scaffold (`2017|2023`)
 - Root cause:

@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-02-27 - Added Nexsim Parser Embedding API Profile Contract Scaffold
+### ✅ Achievement Summary
+Implemented a stable, profile-aware parser embedding API surface in Rust so host projects (including Nexsim) can call SystemVerilog/VHDL parser entry points through deterministic contracts instead of internal generator details.
+
+### Scope of Changes
+- Updated parser build/config detection:
+  - `rust/build.rs`
+  - added dynamic cfg/env discovery for:
+    - `generated/systemverilog_parser.rs`
+    - `generated/vhdl_parser.rs`
+  - new cfg tags:
+    - `has_generated_systemverilog_parser`
+    - `has_generated_vhdl_parser`
+- Updated generated parser exports:
+  - `rust/src/lib.rs`
+  - added conditional `generated_parsers::vhdl` module include path.
+- Updated parser registry:
+  - `rust/src/parser_registry.rs`
+  - added conditional `vhdl` parseability adapter (`parse_full_vhdl_file`) and registry visibility test.
+- Extended embedding API:
+  - `rust/src/embedding_api.rs`
+  - added parser-profile contract metadata:
+    - `parser_embedding_api_contract()`
+  - added stable grammar/profile APIs:
+    - `parse_grammar_profile(...)`
+    - `parse_grammar_profile_with_limits(...)`
+  - added stable grammar/profile types:
+    - `GrammarFamily` (`systemverilog`, `vhdl`)
+    - `GrammarProfile` (`sv_2017`, `sv_2023`, `vhdl_1076_2019`)
+  - added deterministic diagnostics for profile mismatch and backend unavailability:
+    - `E_UNSUPPORTED_PROFILE`
+    - `E_BACKEND_UNAVAILABLE`
+  - added regression tests for profile matrix contract and backend-availability behavior.
+- Updated docs/plan:
+  - `rust/docs/EMBEDDING_API_CONTRACT.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --lib embedding_api` ✅
+
 ## 2026-02-27 - Added SV Dual-LRM Profile Scaffold (`2017|2023`) for Common `systemverilog.ebnf`
 ### ✅ Achievement Summary
 Implemented the first executable profile scaffold so one common `systemverilog.ebnf` is exercised in both LRM modes (`2017`, `2023`) via `sv_stimuli_quality_gate`.

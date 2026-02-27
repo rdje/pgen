@@ -1,4 +1,78 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Nexsim Parser Embedding API Profile Contract Scaffold (SV/VHDL)
+### Context
+Phase P requires a host-facing parser API contract so Nexsim can integrate parser calls without coupling to generated parser internals. Before this increment, embedding API only covered annotation parsing.
+
+### Implementation
+Primary files:
+- `rust/build.rs`
+- `rust/src/lib.rs`
+- `rust/src/parser_registry.rs`
+- `rust/src/embedding_api.rs`
+- `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added generated parser backend detection for SV and VHDL
+`rust/build.rs` now resolves both optional parser artifacts:
+- `PGEN_SYSTEMVERILOG_PARSER_PATH` (default `../generated/systemverilog_parser.rs`)
+- `PGEN_VHDL_PARSER_PATH` (default `../generated/vhdl_parser.rs`)
+
+When present, build script publishes:
+- cfg: `has_generated_systemverilog_parser`
+- cfg: `has_generated_vhdl_parser`
+- env:
+  - `PGEN_SYSTEMVERILOG_PARSER_PATH_RESOLVED`
+  - `PGEN_VHDL_PARSER_PATH_RESOLVED`
+
+#### 2) Extended generated parser module exports
+`rust/src/lib.rs` now exposes:
+- `generated_parsers::systemverilog` (existing, conditional),
+- `generated_parsers::vhdl` (new, conditional).
+
+This keeps parser include wiring centralized and build-time guarded.
+
+#### 3) Extended parser registry for VHDL parseability adapter path
+`rust/src/parser_registry.rs` now includes optional `vhdl` adapter:
+- parser type: `VhdlParser`
+- parse entry: `parse_full_vhdl_file()`
+- registry key: `"vhdl"` (when backend present)
+- added adapter-visibility test under corresponding cfg.
+
+#### 4) Added profile-aware parser embedding API
+`rust/src/embedding_api.rs` now provides:
+- contract metadata:
+  - `parser_embedding_api_contract() -> ParserEmbeddingApiContract`
+- stable enums:
+  - `GrammarFamily` (`systemverilog`, `vhdl`)
+  - `GrammarProfile` (`sv_2017`, `sv_2023`, `vhdl_1076_2019`)
+- parse outcomes:
+  - `GrammarParseOutcome` (same deterministic status/diagnostic style as annotation outcomes)
+- parser entry points:
+  - `parse_grammar_profile(...)`
+  - `parse_grammar_profile_with_limits(...)`
+
+Behavior contracts:
+- grammar/profile mismatch is deterministic and explicit:
+  - `E_UNSUPPORTED_PROFILE`
+- missing generated backend is deterministic:
+  - `E_BACKEND_UNAVAILABLE`
+- bounded input enforcement is shared with annotation API via `ParseLimits`.
+
+#### 5) Documentation alignment
+- `rust/docs/EMBEDDING_API_CONTRACT.md` now documents parser-profile APIs and diagnostic matrix.
+- `PGEN_USER_GUIDE.md` embedding section now lists parser-profile entry points and profile set.
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase P item updated with progress note for this scaffold.
+
+### Validation
+Executed:
+- `cargo test --manifest-path rust/Cargo.toml --lib embedding_api`
+
+Observed:
+- annotation API tests still pass,
+- new parser-profile contract tests pass for both available/unavailable backend cfg paths,
+- deterministic diagnostics for profile mismatch and size-limit checks are enforced.
+
 ## 2026-02-27 - Common `systemverilog.ebnf` Dual-LRM Scaffold (`2017|2023`)
 ### Context
 Agreement: keep one common `grammars/systemverilog.ebnf` and support both SV LRMs through profile selection rather than split grammar files.

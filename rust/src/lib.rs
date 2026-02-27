@@ -39,6 +39,10 @@ pub mod generated_parsers {
     pub mod systemverilog {
         include!(env!("PGEN_SYSTEMVERILOG_PARSER_PATH_RESOLVED"));
     }
+    #[cfg(has_generated_vhdl_parser)]
+    pub mod vhdl {
+        include!(env!("PGEN_VHDL_PARSER_PATH_RESOLVED"));
+    }
 }
 
 #[cfg(feature = "generated_parsers")]

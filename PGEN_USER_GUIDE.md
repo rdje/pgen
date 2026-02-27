@@ -2052,6 +2052,24 @@ make -C rust SHELL=/bin/bash embedding_api_gate
 Design goal:
 - Expose stable, versioned outcomes for embedders without coupling to internal AST implementation details.
 
+Current stable surfaces:
+- Annotation parsing:
+  - `parse_annotation(...)`
+  - `parse_annotation_with_limits(...)`
+- Parser profile embedding:
+  - `parser_embedding_api_contract()`
+  - `parse_grammar_profile(...)`
+  - `parse_grammar_profile_with_limits(...)`
+
+Current parser profiles:
+- `systemverilog`: `sv_2017`, `sv_2023`
+- `vhdl`: `vhdl_1076_2019`
+
+Deterministic integration behavior:
+- grammar/profile mismatch returns `E_UNSUPPORTED_PROFILE`.
+- missing generated backend returns `E_BACKEND_UNAVAILABLE`.
+- per-call bounded input limits enforced via `ParseLimits`.
+
 ## 12) File and Artifact Map
 
 Sources:

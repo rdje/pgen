@@ -2,11 +2,13 @@
 //!
 //! This centralizes grammar-name dispatch so new generated grammars are added in one place.
 
-use crate::ast_pipeline::{runtime_logger, runtime_logger_box, UnifiedSemanticAST};
+use crate::ast_pipeline::{UnifiedSemanticAST, runtime_logger, runtime_logger_box};
 #[cfg(feature = "ebnf_dual_run")]
 use crate::ebnf_generated_parser::EbnfParser;
 #[cfg(has_generated_systemverilog_parser)]
 use crate::generated_parsers::systemverilog::SystemverilogParser;
+#[cfg(has_generated_vhdl_parser)]
+use crate::generated_parsers::vhdl::VhdlParser;
 use crate::generated_parsers::{
     return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser,
 };
@@ -63,6 +65,12 @@ fn parse_with_systemverilog(sample: &str) -> bool {
     parser.parse_full_systemverilog_file().is_ok()
 }
 
+#[cfg(has_generated_vhdl_parser)]
+fn parse_with_vhdl(sample: &str) -> bool {
+    let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+    parser.parse_full_vhdl_file().is_ok()
+}
+
 static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "return_annotation",
@@ -89,6 +97,11 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog",
         parse_sample: parse_with_systemverilog,
+    },
+    #[cfg(has_generated_vhdl_parser)]
+    GeneratedParserRegistryEntry {
+        grammar_name: "vhdl",
+        parse_sample: parse_with_vhdl,
     },
     // Add future grammars here once their generated parser artifacts compile cleanly.
     // Examples: json, regex, systemverilog, vhdl.
@@ -140,6 +153,13 @@ mod tests {
     fn registry_exposes_systemverilog_when_generated_parser_present() {
         let grammars = registered_grammars();
         assert!(grammars.contains(&"systemverilog"));
+    }
+
+    #[cfg(has_generated_vhdl_parser)]
+    #[test]
+    fn registry_exposes_vhdl_when_generated_parser_present() {
+        let grammars = registered_grammars();
+        assert!(grammars.contains(&"vhdl"));
     }
 
     #[test]
