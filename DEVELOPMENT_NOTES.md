@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Closed-Loop Determinism: Initial Replay Equivalence Checks in `sv_stimuli_quality_gate`
+### Context
+SV closed-loop convergence already had replay/shrinking and debt checks, but deterministic seed replay verification was still implicit.
+
+To close the convergence contract, we needed an explicit deterministic replay assertion stage in the gate itself.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+#### 1) Added explicit initial replay stage per profile
+For each LRM profile, gate now runs:
+- `profile_<lrm>_closed_loop_initial`
+- `profile_<lrm>_closed_loop_initial_replay` (same seed/config)
+
+#### 2) Added deterministic equivalence assertions
+Gate compares initial vs initial-replay artifacts:
+- exact text comparison:
+  - generated stimuli corpus
+  - gap text report
+- canonical JSON comparison:
+  - coverage JSON
+  - gap JSON
+
+Mismatch now fails gate with contextual diff output.
+
+#### 3) Added summary visibility
+New summary metric:
+- `closed_loop_initial_replay_determinism_passes`
+
+This reports deterministic replay pass count across active profiles.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- both `2017` and `2023` profiles pass deterministic initial replay checks,
+- summary reports `closed_loop_initial_replay_determinism_passes: 2/2`.
+
 ## 2026-02-27 - Phase Q/P Contract Alignment: Per-Sample Stage Order in `sv_stimuli_quality_gate`
 ### Context
 Phase Q parser/stimuli integration contract specifies sample-stage flow:

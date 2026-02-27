@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-qp-sv-sample-stage-order-alignment)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-closed-loop-initial-replay-determinism)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV sample-stage order alignment increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV closed-loop initial replay determinism increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `173`
+- Commit count at last refresh (before current uncommitted changes): `174`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- fd7c349 Align SV stimuli sample-stage order with Phase Q parser/stimuli contract
 - f5c2928 Track preprocess convergence debt in SV stimuli closed-loop gate
 - 5115a23 Promote SV preprocessor quality gate to required aggregate policy
 - 87e6a95 Add trusted-reference mismatch taxonomy to SV preprocessor quality gate
@@ -215,6 +216,26 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P deterministic initial replay checks in SV closed-loop gate
+- Root cause:
+  - closed-loop convergence used deterministic seeds but did not explicitly assert initial-stage replay equivalence as a gate condition.
+- Fix:
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - added `profile_<lrm>_closed_loop_initial_replay` stage per profile,
+    - added deterministic equivalence assertions for initial vs initial-replay artifacts:
+      - stimuli text,
+      - coverage JSON (canonical compare),
+      - gap JSON (canonical compare),
+      - gap text.
+    - added summary metric:
+      - `closed_loop_initial_replay_determinism_passes`.
+  - updated roadmap/UG/docs continuity and marked SV closed-loop convergence item complete.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - deterministic initial replay equivalence is now an executable gate invariant for SV profiles.
 
 ### 2026-02-27: Phase Q/P stage-order alignment in `sv_stimuli_quality_gate`
 - Root cause:

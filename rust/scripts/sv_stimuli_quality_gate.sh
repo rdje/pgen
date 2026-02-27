@@ -47,6 +47,34 @@ require_nonempty_file() {
     fi
 }
 
+canonicalize_json() {
+    local source="$1"
+    local target="$2"
+    jq -S . "$source" >"$target"
+}
+
+assert_same_text() {
+    local left="$1"
+    local right="$2"
+    local context="$3"
+    if ! cmp -s "$left" "$right"; then
+        echo "error: deterministic replay mismatch for $context" >&2
+        diff -u "$left" "$right" | head -n 120 >&2 || true
+        exit 1
+    fi
+}
+
+assert_same_json() {
+    local left="$1"
+    local right="$2"
+    local context="$3"
+    local left_norm="${left}.norm.json"
+    local right_norm="${right}.norm.json"
+    canonicalize_json "$left" "$left_norm"
+    canonicalize_json "$right" "$right_norm"
+    assert_same_text "$left_norm" "$right_norm" "$context"
+}
+
 check_balanced_structural_keywords() {
     local file="$1"
     local pair
@@ -785,6 +813,7 @@ parse_full_skip_count=0
 parse_full_fail_count=0
 closed_loop_profile_pass_count=0
 closed_loop_profile_skip_count=0
+closed_loop_initial_replay_determinism_pass_count=0
 closed_loop_initial_targets_total=0
 closed_loop_replay_targets_total=0
 closed_loop_initial_preprocess_warnings_total=0
@@ -811,6 +840,10 @@ for profile_idx in "${!run_profiles[@]}"; do
         closed_loop_initial_coverage="$WORK_DIR/profile_${profile_key}_initial_coverage.json"
         closed_loop_initial_gap_json="$WORK_DIR/profile_${profile_key}_initial_gap.json"
         closed_loop_initial_gap_text="$WORK_DIR/profile_${profile_key}_initial_gap.txt"
+        closed_loop_initial_replay_stimuli="$WORK_DIR/profile_${profile_key}_initial_replay_stimuli.sv"
+        closed_loop_initial_replay_coverage="$WORK_DIR/profile_${profile_key}_initial_replay_coverage.json"
+        closed_loop_initial_replay_gap_json="$WORK_DIR/profile_${profile_key}_initial_replay_gap.json"
+        closed_loop_initial_replay_gap_text="$WORK_DIR/profile_${profile_key}_initial_replay_gap.txt"
         closed_loop_replay_stimuli="$WORK_DIR/profile_${profile_key}_replay_stimuli.sv"
         closed_loop_replay_coverage="$WORK_DIR/profile_${profile_key}_replay_coverage.json"
         closed_loop_replay_gap_json="$WORK_DIR/profile_${profile_key}_replay_gap.json"
@@ -836,6 +869,28 @@ for profile_idx in "${!run_profiles[@]}"; do
         initial_target_count="$(jq -er '(.targets // []) | length | numbers' "$closed_loop_initial_gap_json")"
         closed_loop_initial_targets_total=$((closed_loop_initial_targets_total + initial_target_count))
         profile_closed_loop_initial_status="pass"
+
+        run_logged "profile_${profile_key}_closed_loop_initial_replay" \
+            "$AST_PIPELINE_BIN" "$grammar_json" \
+            --generate-stimuli \
+            --count "$sample_count" \
+            --seed "$profile_seed_base" \
+            --entry-rule "$mode_entry_rule" \
+            --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
+            --output "$closed_loop_initial_replay_stimuli" \
+            --coverage-output "$closed_loop_initial_replay_coverage" \
+            --gap-report-json "$closed_loop_initial_replay_gap_json" \
+            --gap-report-text "$closed_loop_initial_replay_gap_text" \
+            --gap-report-threshold "$gap_report_threshold"
+        require_nonempty_file "$closed_loop_initial_replay_stimuli"
+        require_nonempty_file "$closed_loop_initial_replay_coverage"
+        require_nonempty_file "$closed_loop_initial_replay_gap_json"
+        require_nonempty_file "$closed_loop_initial_replay_gap_text"
+        assert_same_text "$closed_loop_initial_stimuli" "$closed_loop_initial_replay_stimuli" "sv closed-loop initial stimuli replay (${lrm_profile})"
+        assert_same_json "$closed_loop_initial_coverage" "$closed_loop_initial_replay_coverage" "sv closed-loop initial coverage replay (${lrm_profile})"
+        assert_same_json "$closed_loop_initial_gap_json" "$closed_loop_initial_replay_gap_json" "sv closed-loop initial gap replay (${lrm_profile})"
+        assert_same_text "$closed_loop_initial_gap_text" "$closed_loop_initial_replay_gap_text" "sv closed-loop initial gap text replay (${lrm_profile})"
+        closed_loop_initial_replay_determinism_pass_count=$((closed_loop_initial_replay_determinism_pass_count + 1))
 
         run_logged "profile_${profile_key}_closed_loop_replay" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
@@ -1020,6 +1075,7 @@ done
     echo "closed_loop_replay_sample_count: $replay_sample_count"
     echo "closed_loop_profiles_passed: $closed_loop_profile_pass_count/$profile_count"
     echo "closed_loop_profiles_skipped: $closed_loop_profile_skip_count/$profile_count"
+    echo "closed_loop_initial_replay_determinism_passes: $closed_loop_initial_replay_determinism_pass_count/$profile_count"
     echo "closed_loop_initial_targets_total: $closed_loop_initial_targets_total"
     echo "closed_loop_replay_targets_total: $closed_loop_replay_targets_total"
     echo "closed_loop_initial_preprocess_warnings_total: $closed_loop_initial_preprocess_warnings_total"

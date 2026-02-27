@@ -2077,6 +2077,14 @@ Optional SV syntax-closure gate tuning:
 
 `sv_stimuli_quality_gate` closed-loop stage contract:
 - per-profile closed loop:
+  - deterministic initial-stage replay check:
+    - gate reruns initial closed-loop generation with same seed/profile config and asserts deterministic equivalence for:
+      - stimuli text artifact
+      - coverage JSON
+      - gap JSON
+      - gap text report
+    - summary metric:
+      - `closed_loop_initial_replay_determinism_passes`
   - `coverage/gap(initial) -> target-driven replay -> non-increasing target debt check`.
   - preprocess convergence debt extraction on closed-loop corpora:
     - `closed_loop_initial_preprocess_warnings_total`

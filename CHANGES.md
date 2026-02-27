@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Closure Increment: Deterministic Initial Replay Verification in `sv_stimuli_quality_gate`
+### ✅ Achievement Summary
+Completed the remaining deterministic replay portion of SV closed-loop convergence by adding profile-level initial replay equivalence checks in `sv_stimuli_quality_gate`.
+
+### Scope of Changes
+- Updated SV stimuli gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - added deterministic initial replay stage per LRM profile:
+    - `profile_<lrm>_closed_loop_initial_replay`
+  - replay equality checks now enforce deterministic equivalence for:
+    - initial stimuli text
+    - initial coverage JSON
+    - initial gap JSON
+    - initial gap text report
+  - added summary metric:
+    - `closed_loop_initial_replay_determinism_passes`
+- Updated closure tracking/docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - marked "Enforce closed-loop convergence for SV" complete.
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+    - documented deterministic initial replay verification contract.
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase Q/P Integration Closure Increment: Enforce `preprocess -> parse_full -> semantic` Sample Stage Order
 ### ✅ Achievement Summary
 Aligned `sv_stimuli_quality_gate` per-sample execution order with the Phase Q parser/stimuli integration contract and marked that roadmap item complete.
