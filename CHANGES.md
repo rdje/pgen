@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-02-27 - Hardened `systemverilog.ebnf` Seed Consistency (Resolved Unresolved Symbols)
+### ✅ Achievement Summary
+Closed the initial unresolved-rule debt in `grammars/systemverilog.ebnf` so the seed grammar is now internally reference-consistent.
+
+### Scope of Changes
+- Updated grammar:
+  - `grammars/systemverilog.ebnf`
+  - added missing symbol definitions:
+    - `modport_declaration`, `modport_item`, `modport_ports_declaration`, `modport_port`
+    - `checker_instantiation`
+    - `block_item_declaration`
+    - `class_item`
+    - `kw_assert`
+- Updated syntax-closure tracker and docs:
+  - `SV_GRAMMAR_COVERAGE_MATRIX.md` refreshed counts/status and unresolved-debt section.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` progress updated for syntax-consistency closure.
+  - `PGEN_USER_GUIDE.md` updated matrix-state note.
+
+### Validation Results
+- unresolved-reference scan for `grammars/systemverilog.ebnf` now returns no unresolved symbols.
+- `make -C rust SHELL=/bin/bash hdl_frontend_readiness` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - expected current behavior retained: parse-full stage runs in `auto` mode and may soft-fail while semantic/syntax closure continues.
+
 ## 2026-02-27 - Added `SV_GRAMMAR_COVERAGE_MATRIX.md` (Annex-A Anchored, Per-Rule Tracked)
 ### ✅ Achievement Summary
 Added a dedicated SystemVerilog syntax-closure tracking artifact with Annex-A-aligned anchor mapping, grouped per-rule status inventory, and explicit unresolved-reference debt for the current `systemverilog.ebnf` seed grammar.

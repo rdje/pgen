@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: SV coverage matrix)
+Last updated: 2026-02-27 (+0100, task: SV unresolved-symbol closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for `SV_GRAMMAR_COVERAGE_MATRIX.md` and synced docs/roadmap updates; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for `systemverilog.ebnf` unresolved-symbol closure + synced docs/roadmap updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Closed unresolved symbol references in `systemverilog.ebnf`
+- Root cause:
+  - matrix-driven unresolved-reference scan showed five missing symbols blocking clean syntax-consistency tracking.
+- Fix:
+  - updated `grammars/systemverilog.ebnf` by adding:
+    - `modport_declaration`, `modport_item`, `modport_ports_declaration`, `modport_port`
+    - `checker_instantiation`
+    - `block_item_declaration`
+    - `class_item`
+    - `kw_assert`
+  - refreshed:
+    - `SV_GRAMMAR_COVERAGE_MATRIX.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `PGEN_USER_GUIDE.md`
+- Validation:
+  - unresolved-reference scan now returns empty.
+  - `make -C rust SHELL=/bin/bash hdl_frontend_readiness`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=2 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 
 ### 2026-02-27: Added Annex-A anchored SystemVerilog grammar coverage matrix
 - Root cause:
@@ -454,22 +473,20 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Close the current unresolved `systemverilog.ebnf` references tracked in the matrix:
-   - add/resolve `block_item_declaration`, `checker_instantiation`, `class_item`, `kw_assert`, `modport_declaration`.
-2. Extend semantic-validation stage beyond baseline:
+1. Extend semantic-validation stage beyond baseline:
    - move from preprocess-diagnostics baseline to explicit SV semantic contract checks (declaration/use, binding legality, scoped references).
-3. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
+2. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
    - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
-4. Add first VHDL seed grammar:
+3. Add first VHDL seed grammar:
    - `grammars/vhdl.ebnf`
    - drive `make -C rust hdl_frontend_gate` to green for both tracked HDL grammars.
-5. Decide SOTA aggregate integration path for HDL readiness:
+4. Decide SOTA aggregate integration path for HDL readiness:
    - informational first in `sota_exit_gate`, then required strict when seed grammars stabilize.
-6. Continue Rust-native EBNF migration hardening:
+5. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-7. Expand parser-registry coverage beyond annotations/ebnf:
+6. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-8. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+7. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

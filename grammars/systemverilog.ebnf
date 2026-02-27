@@ -74,6 +74,11 @@ non_port_interface_item := generate_region
                          | modport_declaration
                          | timeunits_declaration
 
+modport_declaration := kw_modport modport_item (comma modport_item)* semi
+modport_item := identifier lparen modport_ports_declaration? rparen
+modport_ports_declaration := modport_port (comma modport_port)*
+modport_port := port_direction? identifier
+
 program_item := port_declaration semi
               | non_port_program_item
 
@@ -242,6 +247,8 @@ bind_instantiation := program_instantiation
                     | interface_instantiation
                     | checker_instantiation
 
+checker_instantiation := identifier parameter_value_assignment? hierarchical_instance (comma hierarchical_instance)*
+
 # ---------------------------------------------------------------------------
 # Generate
 # ---------------------------------------------------------------------------
@@ -298,6 +305,21 @@ list_of_variable_decl_assignments := variable_decl_assignment (comma variable_de
 variable_decl_assignment := identifier variable_dimension* (assign expression)?
 variable_dimension := packed_dimension
                     | unpacked_dimension
+
+block_item_declaration := data_declaration
+                        | net_declaration
+                        | local_parameter_declaration
+                        | parameter_declaration
+                        | package_import_declaration
+                        | assertion_item_declaration
+                        | semi
+
+class_item := data_declaration
+            | task_declaration
+            | function_declaration
+            | class_constructor_declaration
+            | assertion_item_declaration
+            | semi
 
 task_declaration := kw_task lifetime? task_identifier tf_port_list? semi block_item_declaration* statement_or_null* kw_endtask task_label?
 task_label := colon task_identifier
@@ -746,6 +768,7 @@ kw_begin := trivia /begin\b/
 kw_end := trivia /end\b/
 kw_if := trivia /if\b/
 kw_else := trivia /else\b/
+kw_assert := trivia /assert\b/
 kw_case := trivia /case\b/
 kw_casez := trivia /casez\b/
 kw_casex := trivia /casex\b/

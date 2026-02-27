@@ -217,8 +217,10 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-02-27): wired dynamic build-time `systemverilog` parseability adapter injection (`build.rs` + conditional registry entry) so `sv_stimuli_quality_gate` can execute real `parse_full` on preprocessed samples without tracking generated parser artifacts in git.
 - [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
   - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
+  - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
 - [ ] Build syntax-closure burn-down loop:
   - grow `systemverilog.ebnf` clause-by-clause under deterministic no-regression gates.
+  - Progress (2026-02-27): first syntax-consistency hardening step complete: unresolved symbol references reduced to zero in the current seed grammar.
 - [ ] Build semantic-closure profile and validator pass for generated SV stimuli:
   - declaration-before-use,
   - scope/package import resolution,
@@ -300,6 +302,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.
+- 2026-02-27: Hardened `systemverilog.ebnf` seed consistency by defining previously unresolved symbols (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed `SV_GRAMMAR_COVERAGE_MATRIX.md` to reflect zero unresolved reference debt.
 - 2026-02-27: Added `SV_GRAMMAR_COVERAGE_MATRIX.md` to operationalize Phase P syntax-closure tracking with Annex-A-aligned anchors, grouped per-rule status coverage, and explicit unresolved-reference debt for `systemverilog.ebnf`.
 - 2026-02-27: Wired dynamic build-time `systemverilog` parser-registry adapter path (`build.rs` + conditional module/registry entry) and upgraded `sv_stimuli_quality_gate` parse-full stage from adapter-skipped to executable in `auto` mode, with strict mode hard-fail behavior.
 - 2026-02-27: Started Phase Q/P parser-stimuli integration by adding `sv_stimuli_quality_gate` skeleton + initial `systemverilog_core_v0` contract manifest (`preprocess -> semantic baseline -> parse_full(optional)` with explicit stage accounting and auto/strict parse-full policy controls).

@@ -1899,6 +1899,7 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
 - SystemVerilog syntax-closure tracking artifact:
   - `SV_GRAMMAR_COVERAGE_MATRIX.md`
   - contains Annex-A-aligned anchor mapping, grouped per-rule coverage status, and explicit unresolved-reference closure debt for the current seed grammar.
+  - current matrix state (2026-02-27): unresolved rule-reference debt in `grammars/systemverilog.ebnf` is zero; remaining closure work is Annex-A breadth and semantic legality.
 
 EBNF frontend dual-run commands:
 ```bash

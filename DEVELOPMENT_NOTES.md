@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - `systemverilog.ebnf` Internal Reference Hardening (Zero Unresolved Symbols)
+### Context
+After publishing `SV_GRAMMAR_COVERAGE_MATRIX.md`, the unresolved-reference scan identified five missing symbols in the seed grammar:
+- `modport_declaration`
+- `class_item`
+- `block_item_declaration`
+- `checker_instantiation`
+- `kw_assert`
+
+These were blocking clean syntax-consistency posture for Phase P syntax burn-down work.
+
+### Implementation
+Primary files:
+- `grammars/systemverilog.ebnf`
+- `SV_GRAMMAR_COVERAGE_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Added missing item/declaration symbol definitions
+In `grammars/systemverilog.ebnf`:
+- added interface modport baseline:
+  - `modport_declaration`
+  - `modport_item`
+  - `modport_ports_declaration`
+  - `modport_port`
+- added instantiation baseline:
+  - `checker_instantiation`
+- added declaration scaffolding:
+  - `block_item_declaration`
+  - `class_item`
+- added missing keyword token:
+  - `kw_assert`
+
+Result:
+- no dangling symbol references remain in current grammar text.
+
+#### 2) Refreshed syntax-closure tracking artifacts
+- `SV_GRAMMAR_COVERAGE_MATRIX.md`:
+  - updated grouped section counts (items/declarations/instantiation/tokens),
+  - updated unresolved-reference section to explicit zero-debt state.
+- roadmap/user guide synchronized to this new state.
+
+### Validation
+Executed:
+- unresolved-reference scan (definition-vs-use) on `grammars/systemverilog.ebnf`
+- `make -C rust SHELL=/bin/bash hdl_frontend_readiness`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- unresolved-reference scan is empty,
+- HDL readiness report remains stable (`systemverilog` pass, `vhdl` not ready),
+- SV stimuli quality gate still passes in skeleton mode with parse-full `auto` soft-fail behavior preserved.
+
 ## 2026-02-27 - Phase P Syntax-Closure Artifact: `SV_GRAMMAR_COVERAGE_MATRIX.md`
 ### Context
 Phase P required an explicit, executable-adjacent syntax closure tracker mapped to IEEE anchors, not just ad-hoc notes in roadmap bullets. Without a matrix artifact, SystemVerilog grammar growth would be hard to audit and hard to prioritize against Annex-A coverage goals.
