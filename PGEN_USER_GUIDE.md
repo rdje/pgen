@@ -1983,7 +1983,7 @@ Aggregate gate tuning:
 - `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT` (`1`/`0`, default from policy file; current tracked policy default is `1`)
 - `PGEN_SOTA_RUN_SV_STIMULI_QUALITY` (`1`/`0`, default from policy file)
-- `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
+- `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file; current tracked policy default is `1`)
 - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)

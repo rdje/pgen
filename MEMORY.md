@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-closed-loop-initial-replay-determinism)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-gate-policy-strict-promotion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV closed-loop initial replay determinism increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV stimuli strict-policy promotion increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `174`
+- Commit count at last refresh (before current uncommitted changes): `175`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- e7e8ee1 Add deterministic initial replay equivalence checks to SV closed-loop gate
 - fd7c349 Align SV stimuli sample-stage order with Phase Q parser/stimuli contract
 - f5c2928 Track preprocess convergence debt in SV stimuli closed-loop gate
 - 5115a23 Promote SV preprocessor quality gate to required aggregate policy
@@ -216,6 +217,18 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Aggregate policy promotion - `sv_stimuli_quality_gate` required by default
+- Root cause:
+  - SV stimuli gate remained informational in aggregate policy despite closure progress on stage-order and deterministic replay invariants.
+- Fix:
+  - updated `rust/config/sota_exit_policy.env`:
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT=1`
+  - synced roadmap + UG docs to reflect strict default policy posture.
+- Validation:
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+- Status:
+  - aggregate gate now requires SV stimuli quality pass under tracked defaults.
 
 ### 2026-02-27: Phase P deterministic initial replay checks in SV closed-loop gate
 - Root cause:

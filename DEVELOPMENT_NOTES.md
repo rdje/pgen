@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Aggregate SOTA Policy Promotion: SV Stimuli Gate Required Strict
+### Context
+`sv_stimuli_quality_gate` was integrated into aggregate SOTA flow as informational during stabilization. After closing Stage-order and deterministic replay invariants, policy was ready for strict promotion.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+Policy change:
+- `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 -> 1`
+
+Effect:
+- `sota_exit_gate` now treats `sv_stimuli_quality_gate` as required by default in tracked policy.
+
+### Validation
+Executed focused aggregate run:
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+
+Observed:
+- aggregate summary reports `sv_stimuli_quality_gate` as required and passing.
+
 ## 2026-02-27 - Phase P Closed-Loop Determinism: Initial Replay Equivalence Checks in `sv_stimuli_quality_gate`
 ### Context
 SV closed-loop convergence already had replay/shrinking and debt checks, but deterministic seed replay verification was still implicit.

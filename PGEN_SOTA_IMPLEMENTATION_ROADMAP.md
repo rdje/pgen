@@ -328,9 +328,13 @@ Toolbox baseline to leverage end-to-end:
     - idiomatic Rust `Result` wrappers for direct host integration (`*_result` APIs),
     - named string-based entry points for non-Rust bindings/FFI (`*_named` APIs),
     - stable invalid-argument diagnostic taxonomy (`E_INVALID_ARGUMENT`) for binding layers.
-- [ ] Promote SV gates into SOTA aggregate policy:
+- [x] Promote SV gates into SOTA aggregate policy:
   - informational first,
   - required strict once syntax+semantic closure thresholds are green and stable.
+  - Progress (2026-02-27): promoted aggregate policy to strict required SV stimuli mode by setting:
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT=1`
+    in `rust/config/sota_exit_policy.env`.
+    `sota_exit_gate` now treats `sv_stimuli_quality_gate` as required by default.
 
 ### Phase Q (New): SystemVerilog Preprocessor Frontend Closure (Preprocessor-First)
 Objective: deliver an executable, testable, deterministic preprocessor frontend so the main SV parser consumes preprocessed content under a defined contract.
