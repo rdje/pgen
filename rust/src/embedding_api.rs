@@ -40,6 +40,18 @@ pub enum ParseStatus {
     Failure,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InputOwnershipModel {
+    BorrowedStr,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParseSessionModel {
+    StatelessPerCall,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParseDiagnostic {
     pub code: String,
@@ -235,6 +247,10 @@ pub struct ParserEmbeddingApiContract {
     pub api_version: String,
     pub schema_version: u32,
     pub deterministic_by_default: bool,
+    pub input_ownership_model: InputOwnershipModel,
+    pub parse_session_model: ParseSessionModel,
+    pub zero_copy_input_boundary: bool,
+    pub stable_diagnostic_codes: Vec<String>,
     pub supported_grammars: Vec<GrammarFamily>,
     pub supported_profiles: Vec<GrammarProfile>,
     pub profile_matrix: Vec<GrammarProfileBinding>,
@@ -270,6 +286,17 @@ pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
         api_version: EMBEDDING_API_VERSION.to_string(),
         schema_version: EMBEDDING_API_SCHEMA_VERSION,
         deterministic_by_default: true,
+        input_ownership_model: InputOwnershipModel::BorrowedStr,
+        parse_session_model: ParseSessionModel::StatelessPerCall,
+        zero_copy_input_boundary: true,
+        stable_diagnostic_codes: vec![
+            "E_BACKEND_UNAVAILABLE".to_string(),
+            "E_INPUT_TOO_LARGE".to_string(),
+            "E_INVALID_ARGUMENT".to_string(),
+            "E_INVALID_LIMITS".to_string(),
+            "E_PARSE_FAILURE".to_string(),
+            "E_UNSUPPORTED_PROFILE".to_string(),
+        ],
         supported_grammars: vec![GrammarFamily::SystemVerilog, GrammarFamily::Vhdl],
         supported_profiles: vec![
             systemverilog_profiles[0],
@@ -997,6 +1024,26 @@ mod tests {
         let contract = parser_embedding_api_contract();
         assert_eq!(contract.api_version, EMBEDDING_API_VERSION);
         assert_eq!(contract.schema_version, EMBEDDING_API_SCHEMA_VERSION);
+        assert_eq!(
+            contract.input_ownership_model,
+            InputOwnershipModel::BorrowedStr
+        );
+        assert_eq!(
+            contract.parse_session_model,
+            ParseSessionModel::StatelessPerCall
+        );
+        assert!(contract.zero_copy_input_boundary);
+        assert_eq!(
+            contract.stable_diagnostic_codes,
+            vec![
+                "E_BACKEND_UNAVAILABLE".to_string(),
+                "E_INPUT_TOO_LARGE".to_string(),
+                "E_INVALID_ARGUMENT".to_string(),
+                "E_INVALID_LIMITS".to_string(),
+                "E_PARSE_FAILURE".to_string(),
+                "E_UNSUPPORTED_PROFILE".to_string(),
+            ]
+        );
         assert!(
             contract
                 .supported_grammars
@@ -1017,6 +1064,57 @@ mod tests {
             contract
                 .supported_profiles
                 .contains(&GrammarProfile::Vhdl1076_2019)
+        );
+    }
+
+    #[test]
+    fn parser_embedding_convenience_sv2017_matches_profile_entry_point() {
+        let input = "module m; endmodule";
+        let convenience = parse_systemverilog_2017(input);
+        let profile = parse_grammar_profile(
+            GrammarFamily::SystemVerilog,
+            GrammarProfile::Sv2017,
+            input,
+        );
+
+        assert_eq!(convenience.status, profile.status);
+        assert_eq!(
+            convenience.diagnostic.as_ref().map(|diag| diag.code.as_str()),
+            profile.diagnostic.as_ref().map(|diag| diag.code.as_str())
+        );
+    }
+
+    #[test]
+    fn parser_embedding_convenience_sv2023_matches_profile_entry_point() {
+        let input = "module m; endmodule";
+        let convenience = parse_systemverilog_2023(input);
+        let profile = parse_grammar_profile(
+            GrammarFamily::SystemVerilog,
+            GrammarProfile::Sv2023,
+            input,
+        );
+
+        assert_eq!(convenience.status, profile.status);
+        assert_eq!(
+            convenience.diagnostic.as_ref().map(|diag| diag.code.as_str()),
+            profile.diagnostic.as_ref().map(|diag| diag.code.as_str())
+        );
+    }
+
+    #[test]
+    fn parser_embedding_convenience_vhdl_matches_profile_entry_point() {
+        let input = "entity e is end entity;";
+        let convenience = parse_vhdl_1076_2019(input);
+        let profile = parse_grammar_profile(
+            GrammarFamily::Vhdl,
+            GrammarProfile::Vhdl1076_2019,
+            input,
+        );
+
+        assert_eq!(convenience.status, profile.status);
+        assert_eq!(
+            convenience.diagnostic.as_ref().map(|diag| diag.code.as_str()),
+            profile.diagnostic.as_ref().map(|diag| diag.code.as_str())
         );
     }
 

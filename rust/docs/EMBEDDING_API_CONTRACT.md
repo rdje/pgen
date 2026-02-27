@@ -52,11 +52,18 @@ Annotation API:
 Grammar parser API:
 - `GrammarFamily`: `systemverilog | vhdl`
 - `GrammarProfile`: `sv_2017 | sv_2023 | vhdl_1076_2019`
+- `InputOwnershipModel`: `borrowed_str`
+- `ParseSessionModel`: `stateless_per_call`
 - `GrammarParseOutcome`: includes API version, grammar, profile, status, optional diagnostic.
 - `NamedAnnotationParseOutcome`: structured result preserving caller-provided family/backend strings.
 - `NamedGrammarParseOutcome`: structured result preserving caller-provided grammar/profile strings.
-- `ParserEmbeddingApiContract`: stable profile matrix + backend availability flags.
+- `ParserEmbeddingApiContract`: stable profile matrix + backend availability flags + integration invariants.
   - includes `profile_matrix` for per-grammar profile lookup.
+  - includes zero-copy/session invariants:
+    - `input_ownership_model=borrowed_str`
+    - `parse_session_model=stateless_per_call`
+    - `zero_copy_input_boundary=true`
+  - publishes stable parser diagnostic code set via `stable_diagnostic_codes`.
 
 ## Diagnostic Code Contract
 - `E_BACKEND_UNAVAILABLE`: generated backend requested without `generated_parsers` feature.
@@ -91,9 +98,13 @@ Grammar parser API:
 ## Gate
 - Local/CI gate command:
   - `make -C rust embedding_api_gate`
+  - `make -C rust nexsim_parser_embedding_contract_gate`
 - Gate runs:
   - bootstrap build tests: `cargo test --lib embedding_api`
   - generated build tests: `cargo test --features generated_parsers --lib embedding_api`
+  - parser-profile contract subset:
+    - `cargo test --lib parser_embedding_`
+    - `cargo test --features generated_parsers --lib parser_embedding_`
 
 ## Scope Note
 - This contract intentionally returns structured parse outcomes instead of exposing internal AST node types. Internal AST representations may evolve as long as contract behavior, versions, and diagnostic codes remain stable.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-gate-policy-strict-promotion)
+Last updated: 2026-02-27 (+0100, task: phase-p-nexsim-parser-embedding-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV stimuli strict-policy promotion increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for Nexsim parser embedding contract-gate + metadata hardening increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -217,6 +217,27 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P closure - dedicated Nexsim parser embedding contract gate
+- Root cause:
+  - Nexsim parser-profile embedding APIs existed, but there was no dedicated executable gate proving parser-profile contract behavior and no explicit metadata publication for zero-copy/session invariants.
+- Fix:
+  - added `rust/scripts/nexsim_parser_embedding_contract_gate.sh` and `make nexsim_parser_embedding_contract_gate`,
+  - wired this target into `embedding_api_gate`,
+  - hardened `ParserEmbeddingApiContract` (`rust/src/embedding_api.rs`) with:
+    - `input_ownership_model=borrowed_str`,
+    - `parse_session_model=stateless_per_call`,
+    - `zero_copy_input_boundary=true`,
+    - stable parser diagnostic code publication,
+  - added convenience-wrapper parity tests for:
+    - `parse_systemverilog_2017/2023`,
+    - `parse_vhdl_1076_2019`.
+  - marked roadmap Nexsim parser embedding profile-contract item complete and synced docs (`PGEN_USER_GUIDE.md`, `rust/docs/EMBEDDING_API_CONTRACT.md`).
+- Validation:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash nexsim_parser_embedding_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
+- Status:
+  - parser-profile embedding contract is now explicitly published and continuously gate-checked in both bootstrap and generated modes.
 
 ### 2026-02-27: Aggregate policy promotion - `sv_stimuli_quality_gate` required by default
 - Root cause:

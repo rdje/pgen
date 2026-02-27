@@ -315,7 +315,8 @@ Toolbox baseline to leverage end-to-end:
   - mismatch taxonomy against trusted references,
   - performance/memory budgets on realistic SV corpora,
   - embedding contract checks for Nexsim parser API usage.
-- [ ] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
+  - Progress (2026-02-27): added executable `make nexsim_parser_embedding_contract_gate` (`rust/scripts/nexsim_parser_embedding_contract_gate.sh`) and wired it into `embedding_api_gate` so parser-profile contract checks are continuously enforced in both bootstrap and `generated_parsers` modes.
+- [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
   - deterministic error/diagnostic schema for host integration,
   - zero-copy input options and parse/session lifecycle contract for simulator integration.
@@ -328,6 +329,11 @@ Toolbox baseline to leverage end-to-end:
     - idiomatic Rust `Result` wrappers for direct host integration (`*_result` APIs),
     - named string-based entry points for non-Rust bindings/FFI (`*_named` APIs),
     - stable invalid-argument diagnostic taxonomy (`E_INVALID_ARGUMENT`) for binding layers.
+  - Progress (2026-02-27): contract metadata now explicitly captures Nexsim integration invariants in `ParserEmbeddingApiContract`:
+    - `input_ownership_model=borrowed_str`,
+    - `parse_session_model=stateless_per_call`,
+    - `zero_copy_input_boundary=true`,
+    - stable parser diagnostic code set publication.
 - [x] Promote SV gates into SOTA aggregate policy:
   - informational first,
   - required strict once syntax+semantic closure thresholds are green and stable.

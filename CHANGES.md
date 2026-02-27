@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Contract Closure: Dedicated Nexsim Parser Embedding Contract Gate
+### ✅ Achievement Summary
+Closed the "Publish Nexsim-facing parser embedding API profile contract (SV/VHDL)" roadmap item by adding executable contract-gate enforcement and explicit parser-profile integration invariants in contract metadata.
+
+### Scope of Changes
+- Added Nexsim parser-profile contract gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/nexsim_parser_embedding_contract_gate.sh`
+  - executes parser-profile contract test subset in both modes:
+    - bootstrap: `cargo test --lib parser_embedding_`
+    - generated: `cargo test --features generated_parsers --lib parser_embedding_`
+- Updated make targets/help wiring:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - new target:
+    - `make nexsim_parser_embedding_contract_gate`
+  - `embedding_api_gate` now invokes this contract gate.
+- Expanded parser embedding contract metadata:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs`
+  - `ParserEmbeddingApiContract` now publishes:
+    - `input_ownership_model=borrowed_str`
+    - `parse_session_model=stateless_per_call`
+    - `zero_copy_input_boundary=true`
+    - stable parser diagnostic code set.
+  - added convenience-entry equivalence tests (`parse_systemverilog_2017/2023`, `parse_vhdl_1076_2019`) against profile API outcomes.
+- Updated tracking/docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md`
+
+### Validation Results
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash nexsim_parser_embedding_contract_gate` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash embedding_api_gate` ✅
+
 ## 2026-02-27 - Aggregate Policy Promotion: `sv_stimuli_quality_gate` Is Now Required Strict
 ### ✅ Achievement Summary
 Promoted SystemVerilog stimuli quality enforcement in aggregate SOTA policy from informational to required strict mode.

@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Closure: Nexsim Parser Embedding Profile Contract Gate + Metadata Hardening
+### Context
+Phase P still had an open roadmap item for publishing a Nexsim-facing parser embedding profile contract even though parser-profile APIs already existed. The missing piece was objective, dedicated contract enforcement for SV/VHDL parser-profile semantics and explicit publication of zero-copy/session lifecycle invariants in contract metadata.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/nexsim_parser_embedding_contract_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- `/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added dedicated parser-profile contract gate
+Created:
+- `make nexsim_parser_embedding_contract_gate`
+- backed by:
+  - `rust/scripts/nexsim_parser_embedding_contract_gate.sh`
+
+Gate behavior:
+- runs parser embedding contract test subset in bootstrap mode:
+  - `cargo test --lib parser_embedding_`
+- runs same subset in generated mode:
+  - `cargo test --features generated_parsers --lib parser_embedding_`
+- writes deterministic logs under:
+  - `rust/target/nexsim_embedding_contract_gate/`
+
+This gives a single executable surface to validate Nexsim-facing parser-profile contract behavior independent of broader embedding API coverage.
+
+#### 2) Hardened `ParserEmbeddingApiContract` metadata
+`rust/src/embedding_api.rs` now publishes explicit integration invariants:
+- `input_ownership_model=borrowed_str`
+- `parse_session_model=stateless_per_call`
+- `zero_copy_input_boundary=true`
+- stable parser diagnostic code publication via:
+  - `stable_diagnostic_codes=[E_BACKEND_UNAVAILABLE,E_INPUT_TOO_LARGE,E_INVALID_ARGUMENT,E_INVALID_LIMITS,E_PARSE_FAILURE,E_UNSUPPORTED_PROFILE]`
+
+This makes zero-copy/session semantics and diagnostic taxonomy machine-readable at the contract boundary.
+
+#### 3) Added convenience-entry equivalence tests
+Added parser embedding tests ensuring convenience wrappers map exactly to profile APIs:
+- `parse_systemverilog_2017(...)` ↔ `parse_grammar_profile(systemverilog, sv_2017, ...)`
+- `parse_systemverilog_2023(...)` ↔ `parse_grammar_profile(systemverilog, sv_2023, ...)`
+- `parse_vhdl_1076_2019(...)` ↔ `parse_grammar_profile(vhdl, vhdl_1076_2019, ...)`
+
+Assertions are status/diagnostic-code equivalent, so host call sites can rely on wrappers without behavioral drift.
+
+#### 4) Integrated gate into existing embedding API quality path
+`embedding_api_gate` now invokes `nexsim_parser_embedding_contract_gate`, so routine embedding API checks include this parser-profile contract layer.
+
+#### 5) Roadmap closure
+Marked roadmap item complete:
+- "Publish Nexsim-facing parser embedding API profile contract (SV/VHDL)".
+
+Also added progress note under Nexsim differential/integration hardening that parser API embedding contract checks are now executable and wired.
+
+### Validation
+Executed:
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash nexsim_parser_embedding_contract_gate`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
+
+Observed:
+- bootstrap parser-profile contract tests pass,
+- generated parser-profile contract tests pass,
+- aggregate embedding API gate remains passing with new contract sub-gate.
+
 ## 2026-02-27 - Aggregate SOTA Policy Promotion: SV Stimuli Gate Required Strict
 ### Context
 `sv_stimuli_quality_gate` was integrated into aggregate SOTA flow as informational during stabilization. After closing Stage-order and deterministic replay invariants, policy was ready for strict promotion.

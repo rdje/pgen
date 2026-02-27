@@ -2218,6 +2218,7 @@ Contract docs:
 Local check:
 ```bash
 make -C rust SHELL=/bin/bash embedding_api_gate
+make -C rust SHELL=/bin/bash nexsim_parser_embedding_contract_gate
 ```
 
 Design goal:
@@ -2242,6 +2243,11 @@ Current stable surfaces:
 - Parser profile embedding metadata:
   - `parser_embedding_api_contract()`
   - includes `profile_matrix` (`grammar -> supported profiles`)
+  - includes integration invariants:
+    - `input_ownership_model=borrowed_str`
+    - `parse_session_model=stateless_per_call`
+    - `zero_copy_input_boundary=true`
+    - `stable_diagnostic_codes=[E_BACKEND_UNAVAILABLE,E_INPUT_TOO_LARGE,E_INVALID_ARGUMENT,E_INVALID_LIMITS,E_PARSE_FAILURE,E_UNSUPPORTED_PROFILE]`
 
 Current parser profiles:
 - `systemverilog`: `sv_2017`, `sv_2023`
@@ -2258,6 +2264,9 @@ Deterministic integration behavior:
 - missing generated backend returns `E_BACKEND_UNAVAILABLE`.
 - invalid family/backend/grammar/profile names in named APIs return `E_INVALID_ARGUMENT`.
 - per-call bounded input limits enforced via `ParseLimits`.
+- dedicated parser-profile contract gate executes in both build modes:
+  - `cargo test --lib parser_embedding_`
+  - `cargo test --features generated_parsers --lib parser_embedding_`
 
 ## 12) File and Artifact Map
 

@@ -262,6 +262,7 @@ help:
 	@echo "  annotation_100_gate - Enforce aggregate annotation 100% proof gate"
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
 	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
+	@echo "  nexsim_parser_embedding_contract_gate - Validate Nexsim parser-profile embedding contract (SV/VHDL profiles + diagnostics)"
 	@echo "  performance_gate - Run benchmark thresholds for bootstrap vs generated parsers"
 	@echo "  differential_report - Compare generated vs bootstrap parser behavior and emit JSON reports"
 	@echo "  differential_refresh_baseline - Refresh tracked differential mismatch baselines"
@@ -792,7 +793,14 @@ embedding_api_gate:
 	@echo "🔌 Running embedding API stability gate..."
 	cd $(RUST_DIR) && cargo test --lib embedding_api
 	cd $(RUST_DIR) && cargo test --features generated_parsers --lib embedding_api
+	@$(MAKE) -C $(RUST_DIR) nexsim_parser_embedding_contract_gate
 	@echo "✅ Embedding API gate passed."
+
+.PHONY: nexsim_parser_embedding_contract_gate
+nexsim_parser_embedding_contract_gate:
+	@echo "🧪 Running Nexsim parser embedding profile contract gate..."
+	cd $(RUST_DIR) && ./scripts/nexsim_parser_embedding_contract_gate.sh
+	@echo "✅ Nexsim parser embedding profile contract gate passed."
 
 # Convenience aliases for *-with-log targets
 .PHONY: return-parser-with-log
