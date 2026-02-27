@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-02-27 - Pillar 5 Kickoff: HDL Frontend Readiness Gate Skeleton
+### ✅ Achievement Summary
+Started Industrial Frontend Support (SV/VHDL readiness) with an executable readiness gate skeleton that tracks `systemverilog` and `vhdl` grammar flow status and supports report vs strict enforcement modes.
+
+### Scope of Changes
+- Added new gate script:
+  - `rust/scripts/hdl_frontend_readiness_gate.sh`
+  - flow stages per grammar:
+    - grammar file presence (`grammars/<grammar>.ebnf`)
+    - `EBNF -> JSON` (`tools/ebnf_to_json.pl`)
+    - `JSON -> parser` (`ast_pipeline --generate-parser`)
+    - `JSON -> stimuli` (`ast_pipeline --generate-stimuli`)
+  - tracked grammar roster:
+    - `systemverilog`
+    - `vhdl`
+  - outputs:
+    - `rust/target/hdl_frontend_gate/summary.csv`
+    - `rust/target/hdl_frontend_gate/summary.txt`
+    - stage logs/artifacts under `rust/target/hdl_frontend_gate`
+  - behavior:
+    - report mode (`PGEN_HDL_FRONTEND_STRICT=0`): missing grammars are reported as `not_ready` and do not fail the command.
+    - strict mode (`PGEN_HDL_FRONTEND_STRICT=1`): missing/failing flows fail the command.
+- Added Makefile targets:
+  - `make -C rust hdl_frontend_readiness`
+  - `make -C rust hdl_frontend_gate`
+  - plus help text entries.
+- Updated living roadmap and user guide:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` now marks Pillar 5 as `In Progress` and introduces Phase O kickoff tasks.
+  - `PGEN_USER_GUIDE.md` now documents HDL readiness commands and env tuning knobs.
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash hdl_frontend_readiness` ✅
+  - expected current result: `not_ready` rows for missing `grammars/systemverilog.ebnf` and `grammars/vhdl.ebnf` in report mode.
+- `make -C rust SHELL=/bin/bash hdl_frontend_gate` (fails by design until seed HDL grammars are added) ✅
+
 ## 2026-02-27 - First-Class Tracing with `trace.log` Redirection
 ### ✅ Achievement Summary
 Implemented centralized, verbosity-controlled tracing across the Rust AST pipeline and runtime parser/stimuli paths, with file-sink routing so trace output can be redirected to `trace.log` instead of stdout.

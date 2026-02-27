@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending tracing infrastructure/doc updates; run `git status -sb`).
+- Worktree: dirty (pending Pillar-5 HDL readiness kickoff updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,7 +33,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `131`
+- Commit count at last refresh (before current uncommitted changes): `135`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
@@ -168,6 +168,8 @@ Use this file to resume work without replaying full chat history.
 - 8cdef2a Promote EBNF parseability to required in non-annotation quality gate
 - 854d115 Promote EBNF dual-run strict mode to required SOTA aggregate policy
 - f140b2a Add tracked MEMORY.md for live session continuity and recovery handoff
+- 10b719a feat: add unified tracing with trace.log file routing
+- ac30884 feat: enforce file/function/line on every trace message
 <!-- SESSION_GIT_HISTORY_END -->
 
 ## Binding Workflow Rules (Do Not Break)
@@ -190,6 +192,21 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Pillar 5 kickoff (HDL frontend readiness gate skeleton)
+- Root cause:
+  - roadmap pillar 5 had no executable gate surface and no machine-readable readiness state.
+- Fix:
+  - added `rust/scripts/hdl_frontend_readiness_gate.sh` with staged checks for `systemverilog` and `vhdl`,
+  - added Makefile targets:
+    - `make -C rust hdl_frontend_readiness`
+    - `make -C rust hdl_frontend_gate`
+  - added report/strict semantics:
+    - report mode returns `not_ready` rows for missing grammars,
+    - strict mode fails on missing/failing flows.
+- Validation:
+  - `make -C rust SHELL=/bin/bash hdl_frontend_readiness` passed (report mode) with expected `not_ready` rows.
+  - strict probe confirms fail-until-grammars behavior (`make -C rust SHELL=/bin/bash hdl_frontend_gate`).
 
 ### 2026-02-27: First-class tracing + `trace.log` routing baseline
 - Root cause:
@@ -235,20 +252,28 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Start Pillar 5 (Industrial Frontend Support) kickoff:
-   - define first executable SV/VHDL readiness contract and gate skeleton.
-2. Continue Rust-native EBNF migration hardening:
+1. Add first seed HDL grammars:
+   - `grammars/systemverilog.ebnf`
+   - `grammars/vhdl.ebnf`
+   - drive `make -C rust hdl_frontend_gate` to green.
+2. Decide SOTA aggregate integration path for HDL readiness:
+   - informational first in `sota_exit_gate`, then required strict when seed grammars stabilize.
+3. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-3. Expand parser-registry coverage beyond annotations/ebnf:
+4. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-4. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+5. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
-- Pillar 5 (`SV/VHDL readiness`) is still marked `Not Started`.
+- Pillar 5 is now started, but seed HDL grammars (`systemverilog.ebnf`, `vhdl.ebnf`) are not yet present, so strict HDL readiness is expected to fail.
 
 ## Quick Commands
+- HDL frontend readiness (report):
+  - `make -C rust SHELL=/bin/bash hdl_frontend_readiness`
+- HDL frontend readiness (strict):
+  - `make -C rust SHELL=/bin/bash hdl_frontend_gate`
 - Strict dual-run check:
   - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
 - Non-annotation closed-loop quality:

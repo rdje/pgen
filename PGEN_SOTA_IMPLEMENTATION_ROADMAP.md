@@ -19,7 +19,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 | 2. Normative Annotation Specification | In Progress | One normative spec for return/semantic annotation syntax + semantics. |
 | 3. Typed Annotation Validation | In Progress | Compile-time validation of references/transforms with precise diagnostics. |
 | 4. Bootstrap vs Generated Behavioral Contract | In Progress | Explicitly tracked differences with required tests and closure plan. |
-| 5. Industrial Frontend Support (SV/VHDL Readiness) | Not Started | Preprocess/lex/parse pipeline robust for real-world HDL sources. |
+| 5. Industrial Frontend Support (SV/VHDL Readiness) | In Progress | Preprocess/lex/parse pipeline robust for real-world HDL sources. |
 | 6. Ambiguity Handling and Recovery | In Progress | Deterministic branch resolution and production-grade error recovery. |
 | 7. Coverage-Guided Semantic Stimuli | In Progress | Feedback loop that drives branch/rule/annotation coverage upward. |
 | 8. Differential Validation vs External Parsers | In Progress | Continuous mismatch detection against trusted external tools. |
@@ -192,6 +192,13 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - embedding workflow examples for `generated/<grammar>_stimuli.rs`,
   - deterministic replay/seed compatibility guarantees.
 
+### Phase O (New): Industrial Frontend Readiness Kickoff (SV/VHDL)
+- [x] Add executable HDL frontend readiness report target (`make hdl_frontend_readiness`) with state artifacts under `rust/target/hdl_frontend_gate`.
+- [x] Add strict HDL frontend gate target (`make hdl_frontend_gate`) that fails on missing/failing grammar flows.
+- [x] Define tracked initial grammar roster for readiness (`systemverilog`, `vhdl`) and report missing grammar files explicitly as `not_ready`.
+- [ ] Add first executable seed grammars (`grammars/systemverilog.ebnf`, `grammars/vhdl.ebnf`) and turn strict HDL frontend readiness green.
+- [ ] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -209,6 +216,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Started Phase O / Pillar 5 kickoff by adding `hdl_frontend_readiness` + `hdl_frontend_gate` (script: `rust/scripts/hdl_frontend_readiness_gate.sh`) with explicit `systemverilog`/`vhdl` roster, report-mode `not_ready` handling for missing grammars, and strict-mode failure semantics for merge-safe progression.
 - 2026-02-26: Promoted Perl-vs-Rust EBNF dual-run differential from informational/report mode to required strict aggregate SOTA policy check (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`) after strict gate validation passed on tracked grammars (`ebnf/json/regex`).
 - 2026-02-26: Advanced Phase M parseability promotion beyond annotation grammars by adding an `ebnf` generated-parser adapter in `parser_registry`, promoting `ebnf` to required parseability in `ebnf_stimuli_contract.json`, and hardening `ebnf_stimuli_quality_gate` with explicit `generated/ebnf.rs` bootstrap + `ebnf_dual_run` rebuild for executable enforcement.
 - 2026-02-22: Closed Phase L semantic typed-AST closure item after full aggregate validation (`annotation_typed_ast_gate`) with strict generated conversion for backend-validated named semantic directives, corpus-level generated semantic conversion contracts, and non-bootstrap E2E pass.

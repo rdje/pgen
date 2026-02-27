@@ -229,6 +229,8 @@ help:
 	@echo "  ebnf_frontend_gate - Strict EBNF frontend gate (fail on any grammar flow failure)"
 	@echo "  ebnf_frontend_dual_run_diff - Report Perl-vs-Rust EBNF frontend differential across ebnf/json/regex"
 	@echo "  ebnf_frontend_dual_run_gate - Strict Perl-vs-Rust EBNF frontend differential gate"
+	@echo "  hdl_frontend_readiness - Report HDL frontend flow readiness for systemverilog/vhdl grammars"
+	@echo "  hdl_frontend_gate - Strict HDL frontend readiness gate (fails on missing/failing HDL grammar flows)"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
 	@echo "  annotation_stimuli_quality_gate - Enforce strict closed-loop stimuli/coverage/gap checks (no-regression) for annotation grammars"
@@ -449,6 +451,18 @@ ebnf_frontend_dual_run_gate:
 	@echo "🧱 Running strict EBNF frontend dual-run differential gate..."
 	cd $(RUST_DIR) && PGEN_EBNF_DUAL_RUN_STRICT=1 ./scripts/ebnf_frontend_dual_run_diff_gate.sh
 	@echo "✅ EBNF frontend dual-run differential gate passed."
+
+.PHONY: hdl_frontend_readiness
+hdl_frontend_readiness:
+	@echo "🧭 Running HDL frontend readiness check (report mode)..."
+	cd $(RUST_DIR) && ./scripts/hdl_frontend_readiness_gate.sh
+	@echo "✅ HDL frontend readiness report generated."
+
+.PHONY: hdl_frontend_gate
+hdl_frontend_gate:
+	@echo "🧱 Running strict HDL frontend readiness gate..."
+	cd $(RUST_DIR) && PGEN_HDL_FRONTEND_STRICT=1 ./scripts/hdl_frontend_readiness_gate.sh
+	@echo "✅ HDL frontend gate passed."
 
 .PHONY: regression_gate
 regression_gate:

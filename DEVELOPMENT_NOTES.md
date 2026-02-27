@@ -1,4 +1,74 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Pillar 5 Kickoff: HDL Frontend Readiness Gate Skeleton
+### Context
+Roadmap pillar 5 (Industrial Frontend Support for SystemVerilog/VHDL) was still marked `Not Started` with no executable gate surface.
+
+To move from intent to enforceable engineering workflow, the project needed:
+- a concrete HDL readiness roster,
+- a report-mode command for continuous visibility,
+- a strict-mode command for future promotion once seed HDL grammars are available.
+
+### Implementation
+Primary files:
+- `rust/scripts/hdl_frontend_readiness_gate.sh`
+- `rust/Makefile`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+- `CHANGES.md`
+
+#### 1) New executable readiness script
+Added:
+- `rust/scripts/hdl_frontend_readiness_gate.sh`
+
+Contract:
+- tracked grammar roster:
+  - `systemverilog` (`grammars/systemverilog.ebnf`)
+  - `vhdl` (`grammars/vhdl.ebnf`)
+- per-grammar staged checks:
+  - grammar file presence,
+  - `EBNF -> JSON` via `tools/ebnf_to_json.pl`,
+  - `JSON -> parser` via `ast_pipeline --generate-parser`,
+  - `JSON -> stimuli` via `ast_pipeline --generate-stimuli`.
+- artifacts:
+  - `rust/target/hdl_frontend_gate/summary.csv`
+  - `rust/target/hdl_frontend_gate/summary.txt`
+  - per-stage logs in `rust/target/hdl_frontend_gate/logs`
+  - generated work artifacts in `rust/target/hdl_frontend_gate/work`
+
+Mode behavior:
+- report mode (`PGEN_HDL_FRONTEND_STRICT=0`, default):
+  - missing grammar files are reported as `not_ready` rows,
+  - command exits success for visibility-only operation.
+- strict mode (`PGEN_HDL_FRONTEND_STRICT=1`):
+  - any missing/failing flow becomes a failing gate exit.
+
+#### 2) Makefile wiring
+Added targets:
+- `make -C rust hdl_frontend_readiness`
+- `make -C rust hdl_frontend_gate`
+
+Also added help text entries in `rust/Makefile` so the new gate appears in standard operator discovery.
+
+#### 3) Roadmap and UG updates
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Pillar 5 status moved to `In Progress`,
+  - new Phase O added for HDL readiness kickoff and next closure items.
+- `PGEN_USER_GUIDE.md`
+  - added HDL readiness commands and behavior semantics (`not_ready` in report mode, fail in strict mode),
+  - documented gate environment knobs:
+    - `PGEN_HDL_FRONTEND_STRICT`
+    - `PGEN_HDL_FRONTEND_STIMULI_COUNT`
+    - `PGEN_HDL_FRONTEND_STIMULI_SEED`
+    - `PGEN_HDL_FRONTEND_STATE_DIR`
+
+### Validation
+Executed:
+- `make -C rust SHELL=/bin/bash hdl_frontend_readiness`
+  - result: pass (report mode), expected `not_ready` rows for missing `systemverilog.ebnf` / `vhdl.ebnf`.
+- strict behavior probe:
+  - `make -C rust SHELL=/bin/bash hdl_frontend_gate`
+  - result: fails as designed until seed HDL grammars are added.
+
 ## 2026-02-27 - Tracing Infrastructure Upgrade: Verbosity Model + `trace.log` Sink Routing
 ### Context
 Tracing existed in fragmented form (`debug`/`trace` booleans, ad-hoc `eprintln!`, parser-local logging), but lacked:

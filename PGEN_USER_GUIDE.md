@@ -1819,6 +1819,19 @@ make -C rust SHELL=/bin/bash ebnf_frontend_readiness
 make -C rust SHELL=/bin/bash ebnf_frontend_gate
 ```
 
+HDL frontend readiness commands (Pillar 5 kickoff):
+```bash
+make -C rust SHELL=/bin/bash hdl_frontend_readiness
+make -C rust SHELL=/bin/bash hdl_frontend_gate
+```
+- tracked HDL grammar roster:
+  - `grammars/systemverilog.ebnf`
+  - `grammars/vhdl.ebnf`
+- report mode (`hdl_frontend_readiness`):
+  - emits `not_ready` rows when grammar files are missing.
+- strict mode (`hdl_frontend_gate`):
+  - fails on missing grammar files or failing flow stages.
+
 EBNF frontend dual-run commands:
 ```bash
 make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff
@@ -1870,6 +1883,12 @@ Aggregate gate tuning:
 - `PGEN_SOTA_REQUIRED_CHECKS` (space-separated required check override list)
 - `PGEN_SOTA_POLICY_FILE` (override machine policy file path)
 - `PGEN_SOTA_EXIT_STATE_DIR` (override output state dir)
+
+HDL readiness tuning:
+- `PGEN_HDL_FRONTEND_STRICT` (`1`/`0`, default `0`)
+- `PGEN_HDL_FRONTEND_STIMULI_COUNT` (default `8`)
+- `PGEN_HDL_FRONTEND_STIMULI_SEED` (default `1337`)
+- `PGEN_HDL_FRONTEND_STATE_DIR` (override output state dir, default `rust/target/hdl_frontend_gate`)
 
 Release policy references:
 - machine policy: `rust/config/sota_exit_policy.env`
