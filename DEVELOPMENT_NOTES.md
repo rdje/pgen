@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase Q/P Integration Hardening: Preprocessor Debt in SV Stimuli Closed Loop
+### Context
+`sv_stimuli_quality_gate` already enforced parser-side closed-loop target debt (`initial_targets` vs `replay_targets`), but did not include preprocessor convergence debt in the same loop.
+
+To align with Phase Q parser/stimuli integration goals, closed-loop convergence now needs explicit preprocessor diagnostics debt tracking in addition to parser gap debt.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+#### 1) Added per-profile preprocess replay passes for closed-loop corpora
+For each LRM profile, gate now preprocesses:
+- `profile_<lrm>_initial_stimuli.sv`
+- `profile_<lrm>_replay_stimuli.sv`
+
+using the same preprocessor policy knobs already used in per-sample stages.
+
+#### 2) Added aggregate preprocessor debt metrics to summary
+Gate summary now reports:
+- `closed_loop_initial_preprocess_warnings_total`
+- `closed_loop_initial_preprocess_errors_total`
+- `closed_loop_replay_preprocess_warnings_total`
+- `closed_loop_replay_preprocess_errors_total`
+
+#### 3) Enforced non-increasing preprocess error debt
+When `closed_loop.require_non_increasing_target_debt=true`, gate now enforces both:
+- parser target debt:
+  - `replay_targets <= initial_targets`
+- preprocess diagnostics debt:
+  - `replay_preprocess_errors <= initial_preprocess_errors` (per profile)
+
+This keeps closed-loop convergence checks aligned across parser and preprocess dimensions.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- new preprocess closed-loop stages run for both `2017` and `2023`,
+- new summary metrics emitted,
+- non-increasing debt checks remain stable on validated run.
+
 ## 2026-02-27 - Aggregate SOTA Policy Promotion: Preprocessor Gate Required Strict
 ### Context
 `sv_preprocessor_quality_gate` was already wired into aggregate SOTA execution, but remained informational. Phase Q policy objective required eventual strict promotion once the gate proved stable.

@@ -787,6 +787,10 @@ closed_loop_profile_pass_count=0
 closed_loop_profile_skip_count=0
 closed_loop_initial_targets_total=0
 closed_loop_replay_targets_total=0
+closed_loop_initial_preprocess_warnings_total=0
+closed_loop_initial_preprocess_errors_total=0
+closed_loop_replay_preprocess_warnings_total=0
+closed_loop_replay_preprocess_errors_total=0
 total_warnings=0
 total_errors=0
 semantic_shrink_count=0
@@ -854,10 +858,53 @@ for profile_idx in "${!run_profiles[@]}"; do
         replay_target_count="$(jq -er '(.targets // []) | length | numbers' "$closed_loop_replay_gap_json")"
         closed_loop_replay_targets_total=$((closed_loop_replay_targets_total + replay_target_count))
         profile_closed_loop_replay_status="pass"
-        profile_closed_loop_note="initial_targets=${initial_target_count}; replay_targets=${replay_target_count}"
+
+        closed_loop_initial_preprocessed="$WORK_DIR/profile_${profile_key}_initial.preprocessed.sv"
+        closed_loop_initial_diagnostics="$WORK_DIR/profile_${profile_key}_initial.diagnostics.json"
+        closed_loop_replay_preprocessed="$WORK_DIR/profile_${profile_key}_replay.preprocessed.sv"
+        closed_loop_replay_diagnostics="$WORK_DIR/profile_${profile_key}_replay.diagnostics.json"
+
+        run_logged "profile_${profile_key}_closed_loop_initial_preprocess" \
+            "$AST_PIPELINE_BIN" "$closed_loop_initial_stimuli" \
+            --preprocess-systemverilog \
+            --output "$closed_loop_initial_preprocessed" \
+            --sv-diagnostics-json "$closed_loop_initial_diagnostics" \
+            --sv-include-max-depth "$include_max_depth" \
+            --sv-include-path-policy "$include_path_policy" \
+            --sv-macro-redefine-policy "$macro_redefine_policy" \
+            --sv-conditional-symbol-policy "$conditional_symbol_policy" \
+            --sv-conditional-expr-policy "$conditional_expr_policy" \
+            --sv-strict-warning-codes "$strict_warning_codes"
+        run_logged "profile_${profile_key}_closed_loop_replay_preprocess" \
+            "$AST_PIPELINE_BIN" "$closed_loop_replay_stimuli" \
+            --preprocess-systemverilog \
+            --output "$closed_loop_replay_preprocessed" \
+            --sv-diagnostics-json "$closed_loop_replay_diagnostics" \
+            --sv-include-max-depth "$include_max_depth" \
+            --sv-include-path-policy "$include_path_policy" \
+            --sv-macro-redefine-policy "$macro_redefine_policy" \
+            --sv-conditional-symbol-policy "$conditional_symbol_policy" \
+            --sv-conditional-expr-policy "$conditional_expr_policy" \
+            --sv-strict-warning-codes "$strict_warning_codes"
+
+        require_file "$closed_loop_initial_diagnostics"
+        require_file "$closed_loop_replay_diagnostics"
+        initial_preprocess_warnings="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$closed_loop_initial_diagnostics")"
+        initial_preprocess_errors="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$closed_loop_initial_diagnostics")"
+        replay_preprocess_warnings="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$closed_loop_replay_diagnostics")"
+        replay_preprocess_errors="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$closed_loop_replay_diagnostics")"
+        closed_loop_initial_preprocess_warnings_total=$((closed_loop_initial_preprocess_warnings_total + initial_preprocess_warnings))
+        closed_loop_initial_preprocess_errors_total=$((closed_loop_initial_preprocess_errors_total + initial_preprocess_errors))
+        closed_loop_replay_preprocess_warnings_total=$((closed_loop_replay_preprocess_warnings_total + replay_preprocess_warnings))
+        closed_loop_replay_preprocess_errors_total=$((closed_loop_replay_preprocess_errors_total + replay_preprocess_errors))
+        profile_closed_loop_note="initial_targets=${initial_target_count}; replay_targets=${replay_target_count}; initial_preprocess_errors=${initial_preprocess_errors}; replay_preprocess_errors=${replay_preprocess_errors}"
 
         if [[ "$require_non_increasing_target_debt" -eq 1 ]] && (( replay_target_count > initial_target_count )); then
             echo "error: closed-loop replay increased target debt for profile '${lrm_profile}' (${initial_target_count} -> ${replay_target_count})" >&2
+            exit 1
+        fi
+        if [[ "$require_non_increasing_target_debt" -eq 1 ]] && (( replay_preprocess_errors > initial_preprocess_errors )); then
+            echo "error: closed-loop replay increased preprocess error debt for profile '${lrm_profile}' (${initial_preprocess_errors} -> ${replay_preprocess_errors})" >&2
             exit 1
         fi
 
@@ -974,6 +1021,10 @@ done
     echo "closed_loop_profiles_skipped: $closed_loop_profile_skip_count/$profile_count"
     echo "closed_loop_initial_targets_total: $closed_loop_initial_targets_total"
     echo "closed_loop_replay_targets_total: $closed_loop_replay_targets_total"
+    echo "closed_loop_initial_preprocess_warnings_total: $closed_loop_initial_preprocess_warnings_total"
+    echo "closed_loop_initial_preprocess_errors_total: $closed_loop_initial_preprocess_errors_total"
+    echo "closed_loop_replay_preprocess_warnings_total: $closed_loop_replay_preprocess_warnings_total"
+    echo "closed_loop_replay_preprocess_errors_total: $closed_loop_replay_preprocess_errors_total"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
     echo "semantic_baseline_passes: $semantic_pass_count/$total_samples"

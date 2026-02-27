@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-q-preprocessor-policy-strict-promotion)
+Last updated: 2026-02-27 (+0100, task: phase-qp-sv-stimuli-preprocess-debt-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for preprocessor strict-policy promotion increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV stimuli preprocess-debt convergence increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `171`
+- Commit count at last refresh (before current uncommitted changes): `172`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 5115a23 Promote SV preprocessor quality gate to required aggregate policy
 - 87e6a95 Add trusted-reference mismatch taxonomy to SV preprocessor quality gate
 - d4be882 Add preprocess-aware SV stimuli modes to phase-Q quality contract
 - 86c78cf Wire VHDL stimuli quality gate into aggregate SOTA policy
@@ -213,6 +214,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase Q/P SV stimuli gate now tracks preprocess convergence debt in closed loop
+- Root cause:
+  - `sv_stimuli_quality_gate` enforced parser target-debt convergence but did not track preprocessor diagnostics debt across closed-loop initial/replay stages.
+- Fix:
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - added per-profile closed-loop preprocess passes for initial and replay corpora,
+    - added summary metrics:
+      - `closed_loop_initial_preprocess_warnings_total`
+      - `closed_loop_initial_preprocess_errors_total`
+      - `closed_loop_replay_preprocess_warnings_total`
+      - `closed_loop_replay_preprocess_errors_total`
+    - extended `closed_loop.require_non_increasing_target_debt` enforcement to include preprocess error debt non-increase (`replay_preprocess_errors <= initial_preprocess_errors`) per profile.
+  - synced roadmap + UG descriptions for dual parser+preprocess convergence semantics.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - SV closed-loop convergence now includes preprocess diagnostics debt alongside parser gap debt.
 
 ### 2026-02-27: Aggregate policy promotion - `sv_preprocessor_quality_gate` required by default
 - Root cause:

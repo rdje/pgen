@@ -365,6 +365,14 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_pp_file`: `entry_rule=systemverilog_file`, closed-loop enabled, parse-full eligible, `recovery_stimuli_mode=recovery_biased`.
     - `sv_pp_snippet`: `entry_rule=source_item`, closed-loop disabled by default, parse-full ineligible, `recovery_stimuli_mode=near_sync_negative`.
     Gate fallback logic in `sv_stimuli_quality_gate.sh` now also recognizes preprocess-aware mode names for entry-rule, closed-loop, and parse-full eligibility defaults.
+  - Progress (2026-02-27): hardened closed-loop feedback to include preprocessor convergence debt tracking inside `sv_stimuli_quality_gate`:
+    - per-profile closed-loop initial/replay corpora are now preprocessed with diagnostics extraction,
+    - aggregate summary now reports:
+      - `closed_loop_initial_preprocess_warnings_total`
+      - `closed_loop_initial_preprocess_errors_total`
+      - `closed_loop_replay_preprocess_warnings_total`
+      - `closed_loop_replay_preprocess_errors_total`
+    - when `closed_loop.require_non_increasing_target_debt=true`, gate now enforces non-increasing preprocess error debt (`replay_preprocess_errors <= initial_preprocess_errors`) in addition to parser target-debt non-increase.
 - [ ] Add differential hardening for preprocessor behavior against trusted references (where available) and publish mismatch taxonomy.
   - Progress (2026-02-27): added trusted-reference differential stage in `rust/scripts/sv_preprocessor_quality_gate.sh` with configurable mode controls:
     - `PGEN_SV_PREPROCESSOR_DIFF_MODE=auto|0|1`

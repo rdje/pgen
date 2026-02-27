@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-02-27 - Phase Q/P Integration: Add Preprocessor Debt Convergence to `sv_stimuli_quality_gate` Closed Loop
+### ✅ Achievement Summary
+Extended SV stimuli closed-loop validation so convergence now tracks both parser target debt and preprocessor diagnostics debt.
+
+### Scope of Changes
+- Updated gate implementation:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - added per-profile closed-loop preprocess passes on initial/replay corpora:
+    - `profile_<lrm>_closed_loop_initial_preprocess`
+    - `profile_<lrm>_closed_loop_replay_preprocess`
+  - added aggregate summary metrics:
+    - `closed_loop_initial_preprocess_warnings_total`
+    - `closed_loop_initial_preprocess_errors_total`
+    - `closed_loop_replay_preprocess_warnings_total`
+    - `closed_loop_replay_preprocess_errors_total`
+  - strengthened non-regression policy when `closed_loop.require_non_increasing_target_debt=true`:
+    - existing parser debt check (`replay_targets <= initial_targets`)
+    - new preprocess error debt check (`replay_preprocess_errors <= initial_preprocess_errors`)
+- Updated docs/roadmap continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Aggregate Policy Promotion: `sv_preprocessor_quality_gate` Is Now Required Strict
 ### ✅ Achievement Summary
 Promoted SystemVerilog preprocessor quality enforcement in aggregate SOTA policy from informational to required strict mode.

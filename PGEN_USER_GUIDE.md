@@ -2078,6 +2078,14 @@ Optional SV syntax-closure gate tuning:
 `sv_stimuli_quality_gate` closed-loop stage contract:
 - per-profile closed loop:
   - `coverage/gap(initial) -> target-driven replay -> non-increasing target debt check`.
+  - preprocess convergence debt extraction on closed-loop corpora:
+    - `closed_loop_initial_preprocess_warnings_total`
+    - `closed_loop_initial_preprocess_errors_total`
+    - `closed_loop_replay_preprocess_warnings_total`
+    - `closed_loop_replay_preprocess_errors_total`
+  - with `closed_loop.require_non_increasing_target_debt=true`, gate enforces:
+    - `replay_targets <= initial_targets`
+    - `replay_preprocess_errors <= initial_preprocess_errors` (per profile)
 - per-sample deterministic flow:
   - `stimuli_generate -> preprocess -> semantic_validate_baseline -> parse_full(optional)`.
 - profile behavior:
