@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: SV semantic baseline expansion v2)
+Last updated: 2026-02-27 (+0100, task: dual-LRM conversion tooling setup)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV semantic baseline expansion + synced docs/roadmap updates; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for dual-LRM conversion tooling/docs updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,23 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Added dual-LRM conversion tooling/workspaces (1800-2023 + 1076-2019)
+- Root cause:
+  - older script flow was tied to one specific 2017 extraction setup and not reusable for newer LRMs without manual rework.
+- Fix:
+  - added adapted, reusable tooling under `tools/`:
+    - `split_sections.py`, `txt_to_md_converter.py`, `extract_grammar.py`, `extract_grammar_v2.py`, `create_clean_grammar.py`, `ieee_lrm_converter.py`
+  - added workflow doc:
+    - `tools/LRM_CONVERSION_WORKFLOW.md`
+  - created local workspaces:
+    - `docs/systemverilog/`
+    - `docs/vhdl/`
+  - added workspace `.gitignore` rules so generated conversion outputs remain untracked.
+  - fixed clause matcher in `split_sections.py` to accept TOC headings like `1. Overview`.
+- Validation:
+  - `python3 tools/ieee_lrm_converter.py --pdf /Users/richarddje/Documents/github/1800-2023.pdf --out-root docs/systemverilog --document "SystemVerilog Language Reference Manual" --standard "IEEE 1800-2023" --domain "SystemVerilog" --clause-depth 1 --limit 2 --extract-grammar`
+  - `python3 tools/ieee_lrm_converter.py --pdf /Users/richarddje/Documents/github/ieee-1076-2019.pdf --out-root docs/vhdl --document "VHDL Language Reference Manual" --standard "IEEE 1076-2019" --domain "VHDL" --clause-depth 1 --limit 2 --extract-grammar`
 
 ### 2026-02-27: Expanded `sv_stimuli_quality_gate` semantic baseline (contract v2)
 - Root cause:
@@ -536,11 +553,14 @@ Use this file to resume work without replaying full chat history.
    - continue from current contract-v2 baseline toward declaration-before-use, scoped reference checks, and type/width compatibility checks.
 2. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
    - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
-3. Continue Rust-native EBNF migration hardening:
+3. Run full (non-limited) IEEE conversion pipeline snapshots:
+   - `docs/systemverilog` from `1800-2023.pdf`
+   - `docs/vhdl` from `ieee-1076-2019.pdf`
+4. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-4. Expand parser-registry coverage beyond annotations/ebnf:
+5. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-5. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+6. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

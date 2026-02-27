@@ -221,6 +221,8 @@ Toolbox baseline to leverage end-to-end:
 - [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
   - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
+- [x] Add dual-LRM source ingestion tooling/workspaces for clause-based conversion (`PDF -> section txt -> section md -> grammar extraction`) targeting IEEE 1800-2023 and IEEE 1076-2019.
+  - Progress (2026-02-27): added adapted scripts under `tools/` (`split_sections.py`, `txt_to_md_converter.py`, `extract_grammar.py`, `extract_grammar_v2.py`, `create_clean_grammar.py`, `ieee_lrm_converter.py`) and local workspaces under `docs/systemverilog/` and `docs/vhdl/`.
 - [ ] Build syntax-closure burn-down loop:
   - grow `systemverilog.ebnf` clause-by-clause under deterministic no-regression gates.
   - Progress (2026-02-27): first syntax-consistency hardening step complete: unresolved symbol references reduced to zero in the current seed grammar.
@@ -309,6 +311,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 - 2026-02-27: Added initial executable `grammars/vhdl.ebnf` seed grammar and turned strict HDL frontend readiness (`make hdl_frontend_gate`) green for both tracked HDL grammars.
 - 2026-02-27: Promoted aggregate HDL readiness policy to required strict (`PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1`) after strict HDL gate proved stable for both tracked grammars.
 - 2026-02-27: Extended `sv_stimuli_quality_gate` semantic baseline from preprocess-only checks to contract-driven structural semantic checks (duplicate named-port binding detection + optional structural keyword-balance checks) and bumped `systemverilog_core_v0` contract to version `2`.
+- 2026-02-27: Added dual-LRM conversion tooling/workspaces for IEEE 1800-2023 and IEEE 1076-2019 (`PDF -> section txt -> section md -> grammar extraction`) under `tools/` + `docs/systemverilog`/`docs/vhdl`, with smoke-tested runs against local PDFs.
 - 2026-02-27: Wired HDL frontend readiness into aggregate SOTA policy as informational-first (`run=1`, `strict=0`) with explicit runtime/policy toggles, preserving non-blocking status while `vhdl.ebnf` closure is pending.
 - 2026-02-27: Hardened `systemverilog.ebnf` seed consistency by defining previously unresolved symbols (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed `SV_GRAMMAR_COVERAGE_MATRIX.md` to reflect zero unresolved reference debt.
 - 2026-02-27: Added `SV_GRAMMAR_COVERAGE_MATRIX.md` to operationalize Phase P syntax-closure tracking with Annex-A-aligned anchors, grouped per-rule status coverage, and explicit unresolved-reference debt for `systemverilog.ebnf`.

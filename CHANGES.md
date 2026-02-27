@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-02-27 - Added Dual-LRM Conversion Tooling and Local Workspaces (`1800-2023`, `1076-2019`)
+### ✅ Achievement Summary
+Added adapted LRM conversion tooling under `tools/` and created local workspace trees under `docs/systemverilog` and `docs/vhdl` to support clause-by-clause PDF-to-markdown-to-grammar extraction workflows.
+
+### Scope of Changes
+- Added adapted scripts under `tools/`:
+  - `tools/split_sections.py`
+  - `tools/txt_to_md_converter.py`
+  - `tools/extract_grammar.py`
+  - `tools/extract_grammar_v2.py`
+  - `tools/create_clean_grammar.py`
+  - `tools/ieee_lrm_converter.py`
+  - `tools/LRM_CONVERSION_WORKFLOW.md`
+- Added local conversion workspace trees:
+  - `docs/systemverilog/` (`README.md`, `.gitignore`, `txt/.gitkeep`, `md/.gitkeep`)
+  - `docs/vhdl/` (`README.md`, `.gitignore`, `txt/.gitkeep`, `md/.gitkeep`)
+- Configured workspace `.gitignore` files so generated conversion artifacts remain untracked by default.
+- Updated roadmap and user guide with tooling/workspace references.
+
+### Validation Results
+- Smoke conversion run (limited sections) for IEEE 1800-2023:
+  - `python3 tools/ieee_lrm_converter.py --pdf /Users/richarddje/Documents/github/1800-2023.pdf --out-root docs/systemverilog --document "SystemVerilog Language Reference Manual" --standard "IEEE 1800-2023" --domain "SystemVerilog" --clause-depth 1 --limit 2 --extract-grammar` ✅
+- Smoke conversion run (limited sections) for IEEE 1076-2019:
+  - `python3 tools/ieee_lrm_converter.py --pdf /Users/richarddje/Documents/github/ieee-1076-2019.pdf --out-root docs/vhdl --document "VHDL Language Reference Manual" --standard "IEEE 1076-2019" --domain "VHDL" --clause-depth 1 --limit 2 --extract-grammar` ✅
+- Note:
+  - fixed TOC clause matcher to support top-level entries formatted like `1. Overview`.
+
 ## 2026-02-27 - Extended `sv_stimuli_quality_gate` Semantic Baseline (Contract v2)
 ### ✅ Achievement Summary
 Extended SV stimuli semantic validation beyond preprocess-only checks by adding contract-driven structural semantic checks in `sv_stimuli_quality_gate` and bumping `systemverilog_core_v0` contract version to `2`.

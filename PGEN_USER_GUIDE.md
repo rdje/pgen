@@ -2052,6 +2052,42 @@ Design goal:
 Sources:
 - `grammars/*.ebnf`
 
+LRM conversion workspaces (local, generated artifacts ignored by default):
+- `docs/systemverilog/`
+  - `txt/`, `md/`, grammar extraction artifacts from IEEE 1800-2023 conversion
+- `docs/vhdl/`
+  - `txt/`, `md/`, grammar extraction artifacts from IEEE 1076-2019 conversion
+
+LRM conversion tooling (adapted scripts under `tools/`):
+- `tools/split_sections.py`
+- `tools/txt_to_md_converter.py`
+- `tools/extract_grammar.py`
+- `tools/extract_grammar_v2.py`
+- `tools/create_clean_grammar.py`
+- `tools/ieee_lrm_converter.py`
+- workflow notes: `tools/LRM_CONVERSION_WORKFLOW.md`
+
+LRM conversion quick commands:
+```bash
+python3 tools/ieee_lrm_converter.py \
+  --pdf /Users/richarddje/Documents/github/1800-2023.pdf \
+  --out-root docs/systemverilog \
+  --document "SystemVerilog Language Reference Manual" \
+  --standard "IEEE 1800-2023" \
+  --domain "SystemVerilog" \
+  --clause-depth 1 \
+  --extract-grammar
+
+python3 tools/ieee_lrm_converter.py \
+  --pdf /Users/richarddje/Documents/github/ieee-1076-2019.pdf \
+  --out-root docs/vhdl \
+  --document "VHDL Language Reference Manual" \
+  --standard "IEEE 1076-2019" \
+  --domain "VHDL" \
+  --clause-depth 1 \
+  --extract-grammar
+```
+
 Generated parser artifacts:
 - `generated/*.json`
 - `generated/*_parser.rs`

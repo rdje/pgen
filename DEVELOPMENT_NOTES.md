@@ -1,4 +1,75 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Dual-LRM Conversion Tooling Adaptation (`IEEE 1800-2023` + `IEEE 1076-2019`)
+### Context
+We needed a reusable conversion flow (not hardcoded to 2017 line numbers) to process newer LRMs and support side-by-side source ingestion for:
+- SystemVerilog (`1800-2017` and `1800-2023`)
+- VHDL (`1076-2019`)
+
+User-provided reference scripts under `nexsim/docs/ieee1800-2017/*` were used as baseline patterns; this increment ports/adapts that workflow into `pgen/tools/`.
+
+### Implementation
+Primary files added:
+- `tools/split_sections.py`
+- `tools/txt_to_md_converter.py`
+- `tools/extract_grammar.py`
+- `tools/extract_grammar_v2.py`
+- `tools/create_clean_grammar.py`
+- `tools/ieee_lrm_converter.py`
+- `tools/LRM_CONVERSION_WORKFLOW.md`
+
+Local workspace trees added:
+- `docs/systemverilog/`
+  - `README.md`
+  - `.gitignore`
+  - `txt/.gitkeep`
+  - `md/.gitkeep`
+- `docs/vhdl/`
+  - `README.md`
+  - `.gitignore`
+  - `txt/.gitkeep`
+  - `md/.gitkeep`
+
+#### 1) TOC-driven section splitting (no hardcoded line offsets)
+`tools/split_sections.py`:
+- uses PyMuPDF TOC entries,
+- extracts numeric clause headings with configurable depth,
+- writes `section-*.txt` plus `sections_manifest.json`,
+- supports both standards without static section-line mapping.
+
+Important fix in this increment:
+- clause matcher now accepts top-level TOC entries formatted like:
+  - `1. Overview`
+  - (trailing dot after clause number).
+
+#### 2) Generic section text -> markdown conversion
+`tools/txt_to_md_converter.py`:
+- converts section text files into per-section markdown with frontmatter metadata,
+- adds lightweight heading structuring and EBNF fencing for `::=` blocks.
+
+#### 3) Grammar extraction and cleanup chain
+- `tools/extract_grammar.py`: raw rule catalog extraction from markdown.
+- `tools/extract_grammar_v2.py`: dedupe/normalize rules into EBNF + JSON report.
+- `tools/create_clean_grammar.py`: sorted clean EBNF output.
+
+#### 4) End-to-end orchestration
+`tools/ieee_lrm_converter.py`:
+- orchestrates split -> markdown conversion -> optional grammar extraction chain.
+- supports smoke runs via `--limit`.
+
+#### 5) Git hygiene for generated conversion artifacts
+Workspace `.gitignore` files under `docs/systemverilog/` and `docs/vhdl/` keep generated outputs (`txt/*.txt`, `md/*.md`, grammar extraction outputs) untracked by default while preserving `.gitkeep` and docs.
+
+### Validation
+Smoke-tested both source PDFs:
+- `python3 tools/ieee_lrm_converter.py --pdf /Users/richarddje/Documents/github/1800-2023.pdf --out-root docs/systemverilog --document "SystemVerilog Language Reference Manual" --standard "IEEE 1800-2023" --domain "SystemVerilog" --clause-depth 1 --limit 2 --extract-grammar`
+- `python3 tools/ieee_lrm_converter.py --pdf /Users/richarddje/Documents/github/ieee-1076-2019.pdf --out-root docs/vhdl --document "VHDL Language Reference Manual" --standard "IEEE 1076-2019" --domain "VHDL" --clause-depth 1 --limit 2 --extract-grammar`
+
+Observed:
+- both runs completed successfully,
+- section manifests and markdown files generated in local workspaces,
+- grammar extraction chain produced normalized/clean outputs,
+- no manual section line map required.
+
 ## 2026-02-27 - `sv_stimuli_quality_gate` Semantic Baseline Expansion (Contract v2)
 ### Context
 Phase P semantic-closure work needed to move beyond the initial preprocess-only semantic baseline (`non-empty preprocessed output` + `no preprocessor errors`).
