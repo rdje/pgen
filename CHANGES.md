@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-02-27 - Added Initial `systemverilog_preprocessor.ebnf` Seed Grammar
+### ✅ Achievement Summary
+Added a dedicated SystemVerilog preprocessor grammar (`grammars/systemverilog_preprocessor.ebnf`) as the first executable closure step of the preprocessor-first roadmap track (Phase Q).
+
+### Scope of Changes
+- Added:
+  - `grammars/systemverilog_preprocessor.ebnf`
+- Implemented initial directive coverage baseline:
+  - `` `define/`undef``
+  - `` `include``
+  - `` `ifdef/`ifndef/`elsif/`else/`endif``
+  - `` `timescale`` / `` `default_nettype`` / `` `celldefine`` / `` `endcelldefine``
+- Added macro declaration constructs:
+  - macro formal/default arguments,
+  - token-paste primitive (````),
+  - stringize primitive (`"`),
+  - backtick macro-reference fragments inside macro body/default expressions.
+- Added passthrough non-directive line handling so mixed source text remains parseable in the preprocessor frontend grammar flow.
+
+### Validation Results
+- `tools/ebnf_to_json.pl --pretty --quiet grammars/systemverilog_preprocessor.ebnf -o /tmp/systemverilog_preprocessor.json` ✅
+- `cargo run --bin ast_pipeline -- /tmp/systemverilog_preprocessor.json --generate-parser --output /tmp/systemverilog_preprocessor_parser.rs --eliminate-left-recursion` ✅
+- `cargo run --bin ast_pipeline -- /tmp/systemverilog_preprocessor.json --generate-stimuli --count 4 --seed 2026 --output /tmp/systemverilog_preprocessor_stimuli.txt` ✅
+  - observed coverage on smoke run: rules `31/70`, branches `12/48`, sample success `4/4`.
+
 ## 2026-02-27 - Roadmap Update: SystemVerilog Preprocessor-First Execution Track
 ### ✅ Achievement Summary
 Updated the living roadmap to make SystemVerilog preprocessor closure an explicit prerequisite for full Nexsim SystemVerilog parser/stimuli closure.

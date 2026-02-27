@@ -239,7 +239,7 @@ Toolbox baseline to leverage end-to-end:
 ### Phase Q (New): SystemVerilog Preprocessor Frontend Closure (Preprocessor-First)
 Objective: deliver an executable, testable, deterministic preprocessor frontend so the main SV parser consumes preprocessed content under a defined contract.
 
-- [ ] Add `grammars/systemverilog_preprocessor.ebnf` as a dedicated grammar (separate from `systemverilog.ebnf`) and define directive-level syntax coverage baseline:
+- [x] Add `grammars/systemverilog_preprocessor.ebnf` as a dedicated grammar (separate from `systemverilog.ebnf`) and define directive-level syntax coverage baseline:
   - define/undef directives
   - include directives
   - ifdef/ifndef/elsif/else/endif directives
@@ -285,6 +285,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Added executable `grammars/systemverilog_preprocessor.ebnf` seed grammar and validated `EBNF -> JSON -> parser -> stimuli` on non-bootstrap Rust pipeline, closing Phase Q item for dedicated preprocessor grammar baseline.
 - 2026-02-27: Added Phase Q (`SystemVerilog Preprocessor Frontend Closure`) and made it an explicit preprocessor-first prerequisite for Phase P closure, including dedicated grammar, preprocess execution stage, preprocess quality gate, preprocess-aware stimuli modes, and policy-promotion path.
 - 2026-02-27: Added Phase P (`SOTA SystemVerilog Parser + Stimuli Semantic Closure`) to codify the Nexsim-targeted execution plan: syntax+semantic equal acceptance contract, annotation-driven SV stimuli synthesis, and mandatory closed-loop coverage/gap convergence.
 - 2026-02-27: Added initial `grammars/systemverilog.ebnf` (IEEE 1800 markdown-seeded) and validated end-to-end (`EBNF -> JSON -> parser -> stimuli`), moving HDL readiness report row `systemverilog` from `not_ready` to `pass` while `vhdl` remains pending.

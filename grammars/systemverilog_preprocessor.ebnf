@@ -1,0 +1,170 @@
+# systemverilog_preprocessor.ebnf
+#
+# Initial SystemVerilog preprocessor grammar seed.
+# Scope for this first increment:
+# - Core directive parsing (`define`, `undef`, `include`, `ifdef` family)
+# - Timescale/default-nettype/celldefine directives
+# - Nested conditional-compilation blocks
+# - Macro formal/default argument syntax
+# - Macro body primitives for token-paste and stringize
+#
+# Notes:
+# - This grammar is intentionally line-oriented and deterministic.
+# - Non-directive source lines are captured as passthrough text.
+
+systemverilog_preprocessor_file := pp_item*
+
+pp_item := pp_define
+         | pp_undef
+         | pp_include
+         | pp_timescale
+         | pp_default_nettype
+         | pp_celldefine
+         | pp_endcelldefine
+         | pp_conditional
+         | pp_non_directive_line
+         | pp_blank_line
+
+# ---------------------------------------------------------------------------
+# Core directives
+# ---------------------------------------------------------------------------
+
+pp_define := kw_define macro_name macro_formals? macro_body? newline?
+pp_undef := kw_undef macro_name directive_tail? newline?
+pp_include := kw_include include_path directive_tail? newline?
+pp_timescale := kw_timescale time_literal slash time_literal directive_tail? newline?
+pp_default_nettype := kw_default_nettype nettype_value directive_tail? newline?
+pp_celldefine := kw_celldefine directive_tail? newline?
+pp_endcelldefine := kw_endcelldefine directive_tail? newline?
+
+include_path := quoted_string
+              | angle_path
+
+nettype_value := identifier
+               | kw_none
+
+time_literal := unsigned_number time_unit
+
+# ---------------------------------------------------------------------------
+# Conditional-compilation blocks
+# ---------------------------------------------------------------------------
+
+pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
+
+pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item*
+pp_elsif_branch := kw_elsif condition_expr? newline pp_item*
+pp_else_branch := kw_else directive_tail? newline pp_item*
+pp_endif := kw_endif directive_tail? newline?
+
+condition_expr := condition_atom+
+condition_atom := macro_token_paste
+                | macro_stringize
+                | macro_reference
+                | condition_text
+                | lparen
+                | rparen
+                | comma
+                | question
+                | colon
+                | logical_or
+                | logical_and
+                | bang
+
+condition_text := trivia /[^`(),?:!|&\r\n]+/
+
+# ---------------------------------------------------------------------------
+# Macro declaration support
+# ---------------------------------------------------------------------------
+
+macro_formals := lparen macro_formal (comma macro_formal)* rparen
+macro_formal := macro_name (assign macro_default_value)?
+
+macro_default_value := macro_default_atom+
+macro_default_atom := macro_token_paste
+                    | macro_stringize
+                    | macro_reference
+                    | macro_default_text
+                    | lparen
+                    | rparen
+                    | question
+                    | colon
+
+macro_default_text := trivia /[^`(),?:\r\n]+/
+
+macro_body := macro_body_fragment+
+macro_body_fragment := macro_token_paste
+                     | macro_stringize
+                     | macro_reference
+                     | macro_body_text
+                     | lparen
+                     | rparen
+                     | comma
+                     | question
+                     | colon
+
+macro_body_text := trivia /[^`(),?:\r\n]+/
+macro_reference := bt_identifier
+macro_token_paste := trivia /``/
+macro_stringize := trivia /`"/
+
+# ---------------------------------------------------------------------------
+# Passthrough lines
+# ---------------------------------------------------------------------------
+
+pp_non_directive_line := non_directive_text newline?
+pp_blank_line := newline
+non_directive_text := trivia /[^`\r\n][^\r\n]*/
+directive_tail := trivia /[^\r\n]+/
+
+# ---------------------------------------------------------------------------
+# Identifiers and literals
+# ---------------------------------------------------------------------------
+
+macro_name := identifier
+identifier := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
+bt_identifier := trivia /`[a-zA-Z_][a-zA-Z0-9_$]*/
+
+unsigned_number := trivia /[0-9][0-9_]*/
+quoted_string := trivia /"([^"\\]|\\.)*"/
+angle_path := trivia /<[^>\r\n]+>/
+time_unit := trivia /(s|ms|us|ns|ps|fs)\b/
+
+# ---------------------------------------------------------------------------
+# Trivia and punctuation
+# ---------------------------------------------------------------------------
+
+trivia := (space_or_tab | line_comment | block_comment)*
+space_or_tab := /[ \t]+/
+line_comment := /\/\/[^\r\n]*/
+block_comment := /\/\*([^*]|\*+[^*/])*\*+\//
+
+newline := trivia /\r?\n/
+
+slash := trivia "/"
+assign := trivia "="
+comma := trivia ","
+colon := trivia ":"
+question := trivia "?"
+bang := trivia "!"
+logical_or := trivia "||"
+logical_and := trivia "&&"
+lparen := trivia "("
+rparen := trivia ")"
+
+# ---------------------------------------------------------------------------
+# Directive keywords
+# ---------------------------------------------------------------------------
+
+kw_define := trivia /`define\b/
+kw_undef := trivia /`undef\b/
+kw_include := trivia /`include\b/
+kw_ifdef := trivia /`ifdef\b/
+kw_ifndef := trivia /`ifndef\b/
+kw_elsif := trivia /`elsif\b/
+kw_else := trivia /`else\b/
+kw_endif := trivia /`endif\b/
+kw_timescale := trivia /`timescale\b/
+kw_default_nettype := trivia /`default_nettype\b/
+kw_celldefine := trivia /`celldefine\b/
+kw_endcelldefine := trivia /`endcelldefine\b/
+kw_none := trivia /none\b/

@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Implemented Phase Q Step 1: Executable `systemverilog_preprocessor.ebnf`
+### Context
+After committing to a preprocessor-first closure strategy for Nexsim SystemVerilog readiness, the first concrete task was to add a dedicated preprocessor grammar executable through the current pipeline.
+
+### Implementation
+Added:
+- `grammars/systemverilog_preprocessor.ebnf`
+
+Initial grammar scope in this increment:
+- directive parsing:
+  - `` `define/`undef``
+  - `` `include``
+  - `` `ifdef/`ifndef/`elsif/`else/`endif`` with nested conditional blocks
+  - `` `timescale``, `` `default_nettype``, `` `celldefine``, `` `endcelldefine``
+- macro declaration support:
+  - macro formals with optional default values,
+  - macro body fragments with explicit token-paste and stringize primitives,
+  - backtick macro references in macro bodies/default payloads.
+- passthrough support:
+  - non-directive source lines captured as text nodes,
+  - blank-line support and line-oriented trivia handling.
+
+Design constraints applied:
+- keep grammar deterministic and line-oriented for predictable parser generation,
+- avoid control-directive ambiguity in conditional blocks by using explicit if/elsif/else/endif structure,
+- keep this as a seed grammar, not full preprocessor semantics closure.
+
+### Validation
+Executed:
+- `tools/ebnf_to_json.pl --pretty --quiet grammars/systemverilog_preprocessor.ebnf -o /tmp/systemverilog_preprocessor.json`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- /tmp/systemverilog_preprocessor.json --generate-parser --output /tmp/systemverilog_preprocessor_parser.rs --eliminate-left-recursion`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo run --quiet --bin ast_pipeline -- /tmp/systemverilog_preprocessor.json --generate-stimuli --count 4 --seed 2026 --output /tmp/systemverilog_preprocessor_stimuli.txt`
+
+Observed:
+- end-to-end non-bootstrap flow passes for the new grammar,
+- stimuli smoke run produced 4/4 successful samples with baseline coverage output (`rules 31/70`, `branches 12/48`).
+
 ## 2026-02-27 - Strategy Decision: SystemVerilog Preprocessor Comes First
 ### Context
 During Nexsim-focused planning, we clarified that a SystemVerilog parser-only closure is insufficient for production confidence because real SV sources are heavily shaped by preprocessor behavior (`define/include/ifdef` family).

@@ -193,6 +193,19 @@ Use this file to resume work without replaying full chat history.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
 
+### 2026-02-27: Implemented Phase Q step 1 with executable SV preprocessor grammar seed
+- Root cause:
+  - preprocessor-first strategy needed an executable artifact before parser/stimuli/preprocess integration could be hardened.
+- Fix:
+  - added `grammars/systemverilog_preprocessor.ebnf` with initial directive coverage (`define/undef/include/ifdef family/timescale/default_nettype/celldefine`) plus macro formal/default and token-paste/stringize body primitives.
+  - updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase Q first item to complete.
+  - recorded implementation details in `CHANGES.md` and `DEVELOPMENT_NOTES.md`.
+- Validation:
+  - `tools/ebnf_to_json.pl --pretty --quiet grammars/systemverilog_preprocessor.ebnf -o /tmp/systemverilog_preprocessor.json`
+  - `cargo run --bin ast_pipeline -- /tmp/systemverilog_preprocessor.json --generate-parser --output /tmp/systemverilog_preprocessor_parser.rs --eliminate-left-recursion`
+  - `cargo run --bin ast_pipeline -- /tmp/systemverilog_preprocessor.json --generate-stimuli --count 4 --seed 2026 --output /tmp/systemverilog_preprocessor_stimuli.txt`
+  - all passed in non-bootstrap flow.
+
 ### 2026-02-27: Added explicit SV preprocessor-first closure strategy to roadmap
 - Root cause:
   - Nexsim-targeted SV closure needed explicit sequencing; parser/stimuli semantic closure without preprocessing closure would leave a major correctness gap.
