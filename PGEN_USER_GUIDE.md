@@ -2072,7 +2072,10 @@ Optional SV syntax-closure gate tuning:
   - optional declaration-before-use heuristic (`semantic_baseline.require_declared_identifiers_before_use`).
   - optional package qualification/import resolution heuristic (`semantic_baseline.require_package_qualification_resolution`).
   - optional simple packed-width vs literal-width compatibility check (`semantic_baseline.require_width_compatibility_simple`).
-  - optional basic context legality checks for `always_comb`/`always_ff` (`semantic_baseline.require_context_legality_basic`).
+  - optional basic context legality checks (`semantic_baseline.require_context_legality_basic`):
+    - `always_comb` must not contain event controls,
+    - `always_ff` must not contain blocking assignments,
+    - generate `for` iterators must be declared `genvar`.
 - parse-full stage behavior:
   - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,

@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Semantic Closure: Generate Context Legality Baseline (`genvar` for-loop iterator)
+### Context
+Phase P context-legality coverage included `always_ff`/`always_comb`, but generate constraints still lacked executable baseline checks.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+
+Updated `check_context_legality_basic(...)`:
+- now parses declared `genvar` identifiers,
+- scans `generate ... endgenerate` blocks for `for (...)` loops,
+- enforces that generate-loop iterator is declared `genvar`,
+- emits deterministic semantic violation when rule is broken.
+
+This extends the existing `semantic_baseline.require_context_legality_basic` toggle (no schema change needed).
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- no regression in default contract runs,
+- context-legality surface now includes a basic generate-loop legality constraint.
+
 ## 2026-02-27 - Phase P Semantic Closure: Basic Port-Binding Legality Validator (Contract v8)
 ### Context
 Phase P semantic closure requires executable legality checks beyond structural checks.

@@ -305,6 +305,24 @@ check_context_legality_basic() {
             $text =~ s!/\*.*?\*/!!gs;
             $text =~ s!//.*?$!!gm;
 
+            my %genvar_declared;
+            while ($text =~ /\bgenvar\b([^;]*);/g) {
+                my $tail = $1;
+                while ($tail =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {
+                    $genvar_declared{$1} = 1;
+                }
+            }
+            while ($text =~ /\bgenerate\b(.*?)\bendgenerate\b/sg) {
+                my $blk = $1;
+                while ($blk =~ /\bfor\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/g) {
+                    my $iter = $1;
+                    if (!$genvar_declared{$iter}) {
+                        print "context legality violation: generate for iterator \"$iter\" is not declared as genvar\n";
+                        exit 1;
+                    }
+                }
+            }
+
             while ($text =~ /\balways_comb\b(.*?)(?:\bend\b|;)/sg) {
                 my $blk = $1;
                 if ($blk =~ /\@\s*\(/) {

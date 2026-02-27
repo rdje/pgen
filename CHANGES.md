@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Semantic Closure: Extended Context Legality with Generate `genvar` Checks
+### ✅ Achievement Summary
+Expanded the `require_context_legality_basic` semantic validator to cover a baseline generate-context legality rule: generate-loop iterators must be declared as `genvar`.
+
+### Scope of Changes
+- Updated context legality validator in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - `check_context_legality_basic` now additionally:
+    - collects declared `genvar` identifiers,
+    - scans `generate ... endgenerate` blocks for `for (...)` iterators,
+    - fails semantic baseline when generate-loop iterator is not declared `genvar`.
+- No contract schema change required:
+  - existing toggle `semantic_baseline.require_context_legality_basic` now covers:
+    - `always_comb` event-control rejection,
+    - `always_ff` blocking-assignment rejection,
+    - generate-for iterator `genvar` legality.
+- Updated planning/docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Semantic Closure: Added Basic Port-Binding Legality Toggle (v8)
 ### ✅ Achievement Summary
 Extended SV semantic-closure baseline with a contractized basic named-port legality validator for module instantiations.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-port-binding-legality)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-generate-context-legality)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV semantic port-binding legality increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV generate-context legality increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `163`
+- Commit count at last refresh (before current uncommitted changes): `164`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- d840b68 Add SV semantic baseline port-binding legality toggle (contract v8)
 - a8a99b3 Harden SV closed-loop gate with deterministic failure replay/shrinking (contract v7)
 - f0a7133 Add SV stimuli mode profiles (sv_file/sv_snippet) to quality gate
 - 825c3dd Wire Phase P semantic-closure validator toggles into sv_stimuli_quality_gate (contract v5)
@@ -205,6 +206,23 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P context legality extension - generate-loop `genvar` baseline
+- Root cause:
+  - context-legality coverage lacked executable generate-loop legality checks.
+- Fix:
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh` `check_context_legality_basic`:
+    - parse declared `genvar` names,
+    - inspect `generate ... endgenerate` `for` iterators,
+    - fail when iterator is not declared `genvar`.
+  - reused existing `semantic_baseline.require_context_legality_basic` toggle (no schema change).
+  - updated roadmap + UG to reflect expanded context-legality coverage.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - context-legality baseline now covers always/context + generate-loop `genvar` legality.
 
 ### 2026-02-27: Phase P semantic closure - basic port-binding legality toggle (contract v8)
 - Root cause:

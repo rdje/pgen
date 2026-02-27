@@ -252,6 +252,9 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-02-27): added `require_port_binding_legality_basic` validator toggle in `sv_stimuli_quality_gate` and promoted `systemverilog_core_v0_contract.json` to v8:
     - checker enforces basic named-port legality for known in-file module declarations (`module_type.port`) during semantic baseline stage.
     - remains default-disabled until broader corpus hardening completes.
+  - Progress (2026-02-27): extended `require_context_legality_basic` checker with baseline generate legality:
+    - `generate ... endgenerate` `for` iterator must be declared `genvar`.
+    - no contract schema bump required; existing context-legality toggle now covers always/context + generate-context baseline.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -359,6 +362,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Advanced Phase P stimuli-mode track by adding contractized `sv_file`/`sv_snippet` mode plumbing in `sv_stimuli_quality_gate` (mode->entry rule mapping, mode-level closed-loop/parse-full eligibility controls) with `systemverilog_core_v0_contract.json` v6.
 - 2026-02-27: Advanced Phase P semantic-closure profile by adding `require_port_binding_legality_basic` checker wiring in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v8.
+- 2026-02-27: Advanced Phase P context-legality baseline by extending `require_context_legality_basic` with generate-loop `genvar` legality checks in `sv_stimuli_quality_gate`.
 - 2026-02-27: Advanced Phase P closed-loop convergence hardening by adding deterministic failure replay/shrinking in `sv_stimuli_quality_gate` with contractized `failure_replay` controls and `systemverilog_core_v0_contract.json` v7.
 - 2026-02-27: Advanced Phase P semantic-closure validator wiring by adding contractized semantic checks in `sv_stimuli_quality_gate` (`declared-before-use`, package qualification resolution, simple width compatibility, basic always-context legality) and bumping `systemverilog_core_v0_contract.json` to v5.
 - 2026-02-27: Closed Phase P syntax-closure burn-down loop by adding `sv_syntax_closure_gate` with contractized no-regression thresholds (parser generation viability, unresolved refs, entry-rule/rule-name invariants, reachable/unreachable summary caps).
