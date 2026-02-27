@@ -2021,7 +2021,38 @@ Optional SV preprocessor quality-gate tuning:
 - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS` (default `8`)
 - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_SEED_START` (default `9201`)
 - `PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_PREPROCESSOR_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES` (default `4`)
+- `PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER` (path to executable trusted-reference runner script; required for strict differential mode)
 - `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR` (default `rust/target/sv_preprocessor_quality_gate`)
+
+`sv_preprocessor_quality_gate` trusted-reference differential taxonomy:
+- gate emits differential report JSON at:
+  - `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_differential_report.json`
+- runner interface contract (`PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER`):
+  - positional args:
+    - `$1`: input SV sample file
+    - `$2`: output preprocessed SV file
+    - `$3`: output diagnostics JSON file
+- differential modes:
+  - `0`: disabled
+  - `auto`: enabled when runner is executable; otherwise report-only skip
+  - `1`: strict (fails when runner unavailable or when any non-`match` taxonomy occurs)
+- taxonomy categories:
+  - `match`
+  - `diagnostics_mismatch`
+  - `whitespace_only_output_mismatch`
+  - `output_mismatch`
+  - `rust_failed_reference_passed`
+  - `reference_failed_rust_passed`
+  - `both_failed`
+  - `reference_artifact_missing`
+- strict differential example:
+```bash
+PGEN_SV_PREPROCESSOR_DIFF_MODE=1 \
+PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/abs/path/to/reference_runner.sh \
+make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
+```
 
 Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`)

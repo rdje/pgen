@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-q-sv-pp-stimuli-modes)
+Last updated: 2026-02-27 (+0100, task: phase-q-svpp-differential-taxonomy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for Phase Q preprocess-aware SV stimuli mode increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for Phase Q SV preprocessor differential taxonomy increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `169`
+- Commit count at last refresh (before current uncommitted changes): `170`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- d4be882 Add preprocess-aware SV stimuli modes to phase-Q quality contract
 - 86c78cf Wire VHDL stimuli quality gate into aggregate SOTA policy
 - d757fbe Add dedicated VHDL closed-loop stimuli quality gate for Nexsim hardening
 - a997a78 Add mode-level recovery steering to SV stimuli gate (contract v10)
@@ -211,6 +212,28 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase Q trusted-reference differential taxonomy in SV preprocessor gate
+- Root cause:
+  - `sv_preprocessor_quality_gate` had deterministic closed-loop/fuzz checks but no trusted-reference differential layer or published mismatch taxonomy.
+- Fix:
+  - updated `rust/scripts/sv_preprocessor_quality_gate.sh`:
+    - added differential controls:
+      - `PGEN_SV_PREPROCESSOR_DIFF_MODE=auto|0|1`
+      - `PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES`
+      - `PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER`
+    - added trusted-reference runner execution stage on generated samples,
+    - added deterministic taxonomy classification and per-sample artifact recording,
+    - added report output:
+      - `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_differential_report.json`
+    - strict mode now fails on runner absence or any non-`match` taxonomy.
+  - updated roadmap + UG with taxonomy definitions and runner interface contract.
+- Validation:
+  - `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
+  - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/tmp/pgen_svpp_reference_runner.sh make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+- Status:
+  - taxonomy mechanics are now executable; external trusted-reference adapters can be plugged in without script changes.
 
 ### 2026-02-27: Phase Q preprocess-aware SV stimuli mode expansion (`sv_pp_file`, `sv_pp_snippet`)
 - Root cause:
@@ -873,23 +896,26 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Continue Phase P semantic-closure implementation for SV:
+1. Plug real trusted-reference adapters into SV preprocessor differential gate:
+   - provide project-level runner scripts for available external preprocessors and start collecting taxonomy deltas on curated corpora.
+2. Continue Phase P semantic-closure implementation for SV:
    - promote currently optional semantic baseline toggles toward required contract checks once false-positive rate is controlled.
-2. Add annotation-driven SV stimuli steering:
+3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
-3. Expand contractized SV/VHDL corpora:
+4. Expand contractized SV/VHDL corpora:
    - add deterministic targeted families for declaration/use, port binding, generate, and preprocess-heavy cases.
-4. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
+5. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-5. Continue Rust-native EBNF migration hardening:
+6. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-6. Keep roadmap + UG + memory synced after every gate/contract increment.
+7. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
+- SV preprocessor differential taxonomy stage is wired, but project-level trusted-reference runners are not yet standardized.
 
 ## Quick Commands
 - HDL frontend readiness (report):
@@ -902,5 +928,7 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
 - VHDL closed-loop quality:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+- SV preprocessor strict differential example:
+  - `PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/abs/path/to/runner.sh make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
 - Aggregate gate:
   - `make -C rust SHELL=/bin/bash sota_exit_gate`

@@ -1,4 +1,65 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase Q Differential Hardening: Trusted-Reference Taxonomy Stage in `sv_preprocessor_quality_gate`
+### Context
+Phase Q required differential hardening against trusted references and publication of mismatch taxonomy, but the gate had only deterministic closed-loop/fuzz checks and no external-reference comparison stage.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added trusted-reference differential controls
+`sv_preprocessor_quality_gate.sh` now supports:
+- `PGEN_SV_PREPROCESSOR_DIFF_MODE`:
+  - `0`: disable differential stage
+  - `auto`: run only when trusted-reference runner is available
+  - `1`: strict mode (runner required + zero mismatch required)
+- `PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES`:
+  - cap number of generated baseline samples compared to trusted reference
+- `PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER`:
+  - executable adapter script path.
+  - runner positional-arg contract:
+    - `$1` input sample file
+    - `$2` reference preprocessed output file
+    - `$3` reference diagnostics JSON file
+
+#### 2) Added deterministic taxonomy report generation
+Gate now emits:
+- `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_differential_report.json`
+
+Report includes:
+- effective differential mode + note
+- checked sample counts
+- taxonomy counts
+- per-sample case records (input/output/log artifact references + exit codes + diagnostic counts)
+
+#### 3) Added mismatch taxonomy
+Current classification categories:
+- `match`
+- `diagnostics_mismatch`
+- `whitespace_only_output_mismatch`
+- `output_mismatch`
+- `rust_failed_reference_passed`
+- `reference_failed_rust_passed`
+- `both_failed`
+- `reference_artifact_missing`
+
+Strict mode (`DIFF_MODE=1`) fails the gate on any non-`match` category.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`
+- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - expected behavior in this environment:
+    - differential effective mode becomes `unsupported_reference_runner` in `auto` mode.
+- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/tmp/pgen_svpp_reference_runner.sh make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - validated strict mode path with local adapter runner; taxonomy remained `match` for checked sample.
+
+### Notes
+- This increment publishes and operationalizes taxonomy mechanics.
+- Remaining closure is external: wiring project-level trusted-reference adapters (for example tool-specific SV preprocessor wrappers) as they become available.
+
 ## 2026-02-27 - Phase Q Parser/Stimuli Integration: Preprocess-Aware SV Stimuli Modes
 ### Context
 Phase Q integration contract requires preprocess-aware stimuli operating modes so `sv_stimuli_quality_gate` can intentionally target preprocessor-heavy runs without introducing one-off scripts.

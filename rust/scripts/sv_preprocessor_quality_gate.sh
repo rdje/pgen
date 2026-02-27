@@ -19,6 +19,9 @@ SEED_BASE="${PGEN_SV_PREPROCESSOR_QUALITY_SEED_BASE:-9101}"
 FUZZ_ROUNDS="${PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS:-8}"
 FUZZ_SEED_START="${PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_SEED_START:-9201}"
 PARSEABILITY_MODE="${PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY:-auto}"
+DIFF_MODE="${PGEN_SV_PREPROCESSOR_DIFF_MODE:-auto}"
+DIFF_MAX_SAMPLES="${PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES:-4}"
+DIFF_REFERENCE_RUNNER="${PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER:-}"
 
 GRAMMAR_NAME="systemverilog_preprocessor"
 GRAMMAR_FILE="$GRAMMARS_DIR/${GRAMMAR_NAME}.ebnf"
@@ -52,6 +55,14 @@ if ! [[ "$FUZZ_SEED_START" =~ ^[0-9]+$ ]]; then
 fi
 if [[ "$PARSEABILITY_MODE" != "auto" && "$PARSEABILITY_MODE" != "0" && "$PARSEABILITY_MODE" != "1" ]]; then
     echo "error: PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY must be one of: auto, 0, 1" >&2
+    exit 2
+fi
+if [[ "$DIFF_MODE" != "auto" && "$DIFF_MODE" != "0" && "$DIFF_MODE" != "1" ]]; then
+    echo "error: PGEN_SV_PREPROCESSOR_DIFF_MODE must be one of: auto, 0, 1" >&2
+    exit 2
+fi
+if ! [[ "$DIFF_MAX_SAMPLES" =~ ^[0-9]+$ ]] || [[ "$DIFF_MAX_SAMPLES" -lt 1 ]]; then
+    echo "error: PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES must be an integer >= 1" >&2
     exit 2
 fi
 
@@ -162,6 +173,12 @@ assert_same_json() {
     assert_same_text "$left_norm" "$right_norm" "$context"
 }
 
+normalize_text_for_diff_output() {
+    local source="$1"
+    local target="$2"
+    tr -s '[:space:]' ' ' <"$source" | sed 's/^ *//; s/ *$//' >"$target"
+}
+
 parse_target_summary() {
     local log_path="$1"
     local line
@@ -191,6 +208,8 @@ echo "seed_base: $SEED_BASE"
 echo "fuzz_rounds: $FUZZ_ROUNDS"
 echo "fuzz_seed_start: $FUZZ_SEED_START"
 echo "parseability_mode: $PARSEABILITY_MODE"
+echo "diff_mode: $DIFF_MODE"
+echo "diff_max_samples: $DIFF_MAX_SAMPLES"
 
 run_logged_rust "build_generated_ast_pipeline" \
     cargo build --features generated_parsers --bin ast_pipeline
@@ -519,6 +538,260 @@ fuzz_minimized="$(extract_json_u64 "$fuzz_replay_a" ".minimized_cases")"
 fuzz_parseability_counterexamples="$(extract_json_u64 "$fuzz_replay_a" ".parseability_counterexamples")"
 fuzz_shrunk_counterexamples="$(extract_json_u64 "$fuzz_replay_a" ".shrunk_counterexamples")"
 
+diff_report_json="$WORK_DIR/${GRAMMAR_NAME}_differential_report.json"
+diff_cases_jsonl="$WORK_DIR/${GRAMMAR_NAME}_differential_cases.jsonl"
+diff_effective_mode="disabled"
+diff_note="trusted-reference differential disabled by configuration"
+diff_reference_runner="$DIFF_REFERENCE_RUNNER"
+diff_total_samples_seen=0
+diff_samples_checked=0
+diff_mismatch_count=0
+diff_match_count=0
+diff_diagnostics_mismatch_count=0
+diff_whitespace_only_output_mismatch_count=0
+diff_output_mismatch_count=0
+diff_rust_failed_reference_passed_count=0
+diff_reference_failed_rust_passed_count=0
+diff_both_failed_count=0
+diff_reference_artifact_missing_count=0
+
+if [[ "$DIFF_MODE" != "0" ]]; then
+    if [[ -z "$DIFF_REFERENCE_RUNNER" ]]; then
+        if [[ "$DIFF_MODE" == "1" ]]; then
+            echo "error: strict differential mode requires PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER" >&2
+            exit 1
+        fi
+        diff_effective_mode="unsupported_reference_runner"
+        diff_note="trusted-reference runner not configured; set PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER"
+    elif [[ ! -x "$DIFF_REFERENCE_RUNNER" ]]; then
+        if [[ "$DIFF_MODE" == "1" ]]; then
+            echo "error: strict differential mode requires executable trusted-reference runner at '$DIFF_REFERENCE_RUNNER'" >&2
+            exit 1
+        fi
+        diff_effective_mode="unsupported_reference_runner"
+        diff_note="trusted-reference runner path is not executable: $DIFF_REFERENCE_RUNNER"
+    else
+        diff_effective_mode="enabled"
+        diff_note="trusted-reference differential classification enabled"
+        : >"$diff_cases_jsonl"
+        declare -a diff_raw_samples=()
+        mapfile -t diff_raw_samples < "$samples0a"
+        diff_total_samples_seen="${#diff_raw_samples[@]}"
+        diff_case_index=0
+        for diff_sample_text in "${diff_raw_samples[@]}"; do
+            if (( diff_samples_checked >= DIFF_MAX_SAMPLES )); then
+                break
+            fi
+            if [[ -z "$diff_sample_text" ]]; then
+                continue
+            fi
+
+            diff_sample_file="$WORK_DIR/diff_sample_${diff_case_index}.sv"
+            diff_rust_output="$WORK_DIR/diff_sample_${diff_case_index}.rust.out.sv"
+            diff_ref_output="$WORK_DIR/diff_sample_${diff_case_index}.reference.out.sv"
+            diff_rust_diag="$WORK_DIR/diff_sample_${diff_case_index}.rust.diag.json"
+            diff_ref_diag="$WORK_DIR/diff_sample_${diff_case_index}.reference.diag.json"
+            diff_rust_log="$LOG_DIR/diff_sample_${diff_case_index}.rust.log"
+            diff_ref_log="$LOG_DIR/diff_sample_${diff_case_index}.reference.log"
+            diff_rust_norm="$WORK_DIR/diff_sample_${diff_case_index}.rust.norm.txt"
+            diff_ref_norm="$WORK_DIR/diff_sample_${diff_case_index}.reference.norm.txt"
+
+            printf '%s\n' "$diff_sample_text" >"$diff_sample_file"
+
+            rust_exit=0
+            if "$AST_PIPELINE_BIN" "$diff_sample_file" \
+                --preprocess-systemverilog \
+                --output "$diff_rust_output" \
+                --sv-diagnostics-json "$diff_rust_diag" >"$diff_rust_log" 2>&1; then
+                rust_exit=0
+            else
+                rust_exit=$?
+            fi
+
+            ref_exit=0
+            if "$DIFF_REFERENCE_RUNNER" "$diff_sample_file" "$diff_ref_output" "$diff_ref_diag" >"$diff_ref_log" 2>&1; then
+                ref_exit=0
+            else
+                ref_exit=$?
+            fi
+
+            rust_warnings=0
+            rust_errors=0
+            ref_warnings=0
+            ref_errors=0
+            rust_diag_available=0
+            ref_diag_available=0
+
+            if [[ -s "$diff_rust_diag" ]] && jq -e 'type == "array"' "$diff_rust_diag" >/dev/null 2>&1; then
+                rust_diag_available=1
+                rust_warnings="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$diff_rust_diag")"
+                rust_errors="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$diff_rust_diag")"
+            fi
+            if [[ -s "$diff_ref_diag" ]] && jq -e 'type == "array"' "$diff_ref_diag" >/dev/null 2>&1; then
+                ref_diag_available=1
+                ref_warnings="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$diff_ref_diag")"
+                ref_errors="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$diff_ref_diag")"
+            fi
+
+            category=""
+            if (( rust_exit == 0 && ref_exit == 0 )); then
+                if [[ ! -f "$diff_rust_output" || ! -f "$diff_ref_output" ]]; then
+                    category="reference_artifact_missing"
+                elif cmp -s "$diff_rust_output" "$diff_ref_output"; then
+                    if (( rust_diag_available == 1 && ref_diag_available == 1 )) && (( rust_warnings != ref_warnings || rust_errors != ref_errors )); then
+                        category="diagnostics_mismatch"
+                    else
+                        category="match"
+                    fi
+                else
+                    normalize_text_for_diff_output "$diff_rust_output" "$diff_rust_norm"
+                    normalize_text_for_diff_output "$diff_ref_output" "$diff_ref_norm"
+                    if cmp -s "$diff_rust_norm" "$diff_ref_norm"; then
+                        category="whitespace_only_output_mismatch"
+                    else
+                        category="output_mismatch"
+                    fi
+                fi
+            elif (( rust_exit != 0 && ref_exit == 0 )); then
+                category="rust_failed_reference_passed"
+            elif (( rust_exit == 0 && ref_exit != 0 )); then
+                category="reference_failed_rust_passed"
+            else
+                category="both_failed"
+            fi
+
+            case "$category" in
+                match)
+                    diff_match_count=$((diff_match_count + 1))
+                    ;;
+                diagnostics_mismatch)
+                    diff_diagnostics_mismatch_count=$((diff_diagnostics_mismatch_count + 1))
+                    diff_mismatch_count=$((diff_mismatch_count + 1))
+                    ;;
+                whitespace_only_output_mismatch)
+                    diff_whitespace_only_output_mismatch_count=$((diff_whitespace_only_output_mismatch_count + 1))
+                    diff_mismatch_count=$((diff_mismatch_count + 1))
+                    ;;
+                output_mismatch)
+                    diff_output_mismatch_count=$((diff_output_mismatch_count + 1))
+                    diff_mismatch_count=$((diff_mismatch_count + 1))
+                    ;;
+                rust_failed_reference_passed)
+                    diff_rust_failed_reference_passed_count=$((diff_rust_failed_reference_passed_count + 1))
+                    diff_mismatch_count=$((diff_mismatch_count + 1))
+                    ;;
+                reference_failed_rust_passed)
+                    diff_reference_failed_rust_passed_count=$((diff_reference_failed_rust_passed_count + 1))
+                    diff_mismatch_count=$((diff_mismatch_count + 1))
+                    ;;
+                both_failed)
+                    diff_both_failed_count=$((diff_both_failed_count + 1))
+                    diff_mismatch_count=$((diff_mismatch_count + 1))
+                    ;;
+                reference_artifact_missing)
+                    diff_reference_artifact_missing_count=$((diff_reference_artifact_missing_count + 1))
+                    diff_mismatch_count=$((diff_mismatch_count + 1))
+                    ;;
+                *)
+                    echo "error: unknown differential mismatch category '$category'" >&2
+                    exit 1
+                    ;;
+            esac
+
+            jq -n \
+                --argjson index "$diff_case_index" \
+                --arg category "$category" \
+                --arg sample_file "$diff_sample_file" \
+                --arg rust_output "$diff_rust_output" \
+                --arg reference_output "$diff_ref_output" \
+                --arg rust_log "$diff_rust_log" \
+                --arg reference_log "$diff_ref_log" \
+                --argjson rust_exit "$rust_exit" \
+                --argjson reference_exit "$ref_exit" \
+                --argjson rust_warnings "$rust_warnings" \
+                --argjson rust_errors "$rust_errors" \
+                --argjson reference_warnings "$ref_warnings" \
+                --argjson reference_errors "$ref_errors" \
+                '{
+                    index: $index,
+                    category: $category,
+                    sample_file: $sample_file,
+                    rust: {
+                        output_file: $rust_output,
+                        log_file: $rust_log,
+                        exit_code: $rust_exit,
+                        warning_count: $rust_warnings,
+                        error_count: $rust_errors
+                    },
+                    reference: {
+                        output_file: $reference_output,
+                        log_file: $reference_log,
+                        exit_code: $reference_exit,
+                        warning_count: $reference_warnings,
+                        error_count: $reference_errors
+                    }
+                }' >>"$diff_cases_jsonl"
+
+            diff_samples_checked=$((diff_samples_checked + 1))
+            diff_case_index=$((diff_case_index + 1))
+        done
+    fi
+fi
+
+if [[ -s "$diff_cases_jsonl" ]]; then
+    diff_cases_json="$(jq -s '.' "$diff_cases_jsonl")"
+else
+    diff_cases_json='[]'
+fi
+
+jq -n \
+    --arg grammar_name "$GRAMMAR_NAME" \
+    --arg requested_mode "$DIFF_MODE" \
+    --arg effective_mode "$diff_effective_mode" \
+    --arg note "$diff_note" \
+    --arg reference_runner "$diff_reference_runner" \
+    --argjson total_samples_seen "$diff_total_samples_seen" \
+    --argjson samples_checked "$diff_samples_checked" \
+    --argjson max_samples "$DIFF_MAX_SAMPLES" \
+    --argjson mismatch_count "$diff_mismatch_count" \
+    --argjson match_count "$diff_match_count" \
+    --argjson diagnostics_mismatch_count "$diff_diagnostics_mismatch_count" \
+    --argjson whitespace_only_output_mismatch_count "$diff_whitespace_only_output_mismatch_count" \
+    --argjson output_mismatch_count "$diff_output_mismatch_count" \
+    --argjson rust_failed_reference_passed_count "$diff_rust_failed_reference_passed_count" \
+    --argjson reference_failed_rust_passed_count "$diff_reference_failed_rust_passed_count" \
+    --argjson both_failed_count "$diff_both_failed_count" \
+    --argjson reference_artifact_missing_count "$diff_reference_artifact_missing_count" \
+    --argjson cases "$diff_cases_json" \
+    '{
+        grammar_name: $grammar_name,
+        requested_mode: $requested_mode,
+        effective_mode: $effective_mode,
+        note: $note,
+        reference_runner: $reference_runner,
+        total_samples_seen: $total_samples_seen,
+        max_samples: $max_samples,
+        samples_checked: $samples_checked,
+        mismatch_count: $mismatch_count,
+        taxonomy_counts: {
+            match: $match_count,
+            diagnostics_mismatch: $diagnostics_mismatch_count,
+            whitespace_only_output_mismatch: $whitespace_only_output_mismatch_count,
+            output_mismatch: $output_mismatch_count,
+            rust_failed_reference_passed: $rust_failed_reference_passed_count,
+            reference_failed_rust_passed: $reference_failed_rust_passed_count,
+            both_failed: $both_failed_count,
+            reference_artifact_missing: $reference_artifact_missing_count
+        },
+        cases: $cases
+    }' >"$diff_report_json"
+
+if [[ "$DIFF_MODE" == "1" && "$diff_effective_mode" == "enabled" && "$diff_mismatch_count" -gt 0 ]]; then
+    echo "error: strict differential mode detected mismatches ($diff_mismatch_count)" >&2
+    cat "$diff_report_json" >&2
+    exit 1
+fi
+
 cat >"$SUMMARY_CSV" <<EOF
 metric,value
 grammar_name,$GRAMMAR_NAME
@@ -538,6 +811,19 @@ fuzz_rejected,$fuzz_rejected
 fuzz_minimized,$fuzz_minimized
 fuzz_parseability_counterexamples,$fuzz_parseability_counterexamples
 fuzz_shrunk_counterexamples,$fuzz_shrunk_counterexamples
+diff_mode_requested,$DIFF_MODE
+diff_mode_effective,$diff_effective_mode
+diff_reference_runner,$diff_reference_runner
+diff_samples_checked,$diff_samples_checked
+diff_mismatch_count,$diff_mismatch_count
+diff_taxonomy_match,$diff_match_count
+diff_taxonomy_diagnostics_mismatch,$diff_diagnostics_mismatch_count
+diff_taxonomy_whitespace_only_output_mismatch,$diff_whitespace_only_output_mismatch_count
+diff_taxonomy_output_mismatch,$diff_output_mismatch_count
+diff_taxonomy_rust_failed_reference_passed,$diff_rust_failed_reference_passed_count
+diff_taxonomy_reference_failed_rust_passed,$diff_reference_failed_rust_passed_count
+diff_taxonomy_both_failed,$diff_both_failed_count
+diff_taxonomy_reference_artifact_missing,$diff_reference_artifact_missing_count
 key_hit_pp_include,$(extract_rule_hit "$coverage3" "pp_include")
 key_hit_pp_define,$(extract_rule_hit "$coverage3" "pp_define")
 key_hit_pp_conditional,$(extract_rule_hit "$coverage3" "pp_conditional")
@@ -554,6 +840,8 @@ EOF
     echo "SV Preprocessor Quality Gate Summary"
     echo "state_dir: $STATE_DIR"
     echo "parseability: $parseability_note"
+    echo "differential: $diff_note"
+    echo "differential_report: $diff_report_json"
     echo
     if command -v column >/dev/null 2>&1; then
         column -s, -t "$SUMMARY_CSV"

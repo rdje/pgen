@@ -366,6 +366,21 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_pp_snippet`: `entry_rule=source_item`, closed-loop disabled by default, parse-full ineligible, `recovery_stimuli_mode=near_sync_negative`.
     Gate fallback logic in `sv_stimuli_quality_gate.sh` now also recognizes preprocess-aware mode names for entry-rule, closed-loop, and parse-full eligibility defaults.
 - [ ] Add differential hardening for preprocessor behavior against trusted references (where available) and publish mismatch taxonomy.
+  - Progress (2026-02-27): added trusted-reference differential stage in `rust/scripts/sv_preprocessor_quality_gate.sh` with configurable mode controls:
+    - `PGEN_SV_PREPROCESSOR_DIFF_MODE=auto|0|1`
+    - `PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES`
+    - `PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER`
+    Gate now emits deterministic mismatch report JSON (`systemverilog_preprocessor_differential_report.json`) including taxonomy counts and per-sample case artifacts.
+  - Progress (2026-02-27): published initial preprocessor mismatch taxonomy categories in gate/report path:
+    - `match`
+    - `diagnostics_mismatch`
+    - `whitespace_only_output_mismatch`
+    - `output_mismatch`
+    - `rust_failed_reference_passed`
+    - `reference_failed_rust_passed`
+    - `both_failed`
+    - `reference_artifact_missing`
+    Strict differential mode (`DIFF_MODE=1`) now fails gate on any non-`match` taxonomy result when reference runner is available.
 - [ ] Promote preprocessor gate policy:
   - informational first while grammar closes,
   - required strict before declaring Phase P (Nexsim SV parser closure) complete.
@@ -389,6 +404,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Advanced Phase P stimuli-mode track by adding contractized `sv_file`/`sv_snippet` mode plumbing in `sv_stimuli_quality_gate` (mode->entry rule mapping, mode-level closed-loop/parse-full eligibility controls) with `systemverilog_core_v0_contract.json` v6.
 - 2026-02-27: Advanced Phase Q parser/stimuli integration by adding preprocess-aware `sv_pp_file`/`sv_pp_snippet` profiles in `systemverilog_core_v0_contract.json` v11 and extending gate fallback mode mapping for preprocess-aware defaults.
+- 2026-02-27: Advanced Phase Q differential-hardening by adding trusted-reference mismatch taxonomy reporting to `sv_preprocessor_quality_gate` with strict/auto modes and per-sample taxonomy artifacts.
 - 2026-02-27: Advanced Phase P semantic-closure profile by adding `require_port_binding_legality_basic` checker wiring in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v8.
 - 2026-02-27: Advanced Phase P stimuli-mode semantic steering by adding mode-level `semantic_overrides` wiring in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v9.
 - 2026-02-27: Advanced Phase P stimuli-mode steering by adding mode-level `recovery_stimuli_mode` routing in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v10.

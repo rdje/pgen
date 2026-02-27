@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-02-27 - Phase Q Differential Hardening: Trusted-Reference Mismatch Taxonomy in `sv_preprocessor_quality_gate`
+### ✅ Achievement Summary
+Added a trusted-reference differential stage to the SystemVerilog preprocessor quality gate with deterministic mismatch taxonomy reporting and strict enforcement mode.
+
+### Scope of Changes
+- Updated gate implementation:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`
+  - added differential controls:
+    - `PGEN_SV_PREPROCESSOR_DIFF_MODE=auto|0|1`
+    - `PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES`
+    - `PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER`
+  - added per-sample differential execution path:
+    - preprocess with Rust path,
+    - preprocess with trusted-reference runner,
+    - classify outcome with stable taxonomy.
+  - emits report artifact:
+    - `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_differential_report.json`
+  - strict mode behavior:
+    - fails when runner unavailable (`DIFF_MODE=1`),
+    - fails on any non-`match` taxonomy category.
+- Published taxonomy + runner contract in docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Taxonomy Categories
+- `match`
+- `diagnostics_mismatch`
+- `whitespace_only_output_mismatch`
+- `output_mismatch`
+- `rust_failed_reference_passed`
+- `reference_failed_rust_passed`
+- `both_failed`
+- `reference_artifact_missing`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh` ✅
+- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate` ✅
+- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/tmp/pgen_svpp_reference_runner.sh make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate` ✅
+
 ## 2026-02-27 - Phase Q Integration Increment: Added Preprocess-Aware SV Stimuli Modes (`sv_pp_file`, `sv_pp_snippet`)
 ### ✅ Achievement Summary
 Expanded `sv_stimuli_quality_gate` mode contracts with explicit preprocess-aware file/snippet profiles so SystemVerilog stimuli runs can choose preprocessor-focused operating modes without changing gate internals.
