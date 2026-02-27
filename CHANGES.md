@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-02-27 - Added `SV_GRAMMAR_COVERAGE_MATRIX.md` (Annex-A Anchored, Per-Rule Tracked)
+### ✅ Achievement Summary
+Added a dedicated SystemVerilog syntax-closure tracking artifact with Annex-A-aligned anchor mapping, grouped per-rule status inventory, and explicit unresolved-reference debt for the current `systemverilog.ebnf` seed grammar.
+
+### Scope of Changes
+- Added:
+  - `SV_GRAMMAR_COVERAGE_MATRIX.md`
+  - includes:
+    - status legend (`Seed Implemented` / `Partial` / `Missing`),
+    - Annex-A-aligned seed coverage matrix,
+    - grouped per-rule inventory (counts + rule lists),
+    - explicit unresolved-reference debt list:
+      - `block_item_declaration`
+      - `checker_instantiation`
+      - `class_item`
+      - `kw_assert`
+      - `modport_declaration`
+- Updated roadmap tracking:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - marked Phase P matrix item complete and logged progress entry.
+- Updated user guide references:
+  - `PGEN_USER_GUIDE.md`
+  - added pointer to matrix artifact under HDL readiness section.
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash hdl_frontend_readiness` ✅
+  - confirms current readiness split remains expected (`systemverilog` pass, `vhdl` not ready).
+- unresolved-reference scan on `grammars/systemverilog.ebnf` confirmed current tracked debt list above.
+
 ## 2026-02-27 - Wired `sv_stimuli_quality_gate` into Aggregate SOTA Policy (Informational-First)
 ### ✅ Achievement Summary
 Added aggregate policy wiring so `sota_exit_gate` can execute `sv_stimuli_quality_gate` under explicit policy controls, initially as informational while SV closure work continues.

@@ -1,4 +1,60 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Syntax-Closure Artifact: `SV_GRAMMAR_COVERAGE_MATRIX.md`
+### Context
+Phase P required an explicit, executable-adjacent syntax closure tracker mapped to IEEE anchors, not just ad-hoc notes in roadmap bullets. Without a matrix artifact, SystemVerilog grammar growth would be hard to audit and hard to prioritize against Annex-A coverage goals.
+
+### Implementation
+Primary files:
+- `SV_GRAMMAR_COVERAGE_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+#### 1) Added dedicated coverage matrix artifact
+Created:
+- `SV_GRAMMAR_COVERAGE_MATRIX.md`
+
+Contents include:
+- status model:
+  - `Seed Implemented`
+  - `Partial`
+  - `Missing`
+- Annex-A-aligned seed coverage table for the current grammar sections:
+  - top-level routing,
+  - declarations/items,
+  - ports/parameters,
+  - instantiation/bind,
+  - generate,
+  - procedural/expressions/types,
+  - lexical/token inventory,
+  - preprocessor split note.
+- grouped per-rule inventory copied from current `grammars/systemverilog.ebnf` sections with explicit rule counts.
+
+#### 2) Added explicit unresolved-reference debt tracking
+Captured current unresolved-rule debt detected in `grammars/systemverilog.ebnf`:
+- `block_item_declaration`
+- `checker_instantiation`
+- `class_item`
+- `kw_assert`
+- `modport_declaration`
+
+These unresolved symbols are now called out as objective blockers for strict syntax-closure promotion.
+
+#### 3) Roadmap + user-guide integration
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - marked the Phase P matrix item complete.
+  - added explicit progress log entry for the new artifact.
+- `PGEN_USER_GUIDE.md`
+  - added explicit reference to `SV_GRAMMAR_COVERAGE_MATRIX.md` in the HDL readiness section, so operators have one canonical syntax-closure tracker.
+
+### Validation
+Executed:
+- `make -C rust SHELL=/bin/bash hdl_frontend_readiness`
+- unresolved-reference scan on `grammars/systemverilog.ebnf` (definition-vs-use check)
+
+Observed:
+- readiness behavior remains stable (`systemverilog` pass, `vhdl` not ready),
+- unresolved-reference debt list matches matrix entry exactly, keeping roadmap and artifact state aligned.
+
 ## 2026-02-27 - Aggregate Policy Wiring: `sv_stimuli_quality_gate` in `sota_exit_gate`
 ### Context
 `sv_stimuli_quality_gate` existed as a standalone command, but aggregate SOTA policy did not yet execute it. That left a gap between Phase Q/P progress and single-command release visibility.

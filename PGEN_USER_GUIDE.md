@@ -1896,6 +1896,9 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
 - current seed status:
   - `grammars/systemverilog.ebnf` exists and runs through `EBNF -> JSON -> parser -> stimuli` in report mode.
   - `grammars/vhdl.ebnf` is still pending, so strict HDL gate is expected to fail until that grammar is added.
+- SystemVerilog syntax-closure tracking artifact:
+  - `SV_GRAMMAR_COVERAGE_MATRIX.md`
+  - contains Annex-A-aligned anchor mapping, grouped per-rule coverage status, and explicit unresolved-reference closure debt for the current seed grammar.
 
 EBNF frontend dual-run commands:
 ```bash

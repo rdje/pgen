@@ -215,7 +215,8 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-02-27): added initial `systemverilog_core_v0` contract manifest at `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` with deterministic seed/sample defaults and preprocess/semantic-baseline policy knobs.
   - Progress (2026-02-27): added executable `make sv_stimuli_quality_gate` skeleton (`rust/scripts/sv_stimuli_quality_gate.sh`) that runs `EBNF -> JSON -> parser -> stimuli -> preprocess -> semantic_baseline` and conditionally attempts `parse_full` through parser-registry adapters when available (`auto|0|1` parse-full mode).
   - Progress (2026-02-27): wired dynamic build-time `systemverilog` parseability adapter injection (`build.rs` + conditional registry entry) so `sv_stimuli_quality_gate` can execute real `parse_full` on preprocessed samples without tracking generated parser artifacts in git.
-- [ ] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
+- [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
+  - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
 - [ ] Build syntax-closure burn-down loop:
   - grow `systemverilog.ebnf` clause-by-clause under deterministic no-regression gates.
 - [ ] Build semantic-closure profile and validator pass for generated SV stimuli:
@@ -299,6 +300,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.
+- 2026-02-27: Added `SV_GRAMMAR_COVERAGE_MATRIX.md` to operationalize Phase P syntax-closure tracking with Annex-A-aligned anchors, grouped per-rule status coverage, and explicit unresolved-reference debt for `systemverilog.ebnf`.
 - 2026-02-27: Wired dynamic build-time `systemverilog` parser-registry adapter path (`build.rs` + conditional module/registry entry) and upgraded `sv_stimuli_quality_gate` parse-full stage from adapter-skipped to executable in `auto` mode, with strict mode hard-fail behavior.
 - 2026-02-27: Started Phase Q/P parser-stimuli integration by adding `sv_stimuli_quality_gate` skeleton + initial `systemverilog_core_v0` contract manifest (`preprocess -> semantic baseline -> parse_full(optional)` with explicit stage accounting and auto/strict parse-full policy controls).
 - 2026-02-27: Implemented Phase Q preprocessor execution stage in Rust AST pipeline (`sv_preprocessor` module + `ast_pipeline --preprocess-systemverilog` CLI mode), delivering deterministic include/macro expansion baseline and source-map/event metadata outputs.
