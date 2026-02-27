@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Added Initial `vhdl.ebnf` Seed and Closed Strict HDL Frontend Gap
+### Context
+Phase O still had one open blocker: strict HDL frontend gate could not pass because `grammars/vhdl.ebnf` did not exist.
+
+Goal of this increment:
+- add an executable VHDL seed grammar,
+- make `make hdl_frontend_gate` pass for both tracked HDL grammars (`systemverilog`, `vhdl`),
+- keep grammar internally consistent (no unresolved rule references).
+
+### Implementation
+Primary files:
+- `grammars/vhdl.ebnf`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+
+Added `grammars/vhdl.ebnf` seed coverage for:
+- design-unit layer (`library/use/entity/architecture/package/package body/configuration/context`),
+- interface declarations (generic/port baseline),
+- declaration/type baseline (signal/constant/type/subtype/record/array/enum),
+- concurrent/sequential baseline (`process`, assignment, if/case/loop/wait/return, component instantiation, generate, block),
+- expression/literal/token baseline required for executable parser/stimuli generation.
+
+### Validation
+Executed:
+- unresolved-reference scan (definition-vs-use) on `grammars/vhdl.ebnf`
+- `make -C rust SHELL=/bin/bash hdl_frontend_gate`
+
+Observed:
+- unresolved-reference scan is empty,
+- strict HDL readiness gate passes:
+  - `systemverilog`: pass
+  - `vhdl`: pass
+
 ## 2026-02-27 - Aggregate Policy Wiring: HDL Frontend Readiness (Informational-First)
 ### Context
 Phase O required an explicit aggregate-policy decision for HDL readiness: expose the signal in `sota_exit_gate` now, but keep it non-blocking until `grammars/vhdl.ebnf` exists and strict HDL closure is feasible.

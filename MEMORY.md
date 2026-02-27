@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: aggregate HDL readiness wiring)
+Last updated: 2026-02-27 (+0100, task: vhdl seed grammar + strict HDL gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for aggregate HDL readiness wiring + synced docs/roadmap updates; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for `vhdl.ebnf` seed grammar + synced docs/roadmap updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,16 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Added `vhdl.ebnf` seed grammar and turned strict HDL readiness green
+- Root cause:
+  - strict HDL readiness could not pass while `grammars/vhdl.ebnf` was missing.
+- Fix:
+  - added executable `grammars/vhdl.ebnf` seed grammar with design-unit/declaration/statement/expression/token baseline coverage.
+  - updated roadmap and user guide status to reflect strict HDL pass state.
+- Validation:
+  - unresolved-reference scan for `grammars/vhdl.ebnf` is empty.
+  - `make -C rust SHELL=/bin/bash hdl_frontend_gate` passes for both `systemverilog` and `vhdl`.
 
 ### 2026-02-27: Wired HDL readiness into aggregate SOTA policy (informational-first)
 - Root cause:
@@ -494,20 +504,17 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Add first executable VHDL seed grammar:
-   - `grammars/vhdl.ebnf`
-   - drive `make -C rust hdl_frontend_gate` to green for both tracked HDL grammars.
-2. Extend semantic-validation stage beyond baseline:
+1. Extend semantic-validation stage beyond baseline:
    - move from preprocess-diagnostics baseline to explicit SV semantic contract checks (declaration/use, binding legality, scoped references).
-3. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
+2. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
    - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
-4. Promote HDL aggregate mode to strict once `vhdl` seed grammar stabilizes:
+3. Promote HDL aggregate mode to strict now that both HDL grammars pass strict gate:
    - set `PGEN_SOTA_REQUIRE_HDL_FRONTEND_STRICT=1`.
-5. Continue Rust-native EBNF migration hardening:
+4. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-6. Expand parser-registry coverage beyond annotations/ebnf:
+5. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-7. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+6. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

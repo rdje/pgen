@@ -1,7 +1,31 @@
 # CHANGES.md
+## 2026-02-27 - Added `grammars/vhdl.ebnf` Seed Grammar and Closed Strict HDL Readiness Gap
+### ✅ Achievement Summary
+Added an executable VHDL seed grammar and turned strict HDL frontend readiness green for both tracked HDL grammars (`systemverilog`, `vhdl`).
+
+### Scope of Changes
+- Added:
+  - `grammars/vhdl.ebnf`
+  - initial VHDL seed coverage includes:
+    - design units (entity/architecture/package/package body/configuration/context),
+    - generic/port interface baselines,
+    - declaration/type baselines,
+    - concurrent/process/sequential statement baselines,
+    - expression/literal/token baseline.
+- Updated docs/tracking:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` (Phase O VHDL item marked complete).
+  - `PGEN_USER_GUIDE.md` (HDL readiness status updated to strict-green state).
+
+### Validation Results
+- unresolved-reference scan on `grammars/vhdl.ebnf` returns no unresolved symbols.
+- `make -C rust SHELL=/bin/bash hdl_frontend_gate` ✅
+  - strict mode now reports:
+    - `systemverilog`: pass
+    - `vhdl`: pass
+
 ## 2026-02-27 - Wired HDL Frontend Readiness into Aggregate SOTA Policy (Informational-First)
 ### ✅ Achievement Summary
-Integrated HDL readiness checks into `sota_exit_gate` with informational-first policy so aggregate runs now report SystemVerilog/VHDL frontend readiness without failing merges while `vhdl.ebnf` is still pending.
+Integrated HDL readiness checks into `sota_exit_gate` with informational-first policy so aggregate runs report SystemVerilog/VHDL frontend readiness without immediately requiring strict promotion.
 
 ### Scope of Changes
 - Updated aggregate runner:
@@ -26,7 +50,7 @@ Integrated HDL readiness checks into `sota_exit_gate` with informational-first p
 ### Validation Results
 - scoped aggregate run:
   - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=1 make -C rust SHELL=/bin/bash sota_exit_gate` ✅
-  - confirms aggregate summary includes HDL readiness as informational with current expected `vhdl` pending state.
+  - confirms aggregate summary includes HDL readiness as informational under policy control.
 
 ## 2026-02-27 - Hardened `systemverilog.ebnf` Seed Consistency (Resolved Unresolved Symbols)
 ### ✅ Achievement Summary

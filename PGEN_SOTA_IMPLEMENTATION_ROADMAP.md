@@ -197,7 +197,8 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add strict HDL frontend gate target (`make hdl_frontend_gate`) that fails on missing/failing grammar flows.
 - [x] Define tracked initial grammar roster for readiness (`systemverilog`, `vhdl`) and report missing grammar files explicitly as `not_ready`.
 - [x] Add first executable SystemVerilog seed grammar (`grammars/systemverilog.ebnf`) from IEEE 1800 markdown syntax sections and drive `systemverilog` HDL readiness row to pass.
-- [ ] Add first executable VHDL seed grammar (`grammars/vhdl.ebnf`) and turn strict HDL frontend readiness green for both tracked HDL grammars.
+- [x] Add first executable VHDL seed grammar (`grammars/vhdl.ebnf`) and turn strict HDL frontend readiness green for both tracked HDL grammars.
+  - Progress (2026-02-27): added executable `grammars/vhdl.ebnf` seed grammar and validated strict `make hdl_frontend_gate` with both `systemverilog` and `vhdl` rows passing.
 - [x] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
   - Progress (2026-02-27): wired HDL readiness into aggregate `sota_exit_gate` as informational-first (`run=1`, `strict=0`) via policy/runtime controls while `vhdl.ebnf` remains pending.
 
@@ -303,6 +304,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.
+- 2026-02-27: Added initial executable `grammars/vhdl.ebnf` seed grammar and turned strict HDL frontend readiness (`make hdl_frontend_gate`) green for both tracked HDL grammars.
 - 2026-02-27: Wired HDL frontend readiness into aggregate SOTA policy as informational-first (`run=1`, `strict=0`) with explicit runtime/policy toggles, preserving non-blocking status while `vhdl.ebnf` closure is pending.
 - 2026-02-27: Hardened `systemverilog.ebnf` seed consistency by defining previously unresolved symbols (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed `SV_GRAMMAR_COVERAGE_MATRIX.md` to reflect zero unresolved reference debt.
 - 2026-02-27: Added `SV_GRAMMAR_COVERAGE_MATRIX.md` to operationalize Phase P syntax-closure tracking with Annex-A-aligned anchors, grouped per-rule status coverage, and explicit unresolved-reference debt for `systemverilog.ebnf`.

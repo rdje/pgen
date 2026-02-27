@@ -1894,8 +1894,9 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
 - strict mode (`hdl_frontend_gate`):
   - fails on missing grammar files or failing flow stages.
 - current seed status:
-  - `grammars/systemverilog.ebnf` exists and runs through `EBNF -> JSON -> parser -> stimuli` in report mode.
-  - `grammars/vhdl.ebnf` is still pending, so strict HDL gate is expected to fail until that grammar is added.
+  - `grammars/systemverilog.ebnf` passes `EBNF -> JSON -> parser -> stimuli`.
+  - `grammars/vhdl.ebnf` passes `EBNF -> JSON -> parser -> stimuli` (initial seed baseline).
+  - strict HDL gate (`make -C rust SHELL=/bin/bash hdl_frontend_gate`) is now green for both tracked grammars.
 - SystemVerilog syntax-closure tracking artifact:
   - `SV_GRAMMAR_COVERAGE_MATRIX.md`
   - contains Annex-A-aligned anchor mapping, grouped per-rule coverage status, and explicit unresolved-reference closure debt for the current seed grammar.
