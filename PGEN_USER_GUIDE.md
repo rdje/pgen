@@ -1935,6 +1935,11 @@ SV preprocessor closed-loop command:
 make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
 ```
 
+SV parser/stimuli preprocess-first skeleton command:
+```bash
+make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
+```
+
 Stimuli-module parity command:
 ```bash
 make -C rust SHELL=/bin/bash stimuli_module_parity_gate
@@ -1987,6 +1992,24 @@ Optional SV preprocessor quality-gate tuning:
 - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_SEED_START` (default `9201`)
 - `PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR` (default `rust/target/sv_preprocessor_quality_gate`)
+
+Optional SV stimuli quality-gate (skeleton) tuning:
+- `PGEN_SV_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`)
+- `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)
+- `PGEN_SV_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
+- `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
+
+`sv_stimuli_quality_gate` skeleton stage contract:
+- runs deterministic per-sample flow:
+  - `stimuli_generate -> preprocess -> semantic_validate_baseline -> parse_full(optional)`.
+- semantic baseline is currently:
+  - non-empty preprocessed output,
+  - no `error` severity in preprocessor diagnostics.
+- parse-full stage behavior:
+  - `auto`: enabled only when parser-registry adapter exists for the grammar,
+  - `0`: disabled,
+  - `1`: required (fails gate if adapter is unavailable).
 
 Optional stimuli-module parity-gate tuning:
 - `PGEN_STIMULI_MODULE_PARITY_COUNT` (default `16`)

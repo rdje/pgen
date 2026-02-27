@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-02-27 - Added `sv_stimuli_quality_gate` Preprocess-First Skeleton + `systemverilog_core_v0` Contract
+### ✅ Achievement Summary
+Started Phase Q/P parser-stimuli integration by adding an executable `sv_stimuli_quality_gate` skeleton that enforces a deterministic preprocess-first flow and records explicit stage status per sample.
+
+### Scope of Changes
+- Added gate script:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+- Added initial contract manifest:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- Added parser-registry probe utility binary:
+  - `rust/src/bin/parseability_probe.rs`
+  - `rust/Cargo.toml` updated with `parseability_probe` bin entry (`required-features = ["generated_parsers"]`)
+- Added Makefile wiring:
+  - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - help text updated.
+- Gate skeleton stage behavior:
+  - `EBNF -> JSON -> parser -> stimuli(1/sample/seed) -> preprocess -> semantic_validate_baseline -> parse_full(optional)`
+  - per-sample CSV/status artifact emission under:
+    - `rust/target/sv_stimuli_quality_gate`
+  - parse-full policy control:
+    - `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto|0|1`
+    - `auto` runs parse-full only if parser-registry adapter exists for target grammar.
+
+### Validation Results
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin parseability_probe -q` ✅
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin ast_pipeline -q` ✅
+- `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed current effective mode for `systemverilog`: parse-full `unsupported_adapter` (stage skipped in `auto`), while stimuli generation + preprocessing + semantic baseline checks pass.
+
 ## 2026-02-27 - Closed Phase Q Preprocessor Semantic Controls Contract
 ### ✅ Achievement Summary
 Completed the Phase Q semantic-controls item for the Rust SV preprocessor by adding typed policy controls, structured diagnostics, strict warning promotion, and targeted regressions.

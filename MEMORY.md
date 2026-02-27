@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for Phase Q semantic-controls closure; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for Phase Q/P `sv_stimuli_quality_gate` skeleton increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,24 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Started Phase Q/P parser-stimuli integration with `sv_stimuli_quality_gate` skeleton
+- Root cause:
+  - roadmap required an executable `preprocess -> parse_full -> semantic-validate` gate path for SystemVerilog stimuli, but only preprocessor-only quality gates existed.
+- Fix:
+  - added `rust/scripts/sv_stimuli_quality_gate.sh` and Make target `sv_stimuli_quality_gate`.
+  - added initial contract manifest `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`.
+  - added parser-registry probe binary `rust/src/bin/parseability_probe.rs` (+ Cargo bin wiring) so gate can explicitly test adapter availability and run parse-full checks on preprocessed samples when supported.
+  - gate now executes deterministic per-sample stages:
+    - stimuli generation,
+    - preprocessing,
+    - semantic baseline validation (`non-empty preprocessed output` + `no preprocess error diagnostics`),
+    - parse-full stage (`auto|0|1` policy; currently auto-skips when adapter missing).
+- Validation:
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin parseability_probe -q`
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin ast_pipeline -q`
+  - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - gate passed with `parse_full_effective=unsupported_adapter` for current `systemverilog` registry state.
 
 ### 2026-02-27: Closed Phase Q preprocessor semantic controls + diagnostics contract
 - Root cause:
@@ -375,20 +393,22 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Start Phase Q parser/stimuli integration contract item:
-   - define and add `sv_stimuli_quality_gate` skeleton enforcing `preprocess -> parse_full -> semantic-validate`.
-2. Start Phase P execution item 1:
-   - create `systemverilog_core_v0` contract corpus aligned with preprocess-first execution path.
-3. Add first VHDL seed grammar:
+1. Extend `sv_stimuli_quality_gate` from skeleton to strict parser integration:
+   - add `systemverilog` parseability adapter in parser registry and flip parse-full stage from auto-skip to executable pass/fail checks.
+2. Extend semantic-validation stage beyond baseline:
+   - move from preprocess-diagnostics baseline to explicit SV semantic contract checks (declaration/use, binding legality, scoped references).
+3. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
+   - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
+4. Add first VHDL seed grammar:
    - `grammars/vhdl.ebnf`
    - drive `make -C rust hdl_frontend_gate` to green for both tracked HDL grammars.
-4. Decide SOTA aggregate integration path for HDL readiness:
+5. Decide SOTA aggregate integration path for HDL readiness:
    - informational first in `sota_exit_gate`, then required strict when seed grammars stabilize.
-5. Continue Rust-native EBNF migration hardening:
+6. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-6. Expand parser-registry coverage beyond annotations/ebnf:
+7. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-7. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+8. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

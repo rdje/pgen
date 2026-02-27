@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "description": "Phase Q/P preprocessor-first skeleton contract for SystemVerilog stimuli quality checks.",
+  "grammar_name": "systemverilog",
+  "ebnf_path": "grammars/systemverilog.ebnf",
+  "sample_count": 6,
+  "seed_base": 12001,
+  "preprocess": {
+    "include_max_depth": 64,
+    "include_path_policy": "allow_absolute",
+    "macro_redefine_policy": "warn",
+    "conditional_symbol_policy": "assume_false_warn",
+    "conditional_expr_policy": "identifier_or_defined",
+    "strict_warning_codes": "none"
+  },
+  "semantic_baseline": {
+    "require_nonempty_preprocessed_output": true,
+    "require_no_preprocess_errors": true
+  }
+}

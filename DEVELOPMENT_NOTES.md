@@ -1,4 +1,92 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase Q/P Integration Start: `sv_stimuli_quality_gate` Skeleton
+### Context
+After Phase Q preprocessor execution and semantic-control closure, the next execution task was to start the parser/stimuli integration contract with an executable gate shape:
+- `preprocess -> parse_full -> semantic-validate`
+
+At this point, parser-registry parseability support for `systemverilog` is not yet wired, so the immediate goal was a deterministic skeleton that:
+- runs real preprocess-first flow end-to-end on generated SV samples,
+- performs baseline semantic validation checks,
+- attempts parse-full when adapter support is available,
+- provides clear stage accounting without false claims.
+
+### Implementation
+Primary files:
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/src/bin/parseability_probe.rs`
+- `rust/Cargo.toml`
+- `rust/Makefile`
+
+#### 1) Added `systemverilog_core_v0` gate contract manifest
+Created:
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+Contract captures deterministic baseline inputs and policy knobs:
+- grammar path/name,
+- sample count + seed base,
+- preprocess controls (depth/policies/strict-warning-codes),
+- semantic baseline requirements:
+  - preprocessed output non-empty,
+  - no `error` severity entries in diagnostics.
+
+This gives the gate a stable first contract artifact to evolve instead of ad-hoc shell defaults.
+
+#### 2) Added parseability probe utility (`parseability_probe`)
+Created new Rust bin:
+- `rust/src/bin/parseability_probe.rs`
+
+Purpose:
+- interrogate parser-registry support (`--supports <grammar>`),
+- run parse-full attempt against concrete sample files (`--parse <grammar> <file>`).
+
+Why this was needed:
+- existing CLI parseability checks are stimuli-generation-centric,
+- gate needed a direct way to attempt parse-full on already-preprocessed sample artifacts.
+
+Cargo wiring:
+- added `parseability_probe` bin entry in `rust/Cargo.toml`,
+- required feature: `generated_parsers`.
+
+#### 3) Added `sv_stimuli_quality_gate` script
+Created:
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+
+Gate stage flow (current skeleton):
+1. Build required binaries (`ast_pipeline`, `parseability_probe`) with `generated_parsers`.
+2. Convert `systemverilog.ebnf` to JSON.
+3. Generate parser artifact from JSON.
+4. Probe parse-full adapter availability for the grammar.
+5. For each deterministic seed/sample:
+   - generate one stimulus file,
+   - preprocess sample with policy-controlled SV preprocessor flags,
+   - run semantic-baseline checks on preprocessed output + diagnostics,
+   - optionally run parse-full on preprocessed sample when adapter support is available.
+6. Emit stage-accounting summary CSV/TXT under `rust/target/sv_stimuli_quality_gate`.
+
+Parse-full policy behavior:
+- `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto|0|1`
+  - `auto`: run parse-full only when adapter exists,
+  - `0`: disable parse-full stage,
+  - `1`: require parse-full adapter (fail if missing).
+
+#### 4) Makefile integration
+Added target:
+- `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Also updated Makefile help text for discoverability.
+
+### Validation
+Executed:
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin parseability_probe -q`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin ast_pipeline -q`
+- `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- gate executes end-to-end and emits deterministic artifacts/logs,
+- semantic baseline checks passed on generated samples,
+- parse-full stage is currently skipped in `auto` because `systemverilog` parser-registry adapter is not yet registered (`parse_full_effective=unsupported_adapter`), which is expected for this skeleton increment.
+
 ## 2026-02-27 - Phase Q Semantic Controls Closure for Rust SV Preprocessor
 ### Context
 Phase Q still had one open contract item: semantic control/validator behavior for preprocessor execution needed to be explicit, typed, diagnosable, and test-locked.
