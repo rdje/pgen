@@ -106,9 +106,15 @@ cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
   path/to/input.sv \
   --preprocess-systemverilog \
   --sv-include-dir path/to/includes \
+  --sv-include-path-policy relative_only \
+  --sv-macro-redefine-policy warn \
+  --sv-conditional-symbol-policy assume_false_warn \
+  --sv-conditional-expr-policy identifier_or_defined \
+  --sv-strict-warning-codes W_SVPP_ABSOLUTE_INCLUDE_PATH,W_SVPP_UNSUPPORTED_CONDITIONAL_EXPR \
   --output /tmp/input.preprocessed.sv \
   --sv-source-map-json /tmp/input.preprocessed.map.json \
-  --sv-event-log-json /tmp/input.preprocessed.events.json
+  --sv-event-log-json /tmp/input.preprocessed.events.json \
+  --sv-diagnostics-json /tmp/input.preprocessed.diagnostics.json
 ```
 
 ### Existing Makefile pipeline shortcuts
@@ -154,11 +160,21 @@ Primary modes:
 - This mode executes the Rust preprocessor stage and emits:
   - expanded/preprocessed SV text,
   - optional source map JSON (`--sv-source-map-json`),
-  - optional event log JSON (`--sv-event-log-json`).
+  - optional event log JSON (`--sv-event-log-json`),
+  - optional diagnostics JSON (`--sv-diagnostics-json`) containing stable diagnostic tuples:
+    - `code`, `severity`, `file`, `line`, `message`, `detail`.
 - Deterministic controls:
   - include search path order via repeated `--sv-include-dir`,
   - bounded include recursion (`--sv-include-max-depth`),
-  - macro-redefinition policy (`--sv-disallow-macro-redefine`).
+  - include path policy (`--sv-include-path-policy` = `allow_absolute|relative_only`),
+  - macro-redefinition policy (`--sv-macro-redefine-policy` = `allow|warn|error`),
+  - conditional symbol policy (`--sv-conditional-symbol-policy` = `assume_false_silent|assume_false_warn|error`),
+  - conditional expression policy (`--sv-conditional-expr-policy` = `identifier_only|identifier_or_defined`),
+  - strict warning promotion (`--sv-strict-warning-codes` = `none|all|CSV of warning codes`).
+- Backward-compatible strict macro mode:
+  - `--sv-disallow-macro-redefine` forces macro redefinition policy to error.
+- Strict warning promotion env fallback:
+  - `PGEN_SVPP_STRICT_WARNING_CODES` is used when `--sv-strict-warning-codes` is omitted.
 
 High-value stimuli flags:
 
@@ -184,8 +200,14 @@ SystemVerilog preprocess flags:
 - `--sv-include-dir` (repeatable)
 - `--sv-include-max-depth`
 - `--sv-disallow-macro-redefine`
+- `--sv-include-path-policy`
+- `--sv-macro-redefine-policy`
+- `--sv-conditional-symbol-policy`
+- `--sv-conditional-expr-policy`
+- `--sv-strict-warning-codes`
 - `--sv-source-map-json`
 - `--sv-event-log-json`
+- `--sv-diagnostics-json`
 
 ### Tracing and Verbosity
 Tracing in the Rust pipeline uses a single verbosity contract:

@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending roadmap/docs updates for SV preprocessor-first execution contract; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for Phase Q semantic-controls closure; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -193,6 +193,36 @@ Use this file to resume work without replaying full chat history.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
 
+### 2026-02-27: Closed Phase Q preprocessor semantic controls + diagnostics contract
+- Root cause:
+  - preprocessor execution path lacked a complete typed policy surface and structured diagnostics artifact contract, leaving Phase Q semantic-controls item open.
+- Fix:
+  - extended `SvPreprocessorConfig` in `rust/src/sv_preprocessor.rs` with typed policies:
+    - `IncludePathPolicy`
+    - `MacroRedefinitionPolicy`
+    - `ConditionalSymbolPolicy`
+    - `ConditionalExprPolicy`
+    - `strict_warning_codes` with parser helper (`none|all|csv`).
+  - added structured diagnostics model and output propagation:
+    - `PreprocessorDiagnostic` (`code/severity/file/line/message/detail`)
+    - `PreprocessedOutput.diagnostics`
+  - hardened conditional behavior:
+    - `ifdef`/`elsif` respect undefined-symbol policy and conditional-expression policy,
+    - `ifndef` now uses presence-based evaluation without undefined-symbol warning inflation.
+  - wired CLI policy/diagnostic flags in `rust/src/main.rs`:
+    - `--sv-diagnostics-json`
+    - `--sv-include-path-policy`
+    - `--sv-macro-redefine-policy`
+    - `--sv-conditional-symbol-policy`
+    - `--sv-conditional-expr-policy`
+    - `--sv-strict-warning-codes`
+    - env fallback: `PGEN_SVPP_STRICT_WARNING_CODES`.
+  - added targeted unit tests for macro-redefine warn/error, strict warning promotion, and `ifndef`/`ifdef` undefined-symbol policy behavior.
+- Validation:
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo test --lib sv_preprocessor -- --nocapture`
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo check --bin ast_pipeline --features generated_parsers -q`
+  - manual CLI smoke with diagnostics JSON emission and conditional warn policy.
+
 ### 2026-02-27: Implemented Rust SV preprocessor execution stage in `ast_pipeline`
 - Root cause:
   - Phase Q needed executable preprocessing behavior in Rust pipeline (not grammar/gate scaffolding only) to support true `raw SV -> expanded SV` flow and metadata handoff.
@@ -345,18 +375,20 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Start Phase P execution item 1:
-   - create `systemverilog_core_v0` contract corpus and add `sv_stimuli_quality_gate` skeleton.
-2. Add first VHDL seed grammar:
+1. Start Phase Q parser/stimuli integration contract item:
+   - define and add `sv_stimuli_quality_gate` skeleton enforcing `preprocess -> parse_full -> semantic-validate`.
+2. Start Phase P execution item 1:
+   - create `systemverilog_core_v0` contract corpus aligned with preprocess-first execution path.
+3. Add first VHDL seed grammar:
    - `grammars/vhdl.ebnf`
    - drive `make -C rust hdl_frontend_gate` to green for both tracked HDL grammars.
-3. Decide SOTA aggregate integration path for HDL readiness:
+4. Decide SOTA aggregate integration path for HDL readiness:
    - informational first in `sota_exit_gate`, then required strict when seed grammars stabilize.
-4. Continue Rust-native EBNF migration hardening:
+5. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-5. Expand parser-registry coverage beyond annotations/ebnf:
+6. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-6. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+7. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

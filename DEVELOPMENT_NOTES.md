@@ -1,4 +1,117 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase Q Semantic Controls Closure for Rust SV Preprocessor
+### Context
+Phase Q still had one open contract item: semantic control/validator behavior for preprocessor execution needed to be explicit, typed, diagnosable, and test-locked.
+
+Before this increment:
+- preprocessor execution existed and was deterministic,
+- but policy control surface was narrow and diagnostics were not first-class artifacts.
+
+### Root Cause
+Missing typed controls and structured diagnostics made policy behavior harder to prove and harder to consume in downstream gate/report paths.
+
+Specific gaps:
+- include policy only implicit in path resolution behavior,
+- macro redefine policy depended mainly on a boolean,
+- conditional symbol/expression behavior was not exposed as explicit policy knobs,
+- warning promotion to hard failure had no stable code-driven control,
+- no dedicated diagnostics JSON output contract.
+
+### Implementation
+Primary files:
+- `rust/src/sv_preprocessor.rs`
+- `rust/src/main.rs`
+
+#### 1) Typed preprocessor semantic-policy surface
+Replaced boolean-only config behavior with typed policies in `SvPreprocessorConfig`:
+- `IncludePathPolicy`:
+  - `AllowAbsolute`
+  - `RelativeOnly`
+- `MacroRedefinitionPolicy`:
+  - `Allow`
+  - `Warn`
+  - `Error`
+- `ConditionalSymbolPolicy`:
+  - `AssumeFalseSilent`
+  - `AssumeFalseWarn`
+  - `Error`
+- `ConditionalExprPolicy`:
+  - `IdentifierOnly`
+  - `IdentifierOrDefined`
+- `strict_warning_codes: HashSet<String>`:
+  - supports `none`, `all`, and code CSV via parser helper.
+
+Added `parse_strict_warning_codes(...)` to normalize warning-promotion policies.
+
+#### 2) Structured diagnostics contract
+Added:
+- `PreprocessorDiagnosticSeverity` (`warning|error`)
+- `PreprocessorDiagnostic`:
+  - `code`
+  - `severity`
+  - `file`
+  - `line`
+  - `message`
+  - `detail`
+
+`PreprocessedOutput` now includes `diagnostics`.
+
+Runtime helpers in `PreprocessorState`:
+- `warning_is_promoted(code)`
+- `push_warning(...)`
+- `push_error(...)`
+
+Promotion behavior:
+- if warning code is selected (or `all`), warning is recorded then escalated to hard error.
+
+#### 3) Conditional policy behavior hardening
+Added parser/evaluator helpers for `elsif` policy checks:
+- symbol-only mode,
+- `defined(...)` / `!defined(...)` support in identifier-or-defined mode.
+
+Directive behavior now:
+- `ifdef`:
+  - applies conditional symbol policy for undefined symbols.
+- `elsif`:
+  - applies conditional expression policy,
+  - emits stable warning on unsupported expression form.
+- `ifndef`:
+  - remains presence-based (`!is_defined`) and does not emit undefined-symbol warning inflation.
+
+#### 4) CLI surface and artifact output
+Added new `ast_pipeline` preprocess flags:
+- `--sv-diagnostics-json`
+- `--sv-include-path-policy`
+- `--sv-macro-redefine-policy`
+- `--sv-conditional-symbol-policy`
+- `--sv-conditional-expr-policy`
+- `--sv-strict-warning-codes`
+
+Compatibility:
+- existing `--sv-disallow-macro-redefine` still supported and forces `Error` mode.
+
+Env fallback:
+- when CLI strict-warning codes are omitted, use `PGEN_SVPP_STRICT_WARNING_CODES`.
+
+#### 5) Regression coverage added
+New focused tests in `sv_preprocessor` module:
+- macro redefine warn behavior records warning and continues.
+- macro redefine error behavior fails with stable error code.
+- undefined-symbol policy warning applies to `ifdef`, but not to presence-based `ifndef`.
+- strict-warning promotion escalates selected warning to hard failure.
+
+### Validation
+Executed:
+- `cd rust && RUSTFLAGS='-Awarnings' cargo test --lib sv_preprocessor -- --nocapture`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --bin ast_pipeline --features generated_parsers -q`
+- manual preprocess CLI smoke with diagnostics JSON emission and warn policy.
+
+Observed:
+- tests/checks pass,
+- CLI emits diagnostics JSON with stable schema,
+- warning/error counts are included in preprocess summary output,
+- `ifndef` semantics now align with intended presence-based behavior.
+
 ## 2026-02-27 - Phase Q Core Implementation: Rust SV Preprocessor Execution Stage
 ### Context
 After adding `systemverilog_preprocessor.ebnf` and its closed-loop quality gate, the next mandatory Phase Q milestone was to add an executable preprocessor stage inside the Rust pipeline itself.

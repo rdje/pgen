@@ -6,7 +6,7 @@
 //! - conditional-compilation flow (`ifdef/`ifndef/`elsif/`else/`endif),
 //! - source mapping metadata from expanded output back to originating file/line.
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -16,7 +16,11 @@ use std::path::{Path, PathBuf};
 pub struct SvPreprocessorConfig {
     pub include_dirs: Vec<PathBuf>,
     pub max_include_depth: usize,
-    pub allow_macro_redefine: bool,
+    pub include_path_policy: IncludePathPolicy,
+    pub macro_redefinition_policy: MacroRedefinitionPolicy,
+    pub conditional_symbol_policy: ConditionalSymbolPolicy,
+    pub conditional_expr_policy: ConditionalExprPolicy,
+    pub strict_warning_codes: HashSet<String>,
 }
 
 impl Default for SvPreprocessorConfig {
@@ -24,9 +28,104 @@ impl Default for SvPreprocessorConfig {
         Self {
             include_dirs: Vec::new(),
             max_include_depth: 64,
-            allow_macro_redefine: true,
+            include_path_policy: IncludePathPolicy::AllowAbsolute,
+            macro_redefinition_policy: MacroRedefinitionPolicy::Allow,
+            conditional_symbol_policy: ConditionalSymbolPolicy::AssumeFalseSilent,
+            conditional_expr_policy: ConditionalExprPolicy::IdentifierOrDefined,
+            strict_warning_codes: HashSet::new(),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IncludePathPolicy {
+    AllowAbsolute,
+    RelativeOnly,
+}
+
+impl IncludePathPolicy {
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "allow_absolute" | "allow-absolute" | "allowabsolute" => Some(Self::AllowAbsolute),
+            "relative_only" | "relative-only" | "relativeonly" => Some(Self::RelativeOnly),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MacroRedefinitionPolicy {
+    Allow,
+    Warn,
+    Error,
+}
+
+impl MacroRedefinitionPolicy {
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "allow" => Some(Self::Allow),
+            "warn" | "warning" => Some(Self::Warn),
+            "error" | "strict" => Some(Self::Error),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConditionalSymbolPolicy {
+    AssumeFalseSilent,
+    AssumeFalseWarn,
+    Error,
+}
+
+impl ConditionalSymbolPolicy {
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "assume_false_silent" | "assume-false-silent" | "silent" => {
+                Some(Self::AssumeFalseSilent)
+            }
+            "assume_false_warn" | "assume-false-warn" | "warn" | "warning" => {
+                Some(Self::AssumeFalseWarn)
+            }
+            "error" | "strict" => Some(Self::Error),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConditionalExprPolicy {
+    IdentifierOnly,
+    IdentifierOrDefined,
+}
+
+impl ConditionalExprPolicy {
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "identifier_only" | "identifier-only" | "identifieronly" => Some(Self::IdentifierOnly),
+            "identifier_or_defined" | "identifier-or-defined" | "identifierordefined" => {
+                Some(Self::IdentifierOrDefined)
+            }
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PreprocessorDiagnosticSeverity {
+    Warning,
+    Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PreprocessorDiagnostic {
+    pub code: String,
+    pub severity: PreprocessorDiagnosticSeverity,
+    pub file: String,
+    pub line: usize,
+    pub message: String,
+    pub detail: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -74,6 +173,7 @@ pub struct PreprocessedOutput {
     pub text: String,
     pub source_map: Vec<SourceMapEntry>,
     pub events: Vec<PreprocessorEvent>,
+    pub diagnostics: Vec<PreprocessorDiagnostic>,
     pub included_files: Vec<String>,
 }
 
@@ -97,6 +197,7 @@ struct PreprocessorState {
     output: String,
     source_map: Vec<SourceMapEntry>,
     events: Vec<PreprocessorEvent>,
+    diagnostics: Vec<PreprocessorDiagnostic>,
     include_stack: Vec<PathBuf>,
     included_files: Vec<String>,
     included_seen: HashSet<String>,
@@ -110,6 +211,7 @@ impl PreprocessorState {
             output: String::new(),
             source_map: Vec::new(),
             events: Vec::new(),
+            diagnostics: Vec::new(),
             include_stack: Vec::new(),
             included_files: Vec::new(),
             included_seen: HashSet::new(),
@@ -165,6 +267,77 @@ impl PreprocessorState {
             self.included_files.push(key);
         }
     }
+
+    fn warning_is_promoted(&self, code: &str) -> bool {
+        self.config.strict_warning_codes.contains("*")
+            || self
+                .config
+                .strict_warning_codes
+                .contains(&code.to_ascii_uppercase())
+    }
+
+    fn push_warning(
+        &mut self,
+        code: &str,
+        file: &Path,
+        line: usize,
+        message: impl Into<String>,
+        detail: impl Into<String>,
+    ) -> Result<()> {
+        let promoted = self.warning_is_promoted(code);
+        let severity = if promoted {
+            PreprocessorDiagnosticSeverity::Error
+        } else {
+            PreprocessorDiagnosticSeverity::Warning
+        };
+        let diagnostic = PreprocessorDiagnostic {
+            code: code.to_string(),
+            severity: severity.clone(),
+            file: file.display().to_string(),
+            line,
+            message: message.into(),
+            detail: detail.into(),
+        };
+        self.diagnostics.push(diagnostic.clone());
+        if promoted {
+            bail!(
+                "{} at {}:{}: {} ({})",
+                diagnostic.code,
+                diagnostic.file,
+                diagnostic.line,
+                diagnostic.message,
+                diagnostic.detail
+            );
+        }
+        Ok(())
+    }
+
+    fn push_error(
+        &mut self,
+        code: &str,
+        file: &Path,
+        line: usize,
+        message: impl Into<String>,
+        detail: impl Into<String>,
+    ) -> Result<()> {
+        let diagnostic = PreprocessorDiagnostic {
+            code: code.to_string(),
+            severity: PreprocessorDiagnosticSeverity::Error,
+            file: file.display().to_string(),
+            line,
+            message: message.into(),
+            detail: detail.into(),
+        };
+        self.diagnostics.push(diagnostic.clone());
+        bail!(
+            "{} at {}:{}: {} ({})",
+            diagnostic.code,
+            diagnostic.file,
+            diagnostic.line,
+            diagnostic.message,
+            diagnostic.detail
+        );
+    }
 }
 
 pub fn preprocess_systemverilog_file(
@@ -177,8 +350,25 @@ pub fn preprocess_systemverilog_file(
         text: state.output,
         source_map: state.source_map,
         events: state.events,
+        diagnostics: state.diagnostics,
         included_files: state.included_files,
     })
+}
+
+pub fn parse_strict_warning_codes(raw: &str) -> HashSet<String> {
+    let mut codes = HashSet::new();
+    for token in raw.split(',') {
+        let normalized = token.trim().to_ascii_uppercase();
+        if normalized.is_empty() || normalized == "NONE" {
+            continue;
+        }
+        if normalized == "ALL" {
+            codes.insert("*".to_string());
+            continue;
+        }
+        codes.insert(normalized);
+    }
+    codes
 }
 
 fn preprocess_file_internal(
@@ -260,13 +450,24 @@ fn preprocess_text_internal(
                                     line_no
                                 )
                             })?;
-                        if !state.config.allow_macro_redefine && state.macros.contains_key(&name) {
-                            bail!(
-                                "macro '{}' redefined at {}:{} while allow_macro_redefine=false",
-                                name,
-                                file_path.display(),
-                                line_no
-                            );
+                        if state.macros.contains_key(&name) {
+                            match state.config.macro_redefinition_policy {
+                                MacroRedefinitionPolicy::Allow => {}
+                                MacroRedefinitionPolicy::Warn => state.push_warning(
+                                    "W_SVPP_MACRO_REDEFINED",
+                                    file_path,
+                                    line_no,
+                                    "macro redefinition detected",
+                                    format!("macro '{}'", name),
+                                )?,
+                                MacroRedefinitionPolicy::Error => state.push_error(
+                                    "E_SVPP_MACRO_REDEFINED",
+                                    file_path,
+                                    line_no,
+                                    "macro redefinition is disallowed by policy",
+                                    format!("macro '{}'", name),
+                                )?,
+                            }
                         }
                         state.macros.insert(name, definition);
                     }
@@ -302,6 +503,17 @@ fn preprocess_text_internal(
                                     line_no
                                 )
                             })?;
+                        if Path::new(include_token).is_absolute()
+                            && state.config.include_path_policy == IncludePathPolicy::RelativeOnly
+                        {
+                            state.push_warning(
+                                "W_SVPP_ABSOLUTE_INCLUDE_PATH",
+                                file_path,
+                                line_no,
+                                "absolute include path violates include_path_policy=relative_only",
+                                include_token.to_string(),
+                            )?;
+                        }
                         let include_path =
                             resolve_include_path(include_token, is_angle, file_path, state)
                                 .with_context(|| {
@@ -317,7 +529,16 @@ fn preprocess_text_internal(
                 }
                 "ifdef" => {
                     let name = rest.trim();
-                    let cond = state.macros.contains_key(name);
+                    if !is_valid_macro_symbol(name) {
+                        state.push_warning(
+                            "W_SVPP_INVALID_CONDITIONAL_SYMBOL",
+                            file_path,
+                            line_no,
+                            "`ifdef expects an identifier-like macro symbol",
+                            name.to_string(),
+                        )?;
+                    }
+                    let cond = eval_symbol_condition(name, state, file_path, line_no, "ifdef")?;
                     let parent_active = active;
                     let current_active = parent_active && cond;
                     conditionals.push(ConditionalFrame {
@@ -335,6 +556,17 @@ fn preprocess_text_internal(
                 }
                 "ifndef" => {
                     let name = rest.trim();
+                    if !is_valid_macro_symbol(name) {
+                        state.push_warning(
+                            "W_SVPP_INVALID_CONDITIONAL_SYMBOL",
+                            file_path,
+                            line_no,
+                            "`ifndef expects an identifier-like macro symbol",
+                            name.to_string(),
+                        )?;
+                    }
+                    // `ifndef is defined in terms of symbol presence, and should not
+                    // trigger undefined-symbol diagnostics for the "missing" branch.
                     let cond = !state.macros.contains_key(name);
                     let parent_active = active;
                     let current_active = parent_active && cond;
@@ -352,7 +584,7 @@ fn preprocess_text_internal(
                     );
                 }
                 "elsif" => {
-                    let cond_name = rest.trim();
+                    let expr = rest.trim();
                     let frame = conditionals.last_mut().with_context(|| {
                         format!(
                             "`elsif without matching `ifdef/`ifndef at {}:{}",
@@ -360,10 +592,10 @@ fn preprocess_text_internal(
                             line_no
                         )
                     })?;
+                    let cond = evaluate_elsif_expression(expr, state, file_path, line_no)?;
                     if frame.branch_taken {
                         frame.current_active = false;
                     } else {
-                        let cond = state.macros.contains_key(cond_name);
                         frame.current_active = frame.parent_active && cond;
                         if cond {
                             frame.branch_taken = true;
@@ -374,7 +606,7 @@ fn preprocess_text_internal(
                         file_path,
                         line_no,
                         frame.current_active,
-                        cond_name.to_string(),
+                        expr.to_string(),
                     );
                 }
                 "else" => {
@@ -550,6 +782,124 @@ fn parse_directive_line(input: &str) -> Option<(&str, &str)> {
     let name = &input[1..end];
     let rest = input[end..].trim_start();
     Some((name, rest))
+}
+
+#[derive(Debug, Clone)]
+enum ParsedConditionalExpr {
+    Symbol(String),
+    Defined(String),
+    NotDefined(String),
+}
+
+fn is_valid_macro_symbol(symbol: &str) -> bool {
+    let bytes = symbol.as_bytes();
+    if bytes.is_empty() || !is_ident_start(bytes[0]) {
+        return false;
+    }
+    bytes[1..].iter().all(|b| is_ident_continue(*b))
+}
+
+fn eval_symbol_condition(
+    symbol: &str,
+    state: &mut PreprocessorState,
+    file: &Path,
+    line: usize,
+    directive: &str,
+) -> Result<bool> {
+    let defined = state.macros.contains_key(symbol);
+    if !defined {
+        match state.config.conditional_symbol_policy {
+            ConditionalSymbolPolicy::AssumeFalseSilent => {}
+            ConditionalSymbolPolicy::AssumeFalseWarn => state.push_warning(
+                "W_SVPP_UNDEFINED_CONDITIONAL_SYMBOL",
+                file,
+                line,
+                "conditional symbol is undefined; policy assumes false",
+                format!("`{} {}", directive, symbol),
+            )?,
+            ConditionalSymbolPolicy::Error => state.push_error(
+                "E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL",
+                file,
+                line,
+                "conditional symbol is undefined; policy requires defined symbol",
+                format!("`{} {}", directive, symbol),
+            )?,
+        }
+    }
+    Ok(defined)
+}
+
+fn parse_elsif_expression(
+    expr: &str,
+    policy: ConditionalExprPolicy,
+) -> Result<Option<ParsedConditionalExpr>> {
+    let trimmed = expr.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+
+    if is_valid_macro_symbol(trimmed) {
+        return Ok(Some(ParsedConditionalExpr::Symbol(trimmed.to_string())));
+    }
+
+    match policy {
+        ConditionalExprPolicy::IdentifierOnly => Ok(None),
+        ConditionalExprPolicy::IdentifierOrDefined => {
+            if let Some(inner) = parse_defined_call(trimmed, false) {
+                return Ok(Some(ParsedConditionalExpr::Defined(inner.to_string())));
+            }
+            if let Some(inner) = parse_defined_call(trimmed, true) {
+                return Ok(Some(ParsedConditionalExpr::NotDefined(inner.to_string())));
+            }
+            Ok(None)
+        }
+    }
+}
+
+fn parse_defined_call(expr: &str, negated: bool) -> Option<&str> {
+    let trimmed = expr.trim();
+    let prefix = if negated { "!defined(" } else { "defined(" };
+    if !trimmed.starts_with(prefix) || !trimmed.ends_with(')') {
+        return None;
+    }
+    let inner = &trimmed[prefix.len()..trimmed.len() - 1];
+    let symbol = inner.trim();
+    if is_valid_macro_symbol(symbol) {
+        Some(symbol)
+    } else {
+        None
+    }
+}
+
+fn evaluate_elsif_expression(
+    expr: &str,
+    state: &mut PreprocessorState,
+    file: &Path,
+    line: usize,
+) -> Result<bool> {
+    let parsed = parse_elsif_expression(expr, state.config.conditional_expr_policy)?;
+    let Some(parsed_expr) = parsed else {
+        state.push_warning(
+            "W_SVPP_UNSUPPORTED_CONDITIONAL_EXPR",
+            file,
+            line,
+            "unsupported `elsif conditional expression for configured policy",
+            expr.to_string(),
+        )?;
+        return Ok(false);
+    };
+    match parsed_expr {
+        ParsedConditionalExpr::Symbol(symbol) => {
+            eval_symbol_condition(&symbol, state, file, line, "elsif")
+        }
+        ParsedConditionalExpr::Defined(symbol) => {
+            eval_symbol_condition(&symbol, state, file, line, "elsif-defined")
+        }
+        ParsedConditionalExpr::NotDefined(symbol) => {
+            let cond = eval_symbol_condition(&symbol, state, file, line, "elsif-not-defined")?;
+            Ok(!cond)
+        }
+    }
 }
 
 fn parse_identifier_token(input: &str) -> Option<(&str, &str)> {
@@ -980,7 +1330,11 @@ fn is_ident_continue(b: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{SvPreprocessorConfig, preprocess_systemverilog_file};
+    use super::{
+        parse_strict_warning_codes, preprocess_systemverilog_file, ConditionalSymbolPolicy,
+        IncludePathPolicy, MacroRedefinitionPolicy, PreprocessorDiagnosticSeverity,
+        SvPreprocessorConfig,
+    };
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -1020,12 +1374,10 @@ mod tests {
         assert!(output.text.contains("logic from_inc;"));
         assert!(output.text.contains("logic from_top;"));
         assert!(output.included_files.iter().any(|p| p.ends_with("inc.svh")));
-        assert!(
-            output
-                .source_map
-                .iter()
-                .any(|m| m.source.file.ends_with("inc.svh"))
-        );
+        assert!(output
+            .source_map
+            .iter()
+            .any(|m| m.source.file.ends_with("inc.svh")));
     }
 
     #[test]
@@ -1058,5 +1410,89 @@ mod tests {
             .expect("preprocess function-like macros");
         assert!(output.text.contains("wire sig_id;"));
         assert!(output.text.contains("string s = \"hello\";"));
+    }
+
+    #[test]
+    fn warns_on_macro_redefine_when_policy_warn() {
+        let dir = create_temp_dir("svpp_redefine_warn");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define A 1\n`define A 2\nlogic [`A-1:0] data;\n").expect("write top");
+
+        let config = SvPreprocessorConfig {
+            macro_redefinition_policy: MacroRedefinitionPolicy::Warn,
+            ..SvPreprocessorConfig::default()
+        };
+        let output =
+            preprocess_systemverilog_file(&input, &config).expect("warn policy should not fail");
+        assert!(output.text.contains("logic [2-1:0] data;"));
+        assert!(output.diagnostics.iter().any(|d| {
+            d.code == "W_SVPP_MACRO_REDEFINED"
+                && d.severity == PreprocessorDiagnosticSeverity::Warning
+        }));
+    }
+
+    #[test]
+    fn errors_on_macro_redefine_when_policy_error() {
+        let dir = create_temp_dir("svpp_redefine_err");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define A 1\n`define A 2\n").expect("write top");
+
+        let config = SvPreprocessorConfig {
+            macro_redefinition_policy: MacroRedefinitionPolicy::Error,
+            ..SvPreprocessorConfig::default()
+        };
+        let err = preprocess_systemverilog_file(&input, &config)
+            .expect_err("error policy should fail on redefinition");
+        let err_text = format!("{err:#}");
+        assert!(err_text.contains("E_SVPP_MACRO_REDEFINED"));
+    }
+
+    #[test]
+    fn ifndef_missing_symbol_does_not_warn_when_ifdef_policy_warns() {
+        let dir = create_temp_dir("svpp_ifndef_policy");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`ifndef MISSING\nlogic via_ifndef;\n`endif\n`ifdef MISSING\nlogic via_ifdef;\n`endif\n",
+        )
+        .expect("write top");
+
+        let config = SvPreprocessorConfig {
+            conditional_symbol_policy: ConditionalSymbolPolicy::AssumeFalseWarn,
+            ..SvPreprocessorConfig::default()
+        };
+        let output =
+            preprocess_systemverilog_file(&input, &config).expect("policy warn should still pass");
+        assert!(output.text.contains("logic via_ifndef;"));
+        assert!(!output.text.contains("logic via_ifdef;"));
+        let undefined_warnings: Vec<_> = output
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "W_SVPP_UNDEFINED_CONDITIONAL_SYMBOL")
+            .collect();
+        assert_eq!(
+            undefined_warnings.len(),
+            1,
+            "expected warning only for `ifdef"
+        );
+    }
+
+    #[test]
+    fn strict_warning_promotion_turns_warning_into_error() {
+        let dir = create_temp_dir("svpp_strict_warn");
+        let inc = dir.join("inc.svh");
+        let top = dir.join("top.sv");
+        fs::write(&inc, "logic from_inc;\n").expect("write inc");
+        fs::write(&top, format!("`include \"{}\"\n", inc.display())).expect("write top");
+
+        let config = SvPreprocessorConfig {
+            include_path_policy: IncludePathPolicy::RelativeOnly,
+            strict_warning_codes: parse_strict_warning_codes("W_SVPP_ABSOLUTE_INCLUDE_PATH"),
+            ..SvPreprocessorConfig::default()
+        };
+        let err = preprocess_systemverilog_file(&top, &config)
+            .expect_err("strict warning promotion should fail");
+        let err_text = format!("{err:#}");
+        assert!(err_text.contains("W_SVPP_ABSOLUTE_INCLUDE_PATH"));
     }
 }

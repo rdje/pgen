@@ -258,11 +258,15 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - shrinking for failing preprocessability samples.
   - Progress (2026-02-27): gate script implemented (`rust/scripts/sv_preprocessor_quality_gate.sh`) with stage-0 deterministic replay checks, closed-loop stage progression invariants, key preprocessor-rule hit assertions, target-drive integrity checks, and deterministic coverage-guided fuzz replay verification.
   - Current behavior: parseability validation and parseability-failure shrink checks are auto-enabled when parser-registry support for `systemverilog_preprocessor` is available; until then, gate runs in coverage/gap deterministic mode and reports adapter absence explicitly.
-- [ ] Add preprocessor semantic controls and validator contracts (annotation-driven where appropriate):
+- [x] Add preprocessor semantic controls and validator contracts (annotation-driven where appropriate):
   - include path policy + depth budget,
   - macro redefinition policy,
   - conditional-compilation expression policy,
   - strict warning/error promotion for unsafe directive combinations.
+  - Progress (2026-02-27): extended `SvPreprocessorConfig` with typed policy controls (`include_path_policy`, `macro_redefinition_policy`, `conditional_symbol_policy`, `conditional_expr_policy`) and strict warning-promotion controls (`strict_warning_codes`, CLI + env fallback `PGEN_SVPP_STRICT_WARNING_CODES`).
+  - Progress (2026-02-27): added structured preprocessor diagnostics (`code`, `severity`, `file`, `line`, `message`, `detail`) and optional CLI artifact output (`--sv-diagnostics-json`).
+  - Progress (2026-02-27): hardened conditional semantics so `ifdef`/`elsif` honor undefined-symbol policy while `ifndef` remains presence-based without undefined-symbol warning inflation.
+  - Progress (2026-02-27): added focused regression coverage for macro-redefinition warn/error behavior, strict warning promotion, and conditional-policy behavior.
 - [ ] Add parser/stimuli integration contract:
   - `sv_stimuli_quality_gate` must run `preprocess -> parse_full -> semantic-validate`,
   - stimuli modes expanded with preprocess-aware generation (`sv_pp_snippet`, `sv_pp_file`),
@@ -293,6 +297,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 - 2026-02-27: Implemented `sv_preprocessor_quality_gate` (script + Make target) and wired it into aggregate SOTA policy as informational (`run=1`, `strict=0`) for early Phase Q closure while parser-registry parseability support is pending.
 - 2026-02-27: Added executable `grammars/systemverilog_preprocessor.ebnf` seed grammar and validated `EBNF -> JSON -> parser -> stimuli` on non-bootstrap Rust pipeline, closing Phase Q item for dedicated preprocessor grammar baseline.
 - 2026-02-27: Added Phase Q (`SystemVerilog Preprocessor Frontend Closure`) and made it an explicit preprocessor-first prerequisite for Phase P closure, including dedicated grammar, preprocess execution stage, preprocess quality gate, preprocess-aware stimuli modes, and policy-promotion path.
+- 2026-02-27: Closed Phase Q semantic-control contract item by adding typed preprocessor policy controls, structured diagnostics emission, strict warning-code promotion, and regression tests for conditional/macro/include policy behavior.
 - 2026-02-27: Added Phase P (`SOTA SystemVerilog Parser + Stimuli Semantic Closure`) to codify the Nexsim-targeted execution plan: syntax+semantic equal acceptance contract, annotation-driven SV stimuli synthesis, and mandatory closed-loop coverage/gap convergence.
 - 2026-02-27: Added initial `grammars/systemverilog.ebnf` (IEEE 1800 markdown-seeded) and validated end-to-end (`EBNF -> JSON -> parser -> stimuli`), moving HDL readiness report row `systemverilog` from `not_ready` to `pass` while `vhdl` remains pending.
 - 2026-02-27: Started Phase O / Pillar 5 kickoff by adding `hdl_frontend_readiness` + `hdl_frontend_gate` (script: `rust/scripts/hdl_frontend_readiness_gate.sh`) with explicit `systemverilog`/`vhdl` roster, report-mode `not_ready` handling for missing grammars, and strict-mode failure semantics for merge-safe progression.

@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-02-27 - Closed Phase Q Preprocessor Semantic Controls Contract
+### ✅ Achievement Summary
+Completed the Phase Q semantic-controls item for the Rust SV preprocessor by adding typed policy controls, structured diagnostics, strict warning promotion, and targeted regressions.
+
+### Scope of Changes
+- Updated preprocessor configuration and diagnostics surface:
+  - `rust/src/sv_preprocessor.rs`
+  - policy enums: include path, macro redefinition, conditional symbol, conditional expression
+  - strict warning-code promotion (`none|all|CSV`) via `strict_warning_codes`
+  - diagnostics model with stable shape:
+    - `code`, `severity`, `file`, `line`, `message`, `detail`
+  - output now carries diagnostics and CLI can emit them with `--sv-diagnostics-json`.
+- Updated CLI semantic controls:
+  - `rust/src/main.rs`
+  - added flags:
+    - `--sv-include-path-policy`
+    - `--sv-macro-redefine-policy`
+    - `--sv-conditional-symbol-policy`
+    - `--sv-conditional-expr-policy`
+    - `--sv-strict-warning-codes`
+    - `--sv-diagnostics-json`
+  - added env fallback:
+    - `PGEN_SVPP_STRICT_WARNING_CODES`
+- Conditional behavior hardening:
+  - `ifdef`/`elsif` evaluate with configurable undefined-symbol behavior,
+  - `ifndef` stays presence-based without undefined-symbol warning inflation.
+- Regression coverage additions:
+  - macro redefine warn path,
+  - macro redefine error path,
+  - `ifndef` undefined-symbol warning behavior under warn policy,
+  - strict warning promotion to hard failure.
+
+### Validation Results
+- `cd rust && RUSTFLAGS='-Awarnings' cargo test --lib sv_preprocessor -- --nocapture` ✅
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --bin ast_pipeline --features generated_parsers -q` ✅
+- manual CLI smoke with diagnostics output:
+  - `cargo run --bin ast_pipeline -- <tmp>/top.sv --preprocess-systemverilog --output <tmp>/out.sv --sv-diagnostics-json <tmp>/diag.json --sv-conditional-symbol-policy assume_false_warn` ✅
+  - verified diagnostics JSON contains structured warning entry and that `ifndef` path does not emit undefined-symbol warning.
+
 ## 2026-02-27 - Implemented Rust SV Preprocessor Execution Stage in `ast_pipeline`
 ### ✅ Achievement Summary
 Implemented the Phase Q preprocessor execution stage in Rust, including deterministic macro/include/conditional expansion and source-map/event metadata emission through a new `ast_pipeline` CLI mode.

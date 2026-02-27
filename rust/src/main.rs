@@ -9,15 +9,18 @@ use pgen::ast_pipeline::stimuli_generator::{
     StimuliGenerator,
 };
 use pgen::ast_pipeline::{
-    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
     ast_generator_direct::generate_parser_ast_based, configure_trace_output,
-    resolve_trace_verbosity, set_global_trace_verbosity,
+    resolve_trace_verbosity, set_global_trace_verbosity, ASTNode, Annotations, PipelineConfig,
+    RustASTPipeline, TraceVerbosity, TransformedASTJson,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
-use pgen::sv_preprocessor::{SvPreprocessorConfig, preprocess_systemverilog_file};
+use pgen::sv_preprocessor::{
+    parse_strict_warning_codes, preprocess_systemverilog_file, ConditionalExprPolicy,
+    ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy, SvPreprocessorConfig,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -196,6 +199,50 @@ struct Args {
     /// Optional JSON output path for preprocessor event log
     #[arg(long, requires = "preprocess_systemverilog")]
     sv_event_log_json: Option<String>,
+
+    /// Optional JSON output path for preprocessor diagnostics
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_diagnostics_json: Option<String>,
+
+    /// Include path policy for preprocessor mode: allow_absolute, relative_only
+    #[arg(
+        long,
+        default_value = "allow_absolute",
+        value_parser = ["allow_absolute", "relative_only"],
+        requires = "preprocess_systemverilog"
+    )]
+    sv_include_path_policy: String,
+
+    /// Macro redefinition policy for preprocessor mode: allow, warn, error
+    #[arg(
+        long,
+        default_value = "allow",
+        value_parser = ["allow", "warn", "error"],
+        requires = "preprocess_systemverilog"
+    )]
+    sv_macro_redefine_policy: String,
+
+    /// Conditional symbol policy for preprocessor mode: assume_false_silent, assume_false_warn, error
+    #[arg(
+        long,
+        default_value = "assume_false_silent",
+        value_parser = ["assume_false_silent", "assume_false_warn", "error"],
+        requires = "preprocess_systemverilog"
+    )]
+    sv_conditional_symbol_policy: String,
+
+    /// Conditional expression policy for `elsif in preprocessor mode: identifier_only, identifier_or_defined
+    #[arg(
+        long,
+        default_value = "identifier_or_defined",
+        value_parser = ["identifier_only", "identifier_or_defined"],
+        requires = "preprocess_systemverilog"
+    )]
+    sv_conditional_expr_policy: String,
+
+    /// Comma-separated warning codes promoted to errors in preprocessor mode (`all`, `none`, or specific codes)
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_strict_warning_codes: Option<String>,
 }
 struct LoadedGrammar {
     grammar_name: String,
@@ -312,10 +359,54 @@ fn main() -> Result<()> {
             .iter()
             .map(PathBuf::from)
             .collect::<Vec<_>>();
+        let include_path_policy = IncludePathPolicy::parse(&args.sv_include_path_policy)
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "invalid --sv-include-path-policy '{}'; expected allow_absolute|relative_only",
+                    args.sv_include_path_policy
+                )
+            })?;
+        let macro_redefinition_policy =
+            MacroRedefinitionPolicy::parse(&args.sv_macro_redefine_policy).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "invalid --sv-macro-redefine-policy '{}'; expected allow|warn|error",
+                    args.sv_macro_redefine_policy
+                )
+            })?;
+        let conditional_symbol_policy =
+            ConditionalSymbolPolicy::parse(&args.sv_conditional_symbol_policy).ok_or_else(
+                || {
+                    anyhow::anyhow!(
+                        "invalid --sv-conditional-symbol-policy '{}'; expected assume_false_silent|assume_false_warn|error",
+                        args.sv_conditional_symbol_policy
+                    )
+                },
+            )?;
+        let conditional_expr_policy = ConditionalExprPolicy::parse(&args.sv_conditional_expr_policy)
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "invalid --sv-conditional-expr-policy '{}'; expected identifier_only|identifier_or_defined",
+                    args.sv_conditional_expr_policy
+                )
+            })?;
+        let strict_warning_codes_raw = args
+            .sv_strict_warning_codes
+            .clone()
+            .or_else(|| std::env::var("PGEN_SVPP_STRICT_WARNING_CODES").ok())
+            .unwrap_or_else(|| "none".to_string());
+        let strict_warning_codes = parse_strict_warning_codes(&strict_warning_codes_raw);
         let config = SvPreprocessorConfig {
             include_dirs,
             max_include_depth: args.sv_include_max_depth,
-            allow_macro_redefine: !args.sv_disallow_macro_redefine,
+            include_path_policy,
+            macro_redefinition_policy: if args.sv_disallow_macro_redefine {
+                MacroRedefinitionPolicy::Error
+            } else {
+                macro_redefinition_policy
+            },
+            conditional_symbol_policy,
+            conditional_expr_policy,
+            strict_warning_codes,
         };
         let output = preprocess_systemverilog_file(Path::new(&args.input_path), &config)?;
         if let Some(output_path) = args.output.as_deref() {
@@ -334,11 +425,39 @@ fn main() -> Result<()> {
             std::fs::write(events_path, json)?;
             println!("Wrote SV preprocessor event log to {}", events_path);
         }
+        if let Some(diagnostics_path) = args.sv_diagnostics_json.as_deref() {
+            let json = serde_json::to_string_pretty(&output.diagnostics)?;
+            std::fs::write(diagnostics_path, json)?;
+            println!("Wrote SV preprocessor diagnostics to {}", diagnostics_path);
+        }
+        let warning_count = output
+            .diagnostics
+            .iter()
+            .filter(|d| {
+                matches!(
+                    d.severity,
+                    pgen::sv_preprocessor::PreprocessorDiagnosticSeverity::Warning
+                )
+            })
+            .count();
+        let error_count = output
+            .diagnostics
+            .iter()
+            .filter(|d| {
+                matches!(
+                    d.severity,
+                    pgen::sv_preprocessor::PreprocessorDiagnosticSeverity::Error
+                )
+            })
+            .count();
         println!(
-            "SV preprocess summary: output_bytes={} source_map_entries={} events={} included_files={}",
+            "SV preprocess summary: output_bytes={} source_map_entries={} events={} diagnostics={} warnings={} errors={} included_files={}",
             output.text.len(),
             output.source_map.len(),
             output.events.len(),
+            output.diagnostics.len(),
+            warning_count,
+            error_count,
             output.included_files.len()
         );
         return Ok(());
@@ -1531,11 +1650,11 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 #[cfg(test)]
 mod tests {
     use super::{
-        FuzzCorpusCandidate, StimuliCoverageMetrics, coverage_branch_hit_delta,
-        default_parser_output_path, default_stimuli_module_output_path,
+        coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
         generate_stimuli_module_source, is_ebnf_input_path, minimize_failing_input,
         minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode, resolve_stimuli_module_seed,
         supported_generated_parseability_grammars, supports_generated_parseability,
+        FuzzCorpusCandidate, StimuliCoverageMetrics,
     };
     use pgen::ast_pipeline::stimuli_generator::{BranchCoverageGroup, RecoveryStimuliMode};
     use std::collections::{HashMap, HashSet};
