@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for Phase Q/P `sv_stimuli_quality_gate` skeleton increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for dynamic `systemverilog` parseability adapter + gate strictness increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -193,6 +193,29 @@ Use this file to resume work without replaying full chat history.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
 
+### 2026-02-27: Wired dynamic `systemverilog` parseability adapter path for `sv_stimuli_quality_gate`
+- Root cause:
+  - `sv_stimuli_quality_gate` skeleton existed but parse-full stage could not execute for `systemverilog` in standard generated-parser builds because the generated SV parser artifact is gate-produced and untracked.
+- Fix:
+  - added `rust/build.rs` with optional parser-path contract:
+    - `PGEN_SYSTEMVERILOG_PARSER_PATH` + cfg `has_generated_systemverilog_parser`.
+  - added conditional generated parser module wiring in `rust/src/lib.rs`.
+  - added conditional `systemverilog` adapter in `rust/src/parser_registry.rs` using `parse_full_systemverilog_file`.
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh` to:
+    - generate `systemverilog_parser.rs`,
+    - build `parseability_probe` with `PGEN_SYSTEMVERILOG_PARSER_PATH=<generated parser path>`,
+    - execute parse-full in auto mode with stage pass/fail accounting.
+  - parse-full mode semantics now:
+    - `auto`: soft-fail on parse-full rejection (record and continue),
+    - `1`: strict fail on missing adapter or first parse-full rejection,
+    - `0`: stage disabled.
+- Validation:
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin ast_pipeline -q`
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin parseability_probe -q`
+  - `cd rust && RUSTFLAGS='-Awarnings' cargo test --features generated_parsers --lib parser_registry -- --nocapture`
+  - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` (auto mode: parse-full executes with pass/fail counters)
+  - `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` (expected strict failure on rejection)
+
 ### 2026-02-27: Started Phase Q/P parser-stimuli integration with `sv_stimuli_quality_gate` skeleton
 - Root cause:
   - roadmap required an executable `preprocess -> parse_full -> semantic-validate` gate path for SystemVerilog stimuli, but only preprocessor-only quality gates existed.
@@ -209,7 +232,7 @@ Use this file to resume work without replaying full chat history.
   - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin parseability_probe -q`
   - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin ast_pipeline -q`
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
-  - gate passed with `parse_full_effective=unsupported_adapter` for current `systemverilog` registry state.
+  - superseded by dynamic adapter wiring increment where parse-full is executable in auto mode.
 
 ### 2026-02-27: Closed Phase Q preprocessor semantic controls + diagnostics contract
 - Root cause:
@@ -393,22 +416,20 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Extend `sv_stimuli_quality_gate` from skeleton to strict parser integration:
-   - add `systemverilog` parseability adapter in parser registry and flip parse-full stage from auto-skip to executable pass/fail checks.
-2. Extend semantic-validation stage beyond baseline:
+1. Extend semantic-validation stage beyond baseline:
    - move from preprocess-diagnostics baseline to explicit SV semantic contract checks (declaration/use, binding legality, scoped references).
-3. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
+2. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
    - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
-4. Add first VHDL seed grammar:
+3. Add first VHDL seed grammar:
    - `grammars/vhdl.ebnf`
    - drive `make -C rust hdl_frontend_gate` to green for both tracked HDL grammars.
-5. Decide SOTA aggregate integration path for HDL readiness:
+4. Decide SOTA aggregate integration path for HDL readiness:
    - informational first in `sota_exit_gate`, then required strict when seed grammars stabilize.
-6. Continue Rust-native EBNF migration hardening:
+5. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-7. Expand parser-registry coverage beyond annotations/ebnf:
+6. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-8. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+7. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

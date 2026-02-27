@@ -2007,9 +2007,9 @@ Optional SV stimuli quality-gate (skeleton) tuning:
   - non-empty preprocessed output,
   - no `error` severity in preprocessor diagnostics.
 - parse-full stage behavior:
-  - `auto`: enabled only when parser-registry adapter exists for the grammar,
+  - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,
-  - `1`: required (fails gate if adapter is unavailable).
+  - `1`: required and strict (fails gate if adapter is unavailable or if any sample parse-full rejects).
 
 Optional stimuli-module parity-gate tuning:
 - `PGEN_STIMULI_MODULE_PARITY_COUNT` (default `16`)

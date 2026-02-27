@@ -1,4 +1,74 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Dynamic `systemverilog` Parseability Adapter Wiring for `sv_stimuli_quality_gate`
+### Context
+`sv_stimuli_quality_gate` skeleton was in place, but parse-full stage remained adapter-limited for `systemverilog` in normal `generated_parsers` builds.
+
+Goal of this increment:
+- make parse-full stage executable for `systemverilog` inside the gate flow,
+- keep repo policy of not tracking generated parser artifacts,
+- preserve explicit strict/non-strict behavior for parse-full enforcement.
+
+### Root Cause
+`parser_registry` only exposes parseability adapters for compiled-in generated parser modules.
+`systemverilog_parser.rs` is generated during gate execution and not tracked under `generated/`, so no static adapter existed at compile time.
+
+### Implementation
+Primary files:
+- `rust/build.rs`
+- `rust/src/lib.rs`
+- `rust/src/parser_registry.rs`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+
+#### 1) Build-time conditional parser injection
+Added `rust/build.rs`:
+- defines cfg contract: `has_generated_systemverilog_parser`,
+- reads optional parser path from `PGEN_SYSTEMVERILOG_PARSER_PATH`,
+- emits `PGEN_SYSTEMVERILOG_PARSER_PATH_RESOLVED` when file exists.
+
+This allows compile-time include of a generated parser artifact produced during gate execution without tracking it in git.
+
+#### 2) Conditional generated parser module wiring
+In `rust/src/lib.rs`:
+- under `generated_parsers`, added:
+  - `#[cfg(has_generated_systemverilog_parser)] pub mod systemverilog { include!(...) }`
+
+#### 3) Parser registry extension
+In `rust/src/parser_registry.rs`:
+- added conditional `systemverilog` adapter:
+  - uses `SystemverilogParser::parse_full_systemverilog_file()`.
+- registered grammar name:
+  - `"systemverilog"` under `#[cfg(has_generated_systemverilog_parser)]`.
+- added conditional registry test ensuring exposure when parser is compiled in.
+
+#### 4) Gate wiring update
+In `rust/scripts/sv_stimuli_quality_gate.sh`:
+- gate now generates `systemverilog_parser.rs` first,
+- then rebuilds `parseability_probe` with:
+  - `PGEN_SYSTEMVERILOG_PARSER_PATH=<generated parser path>`
+- parse-full probe support becomes active in auto mode.
+
+Parse-full enforcement semantics now:
+- `auto`:
+  - attempts parse-full when adapter exists,
+  - records parse-full failures as soft-fail stage entries while gate continues.
+- `1`:
+  - strict mode; fails immediately on missing adapter or first parse-full rejection.
+- `0`:
+  - parse-full stage disabled.
+
+### Validation
+Executed:
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin ast_pipeline -q`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin parseability_probe -q`
+- `cd rust && RUSTFLAGS='-Awarnings' cargo test --features generated_parsers --lib parser_registry -- --nocapture`
+- `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- parse-full stage is now executable in `auto` mode (`parse_full_effective=enabled`),
+- strict mode fails as expected when sample parse-full rejects,
+- gate summary now reports parse-full pass/fail counts explicitly.
+
 ## 2026-02-27 - Phase Q/P Integration Start: `sv_stimuli_quality_gate` Skeleton
 ### Context
 After Phase Q preprocessor execution and semantic-control closure, the next execution task was to start the parser/stimuli integration contract with an executable gate shape:
@@ -85,7 +155,7 @@ Executed:
 Observed:
 - gate executes end-to-end and emits deterministic artifacts/logs,
 - semantic baseline checks passed on generated samples,
-- parse-full stage is currently skipped in `auto` because `systemverilog` parser-registry adapter is not yet registered (`parse_full_effective=unsupported_adapter`), which is expected for this skeleton increment.
+- parse-full stage is now executable when gate-injected adapter is built; failures are soft in `auto` and hard in strict mode.
 
 ## 2026-02-27 - Phase Q Semantic Controls Closure for Rust SV Preprocessor
 ### Context

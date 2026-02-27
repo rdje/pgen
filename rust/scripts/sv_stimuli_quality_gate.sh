@@ -138,18 +138,13 @@ echo "parse_full_mode: $PARSE_FULL_MODE"
 
 echo "sample,seed,stimuli_generate,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
-run_logged_rust "build_generated_sv_gate_binaries" \
-    cargo build --features generated_parsers --bin ast_pipeline --bin parseability_probe
+run_logged_rust "build_ast_pipeline_for_sv_generation" \
+    cargo build --features generated_parsers --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2
     exit 1
 fi
-if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
-    echo "error: parseability_probe binary is missing at '$PARSE_PROBE_BIN' after build" >&2
-    exit 1
-fi
-
 run_logged "frontend_ebnf_to_json" \
     perl "$EBNF_TO_JSON" --pretty --quiet "$grammar_file" -o "$grammar_json"
 require_nonempty_file "$grammar_json"
@@ -160,6 +155,14 @@ run_logged "generate_sv_parser" \
     --eliminate-left-recursion \
     --output "$parser_out"
 require_nonempty_file "$parser_out"
+
+run_logged_rust "build_parseability_probe_with_systemverilog_adapter" \
+    env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
+    cargo build --features generated_parsers --bin parseability_probe
+if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
+    echo "error: parseability_probe binary is missing at '$PARSE_PROBE_BIN' after adapter build" >&2
+    exit 1
+fi
 
 parse_full_supported=0
 probe_log="$LOG_DIR/probe_parse_full_support.log"
@@ -196,6 +199,7 @@ fi
 semantic_pass_count=0
 parse_full_pass_count=0
 parse_full_skip_count=0
+parse_full_fail_count=0
 total_warnings=0
 total_errors=0
 
@@ -253,11 +257,25 @@ for ((idx = 0; idx < sample_count; idx++)); do
     parse_status="skip"
     parse_note="parse_full stage skipped"
     if [[ "$parse_full_enabled" -eq 1 ]]; then
-        run_logged "sample_${idx}_parse_full" \
-            "$PARSE_PROBE_BIN" --parse "$grammar_name" "$preprocessed_file"
-        parse_status="pass"
-        parse_note="parse_full accepted preprocessed sample"
-        parse_full_pass_count=$((parse_full_pass_count + 1))
+        parse_log="$LOG_DIR/sample_${idx}_parse_full.log"
+        echo "==> sample_${idx}_parse_full"
+        if "$PARSE_PROBE_BIN" --parse "$grammar_name" "$preprocessed_file" >"$parse_log" 2>&1; then
+            echo "    ok (${parse_log})"
+            parse_status="pass"
+            parse_note="parse_full accepted preprocessed sample"
+            parse_full_pass_count=$((parse_full_pass_count + 1))
+        else
+            parse_status="fail"
+            parse_note="parse_full rejected preprocessed sample"
+            parse_full_fail_count=$((parse_full_fail_count + 1))
+            if [[ "$PARSE_FULL_MODE" == "1" ]]; then
+                echo "    fail (${parse_log})" >&2
+                tail -n 80 "$parse_log" >&2 || true
+                echo "error: strict parse_full mode requires all samples to pass parse_full" >&2
+                exit 1
+            fi
+            echo "    soft-fail (${parse_log})"
+        fi
     else
         parse_full_skip_count=$((parse_full_skip_count + 1))
         parse_note="parse_full unavailable (${parse_full_effective})"
@@ -277,6 +295,7 @@ done
     echo "parse_full_effective: $parse_full_effective"
     echo "semantic_baseline_passes: $semantic_pass_count/$sample_count"
     echo "parse_full_passes: $parse_full_pass_count/$sample_count"
+    echo "parse_full_failures: $parse_full_fail_count"
     echo "parse_full_skips: $parse_full_skip_count"
     echo "total_warnings: $total_warnings"
     echo "total_errors: $total_errors"

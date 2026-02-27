@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-02-27 - Wired Dynamic `systemverilog` Parseability Adapter into `sv_stimuli_quality_gate`
+### ✅ Achievement Summary
+Enabled real `parse_full` execution for `systemverilog` inside `sv_stimuli_quality_gate` by adding a build-time adapter path and updated gate policy behavior for `auto` vs strict parse-full mode.
+
+### Scope of Changes
+- Added build-time parser inclusion support:
+  - `rust/build.rs`
+  - introduces cfg `has_generated_systemverilog_parser` and environment-driven parser source path:
+    - `PGEN_SYSTEMVERILOG_PARSER_PATH`
+- Updated generated parser module wiring:
+  - `rust/src/lib.rs`
+  - conditionally includes generated `systemverilog` parser module when build-time parser path exists.
+- Updated parser registry:
+  - `rust/src/parser_registry.rs`
+  - adds conditional `systemverilog` parseability adapter using `parse_full_systemverilog_file`.
+- Updated SV stimuli gate behavior:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - gate now:
+    - generates `systemverilog_parser.rs`,
+    - builds `parseability_probe` with `PGEN_SYSTEMVERILOG_PARSER_PATH=<generated parser path>`,
+    - executes parse-full stage in `auto` mode when adapter is present.
+  - parse-full failure policy:
+    - `auto`: parse-full failures are recorded as stage `fail` entries but treated as soft-fail (gate continues),
+    - `1` (strict): first parse-full rejection fails the gate,
+    - `0`: parse-full stage disabled.
+
+### Validation Results
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin ast_pipeline -q` ✅
+- `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin parseability_probe -q` ✅
+- `cd rust && RUSTFLAGS='-Awarnings' cargo test --features generated_parsers --lib parser_registry -- --nocapture` ✅
+- `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed: parse-full now executes (`parse_full_effective=enabled`) and reports pass/fail counts.
+- `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ❌ expected strict failure when sample parse-full rejects.
+
 ## 2026-02-27 - Added `sv_stimuli_quality_gate` Preprocess-First Skeleton + `systemverilog_core_v0` Contract
 ### ✅ Achievement Summary
 Started Phase Q/P parser-stimuli integration by adding an executable `sv_stimuli_quality_gate` skeleton that enforces a deterministic preprocess-first flow and records explicit stage status per sample.
@@ -26,7 +60,7 @@ Started Phase Q/P parser-stimuli integration by adding an executable `sv_stimuli
 - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin parseability_probe -q` ✅
 - `cd rust && RUSTFLAGS='-Awarnings' cargo check --features generated_parsers --bin ast_pipeline -q` ✅
 - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
-  - observed current effective mode for `systemverilog`: parse-full `unsupported_adapter` (stage skipped in `auto`), while stimuli generation + preprocessing + semantic baseline checks pass.
+  - observed current effective mode for `systemverilog`: parse-full executes when adapter is built from generated parser path; baseline semantic checks remain passing.
 
 ## 2026-02-27 - Closed Phase Q Preprocessor Semantic Controls Contract
 ### ✅ Achievement Summary

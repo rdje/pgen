@@ -214,6 +214,7 @@ Toolbox baseline to leverage end-to-end:
   - `EBNF -> JSON -> parser -> stimuli -> parse_full -> coverage/gap -> replay`.
   - Progress (2026-02-27): added initial `systemverilog_core_v0` contract manifest at `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` with deterministic seed/sample defaults and preprocess/semantic-baseline policy knobs.
   - Progress (2026-02-27): added executable `make sv_stimuli_quality_gate` skeleton (`rust/scripts/sv_stimuli_quality_gate.sh`) that runs `EBNF -> JSON -> parser -> stimuli -> preprocess -> semantic_baseline` and conditionally attempts `parse_full` through parser-registry adapters when available (`auto|0|1` parse-full mode).
+  - Progress (2026-02-27): wired dynamic build-time `systemverilog` parseability adapter injection (`build.rs` + conditional registry entry) so `sv_stimuli_quality_gate` can execute real `parse_full` on preprocessed samples without tracking generated parser artifacts in git.
 - [ ] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
 - [ ] Build syntax-closure burn-down loop:
   - grow `systemverilog.ebnf` clause-by-clause under deterministic no-regression gates.
@@ -274,6 +275,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - stimuli modes expanded with preprocess-aware generation (`sv_pp_snippet`, `sv_pp_file`),
   - closed-loop feedback tracks both preprocessor and parser coverage/gap convergence.
   - Progress (2026-02-27): introduced executable `sv_stimuli_quality_gate` skeleton with explicit stage accounting (`stimuli_generate`, `preprocess`, `semantic_validate`, `parse_full`) and deterministic per-sample artifact/log outputs; `parse_full` runs when parser-registry support exists and is policy-controllable (`PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto|0|1`).
+  - Progress (2026-02-27): `auto` mode now executes parse-full for `systemverilog` via gate-injected adapter and records pass/fail counts as stage metrics; strict mode (`parse_full_mode=1`) fails on first parse-full rejection.
 - [ ] Add differential hardening for preprocessor behavior against trusted references (where available) and publish mismatch taxonomy.
 - [ ] Promote preprocessor gate policy:
   - informational first while grammar closes,
@@ -296,6 +298,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Wired dynamic build-time `systemverilog` parser-registry adapter path (`build.rs` + conditional module/registry entry) and upgraded `sv_stimuli_quality_gate` parse-full stage from adapter-skipped to executable in `auto` mode, with strict mode hard-fail behavior.
 - 2026-02-27: Started Phase Q/P parser-stimuli integration by adding `sv_stimuli_quality_gate` skeleton + initial `systemverilog_core_v0` contract manifest (`preprocess -> semantic baseline -> parse_full(optional)` with explicit stage accounting and auto/strict parse-full policy controls).
 - 2026-02-27: Implemented Phase Q preprocessor execution stage in Rust AST pipeline (`sv_preprocessor` module + `ast_pipeline --preprocess-systemverilog` CLI mode), delivering deterministic include/macro expansion baseline and source-map/event metadata outputs.
 - 2026-02-27: Implemented `sv_preprocessor_quality_gate` (script + Make target) and wired it into aggregate SOTA policy as informational (`run=1`, `strict=0`) for early Phase Q closure while parser-registry parseability support is pending.

@@ -35,6 +35,10 @@ pub mod generated_parsers {
     pub mod semantic_annotation {
         include!("../../generated/semantic_annotation_parser.rs");
     }
+    #[cfg(has_generated_systemverilog_parser)]
+    pub mod systemverilog {
+        include!(env!("PGEN_SYSTEMVERILOG_PARSER_PATH_RESOLVED"));
+    }
 }
 
 #[cfg(feature = "generated_parsers")]
