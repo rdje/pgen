@@ -381,9 +381,13 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `both_failed`
     - `reference_artifact_missing`
     Strict differential mode (`DIFF_MODE=1`) now fails gate on any non-`match` taxonomy result when reference runner is available.
-- [ ] Promote preprocessor gate policy:
+- [x] Promote preprocessor gate policy:
   - informational first while grammar closes,
   - required strict before declaring Phase P (Nexsim SV parser closure) complete.
+  - Progress (2026-02-27): promoted aggregate policy to strict required mode by setting:
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=1`
+    in `rust/config/sota_exit_policy.env`.
+    `sota_exit_gate` now treats `sv_preprocessor_quality_gate` as required by default.
 
 ## Current Sprint: Pillar 1
 

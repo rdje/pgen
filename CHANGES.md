@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-02-27 - Aggregate Policy Promotion: `sv_preprocessor_quality_gate` Is Now Required Strict
+### ✅ Achievement Summary
+Promoted SystemVerilog preprocessor quality enforcement in aggregate SOTA policy from informational to required strict mode.
+
+### Scope of Changes
+- Updated aggregate policy defaults:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - changed:
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 -> 1`
+- Updated roadmap/user-facing policy docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sota_exit_gate` ✅
+
 ## 2026-02-27 - Phase Q Differential Hardening: Trusted-Reference Mismatch Taxonomy in `sv_preprocessor_quality_gate`
 ### ✅ Achievement Summary
 Added a trusted-reference differential stage to the SystemVerilog preprocessor quality gate with deterministic mismatch taxonomy reporting and strict enforcement mode.

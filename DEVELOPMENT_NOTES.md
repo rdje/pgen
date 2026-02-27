@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Aggregate SOTA Policy Promotion: Preprocessor Gate Required Strict
+### Context
+`sv_preprocessor_quality_gate` was already wired into aggregate SOTA execution, but remained informational. Phase Q policy objective required eventual strict promotion once the gate proved stable.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+Policy change:
+- `PGEN_SOTA_POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 -> 1`
+
+Effect:
+- `sota_exit_gate` now treats `sv_preprocessor_quality_gate` as required by default under tracked policy.
+
+### Validation
+Executed focused aggregate run:
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+
+Observed:
+- required `sv_preprocessor_quality_gate` executed and passed in aggregate summary.
+
 ## 2026-02-27 - Phase Q Differential Hardening: Trusted-Reference Taxonomy Stage in `sv_preprocessor_quality_gate`
 ### Context
 Phase Q required differential hardening against trusted references and publication of mismatch taxonomy, but the gate had only deterministic closed-loop/fuzz checks and no external-reference comparison stage.

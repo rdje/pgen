@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-q-svpp-differential-taxonomy)
+Last updated: 2026-02-27 (+0100, task: phase-q-preprocessor-policy-strict-promotion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for Phase Q SV preprocessor differential taxonomy increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for preprocessor strict-policy promotion increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `170`
+- Commit count at last refresh (before current uncommitted changes): `171`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 87e6a95 Add trusted-reference mismatch taxonomy to SV preprocessor quality gate
 - d4be882 Add preprocess-aware SV stimuli modes to phase-Q quality contract
 - 86c78cf Wire VHDL stimuli quality gate into aggregate SOTA policy
 - d757fbe Add dedicated VHDL closed-loop stimuli quality gate for Nexsim hardening
@@ -212,6 +213,18 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Aggregate policy promotion - `sv_preprocessor_quality_gate` required by default
+- Root cause:
+  - preprocessor gate was integrated in aggregate flow but still informational, leaving Phase Q enforcement weaker than intended.
+- Fix:
+  - updated `rust/config/sota_exit_policy.env`:
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=1`
+  - synced roadmap + UG docs with new default policy posture.
+- Validation:
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+- Status:
+  - aggregate gate now requires SV preprocessor quality pass under tracked defaults.
 
 ### 2026-02-27: Phase Q trusted-reference differential taxonomy in SV preprocessor gate
 - Root cause:
