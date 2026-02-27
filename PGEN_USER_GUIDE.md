@@ -2016,6 +2016,8 @@ Optional SV stimuli quality-gate (skeleton) tuning:
 - semantic baseline is currently:
   - non-empty preprocessed output,
   - no `error` severity in preprocessor diagnostics.
+  - no duplicate named-port bindings in the same statement (`semantic_baseline.require_unique_named_port_bindings`).
+  - optional structural keyword-balance check (`semantic_baseline.require_balanced_structural_keywords`, currently disabled in default contract due high false-positive risk on current random samples).
 - parse-full stage behavior:
   - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,

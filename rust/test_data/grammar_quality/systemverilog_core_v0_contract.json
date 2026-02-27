@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "description": "Phase Q/P preprocessor-first skeleton contract for SystemVerilog stimuli quality checks.",
+  "version": 2,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic structural semantic baseline checks.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -15,6 +15,8 @@
   },
   "semantic_baseline": {
     "require_nonempty_preprocessed_output": true,
-    "require_no_preprocess_errors": true
+    "require_no_preprocess_errors": true,
+    "require_balanced_structural_keywords": false,
+    "require_unique_named_port_bindings": true
   }
 }

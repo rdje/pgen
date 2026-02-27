@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-02-27 - Extended `sv_stimuli_quality_gate` Semantic Baseline (Contract v2)
+### ✅ Achievement Summary
+Extended SV stimuli semantic validation beyond preprocess-only checks by adding contract-driven structural semantic checks in `sv_stimuli_quality_gate` and bumping `systemverilog_core_v0` contract version to `2`.
+
+### Scope of Changes
+- Updated gate script:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - added semantic checks:
+    - `require_unique_named_port_bindings` (active in default contract),
+    - `require_balanced_structural_keywords` (implemented, default currently disabled due false-positive risk on random current samples).
+- Updated contract manifest:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bumped `1 -> 2`
+  - added semantic baseline toggles:
+    - `require_balanced_structural_keywords`
+    - `require_unique_named_port_bindings`
+- Updated roadmap/user guide references:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - semantic stage passes with contract v2 checks enabled (`unique named-port binding` active, `balanced structural keywords` currently opt-in).
+
 ## 2026-02-27 - Promoted Aggregate HDL Readiness Policy to Required Strict
 ### ✅ Achievement Summary
 Raised aggregate SOTA policy for HDL readiness from informational to required strict after both tracked HDL seed grammars (`systemverilog`, `vhdl`) passed strict frontend gate checks.

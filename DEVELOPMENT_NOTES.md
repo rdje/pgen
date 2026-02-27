@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - `sv_stimuli_quality_gate` Semantic Baseline Expansion (Contract v2)
+### Context
+Phase P semantic-closure work needed to move beyond the initial preprocess-only semantic baseline (`non-empty preprocessed output` + `no preprocessor errors`).
+
+Goal of this increment:
+- add deterministic, low-risk semantic checks to the gate contract,
+- keep the gate stable with current random stimuli quality,
+- preserve explicit policy controls for stricter checks.
+
+### Implementation
+Primary files:
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+Contract changes (`version: 1 -> 2`):
+- added `semantic_baseline.require_unique_named_port_bindings` (enabled by default),
+- added `semantic_baseline.require_balanced_structural_keywords` (implemented, currently disabled by default).
+
+Gate-script changes:
+- added `check_unique_named_port_bindings()`:
+  - scans statement-local named-port bindings (`.name(...)`) and fails on duplicates in the same statement.
+- added `check_balanced_structural_keywords()`:
+  - checks open/close keyword pair counts (`module/endmodule`, `interface/endinterface`, etc.).
+  - wired as optional because current random samples can trigger false positives before syntax closure matures.
+
+### Validation
+Executed:
+- `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- gate passes with contract v2,
+- semantic stage now enforces duplicate named-port binding detection in baseline path,
+- optional structural-balance check remains available but disabled in default contract to avoid unstable failures.
+
 ## 2026-02-27 - Aggregate HDL Readiness Policy Promotion to Required Strict
 ### Context
 After `grammars/vhdl.ebnf` was added and strict `hdl_frontend_gate` turned green for both tracked HDL grammars, Phase O policy needed promotion from informational to required strict in aggregate SOTA runs.

@@ -230,6 +230,7 @@ Toolbox baseline to leverage end-to-end:
   - port binding legality,
   - type/width compatibility,
   - context legality (`always_ff`, `always_comb`, generate constraints).
+  - Progress (2026-02-27): extended `sv_stimuli_quality_gate` semantic stage beyond preprocessor-only baseline with contract-driven structural checks (`require_unique_named_port_bindings`; optional `require_balanced_structural_keywords`) and promoted contract manifest to version `2`.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -307,6 +308,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 - 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.
 - 2026-02-27: Added initial executable `grammars/vhdl.ebnf` seed grammar and turned strict HDL frontend readiness (`make hdl_frontend_gate`) green for both tracked HDL grammars.
 - 2026-02-27: Promoted aggregate HDL readiness policy to required strict (`PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1`) after strict HDL gate proved stable for both tracked grammars.
+- 2026-02-27: Extended `sv_stimuli_quality_gate` semantic baseline from preprocess-only checks to contract-driven structural semantic checks (duplicate named-port binding detection + optional structural keyword-balance checks) and bumped `systemverilog_core_v0` contract to version `2`.
 - 2026-02-27: Wired HDL frontend readiness into aggregate SOTA policy as informational-first (`run=1`, `strict=0`) with explicit runtime/policy toggles, preserving non-blocking status while `vhdl.ebnf` closure is pending.
 - 2026-02-27: Hardened `systemverilog.ebnf` seed consistency by defining previously unresolved symbols (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed `SV_GRAMMAR_COVERAGE_MATRIX.md` to reflect zero unresolved reference debt.
 - 2026-02-27: Added `SV_GRAMMAR_COVERAGE_MATRIX.md` to operationalize Phase P syntax-closure tracking with Annex-A-aligned anchors, grouped per-rule status coverage, and explicit unresolved-reference debt for `systemverilog.ebnf`.

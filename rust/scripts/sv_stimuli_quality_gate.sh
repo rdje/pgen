@@ -44,6 +44,62 @@ require_nonempty_file() {
     fi
 }
 
+check_balanced_structural_keywords() {
+    local file="$1"
+    local pair
+    for pair in \
+        "module:endmodule" \
+        "interface:endinterface" \
+        "program:endprogram" \
+        "package:endpackage" \
+        "class:endclass" \
+        "begin:end"; do
+        local open_kw="${pair%%:*}"
+        local close_kw="${pair##*:}"
+        local open_count
+        local close_count
+        open_count="$(perl -ne "while (/\\b\\Q${open_kw}\\E\\b/g) { ++\$c } END { print(\$c // 0) }" "$file")"
+        close_count="$(perl -ne "while (/\\b\\Q${close_kw}\\E\\b/g) { ++\$c } END { print(\$c // 0) }" "$file")"
+        if [[ "$open_count" != "$close_count" ]]; then
+            echo "unbalanced structural keywords: ${open_kw}=${open_count}, ${close_kw}=${close_count}"
+            return 1
+        fi
+    done
+    return 0
+}
+
+check_unique_named_port_bindings() {
+    local file="$1"
+    local out
+    if ! out="$(
+        perl -0777 -e '
+            use strict;
+            use warnings;
+            local $/;
+            my $text = <>;
+            my @stmts = split /;/, $text;
+            my $stmt_idx = 0;
+            for my $stmt (@stmts) {
+                $stmt_idx++;
+                my @names = ($stmt =~ /\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/g);
+                next unless @names > 1;
+                my %seen;
+                for my $name (@names) {
+                    if ($seen{$name}++) {
+                        print "duplicate named port binding \"$name\" in statement $stmt_idx\n";
+                        exit 1;
+                    }
+                }
+            }
+            exit 0;
+        ' "$file" 2>&1
+    )"; then
+        echo "$out"
+        return 1
+    fi
+    return 0
+}
+
 run_logged() {
     local label="$1"
     shift
@@ -114,6 +170,8 @@ strict_warning_codes="$(jq -er '.preprocess.strict_warning_codes | strings' "$CO
 
 require_nonempty_preprocessed_output="$(jq -er 'if .semantic_baseline.require_nonempty_preprocessed_output then 1 else 0 end' "$CONTRACT_FILE")"
 require_no_preprocess_errors="$(jq -er 'if .semantic_baseline.require_no_preprocess_errors then 1 else 0 end' "$CONTRACT_FILE")"
+require_balanced_structural_keywords="$(jq -er 'if .semantic_baseline.require_balanced_structural_keywords then 1 else 0 end' "$CONTRACT_FILE")"
+require_unique_named_port_bindings="$(jq -er 'if .semantic_baseline.require_unique_named_port_bindings then 1 else 0 end' "$CONTRACT_FILE")"
 
 if ! [[ "$include_max_depth" =~ ^[0-9]+$ ]] || [[ "$include_max_depth" -lt 1 ]]; then
     echo "error: preprocess.include_max_depth must be an integer >= 1" >&2
@@ -245,6 +303,16 @@ for ((idx = 0; idx < sample_count; idx++)); do
     if [[ "$require_no_preprocess_errors" -eq 1 ]] && (( error_count > 0 )); then
         semantic_status="fail"
         semantic_note="preprocessor diagnostics contain error severity entries"
+    fi
+    if [[ "$semantic_status" == "pass" ]] && [[ "$require_balanced_structural_keywords" -eq 1 ]]; then
+        if ! semantic_note="$(check_balanced_structural_keywords "$preprocessed_file")"; then
+            semantic_status="fail"
+        fi
+    fi
+    if [[ "$semantic_status" == "pass" ]] && [[ "$require_unique_named_port_bindings" -eq 1 ]]; then
+        if ! semantic_note="$(check_unique_named_port_bindings "$preprocessed_file")"; then
+            semantic_status="fail"
+        fi
     fi
 
     if [[ "$semantic_status" != "pass" ]]; then

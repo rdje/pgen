@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: HDL aggregate strict promotion)
+Last updated: 2026-02-27 (+0100, task: SV semantic baseline expansion v2)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for HDL aggregate strict-policy promotion + synced docs/roadmap updates; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV semantic baseline expansion + synced docs/roadmap updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,19 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Expanded `sv_stimuli_quality_gate` semantic baseline (contract v2)
+- Root cause:
+  - semantic validation stage in SV stimuli gate only checked preprocess artifacts and needed stronger semantic-contract signal.
+- Fix:
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh` with contract-driven semantic checks:
+    - active baseline: unique named-port binding detection per statement,
+    - optional strict check: structural keyword-pair balancing.
+  - bumped `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to version `2` and added semantic baseline toggles:
+    - `require_unique_named_port_bindings` (enabled),
+    - `require_balanced_structural_keywords` (currently disabled by default).
+- Validation:
+  - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` passes with contract v2.
 
 ### 2026-02-27: Promoted aggregate HDL readiness to required strict
 - Root cause:
@@ -520,7 +533,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Extend semantic-validation stage beyond baseline:
-   - move from preprocess-diagnostics baseline to explicit SV semantic contract checks (declaration/use, binding legality, scoped references).
+   - continue from current contract-v2 baseline toward declaration-before-use, scoped reference checks, and type/width compatibility checks.
 2. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
    - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
 3. Continue Rust-native EBNF migration hardening:
