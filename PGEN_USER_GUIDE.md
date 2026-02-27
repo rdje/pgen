@@ -2008,11 +2008,16 @@ Optional SV stimuli quality-gate (skeleton) tuning:
 - `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_SV_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
 - `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
+- `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
 
 `sv_stimuli_quality_gate` skeleton stage contract:
 - runs deterministic per-sample flow:
   - `stimuli_generate -> preprocess -> semantic_validate_baseline -> parse_full(optional)`.
+- profile behavior:
+  - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
+  - gate executes selected profile set and reports profile-tagged rows in summary output.
 - semantic baseline is currently:
   - non-empty preprocessed output,
   - no `error` severity in preprocessor diagnostics.

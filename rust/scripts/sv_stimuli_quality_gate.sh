@@ -15,6 +15,8 @@ CONTRACT_FILE="${PGEN_SV_STIMULI_QUALITY_CONTRACT:-$RUST_DIR/test_data/grammar_q
 PARSE_FULL_MODE="${PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE:-auto}"
 SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
+LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
+LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
@@ -135,6 +137,10 @@ if [[ "$PARSE_FULL_MODE" != "auto" && "$PARSE_FULL_MODE" != "0" && "$PARSE_FULL_
     echo "error: PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE must be one of: auto, 0, 1" >&2
     exit 2
 fi
+if [[ -n "$LRM_PROFILE_OVERRIDE" && -n "$LRM_PROFILES_OVERRIDE" ]]; then
+    echo "error: set either PGEN_SV_STIMULI_QUALITY_LRM_PROFILE or PGEN_SV_STIMULI_QUALITY_LRM_PROFILES, not both" >&2
+    exit 2
+fi
 
 mkdir -p "$LOG_DIR" "$WORK_DIR"
 
@@ -148,6 +154,9 @@ grammar_name="$(jq -er '.grammar_name | strings' "$CONTRACT_FILE")"
 ebnf_path_rel="$(jq -er '.ebnf_path | strings' "$CONTRACT_FILE")"
 default_sample_count="$(jq -er '.sample_count | numbers' "$CONTRACT_FILE")"
 default_seed_base="$(jq -er '.seed_base | numbers' "$CONTRACT_FILE")"
+default_lrm_profile="$(jq -er '(.lrm_profiles.default_profile // "2017") | strings' "$CONTRACT_FILE")"
+supported_lrm_profiles_csv="$(jq -er '(.lrm_profiles.supported_profiles // ["2017","2023"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
+required_lrm_profiles_csv="$(jq -er '(.lrm_profiles.required_profiles // [(.lrm_profiles.default_profile // "2017")]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 
 sample_count="${SAMPLE_COUNT_OVERRIDE:-$default_sample_count}"
 seed_base="${SEED_BASE_OVERRIDE:-$default_seed_base}"
@@ -184,6 +193,49 @@ parser_out="$WORK_DIR/${grammar_name}_parser.rs"
 
 require_file "$grammar_file"
 
+profiles_csv="$required_lrm_profiles_csv"
+if [[ -n "$LRM_PROFILE_OVERRIDE" ]]; then
+    profiles_csv="$LRM_PROFILE_OVERRIDE"
+elif [[ -n "$LRM_PROFILES_OVERRIDE" ]]; then
+    profiles_csv="$LRM_PROFILES_OVERRIDE"
+fi
+
+declare -a supported_profiles=()
+declare -A supported_profiles_map=()
+IFS=',' read -r -a _supported_raw <<< "$supported_lrm_profiles_csv"
+for _p in "${_supported_raw[@]}"; do
+    p="$(echo "$_p" | tr -d '[:space:]')"
+    if [[ -n "$p" ]]; then
+        supported_profiles+=("$p")
+        supported_profiles_map["$p"]=1
+    fi
+done
+if [[ "${#supported_profiles[@]}" -eq 0 ]]; then
+    echo "error: no supported lrm profiles defined in contract" >&2
+    exit 2
+fi
+
+declare -a run_profiles=()
+declare -A run_profiles_map=()
+IFS=',' read -r -a _run_raw <<< "$profiles_csv"
+for _p in "${_run_raw[@]}"; do
+    p="$(echo "$_p" | tr -d '[:space:]')"
+    [[ -n "$p" ]] || continue
+    if [[ -n "${run_profiles_map[$p]:-}" ]]; then
+        continue
+    fi
+    if [[ -z "${supported_profiles_map[$p]:-}" ]]; then
+        echo "error: unsupported lrm profile '$p' (supported: ${supported_profiles[*]})" >&2
+        exit 2
+    fi
+    run_profiles+=("$p")
+    run_profiles_map["$p"]=1
+done
+if [[ "${#run_profiles[@]}" -eq 0 ]]; then
+    echo "error: no runnable lrm profile selected" >&2
+    exit 2
+fi
+
 echo "==> SystemVerilog stimuli quality gate (skeleton)"
 echo "state_dir: $STATE_DIR"
 echo "contract_file: $CONTRACT_FILE"
@@ -193,8 +245,11 @@ echo "grammar_file: $grammar_file"
 echo "sample_count: $sample_count"
 echo "seed_base: $seed_base"
 echo "parse_full_mode: $PARSE_FULL_MODE"
+echo "lrm_default_profile: $default_lrm_profile"
+echo "lrm_supported_profiles: ${supported_profiles[*]}"
+echo "lrm_run_profiles: ${run_profiles[*]}"
 
-echo "sample,seed,stimuli_generate,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
+echo "profile,sample,seed,stimuli_generate,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
 run_logged_rust "build_ast_pipeline_for_sv_generation" \
     cargo build --features generated_parsers --bin ast_pipeline
@@ -260,96 +315,104 @@ parse_full_skip_count=0
 parse_full_fail_count=0
 total_warnings=0
 total_errors=0
+profile_count="${#run_profiles[@]}"
+total_samples=$((sample_count * profile_count))
 
-for ((idx = 0; idx < sample_count; idx++)); do
-    seed=$((seed_base + idx))
-    sample_file="$WORK_DIR/sample_${idx}.sv"
-    preprocessed_file="$WORK_DIR/sample_${idx}.preprocessed.sv"
-    diagnostics_json="$WORK_DIR/sample_${idx}.diagnostics.json"
+for profile_idx in "${!run_profiles[@]}"; do
+    lrm_profile="${run_profiles[$profile_idx]}"
+    profile_seed_base=$((seed_base + (profile_idx * 1000000)))
+    profile_key="${lrm_profile//[^A-Za-z0-9_]/_}"
 
-    run_logged "sample_${idx}_generate_stimulus" \
-        "$AST_PIPELINE_BIN" "$grammar_json" \
-        --generate-stimuli \
-        --count 1 \
-        --seed "$seed" \
-        --output "$sample_file"
-    require_nonempty_file "$sample_file"
+    for ((idx = 0; idx < sample_count; idx++)); do
+        seed=$((profile_seed_base + idx))
+        sample_file="$WORK_DIR/sample_${profile_key}_${idx}.sv"
+        preprocessed_file="$WORK_DIR/sample_${profile_key}_${idx}.preprocessed.sv"
+        diagnostics_json="$WORK_DIR/sample_${profile_key}_${idx}.diagnostics.json"
 
-    run_logged "sample_${idx}_preprocess" \
-        "$AST_PIPELINE_BIN" "$sample_file" \
-        --preprocess-systemverilog \
-        --output "$preprocessed_file" \
-        --sv-diagnostics-json "$diagnostics_json" \
-        --sv-include-max-depth "$include_max_depth" \
-        --sv-include-path-policy "$include_path_policy" \
-        --sv-macro-redefine-policy "$macro_redefine_policy" \
-        --sv-conditional-symbol-policy "$conditional_symbol_policy" \
-        --sv-conditional-expr-policy "$conditional_expr_policy" \
-        --sv-strict-warning-codes "$strict_warning_codes"
+        run_logged "sample_${profile_key}_${idx}_generate_stimulus" \
+            "$AST_PIPELINE_BIN" "$grammar_json" \
+            --generate-stimuli \
+            --count 1 \
+            --seed "$seed" \
+            --output "$sample_file"
+        require_nonempty_file "$sample_file"
 
-    require_file "$diagnostics_json"
-    warning_count="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$diagnostics_json")"
-    error_count="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$diagnostics_json")"
-    total_warnings=$((total_warnings + warning_count))
-    total_errors=$((total_errors + error_count))
+        run_logged "sample_${profile_key}_${idx}_preprocess" \
+            "$AST_PIPELINE_BIN" "$sample_file" \
+            --preprocess-systemverilog \
+            --output "$preprocessed_file" \
+            --sv-diagnostics-json "$diagnostics_json" \
+            --sv-include-max-depth "$include_max_depth" \
+            --sv-include-path-policy "$include_path_policy" \
+            --sv-macro-redefine-policy "$macro_redefine_policy" \
+            --sv-conditional-symbol-policy "$conditional_symbol_policy" \
+            --sv-conditional-expr-policy "$conditional_expr_policy" \
+            --sv-strict-warning-codes "$strict_warning_codes"
 
-    semantic_status="pass"
-    semantic_note="baseline semantic validation passed"
+        require_file "$diagnostics_json"
+        warning_count="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$diagnostics_json")"
+        error_count="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$diagnostics_json")"
+        total_warnings=$((total_warnings + warning_count))
+        total_errors=$((total_errors + error_count))
 
-    if [[ "$require_nonempty_preprocessed_output" -eq 1 ]] && [[ ! -s "$preprocessed_file" ]]; then
-        semantic_status="fail"
-        semantic_note="preprocessed output is empty"
-    fi
-    if [[ "$require_no_preprocess_errors" -eq 1 ]] && (( error_count > 0 )); then
-        semantic_status="fail"
-        semantic_note="preprocessor diagnostics contain error severity entries"
-    fi
-    if [[ "$semantic_status" == "pass" ]] && [[ "$require_balanced_structural_keywords" -eq 1 ]]; then
-        if ! semantic_note="$(check_balanced_structural_keywords "$preprocessed_file")"; then
+        semantic_status="pass"
+        semantic_note="baseline semantic validation passed"
+
+        if [[ "$require_nonempty_preprocessed_output" -eq 1 ]] && [[ ! -s "$preprocessed_file" ]]; then
             semantic_status="fail"
+            semantic_note="preprocessed output is empty"
         fi
-    fi
-    if [[ "$semantic_status" == "pass" ]] && [[ "$require_unique_named_port_bindings" -eq 1 ]]; then
-        if ! semantic_note="$(check_unique_named_port_bindings "$preprocessed_file")"; then
+        if [[ "$require_no_preprocess_errors" -eq 1 ]] && (( error_count > 0 )); then
             semantic_status="fail"
+            semantic_note="preprocessor diagnostics contain error severity entries"
         fi
-    fi
-
-    if [[ "$semantic_status" != "pass" ]]; then
-        echo "${idx},${seed},pass,pass,fail,skip,${warning_count},${error_count},fail,${semantic_note}" >>"$SUMMARY_CSV"
-        echo "error: semantic baseline validation failed for sample_${idx}: ${semantic_note}" >&2
-        exit 1
-    fi
-    semantic_pass_count=$((semantic_pass_count + 1))
-
-    parse_status="skip"
-    parse_note="parse_full stage skipped"
-    if [[ "$parse_full_enabled" -eq 1 ]]; then
-        parse_log="$LOG_DIR/sample_${idx}_parse_full.log"
-        echo "==> sample_${idx}_parse_full"
-        if "$PARSE_PROBE_BIN" --parse "$grammar_name" "$preprocessed_file" >"$parse_log" 2>&1; then
-            echo "    ok (${parse_log})"
-            parse_status="pass"
-            parse_note="parse_full accepted preprocessed sample"
-            parse_full_pass_count=$((parse_full_pass_count + 1))
-        else
-            parse_status="fail"
-            parse_note="parse_full rejected preprocessed sample"
-            parse_full_fail_count=$((parse_full_fail_count + 1))
-            if [[ "$PARSE_FULL_MODE" == "1" ]]; then
-                echo "    fail (${parse_log})" >&2
-                tail -n 80 "$parse_log" >&2 || true
-                echo "error: strict parse_full mode requires all samples to pass parse_full" >&2
-                exit 1
+        if [[ "$semantic_status" == "pass" ]] && [[ "$require_balanced_structural_keywords" -eq 1 ]]; then
+            if ! semantic_note="$(check_balanced_structural_keywords "$preprocessed_file")"; then
+                semantic_status="fail"
             fi
-            echo "    soft-fail (${parse_log})"
         fi
-    else
-        parse_full_skip_count=$((parse_full_skip_count + 1))
-        parse_note="parse_full unavailable (${parse_full_effective})"
-    fi
+        if [[ "$semantic_status" == "pass" ]] && [[ "$require_unique_named_port_bindings" -eq 1 ]]; then
+            if ! semantic_note="$(check_unique_named_port_bindings "$preprocessed_file")"; then
+                semantic_status="fail"
+            fi
+        fi
 
-    echo "${idx},${seed},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,${parse_note}" >>"$SUMMARY_CSV"
+        if [[ "$semantic_status" != "pass" ]]; then
+            echo "${lrm_profile},${idx},${seed},pass,pass,fail,skip,${warning_count},${error_count},fail,${semantic_note}" >>"$SUMMARY_CSV"
+            echo "error: semantic baseline validation failed for profile '${lrm_profile}' sample_${idx}: ${semantic_note}" >&2
+            exit 1
+        fi
+        semantic_pass_count=$((semantic_pass_count + 1))
+
+        parse_status="skip"
+        parse_note="parse_full stage skipped"
+        if [[ "$parse_full_enabled" -eq 1 ]]; then
+            parse_log="$LOG_DIR/sample_${profile_key}_${idx}_parse_full.log"
+            echo "==> sample_${profile_key}_${idx}_parse_full"
+            if "$PARSE_PROBE_BIN" --parse "$grammar_name" "$preprocessed_file" >"$parse_log" 2>&1; then
+                echo "    ok (${parse_log})"
+                parse_status="pass"
+                parse_note="parse_full accepted preprocessed sample"
+                parse_full_pass_count=$((parse_full_pass_count + 1))
+            else
+                parse_status="fail"
+                parse_note="parse_full rejected preprocessed sample"
+                parse_full_fail_count=$((parse_full_fail_count + 1))
+                if [[ "$PARSE_FULL_MODE" == "1" ]]; then
+                    echo "    fail (${parse_log})" >&2
+                    tail -n 80 "$parse_log" >&2 || true
+                    echo "error: strict parse_full mode requires all samples to pass parse_full" >&2
+                    exit 1
+                fi
+                echo "    soft-fail (${parse_log})"
+            fi
+        else
+            parse_full_skip_count=$((parse_full_skip_count + 1))
+            parse_note="parse_full unavailable (${parse_full_effective})"
+        fi
+
+        echo "${lrm_profile},${idx},${seed},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,${parse_note}" >>"$SUMMARY_CSV"
+    done
 done
 
 {
@@ -358,11 +421,13 @@ done
     echo "contract_file: $CONTRACT_FILE"
     echo "grammar_name: $grammar_name"
     echo "sample_count: $sample_count"
+    echo "profile_count: $profile_count"
+    echo "run_profiles: ${run_profiles[*]}"
     echo "seed_base: $seed_base"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
-    echo "semantic_baseline_passes: $semantic_pass_count/$sample_count"
-    echo "parse_full_passes: $parse_full_pass_count/$sample_count"
+    echo "semantic_baseline_passes: $semantic_pass_count/$total_samples"
+    echo "parse_full_passes: $parse_full_pass_count/$total_samples"
     echo "parse_full_failures: $parse_full_fail_count"
     echo "parse_full_skips: $parse_full_skip_count"
     echo "total_warnings: $total_warnings"

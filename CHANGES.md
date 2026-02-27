@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-27 - Added SV Dual-LRM Profile Scaffold (`2017|2023`) for Common `systemverilog.ebnf`
+### ✅ Achievement Summary
+Implemented the first executable profile scaffold so one common `systemverilog.ebnf` is exercised in both LRM modes (`2017`, `2023`) via `sv_stimuli_quality_gate`.
+
+### Scope of Changes
+- Updated SV stimuli quality gate:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - added profile controls:
+    - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single profile override)
+    - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV profile matrix override)
+  - gate now validates/executes selected profile set against contract-supported profiles.
+  - summary CSV/TXT now includes `profile` column and profile-level accounting.
+- Updated SV contract manifest:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `2 -> 3`
+  - added `lrm_profiles` contract block:
+    - `default_profile`
+    - `supported_profiles`
+    - `required_profiles`
+- Updated planning/docs:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - added explicit Nexsim-facing parser embedding API contract item (profile-aware, deterministic diagnostics, lifecycle contract).
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - confirms dual-profile run:
+    - profile `2017` executed
+    - profile `2023` executed
+  - summary includes per-profile rows and aggregate counts.
+
 ## 2026-02-27 - Added Dual-LRM Conversion Tooling and Local Workspaces (`1800-2023`, `1076-2019`)
 ### ✅ Achievement Summary
 Added adapted LRM conversion tooling under `tools/` and created local workspace trees under `docs/systemverilog` and `docs/vhdl` to support clause-by-clause PDF-to-markdown-to-grammar extraction workflows.

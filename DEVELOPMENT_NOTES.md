@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Common `systemverilog.ebnf` Dual-LRM Scaffold (`2017|2023`)
+### Context
+Agreement: keep one common `grammars/systemverilog.ebnf` and support both SV LRMs through profile selection rather than split grammar files.
+
+This increment implements the first executable scaffold in gate/contract paths so profile handling is concrete and testable now.
+
+### Implementation
+Primary files:
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added profile selection controls to SV stimuli quality gate
+New env controls:
+- `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single profile override)
+- `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV profile set override)
+
+Behavior:
+- contract declares `supported_profiles` and `required_profiles`,
+- gate validates selected profiles against contract support list,
+- executes full per-sample flow for each selected profile,
+- emits profile-tagged summary rows and aggregate counts.
+
+#### 2) Extended contract to declare LRM profile matrix
+`systemverilog_core_v0_contract.json` now includes:
+- `lrm_profiles.default_profile`
+- `lrm_profiles.supported_profiles`
+- `lrm_profiles.required_profiles`
+
+Contract version bumped to `3`.
+
+#### 3) Roadmap alignment for Nexsim integration
+Added explicit Phase P item for Nexsim-facing parser embedding API profile contract:
+- profile-aware entry points,
+- deterministic diagnostics schema,
+- parse/session lifecycle contract suitable for simulator integration.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- profile matrix run executes both `2017` and `2023`,
+- summary includes profile dimension (`profile,sample,...`),
+- gate remains deterministic under profile matrix mode.
+
 ## 2026-02-27 - Dual-LRM Conversion Tooling Adaptation (`IEEE 1800-2023` + `IEEE 1076-2019`)
 ### Context
 We needed a reusable conversion flow (not hardcoded to 2017 line numbers) to process newer LRMs and support side-by-side source ingestion for:

@@ -218,6 +218,7 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-02-27): added initial `systemverilog_core_v0` contract manifest at `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` with deterministic seed/sample defaults and preprocess/semantic-baseline policy knobs.
   - Progress (2026-02-27): added executable `make sv_stimuli_quality_gate` skeleton (`rust/scripts/sv_stimuli_quality_gate.sh`) that runs `EBNF -> JSON -> parser -> stimuli -> preprocess -> semantic_baseline` and conditionally attempts `parse_full` through parser-registry adapters when available (`auto|0|1` parse-full mode).
   - Progress (2026-02-27): wired dynamic build-time `systemverilog` parseability adapter injection (`build.rs` + conditional registry entry) so `sv_stimuli_quality_gate` can execute real `parse_full` on preprocessed samples without tracking generated parser artifacts in git.
+  - Progress (2026-02-27): added LRM profile scaffold in gate/contract (`2017|2023`) with profile matrix execution in `sv_stimuli_quality_gate`, so one common `systemverilog.ebnf` is now exercised in both LRM modes.
 - [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
   - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
@@ -244,6 +245,10 @@ Toolbox baseline to leverage end-to-end:
   - mismatch taxonomy against trusted references,
   - performance/memory budgets on realistic SV corpora,
   - embedding contract checks for Nexsim parser API usage.
+- [ ] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
+  - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
+  - deterministic error/diagnostic schema for host integration,
+  - zero-copy input options and parse/session lifecycle contract for simulator integration.
 - [ ] Promote SV gates into SOTA aggregate policy:
   - informational first,
   - required strict once syntax+semantic closure thresholds are green and stable.

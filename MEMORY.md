@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: dual-LRM conversion tooling setup)
+Last updated: 2026-02-27 (+0100, task: common-SV dual-profile scaffold)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for dual-LRM conversion tooling/docs updates; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV dual-profile scaffold + roadmap/docs updates; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -192,6 +192,22 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Common `systemverilog.ebnf` dual-LRM scaffold (`2017|2023`)
+- Root cause:
+  - agreed direction is one common SystemVerilog grammar for both LRMs; gate/contract path lacked explicit profile controls.
+- Fix:
+  - extended `rust/scripts/sv_stimuli_quality_gate.sh` with profile controls:
+    - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE`
+    - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES`
+  - extended `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to version `3` with:
+    - `lrm_profiles.default_profile`
+    - `lrm_profiles.supported_profiles`
+    - `lrm_profiles.required_profiles`
+  - gate now runs profile matrix (`2017`, `2023`) and emits profile-tagged summary rows.
+  - roadmap now includes explicit Nexsim parser embedding API profile contract task.
+- Validation:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` (both profiles executed).
 
 ### 2026-02-27: Added dual-LRM conversion tooling/workspaces (1800-2023 + 1076-2019)
 - Root cause:
@@ -549,18 +565,20 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Extend semantic-validation stage beyond baseline:
+1. Build actual profile-specific syntax/semantic deltas in common `systemverilog.ebnf`:
+   - activate `2017` vs `2023` branch acceptance differences (currently scaffold and reporting are in place).
+2. Extend semantic-validation stage beyond baseline:
    - continue from current contract-v2 baseline toward declaration-before-use, scoped reference checks, and type/width compatibility checks.
-2. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
+3. Expand `systemverilog_core_v0` contract corpus with targeted snippet families:
    - declaration-heavy, instantiation-heavy, generate-heavy, preprocessor-heavy cases.
-3. Run full (non-limited) IEEE conversion pipeline snapshots:
+4. Run full (non-limited) IEEE conversion pipeline snapshots:
    - `docs/systemverilog` from `1800-2023.pdf`
    - `docs/vhdl` from `ieee-1076-2019.pdf`
-4. Continue Rust-native EBNF migration hardening:
+5. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-5. Expand parser-registry coverage beyond annotations/ebnf:
+6. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-6. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+7. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
