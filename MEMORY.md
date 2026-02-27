@@ -193,6 +193,20 @@ Use this file to resume work without replaying full chat history.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
 
+### 2026-02-27: Roadmap expansion for Nexsim-targeted SV syntax+semantic closure
+- Root cause:
+  - roadmap needed an explicit execution phase for SOTA SystemVerilog parser/stimuli hardening where semantic correctness is a first-class acceptance contract, not parseability-only.
+- Fix:
+  - added Phase P in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+    - codified toolbox baseline (`systemverilog.ebnf`, `ebnf.ebnf`, return/semantic annotation grammars + generated parsers),
+    - added explicit SV gate plan (`sv_stimuli_quality_gate`),
+    - added syntax closure matrix requirement,
+    - added semantic validation profile requirements,
+    - added semantic-annotation-driven `sv_snippet`/`sv_file` stimuli modes,
+    - enforced closed-loop convergence doctrine (`generate -> parse -> semantic-validate -> coverage/gap feedback`).
+- Validation:
+  - roadmap updated and changelog entry recorded in roadmap file.
+
 ### 2026-02-27: Added initial `systemverilog.ebnf` seed grammar from IEEE markdown
 - Root cause:
   - HDL readiness gate had executable skeleton but no HDL grammar file, so both tracked rows were `not_ready`.
@@ -267,16 +281,18 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Add first VHDL seed grammar:
+1. Start Phase P execution item 1:
+   - create `systemverilog_core_v0` contract corpus and add `sv_stimuli_quality_gate` skeleton.
+2. Add first VHDL seed grammar:
    - `grammars/vhdl.ebnf`
    - drive `make -C rust hdl_frontend_gate` to green for both tracked HDL grammars.
-2. Decide SOTA aggregate integration path for HDL readiness:
+3. Decide SOTA aggregate integration path for HDL readiness:
    - informational first in `sota_exit_gate`, then required strict when seed grammars stabilize.
-3. Continue Rust-native EBNF migration hardening:
+4. Continue Rust-native EBNF migration hardening:
    - reduce reliance on Perl frontend where safe, while preserving strict parity gates.
-4. Expand parser-registry coverage beyond annotations/ebnf:
+5. Expand parser-registry coverage beyond annotations/ebnf:
    - onboard `json` and `regex` parseability adapters once generated parser integration path is stable.
-5. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
+6. Keep User Guide expansion in sync with advanced steering/gate behavior and operator workflows.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-02-26
+Last updated: 2026-02-27
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -200,6 +200,41 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [ ] Add first executable VHDL seed grammar (`grammars/vhdl.ebnf`) and turn strict HDL frontend readiness green for both tracked HDL grammars.
 - [ ] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
 
+### Phase P (New): SOTA SystemVerilog Parser + Stimuli Semantic Closure (Nexsim)
+Objective: deliver a production-grade SystemVerilog parser/stimuli flow for Nexsim where acceptance requires both syntax correctness and semantic correctness.
+
+Toolbox baseline to leverage end-to-end:
+- `grammars/systemverilog.ebnf`
+- `grammars/ebnf.ebnf`
+- `grammars/return_annotation.ebnf` -> `generated/return_annotation_parser.rs`
+- `grammars/semantic_annotation.ebnf` -> `generated/semantic_annotation_parser.rs`
+
+- [ ] Freeze `systemverilog_core_v0` contract corpus and add `sv_stimuli_quality_gate`:
+  - `EBNF -> JSON -> parser -> stimuli -> parse_full -> coverage/gap -> replay`.
+- [ ] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
+- [ ] Build syntax-closure burn-down loop:
+  - grow `systemverilog.ebnf` clause-by-clause under deterministic no-regression gates.
+- [ ] Build semantic-closure profile and validator pass for generated SV stimuli:
+  - declaration-before-use,
+  - scope/package import resolution,
+  - port binding legality,
+  - type/width compatibility,
+  - context legality (`always_ff`, `always_comb`, generate constraints).
+- [ ] Add SV stimuli generation modes with semantic steering:
+  - `sv_snippet` mode (targeted constructs),
+  - `sv_file` mode (full compilation units),
+  - semantic-annotation-driven branch/value policies to synthesize legal SV.
+- [ ] Enforce closed-loop convergence for SV:
+  - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
+  - deterministic seed replay + shrinking for failing syntax/semantic samples.
+- [ ] Add differential and integration hardening for Nexsim:
+  - mismatch taxonomy against trusted references,
+  - performance/memory budgets on realistic SV corpora,
+  - embedding contract checks for Nexsim parser API usage.
+- [ ] Promote SV gates into SOTA aggregate policy:
+  - informational first,
+  - required strict once syntax+semantic closure thresholds are green and stable.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -217,6 +252,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Added Phase P (`SOTA SystemVerilog Parser + Stimuli Semantic Closure`) to codify the Nexsim-targeted execution plan: syntax+semantic equal acceptance contract, annotation-driven SV stimuli synthesis, and mandatory closed-loop coverage/gap convergence.
 - 2026-02-27: Added initial `grammars/systemverilog.ebnf` (IEEE 1800 markdown-seeded) and validated end-to-end (`EBNF -> JSON -> parser -> stimuli`), moving HDL readiness report row `systemverilog` from `not_ready` to `pass` while `vhdl` remains pending.
 - 2026-02-27: Started Phase O / Pillar 5 kickoff by adding `hdl_frontend_readiness` + `hdl_frontend_gate` (script: `rust/scripts/hdl_frontend_readiness_gate.sh`) with explicit `systemverilog`/`vhdl` roster, report-mode `not_ready` handling for missing grammars, and strict-mode failure semantics for merge-safe progression.
 - 2026-02-26: Promoted Perl-vs-Rust EBNF dual-run differential from informational/report mode to required strict aggregate SOTA policy check (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`) after strict gate validation passed on tracked grammars (`ebnf/json/regex`).
