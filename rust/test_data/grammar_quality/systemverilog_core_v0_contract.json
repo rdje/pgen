@@ -1,6 +1,6 @@
 {
-  "version": 10,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, dual LRM profile matrix support, explicit stimuli modes, deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, and mode-level stimuli steering policy.",
+  "version": 11,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware file/snippet modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, and mode-level stimuli steering policy.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -12,7 +12,7 @@
   },
   "stimuli_modes": {
     "default_mode": "sv_file",
-    "supported_modes": ["sv_file", "sv_snippet"],
+    "supported_modes": ["sv_file", "sv_snippet", "sv_pp_file", "sv_pp_snippet"],
     "profiles": {
       "sv_file": {
         "entry_rule": "systemverilog_file",
@@ -30,6 +30,26 @@
         "recovery_stimuli_mode": "near_sync_negative",
         "semantic_overrides": {
           "require_port_binding_legality_basic": false
+        }
+      },
+      "sv_pp_file": {
+        "entry_rule": "systemverilog_file",
+        "closed_loop_enabled": true,
+        "parse_full_eligible": true,
+        "recovery_stimuli_mode": "recovery_biased",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": true,
+          "require_no_preprocess_errors": true
+        }
+      },
+      "sv_pp_snippet": {
+        "entry_rule": "source_item",
+        "closed_loop_enabled": false,
+        "parse_full_eligible": false,
+        "recovery_stimuli_mode": "near_sync_negative",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": false,
+          "require_no_preprocess_errors": true
         }
       }
     }

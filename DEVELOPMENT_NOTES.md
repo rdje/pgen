@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase Q Parser/Stimuli Integration: Preprocess-Aware SV Stimuli Modes
+### Context
+Phase Q integration contract requires preprocess-aware stimuli operating modes so `sv_stimuli_quality_gate` can intentionally target preprocessor-heavy runs without introducing one-off scripts.
+
+Existing mode set (`sv_file`, `sv_snippet`) worked, but did not explicitly encode preprocessor-focused mode identities in the contract.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+
+#### 1) Contract mode expansion (`v10 -> v11`)
+Added preprocess-aware modes under `stimuli_modes`:
+- `sv_pp_file`:
+  - `entry_rule=systemverilog_file`
+  - `closed_loop_enabled=true`
+  - `parse_full_eligible=true`
+  - `recovery_stimuli_mode=recovery_biased`
+- `sv_pp_snippet`:
+  - `entry_rule=source_item`
+  - `closed_loop_enabled=false`
+  - `parse_full_eligible=false`
+  - `recovery_stimuli_mode=near_sync_negative`
+
+Contract `supported_modes` now lists:
+- `sv_file`
+- `sv_snippet`
+- `sv_pp_file`
+- `sv_pp_snippet`
+
+#### 2) Gate fallback hardening
+Updated `sv_stimuli_quality_gate.sh` fallback logic so preprocess-aware mode names are recognized even when profile entries are sparse:
+- fallback `supported_modes` now includes `sv_pp_file`/`sv_pp_snippet`,
+- fallback entry-rule mapping treats `sv_pp_snippet` like snippet (`source_item`),
+- fallback closed-loop default disables closed-loop for `sv_pp_snippet`,
+- fallback parse-full eligibility enables parse-full for `sv_pp_file`.
+
+This keeps mode behavior deterministic and explicit for both contractized and fallback paths.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_file PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- both preprocess-aware modes execute successfully,
+- mode summaries report expected entry-rule/closed-loop/parse-full attributes,
+- contract + gate are aligned for Phase Q preprocess-aware mode expansion.
+
 ## 2026-02-27 - Aggregate SOTA Wiring: `vhdl_stimuli_quality_gate` Policy + Runner Integration
 ### Context
 The dedicated VHDL closed-loop gate existed (`make vhdl_stimuli_quality_gate`) but was not yet integrated into aggregate SOTA execution policy.

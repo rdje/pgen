@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-02-27 - Phase Q Integration Increment: Added Preprocess-Aware SV Stimuli Modes (`sv_pp_file`, `sv_pp_snippet`)
+### ✅ Achievement Summary
+Expanded `sv_stimuli_quality_gate` mode contracts with explicit preprocess-aware file/snippet profiles so SystemVerilog stimuli runs can choose preprocessor-focused operating modes without changing gate internals.
+
+### Scope of Changes
+- Updated SV stimuli contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `10 -> 11`
+  - added supported modes:
+    - `sv_pp_file`
+    - `sv_pp_snippet`
+  - added mode profiles:
+    - `sv_pp_file`: `entry_rule=systemverilog_file`, `closed_loop_enabled=true`, `parse_full_eligible=true`, `recovery_stimuli_mode=recovery_biased`
+    - `sv_pp_snippet`: `entry_rule=source_item`, `closed_loop_enabled=false`, `parse_full_eligible=false`, `recovery_stimuli_mode=near_sync_negative`
+- Hardened fallback mode mapping in gate script:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - default supported-mode fallback now includes preprocess-aware modes.
+  - fallback mode semantics now recognize preprocess-aware names for:
+    - `entry_rule` defaults,
+    - closed-loop eligibility defaults,
+    - parse-full eligibility defaults.
+- Updated docs/roadmap continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_file PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Aggregate SOTA Policy: Wired `vhdl_stimuli_quality_gate` Into `sota_exit_gate`
 ### ✅ Achievement Summary
 Integrated dedicated VHDL closed-loop quality checking into the aggregate SOTA exit gate with policy/runtime controls so Nexsim-focused VHDL hardening runs automatically in aggregate quality flow.

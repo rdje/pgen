@@ -2028,7 +2028,7 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_SV_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
 - `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
-- `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_snippet`, default from contract)
+- `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`, default from contract)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
@@ -2063,6 +2063,18 @@ Optional SV syntax-closure gate tuning:
     - closed-loop disabled by default,
     - parse-full ineligible (auto mode skips parse-full; strict parse-full mode errors out),
     - default recovery stimuli mode: `near_sync_negative`.
+  - `sv_pp_file`:
+    - entry rule: `systemverilog_file`,
+    - preprocess-aware file mode,
+    - closed-loop enabled by default,
+    - parse-full eligible,
+    - default recovery stimuli mode: `recovery_biased`.
+  - `sv_pp_snippet`:
+    - entry rule: `source_item`,
+    - preprocess-aware snippet mode,
+    - closed-loop disabled by default,
+    - parse-full ineligible (auto mode skips parse-full; strict parse-full mode errors out),
+    - default recovery stimuli mode: `near_sync_negative`.
   - mode-level recovery steering:
     - optional profile key:
       - `stimuli_modes.profiles.<mode>.recovery_stimuli_mode`
@@ -2078,6 +2090,8 @@ Optional SV syntax-closure gate tuning:
     - current contract policy:
       - `sv_file`: `require_port_binding_legality_basic=true`
       - `sv_snippet`: `require_port_binding_legality_basic=false`
+      - `sv_pp_file`: `require_port_binding_legality_basic=true`
+      - `sv_pp_snippet`: `require_port_binding_legality_basic=false`
 - closed-loop contract controls (from `systemverilog_core_v0_contract.json`):
   - `closed_loop.gap_report_threshold`
   - `closed_loop.target_max_attempts`

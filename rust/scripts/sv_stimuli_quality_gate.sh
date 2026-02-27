@@ -524,7 +524,7 @@ default_lrm_profile="$(jq -er '(.lrm_profiles.default_profile // "2017") | strin
 supported_lrm_profiles_csv="$(jq -er '(.lrm_profiles.supported_profiles // ["2017","2023"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 required_lrm_profiles_csv="$(jq -er '(.lrm_profiles.required_profiles // [(.lrm_profiles.default_profile // "2017")]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 default_stimuli_mode="$(jq -er '(.stimuli_modes.default_mode // "sv_file") | strings' "$CONTRACT_FILE")"
-supported_stimuli_modes_csv="$(jq -er '(.stimuli_modes.supported_modes // ["sv_file","sv_snippet"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
+supported_stimuli_modes_csv="$(jq -er '(.stimuli_modes.supported_modes // ["sv_file","sv_snippet","sv_pp_file","sv_pp_snippet"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
@@ -583,9 +583,9 @@ if [[ -z "${supported_stimuli_modes_map[$stimuli_mode]:-}" ]]; then
     exit 2
 fi
 
-mode_entry_rule="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].entry_rule // (if $mode == "sv_snippet" then "source_item" else "systemverilog_file" end)) | strings' "$CONTRACT_FILE")"
-mode_closed_loop_enabled="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].closed_loop_enabled // ($mode != "sv_snippet")) then 1 else 0 end' "$CONTRACT_FILE")"
-mode_parse_full_eligible="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].parse_full_eligible // ($mode == "sv_file")) then 1 else 0 end' "$CONTRACT_FILE")"
+mode_entry_rule="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].entry_rule // (if ($mode == "sv_snippet" or $mode == "sv_pp_snippet") then "source_item" else "systemverilog_file" end)) | strings' "$CONTRACT_FILE")"
+mode_closed_loop_enabled="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].closed_loop_enabled // ($mode != "sv_snippet" and $mode != "sv_pp_snippet")) then 1 else 0 end' "$CONTRACT_FILE")"
+mode_parse_full_eligible="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].parse_full_eligible // ($mode == "sv_file" or $mode == "sv_pp_file")) then 1 else 0 end' "$CONTRACT_FILE")"
 mode_recovery_stimuli_mode="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].recovery_stimuli_mode // "baseline") | strings' "$CONTRACT_FILE")"
 
 if [[ "$mode_recovery_stimuli_mode" != "baseline" && "$mode_recovery_stimuli_mode" != "recovery_biased" && "$mode_recovery_stimuli_mode" != "near_sync_negative" ]]; then

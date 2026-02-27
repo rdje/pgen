@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: aggregate-vhdl-stimuli-policy-wiring)
+Last updated: 2026-02-27 (+0100, task: phase-q-sv-pp-stimuli-modes)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for aggregate VHDL stimuli policy wiring increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for Phase Q preprocess-aware SV stimuli mode increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `168`
+- Commit count at last refresh (before current uncommitted changes): `169`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 86c78cf Wire VHDL stimuli quality gate into aggregate SOTA policy
 - d757fbe Add dedicated VHDL closed-loop stimuli quality gate for Nexsim hardening
 - a997a78 Add mode-level recovery steering to SV stimuli gate (contract v10)
 - 1b10f2a Add mode-level semantic override profiles to SV stimuli gate (contract v9)
@@ -210,6 +211,24 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase Q preprocess-aware SV stimuli mode expansion (`sv_pp_file`, `sv_pp_snippet`)
+- Root cause:
+  - Phase Q parser/stimuli integration roadmap required explicit preprocess-aware stimuli modes, but contract/gate mode set only exposed `sv_file`/`sv_snippet`.
+- Fix:
+  - bumped `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` from `v10 -> v11`.
+  - added supported modes + profiles:
+    - `sv_pp_file` (file-oriented, closed-loop enabled, parse-full eligible, recovery `recovery_biased`),
+    - `sv_pp_snippet` (snippet-oriented, closed-loop disabled by default, parse-full ineligible, recovery `near_sync_negative`).
+  - hardened fallback mode mapping in `rust/scripts/sv_stimuli_quality_gate.sh` so preprocess-aware mode names are recognized for entry-rule, closed-loop, and parse-full defaults.
+  - synced roadmap + UG docs for the new mode set.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_file PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - preprocess-aware mode plumbing is now executable and contractized for Phase Q integration work.
 
 ### 2026-02-27: Aggregate SOTA wiring for dedicated VHDL quality gate
 - Root cause:

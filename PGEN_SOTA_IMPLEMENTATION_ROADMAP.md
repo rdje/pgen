@@ -361,6 +361,10 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - closed-loop feedback tracks both preprocessor and parser coverage/gap convergence.
   - Progress (2026-02-27): introduced executable `sv_stimuli_quality_gate` skeleton with explicit stage accounting (`stimuli_generate`, `preprocess`, `semantic_validate`, `parse_full`) and deterministic per-sample artifact/log outputs; `parse_full` runs when parser-registry support exists and is policy-controllable (`PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto|0|1`).
   - Progress (2026-02-27): `auto` mode now executes parse-full for `systemverilog` via gate-injected adapter and records pass/fail counts as stage metrics; strict mode (`parse_full_mode=1`) fails on first parse-full rejection.
+  - Progress (2026-02-27): expanded contractized stimuli mode set with preprocess-aware profiles in `systemverilog_core_v0_contract.json` v11:
+    - `sv_pp_file`: `entry_rule=systemverilog_file`, closed-loop enabled, parse-full eligible, `recovery_stimuli_mode=recovery_biased`.
+    - `sv_pp_snippet`: `entry_rule=source_item`, closed-loop disabled by default, parse-full ineligible, `recovery_stimuli_mode=near_sync_negative`.
+    Gate fallback logic in `sv_stimuli_quality_gate.sh` now also recognizes preprocess-aware mode names for entry-rule, closed-loop, and parse-full eligibility defaults.
 - [ ] Add differential hardening for preprocessor behavior against trusted references (where available) and publish mismatch taxonomy.
 - [ ] Promote preprocessor gate policy:
   - informational first while grammar closes,
@@ -384,6 +388,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Advanced Phase P stimuli-mode track by adding contractized `sv_file`/`sv_snippet` mode plumbing in `sv_stimuli_quality_gate` (mode->entry rule mapping, mode-level closed-loop/parse-full eligibility controls) with `systemverilog_core_v0_contract.json` v6.
+- 2026-02-27: Advanced Phase Q parser/stimuli integration by adding preprocess-aware `sv_pp_file`/`sv_pp_snippet` profiles in `systemverilog_core_v0_contract.json` v11 and extending gate fallback mode mapping for preprocess-aware defaults.
 - 2026-02-27: Advanced Phase P semantic-closure profile by adding `require_port_binding_legality_basic` checker wiring in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v8.
 - 2026-02-27: Advanced Phase P stimuli-mode semantic steering by adding mode-level `semantic_overrides` wiring in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v9.
 - 2026-02-27: Advanced Phase P stimuli-mode steering by adding mode-level `recovery_stimuli_mode` routing in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v10.
