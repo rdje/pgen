@@ -267,6 +267,13 @@ Toolbox baseline to leverage end-to-end:
       - `sv_file` -> `entry_rule=systemverilog_file`, closed-loop enabled, parse-full eligible
       - `sv_snippet` -> `entry_rule=source_item`, closed-loop disabled by default, parse-full ineligible
     This closes mode plumbing; semantic-annotation-driven branch/value steering is still pending.
+  - Progress (2026-02-27): added mode-level semantic baseline override wiring in `sv_stimuli_quality_gate` + `systemverilog_core_v0_contract.json` (v9):
+    - `stimuli_modes.profiles.<mode>.semantic_overrides.<semantic_baseline_toggle>`
+    - gate now resolves effective semantic baseline toggles per selected mode.
+    - initial policy:
+      - `sv_file` enables `require_port_binding_legality_basic`
+      - `sv_snippet` explicitly disables `require_port_binding_legality_basic`
+    This adds mode-driven semantic strictness control; annotation-driven branch/value generation steering remains pending.
 - [ ] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.
@@ -362,6 +369,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 ## Change Log (Roadmap Updates)
 - 2026-02-27: Advanced Phase P stimuli-mode track by adding contractized `sv_file`/`sv_snippet` mode plumbing in `sv_stimuli_quality_gate` (mode->entry rule mapping, mode-level closed-loop/parse-full eligibility controls) with `systemverilog_core_v0_contract.json` v6.
 - 2026-02-27: Advanced Phase P semantic-closure profile by adding `require_port_binding_legality_basic` checker wiring in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v8.
+- 2026-02-27: Advanced Phase P stimuli-mode semantic steering by adding mode-level `semantic_overrides` wiring in `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to v9.
 - 2026-02-27: Advanced Phase P context-legality baseline by extending `require_context_legality_basic` with generate-loop `genvar` legality checks in `sv_stimuli_quality_gate`.
 - 2026-02-27: Advanced Phase P closed-loop convergence hardening by adding deterministic failure replay/shrinking in `sv_stimuli_quality_gate` with contractized `failure_replay` controls and `systemverilog_core_v0_contract.json` v7.
 - 2026-02-27: Advanced Phase P semantic-closure validator wiring by adding contractized semantic checks in `sv_stimuli_quality_gate` (`declared-before-use`, package qualification resolution, simple width compatibility, basic always-context legality) and bumping `systemverilog_core_v0_contract.json` to v5.

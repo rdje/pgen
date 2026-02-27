@@ -2047,6 +2047,13 @@ Optional SV syntax-closure gate tuning:
     - entry rule: `source_item`,
     - closed-loop disabled by default,
     - parse-full ineligible (auto mode skips parse-full; strict parse-full mode errors out).
+  - mode-level semantic overrides:
+    - optional profile key:
+      - `stimuli_modes.profiles.<mode>.semantic_overrides.<semantic_baseline_toggle>`
+    - overrides are applied after global `semantic_baseline` defaults to compute effective per-mode semantic checks.
+    - current contract policy:
+      - `sv_file`: `require_port_binding_legality_basic=true`
+      - `sv_snippet`: `require_port_binding_legality_basic=false`
 - closed-loop contract controls (from `systemverilog_core_v0_contract.json`):
   - `closed_loop.gap_report_threshold`
   - `closed_loop.target_max_attempts`

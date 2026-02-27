@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Stimuli Modes: Added Mode-Level Semantic Override Profiles (v9)
+### ✅ Achievement Summary
+Added mode-level semantic strictness control for SV stimuli gate so `sv_file` and `sv_snippet` can run different semantic baseline policies from one shared grammar contract.
+
+### Scope of Changes
+- Extended gate mode resolution in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - added per-mode semantic override application:
+    - `stimuli_modes.profiles.<mode>.semantic_overrides.<semantic_baseline_toggle>`
+  - effective semantic baseline toggles are now computed as:
+    - global `semantic_baseline` default,
+    - overridden by selected mode profile when specified.
+- Updated contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `8 -> 9`
+  - added initial mode semantic override policy:
+    - `sv_file`: `require_port_binding_legality_basic=true`
+    - `sv_snippet`: `require_port_binding_legality_basic=false`
+- Updated planning/docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Semantic Closure: Extended Context Legality with Generate `genvar` Checks
 ### ✅ Achievement Summary
 Expanded the `require_context_legality_basic` semantic validator to cover a baseline generate-context legality rule: generate-loop iterators must be declared as `genvar`.

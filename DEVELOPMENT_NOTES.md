@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P Stimuli Modes: Mode-Level Semantic Override Wiring (Contract v9)
+### Context
+Phase P mode support (`sv_file`/`sv_snippet`) existed, but semantic strictness remained globally configured only.
+
+To progress semantic-steered modes, we needed per-mode semantic baseline override capability.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+#### 1) Added mode-level semantic override resolution
+`sv_stimuli_quality_gate` now resolves effective semantic toggles with precedence:
+1. global `semantic_baseline.<toggle>` defaults,
+2. mode override `stimuli_modes.profiles.<mode>.semantic_overrides.<toggle>` (when present).
+
+This is applied to all semantic baseline toggles used by `evaluate_semantic_baseline(...)`.
+
+#### 2) Contract v9 update
+`systemverilog_core_v0_contract.json` bumped `v8 -> v9` and now includes mode semantic override blocks:
+- `sv_file.semantic_overrides.require_port_binding_legality_basic = true`
+- `sv_snippet.semantic_overrides.require_port_binding_legality_basic = false`
+
+Result: mode-selected semantic strictness from one contract without duplicating grammar runs.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- `sv_file` reports `semantic_require_port_binding_legality_basic: 1`,
+- `sv_snippet` reports `semantic_require_port_binding_legality_basic: 0`,
+- gate behavior remains deterministic and stable.
+
 ## 2026-02-27 - Phase P Semantic Closure: Generate Context Legality Baseline (`genvar` for-loop iterator)
 ### Context
 Phase P context-legality coverage included `always_ff`/`always_comb`, but generate constraints still lacked executable baseline checks.

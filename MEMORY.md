@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-generate-context-legality)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-mode-semantic-overrides)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for SV generate-context legality increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV mode-level semantic override increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `164`
+- Commit count at last refresh (before current uncommitted changes): `165`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 53d7881 Extend SV context legality baseline with generate-loop genvar checks
 - d840b68 Add SV semantic baseline port-binding legality toggle (contract v8)
 - a8a99b3 Harden SV closed-loop gate with deterministic failure replay/shrinking (contract v7)
 - f0a7133 Add SV stimuli mode profiles (sv_file/sv_snippet) to quality gate
@@ -206,6 +207,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P stimuli-mode semantic overrides (contract v9)
+- Root cause:
+  - stimuli modes existed, but semantic baseline strictness was global only and could not be tuned per mode.
+- Fix:
+  - updated `rust/scripts/sv_stimuli_quality_gate.sh` to apply mode-level semantic overrides:
+    - `stimuli_modes.profiles.<mode>.semantic_overrides.<semantic_baseline_toggle>`
+    - effective semantic checks now resolve as global defaults overridden by selected mode profile.
+  - bumped `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `v9`:
+    - `sv_file` enables `require_port_binding_legality_basic`
+    - `sv_snippet` disables `require_port_binding_legality_basic`
+  - updated roadmap + UG docs for mode semantic override behavior.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - mode-level semantic strictness bridge is now in place; semantic-annotation-driven branch/value generation steering remains pending.
 
 ### 2026-02-27: Phase P context legality extension - generate-loop `genvar` baseline
 - Root cause:
