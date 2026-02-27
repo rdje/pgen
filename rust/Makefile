@@ -232,7 +232,7 @@ help:
 	@echo "  hdl_frontend_readiness - Report HDL frontend flow readiness for systemverilog/vhdl grammars"
 	@echo "  hdl_frontend_gate - Strict HDL frontend readiness gate (fails on missing/failing HDL grammar flows)"
 	@echo "  sv_preprocessor_quality_gate - Enforce deterministic closed-loop quality checks for systemverilog_preprocessor grammar"
-	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog stimuli quality skeleton (preprocess -> parse_full -> semantic baseline)"
+	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog closed-loop quality gate (coverage/gap/replay -> preprocess -> parse_full -> semantic baseline)"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
 	@echo "  annotation_stimuli_quality_gate - Enforce strict closed-loop stimuli/coverage/gap checks (no-regression) for annotation grammars"
@@ -474,9 +474,9 @@ sv_preprocessor_quality_gate:
 
 .PHONY: sv_stimuli_quality_gate
 sv_stimuli_quality_gate:
-	@echo "🧪 Running SystemVerilog stimuli quality gate (skeleton)..."
+	@echo "🧪 Running SystemVerilog stimuli closed-loop quality gate..."
 	cd $(RUST_DIR) && ./scripts/sv_stimuli_quality_gate.sh
-	@echo "✅ SystemVerilog stimuli quality gate (skeleton) passed."
+	@echo "✅ SystemVerilog stimuli closed-loop quality gate passed."
 
 .PHONY: regression_gate
 regression_gate:

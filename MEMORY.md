@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: nexsim-hdl-parseability-closure)
+Last updated: 2026-02-27 (+0100, task: phase-p-sv-closed-loop-freeze)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for Nexsim HDL parseability-stage increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for SV closed-loop contract/gate freeze increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -33,10 +33,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `157`
+- Commit count at last refresh (before current uncommitted changes): `158`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- f465acf Nexsim HDL closure: parser replay gate hardening and API convenience wrappers
 - fb4dc4e Harden embedding API ergonomics for zero-friction Rust and FFI use
 - 34d1f4f Add parser-profile embedding API scaffold for Nexsim integration
 - 473dbe4 hdl: add executable vhdl seed grammar and close strict readiness gap
@@ -199,6 +200,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-27: Phase P `systemverilog_core_v0` freeze and `sv_stimuli_quality_gate` closed-loop promotion
+- Root cause:
+  - SV quality gate still operated as a preprocess/semantic/parse skeleton and did not enforce profile-level `coverage/gap -> target replay` closure required by Phase P contract intent.
+- Fix:
+  - promoted `rust/scripts/sv_stimuli_quality_gate.sh` to run deterministic per-profile closed-loop stages:
+    - initial `coverage + gap` extraction
+    - target-driven replay with `--target-report-input`
+    - contract-enforced non-increasing target-debt check.
+  - expanded summary schema with closed-loop stage columns:
+    - `coverage_gap_initial`, `gap_replay`.
+  - bumped `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `version: 4` and added `closed_loop` controls:
+    - `enabled`, `gap_report_threshold`, `target_max_attempts`, `replay_sample_count`, `require_non_increasing_target_debt`.
+  - aligned `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_USER_GUIDE.md`, and `rust/Makefile` help text.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - Phase P roadmap item `Freeze systemverilog_core_v0 contract corpus and add sv_stimuli_quality_gate` now implemented as closed-loop baseline.
 
 ### 2026-02-27: Nexsim SV/VHDL focus increment (convenience APIs + HDL parseability stage)
 - Root cause:

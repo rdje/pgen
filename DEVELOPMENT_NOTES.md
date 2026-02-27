@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-27 - Phase P: `sv_stimuli_quality_gate` Closed-Loop Promotion (Contract v4)
+### Context
+The roadmap item to freeze `systemverilog_core_v0` and move `sv_stimuli_quality_gate` beyond skeleton status required explicit `coverage/gap/replay` wiring with deterministic policy controls.
+
+Before this increment, gate flow was per-sample only:
+- `stimuli_generate -> preprocess -> semantic_validate -> parse_full(optional)`.
+
+It did not enforce profile-level target-debt replay behavior.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+#### 1) Added profile-level closed-loop stages
+For each active LRM profile (`2017`, `2023`):
+1. initial generation pass:
+   - `--generate-stimuli`
+   - `--coverage-output`
+   - `--gap-report-json`
+   - `--gap-report-text`
+2. replay pass:
+   - `--target-report-input <initial_gap.json>`
+   - `--target-max-attempts`
+   - re-emits coverage/gap artifacts
+3. debt check:
+   - enforces `replay_targets <= initial_targets` when configured.
+
+#### 2) Contractized closed-loop controls (v4)
+`systemverilog_core_v0_contract.json` now contains:
+- `closed_loop.enabled`
+- `closed_loop.gap_report_threshold`
+- `closed_loop.target_max_attempts`
+- `closed_loop.replay_sample_count`
+- `closed_loop.require_non_increasing_target_debt`
+
+This turns replay behavior into explicit contract state rather than script constants.
+
+#### 3) Expanded gate outputs
+Per-sample summary now includes profile-level closed-loop statuses:
+- `coverage_gap_initial`
+- `gap_replay`
+
+Summary text includes:
+- closed-loop profile pass/skip counts,
+- aggregate initial/replay target totals.
+
+#### 4) Documentation alignment
+Updated:
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile` help text
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Roadmap Phase P item:
+- `Freeze systemverilog_core_v0 contract corpus and add sv_stimuli_quality_gate` is now marked complete.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- gate runs both profile-level closed-loop stages and per-sample checks,
+- summary artifacts capture both stage classes with deterministic seeds,
+- closed-loop debt check enforcement is active.
+
 ## 2026-02-27 - Nexsim SV/VHDL Delivery Focus: Convenience API Wrappers + HDL Parseability Stage
 ### Context
 Priority was clarified to remain focused on Nexsim-facing SV/VHDL parser delivery only (no regex work in this increment).

@@ -216,12 +216,13 @@ Toolbox baseline to leverage end-to-end:
 - `grammars/return_annotation.ebnf` -> `generated/return_annotation_parser.rs`
 - `grammars/semantic_annotation.ebnf` -> `generated/semantic_annotation_parser.rs`
 
-- [ ] Freeze `systemverilog_core_v0` contract corpus and add `sv_stimuli_quality_gate`:
+- [x] Freeze `systemverilog_core_v0` contract corpus and add `sv_stimuli_quality_gate`:
   - `EBNF -> JSON -> parser -> stimuli -> parse_full -> coverage/gap -> replay`.
   - Progress (2026-02-27): added initial `systemverilog_core_v0` contract manifest at `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` with deterministic seed/sample defaults and preprocess/semantic-baseline policy knobs.
   - Progress (2026-02-27): added executable `make sv_stimuli_quality_gate` skeleton (`rust/scripts/sv_stimuli_quality_gate.sh`) that runs `EBNF -> JSON -> parser -> stimuli -> preprocess -> semantic_baseline` and conditionally attempts `parse_full` through parser-registry adapters when available (`auto|0|1` parse-full mode).
   - Progress (2026-02-27): wired dynamic build-time `systemverilog` parseability adapter injection (`build.rs` + conditional registry entry) so `sv_stimuli_quality_gate` can execute real `parse_full` on preprocessed samples without tracking generated parser artifacts in git.
   - Progress (2026-02-27): added LRM profile scaffold in gate/contract (`2017|2023`) with profile matrix execution in `sv_stimuli_quality_gate`, so one common `systemverilog.ebnf` is now exercised in both LRM modes.
+  - Progress (2026-02-27): promoted gate from skeleton to deterministic closed-loop baseline by wiring per-profile `coverage/gap -> target-driven replay` stages with contractized controls (`closed_loop.gap_report_threshold`, `closed_loop.target_max_attempts`, `closed_loop.replay_sample_count`) and non-increasing target-debt enforcement.
 - [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
   - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
@@ -324,6 +325,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-27: Promoted `sv_stimuli_quality_gate` from skeleton to deterministic closed-loop baseline with per-profile `coverage/gap -> target-driven replay` stages, contractized closed-loop controls (`systemverilog_core_v0_contract.json` v4), and non-increasing target-debt enforcement.
 - 2026-02-27: Wired `sv_stimuli_quality_gate` into aggregate SOTA policy via `sota_exit_gate` + policy env flags as informational-first (`run=1`, `strict=0`) while SV parse-full/semantic closure hardening continues.
 - 2026-02-27: Added initial executable `grammars/vhdl.ebnf` seed grammar and turned strict HDL frontend readiness (`make hdl_frontend_gate`) green for both tracked HDL grammars.
 - 2026-02-27: Promoted aggregate HDL readiness policy to required strict (`PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1`) after strict HDL gate proved stable for both tracked grammars.

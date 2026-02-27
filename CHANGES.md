@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-02-27 - Phase P Closure Step: Promote `sv_stimuli_quality_gate` to Deterministic Closed-Loop Baseline
+### ✅ Achievement Summary
+Promoted `sv_stimuli_quality_gate` from preprocess-first skeleton mode to a deterministic closed-loop SV quality gate with contractized `coverage/gap -> replay` enforcement, while preserving per-sample preprocess/semantic/parse-full checks for both SV LRM profiles (`2017`, `2023`).
+
+### Scope of Changes
+- Hardened gate execution:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - added profile-level closed-loop stages before per-sample checks:
+    - initial stimuli run with `--coverage-output` + `--gap-report-json/text`
+    - target-driven replay run with `--target-report-input` + `--target-max-attempts`
+  - enforced contract policy:
+    - non-increasing replay target debt (`replay_targets <= initial_targets`) when enabled.
+  - expanded summary schema with closed-loop statuses:
+    - `coverage_gap_initial`
+    - `gap_replay`
+- Froze and versioned the SV contract for closed-loop behavior:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump: `3 -> 4`
+  - added `closed_loop` block:
+    - `enabled`
+    - `gap_report_threshold`
+    - `target_max_attempts`
+    - `replay_sample_count`
+    - `require_non_increasing_target_debt`
+- Updated surfaced command/help/documentation:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Nexsim-Focused SV/VHDL Integration Increment: Convenience APIs + HDL Parseability Stage
 ### ✅ Achievement Summary
 Focused the increment on Nexsim SV/VHDL delivery by:

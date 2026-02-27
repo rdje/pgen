@@ -1949,7 +1949,7 @@ SV preprocessor closed-loop command:
 make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
 ```
 
-SV parser/stimuli preprocess-first skeleton command:
+SV parser/stimuli preprocess-first closed-loop command:
 ```bash
 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
 ```
@@ -2011,7 +2011,7 @@ Optional SV preprocessor quality-gate tuning:
 - `PGEN_SV_PREPROCESSOR_QUALITY_VALIDATE_PARSEABILITY` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR` (default `rust/target/sv_preprocessor_quality_gate`)
 
-Optional SV stimuli quality-gate (skeleton) tuning:
+Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`)
 - `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_SV_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
@@ -2020,12 +2020,19 @@ Optional SV stimuli quality-gate (skeleton) tuning:
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
 
-`sv_stimuli_quality_gate` skeleton stage contract:
-- runs deterministic per-sample flow:
+`sv_stimuli_quality_gate` closed-loop stage contract:
+- per-profile closed loop:
+  - `coverage/gap(initial) -> target-driven replay -> non-increasing target debt check`.
+- per-sample deterministic flow:
   - `stimuli_generate -> preprocess -> semantic_validate_baseline -> parse_full(optional)`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.
+- closed-loop contract controls (from `systemverilog_core_v0_contract.json`):
+  - `closed_loop.gap_report_threshold`
+  - `closed_loop.target_max_attempts`
+  - `closed_loop.replay_sample_count`
+  - `closed_loop.require_non_increasing_target_debt`
 - semantic baseline is currently:
   - non-empty preprocessed output,
   - no `error` severity in preprocessor diagnostics.
