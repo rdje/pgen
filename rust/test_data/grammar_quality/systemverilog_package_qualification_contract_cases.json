@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "Deterministic semantic contract suite for package qualification resolution behavior in sv_stimuli_quality_gate.",
+  "cases": [
+    {
+      "name": "declared_package_reference_pass",
+      "expect_pass": true,
+      "input": "package pkg; localparam int X = 1; endpackage module top; int y; assign y = pkg::X; endmodule"
+    },
+    {
+      "name": "imported_package_reference_pass",
+      "expect_pass": true,
+      "input": "import cfg_pkg::*; module top; int y; assign y = cfg_pkg::CONST; endmodule"
+    },
+    {
+      "name": "unresolved_package_reference_fail",
+      "expect_pass": false,
+      "input": "module top; int y; assign y = ghost_pkg::CONST; endmodule"
+    },
+    {
+      "name": "mixed_resolved_and_unresolved_fail",
+      "expect_pass": false,
+      "input": "package good_pkg; localparam int V = 3; endpackage module top; int a; int b; assign a = good_pkg::V; assign b = bad_pkg::W; endmodule"
+    },
+    {
+      "name": "multi_imported_packages_pass",
+      "expect_pass": true,
+      "input": "import p1::*; import p2::item; module top; int a; int b; assign a = p1::A; assign b = p2::item; endmodule"
+    },
+    {
+      "name": "comment_noise_pass",
+      "expect_pass": true,
+      "input": "/* package p_fake; endpackage */ package real_pkg; localparam int A = 1; endpackage // import ghost::*\nmodule top; int x; assign x = real_pkg::A; endmodule"
+    },
+    {
+      "name": "package_decl_without_use_pass",
+      "expect_pass": true,
+      "input": "package keep_pkg; localparam int A = 0; endpackage module top; int x; assign x = 0; endmodule"
+    },
+    {
+      "name": "type_reference_unresolved_fail",
+      "expect_pass": false,
+      "input": "module top; typedef missing_pkg::t_t thing_t; endmodule"
+    }
+  ]
+}

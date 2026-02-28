@@ -10008,3 +10008,49 @@ Without a dedicated suite:
   - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
 - Result:
   - gate passed with deterministic contract-suite stage active.
+
+---
+
+## 2026-02-28: Added deterministic package-qualification contract suite to `sv_stimuli_quality_gate`
+
+### Root cause
+Phase P semantic-closure deterministic suites still lacked fixed-corpus proof for package qualification resolution behavior.
+
+Without this suite:
+- `require_package_qualification_resolution` behavior was validated only through randomized gate samples,
+- regressions in `pkg::symbol` resolution checks could be masked by corpus variance.
+
+### Fixes implemented
+- Added deterministic suite corpus:
+  - `rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json`
+  - includes explicit pass/fail cases for:
+    - declared package references,
+    - imported package references,
+    - unresolved qualification failures,
+    - mixed resolved/unresolved qualification combinations.
+- Extended core contract:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version `16 -> 17`
+  - added keys:
+    - `semantic_contracts.package_qualification_suite_path`
+    - `semantic_contracts.enforce_package_qualification_suite`
+- Extended gate runtime:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env overrides:
+    - `PGEN_SV_STIMULI_QUALITY_PACKAGE_QUAL_SUITE`
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_PACKAGE_QUAL_SUITE`
+  - added `package_qualification_contract_suite` execution stage with deterministic pass/fail enforcement and CSV summary artifact.
+  - added summary counters:
+    - `package_qualification_suite_status`
+    - `package_qualification_suite_total`
+    - `package_qualification_suite_passed`
+    - `package_qualification_suite_failed`
+
+### Validation
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `jq empty rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json`
+- reduced-cost gate run:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Result:
+  - gate passed with deterministic package-qualification contract-suite stage active.

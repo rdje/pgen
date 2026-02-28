@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-02-28 - Phase P Semantic-Closure Hardening: Deterministic Package-Qualification Contract Suite
+### ✅ Achievement Summary
+Added a deterministic semantic contract suite for package-qualification resolution and wired it into `sv_stimuli_quality_gate` as a first-stage pass/fail precheck.
+
+### Scope of Changes
+- Added deterministic package-qualification corpus:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json`
+  - includes explicit pass/fail cases for:
+    - declared-package references,
+    - imported-package references,
+    - unresolved package qualification failures,
+    - mixed resolved/unresolved qualification failures,
+    - comment-noise tolerance.
+- Promoted SV core quality contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump:
+    - `16 -> 17`
+  - new semantic-contract keys:
+    - `semantic_contracts.package_qualification_suite_path`
+    - `semantic_contracts.enforce_package_qualification_suite`
+- Wired deterministic suite execution into gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env overrides:
+    - `PGEN_SV_STIMULI_QUALITY_PACKAGE_QUAL_SUITE`
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_PACKAGE_QUAL_SUITE`
+  - added `package_qualification_contract_suite` stage with CSV report and strict mismatch handling.
+  - summary now reports:
+    - `package_qualification_suite_status`
+    - `package_qualification_suite_total`
+    - `package_qualification_suite_passed`
+    - `package_qualification_suite_failed`
+- Updated docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+
 ## 2026-02-28 - Phase P Semantic-Closure Hardening: Deterministic Port-Binding Legality Contract Suite
 ### ✅ Achievement Summary
 Added a deterministic semantic contract suite for named-port legality and wired it into `sv_stimuli_quality_gate` as a first-stage pass/fail precheck.

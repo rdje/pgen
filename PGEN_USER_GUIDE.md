@@ -2138,6 +2138,8 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE` (`0`/`1`, overrides contract enforcement toggle)
 - `PGEN_SV_STIMULI_QUALITY_PORT_BINDING_SUITE` (override port-binding legality deterministic contract corpus path)
 - `PGEN_SV_STIMULI_QUALITY_ENFORCE_PORT_BINDING_SUITE` (`0`/`1`, overrides contract enforcement toggle)
+- `PGEN_SV_STIMULI_QUALITY_PACKAGE_QUAL_SUITE` (override package-qualification deterministic contract corpus path)
+- `PGEN_SV_STIMULI_QUALITY_ENFORCE_PACKAGE_QUAL_SUITE` (`0`/`1`, overrides contract enforcement toggle)
 - `PGEN_SV_STIMULI_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_STIMULI_DIFF_MAX_SAMPLES` (default `8`)
 - `PGEN_SV_STIMULI_REFERENCE_RUNNER` (path to executable trusted-reference parser runner script; required for strict differential mode)
@@ -2251,6 +2253,20 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - behavior:
     - runs before profile/sample generation loops,
     - enforces deterministic pass/fail outcomes for named-port legality on known module declarations (`module_type.port`) independent of random stimuli variance.
+- deterministic package-qualification semantic contract precheck:
+  - contract keys (`systemverilog_core_v0_contract.json`):
+    - `semantic_contracts.package_qualification_suite_path`
+    - `semantic_contracts.enforce_package_qualification_suite`
+  - gate stage:
+    - `package_qualification_contract_suite`
+  - summary metrics:
+    - `package_qualification_suite_status`
+    - `package_qualification_suite_total`
+    - `package_qualification_suite_passed`
+    - `package_qualification_suite_failed`
+  - behavior:
+    - runs before profile/sample generation loops,
+    - enforces deterministic pass/fail outcomes for package qualification resolution checks (`pkg::symbol`) independent of random stimuli variance.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.
