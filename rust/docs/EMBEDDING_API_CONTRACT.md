@@ -14,25 +14,39 @@ Provide a stable, versioned surface for external projects embedding PGEN annotat
     - `parse_systemverilog_2023(...)`
     - `parse_vhdl_1076_2019(...)`
     - plus `*_with_limits`, `*_result`, `*_with_limits_result` variants
+  - Nexsim convenience grammar AST-dump entry points:
+    - `parse_systemverilog_2017_ast_dump(...)`
+    - `parse_systemverilog_2023_ast_dump(...)`
+    - `parse_vhdl_1076_2019_ast_dump(...)`
+    - plus `*_ast_dump_with_limits` variants
   - idiomatic Rust `Result` surface:
     - `parse_annotation_result(family, backend, input) -> Result<(), ParseDiagnostic>`
     - `parse_annotation_with_limits_result(family, backend, input, limits) -> Result<(), ParseDiagnostic>`
     - `parse_grammar_profile_result(grammar, profile, input) -> Result<(), ParseDiagnostic>`
     - `parse_grammar_profile_with_limits_result(grammar, profile, input, limits) -> Result<(), ParseDiagnostic>`
+    - `parse_grammar_profile_ast_dump_result(grammar, profile, input, options) -> Result<AstDumpPayload, ParseDiagnostic>`
+    - `parse_grammar_profile_ast_dump_with_limits_result(grammar, profile, input, limits, options) -> Result<AstDumpPayload, ParseDiagnostic>`
   - deterministic structured outcome surface:
   - `parse_annotation(family, backend, input) -> ParseOutcome`
   - `parse_annotation_with_limits(family, backend, input, limits) -> ParseOutcome`
   - `parse_grammar_profile(grammar, profile, input) -> GrammarParseOutcome`
   - `parse_grammar_profile_with_limits(grammar, profile, input, limits) -> GrammarParseOutcome`
+  - `parse_grammar_profile_ast_dump(grammar, profile, input, options) -> GrammarAstDumpOutcome`
+  - `parse_grammar_profile_ast_dump_with_limits(grammar, profile, input, limits, options) -> GrammarAstDumpOutcome`
   - language-neutral named string surface:
     - `parse_annotation_named(family_name, backend_name, input) -> NamedAnnotationParseOutcome`
     - `parse_annotation_named_with_limits(...) -> NamedAnnotationParseOutcome`
     - `parse_grammar_profile_named(grammar_name, profile_name, input) -> NamedGrammarParseOutcome`
     - `parse_grammar_profile_named_with_limits(...) -> NamedGrammarParseOutcome`
+    - `parse_grammar_profile_ast_dump_named(grammar_name, profile_name, input, options) -> NamedGrammarAstDumpOutcome`
+    - `parse_grammar_profile_ast_dump_named_with_limits(...) -> NamedGrammarAstDumpOutcome`
 - Parse limits type:
   - `ParseLimits { max_input_bytes }`
   - default via `ParseLimits::default()`
   - default bound constant: `EMBEDDING_API_DEFAULT_MAX_INPUT_BYTES` (`1_048_576`)
+- AST dump options type:
+  - `AstDumpOptions { pretty, max_ast_bytes }`
+  - default via `AstDumpOptions::default()`
 
 ## Versioning
 - Contract version constant: `EMBEDDING_API_VERSION = "1.0.0"`
@@ -55,8 +69,15 @@ Grammar parser API:
 - `InputOwnershipModel`: `borrowed_str`
 - `ParseSessionModel`: `stateless_per_call`
 - `GrammarParseOutcome`: includes API version, grammar, profile, status, optional diagnostic.
+- `GrammarAstDumpOutcome`: includes API version, grammar, profile, status, optional diagnostic, optional `ast_dump`.
 - `NamedAnnotationParseOutcome`: structured result preserving caller-provided family/backend strings.
 - `NamedGrammarParseOutcome`: structured result preserving caller-provided grammar/profile strings.
+- `NamedGrammarAstDumpOutcome`: structured AST-dump result preserving caller-provided grammar/profile strings.
+- `AstDumpPayload`: canonical JSON payload string + truncation metadata:
+  - `dump_json`
+  - `truncated`
+  - `full_bytes`
+  - `emitted_bytes`
 - `ParserEmbeddingApiContract`: stable profile matrix + backend availability flags + integration invariants.
   - includes `profile_matrix` for per-grammar profile lookup.
   - includes zero-copy/session invariants:
@@ -76,6 +97,7 @@ Grammar parser API:
 ## Determinism Contract
 - `embedding_api_contract().deterministic_by_default` is `true`.
 - Parsing uses deterministic execution paths and no random sampling.
+- AST dump payloads are recursively canonicalized by JSON key order before encoding.
 
 ## Input-Bound Contract
 - `parse_annotation(...)` uses `ParseLimits::default()` and enforces bounded input size.
@@ -83,6 +105,20 @@ Grammar parser API:
 - `parse_grammar_profile(...)` uses the same default bounded input behavior.
 - Embedders can override the bound per call via `parse_grammar_profile_with_limits(...)`.
 - The bound is measured in raw input bytes.
+
+## AST Dump Contract
+- AST dump options are provided by `AstDumpOptions`.
+  - `pretty=false` emits compact canonical JSON.
+  - `pretty=true` emits canonical pretty JSON.
+  - `max_ast_bytes=None` is unbounded.
+  - `max_ast_bytes=Some(N)` enforces bounded AST dump output (`N >= 1`).
+- If encoded AST payload exceeds `max_ast_bytes`, AST payload is replaced by deterministic truncation diagnostics JSON envelope:
+  - `kind = "pgen_ast_dump_truncation"`
+  - `dump_kind = "parser_return_ast"`
+  - `max_bytes`
+  - `full_bytes`
+  - `reason`
+- If `max_ast_bytes` is too small to fit truncation diagnostics envelope itself, API returns `E_INVALID_LIMITS`.
 
 ## Grammar Profile Contract (Nexsim-Oriented)
 - Stable profile-aware parser entry points exist for host integration:

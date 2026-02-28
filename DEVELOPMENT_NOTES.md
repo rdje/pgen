@@ -1,4 +1,78 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-28 - Phase R Closure Increment: Embedding API Parser-AST Dump Contract
+### Context
+Phase R already had parser-executable AST dump support (`parseability_probe`) plus gate-level determinism/truncation checks. The remaining closure gap was embedding-facing API support so host integrations can consume parser-returned AST dumps without shelling out to CLI tools.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs`
+- `/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added stable AST dump API types and outcomes
+New public types in `pgen::embedding_api`:
+- `AstDumpOptions`
+  - `pretty` controls compact vs pretty encoding.
+  - `max_ast_bytes` applies optional bounded output.
+- `AstDumpPayload`
+  - `dump_json`
+  - `truncated`
+  - `full_bytes`
+  - `emitted_bytes`
+- `GrammarAstDumpOutcome` and `NamedGrammarAstDumpOutcome`
+  - mirror existing parse-outcome contract style with optional AST dump payload.
+
+#### 2) Added profile-aware and named AST dump entry points
+Typed grammar/profile APIs:
+- `parse_grammar_profile_ast_dump*`
+- convenience wrappers:
+  - `parse_systemverilog_2017_ast_dump*`
+  - `parse_systemverilog_2023_ast_dump*`
+  - `parse_vhdl_1076_2019_ast_dump*`
+
+Language-neutral API:
+- `parse_grammar_profile_ast_dump_named*`
+
+All APIs preserve existing deterministic error-code contract semantics:
+- `E_BACKEND_UNAVAILABLE` for missing generated parser backends.
+- `E_UNSUPPORTED_PROFILE` for grammar/profile mismatch.
+- `E_INVALID_ARGUMENT` for invalid named grammar/profile values.
+- `E_INVALID_LIMITS` for invalid AST dump limit (`max_ast_bytes == 0` or too-small bound for truncation diagnostics envelope).
+- `E_PARSE_FAILURE` for parse/serialization failures.
+
+#### 3) Added deterministic AST dump encoding contract in API path
+Implemented API-internal serializer pipeline:
+- recursive canonical JSON key-order normalization,
+- compact/pretty deterministic encoding,
+- bounded output handling with deterministic truncation diagnostics envelope:
+  - `kind = "pgen_ast_dump_truncation"`
+  - `dump_kind = "parser_return_ast"`
+  - `max_bytes`
+  - `full_bytes`
+  - `reason`
+
+Behavioral alignment:
+- mirrors the parser-returned dump contract already used by `parseability_probe`,
+- keeps embedding and CLI observability surfaces consistent for replay/diff workflows.
+
+#### 4) Added focused unit-test coverage
+`embedding_api` tests now cover:
+- default AST dump options contract,
+- invalid `max_ast_bytes=0` rejection (`E_INVALID_LIMITS`),
+- named API invalid profile rejection (`E_INVALID_ARGUMENT`),
+- truncation envelope generation and metadata fields,
+- generated-backend availability behavior for AST dump APIs under both compiled-feature paths.
+
+### Validation
+Executed:
+- `cd /Users/richarddje/Documents/github/pgen/rust && cargo test --lib embedding_api`
+- `cd /Users/richarddje/Documents/github/pgen/rust && cargo test --features generated_parsers --lib embedding_api`
+
+Observed:
+- all `embedding_api` tests passed in both bootstrap-only and generated-parsers build paths,
+- AST dump API surface is now present and contract-validated for embedding callers.
+
 ## 2026-02-28 - Workflow Hardening: Clippy Flow Contract for Rust and Generated Parsers
 ### Context
 Clippy execution existed but was ad hoc. The workflow needed an explicit, repeatable contract to ensure linting always runs whenever Rust code or generated Rust parser artifacts change.

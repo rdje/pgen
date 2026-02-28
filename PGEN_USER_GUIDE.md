@@ -356,6 +356,43 @@ cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dua
   --parse-dump-ast builtin_semantic_annotation /tmp/sample.sem /tmp/semantic_ast.json --max-bytes 4096
 ```
 
+### Parser-Returned AST Dump (Embedding API)
+For host integrations (for example Nexsim), use the embedding API AST-dump surface to get parser-returned AST JSON directly in memory.
+
+Stable Rust APIs:
+- `parse_grammar_profile_ast_dump(...)`
+- `parse_grammar_profile_ast_dump_with_limits(...)`
+- `parse_grammar_profile_ast_dump_result(...)`
+- `parse_grammar_profile_ast_dump_with_limits_result(...)`
+- `parse_grammar_profile_ast_dump_named(...)`
+- `parse_grammar_profile_ast_dump_named_with_limits(...)`
+
+Convenience profile APIs:
+- `parse_systemverilog_2017_ast_dump(...)`
+- `parse_systemverilog_2023_ast_dump(...)`
+- `parse_vhdl_1076_2019_ast_dump(...)`
+- plus `*_ast_dump_with_limits(...)` variants.
+
+AST dump controls:
+- `AstDumpOptions { pretty, max_ast_bytes }`
+  - `pretty=false` (default): compact canonical JSON
+  - `pretty=true`: canonical pretty JSON
+  - `max_ast_bytes=None` (default): unbounded
+  - `max_ast_bytes=Some(N)`: bounded output (`N >= 1`)
+
+Payload contract:
+- On success, API returns `AstDumpPayload`:
+  - `dump_json`
+  - `truncated`
+  - `full_bytes`
+  - `emitted_bytes`
+- If bounded output truncates payload, `dump_json` contains deterministic truncation diagnostics JSON envelope with:
+  - `kind = "pgen_ast_dump_truncation"`
+  - `dump_kind = "parser_return_ast"`
+  - `max_bytes`
+  - `full_bytes`
+  - `reason`
+
 Examples:
 ```bash
 # Debug trace to default trace.log
@@ -2534,16 +2571,22 @@ Current stable surfaces:
   - `parse_annotation_with_limits_result(...)`
   - `parse_grammar_profile_result(...)`
   - `parse_grammar_profile_with_limits_result(...)`
+  - `parse_grammar_profile_ast_dump_result(...)`
+  - `parse_grammar_profile_ast_dump_with_limits_result(...)`
 - Deterministic outcome APIs:
   - `parse_annotation(...)`
   - `parse_annotation_with_limits(...)`
   - `parse_grammar_profile(...)`
   - `parse_grammar_profile_with_limits(...)`
+  - `parse_grammar_profile_ast_dump(...)`
+  - `parse_grammar_profile_ast_dump_with_limits(...)`
 - Language-neutral named APIs:
   - `parse_annotation_named(...)`
   - `parse_annotation_named_with_limits(...)`
   - `parse_grammar_profile_named(...)`
   - `parse_grammar_profile_named_with_limits(...)`
+  - `parse_grammar_profile_ast_dump_named(...)`
+  - `parse_grammar_profile_ast_dump_named_with_limits(...)`
 - Parser profile embedding metadata:
   - `parser_embedding_api_contract()`
   - includes `profile_matrix` (`grammar -> supported profiles`)
@@ -2563,6 +2606,12 @@ Nexsim-oriented convenience parser entry points:
 - `parse_vhdl_1076_2019(...)`
 - each has corresponding `*_with_limits`, `*_result`, and `*_with_limits_result` variants.
 
+Nexsim-oriented convenience AST dump entry points:
+- `parse_systemverilog_2017_ast_dump(...)`
+- `parse_systemverilog_2023_ast_dump(...)`
+- `parse_vhdl_1076_2019_ast_dump(...)`
+- each has corresponding `*_ast_dump_with_limits(...)` variants.
+
 Deterministic integration behavior:
 - grammar/profile mismatch returns `E_UNSUPPORTED_PROFILE`.
 - missing generated backend returns `E_BACKEND_UNAVAILABLE`.
@@ -2571,6 +2620,17 @@ Deterministic integration behavior:
 - dedicated parser-profile contract gate executes in both build modes:
   - `cargo test --lib parser_embedding_`
   - `cargo test --features generated_parsers --lib parser_embedding_`
+
+AST dump integration behavior:
+- AST dump controls use `AstDumpOptions`:
+  - `pretty` (compact vs pretty JSON)
+  - `max_ast_bytes` (optional bounded payload size)
+- AST dump payload uses `AstDumpPayload`:
+  - `dump_json`
+  - `truncated`
+  - `full_bytes`
+  - `emitted_bytes`
+- when bounded payload exceeds `max_ast_bytes`, deterministic truncation envelope is returned in `dump_json` (`kind=pgen_ast_dump_truncation`, `dump_kind=parser_return_ast`).
 
 ## 12) File and Artifact Map
 

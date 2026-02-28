@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-r-ast-dump-gate-level-validation)
+Last updated: 2026-02-28 (+0100, task: phase-r-embedding-api-parser-ast-dump)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,27 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Closed Phase R embedding-API parser AST dump surface
+- Root cause:
+  - parser-returned AST dump contract was complete for CLI (`parseability_probe`) but missing on embedding API entry points, leaving host integrations without in-memory parser AST dump access.
+- Fix:
+  - extended `rust/src/embedding_api.rs` with stable AST dump types and APIs:
+    - `AstDumpOptions`, `AstDumpPayload`, `GrammarAstDumpOutcome`, `NamedGrammarAstDumpOutcome`,
+    - typed APIs: `parse_grammar_profile_ast_dump*`, `parse_systemverilog_*_ast_dump*`, `parse_vhdl_1076_2019_ast_dump*`,
+    - named API: `parse_grammar_profile_ast_dump_named*`.
+  - added deterministic serializer/truncation contract in embedding path:
+    - recursive canonical JSON key-order normalization,
+    - compact/pretty control,
+    - bounded output with deterministic truncation envelope (`kind=pgen_ast_dump_truncation`, `dump_kind=parser_return_ast`),
+    - invalid AST bound handling via `E_INVALID_LIMITS`.
+  - updated docs/roadmap:
+    - `rust/docs/EMBEDDING_API_CONTRACT.md`
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` (Phase R parser-returned dump item marked complete).
+- Validation:
+  - `cd rust && cargo test --lib embedding_api` passed.
+  - `cd rust && cargo test --features generated_parsers --lib embedding_api` passed.
 
 ### 2026-02-28: Closed Phase R gate-level AST dump validation with dedicated contract gate
 - Root cause:
@@ -1460,8 +1481,7 @@ Use this file to resume work without replaying full chat history.
 2. Continue Phase P semantic-closure implementation for SV:
    - deterministic semantic suites + declared shadow burn-down telemetry are now in place; next step is controlled strict trials (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`) and promotion of runtime `require_declared_identifiers_before_use`.
 3. Continue Phase R implementation for AST observability:
-   - add embedding API surface for parser-returned AST dump,
-   - finish deep-dive user documentation/examples for AST-debug workflows.
+   - finish deep-dive user documentation/examples for AST-debug workflows (SV/VHDL/regex end-to-end triage paths).
 4. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 5. Expand contractized SV/VHDL corpora:
@@ -1478,7 +1498,7 @@ Use this file to resume work without replaying full chat history.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
-- Phase R gate-level validation is now executable; remaining Phase R gap is embedding API AST dump surface and expanded end-user workflow examples.
+- Phase R gate-level validation and embedding API AST dump surface are now complete; remaining Phase R gap is expanded end-user workflow examples.
 
 ## Quick Commands
 - HDL frontend readiness (report):

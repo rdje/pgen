@@ -479,11 +479,15 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - path override support and deterministic default output path (`gen_ast.json`).
   - explicit enable/disable behavior so default non-debug runs remain unchanged.
   - Progress (2026-02-28): implemented `ast_pipeline --dump-gen-ast [PATH]` (default `gen_ast.json`) and `--dump-gen-ast-pretty`; wired dump emission for `--generate-parser`, `--generate-stimuli`, and `--generate-stimuli-module` using the normalized in-memory grammar AST (name/rule_order/grammar_tree/annotations) serialized as JSON.
-- [ ] Add generated-parser returned-AST dump option:
+- [x] Add generated-parser returned-AST dump option:
   - generated parser runtime switch to emit the parser return AST for a parsed snippet/file.
   - path override support and deterministic default output path (`<grammar>_ast.json`).
   - support both parser-executable workflows and embedding API entry points.
   - Progress (2026-02-28): added parser-executable dump path via `parseability_probe --parse-dump-ast` / `--parse-dump-ast-pretty`; default dump filename now resolves to `<grammar>_ast.json` (for example `foolang_ast.json`, `ebnf_ast.json`, `regex_ast.json`, `vhdl_ast.json`, `systemverilog_ast.json`) with explicit output-path override still supported.
+  - Progress (2026-02-28): added embedding API parser-returned AST dump entry points in `pgen::embedding_api`:
+    - typed profile APIs (`parse_grammar_profile_ast_dump*`, `parse_systemverilog_*_ast_dump*`, `parse_vhdl_1076_2019_ast_dump*`),
+    - named string API (`parse_grammar_profile_ast_dump_named*`),
+    - deterministic canonical JSON payload contract with bounded output/truncation diagnostics (`AstDumpOptions`, `AstDumpPayload`).
 - [x] Add dump-format and safety contract:
   - stable machine-readable format (`json`) plus human-readable pretty mode.
   - deterministic key/order normalization for replay/diff workflows.
@@ -527,6 +531,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
 
 ## Change Log (Roadmap Updates)
 - 2026-02-28: Completed Phase R gate-level AST dump validation by adding executable `ast_dump_contract_gate` (generation + parser dump determinism checks, truncation envelope checks, and negative-path write-failure checks with deterministic artifacts under `rust/target/ast_dump_contract_gate`).
+- 2026-02-28: Completed Phase R parser-returned AST dump closure by adding embedding API AST-dump entry points (`parse_grammar_profile_ast_dump*` + named/convenience variants) with canonical JSON serialization and bounded truncation-diagnostics contract (`AstDumpOptions.max_ast_bytes`).
 - 2026-02-28: Completed Phase R dump-format/safety contract baseline across both AST dump surfaces by extending parser-returned `parseability_probe` dumps with deterministic key canonicalization and bounded-size truncation diagnostics (`--max-bytes`, `PGEN_PARSE_DUMP_AST_MAX_BYTES`, `dump_kind=parser_return_ast`).
 - 2026-02-28: Advanced Phase R dump-format/safety baseline for generation-input AST dumps by adding recursive canonical JSON key-order normalization and bounded output enforcement (`--dump-gen-ast-max-bytes` / `PGEN_DUMP_GEN_AST_MAX_BYTES`) with deterministic truncation diagnostics envelope (`kind=pgen_ast_dump_truncation`).
 - 2026-02-28: Hardened Phase Q trusted-reference portability by adding runner probe preflight (`sv_preprocessor_reference_runner.sh --probe`) and gate-side probe-aware mode handling (`auto` downgrade to unsupported-runner, strict fail-fast on backend-unavailable probe failures).

@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-02-28 - Phase R AST Observability: Embedding API Parser-Returned AST Dump Surface
+### ✅ Achievement Summary
+Closed the remaining Phase R parser-returned AST dump gap by adding stable embedding API entry points that return deterministic, bounded parser AST JSON payloads for SV/VHDL profile-aware parsing.
+
+### Scope of Changes
+- Extended embedding API implementation:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs`
+  - new stable AST dump types:
+    - `AstDumpOptions { pretty, max_ast_bytes }`
+    - `AstDumpPayload { dump_json, truncated, full_bytes, emitted_bytes }`
+    - `GrammarAstDumpOutcome`
+    - `NamedGrammarAstDumpOutcome`
+  - new typed AST dump entry points:
+    - `parse_grammar_profile_ast_dump*`
+    - `parse_systemverilog_2017_ast_dump*`
+    - `parse_systemverilog_2023_ast_dump*`
+    - `parse_vhdl_1076_2019_ast_dump*`
+  - new language-neutral AST dump entry points:
+    - `parse_grammar_profile_ast_dump_named*`
+  - deterministic AST dump contract behavior:
+    - recursive canonical JSON key-order normalization,
+    - compact/pretty encoding control,
+    - bounded output with deterministic truncation envelope (`kind=pgen_ast_dump_truncation`, `dump_kind=parser_return_ast`),
+    - invalid bound handling (`max_ast_bytes=0`) returns `E_INVALID_LIMITS`.
+  - added embedding API unit coverage for AST dump defaults, limit validation, named-API argument validation, truncation envelope, and backend-availability behavior.
+- Updated user/contract docs:
+  - `/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - roadmap Phase R item "generated-parser returned-AST dump option" is now marked complete with embedding API progress notes.
+
+### Validation Results
+- `cd /Users/richarddje/Documents/github/pgen/rust && cargo test --lib embedding_api` ✅
+- `cd /Users/richarddje/Documents/github/pgen/rust && cargo test --features generated_parsers --lib embedding_api` ✅
+
 ## 2026-02-28 - Phase P Semantic-Closure Promotion: Declared-Identifier Shadow Burn-Down Telemetry
 ### ✅ Achievement Summary
 Added a contractized declared-identifier shadow telemetry stage to `sv_stimuli_quality_gate` so promotion readiness can be measured continuously while runtime enforcement remains controlled.

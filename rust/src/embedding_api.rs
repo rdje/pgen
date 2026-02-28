@@ -1,5 +1,6 @@
 use crate::ast_pipeline::{UnifiedReturnAST, UnifiedSemanticAST, runtime_logger};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::fmt;
 use std::str::FromStr;
 
@@ -77,6 +78,29 @@ impl Default for ParseLimits {
             max_input_bytes: EMBEDDING_API_DEFAULT_MAX_INPUT_BYTES,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AstDumpOptions {
+    pub pretty: bool,
+    pub max_ast_bytes: Option<usize>,
+}
+
+impl Default for AstDumpOptions {
+    fn default() -> Self {
+        Self {
+            pretty: false,
+            max_ast_bytes: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AstDumpPayload {
+    pub dump_json: String,
+    pub truncated: bool,
+    pub full_bytes: usize,
+    pub emitted_bytes: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -216,6 +240,16 @@ pub struct GrammarParseOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GrammarAstDumpOutcome {
+    pub api_version: String,
+    pub grammar: GrammarFamily,
+    pub profile: GrammarProfile,
+    pub status: ParseStatus,
+    pub diagnostic: Option<ParseDiagnostic>,
+    pub ast_dump: Option<AstDumpPayload>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NamedAnnotationParseOutcome {
     pub api_version: String,
     pub family: String,
@@ -231,6 +265,16 @@ pub struct NamedGrammarParseOutcome {
     pub profile: String,
     pub status: ParseStatus,
     pub diagnostic: Option<ParseDiagnostic>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NamedGrammarAstDumpOutcome {
+    pub api_version: String,
+    pub grammar: String,
+    pub profile: String,
+    pub status: ParseStatus,
+    pub diagnostic: Option<ParseDiagnostic>,
+    pub ast_dump: Option<AstDumpPayload>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -638,6 +682,207 @@ pub fn parse_grammar_profile_named_with_limits_result(
     run_grammar_parse(grammar, profile, input, limits)
 }
 
+/// Parses a full grammar input and returns deterministic parser-returned AST dump payload.
+pub fn parse_grammar_profile_ast_dump(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+    options: &AstDumpOptions,
+) -> GrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump_with_limits(
+        grammar,
+        profile,
+        input,
+        &ParseLimits::default(),
+        options,
+    )
+}
+
+/// Parses a full grammar input with explicit limits and returns parser-returned AST dump payload.
+pub fn parse_grammar_profile_ast_dump_with_limits(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> GrammarAstDumpOutcome {
+    match parse_grammar_profile_ast_dump_with_limits_result(grammar, profile, input, limits, options)
+    {
+        Ok(ast_dump) => GrammarAstDumpOutcome {
+            api_version: EMBEDDING_API_VERSION.to_string(),
+            grammar,
+            profile,
+            status: ParseStatus::Success,
+            diagnostic: None,
+            ast_dump: Some(ast_dump),
+        },
+        Err(diagnostic) => GrammarAstDumpOutcome {
+            api_version: EMBEDDING_API_VERSION.to_string(),
+            grammar,
+            profile,
+            status: ParseStatus::Failure,
+            diagnostic: Some(diagnostic),
+            ast_dump: None,
+        },
+    }
+}
+
+/// Idiomatic Rust Result-based grammar AST dump API.
+pub fn parse_grammar_profile_ast_dump_result(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+    options: &AstDumpOptions,
+) -> Result<AstDumpPayload, ParseDiagnostic> {
+    parse_grammar_profile_ast_dump_with_limits_result(
+        grammar,
+        profile,
+        input,
+        &ParseLimits::default(),
+        options,
+    )
+}
+
+/// Result-based grammar AST dump API with explicit input limits.
+pub fn parse_grammar_profile_ast_dump_with_limits_result(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> Result<AstDumpPayload, ParseDiagnostic> {
+    run_grammar_parse_ast_dump(grammar, profile, input, limits, options)
+}
+
+/// Language-neutral grammar AST dump API using string names.
+pub fn parse_grammar_profile_ast_dump_named(
+    grammar: &str,
+    profile: &str,
+    input: &str,
+    options: &AstDumpOptions,
+) -> NamedGrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump_named_with_limits(
+        grammar,
+        profile,
+        input,
+        &ParseLimits::default(),
+        options,
+    )
+}
+
+/// Language-neutral grammar AST dump API with explicit limits.
+pub fn parse_grammar_profile_ast_dump_named_with_limits(
+    grammar: &str,
+    profile: &str,
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> NamedGrammarAstDumpOutcome {
+    match parse_grammar_profile_ast_dump_named_with_limits_result(
+        grammar, profile, input, limits, options,
+    ) {
+        Ok(ast_dump) => NamedGrammarAstDumpOutcome {
+            api_version: EMBEDDING_API_VERSION.to_string(),
+            grammar: grammar.to_string(),
+            profile: profile.to_string(),
+            status: ParseStatus::Success,
+            diagnostic: None,
+            ast_dump: Some(ast_dump),
+        },
+        Err(diagnostic) => NamedGrammarAstDumpOutcome {
+            api_version: EMBEDDING_API_VERSION.to_string(),
+            grammar: grammar.to_string(),
+            profile: profile.to_string(),
+            status: ParseStatus::Failure,
+            diagnostic: Some(diagnostic),
+            ast_dump: None,
+        },
+    }
+}
+
+/// Result-based language-neutral grammar AST dump API using string names.
+pub fn parse_grammar_profile_ast_dump_named_with_limits_result(
+    grammar: &str,
+    profile: &str,
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> Result<AstDumpPayload, ParseDiagnostic> {
+    let grammar = GrammarFamily::from_str(grammar)?;
+    let profile = GrammarProfile::from_str(profile)?;
+    run_grammar_parse_ast_dump(grammar, profile, input, limits, options)
+}
+
+/// Convenience AST-dump entry point for Nexsim SV integration (`IEEE 1800-2017` profile).
+pub fn parse_systemverilog_2017_ast_dump(input: &str, options: &AstDumpOptions) -> GrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump(
+        GrammarFamily::SystemVerilog,
+        GrammarProfile::Sv2017,
+        input,
+        options,
+    )
+}
+
+/// Convenience AST-dump entry point for Nexsim SV integration (`IEEE 1800-2023` profile).
+pub fn parse_systemverilog_2023_ast_dump(input: &str, options: &AstDumpOptions) -> GrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump(
+        GrammarFamily::SystemVerilog,
+        GrammarProfile::Sv2023,
+        input,
+        options,
+    )
+}
+
+/// Convenience AST-dump entry point for Nexsim VHDL integration (`IEEE 1076-2019` profile).
+pub fn parse_vhdl_1076_2019_ast_dump(input: &str, options: &AstDumpOptions) -> GrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, input, options)
+}
+
+/// Convenience AST-dump entry point with explicit limits for `IEEE 1800-2017`.
+pub fn parse_systemverilog_2017_ast_dump_with_limits(
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> GrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump_with_limits(
+        GrammarFamily::SystemVerilog,
+        GrammarProfile::Sv2017,
+        input,
+        limits,
+        options,
+    )
+}
+
+/// Convenience AST-dump entry point with explicit limits for `IEEE 1800-2023`.
+pub fn parse_systemverilog_2023_ast_dump_with_limits(
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> GrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump_with_limits(
+        GrammarFamily::SystemVerilog,
+        GrammarProfile::Sv2023,
+        input,
+        limits,
+        options,
+    )
+}
+
+/// Convenience AST-dump entry point with explicit limits for `IEEE 1076-2019`.
+pub fn parse_vhdl_1076_2019_ast_dump_with_limits(
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> GrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump_with_limits(
+        GrammarFamily::Vhdl,
+        GrammarProfile::Vhdl1076_2019,
+        input,
+        limits,
+        options,
+    )
+}
+
 fn run_parse(
     family: AnnotationFamily,
     backend: ParserBackend,
@@ -665,6 +910,128 @@ fn run_grammar_parse(
         GrammarFamily::SystemVerilog => parse_generated_systemverilog(input),
         GrammarFamily::Vhdl => parse_generated_vhdl(input),
     }
+}
+
+#[derive(Debug, Serialize)]
+struct AstDumpTruncationDiagnostic {
+    pgen_dump_contract_version: u32,
+    kind: &'static str,
+    truncated: bool,
+    dump_kind: &'static str,
+    max_bytes: usize,
+    full_bytes: usize,
+    reason: &'static str,
+}
+
+fn run_grammar_parse_ast_dump(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> Result<AstDumpPayload, ParseDiagnostic> {
+    validate_input_limits(input, limits)?;
+    validate_ast_dump_options(options)?;
+    validate_profile_match(grammar, profile)?;
+    let ast_json = match grammar {
+        GrammarFamily::SystemVerilog => parse_generated_systemverilog_ast_json(input)?,
+        GrammarFamily::Vhdl => parse_generated_vhdl_ast_json(input)?,
+    };
+    encode_ast_dump_payload(&ast_json, options)
+}
+
+fn validate_ast_dump_options(options: &AstDumpOptions) -> Result<(), ParseDiagnostic> {
+    if matches!(options.max_ast_bytes, Some(0)) {
+        return Err(ParseDiagnostic {
+            code: "E_INVALID_LIMITS".to_string(),
+            message: "max_ast_bytes must be greater than 0".to_string(),
+        });
+    }
+    Ok(())
+}
+
+fn canonicalize_json_value(value: JsonValue) -> JsonValue {
+    match value {
+        JsonValue::Array(values) => {
+            JsonValue::Array(values.into_iter().map(canonicalize_json_value).collect())
+        }
+        JsonValue::Object(map) => {
+            let mut entries = map.into_iter().collect::<Vec<_>>();
+            entries.sort_by(|left, right| left.0.cmp(&right.0));
+            let mut normalized = serde_json::Map::new();
+            for (key, value) in entries {
+                normalized.insert(key, canonicalize_json_value(value));
+            }
+            JsonValue::Object(normalized)
+        }
+        other => other,
+    }
+}
+
+fn serialize_canonical_json<T: Serialize>(value: &T, pretty: bool) -> Result<String, ParseDiagnostic> {
+    let normalized = canonicalize_json_value(serde_json::to_value(value).map_err(|err| {
+        ParseDiagnostic {
+            code: "E_PARSE_FAILURE".to_string(),
+            message: format!("failed to serialize parser AST payload: {}", err),
+        }
+    })?);
+    if pretty {
+        serde_json::to_string_pretty(&normalized).map_err(|err| ParseDiagnostic {
+            code: "E_PARSE_FAILURE".to_string(),
+            message: format!("failed to encode parser AST payload: {}", err),
+        })
+    } else {
+        serde_json::to_string(&normalized).map_err(|err| ParseDiagnostic {
+            code: "E_PARSE_FAILURE".to_string(),
+            message: format!("failed to encode parser AST payload: {}", err),
+        })
+    }
+}
+
+fn encode_ast_dump_payload(
+    ast_json: &JsonValue,
+    options: &AstDumpOptions,
+) -> Result<AstDumpPayload, ParseDiagnostic> {
+    let encoded = serialize_canonical_json(ast_json, options.pretty)?;
+    let full_bytes = encoded.len();
+    let max_ast_bytes = options.max_ast_bytes;
+    if let Some(max_bytes) = max_ast_bytes {
+        if full_bytes > max_bytes {
+            let diagnostic = AstDumpTruncationDiagnostic {
+                pgen_dump_contract_version: 1,
+                kind: "pgen_ast_dump_truncation",
+                truncated: true,
+                dump_kind: "parser_return_ast",
+                max_bytes,
+                full_bytes,
+                reason: "encoded parser AST JSON exceeded configured max bytes; payload omitted",
+            };
+            let encoded_diagnostic = serialize_canonical_json(&diagnostic, options.pretty)?;
+            let emitted_bytes = encoded_diagnostic.len();
+            if emitted_bytes > max_bytes {
+                return Err(ParseDiagnostic {
+                    code: "E_INVALID_LIMITS".to_string(),
+                    message: format!(
+                        "max_ast_bytes {} is too small to fit truncation diagnostics (requires at least {} bytes)",
+                        max_bytes, emitted_bytes
+                    ),
+                });
+            }
+            return Ok(AstDumpPayload {
+                dump_json: encoded_diagnostic,
+                truncated: true,
+                full_bytes,
+                emitted_bytes,
+            });
+        }
+    }
+
+    Ok(AstDumpPayload {
+        dump_json: encoded,
+        truncated: false,
+        full_bytes,
+        emitted_bytes: full_bytes,
+    })
 }
 
 fn validate_profile_match(
@@ -812,6 +1179,37 @@ fn parse_generated_systemverilog(input: &str) -> Result<(), ParseDiagnostic> {
     }
 }
 
+fn parse_generated_systemverilog_ast_json(input: &str) -> Result<JsonValue, ParseDiagnostic> {
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    {
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+        let mut parser = SystemverilogParser::new(
+            input,
+            crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
+        );
+        let parsed = parser
+            .parse_full_systemverilog_file()
+            .map_err(|err| ParseDiagnostic {
+                code: "E_PARSE_FAILURE".to_string(),
+                message: format!("generated systemverilog parse failed: {}", err),
+            })?;
+        return serde_json::to_value(parsed).map_err(|err| ParseDiagnostic {
+            code: "E_PARSE_FAILURE".to_string(),
+            message: format!("generated systemverilog AST serialization failed: {}", err),
+        });
+    }
+    #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
+    {
+        let _ = input;
+        Err(ParseDiagnostic {
+            code: "E_BACKEND_UNAVAILABLE".to_string(),
+            message:
+                "systemverilog parser backend requires `generated_parsers` and generated/systemverilog_parser.rs"
+                    .to_string(),
+        })
+    }
+}
+
 fn parse_generated_vhdl(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
     {
@@ -827,6 +1225,37 @@ fn parse_generated_vhdl(input: &str) -> Result<(), ParseDiagnostic> {
                 code: "E_PARSE_FAILURE".to_string(),
                 message: format!("generated vhdl parse failed: {}", err),
             });
+    }
+    #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
+    {
+        let _ = input;
+        Err(ParseDiagnostic {
+            code: "E_BACKEND_UNAVAILABLE".to_string(),
+            message:
+                "vhdl parser backend requires `generated_parsers` and generated/vhdl_parser.rs"
+                    .to_string(),
+        })
+    }
+}
+
+fn parse_generated_vhdl_ast_json(input: &str) -> Result<JsonValue, ParseDiagnostic> {
+    #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
+    {
+        use crate::generated_parsers::vhdl::VhdlParser;
+        let mut parser = VhdlParser::new(
+            input,
+            crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
+        );
+        let parsed = parser
+            .parse_full_vhdl_file()
+            .map_err(|err| ParseDiagnostic {
+                code: "E_PARSE_FAILURE".to_string(),
+                message: format!("generated vhdl parse failed: {}", err),
+            })?;
+        return serde_json::to_value(parsed).map_err(|err| ParseDiagnostic {
+            code: "E_PARSE_FAILURE".to_string(),
+            message: format!("generated vhdl AST serialization failed: {}", err),
+        });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
     {
@@ -1150,6 +1579,70 @@ mod tests {
         assert_eq!(diagnostic.code, "E_INPUT_TOO_LARGE");
     }
 
+    #[test]
+    fn ast_dump_options_default_is_compact_unbounded() {
+        let options = AstDumpOptions::default();
+        assert!(!options.pretty);
+        assert!(options.max_ast_bytes.is_none());
+    }
+
+    #[test]
+    fn parser_embedding_ast_dump_rejects_zero_max_ast_bytes() {
+        let outcome = parse_grammar_profile_ast_dump(
+            GrammarFamily::SystemVerilog,
+            GrammarProfile::Sv2017,
+            "module m; endmodule",
+            &AstDumpOptions {
+                pretty: false,
+                max_ast_bytes: Some(0),
+            },
+        );
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        let diagnostic = outcome
+            .diagnostic
+            .as_ref()
+            .expect("expected invalid limits diagnostic");
+        assert_eq!(diagnostic.code, "E_INVALID_LIMITS");
+    }
+
+    #[test]
+    fn parser_embedding_ast_dump_named_rejects_unknown_profile() {
+        let outcome = parse_grammar_profile_ast_dump_named(
+            "systemverilog",
+            "unknown_profile",
+            "module m; endmodule",
+            &AstDumpOptions::default(),
+        );
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        let diagnostic = outcome
+            .diagnostic
+            .as_ref()
+            .expect("expected invalid argument diagnostic");
+        assert_eq!(diagnostic.code, "E_INVALID_ARGUMENT");
+    }
+
+    #[test]
+    fn ast_dump_payload_truncates_with_diagnostics_envelope() {
+        let payload = serde_json::json!({
+            "payload": "x".repeat(4096),
+        });
+        let ast_dump = encode_ast_dump_payload(
+            &payload,
+            &AstDumpOptions {
+                pretty: false,
+                max_ast_bytes: Some(256),
+            },
+        )
+        .expect("ast dump encoding");
+        assert!(ast_dump.truncated);
+        assert!(ast_dump.full_bytes > 256);
+        let envelope: serde_json::Value =
+            serde_json::from_str(&ast_dump.dump_json).expect("truncation envelope json");
+        assert_eq!(envelope["kind"], "pgen_ast_dump_truncation");
+        assert_eq!(envelope["dump_kind"], "parser_return_ast");
+        assert_eq!(envelope["max_bytes"], 256);
+    }
+
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     #[test]
     fn parser_embedding_reports_missing_systemverilog_backend() {
@@ -1204,6 +1697,66 @@ mod tests {
         );
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
         assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
+    }
+
+    #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
+    #[test]
+    fn parser_embedding_ast_dump_reports_missing_systemverilog_backend() {
+        let outcome = parse_systemverilog_2017_ast_dump(
+            "module m; endmodule",
+            &AstDumpOptions::default(),
+        );
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        let diagnostic = outcome
+            .diagnostic
+            .as_ref()
+            .expect("expected backend-unavailable diagnostic");
+        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn parser_embedding_ast_dump_uses_systemverilog_generated_backend_when_available() {
+        let outcome = parse_systemverilog_2017_ast_dump(
+            "module m; endmodule",
+            &AstDumpOptions::default(),
+        );
+        let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
+        assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
+        if outcome.status == ParseStatus::Success {
+            let ast_dump = outcome.ast_dump.expect("ast dump payload");
+            let parsed: serde_json::Value =
+                serde_json::from_str(&ast_dump.dump_json).expect("dump json");
+            assert!(parsed.is_object());
+        }
+    }
+
+    #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
+    #[test]
+    fn parser_embedding_ast_dump_reports_missing_vhdl_backend() {
+        let outcome =
+            parse_vhdl_1076_2019_ast_dump("entity e is end entity;", &AstDumpOptions::default());
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        let diagnostic = outcome
+            .diagnostic
+            .as_ref()
+            .expect("expected backend-unavailable diagnostic");
+        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
+    #[test]
+    fn parser_embedding_ast_dump_uses_vhdl_generated_backend_when_available() {
+        let outcome =
+            parse_vhdl_1076_2019_ast_dump("entity e is end entity;", &AstDumpOptions::default());
+        let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
+        assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
+        if outcome.status == ParseStatus::Success {
+            let ast_dump = outcome.ast_dump.expect("ast dump payload");
+            let parsed: serde_json::Value =
+                serde_json::from_str(&ast_dump.dump_json).expect("dump json");
+            assert!(parsed.is_object());
+        }
     }
 
     #[cfg(not(feature = "generated_parsers"))]
