@@ -1,4 +1,78 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-28 - Phase P Semantic-Promotion Increment: Declared-Shadow Promotion Trial Gate
+### Context
+`sv_stimuli_quality_gate` already had declared-shadow telemetry and strict-shadow mode, but promotion closure still lacked a dedicated artifact/report surface that answers:
+- Are we eligible to flip runtime `require_declared_identifiers_before_use=true`?
+- If not, what strict-trial evidence says we should hold?
+
+This gap made promotion decisions manual and non-repeatable across sessions.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added standalone promotion-trial gate
+New script:
+- `rust/scripts/sv_declared_shadow_promotion_gate.sh`
+
+Execution model:
+- runs deterministic strict-shadow trials by invoking `sv_stimuli_quality_gate` with:
+  - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1`
+  - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`
+  - configurable sample/trial/seed controls.
+- aggregates per-trial `systemverilog_declared_identifier_shadow_report.json` outputs.
+
+Promotion contract output:
+- machine-readable report:
+  - `rust/target/sv_declared_shadow_promotion_gate/work/systemverilog_declared_identifier_promotion_report.json`
+- contains:
+  - `recommendation` (`enable_runtime_declared_identifiers` or `hold`)
+  - `eligibility.eligible_for_runtime_enforcement`
+  - aggregate checked/passed/failed totals
+  - per-trial status + log/report paths.
+
+Mode behavior:
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto|0|1`
+  - `auto`: always emit recommendation report, non-blocking for ineligible outcome.
+  - `0`: skip gate.
+  - `1`: strict; gate fails if eligibility is not met.
+
+#### 2) Added Make target
+`rust/Makefile`:
+- added `sv_declared_shadow_promotion_gate`
+- added help entry so workflow discovery includes promotion-trial execution.
+
+#### 3) Wired aggregate policy (informational-first)
+`rust/scripts/sota_exit_gate.sh`:
+- added policy/runtime knobs:
+  - `RUN/REQUIRE_SV_DECLARED_SHADOW_PROMOTION(_STRICT)`
+- added optional aggregate stage:
+  - informational mode runs with `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto`
+  - strict mode runs with `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=1`
+
+`rust/config/sota_exit_policy.env`:
+- defaulted promotion-trial stage to informational-first:
+  - `PGEN_SOTA_POLICY_RUN_SV_DECLARED_SHADOW_PROMOTION=1`
+  - `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=0`
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=0 make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+- lightweight aggregate policy path:
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract ... PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 ... rust/scripts/sota_exit_gate.sh`
+
+Observed:
+- promotion gate emits deterministic recommendation report as designed.
+- baseline strict-trial evidence on seed `12001` currently recommends `hold` (`1/2` strict shadow failures), which confirms promotion remains blocked and now objectively measurable.
+- aggregate SOTA gate integration works in informational mode.
+
 ## 2026-02-28 - Phase R Closure Increment: AST Debug Playbooks in User Guide
 ### Context
 Phase R implementation had already delivered:

@@ -1998,6 +1998,11 @@ Tracked baselines:
   - one-shot release-grade aggregate check for fixed-point, annotation, non-annotation EBNF quality loop, stimuli-module parity, differential, performance, embedding, and EBNF readiness reporting
 - `sota_release_policy` (local utility target)
   - prints the tracked machine policy consumed by `sota_exit_gate`
+- `sv_declared_shadow_promotion_gate` (local gate target)
+  - executes deterministic strict declared-shadow trial matrix and emits:
+    - `rust/target/sv_declared_shadow_promotion_gate/work/systemverilog_declared_identifier_promotion_report.json`
+  - recommendation:
+    - `enable_runtime_declared_identifiers` or `hold`
 - `annotation_contract_gate` (local gate target)
   - validator + built-in/shared contracts + semantic leverage + advanced robustness checks
 - `sc06_contract_gate` (local gate target)
@@ -2337,6 +2342,19 @@ Optional SV stimuli quality-gate tuning:
   - `auto`: follow contract `semantic_promotion.declared_identifier_shadow_*` controls.
   - `0`: disable declared-identifier shadow burn-down telemetry.
   - `1`: strict trial mode (enable shadow checks and fail gate on any shadow failure).
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE` (`auto`/`0`/`1`, default `auto`)
+  - controls standalone `sv_declared_shadow_promotion_gate` behavior.
+  - `auto`: run strict-trial matrix and emit recommendation report without failing on ineligible outcomes.
+  - `0`: skip promotion-trial gate.
+  - `1`: strict promotion mode (fails when runtime enforcement is not yet eligible).
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS` (default `3`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT` (default `2`, sample count per trial)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE` (default `12001`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS` (default `400`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `0`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (default `1`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `1`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_STATE_DIR` (default `rust/target/sv_declared_shadow_promotion_gate`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE` (override declared-identifier deterministic contract corpus path)
@@ -2504,6 +2522,18 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - behavior:
     - when runtime semantic baseline leaves `require_declared_identifiers_before_use=false`, gate still runs per-sample shadow checks for promotion evidence,
     - strict mode (`1` or strict contract key) turns shadow failures into gate failures for controlled promotion trials.
+- declared-shadow promotion trial gate:
+  - target:
+    - `make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+  - deterministic report artifact:
+    - `rust/target/sv_declared_shadow_promotion_gate/work/systemverilog_declared_identifier_promotion_report.json`
+  - report fields:
+    - `recommendation` (`enable_runtime_declared_identifiers` or `hold`)
+    - `eligibility.eligible_for_runtime_enforcement`
+    - aggregated strict-trial totals (`checked/passed/failed`)
+    - per-trial logs and shadow-report references
+  - default aggregate policy:
+    - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`).
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

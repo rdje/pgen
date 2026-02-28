@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-r-ast-workflow-doc-playbooks)
+Last updated: 2026-02-28 (+0100, task: phase-p-declared-shadow-promotion-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,26 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Added declared-shadow promotion trial gate and aggregate informational wiring
+- Root cause:
+  - strict-shadow telemetry existed, but promotion readiness for enabling runtime `require_declared_identifiers_before_use` lacked a dedicated deterministic decision/report surface.
+- Fix:
+  - added executable `rust/scripts/sv_declared_shadow_promotion_gate.sh`:
+    - runs strict-shadow trial matrix (`semantic_closure_mode=1`, `declared_shadow_mode=1`),
+    - emits deterministic recommendation report:
+      - `rust/target/sv_declared_shadow_promotion_gate/work/systemverilog_declared_identifier_promotion_report.json`.
+  - added `make sv_declared_shadow_promotion_gate` target and help entry.
+  - wired stage into aggregate policy as informational-first:
+    - `PGEN_SOTA_POLICY_RUN_SV_DECLARED_SHADOW_PROMOTION=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=0`
+  - extended `sota_exit_gate` with matching runtime knobs and stage execution.
+- Validation:
+  - `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh` passed.
+  - `bash -n rust/scripts/sota_exit_gate.sh` passed.
+  - promotion gate smoke (`TRIALS=1`, `COUNT=1`, `PARSE_FULL_MODE=0`) passed and emitted recommendation.
+  - lightweight aggregate run with only `differential_baseline_contract` + new informational promotion stage passed.
+  - baseline seed evidence (`12001`) currently recommends `hold` (`1/2` strict shadow failures), so runtime declared-before-use promotion remains blocked.
 
 ### 2026-02-28: Closed Phase R user-facing AST workflow documentation
 - Root cause:
@@ -1494,7 +1514,7 @@ Use this file to resume work without replaying full chat history.
    - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
-   - deterministic semantic suites + declared shadow burn-down telemetry are now in place; next step is controlled strict trials (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`) and promotion of runtime `require_declared_identifiers_before_use`.
+   - declared-shadow promotion trial gate is now in place; next step is burn-down of failing strict-shadow cases (for example undeclared identifiers emitted in generated samples under seed path `12001`) until promotion report recommendation flips to `enable_runtime_declared_identifiers`.
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:
@@ -1509,6 +1529,8 @@ Use this file to resume work without replaying full chat history.
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
+- Declared-before-use runtime promotion is still blocked on strict-shadow burn-down:
+  - promotion report currently recommends `hold` on baseline seed path (`12001`) due observed shadow failures.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
 - Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.
@@ -1526,6 +1548,8 @@ Use this file to resume work without replaying full chat history.
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
 - AST dump contract gate:
   - `make -C rust SHELL=/bin/bash ast_dump_contract_gate`
+- Declared-shadow promotion trial gate:
+  - `make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
 - SV preprocessor strict differential example:
   - `PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=$PWD/rust/scripts/sv_preprocessor_reference_runner.sh PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
 - Aggregate gate:

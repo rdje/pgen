@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-02-28 - Phase P Semantic-Promotion: Declared-Shadow Promotion Trial Gate
+### ✅ Achievement Summary
+Added a dedicated promotion-trial gate for declared-identifier runtime enforcement readiness, with deterministic strict-trial matrix execution and machine-readable eligibility reporting.
+
+### Scope of Changes
+- Added executable promotion gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+  - behavior:
+    - runs strict shadow trials via `sv_stimuli_quality_gate` (`semantic_closure_mode=1`, `declared_shadow_mode=1`),
+    - supports `auto|0|1` promotion mode:
+      - `auto`: report-only recommendation,
+      - `0`: skip,
+      - `1`: strict fail when not eligible.
+    - emits deterministic readiness report:
+      - `rust/target/sv_declared_shadow_promotion_gate/work/systemverilog_declared_identifier_promotion_report.json`
+    - report includes:
+      - eligibility decision (`eligible_for_runtime_enforcement`),
+      - recommendation (`enable_runtime_declared_identifiers` or `hold`),
+      - aggregate checked/passed/failed totals,
+      - per-trial logs and shadow-report references.
+- Added Make target:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - new target:
+    - `sv_declared_shadow_promotion_gate`
+  - added help text entry.
+- Wired aggregate policy integration (informational-first):
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - new policy/runtime knobs:
+    - `PGEN_SOTA_POLICY_RUN_SV_DECLARED_SHADOW_PROMOTION`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT`
+    - `PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION`
+    - `PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT`
+- Updated docs/roadmap/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` ✅
+  - observed recommendation on baseline seed path (`12001`): `hold` (`1/2` strict shadow failures), proving promotion evidence collection is active and objective.
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+
 ## 2026-02-28 - Phase R AST Observability: User-Facing Workflow Playbooks
 ### ✅ Achievement Summary
 Closed the last Phase R documentation gap by adding end-to-end AST debug playbooks for SystemVerilog, VHDL, and regex onboarding/hardening in the user guide.
