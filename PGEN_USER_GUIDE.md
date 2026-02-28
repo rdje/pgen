@@ -2140,6 +2140,8 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_ENFORCE_PORT_BINDING_SUITE` (`0`/`1`, overrides contract enforcement toggle)
 - `PGEN_SV_STIMULI_QUALITY_PACKAGE_QUAL_SUITE` (override package-qualification deterministic contract corpus path)
 - `PGEN_SV_STIMULI_QUALITY_ENFORCE_PACKAGE_QUAL_SUITE` (`0`/`1`, overrides contract enforcement toggle)
+- `PGEN_SV_STIMULI_QUALITY_CONTEXT_LEGALITY_SUITE` (override context-legality deterministic contract corpus path)
+- `PGEN_SV_STIMULI_QUALITY_ENFORCE_CONTEXT_LEGALITY_SUITE` (`0`/`1`, overrides contract enforcement toggle)
 - `PGEN_SV_STIMULI_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_STIMULI_DIFF_MAX_SAMPLES` (default `8`)
 - `PGEN_SV_STIMULI_REFERENCE_RUNNER` (path to executable trusted-reference parser runner script; required for strict differential mode)
@@ -2267,6 +2269,20 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - behavior:
     - runs before profile/sample generation loops,
     - enforces deterministic pass/fail outcomes for package qualification resolution checks (`pkg::symbol`) independent of random stimuli variance.
+- deterministic context-legality semantic contract precheck:
+  - contract keys (`systemverilog_core_v0_contract.json`):
+    - `semantic_contracts.context_legality_suite_path`
+    - `semantic_contracts.enforce_context_legality_suite`
+  - gate stage:
+    - `context_legality_contract_suite`
+  - summary metrics:
+    - `context_legality_suite_status`
+    - `context_legality_suite_total`
+    - `context_legality_suite_passed`
+    - `context_legality_suite_failed`
+  - behavior:
+    - runs before profile/sample generation loops,
+    - enforces deterministic pass/fail outcomes for baseline context legality (`always_comb` event-control prohibition, `always_ff` nonblocking requirement, generate `for` iterator `genvar` declaration).
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "Deterministic semantic contract suite for context legality behavior in sv_stimuli_quality_gate.",
+  "cases": [
+    {
+      "name": "generate_for_with_genvar_pass",
+      "expect_pass": true,
+      "input": "module top; genvar i; generate for (i = 0; i < 4; i = i + 1) begin : g logic x; end endgenerate endmodule"
+    },
+    {
+      "name": "generate_for_without_genvar_fail",
+      "expect_pass": false,
+      "input": "module top; int i; generate for (i = 0; i < 2; i = i + 1) begin : g logic x; end endgenerate endmodule"
+    },
+    {
+      "name": "always_comb_without_event_control_pass",
+      "expect_pass": true,
+      "input": "module top; logic a; logic b; always_comb begin b = a; end endmodule"
+    },
+    {
+      "name": "always_comb_with_event_control_fail",
+      "expect_pass": false,
+      "input": "module top; logic a; logic b; always_comb begin @(posedge a) b = a; end endmodule"
+    },
+    {
+      "name": "always_ff_nonblocking_pass",
+      "expect_pass": true,
+      "input": "module top; logic clk; logic d; logic q; always_ff @(posedge clk) begin q <= d; end endmodule"
+    },
+    {
+      "name": "always_ff_blocking_fail",
+      "expect_pass": false,
+      "input": "module top; logic clk; logic d; logic q; always_ff @(posedge clk) begin q = d; end endmodule"
+    },
+    {
+      "name": "multiple_genvar_declarations_pass",
+      "expect_pass": true,
+      "input": "module top; genvar i, j; generate for (i = 0; i < 2; i = i + 1) begin : gi end for (j = 0; j < 2; j = j + 1) begin : gj end endgenerate endmodule"
+    },
+    {
+      "name": "comment_noise_context_pass",
+      "expect_pass": true,
+      "input": "module top; // always_ff with nonblocking should pass\nlogic clk; logic q; logic d; always_ff @(posedge clk) begin /* no blocking */ q <= d; end endmodule"
+    }
+  ]
+}

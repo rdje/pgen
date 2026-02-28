@@ -10054,3 +10054,48 @@ Without this suite:
   - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
 - Result:
   - gate passed with deterministic package-qualification contract-suite stage active.
+
+---
+
+## 2026-02-28: Added deterministic context-legality contract suite to `sv_stimuli_quality_gate`
+
+### Root cause
+Phase P semantic-closure deterministic suites still lacked fixed-corpus proof for context-legality behavior (`always_*` and generate legality).
+
+Without this suite:
+- `require_context_legality_basic` behavior was validated only through randomized gate samples,
+- regressions in baseline context-legality checks could be masked by corpus variance.
+
+### Fixes implemented
+- Added deterministic suite corpus:
+  - `rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json`
+  - includes pass/fail cases for:
+    - generate `for` iterator `genvar` declaration legality,
+    - `always_comb` event-control prohibition,
+    - `always_ff` nonblocking assignment requirement.
+- Extended core contract:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version `17 -> 18`
+  - added keys:
+    - `semantic_contracts.context_legality_suite_path`
+    - `semantic_contracts.enforce_context_legality_suite`
+- Extended gate runtime:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env overrides:
+    - `PGEN_SV_STIMULI_QUALITY_CONTEXT_LEGALITY_SUITE`
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_CONTEXT_LEGALITY_SUITE`
+  - added `context_legality_contract_suite` execution stage with deterministic pass/fail enforcement and CSV summary artifact.
+  - added summary counters:
+    - `context_legality_suite_status`
+    - `context_legality_suite_total`
+    - `context_legality_suite_passed`
+    - `context_legality_suite_failed`
+
+### Validation
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `jq empty rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json`
+- reduced-cost gate run:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Result:
+  - gate passed with deterministic context-legality contract-suite stage active.

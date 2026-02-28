@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-p-sv-package-qualification-deterministic-suite)
+Last updated: 2026-02-28 (+0100, task: phase-p-sv-context-legality-deterministic-suite)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,29 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Added deterministic SV context-legality contract suite (Phase P semantic closure)
+- Root cause:
+  - semantic-closure deterministic suites covered declared-before-use/width/port-binding/package-qualification checks, but lacked fixed-corpus coverage for context-legality behavior.
+- Fix:
+  - added suite corpus:
+    - `rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json`
+  - promoted contract:
+    - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `v18`
+    - added:
+      - `semantic_contracts.context_legality_suite_path`
+      - `semantic_contracts.enforce_context_legality_suite`
+  - extended `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - new stage: `context_legality_contract_suite`,
+    - new env overrides:
+      - `PGEN_SV_STIMULI_QUALITY_CONTEXT_LEGALITY_SUITE`
+      - `PGEN_SV_STIMULI_QUALITY_ENFORCE_CONTEXT_LEGALITY_SUITE`,
+    - summary counters for suite status/total/passed/failed.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` passed.
+  - `jq empty rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json` passed.
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh` passed.
 
 ### 2026-02-28: Added deterministic SV package-qualification contract suite (Phase P semantic closure)
 - Root cause:
@@ -1322,7 +1345,7 @@ Use this file to resume work without replaying full chat history.
 1. Plug real trusted-reference adapters into SV preprocessor differential gate:
    - provide project-level runner scripts for available external preprocessors and start collecting taxonomy deltas on curated corpora.
 2. Continue Phase P semantic-closure implementation for SV:
-   - add deterministic contract suite for remaining semantic check (`context_legality_basic`) and promote currently optional toggles toward required checks once false-positive rate is controlled.
+   - deterministic semantic suites are now in place for declared/width/port-binding/package/context checks; next step is promoting currently optional semantic-baseline toggles toward required checks with false-positive burn-down evidence.
 3. Continue Phase R implementation for AST observability:
    - embedding API surface for parser-returned AST dump,
    - deterministic format/replay contract checks for both dump surfaces.

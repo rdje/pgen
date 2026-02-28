@@ -1,6 +1,6 @@
 {
-  "version": 17,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, and deterministic performance/memory-proxy budget checks.",
+  "version": 18,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, and deterministic performance/memory-proxy budget checks.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -96,7 +96,9 @@
     "port_binding_legality_suite_path": "rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json",
     "enforce_port_binding_legality_suite": true,
     "package_qualification_suite_path": "rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json",
-    "enforce_package_qualification_suite": true
+    "enforce_package_qualification_suite": true,
+    "context_legality_suite_path": "rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json",
+    "enforce_context_legality_suite": true
   },
   "performance_budgets": {
     "enforce": true,
