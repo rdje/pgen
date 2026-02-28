@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-27 (+0100, task: phase-p-sv-declared-check-structured-use-hardening)
+Last updated: 2026-02-28 (+0100, task: phase-p-sv-declared-identifier-deterministic-contract-suite)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for structured-use declared-check hardening increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for deterministic declared-identifier semantic contract suite increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -217,6 +217,34 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Phase P deterministic declared-identifier semantic contract suite
+- Root cause:
+  - declaration-before-use checker improvements existed, but there was no deterministic fixed corpus proving expected pass/fail behavior independently of random stimuli variability.
+- Fix:
+  - added deterministic suite:
+    - `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+  - bumped core contract:
+    - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` (`v12 -> v13`)
+    - added `semantic_contracts.declared_identifier_suite_path`
+    - added `semantic_contracts.enforce_declared_identifier_suite`
+  - wired `sv_stimuli_quality_gate` pre-stage:
+    - `declared_identifier_contract_suite`
+    - env overrides:
+      - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE`
+      - `PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE`
+    - summary counters:
+      - `declared_identifier_suite_status/total/passed/failed`
+  - fixed `foreach` iterator declaration extraction:
+    - `foreach (arr[idx])` now correctly declares `idx` before use checks.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `jq empty rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Status:
+  - deterministic suite passes `12/12`; both baseline and semantic-closure gate modes remain green.
 
 ### 2026-02-27: Phase P declared-check hardening - structured use-site extraction
 - Root cause:

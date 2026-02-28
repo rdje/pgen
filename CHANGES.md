@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-02-28 - Phase P Semantic-Closure Hardening: Deterministic Declared-Identifier Contract Suite
+### ✅ Achievement Summary
+Added a deterministic semantic contract suite for declaration-before-use checking and wired it into `sv_stimuli_quality_gate` as a first-stage pass/fail precheck.
+
+### Scope of Changes
+- Added deterministic declared-identifier corpus:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+  - includes explicit pass/fail cases for:
+    - assignments (declared/undeclared),
+    - loop iterators (`for` and `foreach`),
+    - event controls,
+    - named-port actuals,
+    - package-qualified usage,
+    - macro/timeunit noise tolerance.
+- Promoted SV core quality contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump:
+    - `12 -> 13`
+  - new semantic-contract keys:
+    - `semantic_contracts.declared_identifier_suite_path`
+    - `semantic_contracts.enforce_declared_identifier_suite`
+- Wired deterministic suite execution into gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env overrides:
+    - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE`
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE`
+  - added `declared_identifier_contract_suite` run stage with CSV report and strict mismatch handling.
+  - summary now reports:
+    - `declared_identifier_suite_status`
+    - `declared_identifier_suite_total`
+    - `declared_identifier_suite_passed`
+    - `declared_identifier_suite_failed`
+- Fixed `foreach` iterator declaration handling in checker:
+  - iterator symbols are now extracted from bracketed iterator slots (`foreach (arr[idx])`) before use-site validation.
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-02-27 - Phase P Semantic-Closure Hardening: Structured Use-Site Declared-Check Refinement
 ### ✅ Achievement Summary
 Reworked declaration-before-use validation to operate on structured use contexts, significantly reducing lexical-noise false positives while keeping semantic-closure mode stable.

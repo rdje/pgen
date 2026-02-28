@@ -1,4 +1,77 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-28 - Phase P Semantic-Closure Hardening: Deterministic Declared-Identifier Contract Suite
+### Context
+`require_declared_identifiers_before_use` had better behavior after structured-use scanning, but we still lacked a deterministic contract proving what the checker must accept/reject independently from stochastic stimuli streams. We needed a fixed corpus gate so declared-before-use behavior can evolve safely without regressions.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+
+#### 1) Added deterministic semantic contract corpus
+New corpus:
+- `systemverilog_declared_identifier_contract_cases.json`
+
+Coverage includes:
+- positive cases:
+  - declared assignment usage,
+  - typed `for` iterator declaration,
+  - `foreach` iterator declaration/use (`foreach (arr[idx])`),
+  - declared event-control symbols,
+  - declared named-port actuals,
+  - package-qualified references,
+  - lexical noise tolerance (`timeunit`, macro-like tokens).
+- negative cases:
+  - undeclared RHS/LHS symbols,
+  - undeclared named-port actual,
+  - undeclared conditional identifier.
+
+Each case defines:
+- deterministic source input,
+- expected pass/fail outcome.
+
+#### 2) Contractized suite wiring (core contract v13)
+`systemverilog_core_v0_contract.json`:
+- version bumped `12 -> 13`.
+- added:
+  - `semantic_contracts.declared_identifier_suite_path`
+  - `semantic_contracts.enforce_declared_identifier_suite`
+
+This allows deterministic suite enable/disable to be policy-driven and overridable.
+
+#### 3) Gate integration and override surface
+`sv_stimuli_quality_gate.sh` now:
+- resolves declared-identifier suite config from contract plus optional env overrides:
+  - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE`
+  - `PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE` (`0|1`)
+- runs `declared_identifier_contract_suite` as explicit pre-stage before generation loops,
+- emits deterministic CSV summary artifact for suite results,
+- surfaces suite counters in final gate summary:
+  - status, total, passed, failed.
+
+#### 4) `foreach` iterator fix in checker
+Root issue:
+- declaration extraction expected identifier directly before `)` and missed iterator identifiers in bracket form.
+
+Fix:
+- parse each `foreach (...)` header and declare identifiers found in bracket slots (`[...]`), which correctly treats `idx` as declared for patterns like `foreach (arr[idx])`.
+
+### Validation
+Executed:
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- deterministic suite passes `12/12` in both baseline and semantic-closure runs,
+- gate remains green in both modes,
+- declared-before-use behavior now has a stable precheck contract independent of random sample drift.
+
 ## 2026-02-27 - Phase P Semantic-Closure Hardening: Structured Use-Site Declared Validation
 ### Context
 Even after lexical cleanups, declaration-before-use still produced noise when scanning all identifiers globally. The next hardening step was to constrain checks to structured usage contexts so randomized lexical debris would not be interpreted as semantic symbol use.

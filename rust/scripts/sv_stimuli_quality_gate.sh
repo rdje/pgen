@@ -19,10 +19,17 @@ LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
 LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
 STIMULI_MODE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MODE:-}"
 SEMANTIC_CLOSURE_MODE="${PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE:-0}"
+DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE:-}"
+ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE:-}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
 EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
+
+declared_identifier_suite_status="skip"
+declared_identifier_suite_total=0
+declared_identifier_suite_passed=0
+declared_identifier_suite_failed=0
 
 require_tool() {
     local tool="$1"
@@ -220,6 +227,7 @@ check_declared_identifiers_before_use() {
                 this super null inside matches with let assert assume cover property sequence rand randc
                 timeunit timeprecision clocking endclocking modport randsequence endsequence
                 constraint solve before dist bins binsof cross covergroup endgroup coverpoint
+                posedge negedge iff and or xor xnor not
             );
 
             my %declared;
@@ -248,8 +256,11 @@ check_declared_identifiers_before_use() {
             while ($text =~ /\bfor\s*\(\s*(?:int|integer|longint|shortint|byte|bit)\s+([A-Za-z_][A-Za-z0-9_]*)\b/g) {
                 $declared{$1} = 1;
             }
-            while ($text =~ /\bforeach\s*\([^)]*?\b([A-Za-z_][A-Za-z0-9_]*)\s*\)/g) {
-                $declared{$1} = 1;
+            while ($text =~ /\bforeach\s*\(([^)]*)\)/g) {
+                my $foreach_head = $1;
+                while ($foreach_head =~ /\[\s*([A-Za-z_][A-Za-z0-9_]*)\s*\]/g) {
+                    $declared{$1} = 1;
+                }
             }
             while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:#\s*\([^;{}]*\)\s*)?\(/g) {
                 my ($type_name, $inst_name) = ($1, $2);
@@ -613,12 +624,114 @@ run_logged_rust() {
     fi
 }
 
+run_declared_identifier_contract_suite() {
+    local suite_file="$1"
+    local enforce="$2"
+    local suite_summary_csv="$WORK_DIR/declared_identifier_contract_summary.csv"
+    local idx=0
+    local case_json
+
+    declared_identifier_suite_status="skip"
+    declared_identifier_suite_total=0
+    declared_identifier_suite_passed=0
+    declared_identifier_suite_failed=0
+    echo "case,expect,actual,status,notes" >"$suite_summary_csv"
+
+    if [[ "$enforce" -ne 1 ]]; then
+        return 0
+    fi
+
+    if [[ -z "$suite_file" ]]; then
+        echo "declared identifier contract suite is enforced but no suite path is configured"
+        return 1
+    fi
+    require_file "$suite_file"
+
+    while IFS= read -r case_json; do
+        idx=$((idx + 1))
+        declared_identifier_suite_total=$((declared_identifier_suite_total + 1))
+
+        local case_name
+        local case_expect_pass
+        local case_input
+        local case_file
+        local case_actual_pass
+        local case_check_note
+        local case_expected_label
+        local case_actual_label
+        local case_status
+        local case_note
+
+        case_name="$(jq -er '.name | strings' <<<"$case_json")"
+        case_expect_pass="$(jq -er 'if (.expect_pass // false) then 1 else 0 end' <<<"$case_json")"
+        case_input="$(jq -er '.input | strings' <<<"$case_json")"
+        case_file="$WORK_DIR/declared_identifier_case_${idx}.sv"
+
+        printf '%s\n' "$case_input" >"$case_file"
+
+        if case_check_note="$(check_declared_identifiers_before_use "$case_file" 2>&1)"; then
+            case_actual_pass=1
+            if [[ -z "$case_check_note" ]]; then
+                case_check_note="declared identifier check passed"
+            fi
+        else
+            case_actual_pass=0
+            if [[ -z "$case_check_note" ]]; then
+                case_check_note="declared identifier check failed"
+            fi
+        fi
+
+        if [[ "$case_expect_pass" -eq 1 ]]; then
+            case_expected_label="pass"
+        else
+            case_expected_label="fail"
+        fi
+        if [[ "$case_actual_pass" -eq 1 ]]; then
+            case_actual_label="pass"
+        else
+            case_actual_label="fail"
+        fi
+
+        if [[ "$case_expect_pass" -eq "$case_actual_pass" ]]; then
+            case_status="pass"
+            case_note="$case_check_note"
+            declared_identifier_suite_passed=$((declared_identifier_suite_passed + 1))
+        else
+            case_status="fail"
+            case_note="$case_check_note"
+            declared_identifier_suite_failed=$((declared_identifier_suite_failed + 1))
+            echo "declared identifier contract mismatch: case='${case_name}' expected=${case_expected_label} actual=${case_actual_label}" >&2
+        fi
+
+        echo "${case_name},${case_expected_label},${case_actual_label},${case_status},$(csv_sanitize "$case_note")" >>"$suite_summary_csv"
+    done < <(jq -c '.cases[]' "$suite_file")
+
+    if (( declared_identifier_suite_total == 0 )); then
+        echo "declared identifier contract suite has zero cases: $suite_file" >&2
+        declared_identifier_suite_status="fail"
+        return 1
+    fi
+
+    if (( declared_identifier_suite_failed > 0 )); then
+        declared_identifier_suite_status="fail"
+        echo "declared identifier contract suite failed: $declared_identifier_suite_failed/$declared_identifier_suite_total mismatches (summary: $suite_summary_csv)" >&2
+        return 1
+    fi
+
+    declared_identifier_suite_status="pass"
+    return 0
+}
+
 if [[ "$PARSE_FULL_MODE" != "auto" && "$PARSE_FULL_MODE" != "0" && "$PARSE_FULL_MODE" != "1" ]]; then
     echo "error: PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE must be one of: auto, 0, 1" >&2
     exit 2
 fi
 if [[ "$SEMANTIC_CLOSURE_MODE" != "0" && "$SEMANTIC_CLOSURE_MODE" != "1" ]]; then
     echo "error: PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE must be 0 or 1" >&2
+    exit 2
+fi
+if [[ -n "$ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE" ]] && [[ "$ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE" != "0" && "$ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE must be 0 or 1 when set" >&2
     exit 2
 fi
 if [[ -n "$LRM_PROFILE_OVERRIDE" && -n "$LRM_PROFILES_OVERRIDE" ]]; then
@@ -643,6 +756,8 @@ supported_lrm_profiles_csv="$(jq -er '(.lrm_profiles.supported_profiles // ["201
 required_lrm_profiles_csv="$(jq -er '(.lrm_profiles.required_profiles // [(.lrm_profiles.default_profile // "2017")]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
 default_stimuli_mode="$(jq -er '(.stimuli_modes.default_mode // "sv_file") | strings' "$CONTRACT_FILE")"
 supported_stimuli_modes_csv="$(jq -er '(.stimuli_modes.supported_modes // ["sv_file","sv_snippet","sv_pp_file","sv_pp_snippet","sv_semantic_file"]) | map(select(type=="string")) | join(",")' "$CONTRACT_FILE")"
+declared_identifier_suite_rel="$(jq -er '(.semantic_contracts.declared_identifier_suite_path // "") | strings' "$CONTRACT_FILE")"
+enforce_declared_identifier_suite="$(jq -er 'if (.semantic_contracts.enforce_declared_identifier_suite // false) then 1 else 0 end' "$CONTRACT_FILE")"
 closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
@@ -661,6 +776,20 @@ elif [[ "$SEMANTIC_CLOSURE_MODE" == "1" ]]; then
     stimuli_mode="sv_semantic_file"
 else
     stimuli_mode="$default_stimuli_mode"
+fi
+if [[ -n "$DECLARED_IDENTIFIER_SUITE_OVERRIDE" ]]; then
+    declared_identifier_suite_rel="$DECLARED_IDENTIFIER_SUITE_OVERRIDE"
+fi
+if [[ -n "$ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE" ]]; then
+    enforce_declared_identifier_suite="$ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE"
+fi
+declared_identifier_suite_path=""
+if [[ -n "$declared_identifier_suite_rel" ]]; then
+    if [[ "$declared_identifier_suite_rel" == /* ]]; then
+        declared_identifier_suite_path="$declared_identifier_suite_rel"
+    else
+        declared_identifier_suite_path="$ROOT_DIR/$declared_identifier_suite_rel"
+    fi
 fi
 
 if ! [[ "$sample_count" =~ ^[0-9]+$ ]] || [[ "$sample_count" -lt 1 ]]; then
@@ -836,6 +965,11 @@ echo "semantic_require_declared_identifiers_before_use: $require_declared_identi
 echo "semantic_require_package_qualification_resolution: $require_package_qualification_resolution"
 echo "semantic_require_width_compatibility_simple: $require_width_compatibility_simple"
 echo "semantic_require_context_legality_basic: $require_context_legality_basic"
+echo "declared_identifier_suite_enforced: $enforce_declared_identifier_suite"
+echo "declared_identifier_suite_path: ${declared_identifier_suite_path:-<unset>}"
+
+run_logged "declared_identifier_contract_suite" \
+    run_declared_identifier_contract_suite "$declared_identifier_suite_path" "$enforce_declared_identifier_suite"
 
 echo "profile,sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
@@ -1179,6 +1313,10 @@ done
     echo "closed_loop_initial_preprocess_errors_total: $closed_loop_initial_preprocess_errors_total"
     echo "closed_loop_replay_preprocess_warnings_total: $closed_loop_replay_preprocess_warnings_total"
     echo "closed_loop_replay_preprocess_errors_total: $closed_loop_replay_preprocess_errors_total"
+    echo "declared_identifier_suite_status: $declared_identifier_suite_status"
+    echo "declared_identifier_suite_total: $declared_identifier_suite_total"
+    echo "declared_identifier_suite_passed: $declared_identifier_suite_passed"
+    echo "declared_identifier_suite_failed: $declared_identifier_suite_failed"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
     echo "semantic_baseline_passes: $semantic_pass_count/$total_samples"

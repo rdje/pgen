@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-02-27
+Last updated: 2026-02-28
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -275,6 +275,10 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-02-27): hardened semantic validator heuristics used by semantic-closure profiles:
     - `require_declared_identifiers_before_use` now uses structured use-site scanning (assignments/conditions/events/port-actual expressions), strips quoted strings/directives, ignores member/namespace/macro contexts, handles more declaration contexts (ports/imports/for/foreach/instantiation), and normalizes `timeunit/timeprecision` lines before token scans.
     - `require_width_compatibility_simple` now covers packed declarations for `logic|reg|wire|bit` and accepts indexed LHS assignment forms.
+  - Progress (2026-02-28): added deterministic declared-identifier semantic contract suite and gate wiring (`systemverilog_declared_identifier_contract_cases.json`, core contract `v13`, `declared_identifier_contract_suite` stage in `sv_stimuli_quality_gate`):
+    - establishes fixed pass/fail corpus for declaration-before-use behavior independent of randomized stimuli variance,
+    - adds contract/env policy controls for strict enforcement and suite-path override,
+    - includes `foreach (arr[idx])` iterator declaration fix in checker.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -446,6 +450,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Added deterministic declared-identifier semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v13 + `declared_identifier_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit `foreach` iterator declaration fix and summary counters.
 - 2026-02-27: Refined `require_declared_identifiers_before_use` to structured use-site scanning (assignment/condition/event/port contexts) and retained `sv_semantic_file` policy with declaration-before-use disabled until residual lexical-edge false positives are fully retired.
 - 2026-02-27: Hardened semantic-closure validators in `sv_stimuli_quality_gate` (`declared-identifiers` and `width-compatibility` heuristics) and extended `sv_semantic_file` policy to enable `require_width_compatibility_simple` while keeping `require_declared_identifiers_before_use` disabled pending further lexical false-positive burn-down.
 - 2026-02-27: Advanced Phase P semantic-closure execution by adding `sv_semantic_file` contract mode + `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1` gate switch, promoting `systemverilog_core_v0_contract.json` to v12 with stricter package/context/port baseline policy for dedicated semantic-closure runs.

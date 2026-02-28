@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-02-27
+Last updated: 2026-02-28
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -2064,6 +2064,8 @@ Optional SV stimuli quality-gate tuning:
   - when set to `1` and `PGEN_SV_STIMULI_QUALITY_MODE` is unset, gate auto-selects `sv_semantic_file`.
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
+- `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE` (override declared-identifier deterministic contract corpus path)
+- `PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE` (`0`/`1`, overrides contract enforcement toggle)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
 
 Optional VHDL stimuli quality-gate tuning:
@@ -2078,6 +2080,20 @@ Optional SV syntax-closure gate tuning:
 - `PGEN_SV_SYNTAX_CLOSURE_STATE_DIR` (default `rust/target/sv_syntax_closure_gate`)
 
 `sv_stimuli_quality_gate` closed-loop stage contract:
+- deterministic declared-identifier semantic contract precheck:
+  - contract keys (`systemverilog_core_v0_contract.json`):
+    - `semantic_contracts.declared_identifier_suite_path`
+    - `semantic_contracts.enforce_declared_identifier_suite`
+  - gate stage:
+    - `declared_identifier_contract_suite`
+  - summary metrics:
+    - `declared_identifier_suite_status`
+    - `declared_identifier_suite_total`
+    - `declared_identifier_suite_passed`
+    - `declared_identifier_suite_failed`
+  - behavior:
+    - runs before profile/sample generation loops,
+    - enforces deterministic pass/fail expected outcomes from a fixed corpus (for example declared-vs-undeclared assignment/use, `for`/`foreach` iterators, event-control and named-port usage).
 - per-profile closed loop:
   - deterministic initial-stage replay check:
     - gate reruns initial closed-loop generation with same seed/profile config and asserts deterministic equivalence for:
@@ -2183,6 +2199,7 @@ Optional SV syntax-closure gate tuning:
   - optional structural keyword-balance check (`semantic_baseline.require_balanced_structural_keywords`, currently disabled in default contract due high false-positive risk on current random samples).
   - optional declaration-before-use heuristic (`semantic_baseline.require_declared_identifiers_before_use`).
     - current implementation uses structured use-site scanning (assignments, conditions, event controls, named-port actuals), strips quoted strings/directives, ignores member/namespace/macro contexts, and handles additional declaration contexts (ports/imports/for/foreach/instantiation); still not default-enabled in semantic-closure profile.
+    - deterministic contract coverage exists in `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`, including explicit `foreach (arr[idx])` iterator declaration handling.
   - optional package qualification/import resolution heuristic (`semantic_baseline.require_package_qualification_resolution`).
   - optional simple packed-width vs literal-width compatibility check (`semantic_baseline.require_width_compatibility_simple`).
     - current implementation covers packed declarations of `logic|reg|wire|bit` and indexed LHS assignment forms.

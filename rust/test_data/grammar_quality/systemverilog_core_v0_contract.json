@@ -1,6 +1,6 @@
 {
-  "version": 12,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, and mode-level stimuli steering policy.",
+  "version": 13,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier semantic contract suite, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, and mode-level stimuli steering policy.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -87,6 +87,10 @@
     "conditional_symbol_policy": "assume_false_warn",
     "conditional_expr_policy": "identifier_or_defined",
     "strict_warning_codes": "none"
+  },
+  "semantic_contracts": {
+    "declared_identifier_suite_path": "rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json",
+    "enforce_declared_identifier_suite": true
   },
   "semantic_baseline": {
     "require_nonempty_preprocessed_output": true,

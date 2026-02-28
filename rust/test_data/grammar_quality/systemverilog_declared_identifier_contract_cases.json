@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "description": "Deterministic semantic contract suite for declared-before-use validator behavior in sv_stimuli_quality_gate.",
+  "cases": [
+    {
+      "name": "declared_assignment_pass",
+      "expect_pass": true,
+      "input": "module m; logic a; assign a = 1'b0; endmodule"
+    },
+    {
+      "name": "undeclared_rhs_fail",
+      "expect_pass": false,
+      "input": "module m; logic a; assign a = b; endmodule"
+    },
+    {
+      "name": "undeclared_lhs_fail",
+      "expect_pass": false,
+      "input": "module m; logic a; assign b = a; endmodule"
+    },
+    {
+      "name": "for_loop_typed_iterator_pass",
+      "expect_pass": true,
+      "input": "module m; logic [3:0] a; always_comb begin for (int i = 0; i < 4; i++) a[i] = 1'b0; end endmodule"
+    },
+    {
+      "name": "foreach_iterator_pass",
+      "expect_pass": true,
+      "input": "module m; logic [3:0] arr; always_comb begin foreach (arr[idx]) arr[idx] = 1'b1; end endmodule"
+    },
+    {
+      "name": "event_control_declared_clock_pass",
+      "expect_pass": true,
+      "input": "module m; logic clk; logic q; always @(posedge clk) q <= 1'b0; endmodule"
+    },
+    {
+      "name": "named_port_actual_declared_pass",
+      "expect_pass": true,
+      "input": "module child(input logic a); endmodule module top; logic sig; child u0(.a(sig)); endmodule"
+    },
+    {
+      "name": "named_port_actual_undeclared_fail",
+      "expect_pass": false,
+      "input": "module child(input logic a); endmodule module top; child u0(.a(sig)); endmodule"
+    },
+    {
+      "name": "package_qualified_use_pass",
+      "expect_pass": true,
+      "input": "module m; logic [7:0] a; assign a = pkg::CONST; endmodule"
+    },
+    {
+      "name": "timeunit_statement_pass",
+      "expect_pass": true,
+      "input": "timeunit 1ns/1ps; module m; logic a; assign a = 1'b0; endmodule"
+    },
+    {
+      "name": "macro_token_noise_pass",
+      "expect_pass": true,
+      "input": "module m; logic a; `FOO(bar) assign a = 1'b0; endmodule"
+    },
+    {
+      "name": "if_condition_undeclared_fail",
+      "expect_pass": false,
+      "input": "module m; logic a; always_comb begin if (b) a = 1'b1; end endmodule"
+    }
+  ]
+}
