@@ -9647,3 +9647,76 @@ Changes:
 ### Validation
 - `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run`
 - Final result: `EXIT:0` (strict clippy clean for targeted generated-parser path).
+
+---
+
+## 2026-02-28: Phase P deterministic width-compatibility semantic contract suite
+
+### Root cause
+Phase P semantic-closure had deterministic declared-identifier contract coverage, but width-compatibility behavior still depended only on live sample outcomes in `sv_stimuli_quality_gate`.
+
+That left a gap:
+- no fixed pass/fail corpus for width-overflow edge cases,
+- no contract-level enforcement switch for width-compatibility semantics independent of generated sample variance.
+
+### Fixes implemented
+
+#### 1) Gate-stage extension
+File:
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+
+Added deterministic suite stage:
+- `run_width_compatibility_contract_suite(...)`
+  - reads fixed JSON case corpus,
+  - executes `check_width_compatibility_simple` per case,
+  - compares actual pass/fail against expected pass/fail,
+  - emits per-suite summary CSV under gate workdir:
+    - `width_compatibility_contract_summary.csv`.
+
+Added counters/status tracking:
+- `width_compat_suite_status`
+- `width_compat_suite_total`
+- `width_compat_suite_passed`
+- `width_compat_suite_failed`
+
+Added contract/env controls:
+- contract:
+  - `semantic_contracts.width_compatibility_suite_path`
+  - `semantic_contracts.enforce_width_compatibility_suite`
+- env overrides:
+  - `PGEN_SV_STIMULI_QUALITY_WIDTH_COMPAT_SUITE`
+  - `PGEN_SV_STIMULI_QUALITY_ENFORCE_WIDTH_COMPAT_SUITE`
+
+These are printed in gate preflight summary and final summary output.
+
+#### 2) Deterministic width suite corpus
+File:
+- `rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+
+Added deterministic pass/fail cases for:
+- exact-width literal assignments,
+- narrower-literal assignments,
+- overflow literal assignments,
+- non-blocking overflow variants,
+- signed packed declarations,
+- declaration-kind coverage (`logic`, `wire`, `bit`).
+
+#### 3) Contract promotion
+File:
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+Changes:
+- version bump: `13 -> 14`
+- semantic contract additions:
+  - `width_compatibility_suite_path`
+  - `enforce_width_compatibility_suite: true`
+
+### Validation
+- `jq empty rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Result: pass.
+
+### Plan update
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Phase P semantic-closure section updated with explicit deterministic width-compatibility contract-suite progress entry.

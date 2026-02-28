@@ -10520,3 +10520,36 @@ Remove generator emission patterns that produce clippy-denied errors in generate
 ### Validation
 - `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run`
 - Result: pass (`EXIT:0`, no clippy errors).
+
+---
+
+## 2026-02-28: Phase P semantic-closure hardening with deterministic width-compatibility suite
+
+### Goal
+Advance Phase P semantic-closure validation with deterministic, contractized width-compatibility proofs in `sv_stimuli_quality_gate`.
+
+### Changes
+- Extended `rust/scripts/sv_stimuli_quality_gate.sh` with a new deterministic semantic contract stage:
+  - `width_compatibility_contract_suite`
+  - uses existing `check_width_compatibility_simple` checker against fixed case corpus.
+- Added contract/env controls for width suite:
+  - contract fields:
+    - `semantic_contracts.width_compatibility_suite_path`
+    - `semantic_contracts.enforce_width_compatibility_suite`
+  - environment overrides:
+    - `PGEN_SV_STIMULI_QUALITY_WIDTH_COMPAT_SUITE`
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_WIDTH_COMPAT_SUITE`
+- Added deterministic suite corpus:
+  - `rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+  - includes pass/fail literal-width assignment scenarios across `logic/wire/bit` and blocking/non-blocking assignment forms.
+- Updated core SV contract:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version `13 -> 14`
+  - width-compatibility suite path + enforcement enabled.
+- Updated roadmap with explicit Phase P progress entry for deterministic width-compatibility contractization.
+
+### Validation
+- `jq empty rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Result: pass.

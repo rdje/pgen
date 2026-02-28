@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: codegen-clippy-deny-cleanup)
+Last updated: 2026-02-28 (+0100, task: phase-p-width-compat-contract-suite)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for codegen clippy-deny cleanup + docs sync; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for Phase P width-compatibility semantic contract-suite increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -222,6 +222,29 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Phase P semantic-closure deterministic width-compatibility contract suite
+- Root cause:
+  - semantic-closure had deterministic declared-identifier contract proofs, but width-compatibility behavior lacked fixed pass/fail contract corpus enforcement.
+- Fix:
+  - extended `rust/scripts/sv_stimuli_quality_gate.sh` with `width_compatibility_contract_suite` stage and summary counters.
+  - added contract/env controls:
+    - contract:
+      - `semantic_contracts.width_compatibility_suite_path`
+      - `semantic_contracts.enforce_width_compatibility_suite`
+    - env:
+      - `PGEN_SV_STIMULI_QUALITY_WIDTH_COMPAT_SUITE`
+      - `PGEN_SV_STIMULI_QUALITY_ENFORCE_WIDTH_COMPAT_SUITE`
+  - added deterministic corpus:
+    - `rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+  - promoted core contract:
+    - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` (`v13 -> v14`).
+  - updated roadmap progress in Phase P semantic-closure item.
+- Validation:
+  - `jq empty rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 bash rust/scripts/sv_stimuli_quality_gate.sh`
+  - result: pass.
 
 ### 2026-02-28: Generator clippy-deny cleanup for generated parser flows
 - Root cause:

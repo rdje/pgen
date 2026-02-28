@@ -279,6 +279,10 @@ Toolbox baseline to leverage end-to-end:
     - establishes fixed pass/fail corpus for declaration-before-use behavior independent of randomized stimuli variance,
     - adds contract/env policy controls for strict enforcement and suite-path override,
     - includes `foreach (arr[idx])` iterator declaration fix in checker.
+  - Progress (2026-02-28): added deterministic width-compatibility semantic contract suite and gate wiring (`systemverilog_width_compatibility_contract_cases.json`, core contract `v14`, `width_compatibility_contract_suite` stage in `sv_stimuli_quality_gate`):
+    - establishes fixed pass/fail corpus for literal-width assignment legality independent of randomized stimuli variance,
+    - adds contract/env policy controls for strict enforcement and suite-path override,
+    - reports suite pass/fail totals in gate summary output for semantic-closure tracking.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -450,6 +454,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Added deterministic width-compatibility semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v14 + `width_compatibility_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit contract/env policy controls and summary counters.
 - 2026-02-28: Added mandatory Rust-change clippy workflow hook (`make clippy_on_rust_change`) with scripted Rust/generated-Rust change detection, strict source clippy enforcement, generated-parser integration clippy execution, and strict opt-in policy (`PGEN_CLIPPY_GENERATED_STRICT=1`) for generated lint debt.
 - 2026-02-28: Added deterministic declared-identifier semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v13 + `declared_identifier_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit `foreach` iterator declaration fix and summary counters.
 - 2026-02-27: Refined `require_declared_identifiers_before_use` to structured use-site scanning (assignment/condition/event/port contexts) and retained `sv_semantic_file` policy with declaration-before-use disabled until residual lexical-edge false positives are fully retired.

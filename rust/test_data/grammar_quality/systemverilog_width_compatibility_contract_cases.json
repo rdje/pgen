@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "Deterministic semantic contract suite for width-compatibility validator behavior in sv_stimuli_quality_gate.",
+  "cases": [
+    {
+      "name": "equal_width_literal_assign_pass",
+      "expect_pass": true,
+      "input": "module m; logic [7:0] a; assign a = 8'hFF; endmodule"
+    },
+    {
+      "name": "smaller_literal_assign_pass",
+      "expect_pass": true,
+      "input": "module m; logic [7:0] a; assign a = 4'hA; endmodule"
+    },
+    {
+      "name": "overflow_literal_assign_fail",
+      "expect_pass": false,
+      "input": "module m; logic [3:0] a; assign a = 8'hFF; endmodule"
+    },
+    {
+      "name": "overflow_literal_nonblocking_fail",
+      "expect_pass": false,
+      "input": "module m; logic [1:0] a; always_comb begin a <= 3'b101; end endmodule"
+    },
+    {
+      "name": "signed_packed_literal_pass",
+      "expect_pass": true,
+      "input": "module m; logic signed [2:0] s; assign s = 3'b111; endmodule"
+    },
+    {
+      "name": "signed_packed_literal_overflow_fail",
+      "expect_pass": false,
+      "input": "module m; logic signed [2:0] s; assign s = 4'b1111; endmodule"
+    },
+    {
+      "name": "wire_declaration_literal_pass",
+      "expect_pass": true,
+      "input": "module m; wire [5:0] w; assign w = 6'd12; endmodule"
+    },
+    {
+      "name": "bit_declaration_literal_overflow_fail",
+      "expect_pass": false,
+      "input": "module m; bit [0:0] b; assign b = 2'd3; endmodule"
+    }
+  ]
+}
