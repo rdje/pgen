@@ -2,7 +2,7 @@
 //!
 //! This centralizes grammar-name dispatch so new generated grammars are added in one place.
 
-use crate::ast_pipeline::{UnifiedSemanticAST, runtime_logger, runtime_logger_box};
+use crate::ast_pipeline::{ParseNode, UnifiedSemanticAST, runtime_logger, runtime_logger_box};
 #[cfg(feature = "ebnf_dual_run")]
 use crate::ebnf_generated_parser::EbnfParser;
 #[cfg(has_generated_systemverilog_parser)]
@@ -12,6 +12,7 @@ use crate::generated_parsers::vhdl::VhdlParser;
 use crate::generated_parsers::{
     return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser,
 };
+use serde_json::Value as JsonValue;
 
 type ParseSampleFn = fn(&str) -> bool;
 
@@ -33,15 +34,38 @@ fn parse_with_return_annotation(sample: &str) -> bool {
     parser.parse_full_return_annotation().is_ok()
 }
 
+fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser =
+        Return_annotationParser::new(sample, runtime_logger_box("generated.return_annotation"));
+    let parsed = parser
+        .parse_full_return_annotation()
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
 fn parse_with_semantic_annotation(sample: &str) -> bool {
     let mut parser =
         Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
     parser.parse_full_semantic_annotation().is_ok()
 }
 
+fn parse_with_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser =
+        Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
+    let parsed = parser
+        .parse_full_semantic_annotation()
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
 fn parse_with_builtin_return_annotation(sample: &str) -> bool {
     // Built-in return grammar is a strict subset of return_annotation grammar.
     parse_with_return_annotation(sample)
+}
+
+fn parse_with_builtin_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
+    // Built-in return grammar is a strict subset of return_annotation grammar.
+    parse_with_return_annotation_ast_json(sample)
 }
 
 fn parse_with_builtin_semantic_annotation(sample: &str) -> bool {
@@ -52,10 +76,27 @@ fn parse_with_builtin_semantic_annotation(sample: &str) -> bool {
     UnifiedSemanticAST::parse_bootstrap(sample, &logger).is_ok()
 }
 
+fn parse_with_builtin_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let logger = runtime_logger("bootstrap.semantic_annotation");
+    let parsed =
+        UnifiedSemanticAST::parse_bootstrap(sample, &logger).map_err(|err| err.to_string())?;
+    serde_json::to_value(parsed)
+        .map_err(|err| format!("failed to serialize bootstrap semantic AST: {}", err))
+}
+
 #[cfg(feature = "ebnf_dual_run")]
 fn parse_with_ebnf(sample: &str) -> bool {
     let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
     parser.parse_full_grammar_file().is_ok()
+}
+
+#[cfg(feature = "ebnf_dual_run")]
+fn parse_with_ebnf_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
+    let parsed = parser
+        .parse_full_grammar_file()
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
 }
 
 #[cfg(has_generated_systemverilog_parser)]
@@ -65,10 +106,33 @@ fn parse_with_systemverilog(sample: &str) -> bool {
     parser.parse_full_systemverilog_file().is_ok()
 }
 
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_with_systemverilog_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser =
+        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+    let parsed = parser
+        .parse_full_systemverilog_file()
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
 #[cfg(has_generated_vhdl_parser)]
 fn parse_with_vhdl(sample: &str) -> bool {
     let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
     parser.parse_full_vhdl_file().is_ok()
+}
+
+#[cfg(has_generated_vhdl_parser)]
+fn parse_with_vhdl_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+    let parsed = parser
+        .parse_full_vhdl_file()
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
+fn parse_node_to_json(node: &ParseNode<'_>) -> Result<JsonValue, String> {
+    serde_json::to_value(node).map_err(|err| format!("failed to serialize parse tree: {}", err))
 }
 
 static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
@@ -121,6 +185,27 @@ pub fn parse_sample(grammar_name: &str, sample: &str) -> Option<bool> {
     find_entry(grammar_name).map(|entry| entry.parse(sample))
 }
 
+pub fn parse_sample_ast_json(
+    grammar_name: &str,
+    sample: &str,
+) -> Option<Result<JsonValue, String>> {
+    match grammar_name {
+        "return_annotation" => Some(parse_with_return_annotation_ast_json(sample)),
+        "semantic_annotation" => Some(parse_with_semantic_annotation_ast_json(sample)),
+        "builtin_return_annotation" => Some(parse_with_builtin_return_annotation_ast_json(sample)),
+        "builtin_semantic_annotation" => {
+            Some(parse_with_builtin_semantic_annotation_ast_json(sample))
+        }
+        #[cfg(feature = "ebnf_dual_run")]
+        "ebnf" => Some(parse_with_ebnf_ast_json(sample)),
+        #[cfg(has_generated_systemverilog_parser)]
+        "systemverilog" => Some(parse_with_systemverilog_ast_json(sample)),
+        #[cfg(has_generated_vhdl_parser)]
+        "vhdl" => Some(parse_with_vhdl_ast_json(sample)),
+        _ => None,
+    }
+}
+
 pub fn registered_grammars() -> Vec<&'static str> {
     GENERATED_PARSER_REGISTRY
         .iter()
@@ -130,7 +215,7 @@ pub fn registered_grammars() -> Vec<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_sample, registered_grammars, supports_grammar};
+    use super::{parse_sample, parse_sample_ast_json, registered_grammars, supports_grammar};
 
     #[test]
     fn registry_exposes_expected_annotation_grammars() {
@@ -166,6 +251,7 @@ mod tests {
     fn unknown_grammar_is_not_supported() {
         assert!(!supports_grammar("unknown"));
         assert!(parse_sample("unknown", "anything").is_none());
+        assert!(parse_sample_ast_json("unknown", "anything").is_none());
     }
 
     #[test]
@@ -174,6 +260,9 @@ mod tests {
             parse_sample("builtin_semantic_annotation", "@priority: [9, 1]"),
             Some(true)
         );
+        let ast_json = parse_sample_ast_json("builtin_semantic_annotation", "@priority: [9, 1]")
+            .expect("ast adapter");
+        assert!(ast_json.is_ok());
         assert_eq!(
             parse_sample(
                 "builtin_semantic_annotation",

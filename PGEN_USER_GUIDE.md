@@ -250,7 +250,7 @@ CLI controls:
     - `rule_order`,
     - `grammar_tree`,
     - `annotations`.
-  - if flag is present with no value, default path is `gen_ast.log`.
+  - if flag is present with no value, default path is `gen_ast.json`.
 - `--dump-gen-ast-pretty`
   - pretty JSON formatting mode (requires `--dump-gen-ast`).
 
@@ -262,7 +262,7 @@ Mode contract:
 
 Examples:
 ```bash
-# Default dump path (gen_ast.log) while generating parser
+# Default dump path (gen_ast.json) while generating parser
 cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
   generated/json.json \
   --generate-parser \
@@ -278,6 +278,34 @@ cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
   --dump-gen-ast /tmp/gen_ast.json \
   --dump-gen-ast-pretty \
   --output /tmp/json_stimuli.txt
+```
+
+### Parser-Returned AST Dump (`parseability_probe`)
+Use parser-returned AST dump when you need the parsed AST produced by generated parsers for a concrete input sample.
+
+CLI controls:
+- `parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file]`
+- `parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file]`
+
+Default filename contract:
+- when `output_file` is omitted, dump file is:
+  - `<grammar_name>_ast.json`
+- examples:
+  - `foolang_ast.json`
+  - `ebnf_ast.json`
+  - `regex_ast.json`
+  - `vhdl_ast.json`
+  - `systemverilog_ast.json`
+
+Examples:
+```bash
+# Parse and dump AST to default grammar-based path (ebnf_ast.json)
+cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin parseability_probe -- \
+  --parse-dump-ast ebnf /tmp/sample.ebnf
+
+# Parse and dump pretty AST to explicit output file
+cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin parseability_probe -- \
+  --parse-dump-ast-pretty ebnf /tmp/sample.ebnf /tmp/custom_ebnf_ast.json
 ```
 
 Examples:

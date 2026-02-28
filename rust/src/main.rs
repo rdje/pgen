@@ -49,8 +49,8 @@ struct Args {
     #[arg(long)]
     emit_raw_ast_json: Option<String>,
 
-    /// Dump the normalized generation-input AST JSON used by parser/stimuli generation (defaults to gen_ast.log)
-    #[arg(long, num_args = 0..=1, default_missing_value = "gen_ast.log")]
+    /// Dump the normalized generation-input AST JSON used by parser/stimuli generation (defaults to gen_ast.json)
+    #[arg(long, num_args = 0..=1, default_missing_value = "gen_ast.json")]
     dump_gen_ast: Option<String>,
 
     /// Pretty-print generation-input AST dump JSON
@@ -1812,7 +1812,7 @@ mod tests {
             rule_order: vec!["root".to_string()],
             annotations: None,
         };
-        let dump_path = unique_temp_path("gen_ast.log");
+        let dump_path = unique_temp_path("gen_ast.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();
         maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), false)
             .expect("dump succeeds");
@@ -1833,7 +1833,7 @@ mod tests {
             rule_order: vec![],
             annotations: None,
         };
-        let dump_path = unique_temp_path("gen_ast_pretty.log");
+        let dump_path = unique_temp_path("gen_ast_pretty.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();
         maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), true)
             .expect("pretty dump succeeds");

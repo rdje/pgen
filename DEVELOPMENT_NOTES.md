@@ -9736,8 +9736,8 @@ Without explicit planning, these observability capabilities risked being treated
 - Added a dedicated roadmap phase:
   - `Phase R (AST Observability and Debug Artifacts)` in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`.
 - Captured concrete deliverables:
-  - AST-pipeline CLI dump option for generation-input AST with default `gen_ast.log`,
-  - generated-parser runtime/API dump option for parser-returned AST with default `parser_ast.log`,
+  - AST-pipeline CLI dump option for generation-input AST with default `gen_ast.json`,
+  - generated-parser runtime/API dump option for parser-returned AST with default `<grammar>_ast.json`,
   - deterministic output-format/safety contract and bounded-size behavior,
   - gate-level validation requirements and documentation tasks.
 - Added a roadmap changelog entry for this planning increment.
@@ -9757,7 +9757,7 @@ This blocked deterministic AST introspection during grammar/codegen debugging an
 ### Fixes implemented
 - Added generation-input AST dump options in `rust/src/main.rs`:
   - `--dump-gen-ast [PATH]`
-    - optional value with deterministic default `gen_ast.log` when flag has no explicit path.
+    - optional value with deterministic default `gen_ast.json` when flag has no explicit path.
   - `--dump-gen-ast-pretty`
     - pretty JSON rendering mode for human inspection.
 - Added mode guard in CLI validation:
@@ -9789,3 +9789,32 @@ This blocked deterministic AST introspection during grammar/codegen debugging an
 - smoke run:
   - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/json.json --generate-stimuli --count 1 --dump-gen-ast /tmp/pgen_gen_ast.json --output /tmp/pgen_stimuli.txt`
   - confirmed dump artifact emitted and JSON-parseable.
+
+---
+
+## 2026-02-28: Parser-returned AST JSON dump defaults switched to grammar-based names
+
+### Root cause
+The initial parser-AST dump naming draft (`parser_ast.log`) did not align with desired JSON naming and grammar-specific artifact identity.
+
+### Fixes implemented
+- Updated parser-AST naming contract:
+  - default parser dump file is now `<grammar>_ast.json`.
+  - examples:
+    - `foolang_ast.json`
+    - `ebnf_ast.json`
+    - `regex_ast.json`
+    - `vhdl_ast.json`
+    - `systemverilog_ast.json`
+- Extended `parseability_probe` CLI in `rust/src/bin/parseability_probe.rs`:
+  - `--parse-dump-ast <grammar> <input_file> [output_file]`
+  - `--parse-dump-ast-pretty <grammar> <input_file> [output_file]`
+  - when output path is omitted, grammar-based default path is used.
+- Added parser-registry AST JSON path in `rust/src/parser_registry.rs`:
+  - `parse_sample_ast_json(grammar, sample)` for generated/builtin parse surfaces.
+- Extended serialization support:
+  - derive `serde::Serialize` for `ParseContent` and `ParseNode` in `rust/src/ast_pipeline/mod.rs` so parser return trees can be emitted as JSON.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml parser_registry --features generated_parsers,ebnf_dual_run`
+- `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers,ebnf_dual_run`

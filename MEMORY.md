@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-r-generation-input-ast-dump)
+Last updated: 2026-02-28 (+0100, task: phase-r-parser-ast-json-naming)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -1146,8 +1146,8 @@ Use this file to resume work without replaying full chat history.
   - AST dump debug needs were identified for two surfaces (generator-input AST and generated-parser returned AST) but were not tracked as explicit roadmap deliverables.
 - Fix:
   - Added `Phase R (AST Observability and Debug Artifacts)` in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with planned work items for:
-    - generator-input AST dump (`gen_ast.log`) CLI support,
-    - generated-parser returned-AST dump (`parser_ast.log`) runtime/API support,
+    - generator-input AST dump (`gen_ast.json`) CLI support,
+    - generated-parser returned-AST dump (`<grammar>_ast.json`) runtime/API support,
     - deterministic dump formatting/safety contracts,
     - gate-level validation and UG documentation tasks.
   - Synced planning entry into `CHANGES.md` and `DEVELOPMENT_NOTES.md`.
@@ -1159,7 +1159,7 @@ Use this file to resume work without replaying full chat history.
   - There was no executable CLI feature to dump the normalized AST consumed by generation paths (`--generate-parser`, `--generate-stimuli`, `--generate-stimuli-module`).
 - Fix:
   - Added CLI options in `rust/src/main.rs`:
-    - `--dump-gen-ast [PATH]` with deterministic default `gen_ast.log`,
+    - `--dump-gen-ast [PATH]` with deterministic default `gen_ast.json`,
     - `--dump-gen-ast-pretty` for pretty JSON mode.
   - Added mode guard:
     - dump option is valid only for generation modes.
@@ -1174,6 +1174,20 @@ Use this file to resume work without replaying full chat history.
   - `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run` passed (no clippy errors).
   - smoke run confirmed artifact output:
     - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/json.json --generate-stimuli --count 1 --dump-gen-ast /tmp/pgen_gen_ast.json --output /tmp/pgen_stimuli.txt`.
+
+### 2026-02-28: Implemented parser-returned AST dump CLI with grammar-based JSON defaults
+- Root cause:
+  - parser-returned AST dump naming used a generic log-style name and did not encode grammar identity by default.
+- Fix:
+  - updated parser dump naming contract to `<grammar>_ast.json`,
+  - added parseability CLI commands:
+    - `--parse-dump-ast`
+    - `--parse-dump-ast-pretty`
+  - added `parser_registry::parse_sample_ast_json(...)` to expose serialized parser-returned AST JSON,
+  - added `Serialize` derives for parse tree payloads (`ParseContent`, `ParseNode`) to enable JSON dump output.
+- Validation:
+  - `cargo test --manifest-path rust/Cargo.toml parser_registry --features generated_parsers,ebnf_dual_run` passed.
+  - `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers,ebnf_dual_run` passed.
 
 ### 2026-02-26: EBNF parseability promotion in non-annotation loop
 - Root cause:
@@ -1205,7 +1219,7 @@ Use this file to resume work without replaying full chat history.
 2. Continue Phase P semantic-closure implementation for SV:
    - promote currently optional semantic baseline toggles toward required contract checks once false-positive rate is controlled.
 3. Continue Phase R implementation for AST observability:
-   - generated-parser return-AST dump path (`parser_ast.log`),
+   - embedding API surface for parser-returned AST dump,
    - deterministic format/replay contract checks for both dump surfaces.
 4. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.

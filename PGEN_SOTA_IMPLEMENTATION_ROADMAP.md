@@ -443,13 +443,14 @@ Objective: make AST visibility first-class for generator and generated-parser de
 - [ ] Add AST-pipeline generation-input AST dump option:
 - [x] Add AST-pipeline generation-input AST dump option:
   - CLI switch to emit the normalized AST that feeds parser/stimuli codegen.
-  - path override support and deterministic default output path (`gen_ast.log`).
+  - path override support and deterministic default output path (`gen_ast.json`).
   - explicit enable/disable behavior so default non-debug runs remain unchanged.
-  - Progress (2026-02-28): implemented `ast_pipeline --dump-gen-ast [PATH]` (default `gen_ast.log`) and `--dump-gen-ast-pretty`; wired dump emission for `--generate-parser`, `--generate-stimuli`, and `--generate-stimuli-module` using the normalized in-memory grammar AST (name/rule_order/grammar_tree/annotations) serialized as JSON.
+  - Progress (2026-02-28): implemented `ast_pipeline --dump-gen-ast [PATH]` (default `gen_ast.json`) and `--dump-gen-ast-pretty`; wired dump emission for `--generate-parser`, `--generate-stimuli`, and `--generate-stimuli-module` using the normalized in-memory grammar AST (name/rule_order/grammar_tree/annotations) serialized as JSON.
 - [ ] Add generated-parser returned-AST dump option:
   - generated parser runtime switch to emit the parser return AST for a parsed snippet/file.
-  - path override support and deterministic default output path (`parser_ast.log`).
+  - path override support and deterministic default output path (`<grammar>_ast.json`).
   - support both parser-executable workflows and embedding API entry points.
+  - Progress (2026-02-28): added parser-executable dump path via `parseability_probe --parse-dump-ast` / `--parse-dump-ast-pretty`; default dump filename now resolves to `<grammar>_ast.json` (for example `foolang_ast.json`, `ebnf_ast.json`, `regex_ast.json`, `vhdl_ast.json`, `systemverilog_ast.json`) with explicit output-path override still supported.
 - [ ] Add dump-format and safety contract:
   - stable machine-readable format (`json`) plus human-readable pretty mode.
   - deterministic key/order normalization for replay/diff workflows.
@@ -480,8 +481,9 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
-- 2026-02-28: Completed Phase R generation-input AST dump milestone by adding `ast_pipeline --dump-gen-ast [PATH]` (`gen_ast.log` default) with optional pretty mode and generation-mode wiring (`--generate-parser|--generate-stimuli|--generate-stimuli-module`).
-- 2026-02-28: Added Phase R (`AST Observability and Debug Artifacts`) to roadmap, including planned CLI/API dump options for generator-input AST (`gen_ast.log`) and generated-parser return AST (`parser_ast.log`) with deterministic artifact contracts and gate-level validation.
+- 2026-02-28: Advanced Phase R generated-parser AST dump milestone by adding `parseability_probe --parse-dump-ast` / `--parse-dump-ast-pretty` with default grammar-based artifact naming (`<grammar>_ast.json`) and explicit output path override support.
+- 2026-02-28: Completed Phase R generation-input AST dump milestone by adding `ast_pipeline --dump-gen-ast [PATH]` (`gen_ast.json` default) with optional pretty mode and generation-mode wiring (`--generate-parser|--generate-stimuli|--generate-stimuli-module`).
+- 2026-02-28: Added Phase R (`AST Observability and Debug Artifacts`) to roadmap, including planned CLI/API dump options for generator-input AST (`gen_ast.json`) and generated-parser return AST (`<grammar>_ast.json`) with deterministic artifact contracts and gate-level validation.
 - 2026-02-28: Added deterministic width-compatibility semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v14 + `width_compatibility_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit contract/env policy controls and summary counters.
 - 2026-02-28: Added mandatory Rust-change clippy workflow hook (`make clippy_on_rust_change`) with scripted Rust/generated-Rust change detection, strict source clippy enforcement, generated-parser integration clippy execution, and strict opt-in policy (`PGEN_CLIPPY_GENERATED_STRICT=1`) for generated lint debt.
 - 2026-02-28: Added deterministic declared-identifier semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v13 + `declared_identifier_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit `foreach` iterator declaration fix and summary counters.
