@@ -441,9 +441,11 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 Objective: make AST visibility first-class for generator and generated-parser debugging, return-annotation verification, and deterministic failure triage.
 
 - [ ] Add AST-pipeline generation-input AST dump option:
+- [x] Add AST-pipeline generation-input AST dump option:
   - CLI switch to emit the normalized AST that feeds parser/stimuli codegen.
   - path override support and deterministic default output path (`gen_ast.log`).
   - explicit enable/disable behavior so default non-debug runs remain unchanged.
+  - Progress (2026-02-28): implemented `ast_pipeline --dump-gen-ast [PATH]` (default `gen_ast.log`) and `--dump-gen-ast-pretty`; wired dump emission for `--generate-parser`, `--generate-stimuli`, and `--generate-stimuli-module` using the normalized in-memory grammar AST (name/rule_order/grammar_tree/annotations) serialized as JSON.
 - [ ] Add generated-parser returned-AST dump option:
   - generated parser runtime switch to emit the parser return AST for a parsed snippet/file.
   - path override support and deterministic default output path (`parser_ast.log`).
@@ -478,6 +480,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Completed Phase R generation-input AST dump milestone by adding `ast_pipeline --dump-gen-ast [PATH]` (`gen_ast.log` default) with optional pretty mode and generation-mode wiring (`--generate-parser|--generate-stimuli|--generate-stimuli-module`).
 - 2026-02-28: Added Phase R (`AST Observability and Debug Artifacts`) to roadmap, including planned CLI/API dump options for generator-input AST (`gen_ast.log`) and generated-parser return AST (`parser_ast.log`) with deterministic artifact contracts and gate-level validation.
 - 2026-02-28: Added deterministic width-compatibility semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v14 + `width_compatibility_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit contract/env policy controls and summary counters.
 - 2026-02-28: Added mandatory Rust-change clippy workflow hook (`make clippy_on_rust_change`) with scripted Rust/generated-Rust change detection, strict source clippy enforcement, generated-parser integration clippy execution, and strict opt-in policy (`PGEN_CLIPPY_GENERATED_STRICT=1`) for generated lint debt.

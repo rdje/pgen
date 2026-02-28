@@ -653,18 +653,18 @@ impl RecursionGuard {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub enum ASTValue {
     Token(Vec<TokenValue>),
     Node(Box<ASTNode>),
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub enum TokenValue {
     String(String),
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub enum ASTNode {
     Or {
         alternatives: Vec<ASTNode>,
@@ -681,7 +681,7 @@ pub enum ASTNode {
     },
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct BranchAnnotation {
     pub annotation_type: String,
     pub annotation_content: String,
@@ -720,7 +720,7 @@ impl From<UnifiedSemanticAST> for SemanticAnnotation {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, Default)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Default)]
 pub struct Annotations {
     #[serde(default)]
     pub branch_return_annotations: std::collections::HashMap<String, Vec<Option<BranchAnnotation>>>,
@@ -728,7 +728,7 @@ pub struct Annotations {
     pub semantic_annotations: std::collections::HashMap<String, Vec<SemanticAnnotation>>,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct TransformMetadata {
     pub format: String,
     pub source_format: String,
@@ -740,7 +740,7 @@ pub struct TransformMetadata {
     pub stats: std::collections::HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct TransformedASTJson {
     pub grammar_name: String,
     pub grammar_tree: std::collections::HashMap<String, ASTNode>,

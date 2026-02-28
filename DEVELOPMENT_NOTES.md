@@ -9744,3 +9744,48 @@ Without explicit planning, these observability capabilities risked being treated
 
 ### Validation
 - Docs-only change; no runtime behavior changed in this increment.
+
+---
+
+## 2026-02-28: Implemented Phase R generator-input AST dump path (`--dump-gen-ast`)
+
+### Root cause
+Phase R planning was in place, but there was no executable CLI surface to export the normalized AST consumed by parser/stimuli generators.
+
+This blocked deterministic AST introspection during grammar/codegen debugging and slowed return-annotation pipeline triage.
+
+### Fixes implemented
+- Added generation-input AST dump options in `rust/src/main.rs`:
+  - `--dump-gen-ast [PATH]`
+    - optional value with deterministic default `gen_ast.log` when flag has no explicit path.
+  - `--dump-gen-ast-pretty`
+    - pretty JSON rendering mode for human inspection.
+- Added mode guard in CLI validation:
+  - `--dump-gen-ast` is only valid with:
+    - `--generate-parser`,
+    - `--generate-stimuli`,
+    - `--generate-stimuli-module`.
+- Added shared dump helper:
+  - `maybe_dump_generation_ast(...)`
+  - serializes normalized in-memory grammar bundle:
+    - `grammar_name`
+    - `rule_order`
+    - `grammar_tree`
+    - `annotations`
+  - writes JSON artifact to requested/default path.
+- Wired helper into all generation paths right after grammar loading, before parser/stimuli generation runs.
+- Extended serialization support in `rust/src/ast_pipeline/mod.rs`:
+  - derive `Serialize` for AST/annotation structures required by dump payload emission.
+- Added unit coverage in `rust/src/main.rs`:
+  - JSON dump content contract check,
+  - pretty-mode multiline contract check.
+- Updated user-facing documentation:
+  - added `--dump-gen-ast`/`--dump-gen-ast-pretty` contract section + examples in `PGEN_USER_GUIDE.md`.
+
+### Validation
+- `cargo fmt --manifest-path rust/Cargo.toml`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline`
+- `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run`
+- smoke run:
+  - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/json.json --generate-stimuli --count 1 --dump-gen-ast /tmp/pgen_gen_ast.json --output /tmp/pgen_stimuli.txt`
+  - confirmed dump artifact emitted and JSON-parseable.

@@ -10571,3 +10571,35 @@ Capture planned AST dump/debug capabilities as explicit executable roadmap work 
 
 ### Validation
 - Documentation update only (no runtime code path changed).
+
+---
+
+## 2026-02-28: Phase R generation-input AST dump CLI implemented
+
+### Goal
+Deliver the first executable Phase R observability feature: dump the normalized AST that feeds parser/stimuli generation.
+
+### Changes
+- Updated `rust/src/main.rs`:
+  - added `--dump-gen-ast [PATH]` CLI option with deterministic default path `gen_ast.log` when value is omitted,
+  - added `--dump-gen-ast-pretty` for pretty JSON output mode,
+  - restricted AST dump option to generation modes (`--generate-parser`, `--generate-stimuli`, `--generate-stimuli-module`),
+  - added shared dump helper and wired it into all three generation paths.
+- Updated `rust/src/ast_pipeline/mod.rs`:
+  - added `serde::Serialize` derives for AST/annotation payload types used by dump serialization (`ASTValue`, `TokenValue`, `ASTNode`, `BranchAnnotation`, `Annotations`, `TransformMetadata`, `TransformedASTJson`).
+- Added regression coverage in `rust/src/main.rs` tests:
+  - validates JSON dump artifact generation/content,
+  - validates pretty mode emits multiline JSON.
+- Updated `PGEN_USER_GUIDE.md`:
+  - documented `--dump-gen-ast [PATH]` and `--dump-gen-ast-pretty`,
+  - added mode contract and concrete usage examples.
+- Updated roadmap progress in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+  - marked Phase R item 1 complete with explicit progress note.
+
+### Validation
+- `cargo fmt --manifest-path rust/Cargo.toml`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline`
+- `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run`
+- Manual smoke:
+  - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/json.json --generate-stimuli --count 1 --dump-gen-ast /tmp/pgen_gen_ast.json --output /tmp/pgen_stimuli.txt`
+  - confirmed `/tmp/pgen_gen_ast.json` is valid JSON AST dump.

@@ -181,6 +181,8 @@ High-value stimuli flags:
 - `--entry-rule`
 - `--max-depth`
 - `--max-repeat`
+- `--dump-gen-ast [PATH]`
+- `--dump-gen-ast-pretty`
 - `--recovery-stimuli-mode` (`baseline`, `recovery_biased`, `near_sync_negative`)
 - `--validate-parseability`
 - `--coverage-input`
@@ -237,6 +239,46 @@ Trace line origin contract:
 Environment controls:
 - `PGEN_TRACE_VERBOSITY` (fallback: `PGEN_VERBOSITY`)
 - `PGEN_TRACE_LOG_FILE`
+
+### Generation-Input AST Dump (Phase R Item 1)
+Use the generation-input AST dump when you need to inspect the exact normalized AST consumed by parser/stimuli generators.
+
+CLI controls:
+- `--dump-gen-ast [PATH]`
+  - writes JSON dump of:
+    - `grammar_name`,
+    - `rule_order`,
+    - `grammar_tree`,
+    - `annotations`.
+  - if flag is present with no value, default path is `gen_ast.log`.
+- `--dump-gen-ast-pretty`
+  - pretty JSON formatting mode (requires `--dump-gen-ast`).
+
+Mode contract:
+- `--dump-gen-ast` is valid only with generation modes:
+  - `--generate-parser`
+  - `--generate-stimuli`
+  - `--generate-stimuli-module`
+
+Examples:
+```bash
+# Default dump path (gen_ast.log) while generating parser
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/json.json \
+  --generate-parser \
+  --output /tmp/json_parser.rs \
+  --dump-gen-ast
+
+# Explicit dump path + pretty JSON while generating stimuli
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/json.json \
+  --generate-stimuli \
+  --count 8 \
+  --seed 7 \
+  --dump-gen-ast /tmp/gen_ast.json \
+  --dump-gen-ast-pretty \
+  --output /tmp/json_stimuli.txt
+```
 
 Examples:
 ```bash

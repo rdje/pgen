@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: roadmap-phase-r-ast-observability)
+Last updated: 2026-02-28 (+0100, task: phase-r-generation-input-ast-dump)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -1154,6 +1154,27 @@ Use this file to resume work without replaying full chat history.
 - Validation:
   - docs-only planning increment; no runtime behavior changed.
 
+### 2026-02-28: Implemented Phase R item 1 (`--dump-gen-ast`) in `ast_pipeline`
+- Root cause:
+  - There was no executable CLI feature to dump the normalized AST consumed by generation paths (`--generate-parser`, `--generate-stimuli`, `--generate-stimuli-module`).
+- Fix:
+  - Added CLI options in `rust/src/main.rs`:
+    - `--dump-gen-ast [PATH]` with deterministic default `gen_ast.log`,
+    - `--dump-gen-ast-pretty` for pretty JSON mode.
+  - Added mode guard:
+    - dump option is valid only for generation modes.
+  - Added shared dump helper:
+    - serializes `grammar_name`, `rule_order`, `grammar_tree`, and `annotations`.
+  - Wired dump helper into all generation paths after grammar load.
+  - Added serialization derives in `rust/src/ast_pipeline/mod.rs` for AST/annotation payload types needed by dump output.
+  - Added tests in `rust/src/main.rs` covering dump artifact content and pretty formatting.
+  - Updated `PGEN_USER_GUIDE.md` with a dedicated generation-input AST dump section and examples.
+- Validation:
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline` passed.
+  - `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run` passed (no clippy errors).
+  - smoke run confirmed artifact output:
+    - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/json.json --generate-stimuli --count 1 --dump-gen-ast /tmp/pgen_gen_ast.json --output /tmp/pgen_stimuli.txt`.
+
 ### 2026-02-26: EBNF parseability promotion in non-annotation loop
 - Root cause:
   - `ebnf` parseability was optional in contract due to missing executable registry path.
@@ -1183,10 +1204,9 @@ Use this file to resume work without replaying full chat history.
    - provide project-level runner scripts for available external preprocessors and start collecting taxonomy deltas on curated corpora.
 2. Continue Phase P semantic-closure implementation for SV:
    - promote currently optional semantic baseline toggles toward required contract checks once false-positive rate is controlled.
-3. Start Phase R implementation for AST observability:
-   - generator-input AST dump path,
-   - generated-parser return-AST dump path,
-   - deterministic format/replay contract checks.
+3. Continue Phase R implementation for AST observability:
+   - generated-parser return-AST dump path (`parser_ast.log`),
+   - deterministic format/replay contract checks for both dump surfaces.
 4. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 5. Expand contractized SV/VHDL corpora:

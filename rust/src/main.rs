@@ -9,17 +9,17 @@ use pgen::ast_pipeline::stimuli_generator::{
     StimuliGenerator,
 };
 use pgen::ast_pipeline::{
+    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
     ast_generator_direct::generate_parser_ast_based, configure_trace_output,
-    resolve_trace_verbosity, set_global_trace_verbosity, ASTNode, Annotations, PipelineConfig,
-    RustASTPipeline, TraceVerbosity, TransformedASTJson,
+    resolve_trace_verbosity, set_global_trace_verbosity,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
 use pgen::sv_preprocessor::{
-    parse_strict_warning_codes, preprocess_systemverilog_file, ConditionalExprPolicy,
-    ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy, SvPreprocessorConfig,
+    ConditionalExprPolicy, ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
+    SvPreprocessorConfig, parse_strict_warning_codes, preprocess_systemverilog_file,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -33,7 +33,7 @@ const DEFAULT_STIMULI_MODULE_SEED: u64 = 1;
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
 #[command(
-    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, emit Rust stimuli modules, or preprocess SystemVerilog source files.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF frontend: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module\n  3. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  4. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  5. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]\n  6. SV preprocess stage: ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]"
+    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, emit Rust stimuli modules, or preprocess SystemVerilog source files.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF frontend: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module\n  3. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  4. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  5. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]\n  6. SV preprocess stage: ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]\n  7. Generation-input AST dump: ast_pipeline INPUT --generate-* --dump-gen-ast [PATH]"
 )]
 struct Args {
     /// Input grammar source file (.json raw/transformed AST, or .ebnf when built with --features ebnf_dual_run)
@@ -48,6 +48,14 @@ struct Args {
     /// When INPUT is .ebnf, optionally write the Rust-frontend raw_ast envelope JSON to this file
     #[arg(long)]
     emit_raw_ast_json: Option<String>,
+
+    /// Dump the normalized generation-input AST JSON used by parser/stimuli generation (defaults to gen_ast.log)
+    #[arg(long, num_args = 0..=1, default_missing_value = "gen_ast.log")]
+    dump_gen_ast: Option<String>,
+
+    /// Pretty-print generation-input AST dump JSON
+    #[arg(long, requires = "dump_gen_ast")]
+    dump_gen_ast_pretty: bool,
 
     /// Enable debug output
     #[arg(long, short = 'd')]
@@ -251,6 +259,14 @@ struct LoadedGrammar {
     annotations: Option<Annotations>,
 }
 
+#[derive(Debug, Serialize)]
+struct GenerationAstDump<'a> {
+    grammar_name: &'a str,
+    rule_order: &'a [String],
+    grammar_tree: &'a HashMap<String, ASTNode>,
+    annotations: Option<&'a Annotations>,
+}
+
 #[derive(Debug, Clone)]
 struct ParseabilitySummary {
     requested: usize,
@@ -351,6 +367,14 @@ fn main() -> Result<()> {
                 "--validate-parseability/--coverage-*/--gap-report-*/--recovery-stimuli-mode require --generate-stimuli or --generate-stimuli-module"
             ));
         }
+    }
+
+    if args.dump_gen_ast.is_some()
+        && !(args.generate_parser || args.generate_stimuli || args.generate_stimuli_module)
+    {
+        return Err(anyhow::anyhow!(
+            "--dump-gen-ast requires --generate-parser, --generate-stimuli, or --generate-stimuli-module"
+        ));
     }
 
     if args.preprocess_systemverilog {
@@ -490,6 +514,11 @@ fn main() -> Result<()> {
             &mut pipeline,
             args.emit_raw_ast_json.as_deref(),
         )?;
+        maybe_dump_generation_ast(
+            &grammar,
+            args.dump_gen_ast.as_deref(),
+            args.dump_gen_ast_pretty,
+        )?;
 
         // Generate parser through the direct AST integration path so typed annotation
         // validation and strict CI policies apply to normal CLI generation as well.
@@ -509,6 +538,11 @@ fn main() -> Result<()> {
             &args.input_path,
             &mut pipeline,
             args.emit_raw_ast_json.as_deref(),
+        )?;
+        maybe_dump_generation_ast(
+            &grammar,
+            args.dump_gen_ast.as_deref(),
+            args.dump_gen_ast_pretty,
         )?;
         let effective_seed = resolve_stimuli_module_seed(args.seed);
         if args.seed.is_none() {
@@ -612,6 +646,11 @@ fn main() -> Result<()> {
             &args.input_path,
             &mut pipeline,
             args.emit_raw_ast_json.as_deref(),
+        )?;
+        maybe_dump_generation_ast(
+            &grammar,
+            args.dump_gen_ast.as_deref(),
+            args.dump_gen_ast_pretty,
         )?;
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
         let stimuli_config = StimuliConfig {
@@ -846,6 +885,31 @@ fn main() -> Result<()> {
         println!("  Pipeline: Rust AST Pipeline v1.0");
     }
 
+    Ok(())
+}
+
+fn maybe_dump_generation_ast(
+    grammar: &LoadedGrammar,
+    output_path: Option<&str>,
+    pretty: bool,
+) -> Result<()> {
+    let Some(path) = output_path else {
+        return Ok(());
+    };
+
+    let dump = GenerationAstDump {
+        grammar_name: grammar.grammar_name.as_str(),
+        rule_order: grammar.rule_order.as_slice(),
+        grammar_tree: &grammar.grammar_tree,
+        annotations: grammar.annotations.as_ref(),
+    };
+    let json = if pretty {
+        serde_json::to_string_pretty(&dump)?
+    } else {
+        serde_json::to_string(&dump)?
+    };
+    std::fs::write(path, json)?;
+    println!("Wrote generation-input AST JSON to {}", path);
     Ok(())
 }
 
@@ -1650,14 +1714,28 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 #[cfg(test)]
 mod tests {
     use super::{
-        coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
-        generate_stimuli_module_source, is_ebnf_input_path, minimize_failing_input,
-        minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode, resolve_stimuli_module_seed,
-        supported_generated_parseability_grammars, supports_generated_parseability,
-        FuzzCorpusCandidate, StimuliCoverageMetrics,
+        FuzzCorpusCandidate, LoadedGrammar, StimuliCoverageMetrics, coverage_branch_hit_delta,
+        default_parser_output_path, default_stimuli_module_output_path,
+        generate_stimuli_module_source, is_ebnf_input_path, maybe_dump_generation_ast,
+        minimize_failing_input, minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
+        resolve_stimuli_module_seed, supported_generated_parseability_grammars,
+        supports_generated_parseability,
     };
     use pgen::ast_pipeline::stimuli_generator::{BranchCoverageGroup, RecoveryStimuliMode};
+    use pgen::ast_pipeline::{ASTNode, ASTValue, TokenValue};
     use std::collections::{HashMap, HashSet};
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn unique_temp_path(file_name: &str) -> PathBuf {
+        let mut path = std::env::temp_dir();
+        let now_nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        path.push(format!("pgen_{}_{}", now_nanos, file_name));
+        path
+    }
 
     #[test]
     fn supports_known_generated_parseability_grammars() {
@@ -1717,6 +1795,54 @@ mod tests {
 
         let selected = minimize_fuzz_corpus_cases(&cases);
         assert_eq!(selected, vec![1]);
+    }
+
+    #[test]
+    fn generation_ast_dump_writes_json_log() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "root".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![TokenValue::String("kw_root".to_string())]),
+            },
+        );
+        let grammar = LoadedGrammar {
+            grammar_name: "demo".to_string(),
+            grammar_tree,
+            rule_order: vec!["root".to_string()],
+            annotations: None,
+        };
+        let dump_path = unique_temp_path("gen_ast.log");
+        let dump_path_str = dump_path.to_string_lossy().to_string();
+        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), false)
+            .expect("dump succeeds");
+
+        let raw = std::fs::read_to_string(&dump_path).expect("read dump");
+        let json: serde_json::Value = serde_json::from_str(&raw).expect("json parse");
+        assert_eq!(json["grammar_name"], "demo");
+        assert_eq!(json["rule_order"], serde_json::json!(["root"]));
+
+        let _ = std::fs::remove_file(dump_path);
+    }
+
+    #[test]
+    fn generation_ast_dump_pretty_mode_is_multiline() {
+        let grammar = LoadedGrammar {
+            grammar_name: "demo_pretty".to_string(),
+            grammar_tree: HashMap::new(),
+            rule_order: vec![],
+            annotations: None,
+        };
+        let dump_path = unique_temp_path("gen_ast_pretty.log");
+        let dump_path_str = dump_path.to_string_lossy().to_string();
+        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), true)
+            .expect("pretty dump succeeds");
+
+        let raw = std::fs::read_to_string(&dump_path).expect("read dump");
+        assert!(raw.contains('\n'));
+        assert!(raw.contains("  \"grammar_name\""));
+
+        let _ = std::fs::remove_file(dump_path);
     }
 
     #[test]
