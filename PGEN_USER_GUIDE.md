@@ -2136,6 +2136,13 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE` (override declared-identifier deterministic contract corpus path)
 - `PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE` (`0`/`1`, overrides contract enforcement toggle)
+- `PGEN_SV_STIMULI_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_STIMULI_DIFF_MAX_SAMPLES` (default `8`)
+- `PGEN_SV_STIMULI_REFERENCE_RUNNER` (path to executable trusted-reference parser runner script; required for strict differential mode)
+- `PGEN_SV_STIMULI_PERF_BUDGET_MODE` (`auto`/`0`/`1`, default `auto`)
+  - `0`: disable SV performance/memory-proxy budget checks.
+  - `auto`: follow contract toggle `performance_budgets.enforce`.
+  - `1`: strict-enable budget checks regardless of contract toggle.
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
 
 Optional VHDL stimuli quality-gate tuning:
@@ -2184,6 +2191,50 @@ Optional SV syntax-closure gate tuning:
     - `replay_preprocess_errors <= initial_preprocess_errors` (per profile)
 - per-sample deterministic flow:
   - `stimuli_generate -> preprocess -> parse_full(optional) -> semantic_validate_baseline`.
+- trusted-reference differential taxonomy:
+  - gate emits parser differential report JSON at:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_differential_report.json`
+  - runner interface contract (`PGEN_SV_STIMULI_REFERENCE_RUNNER`):
+    - positional args:
+      - `$1`: preprocessed SV sample file
+      - `$2`: output AST JSON file path (runner may emit placeholder JSON)
+      - `$3`: output diagnostics JSON file path (must be JSON array; `[]` allowed)
+    - exit code contract:
+      - `0`: reference parser accepted input
+      - non-zero: reference parser rejected input / failed parse
+  - differential modes:
+    - `0`: disabled
+    - `auto`: enabled when runner is executable and mode is parse-full eligible
+    - `1`: strict (fails when prerequisites are missing or when asymmetric parseability mismatches occur)
+  - taxonomy categories:
+    - `match`
+    - `rust_failed_reference_passed`
+    - `reference_failed_rust_passed`
+    - `both_failed`
+    - `reference_artifact_missing`
+  - strict differential example:
+```bash
+PGEN_SV_STIMULI_DIFF_MODE=1 \
+PGEN_SV_STIMULI_REFERENCE_RUNNER=/abs/path/to/reference_parser_runner.sh \
+make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
+```
+- deterministic performance/memory-proxy budget stage:
+  - contract keys (`systemverilog_core_v0_contract.json`):
+    - `performance_budgets.enforce`
+    - `performance_budgets.max_generate_ms_per_sample`
+    - `performance_budgets.max_preprocess_ms_per_sample`
+    - `performance_budgets.max_parse_full_ms_per_sample`
+    - `performance_budgets.max_sample_bytes`
+    - `performance_budgets.max_preprocessed_bytes`
+  - mode control:
+    - `PGEN_SV_STIMULI_PERF_BUDGET_MODE=auto|0|1`
+  - deterministic report artifact:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_performance_report.json`
+  - summary metrics include:
+    - effective mode/note,
+    - threshold values,
+    - observed per-stage totals/averages/maxima,
+    - max generated/preprocessed sample size.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

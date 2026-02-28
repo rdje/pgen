@@ -336,6 +336,16 @@ Toolbox baseline to leverage end-to-end:
   - mismatch taxonomy against trusted references,
   - performance/memory budgets on realistic SV corpora,
   - embedding contract checks for Nexsim parser API usage.
+  - Progress (2026-02-28): added trusted-reference parser differential stage to `sv_stimuli_quality_gate` with configurable execution controls:
+    - `PGEN_SV_STIMULI_DIFF_MODE=auto|0|1`
+    - `PGEN_SV_STIMULI_DIFF_MAX_SAMPLES`
+    - `PGEN_SV_STIMULI_REFERENCE_RUNNER`
+    Gate now emits deterministic mismatch taxonomy report JSON (`systemverilog_differential_report.json`) with per-case artifacts, and strict mode fails on asymmetric parseability mismatches.
+  - Progress (2026-02-28): added deterministic performance/memory-proxy budget stage to `sv_stimuli_quality_gate` (`systemverilog_core_v0_contract.json` v15):
+    - contract section: `performance_budgets` (`enforce`, per-sample stage-time thresholds, sample/preprocessed size thresholds),
+    - runtime mode control: `PGEN_SV_STIMULI_PERF_BUDGET_MODE=auto|0|1`,
+    - deterministic report artifact: `systemverilog_performance_report.json`,
+    - strict budget enforcement now fails on threshold breaches while preserving parse-full optional-mode behavior.
   - Progress (2026-02-27): added executable `make nexsim_parser_embedding_contract_gate` (`rust/scripts/nexsim_parser_embedding_contract_gate.sh`) and wired it into `embedding_api_gate` so parser-profile contract checks are continuously enforced in both bootstrap and `generated_parsers` modes.
 - [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
@@ -481,6 +491,8 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Advanced Phase P Nexsim differential/integration hardening by adding contractized SV stimuli performance/memory-proxy budget enforcement in `sv_stimuli_quality_gate` (`performance_budgets` in `systemverilog_core_v0_contract.json` v15, `PGEN_SV_STIMULI_PERF_BUDGET_MODE=auto|0|1`, deterministic `systemverilog_performance_report.json` artifact).
+- 2026-02-28: Advanced Phase P Nexsim differential-hardening by adding trusted-reference parser mismatch taxonomy in `sv_stimuli_quality_gate` (`auto|strict` modes, per-case artifacts, and deterministic `systemverilog_differential_report.json` output).
 - 2026-02-28: Advanced Phase Q preprocessor closure by enabling executable `systemverilog_preprocessor` parseability validation in `sv_preprocessor_quality_gate` through dynamic generated-parser adapter wiring + gate-side parser generation/rebuild (`PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`), moving parseability from adapter-skipped to active in auto mode.
 - 2026-02-28: Advanced Phase R generated-parser AST dump milestone by adding `parseability_probe --parse-dump-ast` / `--parse-dump-ast-pretty` with default grammar-based artifact naming (`<grammar>_ast.json`) and explicit output path override support.
 - 2026-02-28: Completed Phase R generation-input AST dump milestone by adding `ast_pipeline --dump-gen-ast [PATH]` (`gen_ast.json` default) with optional pretty mode and generation-mode wiring (`--generate-parser|--generate-stimuli|--generate-stimuli-module`).

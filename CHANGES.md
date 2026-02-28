@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-02-28 - Phase P Nexsim Hardening: SV Stimuli Performance/Memory Budget Gate
+### ✅ Achievement Summary
+Added deterministic performance/memory-proxy budget enforcement to `sv_stimuli_quality_gate` with contractized thresholds, runtime mode control, and a machine-readable report artifact.
+
+### Scope of Changes
+- Extended SV core quality contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump:
+    - `14 -> 15`
+  - added section:
+    - `performance_budgets`:
+      - `enforce`
+      - `max_generate_ms_per_sample`
+      - `max_preprocess_ms_per_sample`
+      - `max_parse_full_ms_per_sample`
+      - `max_sample_bytes`
+      - `max_preprocessed_bytes`
+- Extended gate runtime in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - added mode control:
+    - `PGEN_SV_STIMULI_PERF_BUDGET_MODE=auto|0|1`
+  - added per-sample measurements and threshold enforcement for:
+    - stimuli generation time,
+    - preprocessor stage time,
+    - parse-full stage time (when parse-full stage is active),
+    - generated sample size,
+    - preprocessed sample size.
+  - added deterministic report artifact:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_performance_report.json`
+  - summary now reports:
+    - effective budget mode/note,
+    - configured thresholds,
+    - observed totals/averages/maxima.
+- Updated docs continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+
 ## 2026-02-28 - Workflow Hardening: Mandatory Clippy Flow on Rust/Generated-Rust Changes
 ### ✅ Achievement Summary
 Added a workflow-level clippy gate command and documentation contract so clippy is executed whenever Rust sources or generated Rust parser files are amended.
@@ -10659,3 +10703,41 @@ Make `sv_preprocessor_quality_gate` execute real generated-parser parseability v
 - Gate summary now reports:
   - `parseability_mode_effective: enabled`
   - with full deterministic stage pass.
+
+---
+
+## 2026-02-28: Phase P SV trusted-reference differential taxonomy stage (Nexsim hardening)
+
+### Goal
+Advance Nexsim-facing SV parser hardening by adding an executable trusted-reference differential stage to `sv_stimuli_quality_gate` with explicit mismatch taxonomy and strict/auto policies.
+
+### Changes
+- Updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+  - added differential controls:
+    - `PGEN_SV_STIMULI_DIFF_MODE=auto|0|1`
+    - `PGEN_SV_STIMULI_DIFF_MAX_SAMPLES`
+    - `PGEN_SV_STIMULI_REFERENCE_RUNNER`
+  - added deterministic parser differential stage over preprocessed samples:
+    - Rust side: `parseability_probe --parse systemverilog`
+    - reference side: external runner (`$1=input`, `$2=ast_json`, `$3=diagnostics_json`)
+  - added mismatch taxonomy classification and per-case artifact capture:
+    - `match`
+    - `rust_failed_reference_passed`
+    - `reference_failed_rust_passed`
+    - `both_failed`
+    - `reference_artifact_missing`
+  - emits deterministic report:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_differential_report.json`
+  - strict mode behavior:
+    - fails when prerequisites are missing (runner/parseability eligibility),
+    - fails when asymmetric differential mismatches are detected.
+- Updated docs/roadmap tracking:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+
+### Validation
+- Smoke with differential disabled:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Smoke with differential enabled (`auto`) using reference-runner shim:
+  - runner emits `[]` diagnostics JSON and `0` exit for parse acceptance contract exercise.
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=auto PGEN_SV_STIMULI_REFERENCE_RUNNER=<shim> PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`

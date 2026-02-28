@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-q-sv-preprocessor-parseability-adapter-activation)
+Last updated: 2026-02-28 (+0100, task: phase-p-sv-performance-memory-budget-stage)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,48 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Added contractized SV stimuli performance/memory-proxy budget stage (Phase P)
+- Root cause:
+  - Phase P differential/integration hardening required enforceable performance and memory-proxy guardrails, but `sv_stimuli_quality_gate` had no deterministic budget contract/report.
+- Fix:
+  - promoted `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `v15` with `performance_budgets`:
+    - `enforce`
+    - `max_generate_ms_per_sample`
+    - `max_preprocess_ms_per_sample`
+    - `max_parse_full_ms_per_sample`
+    - `max_sample_bytes`
+    - `max_preprocessed_bytes`
+  - extended `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - mode control: `PGEN_SV_STIMULI_PERF_BUDGET_MODE=auto|0|1`,
+    - per-sample timing checks for generation/preprocess/parse_full (when active),
+    - per-sample size checks for generated/preprocessed artifacts,
+    - deterministic report output:
+      - `rust/target/sv_stimuli_quality_gate/work/systemverilog_performance_report.json`.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` passed.
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh` passed.
+
+### 2026-02-28: Added trusted-reference differential taxonomy stage to `sv_stimuli_quality_gate` (Phase P)
+- Root cause:
+  - Phase P required mismatch taxonomy against trusted references for Nexsim parser hardening, but `sv_stimuli_quality_gate` had no executable differential stage.
+- Fix:
+  - added differential controls in `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - `PGEN_SV_STIMULI_DIFF_MODE=auto|0|1`
+    - `PGEN_SV_STIMULI_DIFF_MAX_SAMPLES`
+    - `PGEN_SV_STIMULI_REFERENCE_RUNNER`
+  - added trusted-reference differential execution over preprocessed samples using:
+    - Rust parseability via `parseability_probe --parse systemverilog`,
+    - reference parseability via runner interface (`$1 input`, `$2 ast_json`, `$3 diagnostics_json`).
+  - added deterministic taxonomy report artifact:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_differential_report.json`
+  - added strict-mode behavior:
+    - fail on missing prerequisites,
+    - fail on asymmetric mismatch categories.
+- Validation:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=auto PGEN_SV_STIMULI_REFERENCE_RUNNER=<shim> PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh` passed.
 
 ### 2026-02-28: Enabled executable parseability validation for `systemverilog_preprocessor` in Phase Q gate
 - Root cause:

@@ -1,6 +1,6 @@
 {
-  "version": 14,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier and width-compatibility semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, and mode-level stimuli steering policy.",
+  "version": 15,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier and width-compatibility semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, and deterministic performance/memory-proxy budget checks.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -93,6 +93,14 @@
     "enforce_declared_identifier_suite": true,
     "width_compatibility_suite_path": "rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json",
     "enforce_width_compatibility_suite": true
+  },
+  "performance_budgets": {
+    "enforce": true,
+    "max_generate_ms_per_sample": 10000,
+    "max_preprocess_ms_per_sample": 10000,
+    "max_parse_full_ms_per_sample": 15000,
+    "max_sample_bytes": 1048576,
+    "max_preprocessed_bytes": 1048576
   },
   "semantic_baseline": {
     "require_nonempty_preprocessed_output": true,

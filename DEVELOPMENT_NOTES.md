@@ -9862,3 +9862,102 @@ In practice, the adapter path was not wired, so `auto` mode often degraded to `u
 - Result:
   - pass,
   - summary confirms `parseability_mode_effective=enabled`.
+
+---
+
+## 2026-02-28: Added trusted-reference parser differential taxonomy to `sv_stimuli_quality_gate`
+
+### Root cause
+Phase P Nexsim hardening required mismatch taxonomy against trusted references, but `sv_stimuli_quality_gate` only validated internal parse/full + semantic baseline behavior.
+
+There was no executable differential stage producing a taxonomy report for parser disagreement cases.
+
+### Fixes implemented
+- Extended `rust/scripts/sv_stimuli_quality_gate.sh` with differential stage controls:
+  - `PGEN_SV_STIMULI_DIFF_MODE=auto|0|1`
+  - `PGEN_SV_STIMULI_DIFF_MAX_SAMPLES`
+  - `PGEN_SV_STIMULI_REFERENCE_RUNNER`
+- Added trusted-reference runner integration:
+  - runner interface:
+    - `$1`: preprocessed sample input
+    - `$2`: reference AST JSON artifact path
+    - `$3`: reference diagnostics JSON artifact path (array contract)
+  - reference exit code defines acceptance/rejection outcome for differential comparison.
+- Added taxonomy classification and deterministic report emission:
+  - categories:
+    - `match`
+    - `rust_failed_reference_passed`
+    - `reference_failed_rust_passed`
+    - `both_failed`
+    - `reference_artifact_missing`
+  - report artifact:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_differential_report.json`
+  - per-case logs/artifact paths are embedded in report records.
+- Added strict-mode enforcement semantics:
+  - strict differential mode fails on missing prerequisites (runner, parseability eligibility),
+  - strict differential mode fails on asymmetric mismatches (`rust_failed_reference_passed`, `reference_failed_rust_passed`, `reference_artifact_missing`).
+- Updated roadmap/user-guide contract text to reflect executable differential stage and runner contract.
+
+### Validation
+- Baseline smoke:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Differential-enabled smoke with shim reference runner:
+  - runner emitted diagnostics array (`[]`) and success exit for interface contract check,
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=auto PGEN_SV_STIMULI_REFERENCE_RUNNER=<shim> PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Result:
+  - gate passed in both runs,
+  - differential report emitted with taxonomy counters.
+
+---
+
+## 2026-02-28: Added contractized performance/memory-proxy budget stage to `sv_stimuli_quality_gate`
+
+### Root cause
+Phase P Nexsim hardening required explicit performance/memory guardrails in the SV stimuli quality loop, but `sv_stimuli_quality_gate` had no deterministic budget contract.
+
+As a result:
+- regressions in per-sample stage runtime or generated sample size could slip through gate runs,
+- there was no machine-readable performance artifact to review alongside differential/semantic reports.
+
+### Fixes implemented
+- Extended core quality contract:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version `14 -> 15`
+  - added `performance_budgets` section:
+    - `enforce`
+    - `max_generate_ms_per_sample`
+    - `max_preprocess_ms_per_sample`
+    - `max_parse_full_ms_per_sample`
+    - `max_sample_bytes`
+    - `max_preprocessed_bytes`
+- Extended gate controls and runtime enforcement in:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - new mode control:
+    - `PGEN_SV_STIMULI_PERF_BUDGET_MODE=auto|0|1`
+      - `auto`: follow contract `performance_budgets.enforce`
+      - `0`: disable checks
+      - `1`: strict-enable checks
+- Added deterministic per-sample measurements and threshold checks:
+  - stage timings:
+    - stimuli generation
+    - preprocess
+    - parse_full (when parse_full stage is active)
+  - size checks:
+    - generated sample bytes
+    - preprocessed sample bytes
+- Added deterministic report artifact:
+  - `rust/target/sv_stimuli_quality_gate/work/systemverilog_performance_report.json`
+  - includes:
+    - requested/effective mode,
+    - threshold values,
+    - observed totals/averages/maxima.
+- Summary output now surfaces performance budget mode, thresholds, observed metrics, and report path.
+
+### Validation
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- reduced-cost strict-budget smoke:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Result:
+  - gate passed,
+  - deterministic performance report emitted with configured thresholds and observed metrics.

@@ -23,6 +23,10 @@ DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIE
 ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE:-}"
 WIDTH_COMPAT_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_WIDTH_COMPAT_SUITE:-}"
 ENFORCE_WIDTH_COMPAT_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_WIDTH_COMPAT_SUITE:-}"
+DIFF_MODE="${PGEN_SV_STIMULI_DIFF_MODE:-auto}"
+DIFF_MAX_SAMPLES="${PGEN_SV_STIMULI_DIFF_MAX_SAMPLES:-8}"
+DIFF_REFERENCE_RUNNER="${PGEN_SV_STIMULI_REFERENCE_RUNNER:-}"
+PERF_BUDGET_MODE="${PGEN_SV_STIMULI_PERF_BUDGET_MODE:-auto}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
@@ -57,6 +61,26 @@ require_nonempty_file() {
     local path="$1"
     if [[ ! -s "$path" ]]; then
         echo "error: expected non-empty artifact '$path'" >&2
+        exit 1
+    fi
+}
+
+now_ms() {
+    perl -MTime::HiRes=time -e 'printf "%.0f\n", time()*1000'
+}
+
+file_size_bytes() {
+    perl -e 'my $f = shift; my $s = -s $f; print defined($s) ? $s : 0;' "$1"
+}
+
+enforce_threshold_le() {
+    local enabled="$1"
+    local metric="$2"
+    local value="$3"
+    local max_allowed="$4"
+    local context="$5"
+    if [[ "$enabled" -eq 1 && "$max_allowed" -gt 0 && "$value" -gt "$max_allowed" ]]; then
+        echo "error: ${metric} budget exceeded for ${context} (${value} > ${max_allowed})" >&2
         exit 1
     fi
 }
@@ -830,6 +854,18 @@ if [[ "$PARSE_FULL_MODE" != "auto" && "$PARSE_FULL_MODE" != "0" && "$PARSE_FULL_
     echo "error: PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE must be one of: auto, 0, 1" >&2
     exit 2
 fi
+if [[ "$DIFF_MODE" != "auto" && "$DIFF_MODE" != "0" && "$DIFF_MODE" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_DIFF_MODE must be one of: auto, 0, 1" >&2
+    exit 2
+fi
+if [[ "$PERF_BUDGET_MODE" != "auto" && "$PERF_BUDGET_MODE" != "0" && "$PERF_BUDGET_MODE" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_PERF_BUDGET_MODE must be one of: auto, 0, 1" >&2
+    exit 2
+fi
+if ! [[ "$DIFF_MAX_SAMPLES" =~ ^[0-9]+$ ]] || [[ "$DIFF_MAX_SAMPLES" -lt 1 ]]; then
+    echo "error: PGEN_SV_STIMULI_DIFF_MAX_SAMPLES must be an integer >= 1" >&2
+    exit 2
+fi
 if [[ "$SEMANTIC_CLOSURE_MODE" != "0" && "$SEMANTIC_CLOSURE_MODE" != "1" ]]; then
     echo "error: PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE must be 0 or 1" >&2
     exit 2
@@ -876,6 +912,12 @@ failure_replay_enabled="$(jq -er 'if (.failure_replay.enabled // true) then 1 el
 shrink_semantic_failures="$(jq -er 'if (.failure_replay.shrink_semantic_failures // true) then 1 else 0 end' "$CONTRACT_FILE")"
 shrink_parse_full_failures="$(jq -er 'if (.failure_replay.shrink_parse_full_failures // true) then 1 else 0 end' "$CONTRACT_FILE")"
 failure_shrink_max_iterations="$(jq -er '(.failure_replay.shrink_max_iterations // 24) | numbers' "$CONTRACT_FILE")"
+perf_budget_contract_enforced="$(jq -er 'if (.performance_budgets.enforce // false) then 1 else 0 end' "$CONTRACT_FILE")"
+perf_max_generate_ms_per_sample="$(jq -er '(.performance_budgets.max_generate_ms_per_sample // 0) | numbers' "$CONTRACT_FILE")"
+perf_max_preprocess_ms_per_sample="$(jq -er '(.performance_budgets.max_preprocess_ms_per_sample // 0) | numbers' "$CONTRACT_FILE")"
+perf_max_parse_full_ms_per_sample="$(jq -er '(.performance_budgets.max_parse_full_ms_per_sample // 0) | numbers' "$CONTRACT_FILE")"
+perf_max_sample_bytes="$(jq -er '(.performance_budgets.max_sample_bytes // 0) | numbers' "$CONTRACT_FILE")"
+perf_max_preprocessed_bytes="$(jq -er '(.performance_budgets.max_preprocessed_bytes // 0) | numbers' "$CONTRACT_FILE")"
 
 sample_count="${SAMPLE_COUNT_OVERRIDE:-$default_sample_count}"
 seed_base="${SEED_BASE_OVERRIDE:-$default_seed_base}"
@@ -938,6 +980,26 @@ if ! [[ "$replay_sample_count" =~ ^[0-9]+$ ]] || [[ "$replay_sample_count" -lt 1
 fi
 if ! [[ "$failure_shrink_max_iterations" =~ ^[0-9]+$ ]] || [[ "$failure_shrink_max_iterations" -lt 1 ]]; then
     echo "error: failure_replay.shrink_max_iterations must be an integer >= 1" >&2
+    exit 2
+fi
+if ! [[ "$perf_max_generate_ms_per_sample" =~ ^[0-9]+$ ]]; then
+    echo "error: performance_budgets.max_generate_ms_per_sample must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$perf_max_preprocess_ms_per_sample" =~ ^[0-9]+$ ]]; then
+    echo "error: performance_budgets.max_preprocess_ms_per_sample must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$perf_max_parse_full_ms_per_sample" =~ ^[0-9]+$ ]]; then
+    echo "error: performance_budgets.max_parse_full_ms_per_sample must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$perf_max_sample_bytes" =~ ^[0-9]+$ ]]; then
+    echo "error: performance_budgets.max_sample_bytes must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$perf_max_preprocessed_bytes" =~ ^[0-9]+$ ]]; then
+    echo "error: performance_budgets.max_preprocessed_bytes must be an integer >= 0" >&2
     exit 2
 fi
 
@@ -1093,6 +1155,16 @@ echo "declared_identifier_suite_enforced: $enforce_declared_identifier_suite"
 echo "declared_identifier_suite_path: ${declared_identifier_suite_path:-<unset>}"
 echo "width_compatibility_suite_enforced: $enforce_width_compat_suite"
 echo "width_compatibility_suite_path: ${width_compat_suite_path:-<unset>}"
+echo "differential_mode: $DIFF_MODE"
+echo "differential_max_samples: $DIFF_MAX_SAMPLES"
+echo "differential_reference_runner: ${DIFF_REFERENCE_RUNNER:-<unset>}"
+echo "performance_budget_mode: $PERF_BUDGET_MODE"
+echo "performance_budget_contract_enforced: $perf_budget_contract_enforced"
+echo "performance_max_generate_ms_per_sample: $perf_max_generate_ms_per_sample"
+echo "performance_max_preprocess_ms_per_sample: $perf_max_preprocess_ms_per_sample"
+echo "performance_max_parse_full_ms_per_sample: $perf_max_parse_full_ms_per_sample"
+echo "performance_max_sample_bytes: $perf_max_sample_bytes"
+echo "performance_max_preprocessed_bytes: $perf_max_preprocessed_bytes"
 
 run_logged "declared_identifier_contract_suite" \
     run_declared_identifier_contract_suite "$declared_identifier_suite_path" "$enforce_declared_identifier_suite"
@@ -1166,6 +1238,28 @@ else
     fi
 fi
 
+perf_budget_enabled=0
+perf_budget_effective="disabled_by_mode"
+perf_budget_note="performance budget checks disabled by mode"
+if [[ "$PERF_BUDGET_MODE" == "1" ]]; then
+    perf_budget_enabled=1
+    perf_budget_effective="enabled"
+    perf_budget_note="performance budget checks enabled by strict mode"
+elif [[ "$PERF_BUDGET_MODE" == "auto" ]]; then
+    if [[ "$perf_budget_contract_enforced" -eq 1 ]]; then
+        perf_budget_enabled=1
+        perf_budget_effective="enabled"
+        perf_budget_note="performance budget checks enabled by contract"
+    else
+        perf_budget_enabled=0
+        perf_budget_effective="disabled_by_contract"
+        perf_budget_note="performance budget checks disabled by contract"
+    fi
+fi
+if [[ "$perf_budget_enabled" -eq 1 && "$parse_full_enabled" -ne 1 && "$perf_max_parse_full_ms_per_sample" -gt 0 ]]; then
+    perf_budget_note="${perf_budget_note}; parse_full timing budget skipped (${parse_full_effective})"
+fi
+
 semantic_pass_count=0
 parse_full_pass_count=0
 parse_full_skip_count=0
@@ -1183,6 +1277,15 @@ total_warnings=0
 total_errors=0
 semantic_shrink_count=0
 parse_full_shrink_count=0
+perf_generate_total_ms=0
+perf_generate_max_ms=0
+perf_preprocess_total_ms=0
+perf_preprocess_max_ms=0
+perf_parse_full_total_ms=0
+perf_parse_full_max_ms=0
+perf_parse_full_samples=0
+perf_sample_bytes_max=0
+perf_preprocessed_bytes_max=0
 profile_count="${#run_profiles[@]}"
 total_samples=$((sample_count * profile_count))
 
@@ -1333,6 +1436,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         preprocessed_file="$WORK_DIR/sample_${profile_key}_${idx}.preprocessed.sv"
         diagnostics_json="$WORK_DIR/sample_${profile_key}_${idx}.diagnostics.json"
 
+        generate_started_ms="$(now_ms)"
         run_logged "sample_${profile_key}_${idx}_generate_stimulus" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
@@ -1342,7 +1446,19 @@ for profile_idx in "${!run_profiles[@]}"; do
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             --output "$sample_file"
         require_nonempty_file "$sample_file"
+        generate_elapsed_ms=$(( $(now_ms) - generate_started_ms ))
+        perf_generate_total_ms=$((perf_generate_total_ms + generate_elapsed_ms))
+        if (( generate_elapsed_ms > perf_generate_max_ms )); then
+            perf_generate_max_ms="$generate_elapsed_ms"
+        fi
+        sample_size_bytes="$(file_size_bytes "$sample_file")"
+        if (( sample_size_bytes > perf_sample_bytes_max )); then
+            perf_sample_bytes_max="$sample_size_bytes"
+        fi
+        enforce_threshold_le "$perf_budget_enabled" "stimuli_generate_ms_per_sample" "$generate_elapsed_ms" "$perf_max_generate_ms_per_sample" "profile=${lrm_profile},sample=${idx}"
+        enforce_threshold_le "$perf_budget_enabled" "stimuli_sample_bytes" "$sample_size_bytes" "$perf_max_sample_bytes" "profile=${lrm_profile},sample=${idx}"
 
+        preprocess_started_ms="$(now_ms)"
         run_logged "sample_${profile_key}_${idx}_preprocess" \
             "$AST_PIPELINE_BIN" "$sample_file" \
             --preprocess-systemverilog \
@@ -1354,6 +1470,17 @@ for profile_idx in "${!run_profiles[@]}"; do
             --sv-conditional-symbol-policy "$conditional_symbol_policy" \
             --sv-conditional-expr-policy "$conditional_expr_policy" \
             --sv-strict-warning-codes "$strict_warning_codes"
+        preprocess_elapsed_ms=$(( $(now_ms) - preprocess_started_ms ))
+        perf_preprocess_total_ms=$((perf_preprocess_total_ms + preprocess_elapsed_ms))
+        if (( preprocess_elapsed_ms > perf_preprocess_max_ms )); then
+            perf_preprocess_max_ms="$preprocess_elapsed_ms"
+        fi
+        preprocessed_size_bytes="$(file_size_bytes "$preprocessed_file")"
+        if (( preprocessed_size_bytes > perf_preprocessed_bytes_max )); then
+            perf_preprocessed_bytes_max="$preprocessed_size_bytes"
+        fi
+        enforce_threshold_le "$perf_budget_enabled" "preprocess_ms_per_sample" "$preprocess_elapsed_ms" "$perf_max_preprocess_ms_per_sample" "profile=${lrm_profile},sample=${idx}"
+        enforce_threshold_le "$perf_budget_enabled" "preprocessed_sample_bytes" "$preprocessed_size_bytes" "$perf_max_preprocessed_bytes" "profile=${lrm_profile},sample=${idx}"
 
         require_file "$diagnostics_json"
         warning_count="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$diagnostics_json")"
@@ -1366,6 +1493,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         if [[ "$parse_full_enabled" -eq 1 ]]; then
             parse_log="$LOG_DIR/sample_${profile_key}_${idx}_parse_full.log"
             echo "==> sample_${profile_key}_${idx}_parse_full"
+            parse_started_ms="$(now_ms)"
             if "$PARSE_PROBE_BIN" --parse "$grammar_name" "$preprocessed_file" >"$parse_log" 2>&1; then
                 echo "    ok (${parse_log})"
                 parse_status="pass"
@@ -1389,6 +1517,13 @@ for profile_idx in "${!run_profiles[@]}"; do
                 fi
                 echo "    soft-fail (${parse_log})"
             fi
+            parse_elapsed_ms=$(( $(now_ms) - parse_started_ms ))
+            perf_parse_full_total_ms=$((perf_parse_full_total_ms + parse_elapsed_ms))
+            perf_parse_full_samples=$((perf_parse_full_samples + 1))
+            if (( parse_elapsed_ms > perf_parse_full_max_ms )); then
+                perf_parse_full_max_ms="$parse_elapsed_ms"
+            fi
+            enforce_threshold_le "$perf_budget_enabled" "parse_full_ms_per_sample" "$parse_elapsed_ms" "$perf_max_parse_full_ms_per_sample" "profile=${lrm_profile},sample=${idx}"
         else
             parse_full_skip_count=$((parse_full_skip_count + 1))
             parse_note="parse_full unavailable (${parse_full_effective})"
@@ -1418,6 +1553,279 @@ for profile_idx in "${!run_profiles[@]}"; do
         echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,$(csv_sanitize "$final_note")" >>"$SUMMARY_CSV"
     done
 done
+
+diff_report_json="$WORK_DIR/${grammar_name}_differential_report.json"
+diff_cases_jsonl="$WORK_DIR/${grammar_name}_differential_cases.jsonl"
+diff_effective_mode="disabled"
+diff_note="trusted-reference differential disabled by configuration"
+diff_reference_runner="$DIFF_REFERENCE_RUNNER"
+diff_total_samples_seen=0
+diff_samples_checked=0
+diff_mismatch_count=0
+diff_match_count=0
+diff_rust_failed_reference_passed_count=0
+diff_reference_failed_rust_passed_count=0
+diff_both_failed_count=0
+diff_reference_artifact_missing_count=0
+
+if [[ "$DIFF_MODE" != "0" ]]; then
+    if [[ "$mode_parse_full_eligible" -ne 1 ]]; then
+        if [[ "$DIFF_MODE" == "1" ]]; then
+            echo "error: strict differential mode requires parse_full-eligible stimuli mode (current: '$stimuli_mode')" >&2
+            exit 1
+        fi
+        diff_effective_mode="disabled_by_stimuli_mode"
+        diff_note="differential parse taxonomy disabled because stimuli mode '$stimuli_mode' is not parse_full-eligible"
+    elif [[ "$parse_full_supported" -ne 1 ]]; then
+        if [[ "$DIFF_MODE" == "1" ]]; then
+            echo "error: strict differential mode requires generated parser adapter for '$grammar_name'" >&2
+            exit 1
+        fi
+        diff_effective_mode="unsupported_adapter"
+        diff_note="differential parse taxonomy disabled because generated parser adapter is unavailable"
+    elif [[ -z "$DIFF_REFERENCE_RUNNER" ]]; then
+        if [[ "$DIFF_MODE" == "1" ]]; then
+            echo "error: strict differential mode requires PGEN_SV_STIMULI_REFERENCE_RUNNER" >&2
+            exit 1
+        fi
+        diff_effective_mode="unsupported_reference_runner"
+        diff_note="trusted-reference runner not configured; set PGEN_SV_STIMULI_REFERENCE_RUNNER"
+    elif [[ ! -x "$DIFF_REFERENCE_RUNNER" ]]; then
+        if [[ "$DIFF_MODE" == "1" ]]; then
+            echo "error: strict differential mode requires executable trusted-reference runner at '$DIFF_REFERENCE_RUNNER'" >&2
+            exit 1
+        fi
+        diff_effective_mode="unsupported_reference_runner"
+        diff_note="trusted-reference runner path is not executable: $DIFF_REFERENCE_RUNNER"
+    else
+        diff_effective_mode="enabled"
+        diff_note="trusted-reference parse differential classification enabled"
+        : >"$diff_cases_jsonl"
+        diff_case_index=0
+        for profile_idx in "${!run_profiles[@]}"; do
+            lrm_profile="${run_profiles[$profile_idx]}"
+            profile_key="${lrm_profile//[^A-Za-z0-9_]/_}"
+            for ((idx = 0; idx < sample_count; idx++)); do
+                sample_preprocessed="$WORK_DIR/sample_${profile_key}_${idx}.preprocessed.sv"
+                if [[ ! -s "$sample_preprocessed" ]]; then
+                    continue
+                fi
+                diff_total_samples_seen=$((diff_total_samples_seen + 1))
+                if (( diff_samples_checked >= DIFF_MAX_SAMPLES )); then
+                    continue
+                fi
+
+                diff_rust_log="$LOG_DIR/diff_sample_${profile_key}_${idx}.rust.log"
+                diff_ref_log="$LOG_DIR/diff_sample_${profile_key}_${idx}.reference.log"
+                diff_ref_ast="$WORK_DIR/diff_sample_${profile_key}_${idx}.reference.ast.json"
+                diff_ref_diag="$WORK_DIR/diff_sample_${profile_key}_${idx}.reference.diagnostics.json"
+
+                rust_exit=0
+                if "$PARSE_PROBE_BIN" --parse "$grammar_name" "$sample_preprocessed" >"$diff_rust_log" 2>&1; then
+                    rust_exit=0
+                else
+                    rust_exit=$?
+                fi
+
+                ref_exit=0
+                if "$DIFF_REFERENCE_RUNNER" "$sample_preprocessed" "$diff_ref_ast" "$diff_ref_diag" >"$diff_ref_log" 2>&1; then
+                    ref_exit=0
+                else
+                    ref_exit=$?
+                fi
+
+                category=""
+                if (( rust_exit == 0 && ref_exit == 0 )); then
+                    if [[ ! -s "$diff_ref_diag" ]]; then
+                        category="reference_artifact_missing"
+                    elif ! jq -e 'type == "array"' "$diff_ref_diag" >/dev/null 2>&1; then
+                        category="reference_artifact_missing"
+                    else
+                        category="match"
+                    fi
+                elif (( rust_exit != 0 && ref_exit == 0 )); then
+                    category="rust_failed_reference_passed"
+                elif (( rust_exit == 0 && ref_exit != 0 )); then
+                    category="reference_failed_rust_passed"
+                else
+                    category="both_failed"
+                fi
+
+                case "$category" in
+                    match)
+                        diff_match_count=$((diff_match_count + 1))
+                        ;;
+                    rust_failed_reference_passed)
+                        diff_rust_failed_reference_passed_count=$((diff_rust_failed_reference_passed_count + 1))
+                        diff_mismatch_count=$((diff_mismatch_count + 1))
+                        ;;
+                    reference_failed_rust_passed)
+                        diff_reference_failed_rust_passed_count=$((diff_reference_failed_rust_passed_count + 1))
+                        diff_mismatch_count=$((diff_mismatch_count + 1))
+                        ;;
+                    both_failed)
+                        diff_both_failed_count=$((diff_both_failed_count + 1))
+                        ;;
+                    reference_artifact_missing)
+                        diff_reference_artifact_missing_count=$((diff_reference_artifact_missing_count + 1))
+                        diff_mismatch_count=$((diff_mismatch_count + 1))
+                        ;;
+                    *)
+                        echo "error: unknown differential mismatch category '$category'" >&2
+                        exit 1
+                        ;;
+                esac
+
+                jq -n \
+                    --argjson index "$diff_case_index" \
+                    --arg profile "$lrm_profile" \
+                    --argjson sample_index "$idx" \
+                    --arg category "$category" \
+                    --arg sample_file "$sample_preprocessed" \
+                    --arg rust_log "$diff_rust_log" \
+                    --arg reference_log "$diff_ref_log" \
+                    --arg reference_ast "$diff_ref_ast" \
+                    --arg reference_diagnostics "$diff_ref_diag" \
+                    --argjson rust_exit "$rust_exit" \
+                    --argjson reference_exit "$ref_exit" \
+                    '{
+                        index: $index,
+                        profile: $profile,
+                        sample_index: $sample_index,
+                        category: $category,
+                        sample_file: $sample_file,
+                        rust: {
+                            log_file: $rust_log,
+                            exit_code: $rust_exit
+                        },
+                        reference: {
+                            log_file: $reference_log,
+                            ast_file: $reference_ast,
+                            diagnostics_file: $reference_diagnostics,
+                            exit_code: $reference_exit
+                        }
+                    }' >>"$diff_cases_jsonl"
+
+                diff_samples_checked=$((diff_samples_checked + 1))
+                diff_case_index=$((diff_case_index + 1))
+            done
+        done
+    fi
+fi
+
+if [[ -s "$diff_cases_jsonl" ]]; then
+    diff_cases_json="$(jq -s '.' "$diff_cases_jsonl")"
+else
+    diff_cases_json='[]'
+fi
+
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg requested_mode "$DIFF_MODE" \
+    --arg effective_mode "$diff_effective_mode" \
+    --arg note "$diff_note" \
+    --arg reference_runner "$diff_reference_runner" \
+    --argjson total_samples_seen "$diff_total_samples_seen" \
+    --argjson max_samples "$DIFF_MAX_SAMPLES" \
+    --argjson samples_checked "$diff_samples_checked" \
+    --argjson mismatch_count "$diff_mismatch_count" \
+    --argjson match_count "$diff_match_count" \
+    --argjson rust_failed_reference_passed_count "$diff_rust_failed_reference_passed_count" \
+    --argjson reference_failed_rust_passed_count "$diff_reference_failed_rust_passed_count" \
+    --argjson both_failed_count "$diff_both_failed_count" \
+    --argjson reference_artifact_missing_count "$diff_reference_artifact_missing_count" \
+    --argjson cases "$diff_cases_json" \
+    '{
+        grammar_name: $grammar_name,
+        requested_mode: $requested_mode,
+        effective_mode: $effective_mode,
+        note: $note,
+        reference_runner: $reference_runner,
+        total_samples_seen: $total_samples_seen,
+        max_samples: $max_samples,
+        samples_checked: $samples_checked,
+        mismatch_count: $mismatch_count,
+        taxonomy_counts: {
+            match: $match_count,
+            rust_failed_reference_passed: $rust_failed_reference_passed_count,
+            reference_failed_rust_passed: $reference_failed_rust_passed_count,
+            both_failed: $both_failed_count,
+            reference_artifact_missing: $reference_artifact_missing_count
+        },
+        cases: $cases
+    }' >"$diff_report_json"
+
+if [[ "$DIFF_MODE" == "1" && "$diff_effective_mode" == "enabled" && "$diff_mismatch_count" -gt 0 ]]; then
+    echo "error: strict SV stimuli differential mode detected mismatches ($diff_mismatch_count)" >&2
+    cat "$diff_report_json" >&2
+    exit 1
+fi
+
+perf_generate_avg_ms=0
+perf_preprocess_avg_ms=0
+perf_parse_full_avg_ms=0
+if (( total_samples > 0 )); then
+    perf_generate_avg_ms=$((perf_generate_total_ms / total_samples))
+    perf_preprocess_avg_ms=$((perf_preprocess_total_ms / total_samples))
+fi
+if (( perf_parse_full_samples > 0 )); then
+    perf_parse_full_avg_ms=$((perf_parse_full_total_ms / perf_parse_full_samples))
+fi
+
+perf_report_json="$WORK_DIR/${grammar_name}_performance_report.json"
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg requested_mode "$PERF_BUDGET_MODE" \
+    --arg effective_mode "$perf_budget_effective" \
+    --arg note "$perf_budget_note" \
+    --argjson enabled "$perf_budget_enabled" \
+    --argjson sample_count "$total_samples" \
+    --argjson parse_full_samples "$perf_parse_full_samples" \
+    --argjson max_generate_ms_per_sample "$perf_max_generate_ms_per_sample" \
+    --argjson max_preprocess_ms_per_sample "$perf_max_preprocess_ms_per_sample" \
+    --argjson max_parse_full_ms_per_sample "$perf_max_parse_full_ms_per_sample" \
+    --argjson max_sample_bytes "$perf_max_sample_bytes" \
+    --argjson max_preprocessed_bytes "$perf_max_preprocessed_bytes" \
+    --argjson observed_generate_total_ms "$perf_generate_total_ms" \
+    --argjson observed_generate_avg_ms "$perf_generate_avg_ms" \
+    --argjson observed_generate_max_ms "$perf_generate_max_ms" \
+    --argjson observed_preprocess_total_ms "$perf_preprocess_total_ms" \
+    --argjson observed_preprocess_avg_ms "$perf_preprocess_avg_ms" \
+    --argjson observed_preprocess_max_ms "$perf_preprocess_max_ms" \
+    --argjson observed_parse_full_total_ms "$perf_parse_full_total_ms" \
+    --argjson observed_parse_full_avg_ms "$perf_parse_full_avg_ms" \
+    --argjson observed_parse_full_max_ms "$perf_parse_full_max_ms" \
+    --argjson observed_sample_bytes_max "$perf_sample_bytes_max" \
+    --argjson observed_preprocessed_bytes_max "$perf_preprocessed_bytes_max" \
+    '{
+        grammar_name: $grammar_name,
+        requested_mode: $requested_mode,
+        effective_mode: $effective_mode,
+        note: $note,
+        enabled: $enabled,
+        thresholds: {
+            max_generate_ms_per_sample: $max_generate_ms_per_sample,
+            max_preprocess_ms_per_sample: $max_preprocess_ms_per_sample,
+            max_parse_full_ms_per_sample: $max_parse_full_ms_per_sample,
+            max_sample_bytes: $max_sample_bytes,
+            max_preprocessed_bytes: $max_preprocessed_bytes
+        },
+        observed: {
+            sample_count: $sample_count,
+            parse_full_samples: $parse_full_samples,
+            generate_total_ms: $observed_generate_total_ms,
+            generate_avg_ms: $observed_generate_avg_ms,
+            generate_max_ms: $observed_generate_max_ms,
+            preprocess_total_ms: $observed_preprocess_total_ms,
+            preprocess_avg_ms: $observed_preprocess_avg_ms,
+            preprocess_max_ms: $observed_preprocess_max_ms,
+            parse_full_total_ms: $observed_parse_full_total_ms,
+            parse_full_avg_ms: $observed_parse_full_avg_ms,
+            parse_full_max_ms: $observed_parse_full_max_ms,
+            sample_bytes_max: $observed_sample_bytes_max,
+            preprocessed_bytes_max: $observed_preprocessed_bytes_max
+        }
+    }' >"$perf_report_json"
 
 {
     echo "PGEN SV Stimuli Quality Gate Summary"
@@ -1451,10 +1859,43 @@ done
     echo "width_compatibility_suite_failed: $width_compat_suite_failed"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
+    echo "perf_budget_mode: $PERF_BUDGET_MODE"
+    echo "perf_budget_effective: $perf_budget_effective"
+    echo "perf_budget_note: $perf_budget_note"
+    echo "perf_threshold_generate_ms_per_sample: $perf_max_generate_ms_per_sample"
+    echo "perf_threshold_preprocess_ms_per_sample: $perf_max_preprocess_ms_per_sample"
+    echo "perf_threshold_parse_full_ms_per_sample: $perf_max_parse_full_ms_per_sample"
+    echo "perf_threshold_sample_bytes: $perf_max_sample_bytes"
+    echo "perf_threshold_preprocessed_bytes: $perf_max_preprocessed_bytes"
+    echo "perf_observed_generate_total_ms: $perf_generate_total_ms"
+    echo "perf_observed_generate_avg_ms: $perf_generate_avg_ms"
+    echo "perf_observed_generate_max_ms: $perf_generate_max_ms"
+    echo "perf_observed_preprocess_total_ms: $perf_preprocess_total_ms"
+    echo "perf_observed_preprocess_avg_ms: $perf_preprocess_avg_ms"
+    echo "perf_observed_preprocess_max_ms: $perf_preprocess_max_ms"
+    echo "perf_observed_parse_full_samples: $perf_parse_full_samples"
+    echo "perf_observed_parse_full_total_ms: $perf_parse_full_total_ms"
+    echo "perf_observed_parse_full_avg_ms: $perf_parse_full_avg_ms"
+    echo "perf_observed_parse_full_max_ms: $perf_parse_full_max_ms"
+    echo "perf_observed_sample_bytes_max: $perf_sample_bytes_max"
+    echo "perf_observed_preprocessed_bytes_max: $perf_preprocessed_bytes_max"
+    echo "perf_report_json: $perf_report_json"
     echo "semantic_baseline_passes: $semantic_pass_count/$total_samples"
     echo "parse_full_passes: $parse_full_pass_count/$total_samples"
     echo "parse_full_failures: $parse_full_fail_count"
     echo "parse_full_skips: $parse_full_skip_count"
+    echo "diff_mode: $DIFF_MODE"
+    echo "diff_effective_mode: $diff_effective_mode"
+    echo "diff_note: $diff_note"
+    echo "diff_reference_runner: $diff_reference_runner"
+    echo "diff_samples_checked: $diff_samples_checked/$diff_total_samples_seen (max=$DIFF_MAX_SAMPLES)"
+    echo "diff_mismatch_count: $diff_mismatch_count"
+    echo "diff_taxonomy_match: $diff_match_count"
+    echo "diff_taxonomy_rust_failed_reference_passed: $diff_rust_failed_reference_passed_count"
+    echo "diff_taxonomy_reference_failed_rust_passed: $diff_reference_failed_rust_passed_count"
+    echo "diff_taxonomy_both_failed: $diff_both_failed_count"
+    echo "diff_taxonomy_reference_artifact_missing: $diff_reference_artifact_missing_count"
+    echo "diff_report_json: $diff_report_json"
     echo "semantic_failures_shrunk: $semantic_shrink_count"
     echo "parse_full_failures_shrunk: $parse_full_shrink_count"
     echo "total_warnings: $total_warnings"
