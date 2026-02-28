@@ -10969,3 +10969,30 @@ Prevent misleading differential mismatch classification when trusted-reference b
 - `sv_preprocessor_quality_gate` reduced runs with project runner path:
   - `DIFF_MODE=auto`: passes with `diff_mode_effective=unsupported_reference_runner` when backend unavailable,
   - `DIFF_MODE=1`: fails early with explicit backend probe failure message and probe log path.
+
+---
+
+## 2026-02-28: Added Phase R generation-AST dump format/safety contract baseline
+
+### Goal
+Advance Phase R by making generation-input AST dumps deterministic for replay/diff and bounded for large payloads.
+
+### Changes
+- Updated `rust/src/main.rs` (`ast_pipeline`):
+  - added `--dump-gen-ast-max-bytes <N>` (with env fallback `PGEN_DUMP_GEN_AST_MAX_BYTES`),
+  - added recursive canonical JSON key-order normalization before dump emission,
+  - added bounded dump writer:
+    - when encoded AST JSON exceeds max bytes, output becomes deterministic truncation diagnostics JSON envelope (`kind=pgen_ast_dump_truncation`) with `max_bytes` and `full_bytes`,
+    - if configured max bytes cannot fit diagnostics envelope, command fails explicitly.
+- Added regression tests in `rust/src/main.rs`:
+  - recursive key-order normalization test,
+  - truncation diagnostics emission test for oversized generation AST dumps.
+- Updated docs/roadmap:
+  - `PGEN_USER_GUIDE.md` now documents `--dump-gen-ast-max-bytes`, env fallback, canonicalization behavior, and truncation envelope contract.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` now records Phase R dump-format/safety progress.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline`
+- CLI smoke:
+  - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- ../generated/json.json --generate-parser --output <tmp>/parser.rs --dump-gen-ast <tmp>/gen_ast.json --dump-gen-ast-max-bytes 512`
+  - verified dump artifact `kind` is `pgen_ast_dump_truncation` under bounded limit.

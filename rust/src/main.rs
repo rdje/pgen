@@ -57,6 +57,10 @@ struct Args {
     #[arg(long, requires = "dump_gen_ast")]
     dump_gen_ast_pretty: bool,
 
+    /// Maximum bytes allowed for generation-input AST dump output; oversized dumps are replaced with truncation diagnostics JSON
+    #[arg(long, requires = "dump_gen_ast")]
+    dump_gen_ast_max_bytes: Option<usize>,
+
     /// Enable debug output
     #[arg(long, short = 'd')]
     debug: bool,
@@ -267,6 +271,24 @@ struct GenerationAstDump<'a> {
     annotations: Option<&'a Annotations>,
 }
 
+#[derive(Debug, Serialize)]
+struct AstDumpTruncationDiagnostic {
+    pgen_dump_contract_version: u32,
+    kind: &'static str,
+    truncated: bool,
+    dump_kind: String,
+    max_bytes: usize,
+    full_bytes: usize,
+    reason: &'static str,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct AstDumpWriteResult {
+    truncated: bool,
+    bytes_written: usize,
+    full_bytes: usize,
+}
+
 #[derive(Debug, Clone)]
 struct ParseabilitySummary {
     requested: usize,
@@ -376,6 +398,7 @@ fn main() -> Result<()> {
             "--dump-gen-ast requires --generate-parser, --generate-stimuli, or --generate-stimuli-module"
         ));
     }
+    let dump_gen_ast_max_bytes = resolve_dump_gen_ast_max_bytes(&args)?;
 
     if args.preprocess_systemverilog {
         let include_dirs = args
@@ -518,6 +541,7 @@ fn main() -> Result<()> {
             &grammar,
             args.dump_gen_ast.as_deref(),
             args.dump_gen_ast_pretty,
+            dump_gen_ast_max_bytes,
         )?;
 
         // Generate parser through the direct AST integration path so typed annotation
@@ -543,6 +567,7 @@ fn main() -> Result<()> {
             &grammar,
             args.dump_gen_ast.as_deref(),
             args.dump_gen_ast_pretty,
+            dump_gen_ast_max_bytes,
         )?;
         let effective_seed = resolve_stimuli_module_seed(args.seed);
         if args.seed.is_none() {
@@ -651,6 +676,7 @@ fn main() -> Result<()> {
             &grammar,
             args.dump_gen_ast.as_deref(),
             args.dump_gen_ast_pretty,
+            dump_gen_ast_max_bytes,
         )?;
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
         let stimuli_config = StimuliConfig {
@@ -892,6 +918,7 @@ fn maybe_dump_generation_ast(
     grammar: &LoadedGrammar,
     output_path: Option<&str>,
     pretty: bool,
+    max_bytes: Option<usize>,
 ) -> Result<()> {
     let Some(path) = output_path else {
         return Ok(());
@@ -903,14 +930,124 @@ fn maybe_dump_generation_ast(
         grammar_tree: &grammar.grammar_tree,
         annotations: grammar.annotations.as_ref(),
     };
-    let json = if pretty {
-        serde_json::to_string_pretty(&dump)?
+    let json = encode_canonical_json(&dump, pretty)?;
+    let write_result =
+        write_json_dump_with_limit(path, &json, max_bytes, pretty, "generation_input_ast")?;
+    if write_result.truncated {
+        println!(
+            "Wrote generation-input AST truncation diagnostics JSON to {} (full_bytes={}, max_bytes={}, written_bytes={})",
+            path,
+            write_result.full_bytes,
+            max_bytes.unwrap_or(write_result.full_bytes),
+            write_result.bytes_written
+        );
     } else {
-        serde_json::to_string(&dump)?
-    };
-    std::fs::write(path, json)?;
-    println!("Wrote generation-input AST JSON to {}", path);
+        println!("Wrote generation-input AST JSON to {}", path);
+    }
     Ok(())
+}
+
+fn resolve_dump_gen_ast_max_bytes(args: &Args) -> Result<Option<usize>> {
+    if let Some(value) = args.dump_gen_ast_max_bytes {
+        if value == 0 {
+            return Err(anyhow::anyhow!(
+                "--dump-gen-ast-max-bytes must be an integer >= 1"
+            ));
+        }
+        return Ok(Some(value));
+    }
+    let raw = match std::env::var("PGEN_DUMP_GEN_AST_MAX_BYTES") {
+        Ok(value) => value,
+        Err(_) => return Ok(None),
+    };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let parsed = trimmed.parse::<usize>().map_err(|_| {
+        anyhow::anyhow!(
+            "PGEN_DUMP_GEN_AST_MAX_BYTES must be an integer >= 1 (got '{}')",
+            raw
+        )
+    })?;
+    if parsed == 0 {
+        return Err(anyhow::anyhow!(
+            "PGEN_DUMP_GEN_AST_MAX_BYTES must be an integer >= 1"
+        ));
+    }
+    Ok(Some(parsed))
+}
+
+fn canonicalize_json_value(value: serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Array(values) => {
+            serde_json::Value::Array(values.into_iter().map(canonicalize_json_value).collect())
+        }
+        serde_json::Value::Object(map) => {
+            let mut entries = map.into_iter().collect::<Vec<_>>();
+            entries.sort_by(|left, right| left.0.cmp(&right.0));
+            let mut normalized = serde_json::Map::new();
+            for (key, value) in entries {
+                normalized.insert(key, canonicalize_json_value(value));
+            }
+            serde_json::Value::Object(normalized)
+        }
+        other => other,
+    }
+}
+
+fn encode_canonical_json<T: Serialize>(value: &T, pretty: bool) -> Result<String> {
+    let normalized = canonicalize_json_value(serde_json::to_value(value)?);
+    if pretty {
+        Ok(serde_json::to_string_pretty(&normalized)?)
+    } else {
+        Ok(serde_json::to_string(&normalized)?)
+    }
+}
+
+fn write_json_dump_with_limit(
+    output_path: &str,
+    encoded_json: &str,
+    max_bytes: Option<usize>,
+    pretty: bool,
+    dump_kind: &str,
+) -> Result<AstDumpWriteResult> {
+    let full_bytes = encoded_json.as_bytes().len();
+    if let Some(max) = max_bytes {
+        if full_bytes > max {
+            let diagnostic = AstDumpTruncationDiagnostic {
+                pgen_dump_contract_version: 1,
+                kind: "pgen_ast_dump_truncation",
+                truncated: true,
+                dump_kind: dump_kind.to_string(),
+                max_bytes: max,
+                full_bytes,
+                reason: "encoded AST JSON exceeded configured max bytes; payload omitted",
+            };
+            let encoded_diagnostic = encode_canonical_json(&diagnostic, pretty)?;
+            let diagnostic_bytes = encoded_diagnostic.as_bytes().len();
+            if diagnostic_bytes > max {
+                return Err(anyhow::anyhow!(
+                    "AST dump max-bytes ({}) is too small to fit truncation diagnostics (requires at least {} bytes)",
+                    max,
+                    diagnostic_bytes
+                ));
+            }
+            std::fs::write(output_path, encoded_diagnostic)?;
+            return Ok(AstDumpWriteResult {
+                truncated: true,
+                bytes_written: diagnostic_bytes,
+                full_bytes,
+            });
+        }
+    }
+
+    std::fs::write(output_path, encoded_json)?;
+    Ok(AstDumpWriteResult {
+        truncated: false,
+        bytes_written: full_bytes,
+        full_bytes,
+    })
 }
 
 fn load_grammar_bundle(
@@ -1714,8 +1851,8 @@ fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -
 #[cfg(test)]
 mod tests {
     use super::{
-        FuzzCorpusCandidate, LoadedGrammar, StimuliCoverageMetrics, coverage_branch_hit_delta,
-        default_parser_output_path, default_stimuli_module_output_path,
+        FuzzCorpusCandidate, LoadedGrammar, StimuliCoverageMetrics, canonicalize_json_value,
+        coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
         generate_stimuli_module_source, is_ebnf_input_path, maybe_dump_generation_ast,
         minimize_failing_input, minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
         resolve_stimuli_module_seed, supported_generated_parseability_grammars,
@@ -1814,7 +1951,7 @@ mod tests {
         };
         let dump_path = unique_temp_path("gen_ast.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();
-        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), false)
+        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), false, None)
             .expect("dump succeeds");
 
         let raw = std::fs::read_to_string(&dump_path).expect("read dump");
@@ -1835,12 +1972,56 @@ mod tests {
         };
         let dump_path = unique_temp_path("gen_ast_pretty.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();
-        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), true)
+        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), true, None)
             .expect("pretty dump succeeds");
 
         let raw = std::fs::read_to_string(&dump_path).expect("read dump");
         assert!(raw.contains('\n'));
         assert!(raw.contains("  \"grammar_name\""));
+
+        let _ = std::fs::remove_file(dump_path);
+    }
+
+    #[test]
+    fn canonicalize_json_value_sorts_object_keys_recursively() {
+        let value = serde_json::json!({
+            "z": { "b": 1, "a": 2 },
+            "a": [ { "y": 0, "x": 1 } ],
+        });
+        let normalized = canonicalize_json_value(value);
+        let encoded = serde_json::to_string(&normalized).expect("encode normalized");
+        assert!(encoded.contains("\"a\":[{\"x\":1,\"y\":0}]"));
+        assert!(encoded.contains("\"z\":{\"a\":2,\"b\":1}"));
+    }
+
+    #[test]
+    fn generation_ast_dump_writes_truncation_diagnostics_when_limited() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "root".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![TokenValue::String("x".repeat(4096))]),
+            },
+        );
+        let grammar = LoadedGrammar {
+            grammar_name: "demo".to_string(),
+            grammar_tree,
+            rule_order: vec!["root".to_string()],
+            annotations: None,
+        };
+        let dump_path = unique_temp_path("gen_ast_truncation.json");
+        let dump_path_str = dump_path.to_string_lossy().to_string();
+        maybe_dump_generation_ast(&grammar, Some(dump_path_str.as_str()), false, Some(256))
+            .expect("truncation diagnostics write succeeds");
+
+        let raw = std::fs::read_to_string(&dump_path).expect("read dump");
+        let json: serde_json::Value = serde_json::from_str(&raw).expect("json parse");
+        assert_eq!(json["kind"], "pgen_ast_dump_truncation");
+        assert_eq!(json["truncated"], true);
+        assert_eq!(json["dump_kind"], "generation_input_ast");
+        assert_eq!(json["max_bytes"], 256);
+        let full_bytes = json["full_bytes"].as_u64().expect("full bytes");
+        assert!(full_bytes > 256);
 
         let _ = std::fs::remove_file(dump_path);
     }

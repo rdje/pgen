@@ -183,6 +183,7 @@ High-value stimuli flags:
 - `--max-repeat`
 - `--dump-gen-ast [PATH]`
 - `--dump-gen-ast-pretty`
+- `--dump-gen-ast-max-bytes`
 - `--recovery-stimuli-mode` (`baseline`, `recovery_biased`, `near_sync_negative`)
 - `--validate-parseability`
 - `--coverage-input`
@@ -253,12 +254,30 @@ CLI controls:
   - if flag is present with no value, default path is `gen_ast.json`.
 - `--dump-gen-ast-pretty`
   - pretty JSON formatting mode (requires `--dump-gen-ast`).
+- `--dump-gen-ast-max-bytes <N>`
+  - bounds output file size for generation-input AST dump.
+  - when encoded AST JSON exceeds `N`, tool writes a deterministic truncation-diagnostics JSON envelope instead of full AST payload.
+  - `N` must be `>= 1`.
 
 Mode contract:
 - `--dump-gen-ast` is valid only with generation modes:
   - `--generate-parser`
   - `--generate-stimuli`
   - `--generate-stimuli-module`
+- optional env fallback:
+  - `PGEN_DUMP_GEN_AST_MAX_BYTES` (used when `--dump-gen-ast-max-bytes` is omitted).
+
+Determinism and safety contract:
+- dump JSON object keys are canonicalized recursively for deterministic key-order output.
+- bounded-size safeguard:
+  - if encoded AST JSON size `>` configured max-bytes, output is:
+    - `kind = "pgen_ast_dump_truncation"`
+    - `truncated = true`
+    - `dump_kind = "generation_input_ast"`
+    - `max_bytes`
+    - `full_bytes`
+    - `reason`
+  - if max-bytes is too small to fit truncation diagnostics envelope, command fails with explicit error.
 
 Examples:
 ```bash
@@ -278,6 +297,14 @@ cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
   --dump-gen-ast /tmp/gen_ast.json \
   --dump-gen-ast-pretty \
   --output /tmp/json_stimuli.txt
+
+# Enforce bounded dump output and emit truncation diagnostics when oversized
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/json.json \
+  --generate-parser \
+  --output /tmp/json_parser.rs \
+  --dump-gen-ast /tmp/gen_ast.json \
+  --dump-gen-ast-max-bytes 4096
 ```
 
 ### Parser-Returned AST Dump (`parseability_probe`)

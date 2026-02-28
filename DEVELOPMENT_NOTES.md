@@ -10219,3 +10219,41 @@ This inflated taxonomy debt and reduced signal quality in auto mode.
 - reduced gate run with unavailable backend and project runner path:
   - auto mode passes with unsupported-runner effective mode and no false case taxonomy loop,
   - strict mode fails early with deterministic probe failure reporting.
+
+---
+
+## 2026-02-28: Phase R dump-format/safety baseline for generation-input AST dumps
+
+### Root cause
+Phase R AST dump support existed, but generation-input AST dumps still lacked:
+- explicit bounded-size safeguards for large AST payloads,
+- deterministic key-order normalization contract for replay/diff workflows.
+
+This left dump behavior under-specified for large corpora and cross-run byte-diff reliability.
+
+### Fixes implemented
+- Extended `ast_pipeline` CLI in `rust/src/main.rs`:
+  - new `--dump-gen-ast-max-bytes <N>` option (`requires --dump-gen-ast`),
+  - env fallback: `PGEN_DUMP_GEN_AST_MAX_BYTES`.
+- Added deterministic JSON canonicalization path:
+  - recursively sorts object keys before encoding,
+  - applies in generation-input AST dump emission path.
+- Added bounded dump writer with explicit truncation diagnostics envelope:
+  - if encoded AST JSON exceeds configured max bytes, writes:
+    - `kind: "pgen_ast_dump_truncation"`,
+    - `truncated: true`,
+    - `dump_kind: "generation_input_ast"`,
+    - `max_bytes`, `full_bytes`, and reason string.
+  - if max bytes is too small to fit diagnostics envelope itself, returns explicit error.
+- Added regression tests in `rust/src/main.rs`:
+  - recursive key-order canonicalization,
+  - bounded dump truncation diagnostics behavior.
+- Synced user-facing docs and roadmap progress:
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline`
+- bounded dump smoke:
+  - generated parser flow with `--dump-gen-ast-max-bytes 512`,
+  - verified emitted dump artifact is truncation diagnostics JSON envelope (`kind=pgen_ast_dump_truncation`).

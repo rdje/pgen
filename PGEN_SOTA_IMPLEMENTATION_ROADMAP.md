@@ -488,6 +488,10 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - stable machine-readable format (`json`) plus human-readable pretty mode.
   - deterministic key/order normalization for replay/diff workflows.
   - bounded-size safeguards + truncation diagnostics for very large ASTs.
+  - Progress (2026-02-28): implemented generation-AST dump contract baseline in `ast_pipeline`:
+    - added recursive canonical JSON key-order normalization before emission,
+    - added bounded dump control (`--dump-gen-ast-max-bytes` with `PGEN_DUMP_GEN_AST_MAX_BYTES` fallback),
+    - oversized dump handling now emits deterministic truncation diagnostics JSON envelope (`kind=pgen_ast_dump_truncation`) with `max_bytes/full_bytes` metadata instead of partial payload.
 - [ ] Add gate-level validation for AST dump behavior:
   - contract tests that assert dump artifact presence/format/content stability.
   - replay determinism checks (same input+seed => byte-identical AST dumps).
@@ -514,6 +518,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Advanced Phase R dump-format/safety baseline for generation-input AST dumps by adding recursive canonical JSON key-order normalization and bounded output enforcement (`--dump-gen-ast-max-bytes` / `PGEN_DUMP_GEN_AST_MAX_BYTES`) with deterministic truncation diagnostics envelope (`kind=pgen_ast_dump_truncation`).
 - 2026-02-28: Hardened Phase Q trusted-reference portability by adding runner probe preflight (`sv_preprocessor_reference_runner.sh --probe`) and gate-side probe-aware mode handling (`auto` downgrade to unsupported-runner, strict fail-fast on backend-unavailable probe failures).
 - 2026-02-28: Advanced Phase Q differential-hardening operationalization by adding a standardized project-level trusted-reference runner adapter (`rust/scripts/sv_preprocessor_reference_runner.sh`) with `auto|iverilog|verilator` routing, include/define forwarding knobs, and deterministic diagnostics JSON-array emission for gate taxonomy ingestion.
 - 2026-02-28: Advanced Phase P semantic-closure promotion path by adding declared-identifier shadow burn-down telemetry/strict-trial controls (`semantic_promotion` in `systemverilog_core_v0_contract.json` v19, `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE`, deterministic `systemverilog_declared_identifier_shadow_report.json` output).
