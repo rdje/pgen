@@ -23,6 +23,8 @@ DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIE
 ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE:-}"
 WIDTH_COMPAT_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_WIDTH_COMPAT_SUITE:-}"
 ENFORCE_WIDTH_COMPAT_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_WIDTH_COMPAT_SUITE:-}"
+PORT_BINDING_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_PORT_BINDING_SUITE:-}"
+ENFORCE_PORT_BINDING_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_PORT_BINDING_SUITE:-}"
 DIFF_MODE="${PGEN_SV_STIMULI_DIFF_MODE:-auto}"
 DIFF_MAX_SAMPLES="${PGEN_SV_STIMULI_DIFF_MAX_SAMPLES:-8}"
 DIFF_REFERENCE_RUNNER="${PGEN_SV_STIMULI_REFERENCE_RUNNER:-}"
@@ -40,6 +42,10 @@ width_compat_suite_status="skip"
 width_compat_suite_total=0
 width_compat_suite_passed=0
 width_compat_suite_failed=0
+port_binding_suite_status="skip"
+port_binding_suite_total=0
+port_binding_suite_passed=0
+port_binding_suite_failed=0
 
 require_tool() {
     local tool="$1"
@@ -850,6 +856,104 @@ run_width_compatibility_contract_suite() {
     return 0
 }
 
+run_port_binding_legality_contract_suite() {
+    local suite_file="$1"
+    local enforce="$2"
+    local suite_summary_csv="$WORK_DIR/port_binding_legality_contract_summary.csv"
+    local idx=0
+    local case_json
+
+    port_binding_suite_status="skip"
+    port_binding_suite_total=0
+    port_binding_suite_passed=0
+    port_binding_suite_failed=0
+    echo "case,expect,actual,status,notes" >"$suite_summary_csv"
+
+    if [[ "$enforce" -ne 1 ]]; then
+        return 0
+    fi
+
+    if [[ -z "$suite_file" ]]; then
+        echo "port binding legality contract suite is enforced but no suite path is configured"
+        return 1
+    fi
+    require_file "$suite_file"
+
+    while IFS= read -r case_json; do
+        idx=$((idx + 1))
+        port_binding_suite_total=$((port_binding_suite_total + 1))
+
+        local case_name
+        local case_expect_pass
+        local case_input
+        local case_file
+        local case_actual_pass
+        local case_check_note
+        local case_expected_label
+        local case_actual_label
+        local case_status
+        local case_note
+
+        case_name="$(jq -er '.name | strings' <<<"$case_json")"
+        case_expect_pass="$(jq -er 'if (.expect_pass // false) then 1 else 0 end' <<<"$case_json")"
+        case_input="$(jq -er '.input | strings' <<<"$case_json")"
+        case_file="$WORK_DIR/port_binding_case_${idx}.sv"
+
+        printf '%s\n' "$case_input" >"$case_file"
+
+        if case_check_note="$(check_port_binding_legality_basic "$case_file" 2>&1)"; then
+            case_actual_pass=1
+            if [[ -z "$case_check_note" ]]; then
+                case_check_note="port binding legality check passed"
+            fi
+        else
+            case_actual_pass=0
+            if [[ -z "$case_check_note" ]]; then
+                case_check_note="port binding legality check failed"
+            fi
+        fi
+
+        if [[ "$case_expect_pass" -eq 1 ]]; then
+            case_expected_label="pass"
+        else
+            case_expected_label="fail"
+        fi
+        if [[ "$case_actual_pass" -eq 1 ]]; then
+            case_actual_label="pass"
+        else
+            case_actual_label="fail"
+        fi
+
+        if [[ "$case_expect_pass" -eq "$case_actual_pass" ]]; then
+            case_status="pass"
+            case_note="$case_check_note"
+            port_binding_suite_passed=$((port_binding_suite_passed + 1))
+        else
+            case_status="fail"
+            case_note="$case_check_note"
+            port_binding_suite_failed=$((port_binding_suite_failed + 1))
+            echo "port binding legality contract mismatch: case='${case_name}' expected=${case_expected_label} actual=${case_actual_label}" >&2
+        fi
+
+        echo "${case_name},${case_expected_label},${case_actual_label},${case_status},$(csv_sanitize "$case_note")" >>"$suite_summary_csv"
+    done < <(jq -c '.cases[]' "$suite_file")
+
+    if (( port_binding_suite_total == 0 )); then
+        echo "port binding legality contract suite has zero cases: $suite_file" >&2
+        port_binding_suite_status="fail"
+        return 1
+    fi
+
+    if (( port_binding_suite_failed > 0 )); then
+        port_binding_suite_status="fail"
+        echo "port binding legality contract suite failed: $port_binding_suite_failed/$port_binding_suite_total mismatches (summary: $suite_summary_csv)" >&2
+        return 1
+    fi
+
+    port_binding_suite_status="pass"
+    return 0
+}
+
 if [[ "$PARSE_FULL_MODE" != "auto" && "$PARSE_FULL_MODE" != "0" && "$PARSE_FULL_MODE" != "1" ]]; then
     echo "error: PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE must be one of: auto, 0, 1" >&2
     exit 2
@@ -878,6 +982,10 @@ if [[ -n "$ENFORCE_WIDTH_COMPAT_SUITE_OVERRIDE" ]] && [[ "$ENFORCE_WIDTH_COMPAT_
     echo "error: PGEN_SV_STIMULI_QUALITY_ENFORCE_WIDTH_COMPAT_SUITE must be 0 or 1 when set" >&2
     exit 2
 fi
+if [[ -n "$ENFORCE_PORT_BINDING_SUITE_OVERRIDE" ]] && [[ "$ENFORCE_PORT_BINDING_SUITE_OVERRIDE" != "0" && "$ENFORCE_PORT_BINDING_SUITE_OVERRIDE" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_QUALITY_ENFORCE_PORT_BINDING_SUITE must be 0 or 1 when set" >&2
+    exit 2
+fi
 if [[ -n "$LRM_PROFILE_OVERRIDE" && -n "$LRM_PROFILES_OVERRIDE" ]]; then
     echo "error: set either PGEN_SV_STIMULI_QUALITY_LRM_PROFILE or PGEN_SV_STIMULI_QUALITY_LRM_PROFILES, not both" >&2
     exit 2
@@ -904,6 +1012,8 @@ declared_identifier_suite_rel="$(jq -er '(.semantic_contracts.declared_identifie
 enforce_declared_identifier_suite="$(jq -er 'if (.semantic_contracts.enforce_declared_identifier_suite // false) then 1 else 0 end' "$CONTRACT_FILE")"
 width_compat_suite_rel="$(jq -er '(.semantic_contracts.width_compatibility_suite_path // "") | strings' "$CONTRACT_FILE")"
 enforce_width_compat_suite="$(jq -er 'if (.semantic_contracts.enforce_width_compatibility_suite // false) then 1 else 0 end' "$CONTRACT_FILE")"
+port_binding_suite_rel="$(jq -er '(.semantic_contracts.port_binding_legality_suite_path // "") | strings' "$CONTRACT_FILE")"
+enforce_port_binding_suite="$(jq -er 'if (.semantic_contracts.enforce_port_binding_legality_suite // false) then 1 else 0 end' "$CONTRACT_FILE")"
 closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
@@ -941,6 +1051,12 @@ fi
 if [[ -n "$ENFORCE_WIDTH_COMPAT_SUITE_OVERRIDE" ]]; then
     enforce_width_compat_suite="$ENFORCE_WIDTH_COMPAT_SUITE_OVERRIDE"
 fi
+if [[ -n "$PORT_BINDING_SUITE_OVERRIDE" ]]; then
+    port_binding_suite_rel="$PORT_BINDING_SUITE_OVERRIDE"
+fi
+if [[ -n "$ENFORCE_PORT_BINDING_SUITE_OVERRIDE" ]]; then
+    enforce_port_binding_suite="$ENFORCE_PORT_BINDING_SUITE_OVERRIDE"
+fi
 declared_identifier_suite_path=""
 if [[ -n "$declared_identifier_suite_rel" ]]; then
     if [[ "$declared_identifier_suite_rel" == /* ]]; then
@@ -955,6 +1071,14 @@ if [[ -n "$width_compat_suite_rel" ]]; then
         width_compat_suite_path="$width_compat_suite_rel"
     else
         width_compat_suite_path="$ROOT_DIR/$width_compat_suite_rel"
+    fi
+fi
+port_binding_suite_path=""
+if [[ -n "$port_binding_suite_rel" ]]; then
+    if [[ "$port_binding_suite_rel" == /* ]]; then
+        port_binding_suite_path="$port_binding_suite_rel"
+    else
+        port_binding_suite_path="$ROOT_DIR/$port_binding_suite_rel"
     fi
 fi
 
@@ -1155,6 +1279,8 @@ echo "declared_identifier_suite_enforced: $enforce_declared_identifier_suite"
 echo "declared_identifier_suite_path: ${declared_identifier_suite_path:-<unset>}"
 echo "width_compatibility_suite_enforced: $enforce_width_compat_suite"
 echo "width_compatibility_suite_path: ${width_compat_suite_path:-<unset>}"
+echo "port_binding_legality_suite_enforced: $enforce_port_binding_suite"
+echo "port_binding_legality_suite_path: ${port_binding_suite_path:-<unset>}"
 echo "differential_mode: $DIFF_MODE"
 echo "differential_max_samples: $DIFF_MAX_SAMPLES"
 echo "differential_reference_runner: ${DIFF_REFERENCE_RUNNER:-<unset>}"
@@ -1170,6 +1296,8 @@ run_logged "declared_identifier_contract_suite" \
     run_declared_identifier_contract_suite "$declared_identifier_suite_path" "$enforce_declared_identifier_suite"
 run_logged "width_compatibility_contract_suite" \
     run_width_compatibility_contract_suite "$width_compat_suite_path" "$enforce_width_compat_suite"
+run_logged "port_binding_legality_contract_suite" \
+    run_port_binding_legality_contract_suite "$port_binding_suite_path" "$enforce_port_binding_suite"
 
 echo "profile,sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
@@ -1857,6 +1985,10 @@ jq -n \
     echo "width_compatibility_suite_total: $width_compat_suite_total"
     echo "width_compatibility_suite_passed: $width_compat_suite_passed"
     echo "width_compatibility_suite_failed: $width_compat_suite_failed"
+    echo "port_binding_suite_status: $port_binding_suite_status"
+    echo "port_binding_suite_total: $port_binding_suite_total"
+    echo "port_binding_suite_passed: $port_binding_suite_passed"
+    echo "port_binding_suite_failed: $port_binding_suite_failed"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
     echo "perf_budget_mode: $PERF_BUDGET_MODE"

@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-02-28 - Phase P Semantic-Closure Hardening: Deterministic Port-Binding Legality Contract Suite
+### ✅ Achievement Summary
+Added a deterministic semantic contract suite for named-port legality and wired it into `sv_stimuli_quality_gate` as a first-stage pass/fail precheck.
+
+### Scope of Changes
+- Added deterministic port-binding legality corpus:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`
+  - includes explicit pass/fail cases for:
+    - valid named-port bindings,
+    - invalid unknown named ports,
+    - wildcard bindings,
+    - unknown module-type tolerance,
+    - multi-instance mismatch detection.
+- Promoted SV core quality contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump:
+    - `15 -> 16`
+  - new semantic-contract keys:
+    - `semantic_contracts.port_binding_legality_suite_path`
+    - `semantic_contracts.enforce_port_binding_legality_suite`
+- Wired deterministic suite execution into gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env overrides:
+    - `PGEN_SV_STIMULI_QUALITY_PORT_BINDING_SUITE`
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_PORT_BINDING_SUITE`
+  - added `port_binding_legality_contract_suite` stage with CSV report and strict mismatch handling.
+  - summary now reports:
+    - `port_binding_suite_status`
+    - `port_binding_suite_total`
+    - `port_binding_suite_passed`
+    - `port_binding_suite_failed`
+- Updated docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+
 ## 2026-02-28 - Phase P Nexsim Hardening: SV Stimuli Performance/Memory Budget Gate
 ### ✅ Achievement Summary
 Added deterministic performance/memory-proxy budget enforcement to `sv_stimuli_quality_gate` with contractized thresholds, runtime mode control, and a machine-readable report artifact.

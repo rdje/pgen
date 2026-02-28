@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-p-sv-performance-memory-budget-stage)
+Last updated: 2026-02-28 (+0100, task: phase-p-sv-port-binding-deterministic-suite)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,29 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Added deterministic SV port-binding legality contract suite (Phase P semantic closure)
+- Root cause:
+  - semantic-closure deterministic suites covered declared-before-use and width compatibility, but lacked a fixed pass/fail corpus for named-port legality behavior.
+- Fix:
+  - added suite corpus:
+    - `rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`
+  - promoted contract:
+    - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `v16`
+    - added:
+      - `semantic_contracts.port_binding_legality_suite_path`
+      - `semantic_contracts.enforce_port_binding_legality_suite`
+  - extended `rust/scripts/sv_stimuli_quality_gate.sh`:
+    - new stage: `port_binding_legality_contract_suite`,
+    - new env overrides:
+      - `PGEN_SV_STIMULI_QUALITY_PORT_BINDING_SUITE`
+      - `PGEN_SV_STIMULI_QUALITY_ENFORCE_PORT_BINDING_SUITE`,
+    - summary counters for suite status/total/passed/failed.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` passed.
+  - `jq empty rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json` passed.
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh` passed.
 
 ### 2026-02-28: Added contractized SV stimuli performance/memory-proxy budget stage (Phase P)
 - Root cause:
@@ -1276,7 +1299,7 @@ Use this file to resume work without replaying full chat history.
 1. Plug real trusted-reference adapters into SV preprocessor differential gate:
    - provide project-level runner scripts for available external preprocessors and start collecting taxonomy deltas on curated corpora.
 2. Continue Phase P semantic-closure implementation for SV:
-   - promote currently optional semantic baseline toggles toward required contract checks once false-positive rate is controlled.
+   - add deterministic contract suites for remaining semantic checks (`package_qualification_resolution`, `context_legality_basic`) and promote currently optional toggles toward required checks once false-positive rate is controlled.
 3. Continue Phase R implementation for AST observability:
    - embedding API surface for parser-returned AST dump,
    - deterministic format/replay contract checks for both dump surfaces.

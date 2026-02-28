@@ -283,6 +283,10 @@ Toolbox baseline to leverage end-to-end:
     - establishes fixed pass/fail corpus for literal-width assignment legality independent of randomized stimuli variance,
     - adds contract/env policy controls for strict enforcement and suite-path override,
     - reports suite pass/fail totals in gate summary output for semantic-closure tracking.
+  - Progress (2026-02-28): added deterministic port-binding legality semantic contract suite and gate wiring (`systemverilog_port_binding_legality_contract_cases.json`, core contract `v16`, `port_binding_legality_contract_suite` stage in `sv_stimuli_quality_gate`):
+    - establishes fixed pass/fail corpus for named-port legality behavior independent of randomized stimuli variance,
+    - adds contract/env policy controls for strict enforcement and suite-path override,
+    - reports suite pass/fail totals in gate summary output for semantic-closure tracking.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -491,6 +495,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Advanced Phase P semantic-closure deterministic suite coverage by adding `port_binding_legality_contract_suite` to `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to `v16` with contractized suite path/enforcement controls.
 - 2026-02-28: Advanced Phase P Nexsim differential/integration hardening by adding contractized SV stimuli performance/memory-proxy budget enforcement in `sv_stimuli_quality_gate` (`performance_budgets` in `systemverilog_core_v0_contract.json` v15, `PGEN_SV_STIMULI_PERF_BUDGET_MODE=auto|0|1`, deterministic `systemverilog_performance_report.json` artifact).
 - 2026-02-28: Advanced Phase P Nexsim differential-hardening by adding trusted-reference parser mismatch taxonomy in `sv_stimuli_quality_gate` (`auto|strict` modes, per-case artifacts, and deterministic `systemverilog_differential_report.json` output).
 - 2026-02-28: Advanced Phase Q preprocessor closure by enabling executable `systemverilog_preprocessor` parseability validation in `sv_preprocessor_quality_gate` through dynamic generated-parser adapter wiring + gate-side parser generation/rebuild (`PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`), moving parseability from adapter-skipped to active in auto mode.

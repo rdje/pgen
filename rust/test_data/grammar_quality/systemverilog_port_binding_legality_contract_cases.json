@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "Deterministic semantic contract suite for basic named-port legality behavior in sv_stimuli_quality_gate.",
+  "cases": [
+    {
+      "name": "named_single_port_pass",
+      "expect_pass": true,
+      "input": "module child(input logic a); endmodule module top; logic sig; child u0(.a(sig)); endmodule"
+    },
+    {
+      "name": "named_multi_port_pass",
+      "expect_pass": true,
+      "input": "module child(input logic a, input logic b, output logic y); endmodule module top; logic x; logic y; logic z; child u0(.a(x), .b(y), .y(z)); endmodule"
+    },
+    {
+      "name": "unknown_named_port_fail",
+      "expect_pass": false,
+      "input": "module child(input logic a); endmodule module top; logic sig; child u0(.bad(sig)); endmodule"
+    },
+    {
+      "name": "mixed_named_port_fail",
+      "expect_pass": false,
+      "input": "module child(input logic a, input logic b); endmodule module top; logic x; logic y; child u0(.a(x), .oops(y)); endmodule"
+    },
+    {
+      "name": "wildcard_binding_pass",
+      "expect_pass": true,
+      "input": "module child(input logic a, input logic b); endmodule module top; logic a; logic b; child u0(.*); endmodule"
+    },
+    {
+      "name": "unknown_module_type_ignored_pass",
+      "expect_pass": true,
+      "input": "module top; logic x; external_mod u0(.a(x)); endmodule"
+    },
+    {
+      "name": "second_instance_unknown_named_port_fail",
+      "expect_pass": false,
+      "input": "module child(input logic clk); endmodule module top; logic clk; child u0(.clk(clk)); child u1(.oops(clk)); endmodule"
+    },
+    {
+      "name": "comment_noise_named_port_pass",
+      "expect_pass": true,
+      "input": "module child(input logic a); endmodule module top; logic sig; /* comment */ child u0(.a(sig)); // trailing comment\nendmodule"
+    }
+  ]
+}

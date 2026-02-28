@@ -2136,6 +2136,8 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE` (override declared-identifier deterministic contract corpus path)
 - `PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE` (`0`/`1`, overrides contract enforcement toggle)
+- `PGEN_SV_STIMULI_QUALITY_PORT_BINDING_SUITE` (override port-binding legality deterministic contract corpus path)
+- `PGEN_SV_STIMULI_QUALITY_ENFORCE_PORT_BINDING_SUITE` (`0`/`1`, overrides contract enforcement toggle)
 - `PGEN_SV_STIMULI_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_STIMULI_DIFF_MAX_SAMPLES` (default `8`)
 - `PGEN_SV_STIMULI_REFERENCE_RUNNER` (path to executable trusted-reference parser runner script; required for strict differential mode)
@@ -2235,6 +2237,20 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - threshold values,
     - observed per-stage totals/averages/maxima,
     - max generated/preprocessed sample size.
+- deterministic port-binding legality semantic contract precheck:
+  - contract keys (`systemverilog_core_v0_contract.json`):
+    - `semantic_contracts.port_binding_legality_suite_path`
+    - `semantic_contracts.enforce_port_binding_legality_suite`
+  - gate stage:
+    - `port_binding_legality_contract_suite`
+  - summary metrics:
+    - `port_binding_suite_status`
+    - `port_binding_suite_total`
+    - `port_binding_suite_passed`
+    - `port_binding_suite_failed`
+  - behavior:
+    - runs before profile/sample generation loops,
+    - enforces deterministic pass/fail outcomes for named-port legality on known module declarations (`module_type.port`) independent of random stimuli variance.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

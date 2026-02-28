@@ -9961,3 +9961,50 @@ As a result:
 - Result:
   - gate passed,
   - deterministic performance report emitted with configured thresholds and observed metrics.
+
+---
+
+## 2026-02-28: Added deterministic port-binding legality contract suite to `sv_stimuli_quality_gate`
+
+### Root cause
+Phase P semantic-closure had deterministic suites for declared-before-use and width compatibility, but lacked equivalent fixed-corpus proof for named-port legality behavior.
+
+Without a dedicated suite:
+- port-binding legality remained validated only via randomized gate samples,
+- regressions in `require_port_binding_legality_basic` logic could be masked by corpus variance.
+
+### Fixes implemented
+- Added deterministic suite corpus:
+  - `rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`
+  - includes explicit pass/fail coverage for:
+    - valid single/multi named-port bindings,
+    - unknown named-port failures,
+    - wildcard binding acceptance,
+    - unknown module-type tolerance,
+    - multi-instance mismatch detection.
+- Extended core contract:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version `15 -> 16`
+  - added keys:
+    - `semantic_contracts.port_binding_legality_suite_path`
+    - `semantic_contracts.enforce_port_binding_legality_suite`
+- Extended gate runtime:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env overrides:
+    - `PGEN_SV_STIMULI_QUALITY_PORT_BINDING_SUITE`
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_PORT_BINDING_SUITE`
+  - added `port_binding_legality_contract_suite` execution stage with deterministic pass/fail enforcement and CSV summary artifact.
+  - added summary counters:
+    - `port_binding_suite_status`
+    - `port_binding_suite_total`
+    - `port_binding_suite_passed`
+    - `port_binding_suite_failed`
+
+### Validation
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `jq empty rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`
+- reduced-cost gate run:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Result:
+  - gate passed with deterministic contract-suite stage active.
