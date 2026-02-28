@@ -7,6 +7,8 @@ use crate::ast_pipeline::{ParseNode, UnifiedSemanticAST, runtime_logger, runtime
 use crate::ebnf_generated_parser::EbnfParser;
 #[cfg(has_generated_systemverilog_parser)]
 use crate::generated_parsers::systemverilog::SystemverilogParser;
+#[cfg(has_generated_systemverilog_preprocessor_parser)]
+use crate::generated_parsers::systemverilog_preprocessor::SystemverilogPreprocessorParser;
 #[cfg(has_generated_vhdl_parser)]
 use crate::generated_parsers::vhdl::VhdlParser;
 use crate::generated_parsers::{
@@ -116,6 +118,27 @@ fn parse_with_systemverilog_ast_json(sample: &str) -> Result<JsonValue, String> 
     parse_node_to_json(&parsed)
 }
 
+#[cfg(has_generated_systemverilog_preprocessor_parser)]
+fn parse_with_systemverilog_preprocessor(sample: &str) -> bool {
+    let mut parser = SystemverilogPreprocessorParser::new(
+        sample,
+        runtime_logger_box("generated.systemverilog_preprocessor"),
+    );
+    parser.parse_full_systemverilog_preprocessor_file().is_ok()
+}
+
+#[cfg(has_generated_systemverilog_preprocessor_parser)]
+fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser = SystemverilogPreprocessorParser::new(
+        sample,
+        runtime_logger_box("generated.systemverilog_preprocessor"),
+    );
+    let parsed = parser
+        .parse_full_systemverilog_preprocessor_file()
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
 #[cfg(has_generated_vhdl_parser)]
 fn parse_with_vhdl(sample: &str) -> bool {
     let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
@@ -162,6 +185,11 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "systemverilog",
         parse_sample: parse_with_systemverilog,
     },
+    #[cfg(has_generated_systemverilog_preprocessor_parser)]
+    GeneratedParserRegistryEntry {
+        grammar_name: "systemverilog_preprocessor",
+        parse_sample: parse_with_systemverilog_preprocessor,
+    },
     #[cfg(has_generated_vhdl_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "vhdl",
@@ -200,6 +228,10 @@ pub fn parse_sample_ast_json(
         "ebnf" => Some(parse_with_ebnf_ast_json(sample)),
         #[cfg(has_generated_systemverilog_parser)]
         "systemverilog" => Some(parse_with_systemverilog_ast_json(sample)),
+        #[cfg(has_generated_systemverilog_preprocessor_parser)]
+        "systemverilog_preprocessor" => {
+            Some(parse_with_systemverilog_preprocessor_ast_json(sample))
+        }
         #[cfg(has_generated_vhdl_parser)]
         "vhdl" => Some(parse_with_vhdl_ast_json(sample)),
         _ => None,
@@ -238,6 +270,13 @@ mod tests {
     fn registry_exposes_systemverilog_when_generated_parser_present() {
         let grammars = registered_grammars();
         assert!(grammars.contains(&"systemverilog"));
+    }
+
+    #[cfg(has_generated_systemverilog_preprocessor_parser)]
+    #[test]
+    fn registry_exposes_systemverilog_preprocessor_when_generated_parser_present() {
+        let grammars = registered_grammars();
+        assert!(grammars.contains(&"systemverilog_preprocessor"));
     }
 
     #[cfg(has_generated_vhdl_parser)]

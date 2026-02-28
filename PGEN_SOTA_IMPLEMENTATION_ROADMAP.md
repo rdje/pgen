@@ -384,7 +384,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - include/macro conditional-branch coverage metrics,
   - shrinking for failing preprocessability samples.
   - Progress (2026-02-27): gate script implemented (`rust/scripts/sv_preprocessor_quality_gate.sh`) with stage-0 deterministic replay checks, closed-loop stage progression invariants, key preprocessor-rule hit assertions, target-drive integrity checks, and deterministic coverage-guided fuzz replay verification.
-  - Current behavior: parseability validation and parseability-failure shrink checks are auto-enabled when parser-registry support for `systemverilog_preprocessor` is available; until then, gate runs in coverage/gap deterministic mode and reports adapter absence explicitly.
+  - Progress (2026-02-28): enabled executable parser-registry parseability path for `systemverilog_preprocessor` by wiring dynamic generated-parser adapter support (`build.rs`, `lib.rs`, `parser_registry`) and updating `sv_preprocessor_quality_gate` to self-generate `systemverilog_preprocessor_parser.rs` then rebuild `ast_pipeline` with `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH` before stage execution. `auto` parseability mode now resolves to `enabled` in gate summary with real parseability validation active.
 - [x] Add preprocessor semantic controls and validator contracts (annotation-driven where appropriate):
   - include path policy + depth budget,
   - macro redefinition policy,
@@ -481,6 +481,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Advanced Phase Q preprocessor closure by enabling executable `systemverilog_preprocessor` parseability validation in `sv_preprocessor_quality_gate` through dynamic generated-parser adapter wiring + gate-side parser generation/rebuild (`PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`), moving parseability from adapter-skipped to active in auto mode.
 - 2026-02-28: Advanced Phase R generated-parser AST dump milestone by adding `parseability_probe --parse-dump-ast` / `--parse-dump-ast-pretty` with default grammar-based artifact naming (`<grammar>_ast.json`) and explicit output path override support.
 - 2026-02-28: Completed Phase R generation-input AST dump milestone by adding `ast_pipeline --dump-gen-ast [PATH]` (`gen_ast.json` default) with optional pretty mode and generation-mode wiring (`--generate-parser|--generate-stimuli|--generate-stimuli-module`).
 - 2026-02-28: Added Phase R (`AST Observability and Debug Artifacts`) to roadmap, including planned CLI/API dump options for generator-input AST (`gen_ast.json`) and generated-parser return AST (`<grammar>_ast.json`) with deterministic artifact contracts and gate-level validation.

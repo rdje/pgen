@@ -28,6 +28,7 @@ GRAMMAR_FILE="$GRAMMARS_DIR/${GRAMMAR_NAME}.ebnf"
 GRAMMAR_JSON="$WORK_DIR/${GRAMMAR_NAME}.json"
 EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
+PARSER_OUT="$WORK_DIR/${GRAMMAR_NAME}_parser.rs"
 
 if ! [[ "$SAMPLE_COUNT" =~ ^[0-9]+$ ]] || [[ "$SAMPLE_COUNT" -lt 1 ]]; then
     echo "error: PGEN_SV_PREPROCESSOR_QUALITY_COUNT must be an integer >= 1" >&2
@@ -211,7 +212,12 @@ echo "parseability_mode: $PARSEABILITY_MODE"
 echo "diff_mode: $DIFF_MODE"
 echo "diff_max_samples: $DIFF_MAX_SAMPLES"
 
-run_logged_rust "build_generated_ast_pipeline" \
+run_logged "frontend_ebnf_to_json" \
+    perl "$EBNF_TO_JSON" --pretty --quiet "$GRAMMAR_FILE" -o "$GRAMMAR_JSON"
+
+require_nonempty_file "$GRAMMAR_JSON"
+
+run_logged_rust "build_ast_pipeline_for_preprocessor_generation" \
     cargo build --features generated_parsers --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
@@ -219,10 +225,21 @@ if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     exit 1
 fi
 
-run_logged "frontend_ebnf_to_json" \
-    perl "$EBNF_TO_JSON" --pretty --quiet "$GRAMMAR_FILE" -o "$GRAMMAR_JSON"
+run_logged "generate_sv_preprocessor_parser" \
+    "$AST_PIPELINE_BIN" "$GRAMMAR_JSON" \
+    --generate-parser \
+    --eliminate-left-recursion \
+    --output "$PARSER_OUT"
+require_nonempty_file "$PARSER_OUT"
 
-require_nonempty_file "$GRAMMAR_JSON"
+run_logged_rust "build_ast_pipeline_with_sv_preprocessor_adapter" \
+    env PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH="$PARSER_OUT" \
+    cargo build --features generated_parsers --bin ast_pipeline
+
+if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
+    echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after adapter build" >&2
+    exit 1
+fi
 
 parseability_enabled=0
 parseability_effective="disabled"

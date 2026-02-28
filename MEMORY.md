@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-r-parser-ast-json-naming)
+Last updated: 2026-02-28 (+0100, task: phase-q-sv-preprocessor-parseability-adapter-activation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,23 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Enabled executable parseability validation for `systemverilog_preprocessor` in Phase Q gate
+- Root cause:
+  - `sv_preprocessor_quality_gate` parseability stage ran in auto mode but fell back to `unsupported_adapter` because there was no dynamic generated-parser adapter path for grammar `systemverilog_preprocessor`.
+- Fix:
+  - wired dynamic preprocessor parser support:
+    - `rust/build.rs`: new cfg/env path support (`has_generated_systemverilog_preprocessor_parser`, `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`),
+    - `rust/src/lib.rs`: cfg-gated `generated_parsers::systemverilog_preprocessor`,
+    - `rust/src/parser_registry.rs`: parseability + AST-JSON adapters for grammar name `systemverilog_preprocessor`.
+  - hardened `rust/scripts/sv_preprocessor_quality_gate.sh`:
+    - gate now generates `systemverilog_preprocessor_parser.rs` into gate workdir,
+    - rebuilds `ast_pipeline` with `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH` so `--validate-parseability` is active in the same run.
+- Validation:
+  - `cargo test --manifest-path rust/Cargo.toml parser_registry --features generated_parsers` passed.
+  - reduced-cost gate run passed:
+    - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 bash rust/scripts/sv_preprocessor_quality_gate.sh`
+  - gate summary now reports `parseability_mode_effective: enabled`.
 
 ### 2026-02-28: Phase P semantic-closure deterministic width-compatibility contract suite
 - Root cause:

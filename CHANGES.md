@@ -10627,3 +10627,35 @@ Align AST dump artifact naming with JSON semantics and grammar-based parser AST 
 ### Validation
 - `cargo test --manifest-path rust/Cargo.toml parser_registry --features generated_parsers,ebnf_dual_run`
 - `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers,ebnf_dual_run`
+
+---
+
+## 2026-02-28: Phase Q preprocessor parseability adapter activation for SV closure
+
+### Goal
+Make `sv_preprocessor_quality_gate` execute real generated-parser parseability validation for `systemverilog_preprocessor` in auto mode (instead of adapter-unavailable fallback).
+
+### Changes
+- Extended dynamic generated-parser wiring:
+  - `rust/build.rs`
+    - added `has_generated_systemverilog_preprocessor_parser` cfg registration,
+    - added env support for `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`,
+    - exports resolved include path `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH_RESOLVED`.
+  - `rust/src/lib.rs`
+    - added conditional generated parser module:
+      - `generated_parsers::systemverilog_preprocessor`.
+  - `rust/src/parser_registry.rs`
+    - added parseability and AST JSON adapters for grammar name `systemverilog_preprocessor`,
+    - added cfg-gated registry exposure test for preprocessor grammar.
+- Updated `rust/scripts/sv_preprocessor_quality_gate.sh`:
+  - gate now self-generates a parser artifact for `grammars/systemverilog_preprocessor.ebnf`,
+  - rebuilds `ast_pipeline` with:
+    - `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH=<generated parser path>`,
+  - runs all quality stages with parseability adapter available in the same gate execution.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml parser_registry --features generated_parsers`
+- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 bash rust/scripts/sv_preprocessor_quality_gate.sh`
+- Gate summary now reports:
+  - `parseability_mode_effective: enabled`
+  - with full deterministic stage pass.

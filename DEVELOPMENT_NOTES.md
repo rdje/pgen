@@ -9818,3 +9818,47 @@ The initial parser-AST dump naming draft (`parser_ast.log`) did not align with d
 ### Validation
 - `cargo test --manifest-path rust/Cargo.toml parser_registry --features generated_parsers,ebnf_dual_run`
 - `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers,ebnf_dual_run`
+
+---
+
+## 2026-02-28: Enabled executable `systemverilog_preprocessor` parseability path in Phase Q gate
+
+### Root cause
+`sv_preprocessor_quality_gate` supported parseability validation only when a parser-registry adapter was already compiled for `systemverilog_preprocessor`.
+
+In practice, the adapter path was not wired, so `auto` mode often degraded to `unsupported_adapter`, reducing the gate to coverage/gap-only behavior for this grammar.
+
+### Fixes implemented
+1) Dynamic generated-parser support for preprocessor grammar:
+- `rust/build.rs`
+  - added cfg registration:
+    - `has_generated_systemverilog_preprocessor_parser`
+  - added env-based path resolution:
+    - input env: `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`
+    - resolved env export: `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH_RESOLVED`
+2) Generated parser module wiring:
+- `rust/src/lib.rs`
+  - added `generated_parsers::systemverilog_preprocessor` module (cfg-gated).
+3) Parser registry integration:
+- `rust/src/parser_registry.rs`
+  - added parseability adapter:
+    - `parse_with_systemverilog_preprocessor`
+  - added AST-json adapter:
+    - `parse_with_systemverilog_preprocessor_ast_json`
+  - added registry entry:
+    - grammar name `systemverilog_preprocessor`
+4) Gate execution hardening:
+- `rust/scripts/sv_preprocessor_quality_gate.sh`
+  - now self-generates parser artifact from preprocessor grammar JSON:
+    - `<state>/work/systemverilog_preprocessor_parser.rs`
+  - rebuilds `ast_pipeline` with preprocessor adapter path injected:
+    - `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH=<generated parser path>`
+  - subsequent stage runs use an `ast_pipeline` binary with active parseability adapter.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml parser_registry --features generated_parsers`
+- Reduced-cost gate smoke:
+  - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 bash rust/scripts/sv_preprocessor_quality_gate.sh`
+- Result:
+  - pass,
+  - summary confirms `parseability_mode_effective=enabled`.
