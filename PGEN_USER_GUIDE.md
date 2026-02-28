@@ -2391,13 +2391,16 @@ make -C rust SHELL=/bin/bash differential_refresh_baseline
 ## 14) Recommended Daily Workflow
 
 1. Regenerate/build the parser path you touched.
-2. Run focused universal tests for return/semantic.
-3. Run annotation contract gate (`annotation_contract_gate`) for annotation-heavy changes.
-4. Run strict closed-loop stimuli verification (`annotation_stimuli_quality_gate`) when touching stimuli/coverage/gap logic.
-5. Run non-annotation closed-loop verification (`ebnf_stimuli_quality_gate`) when touching generic EBNF frontend/parser/stimuli logic.
-6. Run SV preprocessor closed-loop verification (`sv_preprocessor_quality_gate`) when touching `systemverilog_preprocessor.ebnf` or preprocessor-specific generation logic.
-7. Run differential regression gate.
-8. Run fixed-point gate before merge-sensitive changes.
-9. Run performance gate for parser/runtime-impacting changes.
-10. Run the aggregate release gate (`sota_exit_gate`) before merge/release cuts.
-11. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.
+2. If Rust or generated Rust changed, run clippy flow:
+   - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+   - source clippy is strict; generated clippy runs every time and can be made strict with `PGEN_CLIPPY_GENERATED_STRICT=1`.
+3. Run focused universal tests for return/semantic.
+4. Run annotation contract gate (`annotation_contract_gate`) for annotation-heavy changes.
+5. Run strict closed-loop stimuli verification (`annotation_stimuli_quality_gate`) when touching stimuli/coverage/gap logic.
+6. Run non-annotation closed-loop verification (`ebnf_stimuli_quality_gate`) when touching generic EBNF frontend/parser/stimuli logic.
+7. Run SV preprocessor closed-loop verification (`sv_preprocessor_quality_gate`) when touching `systemverilog_preprocessor.ebnf` or preprocessor-specific generation logic.
+8. Run differential regression gate.
+9. Run fixed-point gate before merge-sensitive changes.
+10. Run performance gate for parser/runtime-impacting changes.
+11. Run the aggregate release gate (`sota_exit_gate`) before merge/release cuts.
+12. Update `CHANGES.md` and `DEVELOPMENT_NOTES.md` for non-trivial behavior changes.

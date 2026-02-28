@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-p-sv-declared-identifier-deterministic-contract-suite)
+Last updated: 2026-02-28 (+0100, task: workflow-clippy-on-rust-change)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for deterministic declared-identifier semantic contract suite increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for clippy-on-rust-change workflow hardening increment; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -201,10 +201,15 @@ Use this file to resume work without replaying full chat history.
 - After each completed task, run commit workflow automatically.
 - Commit workflow is:
   1. amend `git_message_brief.txt` with concise summary
-  2. stage intended tracked files only
-  3. `git commit -F git_message_brief.txt`
-  4. clear `git_message_brief.txt` to 0 bytes
-  5. keep `git_message_brief.txt` untracked
+  2. when Rust/generated Rust files changed, run:
+     - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  3. stage intended tracked files only
+  4. `git commit -F git_message_brief.txt`
+  5. clear `git_message_brief.txt` to 0 bytes
+  6. keep `git_message_brief.txt` untracked
+- Clippy policy:
+  - source lint (`cargo clippy --all-targets`) is strict and must pass.
+  - generated-parser lint (`cargo clippy --all-targets --features generated_parsers,ebnf_dual_run`) is always executed by the flow; set `PGEN_CLIPPY_GENERATED_STRICT=1` to make generated lint debt fail the workflow.
 - After each completed task, update this file:
   - current snapshot values,
   - recent work summary,
@@ -217,6 +222,26 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Workflow hardening - clippy auto-flow for Rust/generated Rust changes
+- Root cause:
+  - clippy was run ad hoc and not embedded as a mandatory workflow step after Rust or generated parser changes.
+- Fix:
+  - added executable workflow script:
+    - `rust/scripts/clippy_on_rust_change.sh`
+    - detects Rust/generated Rust changes from working tree/index/untracked set and runs:
+      - strict source clippy: `cargo clippy --all-targets`
+      - generated integration clippy: `cargo clippy --all-targets --features generated_parsers,ebnf_dual_run`
+    - generated stage is report-mode by default (current generated parser debt), strict when `PGEN_CLIPPY_GENERATED_STRICT=1`.
+  - added make target:
+    - `make -C rust clippy_on_rust_change`
+  - updated commit workflow contract:
+    - `COMMIT.md` now requires running this clippy flow whenever Rust/generated Rust files are changed.
+- Validation:
+  - `PGEN_CLIPPY_FORCE=1 make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - source clippy path passes; generated clippy path runs and reports existing generated-parser clippy debt in non-strict mode.
+- Status:
+  - clippy execution is now part of the standard task-completion workflow for Rust code changes.
 
 ### 2026-02-28: Phase P deterministic declared-identifier semantic contract suite
 - Root cause:

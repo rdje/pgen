@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-28 - Workflow Hardening: Clippy Flow Contract for Rust and Generated Parsers
+### Context
+Clippy execution existed but was ad hoc. The workflow needed an explicit, repeatable contract to ensure linting always runs whenever Rust code or generated Rust parser artifacts change.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/clippy_on_rust_change.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- `/Users/richarddje/Documents/github/pgen/COMMIT.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+#### 1) Added executable clippy workflow driver
+`clippy_on_rust_change.sh` behavior:
+- auto-detects relevant changes:
+  - `rust/*.rs`
+  - `generated/*.rs`
+  - `rust/Cargo.toml`, `rust/Cargo.lock`
+- run order:
+  1. strict source clippy:
+     - `cargo clippy --all-targets`
+  2. generated integration clippy:
+     - `cargo clippy --all-targets --features generated_parsers,ebnf_dual_run`
+- policy controls:
+  - default generated stage is report-mode (non-zero recorded but not fatal),
+  - `PGEN_CLIPPY_GENERATED_STRICT=1` makes generated-stage failure fatal.
+- outputs stage logs under:
+  - `rust/target/clippy_gate/logs/`.
+
+#### 2) Added Make entrypoint
+New make target:
+- `make -C rust clippy_on_rust_change`
+
+This target is now the standard operational command to apply clippy workflow policy on Rust-affecting changes.
+
+#### 3) Workflow contract updates
+- `COMMIT.md` now requires running `clippy_on_rust_change` when Rust/generated-Rust files changed before commit.
+- `MEMORY.md` binding rules now include this clippy step.
+- `PGEN_USER_GUIDE.md` daily workflow now includes clippy flow step and strict policy knob.
+
+### Validation
+Executed:
+- `PGEN_CLIPPY_FORCE=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+Observed:
+- strict source clippy pass is enforced.
+- generated feature-path clippy executes every time and currently reports known generated-parser lint debt unless strict mode is explicitly enabled.
+
 ## 2026-02-28 - Phase P Semantic-Closure Hardening: Deterministic Declared-Identifier Contract Suite
 ### Context
 `require_declared_identifiers_before_use` had better behavior after structured-use scanning, but we still lacked a deterministic contract proving what the checker must accept/reject independently from stochastic stimuli streams. We needed a fixed corpus gate so declared-before-use behavior can evolve safely without regressions.

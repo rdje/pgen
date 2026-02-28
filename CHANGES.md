@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-02-28 - Workflow Hardening: Mandatory Clippy Flow on Rust/Generated-Rust Changes
+### ✅ Achievement Summary
+Added a workflow-level clippy gate command and documentation contract so clippy is executed whenever Rust sources or generated Rust parser files are amended.
+
+### Scope of Changes
+- Added executable clippy workflow script:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/clippy_on_rust_change.sh`
+  - detects Rust/generated-Rust changes from working tree/index/untracked set and runs:
+    - strict source lint:
+      - `cargo clippy --all-targets`
+    - generated integration lint:
+      - `cargo clippy --all-targets --features generated_parsers,ebnf_dual_run`
+  - generated stage policy:
+    - default: report-only on failure (prints log path),
+    - strict opt-in: `PGEN_CLIPPY_GENERATED_STRICT=1`.
+- Added Make entrypoint:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - new target:
+    - `clippy_on_rust_change`
+  - updated `help` output to document it.
+- Updated workflow docs:
+  - `/Users/richarddje/Documents/github/pgen/COMMIT.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_CLIPPY_FORCE=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+  - source clippy stage: pass
+  - generated clippy stage: executed and reported existing generated-parser clippy debt in non-strict mode
+
 ## 2026-02-28 - Phase P Semantic-Closure Hardening: Deterministic Declared-Identifier Contract Suite
 ### ✅ Achievement Summary
 Added a deterministic semantic contract suite for declaration-before-use checking and wired it into `sv_stimuli_quality_gate` as a first-stage pass/fail precheck.

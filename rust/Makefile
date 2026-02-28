@@ -223,6 +223,7 @@ help:
 	@echo "  clean        - Remove generated files"
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
+	@echo "  clippy_on_rust_change - Run cargo clippy flow automatically when Rust/generated Rust files changed"
 	@echo "  sota_exit_gate - Run release-grade aggregate gate (fixed-point, annotation, differential, performance, embedding, EBNF readiness report)"
 	@echo "  sota_release_policy - Show active SOTA release policy file"
 	@echo "  ebnf_frontend_readiness - Report EBNF frontend flow readiness for ebnf/json/regex grammars"
@@ -421,6 +422,12 @@ fixed_point_gate:
 	@echo "🔁 Running fixed-point bootstrap reproducibility gate..."
 	cd $(RUST_DIR) && PGEN_STRICT_ANNOTATION_VALIDATION=$${PGEN_STRICT_ANNOTATION_VALIDATION:-1} ./scripts/fixed_point_bootstrap_gate.sh --cycles $(FIXED_POINT_CYCLES)
 	@echo "✅ Fixed-point gate passed."
+
+.PHONY: clippy_on_rust_change
+clippy_on_rust_change:
+	@echo "🧹 Running clippy flow on Rust/generated Rust changes..."
+	cd $(RUST_DIR) && ./scripts/clippy_on_rust_change.sh
+	@echo "✅ clippy_on_rust_change completed."
 
 .PHONY: sota_exit_gate
 sota_exit_gate:

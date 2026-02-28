@@ -450,6 +450,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Added mandatory Rust-change clippy workflow hook (`make clippy_on_rust_change`) with scripted Rust/generated-Rust change detection, strict source clippy enforcement, generated-parser integration clippy execution, and strict opt-in policy (`PGEN_CLIPPY_GENERATED_STRICT=1`) for generated lint debt.
 - 2026-02-28: Added deterministic declared-identifier semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v13 + `declared_identifier_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit `foreach` iterator declaration fix and summary counters.
 - 2026-02-27: Refined `require_declared_identifiers_before_use` to structured use-site scanning (assignment/condition/event/port contexts) and retained `sv_semantic_file` policy with declaration-before-use disabled until residual lexical-edge false positives are fully retired.
 - 2026-02-27: Hardened semantic-closure validators in `sv_stimuli_quality_gate` (`declared-identifiers` and `width-compatibility` heuristics) and extended `sv_semantic_file` policy to enable `require_width_compatibility_simple` while keeping `require_declared_identifiers_before_use` disabled pending further lexical false-positive burn-down.

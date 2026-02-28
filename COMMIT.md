@@ -1,6 +1,6 @@
 # COMMIT.md
 
-Last updated: 2026-02-27
+Last updated: 2026-02-28
 
 ## Purpose
 Define the exact commit workflow for this project so a new AI instance can apply it consistently without re-reading chat history.
@@ -26,14 +26,18 @@ Run this workflow after each completed task/activity.
 
 ## Required Commit Workflow (Exact Order)
 1. Ensure task is complete and tested.
-2. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, others touched by task).
-3. Write concise commit message to `git_message_brief.txt`.
-4. Stage only intended tracked files (`git add <files>`).
-5. Commit with:
+2. Run clippy flow when Rust/generated Rust files are amended:
+   - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+   - strict source lint must pass.
+   - generated-parser lint runs too; set `PGEN_CLIPPY_GENERATED_STRICT=1` to fail on generated clippy debt.
+3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, others touched by task).
+4. Write concise commit message to `git_message_brief.txt`.
+5. Stage only intended tracked files (`git add <files>`).
+6. Commit with:
    - `git commit -F git_message_brief.txt`
-6. Clear message file:
+7. Clear message file:
    - `: > git_message_brief.txt`
-7. Confirm post-conditions:
+8. Confirm post-conditions:
    - `git ls-files --error-unmatch git_message_brief.txt` must fail (untracked).
    - `wc -c git_message_brief.txt` must be `0`.
    - `git status --short` must show expected state only.
@@ -54,16 +58,19 @@ cat > git_message_brief.txt <<'EOF'
 - <brief bullet 2>
 EOF
 
-# 2) stage intended files only
+# 2) run clippy flow when Rust/generated-Rust changed
+make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change
+
+# 3) stage intended files only
 git add <tracked-file-1> <tracked-file-2> ...
 
-# 3) commit
+# 4) commit
 git commit -F git_message_brief.txt
 
-# 4) clear message file
+# 5) clear message file
 : > git_message_brief.txt
 
-# 5) verify
+# 6) verify
 wc -c git_message_brief.txt
 git ls-files --error-unmatch git_message_brief.txt >/dev/null 2>&1; echo $?
 git status --short
