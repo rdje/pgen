@@ -2113,11 +2113,18 @@ Optional SV preprocessor quality-gate tuning:
   - project-provided runner shim:
     - `rust/scripts/sv_preprocessor_reference_runner.sh`
     - backend auto-selection: `iverilog` first, then `verilator`
+    - probe support:
+      - `--probe` exits `0` when a backend is available, non-zero otherwise
+      - `--help` advertises probe capability
     - always emits diagnostics as JSON array (empty `[]` on clean success)
 - differential modes:
   - `0`: disabled
   - `auto`: enabled when runner is executable; otherwise report-only skip
   - `1`: strict (fails when runner unavailable or when any non-`match` taxonomy occurs)
+- runner probe preflight behavior:
+  - when runner supports `--probe`, gate executes probe before differential case classification
+  - `auto`: probe failure downgrades mode to `unsupported_reference_runner` (taxonomy run skipped)
+  - `1`: probe failure is immediate gate failure
 - taxonomy categories:
   - `match`
   - `diagnostics_mismatch`

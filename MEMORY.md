@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-q-preprocessor-reference-runner-standardization)
+Last updated: 2026-02-28 (+0100, task: phase-q-preprocessor-diff-probe-preflight-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Added probe-preflight hardening for SV preprocessor differential runner availability
+- Root cause:
+  - even after adding a project-level reference runner, environments without trusted backends (`iverilog`/`verilator`) still generated per-sample mismatches in `DIFF_MODE=auto`, reducing taxonomy signal quality.
+- Fix:
+  - extended `rust/scripts/sv_preprocessor_reference_runner.sh` with `--probe` availability mode,
+  - updated `rust/scripts/sv_preprocessor_quality_gate.sh` to:
+    - detect probe support,
+    - preflight backend availability before differential sample classification,
+    - downgrade to `unsupported_reference_runner` in auto mode on probe failure,
+    - fail fast in strict mode on probe failure with explicit probe-log path.
+  - synchronized docs/roadmap:
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Validation:
+  - `bash -n rust/scripts/sv_preprocessor_reference_runner.sh` passed.
+  - `bash -n rust/scripts/sv_preprocessor_quality_gate.sh` passed.
+  - reduced auto mode run passed with `diff_mode_effective=unsupported_reference_runner` when backend unavailable.
+  - reduced strict mode run failed early as expected with probe failure message.
 
 ### 2026-02-28: Standardized trusted-reference runner adapter for SV preprocessor differential gate
 - Root cause:

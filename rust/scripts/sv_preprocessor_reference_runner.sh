@@ -4,6 +4,7 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
+  sv_preprocessor_reference_runner.sh --probe
   sv_preprocessor_reference_runner.sh <input_sv_file> <output_sv_file> <diagnostics_json_file>
 
 Environment:
@@ -16,13 +17,80 @@ Environment:
 
 Notes:
   - Auto backend prefers iverilog, then verilator.
+  - --probe checks whether a trusted-reference backend is available and exits 0/1.
   - Diagnostics file is always emitted as a JSON array.
 EOF
+}
+
+backend_mode="${PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND:-auto}"
+iverilog_bin="${PGEN_SV_PREPROCESSOR_REFERENCE_IVERILOG_BIN:-iverilog}"
+verilator_bin="${PGEN_SV_PREPROCESSOR_REFERENCE_VERILATOR_BIN:-verilator}"
+language_profile="${PGEN_SV_PREPROCESSOR_REFERENCE_LANGUAGE:-1800-2017}"
+include_dirs_csv="${PGEN_SV_PREPROCESSOR_REFERENCE_INCLUDE_DIRS:-}"
+defines_csv="${PGEN_SV_PREPROCESSOR_REFERENCE_DEFINES:-}"
+
+case "$backend_mode" in
+    auto|iverilog|verilator)
+        ;;
+    *)
+        echo "error: PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND must be one of: auto, iverilog, verilator" >&2
+        exit 2
+        ;;
+esac
+
+resolve_selected_backend() {
+    case "$backend_mode" in
+        auto)
+            if command -v "$iverilog_bin" >/dev/null 2>&1; then
+                echo "iverilog"
+            elif command -v "$verilator_bin" >/dev/null 2>&1; then
+                echo "verilator"
+            else
+                echo "none"
+            fi
+            ;;
+        iverilog)
+            echo "iverilog"
+            ;;
+        verilator)
+            echo "verilator"
+            ;;
+    esac
+}
+
+ensure_backend_available() {
+    local selected="$1"
+    if [[ "$selected" == "none" ]]; then
+        echo "no supported trusted-reference preprocessor backend found (install iverilog or verilator)" >&2
+        return 1
+    fi
+    if [[ "$selected" == "iverilog" ]] && ! command -v "$iverilog_bin" >/dev/null 2>&1; then
+        echo "iverilog backend not found: $iverilog_bin" >&2
+        return 1
+    fi
+    if [[ "$selected" == "verilator" ]] && ! command -v "$verilator_bin" >/dev/null 2>&1; then
+        echo "verilator backend not found: $verilator_bin" >&2
+        return 1
+    fi
+    return 0
 }
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     usage
     exit 0
+fi
+
+if [[ "${1:-}" == "--probe" ]]; then
+    if [[ "$#" -ne 1 ]]; then
+        usage >&2
+        exit 2
+    fi
+    selected_backend="$(resolve_selected_backend)"
+    if ensure_backend_available "$selected_backend"; then
+        echo "$selected_backend"
+        exit 0
+    fi
+    exit 1
 fi
 
 if [[ "$#" -ne 3 ]]; then
@@ -40,22 +108,6 @@ if [[ ! -f "$input_file" ]]; then
 fi
 
 mkdir -p "$(dirname "$output_file")" "$(dirname "$diagnostics_file")"
-
-backend_mode="${PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND:-auto}"
-iverilog_bin="${PGEN_SV_PREPROCESSOR_REFERENCE_IVERILOG_BIN:-iverilog}"
-verilator_bin="${PGEN_SV_PREPROCESSOR_REFERENCE_VERILATOR_BIN:-verilator}"
-language_profile="${PGEN_SV_PREPROCESSOR_REFERENCE_LANGUAGE:-1800-2017}"
-include_dirs_csv="${PGEN_SV_PREPROCESSOR_REFERENCE_INCLUDE_DIRS:-}"
-defines_csv="${PGEN_SV_PREPROCESSOR_REFERENCE_DEFINES:-}"
-
-case "$backend_mode" in
-    auto|iverilog|verilator)
-        ;;
-    *)
-        echo "error: PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND must be one of: auto, iverilog, verilator" >&2
-        exit 2
-        ;;
-esac
 
 stderr_file="$(mktemp "${TMPDIR:-/tmp}/svpp_reference_runner_stderr.XXXXXX")"
 trap 'rm -f "$stderr_file"' EXIT
@@ -133,37 +185,9 @@ run_verilator() {
     "$verilator_bin" -E --language "$language_profile" "${common_flags[@]}" "$input_file" >"$output_file" 2>"$stderr_file"
 }
 
-selected_backend=""
-case "$backend_mode" in
-    auto)
-        if command -v "$iverilog_bin" >/dev/null 2>&1; then
-            selected_backend="iverilog"
-        elif command -v "$verilator_bin" >/dev/null 2>&1; then
-            selected_backend="verilator"
-        else
-            selected_backend="none"
-        fi
-        ;;
-    iverilog)
-        selected_backend="iverilog"
-        ;;
-    verilator)
-        selected_backend="verilator"
-        ;;
-esac
-
-if [[ "$selected_backend" == "none" ]]; then
-    emit_stderr_diagnostics "auto" "no supported trusted-reference preprocessor backend found (install iverilog or verilator)"
-    exit 1
-fi
-
-if [[ "$selected_backend" == "iverilog" ]] && ! command -v "$iverilog_bin" >/dev/null 2>&1; then
-    emit_stderr_diagnostics "iverilog" "iverilog backend not found: $iverilog_bin"
-    exit 1
-fi
-
-if [[ "$selected_backend" == "verilator" ]] && ! command -v "$verilator_bin" >/dev/null 2>&1; then
-    emit_stderr_diagnostics "verilator" "verilator backend not found: $verilator_bin"
+selected_backend="$(resolve_selected_backend)"
+if ! ensure_backend_available "$selected_backend" >"$stderr_file" 2>&1; then
+    emit_stderr_diagnostics "$backend_mode" "trusted reference backend unavailable"
     exit 1
 fi
 

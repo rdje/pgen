@@ -458,6 +458,10 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - supports `auto|iverilog|verilator` backend routing (`auto` prefers `iverilog`, then `verilator`),
     - supports include/define forwarding (`PGEN_SV_PREPROCESSOR_REFERENCE_INCLUDE_DIRS`, `PGEN_SV_PREPROCESSOR_REFERENCE_DEFINES`),
     - always emits diagnostics JSON array output for deterministic differential taxonomy ingestion.
+  - Progress (2026-02-28): hardened differential portability with runner probe preflight:
+    - `sv_preprocessor_reference_runner.sh --probe` now reports backend availability explicitly,
+    - `sv_preprocessor_quality_gate` now auto-downgrades to `unsupported_reference_runner` on probe failure in `DIFF_MODE=auto`,
+    - strict mode (`DIFF_MODE=1`) now fails early with explicit probe-log pointer when backend is unavailable.
 - [x] Promote preprocessor gate policy:
   - informational first while grammar closes,
   - required strict before declaring Phase P (Nexsim SV parser closure) complete.
@@ -510,6 +514,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Hardened Phase Q trusted-reference portability by adding runner probe preflight (`sv_preprocessor_reference_runner.sh --probe`) and gate-side probe-aware mode handling (`auto` downgrade to unsupported-runner, strict fail-fast on backend-unavailable probe failures).
 - 2026-02-28: Advanced Phase Q differential-hardening operationalization by adding a standardized project-level trusted-reference runner adapter (`rust/scripts/sv_preprocessor_reference_runner.sh`) with `auto|iverilog|verilator` routing, include/define forwarding knobs, and deterministic diagnostics JSON-array emission for gate taxonomy ingestion.
 - 2026-02-28: Advanced Phase P semantic-closure promotion path by adding declared-identifier shadow burn-down telemetry/strict-trial controls (`semantic_promotion` in `systemverilog_core_v0_contract.json` v19, `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE`, deterministic `systemverilog_declared_identifier_shadow_report.json` output).
 - 2026-02-28: Advanced Phase P semantic-closure deterministic suite coverage by adding `context_legality_contract_suite` to `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to `v18` with contractized suite path/enforcement controls.

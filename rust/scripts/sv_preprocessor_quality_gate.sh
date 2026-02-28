@@ -588,30 +588,50 @@ if [[ "$DIFF_MODE" != "0" ]]; then
         diff_effective_mode="unsupported_reference_runner"
         diff_note="trusted-reference runner path is not executable: $DIFF_REFERENCE_RUNNER"
     else
-        diff_effective_mode="enabled"
-        diff_note="trusted-reference differential classification enabled"
-        : >"$diff_cases_jsonl"
-        declare -a diff_raw_samples=()
-        mapfile -t diff_raw_samples < "$samples0a"
-        diff_total_samples_seen="${#diff_raw_samples[@]}"
-        diff_case_index=0
-        for diff_sample_text in "${diff_raw_samples[@]}"; do
-            if (( diff_samples_checked >= DIFF_MAX_SAMPLES )); then
-                break
+        diff_runner_ready=1
+        diff_probe_help_log="$LOG_DIR/diff_reference_probe_help.log"
+        diff_probe_log="$LOG_DIR/diff_reference_probe.log"
+        if "$DIFF_REFERENCE_RUNNER" --help >"$diff_probe_help_log" 2>&1 && grep -q -- "--probe" "$diff_probe_help_log"; then
+            if "$DIFF_REFERENCE_RUNNER" --probe >"$diff_probe_log" 2>&1; then
+                diff_note="trusted-reference differential classification enabled (runner probe succeeded)"
+            else
+                if [[ "$DIFF_MODE" == "1" ]]; then
+                    echo "error: strict differential mode requires an available trusted-reference backend" >&2
+                    echo "probe log: $diff_probe_log" >&2
+                    exit 1
+                fi
+                diff_effective_mode="unsupported_reference_runner"
+                diff_note="trusted-reference backend unavailable; probe failed (see $diff_probe_log)"
+                diff_runner_ready=0
             fi
-            if [[ -z "$diff_sample_text" ]]; then
-                continue
-            fi
+        else
+            diff_note="trusted-reference differential classification enabled (runner probe unsupported)"
+        fi
 
-            diff_sample_file="$WORK_DIR/diff_sample_${diff_case_index}.sv"
-            diff_rust_output="$WORK_DIR/diff_sample_${diff_case_index}.rust.out.sv"
-            diff_ref_output="$WORK_DIR/diff_sample_${diff_case_index}.reference.out.sv"
-            diff_rust_diag="$WORK_DIR/diff_sample_${diff_case_index}.rust.diag.json"
-            diff_ref_diag="$WORK_DIR/diff_sample_${diff_case_index}.reference.diag.json"
-            diff_rust_log="$LOG_DIR/diff_sample_${diff_case_index}.rust.log"
-            diff_ref_log="$LOG_DIR/diff_sample_${diff_case_index}.reference.log"
-            diff_rust_norm="$WORK_DIR/diff_sample_${diff_case_index}.rust.norm.txt"
-            diff_ref_norm="$WORK_DIR/diff_sample_${diff_case_index}.reference.norm.txt"
+        if (( diff_runner_ready == 1 )); then
+            diff_effective_mode="enabled"
+            : >"$diff_cases_jsonl"
+            declare -a diff_raw_samples=()
+            mapfile -t diff_raw_samples < "$samples0a"
+            diff_total_samples_seen="${#diff_raw_samples[@]}"
+            diff_case_index=0
+            for diff_sample_text in "${diff_raw_samples[@]}"; do
+                if (( diff_samples_checked >= DIFF_MAX_SAMPLES )); then
+                    break
+                fi
+                if [[ -z "$diff_sample_text" ]]; then
+                    continue
+                fi
+
+                diff_sample_file="$WORK_DIR/diff_sample_${diff_case_index}.sv"
+                diff_rust_output="$WORK_DIR/diff_sample_${diff_case_index}.rust.out.sv"
+                diff_ref_output="$WORK_DIR/diff_sample_${diff_case_index}.reference.out.sv"
+                diff_rust_diag="$WORK_DIR/diff_sample_${diff_case_index}.rust.diag.json"
+                diff_ref_diag="$WORK_DIR/diff_sample_${diff_case_index}.reference.diag.json"
+                diff_rust_log="$LOG_DIR/diff_sample_${diff_case_index}.rust.log"
+                diff_ref_log="$LOG_DIR/diff_sample_${diff_case_index}.reference.log"
+                diff_rust_norm="$WORK_DIR/diff_sample_${diff_case_index}.rust.norm.txt"
+                diff_ref_norm="$WORK_DIR/diff_sample_${diff_case_index}.reference.norm.txt"
 
             printf '%s\n' "$diff_sample_text" >"$diff_sample_file"
 
@@ -749,9 +769,10 @@ if [[ "$DIFF_MODE" != "0" ]]; then
                     }
                 }' >>"$diff_cases_jsonl"
 
-            diff_samples_checked=$((diff_samples_checked + 1))
-            diff_case_index=$((diff_case_index + 1))
-        done
+                diff_samples_checked=$((diff_samples_checked + 1))
+                diff_case_index=$((diff_case_index + 1))
+            done
+        fi
     fi
 fi
 

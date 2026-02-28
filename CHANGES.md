@@ -10943,3 +10943,29 @@ Close the Phase Q operational gap where preprocessor differential taxonomy exist
 - Failure-path smoke (local environment without `iverilog`/`verilator`):
   - runner exits non-zero in deterministic way,
   - diagnostics artifact is valid JSON array with at least one `error` entry.
+
+---
+
+## 2026-02-28: Added probe-preflight hardening for SV preprocessor trusted-reference differential mode
+
+### Goal
+Prevent misleading differential mismatch classification when trusted-reference backend tools are not installed, while keeping strict mode fail-fast semantics.
+
+### Changes
+- Updated `rust/scripts/sv_preprocessor_reference_runner.sh`:
+  - added `--probe` mode to check backend availability (`auto|iverilog|verilator`) with deterministic exit status,
+  - refactored backend selection/availability checks into reusable functions used by both probe and execution paths.
+- Updated `rust/scripts/sv_preprocessor_quality_gate.sh` differential stage:
+  - if runner advertises probe support (`--help` includes `--probe`), gate now probes backend availability before case classification,
+  - `DIFF_MODE=auto`: probe failure now downgrades to `unsupported_reference_runner` and skips differential case classification,
+  - `DIFF_MODE=1`: probe failure now fails the gate early with probe-log location.
+- Updated docs and roadmap:
+  - `PGEN_USER_GUIDE.md` now documents probe contract and mode behavior,
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` logs this portability hardening step under Phase Q differential work.
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_reference_runner.sh`
+- `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
+- `sv_preprocessor_quality_gate` reduced runs with project runner path:
+  - `DIFF_MODE=auto`: passes with `diff_mode_effective=unsupported_reference_runner` when backend unavailable,
+  - `DIFF_MODE=1`: fails early with explicit backend probe failure message and probe log path.

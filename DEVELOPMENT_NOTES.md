@@ -10188,3 +10188,34 @@ That made strict differential mode operationally inconsistent:
 - deterministic failure-path smoke:
   - local host has no `iverilog`/`verilator`,
   - runner correctly exits non-zero and emits JSON-array diagnostics with `error` severity.
+
+---
+
+## 2026-02-28: Differential probe-preflight hardening for `sv_preprocessor_quality_gate`
+
+### Root cause
+After standardizing the project reference runner, environments without trusted backends (`iverilog`/`verilator`) still produced differential case mismatches in `DIFF_MODE=auto` because runner unavailability was discovered only per-sample.
+
+This inflated taxonomy debt and reduced signal quality in auto mode.
+
+### Fixes implemented
+- Extended `rust/scripts/sv_preprocessor_reference_runner.sh`:
+  - added `--probe` command that resolves backend selection (`auto|iverilog|verilator`) and returns deterministic availability status (`0` available, non-zero unavailable),
+  - added shared backend-resolution/availability helpers used by both probe and execute paths.
+- Hardened `rust/scripts/sv_preprocessor_quality_gate.sh` differential stage:
+  - probe-capable runner detection via `--help` contract (`--probe` advertised),
+  - probe preflight before any per-sample differential classification,
+  - `DIFF_MODE=auto` behavior:
+    - probe failure => `diff_mode_effective=unsupported_reference_runner`, differential case loop skipped,
+  - `DIFF_MODE=1` behavior:
+    - probe failure => immediate gate fail with probe-log path.
+- Docs + roadmap synchronization:
+  - added probe semantics and mode handling in `PGEN_USER_GUIDE.md`,
+  - logged this hardening increment under Phase Q differential progress in roadmap.
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_reference_runner.sh`
+- `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
+- reduced gate run with unavailable backend and project runner path:
+  - auto mode passes with unsupported-runner effective mode and no false case taxonomy loop,
+  - strict mode fails early with deterministic probe failure reporting.
