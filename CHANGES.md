@@ -10907,3 +10907,39 @@ Advance Nexsim-facing SV parser hardening by adding an executable trusted-refere
 - Smoke with differential enabled (`auto`) using reference-runner shim:
   - runner emits `[]` diagnostics JSON and `0` exit for parse acceptance contract exercise.
   - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=auto PGEN_SV_STIMULI_REFERENCE_RUNNER=<shim> PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+
+---
+
+## 2026-02-28: Standardized project-level trusted-reference runner for SV preprocessor differential gate
+
+### Goal
+Close the Phase Q operational gap where preprocessor differential taxonomy existed but no canonical, reusable project runner adapter was provided.
+
+### Changes
+- Added executable runner shim:
+  - `rust/scripts/sv_preprocessor_reference_runner.sh`
+  - runner interface is gate-contract compatible:
+    - `$1`: input SV sample file
+    - `$2`: preprocessed output file
+    - `$3`: diagnostics JSON file
+- Added backend routing and configuration:
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto|iverilog|verilator`
+    - `auto` prefers `iverilog`, then `verilator`
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_IVERILOG_BIN`
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_VERILATOR_BIN`
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_LANGUAGE` (used by `verilator`)
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_INCLUDE_DIRS` (CSV include dirs)
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_DEFINES` (CSV defines)
+- Added deterministic diagnostics emission behavior in runner:
+  - diagnostics JSON is always emitted as an array,
+  - clean success with no stderr emits `[]`,
+  - warnings/errors from backend stderr become structured diagnostic entries.
+- Updated docs and roadmap:
+  - `PGEN_USER_GUIDE.md` now documents the project runner shim and all runner env knobs.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` now records the standardized adapter progress under Phase Q differential hardening.
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_reference_runner.sh`
+- Failure-path smoke (local environment without `iverilog`/`verilator`):
+  - runner exits non-zero in deterministic way,
+  - diagnostics artifact is valid JSON array with at least one `error` entry.

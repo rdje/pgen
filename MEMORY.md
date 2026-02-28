@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-p-declared-shadow-burndown-telemetry)
+Last updated: 2026-02-28 (+0100, task: phase-q-preprocessor-reference-runner-standardization)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,28 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Standardized trusted-reference runner adapter for SV preprocessor differential gate
+- Root cause:
+  - Phase Q differential taxonomy in `sv_preprocessor_quality_gate` was implemented, but there was no canonical project runner adapter for trusted-reference preprocessors.
+- Fix:
+  - added executable runner shim:
+    - `rust/scripts/sv_preprocessor_reference_runner.sh`
+    - contract-compatible args (`$1` input, `$2` preprocessed output, `$3` diagnostics JSON),
+    - backend routing:
+      - `PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto|iverilog|verilator` (`auto` prefers `iverilog`, then `verilator`),
+    - include/define forwarding:
+      - `PGEN_SV_PREPROCESSOR_REFERENCE_INCLUDE_DIRS`
+      - `PGEN_SV_PREPROCESSOR_REFERENCE_DEFINES`
+    - deterministic diagnostics emission (always JSON array).
+  - synchronized docs/roadmap:
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Validation:
+  - `bash -n rust/scripts/sv_preprocessor_reference_runner.sh` passed.
+  - failure-path smoke in local environment without `iverilog`/`verilator`:
+    - runner exited non-zero,
+    - diagnostics JSON array emitted with `error` severity entry.
 
 ### 2026-02-28: Added declared-identifier shadow burn-down telemetry for Phase P semantic-promotion
 - Root cause:
@@ -1362,8 +1384,9 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Plug real trusted-reference adapters into SV preprocessor differential gate:
-   - provide project-level runner scripts for available external preprocessors and start collecting taxonomy deltas on curated corpora.
+1. Start curated differential corpus runs for SV preprocessor gate using standardized runner:
+   - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
+   - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
    - deterministic semantic suites + declared shadow burn-down telemetry are now in place; next step is controlled strict trials (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`) and promotion of runtime `require_declared_identifiers_before_use`.
 3. Continue Phase R implementation for AST observability:
@@ -1384,7 +1407,7 @@ Use this file to resume work without replaying full chat history.
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
-- SV preprocessor differential taxonomy stage is wired, but project-level trusted-reference runners are not yet standardized.
+- SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
 
 ## Quick Commands
 - HDL frontend readiness (report):
@@ -1398,6 +1421,6 @@ Use this file to resume work without replaying full chat history.
 - VHDL closed-loop quality:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
 - SV preprocessor strict differential example:
-  - `PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/abs/path/to/runner.sh make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
+  - `PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=$PWD/rust/scripts/sv_preprocessor_reference_runner.sh PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
 - Aggregate gate:
   - `make -C rust SHELL=/bin/bash sota_exit_gate`

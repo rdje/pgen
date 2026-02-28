@@ -10147,3 +10147,44 @@ This is due to residual lexical-edge false-positive risk on randomized stimuli. 
 - Result:
   - gate passed with shadow telemetry active,
   - deterministic shadow report emitted for promotion burn-down tracking.
+
+---
+
+## 2026-02-28: Standardized trusted-reference runner adapter for `sv_preprocessor_quality_gate`
+
+### Root cause
+Phase Q differential taxonomy was already implemented in `sv_preprocessor_quality_gate`, but there was no project-level canonical runner adapter for trusted reference preprocessors.
+
+That made strict differential mode operationally inconsistent:
+- every environment had to invent its own runner,
+- taxonomy comparability across runs was weaker,
+- onboarding friction remained high for this gate.
+
+### Fixes implemented
+- Added `rust/scripts/sv_preprocessor_reference_runner.sh`:
+  - executable runner shim with fixed contract:
+    - `$1` input sample path,
+    - `$2` reference preprocessed output path,
+    - `$3` reference diagnostics JSON path.
+- Implemented deterministic backend selection and explicit routing:
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto|iverilog|verilator`
+  - auto mode tries `iverilog` first, then `verilator`.
+- Added backend/path/profile controls:
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_IVERILOG_BIN`
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_VERILATOR_BIN`
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_LANGUAGE`
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_INCLUDE_DIRS` (CSV)
+  - `PGEN_SV_PREPROCESSOR_REFERENCE_DEFINES` (CSV)
+- Added deterministic diagnostics artifact guarantees:
+  - diagnostics file is always emitted as JSON array,
+  - clean success with no backend stderr emits `[]`,
+  - backend stderr lines are normalized into structured warning/error entries.
+- Documentation and roadmap synchronization:
+  - updated `PGEN_USER_GUIDE.md` with runner shim usage and env controls,
+  - updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase Q differential-hardening progress.
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_reference_runner.sh`
+- deterministic failure-path smoke:
+  - local host has no `iverilog`/`verilator`,
+  - runner correctly exits non-zero and emits JSON-array diagnostics with `error` severity.

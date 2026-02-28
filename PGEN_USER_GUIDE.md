@@ -2094,6 +2094,12 @@ Optional SV preprocessor quality-gate tuning:
 - `PGEN_SV_PREPROCESSOR_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES` (default `4`)
 - `PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER` (path to executable trusted-reference runner script; required for strict differential mode)
+- `PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND` (`auto`/`iverilog`/`verilator`, consumed by the project runner shim)
+- `PGEN_SV_PREPROCESSOR_REFERENCE_IVERILOG_BIN` (default `iverilog`)
+- `PGEN_SV_PREPROCESSOR_REFERENCE_VERILATOR_BIN` (default `verilator`)
+- `PGEN_SV_PREPROCESSOR_REFERENCE_LANGUAGE` (default `1800-2017`, used by `verilator` backend)
+- `PGEN_SV_PREPROCESSOR_REFERENCE_INCLUDE_DIRS` (optional CSV include-dir list, consumed by runner shim)
+- `PGEN_SV_PREPROCESSOR_REFERENCE_DEFINES` (optional CSV macro define list, consumed by runner shim)
 - `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR` (default `rust/target/sv_preprocessor_quality_gate`)
 
 `sv_preprocessor_quality_gate` trusted-reference differential taxonomy:
@@ -2104,6 +2110,10 @@ Optional SV preprocessor quality-gate tuning:
     - `$1`: input SV sample file
     - `$2`: output preprocessed SV file
     - `$3`: output diagnostics JSON file
+  - project-provided runner shim:
+    - `rust/scripts/sv_preprocessor_reference_runner.sh`
+    - backend auto-selection: `iverilog` first, then `verilator`
+    - always emits diagnostics as JSON array (empty `[]` on clean success)
 - differential modes:
   - `0`: disabled
   - `auto`: enabled when runner is executable; otherwise report-only skip
@@ -2120,7 +2130,8 @@ Optional SV preprocessor quality-gate tuning:
 - strict differential example:
 ```bash
 PGEN_SV_PREPROCESSOR_DIFF_MODE=1 \
-PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/abs/path/to/reference_runner.sh \
+PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=$PWD/rust/scripts/sv_preprocessor_reference_runner.sh \
+PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto \
 make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
 ```
 
