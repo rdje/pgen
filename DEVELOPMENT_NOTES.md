@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-02-28 - Phase R Closure Increment: AST Debug Playbooks in User Guide
+### Context
+Phase R implementation had already delivered:
+- generation-input AST dump (`gen_ast.json`) support,
+- parser-returned AST dump support (CLI + embedding API),
+- deterministic format/safety contracts and gate-level enforcement.
+
+The remaining gap was user-facing operational guidance: a new user still had to infer how to combine these capabilities into a practical debug flow for SV/VHDL/regex.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added concrete AST debug playbook section
+`PGEN_USER_GUIDE.md` now includes `AST Debug Playbooks (SV/VHDL/Regex)` with explicit command-level steps.
+
+Added flows:
+- SystemVerilog:
+  - dump generation-input AST from `generated/systemverilog.json`,
+  - dump parser-returned AST from `parseability_probe`,
+  - bounded parser dump contract example (`--max-bytes`),
+  - embedding API in-memory dump example (`parse_systemverilog_2023_ast_dump` + `AstDumpOptions`).
+- VHDL:
+  - same two-surface triage (`vhdl_gen_ast.json` + `vhdl_ast.json`),
+  - parseability-first failure triage command.
+- Regex:
+  - explicitly positioned as onboarding/hardening flow with always-available generation-input AST dump,
+  - deterministic stimuli + coverage/gap + gap-driven replay loop.
+  - documented adapter caveat for parser-returned dump availability.
+
+#### 2) Closed roadmap documentation item
+`PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase R item:
+- `Document AST dump workflows in user-facing docs` moved from pending to complete.
+- added explicit progress note summarizing the new playbook coverage.
+
+### Validation
+Executed:
+- manual doc contract consistency pass over:
+  - AST dump CLI options,
+  - embedding API dump surface names,
+  - parser-registry/adapter caveat language for regex path.
+
+Observed:
+- playbooks are aligned with currently implemented CLI/API behavior.
+- Phase R now has no remaining unchecked items.
+
 ## 2026-02-28 - Phase R Closure Increment: Embedding API Parser-AST Dump Contract
 ### Context
 Phase R already had parser-executable AST dump support (`parseability_probe`) plus gate-level determinism/truncation checks. The remaining closure gap was embedding-facing API support so host integrations can consume parser-returned AST dumps without shelling out to CLI tools.

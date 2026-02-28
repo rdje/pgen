@@ -508,10 +508,14 @@ Objective: make AST visibility first-class for generator and generated-parser de
     - validates generation-input dump replay determinism + truncation envelope behavior + negative-path write failure contract,
     - validates parser-returned dump replay determinism + truncation envelope behavior + negative-path write failure contract,
     - emits deterministic summary/artifacts under `rust/target/ast_dump_contract_gate`.
-- [ ] Document AST dump workflows in user-facing docs:
+- [x] Document AST dump workflows in user-facing docs:
   - generator AST triage flow (`EBNF -> normalized AST -> codegen`).
   - parser return-AST inspection flow for return-annotation conformance checks.
   - practical examples for SV/VHDL/regex onboarding and debugging.
+  - Progress (2026-02-28): expanded `PGEN_USER_GUIDE.md` with an AST debug playbook section covering:
+    - SV triage (`systemverilog_gen_ast.json` + `systemverilog_ast.json` + embedding API `parse_systemverilog_*_ast_dump`),
+    - VHDL triage (`vhdl_gen_ast.json` + `vhdl_ast.json`),
+    - regex onboarding flow (generation-input AST + deterministic stimuli/coverage/gap loop with gap-driven replay).
 
 ## Current Sprint: Pillar 1
 
@@ -530,6 +534,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Completed Phase R user-facing workflow documentation by adding AST debug playbooks in `PGEN_USER_GUIDE.md` for SV/VHDL/regex onboarding and deterministic triage (`gen_ast.json` + parser-returned AST + embedding API dump path).
 - 2026-02-28: Completed Phase R gate-level AST dump validation by adding executable `ast_dump_contract_gate` (generation + parser dump determinism checks, truncation envelope checks, and negative-path write-failure checks with deterministic artifacts under `rust/target/ast_dump_contract_gate`).
 - 2026-02-28: Completed Phase R parser-returned AST dump closure by adding embedding API AST-dump entry points (`parse_grammar_profile_ast_dump*` + named/convenience variants) with canonical JSON serialization and bounded truncation-diagnostics contract (`AstDumpOptions.max_ast_bytes`).
 - 2026-02-28: Completed Phase R dump-format/safety contract baseline across both AST dump surfaces by extending parser-returned `parseability_probe` dumps with deterministic key canonicalization and bounded-size truncation diagnostics (`--max-bytes`, `PGEN_PARSE_DUMP_AST_MAX_BYTES`, `dump_kind=parser_return_ast`).

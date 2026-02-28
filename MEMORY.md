@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-r-embedding-api-parser-ast-dump)
+Last updated: 2026-02-28 (+0100, task: phase-r-ast-workflow-doc-playbooks)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,21 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Closed Phase R user-facing AST workflow documentation
+- Root cause:
+  - AST dump implementation/gates were complete, but users still lacked a single operational playbook for how to apply these features during SV/VHDL/regex onboarding and debugging.
+- Fix:
+  - expanded `PGEN_USER_GUIDE.md` with `AST Debug Playbooks (SV/VHDL/Regex)` covering:
+    - generator-input AST flow (`--dump-gen-ast`),
+    - parser-returned AST flow (`parseability_probe --parse-dump-ast*`) where adapter is available,
+    - embedding API in-memory AST dump usage (`parse_systemverilog_*_ast_dump`),
+    - regex onboarding via deterministic stimuli/coverage/gap loop.
+  - updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+    - marked `Document AST dump workflows in user-facing docs` as complete.
+- Validation:
+  - manual contract consistency pass across guide examples and implemented CLI/API surfaces.
+  - no Rust/source changes in this task.
 
 ### 2026-02-28: Closed Phase R embedding-API parser AST dump surface
 - Root cause:
@@ -1480,17 +1495,15 @@ Use this file to resume work without replaying full chat history.
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
    - deterministic semantic suites + declared shadow burn-down telemetry are now in place; next step is controlled strict trials (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`) and promotion of runtime `require_declared_identifiers_before_use`.
-3. Continue Phase R implementation for AST observability:
-   - finish deep-dive user documentation/examples for AST-debug workflows (SV/VHDL/regex end-to-end triage paths).
-4. Add annotation-driven SV stimuli steering:
+3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
-5. Expand contractized SV/VHDL corpora:
+4. Expand contractized SV/VHDL corpora:
    - add deterministic targeted families for declaration/use, port binding, generate, and preprocess-heavy cases.
-6. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
+5. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-7. Continue Rust-native EBNF migration hardening:
+6. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-8. Keep roadmap + UG + memory synced after every gate/contract increment.
+7. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
@@ -1498,7 +1511,7 @@ Use this file to resume work without replaying full chat history.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
-- Phase R gate-level validation and embedding API AST dump surface are now complete; remaining Phase R gap is expanded end-user workflow examples.
+- Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.
 
 ## Quick Commands
 - HDL frontend readiness (report):

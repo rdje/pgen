@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-02-28 - Phase R AST Observability: User-Facing Workflow Playbooks
+### ✅ Achievement Summary
+Closed the last Phase R documentation gap by adding end-to-end AST debug playbooks for SystemVerilog, VHDL, and regex onboarding/hardening in the user guide.
+
+### Scope of Changes
+- Updated:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - added `AST Debug Playbooks (SV/VHDL/Regex)` section with concrete deterministic workflows:
+    - generation-input AST dump (`--dump-gen-ast`),
+    - parser-returned AST dump (`parseability_probe --parse-dump-ast*`) where adapter is available,
+    - embedding API in-memory dump path (`parse_systemverilog_*_ast_dump`),
+    - regex onboarding loop using stimuli + coverage/gap + gap-driven replay.
+- Updated roadmap:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - marked Phase R item `Document AST dump workflows in user-facing docs` as complete with explicit progress notes.
+- Updated continuity docs:
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Documentation consistency review:
+  - verified AST dump contracts and commands are aligned with existing CLI/API surfaces.
+  - no Rust/source code changes were introduced in this task.
+
 ## 2026-02-28 - Phase R AST Observability: Embedding API Parser-Returned AST Dump Surface
 ### ✅ Achievement Summary
 Closed the remaining Phase R parser-returned AST dump gap by adding stable embedding API entry points that return deterministic, bounded parser AST JSON payloads for SV/VHDL profile-aware parsing.

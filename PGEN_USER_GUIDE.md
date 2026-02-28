@@ -393,7 +393,95 @@ Payload contract:
   - `full_bytes`
   - `reason`
 
-Examples:
+### AST Debug Playbooks (SV/VHDL/Regex)
+Use this sequence to debug grammar intent (`*.ebnf`) versus generated behavior with deterministic artifacts.
+
+Shared principles:
+- `gen_ast.json` answers: "what AST did codegen consume?"
+- `<grammar>_ast.json` answers: "what AST did parser return for this sample?"
+- diffing both surfaces is the fastest way to isolate return-annotation/codegen mismatches.
+
+#### A) SystemVerilog triage flow (Nexsim onboarding)
+1. Dump generation-input AST while generating parser:
+```bash
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/systemverilog.json \
+  --generate-parser \
+  --output /tmp/systemverilog_parser.rs \
+  --dump-gen-ast /tmp/systemverilog_gen_ast.json \
+  --dump-gen-ast-pretty
+```
+2. Dump parser-returned AST for a real sample:
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- \
+  --parse-dump-ast-pretty systemverilog /tmp/sample.sv /tmp/systemverilog_ast.json
+```
+3. Enforce bounded dump contract in stress/debug runs:
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- \
+  --parse-dump-ast systemverilog /tmp/sample.sv /tmp/systemverilog_ast.json --max-bytes 65536
+```
+4. Optional embedding-side AST dump (in-memory host integration):
+```rust
+use pgen::embedding_api::{
+    AstDumpOptions, parse_systemverilog_2023_ast_dump,
+};
+
+let outcome = parse_systemverilog_2023_ast_dump(
+    sample_text,
+    &AstDumpOptions { pretty: true, max_ast_bytes: Some(65_536) },
+);
+```
+
+#### B) VHDL triage flow
+1. Dump generation-input AST:
+```bash
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/vhdl.json \
+  --generate-parser \
+  --output /tmp/vhdl_parser.rs \
+  --dump-gen-ast /tmp/vhdl_gen_ast.json \
+  --dump-gen-ast-pretty
+```
+2. Dump parser-returned AST:
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- \
+  --parse-dump-ast-pretty vhdl /tmp/sample.vhd /tmp/vhdl_ast.json
+```
+3. If parse fails, capture deterministic parseability result first:
+```bash
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- \
+  --parse vhdl /tmp/sample.vhd
+```
+
+#### C) Regex grammar onboarding/debug flow
+Current note:
+- parser-returned AST dump via `parseability_probe` is adapter-based and should be treated as available only when the grammar is registered.
+- generation-input AST dump is always available for regex codegen/stimuli triage.
+
+1. Dump generation-input AST:
+```bash
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/regex.json \
+  --generate-parser \
+  --output /tmp/regex_parser.rs \
+  --dump-gen-ast /tmp/regex_gen_ast.json \
+  --dump-gen-ast-pretty
+```
+2. Drive stimuli + coverage/gap for deterministic regex hardening:
+```bash
+cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
+  generated/regex.json \
+  --generate-stimuli \
+  --count 64 \
+  --seed 2026 \
+  --coverage-output /tmp/regex_coverage.json \
+  --gap-report-json /tmp/regex_gap.json \
+  --output /tmp/regex_stimuli.txt
+```
+3. Re-run with `--target-coverage-json /tmp/regex_gap.json` to verify gap-driven convergence.
+
+### Tracing Examples
 ```bash
 # Debug trace to default trace.log
 cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
