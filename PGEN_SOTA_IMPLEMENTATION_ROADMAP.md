@@ -302,6 +302,10 @@ Toolbox baseline to leverage end-to-end:
     - runs deterministic strict-shadow trial matrix (`PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1`, `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`) with configurable trial/sample controls,
     - emits machine-readable readiness report `rust/target/sv_declared_shadow_promotion_gate/work/systemverilog_declared_identifier_promotion_report.json` with eligibility decision (`enable_runtime_declared_identifiers` vs `hold`),
     - wired into aggregate `sota_exit_gate` as informational-first (`PGEN_SOTA_POLICY_RUN_SV_DECLARED_SHADOW_PROMOTION=1`, strict=`0`) for continuous burn-down telemetry.
+  - Progress (2026-02-28): reduced strict-shadow lexical-noise false positives in promotion trials by adding parseability-scoped shadow checking control:
+    - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=1` now limits strict-shadow checks to `parse_full=pass` samples in promotion-trial runs,
+    - strict mode now fails fast if parseable-only filtering yields zero checked samples,
+    - promotion gate defaults updated to `parse_full_mode=auto` and `min_checked=2`.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -538,6 +542,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Hardened declared-shadow promotion trials with parseability-scoped checking (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY`) and stricter promotion evidence thresholds (`parse_full_mode=auto`, `min_checked=2` defaults).
 - 2026-02-28: Added `sv_declared_shadow_promotion_gate` and aggregate-policy wiring for controlled strict-shadow promotion trials (`PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE`, report artifact `systemverilog_declared_identifier_promotion_report.json`, informational-first in `sota_exit_gate`).
 - 2026-02-28: Completed Phase R user-facing workflow documentation by adding AST debug playbooks in `PGEN_USER_GUIDE.md` for SV/VHDL/regex onboarding and deterministic triage (`gen_ast.json` + parser-returned AST + embedding API dump path).
 - 2026-02-28: Completed Phase R gate-level AST dump validation by adding executable `ast_dump_contract_gate` (generation + parser dump determinism checks, truncation envelope checks, and negative-path write-failure checks with deterministic artifacts under `rust/target/ast_dump_contract_gate`).

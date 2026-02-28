@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Semantic-Promotion Burn-Down: Parseability-Scoped Strict Shadow Trials
+### ✅ Achievement Summary
+Reduced false-positive declared-shadow failures by scoping strict-shadow checks to parseable samples during promotion trials, and converted the current blocker into an objective parseability debt signal.
+
+### Scope of Changes
+- Hardened shadow-check behavior in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - new control:
+    - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=0|1`
+  - when enabled:
+    - shadow checks run only on samples with `parse_full=pass`,
+    - unparseable samples are tracked as `skip_unparseable` in shadow report,
+    - strict-shadow mode fails if zero parseable samples were checked.
+  - report extension:
+    - `totals.skipped_unparseable`
+    - `parseable_only` boolean.
+- Promotion gate defaults aligned to parseability-scoped trials in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+  - updated defaults:
+    - `PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=auto`
+    - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=2`
+  - promotion gate now always drives:
+    - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=1`
+- Updated docs/roadmap/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh` ✅
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE=12001 PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` ✅
+  - observed current blocker as objective signal:
+    - `recommendation=hold`
+    - `checked=0`
+    - `skipped_unparseable=2`
+    - strict-shadow gate failure reason: zero parseable samples.
+
 ## 2026-02-28 - Phase P Semantic-Promotion: Declared-Shadow Promotion Trial Gate
 ### ✅ Achievement Summary
 Added a dedicated promotion-trial gate for declared-identifier runtime enforcement readiness, with deterministic strict-trial matrix execution and machine-readable eligibility reporting.

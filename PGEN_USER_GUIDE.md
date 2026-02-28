@@ -2342,6 +2342,9 @@ Optional SV stimuli quality-gate tuning:
   - `auto`: follow contract `semantic_promotion.declared_identifier_shadow_*` controls.
   - `0`: disable declared-identifier shadow burn-down telemetry.
   - `1`: strict trial mode (enable shadow checks and fail gate on any shadow failure).
+- `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY` (`0`/`1`, default `0`)
+  - `1`: run declared-shadow checks only on samples with `parse_full` status `pass`.
+  - strict mode fails if parseable-only filtering leaves zero checked samples.
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE` (`auto`/`0`/`1`, default `auto`)
   - controls standalone `sv_declared_shadow_promotion_gate` behavior.
   - `auto`: run strict-trial matrix and emit recommendation report without failing on ineligible outcomes.
@@ -2351,8 +2354,8 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT` (default `2`, sample count per trial)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE` (default `12001`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS` (default `400`)
-- `PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `0`)
-- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (default `1`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (default `2`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `1`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STATE_DIR` (default `rust/target/sv_declared_shadow_promotion_gate`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
@@ -2531,6 +2534,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `recommendation` (`enable_runtime_declared_identifiers` or `hold`)
     - `eligibility.eligible_for_runtime_enforcement`
     - aggregated strict-trial totals (`checked/passed/failed`)
+    - `totals.skipped_unparseable` from parseable-only filtering in underlying strict trials
     - per-trial logs and shadow-report references
   - default aggregate policy:
     - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`).

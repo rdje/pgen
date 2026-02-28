@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Burn-Down Increment: Parseability-Scoped Declared-Shadow Trials
+### Context
+Strict shadow trials were failing on noisy generated samples with undeclared-identifier reports that came from lexically chaotic, non-parseable artifacts. This mixed two debts:
+- semantic declared-before-use correctness,
+- syntax/parseability quality.
+
+For promotion decisions, that coupling produced false-positive semantic noise.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added parseability-scoped shadow control
+New `sv_stimuli_quality_gate` env control:
+- `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=0|1`
+
+When set to `1`:
+- declared-shadow checks run only for samples whose `parse_full` status is `pass`,
+- unparseable samples are emitted as shadow cases with:
+  - `status=skip_unparseable`
+  - explanatory note including parse status,
+- shadow report now includes:
+  - `parseable_only`
+  - `totals.skipped_unparseable`.
+
+Strict-mode guard:
+- if strict shadow mode is enabled and parseable-only filtering yields `checked=0`, gate fails with explicit reason.
+
+#### 2) Promotion gate defaults now align with parseability-scoped policy
+`sv_declared_shadow_promotion_gate` updates:
+- default `parse_full_mode` changed `0 -> auto`,
+- default `min_checked` changed `1 -> 2`,
+- always injects:
+  - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=1`
+  into strict trial runs.
+
+This turns promotion evidence into:
+- semantic-quality evidence on parseable corpus only,
+- explicit parseability debt when parseable sample count is insufficient.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE=12001 PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=2 make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+
+Observed:
+- recommendation remains `hold`, but now for objective reason:
+  - `checked=0`, `skipped_unparseable=2`,
+  - strict-shadow trial failure is no longer undeclared-identifier lexical noise; it is parseability scarcity.
+- This cleanly reframes next burn-down task: raise parseable sample yield under semantic-closure mode.
+
 ## 2026-02-28 - Phase P Semantic-Promotion Increment: Declared-Shadow Promotion Trial Gate
 ### Context
 `sv_stimuli_quality_gate` already had declared-shadow telemetry and strict-shadow mode, but promotion closure still lacked a dedicated artifact/report surface that answers:

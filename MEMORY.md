@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-p-declared-shadow-promotion-gate)
+Last updated: 2026-03-01 (+0100, task: phase-p-parseability-scoped-shadow-trials)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Scoped strict-shadow trials to parseable samples (promotion burn-down)
+- Root cause:
+  - strict-shadow failures were dominated by lexically noisy, non-parseable generated samples, which blurred semantic-vs-syntax debt and created false-positive undeclared-identifier noise.
+- Fix:
+  - added `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=0|1` in `sv_stimuli_quality_gate`.
+  - when enabled, shadow checks now run only for `parse_full=pass` samples; unparseable samples are tracked as `skip_unparseable`.
+  - strict-shadow now fails explicitly if parseable-only filtering yields zero checked samples.
+  - updated promotion gate defaults:
+    - `parse_full_mode=auto`
+    - `min_checked=2`
+    - always sets `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=1` for trial runs.
+- Validation:
+  - shell syntax checks passed for both gate scripts.
+  - promotion trial on baseline seed path (`12001`) now reports:
+    - `recommendation=hold`
+    - `checked=0`
+    - `skipped_unparseable=2`
+  - blocker is now explicit parseability debt, not lexical undeclared-id noise.
 
 ### 2026-02-28: Added declared-shadow promotion trial gate and aggregate informational wiring
 - Root cause:
@@ -1514,7 +1533,7 @@ Use this file to resume work without replaying full chat history.
    - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
-   - declared-shadow promotion trial gate is now in place; next step is burn-down of failing strict-shadow cases (for example undeclared identifiers emitted in generated samples under seed path `12001`) until promotion report recommendation flips to `enable_runtime_declared_identifiers`.
+   - strict-shadow trials are now parseability-scoped; next step is increasing parseable sample yield in semantic-closure mode (baseline seed path `12001` currently gives `checked=0`, `skipped_unparseable=2`) until promotion report recommendation flips to `enable_runtime_declared_identifiers`.
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:
@@ -1530,7 +1549,7 @@ Use this file to resume work without replaying full chat history.
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Declared-before-use runtime promotion is still blocked on strict-shadow burn-down:
-  - promotion report currently recommends `hold` on baseline seed path (`12001`) due observed shadow failures.
+  - promotion report currently recommends `hold` on baseline seed path (`12001`) due insufficient parseable samples under parseability-scoped shadow trials.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
 - Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.

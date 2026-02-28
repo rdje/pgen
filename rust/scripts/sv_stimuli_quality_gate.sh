@@ -20,6 +20,7 @@ LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
 STIMULI_MODE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MODE:-}"
 SEMANTIC_CLOSURE_MODE="${PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE:-0}"
 DECLARED_SHADOW_MODE="${PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE:-auto}"
+DECLARED_SHADOW_PARSEABLE_ONLY="${PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY:-0}"
 DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE:-}"
 ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE:-}"
 WIDTH_COMPAT_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_WIDTH_COMPAT_SUITE:-}"
@@ -1179,6 +1180,10 @@ if [[ "$DECLARED_SHADOW_MODE" != "auto" && "$DECLARED_SHADOW_MODE" != "0" && "$D
     echo "error: PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE must be one of: auto, 0, 1" >&2
     exit 2
 fi
+if [[ "$DECLARED_SHADOW_PARSEABLE_ONLY" != "0" && "$DECLARED_SHADOW_PARSEABLE_ONLY" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY must be 0 or 1" >&2
+    exit 2
+fi
 if ! [[ "$DIFF_MAX_SAMPLES" =~ ^[0-9]+$ ]] || [[ "$DIFF_MAX_SAMPLES" -lt 1 ]]; then
     echo "error: PGEN_SV_STIMULI_DIFF_MAX_SAMPLES must be an integer >= 1" >&2
     exit 2
@@ -1551,6 +1556,7 @@ echo "performance_max_parse_full_ms_per_sample: $perf_max_parse_full_ms_per_samp
 echo "performance_max_sample_bytes: $perf_max_sample_bytes"
 echo "performance_max_preprocessed_bytes: $perf_max_preprocessed_bytes"
 echo "declared_shadow_mode: $DECLARED_SHADOW_MODE"
+echo "declared_shadow_parseable_only: $DECLARED_SHADOW_PARSEABLE_ONLY"
 echo "declared_shadow_contract_enabled: $declared_shadow_contract_enabled"
 echo "declared_shadow_contract_strict: $declared_shadow_contract_strict"
 
@@ -1713,6 +1719,7 @@ perf_preprocessed_bytes_max=0
 declared_shadow_total=0
 declared_shadow_passed=0
 declared_shadow_failed=0
+declared_shadow_skipped_unparseable=0
 declared_shadow_report_json="$WORK_DIR/${grammar_name}_declared_identifier_shadow_report.json"
 declared_shadow_cases_jsonl="$WORK_DIR/${grammar_name}_declared_identifier_shadow_cases.jsonl"
 if [[ "$declared_shadow_enabled" -eq 1 ]]; then
@@ -1982,19 +1989,25 @@ for profile_idx in "${!run_profiles[@]}"; do
         semantic_pass_count=$((semantic_pass_count + 1))
 
         if [[ "$declared_shadow_enabled" -eq 1 ]]; then
-            declared_shadow_total=$((declared_shadow_total + 1))
             declared_shadow_case_note=""
             declared_shadow_case_status="pass"
-            if declared_shadow_case_note="$(check_declared_identifiers_before_use "$preprocessed_file" 2>&1)"; then
-                declared_shadow_passed=$((declared_shadow_passed + 1))
-                if [[ -z "$declared_shadow_case_note" ]]; then
-                    declared_shadow_case_note="declared identifier shadow check passed"
-                fi
+            if [[ "$DECLARED_SHADOW_PARSEABLE_ONLY" -eq 1 && "$parse_status" != "pass" ]]; then
+                declared_shadow_case_status="skip_unparseable"
+                declared_shadow_case_note="declared identifier shadow check skipped because parse_full status is '${parse_status}'"
+                declared_shadow_skipped_unparseable=$((declared_shadow_skipped_unparseable + 1))
             else
-                declared_shadow_case_status="fail"
-                declared_shadow_failed=$((declared_shadow_failed + 1))
-                if [[ -z "$declared_shadow_case_note" ]]; then
-                    declared_shadow_case_note="declared identifier shadow check failed"
+                declared_shadow_total=$((declared_shadow_total + 1))
+                if declared_shadow_case_note="$(check_declared_identifiers_before_use "$preprocessed_file" 2>&1)"; then
+                    declared_shadow_passed=$((declared_shadow_passed + 1))
+                    if [[ -z "$declared_shadow_case_note" ]]; then
+                        declared_shadow_case_note="declared identifier shadow check passed"
+                    fi
+                else
+                    declared_shadow_case_status="fail"
+                    declared_shadow_failed=$((declared_shadow_failed + 1))
+                    if [[ -z "$declared_shadow_case_note" ]]; then
+                        declared_shadow_case_note="declared identifier shadow check failed"
+                    fi
                 fi
             fi
 
@@ -2030,27 +2043,37 @@ jq -n \
     --arg grammar_name "$grammar_name" \
     --arg requested_mode "$DECLARED_SHADOW_MODE" \
     --arg effective_mode "$declared_shadow_effective" \
+    --argjson parseable_only "$DECLARED_SHADOW_PARSEABLE_ONLY" \
     --arg note "$declared_shadow_note" \
     --argjson enabled "$declared_shadow_enabled" \
     --argjson strict "$declared_shadow_strict" \
     --argjson total "$declared_shadow_total" \
     --argjson passed "$declared_shadow_passed" \
     --argjson failed "$declared_shadow_failed" \
+    --argjson skipped_unparseable "$declared_shadow_skipped_unparseable" \
     --argjson cases "$declared_shadow_cases_json" \
     '{
         grammar_name: $grammar_name,
         requested_mode: $requested_mode,
         effective_mode: $effective_mode,
+        parseable_only: ($parseable_only == 1),
         note: $note,
         enabled: $enabled,
         strict: $strict,
         totals: {
             checked: $total,
             passed: $passed,
-            failed: $failed
+            failed: $failed,
+            skipped_unparseable: $skipped_unparseable
         },
         cases: $cases
     }' >"$declared_shadow_report_json"
+
+if [[ "$declared_shadow_enabled" -eq 1 && "$declared_shadow_strict" -eq 1 && "$DECLARED_SHADOW_PARSEABLE_ONLY" -eq 1 && "$declared_shadow_total" -eq 0 ]]; then
+    echo "error: strict declared-identifier shadow mode requires at least one parseable sample when parseable-only filtering is enabled" >&2
+    cat "$declared_shadow_report_json" >&2
+    exit 1
+fi
 
 if [[ "$declared_shadow_enabled" -eq 1 && "$declared_shadow_strict" -eq 1 && "$declared_shadow_failed" -gt 0 ]]; then
     echo "error: strict declared-identifier shadow mode detected failures ($declared_shadow_failed/$declared_shadow_total)" >&2
@@ -2376,11 +2399,13 @@ jq -n \
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
     echo "declared_shadow_mode: $DECLARED_SHADOW_MODE"
+    echo "declared_shadow_parseable_only: $DECLARED_SHADOW_PARSEABLE_ONLY"
     echo "declared_shadow_effective: $declared_shadow_effective"
     echo "declared_shadow_note: $declared_shadow_note"
     echo "declared_shadow_checked: $declared_shadow_total"
     echo "declared_shadow_passed: $declared_shadow_passed"
     echo "declared_shadow_failed: $declared_shadow_failed"
+    echo "declared_shadow_skipped_unparseable: $declared_shadow_skipped_unparseable"
     echo "declared_shadow_report_json: $declared_shadow_report_json"
     echo "perf_budget_mode: $PERF_BUDGET_MODE"
     echo "perf_budget_effective: $perf_budget_effective"
