@@ -10493,3 +10493,30 @@ Complete Phase K by introducing typed branch-policy and recovery-hint contracts 
 - `cargo test --manifest-path rust/Cargo.toml semantic_branch_policy`
 - `cargo test --manifest-path rust/Cargo.toml unresolved_reference_codegen_emits_semantic_and_boolean_fallbacks`
 - Result: all pass.
+
+---
+
+## 2026-02-28: Codegen clippy-deny cleanup for generated parser path
+
+### Goal
+Remove generator emission patterns that produce clippy-denied errors in generated parser builds.
+
+### Changes
+- Updated `rust/src/ast_pipeline/ast_return_transform.rs` positional extraction emission:
+  - generation-time split for index `0` vs `>0` paths,
+  - removed emitted `if 0usize == 0usize` guard patterns,
+  - removed emitted fallback guards that triggered `clippy::eq_op`.
+- Updated `rust/src/ast_pipeline/ast_based_generator.rs` OR-branch and quantifier emission:
+  - replaced direct constant branch-index comparisons in tie-break logic with runtime variable (`current_branch_index`) use to prevent `clippy::absurd_extreme_comparisons`,
+  - replaced emitted `if false && ...` quantifier guards with generation-time token insertion (`stop_at_rule_boundary_on_break` / `stop_at_rule_boundary_on_error`) to prevent `clippy::overly_complex_bool_expr`.
+- Hardened return-annotation fallback emission in `ast_based_generator`:
+  - fixed invalid token concatenation in fallback transform generation,
+  - changed fallback result return to `result.clone()` to avoid move-across-loop compile failures,
+  - fixed generated unit-test logger path to `crate::ast_pipeline::NoOpLogger` for `ebnf_dual_run_diff` target compatibility.
+- Regenerated affected parser artifacts via pipeline:
+  - bootstrap-only for annotation parsers,
+  - non-bootstrap for `generated/ebnf.rs`.
+
+### Validation
+- `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run`
+- Result: pass (`EXIT:0`, no clippy errors).

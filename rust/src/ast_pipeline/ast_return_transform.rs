@@ -92,6 +92,23 @@ impl AstReturnTransformer {
         if captured_vars.len() == 1 {
             let base_expr = Self::parse_capture_expr(&captured_vars[0]);
             let element_index = index - 1;
+            if element_index == 0 {
+                return Ok(quote! {
+                    {
+                        let __pgen_base = (#base_expr).clone();
+                        match __pgen_base {
+                            ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                elements[0usize].content.clone()
+                            }
+                            ParseContent::Quantified(elements, _) if !elements.is_empty() => {
+                                elements[0usize].content.clone()
+                            }
+                            ParseContent::Alternative(node) => node.content.clone(),
+                            other => other,
+                        }
+                    }
+                });
+            }
             return Ok(quote! {
                 {
                     let __pgen_base = (#base_expr).clone();
@@ -102,8 +119,6 @@ impl AstReturnTransformer {
                         ParseContent::Quantified(elements, _) if elements.len() > #element_index => {
                             elements[#element_index].content.clone()
                         }
-                        ParseContent::Alternative(node) if #element_index == 0usize => node.content.clone(),
-                        other if #element_index == 0usize => other,
                         _ => ParseContent::Terminal("<invalid_sequence_access>"),
                     }
                 }
@@ -220,6 +235,23 @@ impl AstReturnTransformer {
                 if captured_vars.len() == 1 {
                     let base_expr = Self::parse_capture_expr(&captured_vars[0]);
                     let element_index = index - 1;
+                    if element_index == 0 {
+                        return Ok(Self::parse_content_to_string(quote! {
+                            {
+                                let __pgen_base = (#base_expr).clone();
+                                match __pgen_base {
+                                    ParseContent::Sequence(elements) if !elements.is_empty() => {
+                                        elements[0usize].content.clone()
+                                    }
+                                    ParseContent::Quantified(elements, _) if !elements.is_empty() => {
+                                        elements[0usize].content.clone()
+                                    }
+                                    ParseContent::Alternative(node) => node.content.clone(),
+                                    other => other,
+                                }
+                            }
+                        }));
+                    }
                     return Ok(Self::parse_content_to_string(quote! {
                         {
                             let __pgen_base = (#base_expr).clone();
@@ -230,8 +262,6 @@ impl AstReturnTransformer {
                                 ParseContent::Quantified(elements, _) if elements.len() > #element_index => {
                                     elements[#element_index].content.clone()
                                 }
-                                ParseContent::Alternative(node) if #element_index == 0usize => node.content.clone(),
-                                other if #element_index == 0usize => other,
                                 _ => ParseContent::Terminal("<invalid_sequence_access>"),
                             }
                         }

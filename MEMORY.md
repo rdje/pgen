@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: workflow-clippy-on-rust-change)
+Last updated: 2026-02-28 (+0100, task: codegen-clippy-deny-cleanup)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for clippy-on-rust-change workflow hardening increment; run `git status -sb`).
+- Worktree: dirty (pending commit workflow for codegen clippy-deny cleanup + docs sync; run `git status -sb`).
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -222,6 +222,29 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Generator clippy-deny cleanup for generated parser flows
+- Root cause:
+  - strict clippy over generated parser targets failed due generator-emitted constant-expression patterns:
+    - `false && ...` (`overly_complex_bool_expr`)
+    - `0usize == 0usize` (`eq_op`)
+    - `0usize > best_branch_index` (`absurd_extreme_comparisons`)
+  - fallback return-transform emission also caused syntax/move fragility in non-bootstrap EBNF generation paths.
+- Fix:
+  - `rust/src/ast_pipeline/ast_return_transform.rs`
+    - split positional extraction codegen at generation-time (`index==0` vs `>0`),
+    - removed constant guard emission and replaced with direct index-0 handling.
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - quantifier guard emission now token-specialized (`stop_at_rule_boundary_on_break` / `..._on_error`) instead of runtime `false && ...`,
+    - OR tie-break compares runtime `current_branch_index` instead of constant literal branch indices,
+    - fixed fallback transform emission correctness and moved-value safety (`result.clone()`),
+    - updated generated test logger path to `crate::ast_pipeline::NoOpLogger` for bin-target compatibility.
+  - Regeneration path:
+    - bootstrap-only: `make -C rust return_annotation_parser semantic_annotation_parser`
+    - non-bootstrap EBNF: `cargo run --features generated_parsers --bin ast_pipeline -- ../generated/ebnf.json --generate-parser --eliminate-left-recursion -o ../generated/ebnf.rs`
+- Validation:
+  - `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run`
+  - result: pass (`EXIT:0`).
 
 ### 2026-02-28: Workflow hardening - clippy auto-flow for Rust/generated Rust changes
 - Root cause:

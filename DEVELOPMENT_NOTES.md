@@ -9567,3 +9567,83 @@ Results:
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `SC-06` promoted to implemented branch-policy steering baseline.
   - `SC-07` promoted to typed contract-surface stage with staged runtime recovery follow-on.
+
+---
+
+## 2026-02-28: Generator-side clippy-deny elimination (generated parser flow)
+
+### Root cause
+Strict clippy over generated parser targets (`generated_parsers,ebnf_dual_run`) failed due generator-emitted constant expressions:
+- boolean dead-guards (`false && ...`) from quantifier stop-boundary handling,
+- constant equality guards (`0usize == 0usize`) in positional extraction fallback logic,
+- constant branch-index comparisons (`0usize > best_branch_index`) in OR tie-break selection.
+
+These patterns became hard errors because of denied clippy lints in generated code paths:
+- `clippy::overly_complex_bool_expr`
+- `clippy::eq_op`
+- `clippy::absurd_extreme_comparisons`
+
+### Fixes implemented
+
+#### 1) Positional transform emission hardening
+File:
+- `rust/src/ast_pipeline/ast_return_transform.rs`
+
+Changes:
+- Added generation-time split for `element_index == 0`:
+  - index-0 path emits direct alternatives (`Alternative(node)` / passthrough `other`) with no constant guard,
+  - index>0 path keeps sequence/quantified index checks only.
+- Applied same split in:
+  - `generate_positional_ref(...)`
+  - `generate_value_extraction(...)`
+
+Result:
+- removed generated `if 0usize == 0usize` patterns and their `eq_op` failures.
+
+#### 2) Quantifier guard emission hardening
+File:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Changes:
+- Replaced emitted runtime conjunction
+  - `if #stop_at_rule_boundary && parser.looks_like_rule_definition_boundary() { ... }`
+with generation-time token selection:
+  - `stop_at_rule_boundary_on_break`
+  - `stop_at_rule_boundary_on_error`
+
+Result:
+- no emitted `if false && ...` in generated parsers.
+
+#### 3) OR tie-break emission hardening
+File:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Changes:
+- Introduced per-candidate runtime variable:
+  - `let current_branch_index: usize = #branch_index;`
+- Replaced tie-break comparisons to use runtime variable instead of direct constant literal interpolation.
+
+Result:
+- removed generated `0usize > best_branch_index` absurd-comparison failures.
+
+#### 4) Fallback return-transform correctness fixes
+File:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+
+Changes:
+- Fixed fallback transform emission to avoid invalid token sequence generation.
+- Fallback now returns `result.clone()` to avoid moved-value errors in multi-branch loop evaluation contexts.
+- Adjusted generated parser test logger path:
+  - from `crate::NoOpLogger`
+  - to `crate::ast_pipeline::NoOpLogger`
+  for `ebnf_dual_run_diff` bin-target compatibility.
+
+### Regeneration flow used
+- Annotation parsers (bootstrap only):
+  - `make -C rust return_annotation_parser semantic_annotation_parser`
+- EBNF parser (non-bootstrap):
+  - `cd rust && cargo run --features generated_parsers --bin ast_pipeline -- ../generated/ebnf.json --generate-parser --eliminate-left-recursion -o ../generated/ebnf.rs`
+
+### Validation
+- `cargo clippy --manifest-path rust/Cargo.toml --all-targets --features generated_parsers,ebnf_dual_run`
+- Final result: `EXIT:0` (strict clippy clean for targeted generated-parser path).

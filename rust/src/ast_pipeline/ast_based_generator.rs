@@ -113,7 +113,19 @@ impl AstBasedGenerator {
         eprintln!();
         // Convert TokenStream to formatted string using prettyplease
         eprintln!("🎨  Converting TokenStream to formatted Rust code...");
-        let formatted_code = prettyplease::unparse(&syn::parse2(parser_tokens)?);
+        let syntax_tree: syn::File = match syn::parse2(parser_tokens.clone()) {
+            Ok(file) => file,
+            Err(err) => {
+                let dump_path = format!("{filename}.tokens_dump.rs");
+                let _ = std::fs::write(&dump_path, parser_tokens.to_string());
+                return Err(anyhow::anyhow!(
+                    "Failed to parse generated TokenStream: {} (dumped raw tokens to {})",
+                    err,
+                    dump_path
+                ));
+            }
+        };
+        let formatted_code = prettyplease::unparse(&syntax_tree);
         eprintln!(
             "✨  Code formatting complete ({} characters)",
             formatted_code.len()
@@ -1049,6 +1061,7 @@ impl AstBasedGenerator {
                                 let candidate_end = parser.position;
                                 parser.position = parse_start;
                                 let candidate_priority: i64 = #branch_priority;
+                                let current_branch_index: usize = #branch_index;
                                 let transformed = {
                                     let content = content;
                                     #transform
@@ -1068,9 +1081,9 @@ impl AstBasedGenerator {
                                         false
                                     } else {
                                         match #associativity_mode {
-                                            "right" => #branch_index > best_branch_index,
+                                            "right" => current_branch_index > best_branch_index,
                                             "nonassoc" => {
-                                                if #branch_index != best_branch_index {
+                                                if current_branch_index != best_branch_index {
                                                     nonassoc_tie = true;
                                                 }
                                                 false
@@ -1090,9 +1103,9 @@ impl AstBasedGenerator {
                                     false
                                 } else {
                                     match #associativity_mode {
-                                        "right" => #branch_index > best_branch_index,
+                                        "right" => current_branch_index > best_branch_index,
                                         "nonassoc" => {
-                                            if #branch_index != best_branch_index {
+                                            if current_branch_index != best_branch_index {
                                                 nonassoc_tie = true;
                                             }
                                             false
@@ -1104,7 +1117,7 @@ impl AstBasedGenerator {
                                 if should_take {
                                     best_end = candidate_end;
                                     best_priority = candidate_priority;
-                                    best_branch_index = #branch_index;
+                                    best_branch_index = current_branch_index;
                                     best_branch = #branch_num;
                                     best_content = Some(transformed);
                                 }
@@ -1491,6 +1504,26 @@ impl AstBasedGenerator {
                 "line_delimited_sequence",
             ],
         );
+        let stop_at_rule_boundary_on_break = if stop_at_rule_boundary {
+            quote! {
+                if parser.looks_like_rule_definition_boundary() {
+                    break;
+                }
+            }
+        } else {
+            quote! {}
+        };
+        let stop_at_rule_boundary_on_error = if stop_at_rule_boundary {
+            quote! {
+                if parser.looks_like_rule_definition_boundary() {
+                    return Err(ParseError::Backtrack {
+                        position: parser.position,
+                    });
+                }
+            }
+        } else {
+            quote! {}
+        };
 
         match quantifier {
             "*" => Ok(quote! {
@@ -1500,9 +1533,7 @@ impl AstBasedGenerator {
                 const MAX_ITERATIONS: usize = 10000; // Safety limit
 
                 while iteration_count < MAX_ITERATIONS {
-                    if #stop_at_rule_boundary && parser.looks_like_rule_definition_boundary() {
-                        break;
-                    }
+                    #stop_at_rule_boundary_on_break
                     if let Some(node) = parser.try_parse(|p| {
                         let parser = p;
                         #element_logic;
@@ -1540,11 +1571,7 @@ impl AstBasedGenerator {
                 let mut results = Vec::new();
                 let start_position = parser.position;
 
-                if #stop_at_rule_boundary && parser.looks_like_rule_definition_boundary() {
-                    return Err(ParseError::Backtrack {
-                        position: parser.position,
-                    });
-                }
+                #stop_at_rule_boundary_on_error
 
                 // First match is mandatory
                 {
@@ -1569,9 +1596,7 @@ impl AstBasedGenerator {
                 const MAX_ITERATIONS: usize = 10000;
 
                 while iteration_count < MAX_ITERATIONS {
-                    if #stop_at_rule_boundary && parser.looks_like_rule_definition_boundary() {
-                        break;
-                    }
+                    #stop_at_rule_boundary_on_break
                     if let Some(node) = parser.try_parse(|p| {
                         let parser = p;
                         #element_logic;
@@ -1656,8 +1681,9 @@ impl AstBasedGenerator {
                 rule_name, annotation.annotation_content
             );
             Ok(quote! {
-                #comment
-                result
+                let _pgen_unparsed_return_annotation_warning: &str = #comment;
+                let _ = _pgen_unparsed_return_annotation_warning;
+                result.clone()
             })
         }
     }
@@ -3690,7 +3716,7 @@ fn generate_tests(parser_name: &Ident) -> TokenStream {
             #[test]
             fn test_basic_parsing() {
                 let input = "$1";
-                let logger = Box::new(crate::NoOpLogger);
+                let logger = Box::new(crate::ast_pipeline::NoOpLogger);
                 let mut parser = #parser_name::new(input, logger);
                 let result = parser.parse();
                 assert!(result.is_ok());
