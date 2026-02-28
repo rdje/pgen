@@ -236,6 +236,7 @@ help:
 	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog closed-loop quality gate (coverage/gap/replay -> preprocess -> parse_full -> semantic baseline)"
 	@echo "  vhdl_stimuli_quality_gate - Enforce deterministic VHDL closed-loop stimuli quality gate (coverage/gap/replay -> parse_full)"
 	@echo "  sv_syntax_closure_gate - Enforce deterministic SystemVerilog syntax-closure burn-down no-regression contract"
+	@echo "  ast_dump_contract_gate - Enforce deterministic/bounded AST dump contract checks (generation + parser dump surfaces)"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
 	@echo "  annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks"
 	@echo "  annotation_stimuli_quality_gate - Enforce strict closed-loop stimuli/coverage/gap checks (no-regression) for annotation grammars"
@@ -499,6 +500,12 @@ sv_syntax_closure_gate:
 	@echo "🧪 Running SystemVerilog syntax closure gate..."
 	cd $(RUST_DIR) && ./scripts/sv_syntax_closure_gate.sh
 	@echo "✅ SystemVerilog syntax closure gate passed."
+
+.PHONY: ast_dump_contract_gate
+ast_dump_contract_gate:
+	@echo "🧪 Running AST dump contract gate..."
+	cd $(RUST_DIR) && ./scripts/ast_dump_contract_gate.sh
+	@echo "✅ AST dump contract gate passed."
 
 .PHONY: regression_gate
 regression_gate:

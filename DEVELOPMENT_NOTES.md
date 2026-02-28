@@ -10292,3 +10292,39 @@ Phase R generation-input AST dumps already had deterministic key canonicalizatio
 - CLI smoke using oversized parse AST payload:
   - `parseability_probe --parse-dump-ast builtin_semantic_annotation <input> <output> --max-bytes 256`
   - verified output envelope `kind=pgen_ast_dump_truncation`.
+
+---
+
+## 2026-02-28: Phase R gate-level AST dump validation closure
+
+### Root cause
+Phase R had both dump surfaces implemented and bounded-format contracts in place, but the roadmap still lacked one executable gate that continuously enforces:
+- replay determinism,
+- truncation-envelope contract behavior,
+- negative-path write-failure behavior
+for both generation-input and parser-returned AST dump paths.
+
+### Fixes implemented
+- Added dedicated gate script:
+  - `rust/scripts/ast_dump_contract_gate.sh`
+  - deterministic checks executed:
+    - generation-input dump replay determinism (`ast_pipeline`, fixed grammar+seed),
+    - generation-input truncation envelope behavior under max-bytes,
+    - generation-input negative-path failure on directory output target,
+    - parser-returned dump replay determinism (`parseability_probe`, builtin semantic sample),
+    - parser-returned truncation envelope behavior under max-bytes,
+    - parser-returned negative-path failure on directory output target.
+  - deterministic gate artifacts:
+    - logs/work/summary under `rust/target/ast_dump_contract_gate`.
+- Added Make integration:
+  - new target `ast_dump_contract_gate` in `rust/Makefile`.
+- Improved generation dump failure diagnostics:
+  - `rust/src/main.rs`: `maybe_dump_generation_ast` now wraps write failures with explicit context string, enabling reliable negative-path pattern checks in gate output.
+- Documentation synchronization:
+  - `PGEN_USER_GUIDE.md` updated with new gate command + artifact path.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` gate-level validation item marked complete.
+
+### Validation
+- `bash -n rust/scripts/ast_dump_contract_gate.sh`
+- `make -C rust SHELL=/bin/bash ast_dump_contract_gate`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`

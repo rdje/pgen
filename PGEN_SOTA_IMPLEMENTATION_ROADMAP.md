@@ -496,10 +496,14 @@ Objective: make AST visibility first-class for generator and generated-parser de
     - added `--max-bytes` tail option (`PGEN_PARSE_DUMP_AST_MAX_BYTES` env fallback),
     - added recursive canonical JSON key-order normalization before parser AST dump emission,
     - oversized parser dump handling now emits deterministic truncation diagnostics envelope (`kind=pgen_ast_dump_truncation`, `dump_kind=parser_return_ast`).
-- [ ] Add gate-level validation for AST dump behavior:
+- [x] Add gate-level validation for AST dump behavior:
   - contract tests that assert dump artifact presence/format/content stability.
   - replay determinism checks (same input+seed => byte-identical AST dumps).
   - negative-path checks (invalid path/permission) with structured diagnostics.
+  - Progress (2026-02-28): added executable gate `rust/scripts/ast_dump_contract_gate.sh` + Make target `ast_dump_contract_gate`:
+    - validates generation-input dump replay determinism + truncation envelope behavior + negative-path write failure contract,
+    - validates parser-returned dump replay determinism + truncation envelope behavior + negative-path write failure contract,
+    - emits deterministic summary/artifacts under `rust/target/ast_dump_contract_gate`.
 - [ ] Document AST dump workflows in user-facing docs:
   - generator AST triage flow (`EBNF -> normalized AST -> codegen`).
   - parser return-AST inspection flow for return-annotation conformance checks.
@@ -522,6 +526,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Completed Phase R gate-level AST dump validation by adding executable `ast_dump_contract_gate` (generation + parser dump determinism checks, truncation envelope checks, and negative-path write-failure checks with deterministic artifacts under `rust/target/ast_dump_contract_gate`).
 - 2026-02-28: Completed Phase R dump-format/safety contract baseline across both AST dump surfaces by extending parser-returned `parseability_probe` dumps with deterministic key canonicalization and bounded-size truncation diagnostics (`--max-bytes`, `PGEN_PARSE_DUMP_AST_MAX_BYTES`, `dump_kind=parser_return_ast`).
 - 2026-02-28: Advanced Phase R dump-format/safety baseline for generation-input AST dumps by adding recursive canonical JSON key-order normalization and bounded output enforcement (`--dump-gen-ast-max-bytes` / `PGEN_DUMP_GEN_AST_MAX_BYTES`) with deterministic truncation diagnostics envelope (`kind=pgen_ast_dump_truncation`).
 - 2026-02-28: Hardened Phase Q trusted-reference portability by adding runner probe preflight (`sv_preprocessor_reference_runner.sh --probe`) and gate-side probe-aware mode handling (`auto` downgrade to unsupported-runner, strict fail-fast on backend-unavailable probe failures).

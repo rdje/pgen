@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-r-parser-ast-dump-safety-contract-baseline)
+Last updated: 2026-02-28 (+0100, task: phase-r-ast-dump-gate-level-validation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,22 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Closed Phase R gate-level AST dump validation with dedicated contract gate
+- Root cause:
+  - both AST dump surfaces had deterministic/bounded serialization contracts, but there was no executable gate enforcing replay determinism, truncation behavior, and negative-path write failures.
+- Fix:
+  - added `rust/scripts/ast_dump_contract_gate.sh` and Make target `ast_dump_contract_gate`.
+  - gate verifies:
+    - generation-input dump determinism + truncation envelope + negative-path failure,
+    - parser-returned dump determinism + truncation envelope + negative-path failure.
+  - updated `rust/src/main.rs` to add explicit generation dump write-failure context (`failed to write generation-input AST JSON ...`) for reliable negative-path assertions.
+  - synced docs/roadmap:
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Validation:
+  - `make -C rust SHELL=/bin/bash ast_dump_contract_gate` passed.
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` passed.
 
 ### 2026-02-28: Extended Phase R dump-format/safety contract to parser-returned AST dumps
 - Root cause:
@@ -1444,8 +1460,8 @@ Use this file to resume work without replaying full chat history.
 2. Continue Phase P semantic-closure implementation for SV:
    - deterministic semantic suites + declared shadow burn-down telemetry are now in place; next step is controlled strict trials (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`) and promotion of runtime `require_declared_identifiers_before_use`.
 3. Continue Phase R implementation for AST observability:
-   - add gate-level determinism/negative-path checks for both generation and parser AST dump surfaces,
-   - add embedding API surface for parser-returned AST dump.
+   - add embedding API surface for parser-returned AST dump,
+   - finish deep-dive user documentation/examples for AST-debug workflows.
 4. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 5. Expand contractized SV/VHDL corpora:
@@ -1462,7 +1478,7 @@ Use this file to resume work without replaying full chat history.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
-- Phase R bounded-size/truncation safety contract is now implemented for both generation-input and parser-returned AST dumps; remaining Phase R gap is gate-level determinism/negative-path enforcement plus embedding API AST dump surface.
+- Phase R gate-level validation is now executable; remaining Phase R gap is embedding API AST dump surface and expanded end-user workflow examples.
 
 ## Quick Commands
 - HDL frontend readiness (report):
@@ -1475,6 +1491,8 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
 - VHDL closed-loop quality:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+- AST dump contract gate:
+  - `make -C rust SHELL=/bin/bash ast_dump_contract_gate`
 - SV preprocessor strict differential example:
   - `PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=$PWD/rust/scripts/sv_preprocessor_reference_runner.sh PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
 - Aggregate gate:

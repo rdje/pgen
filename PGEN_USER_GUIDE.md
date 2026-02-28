@@ -1953,6 +1953,11 @@ Tracked baselines:
     - identical sample corpus,
     - identical coverage metrics JSON and gap report JSON (canonicalized compare),
     - contract-driven grammar roster from `rust/test_data/grammar_quality/stimuli_module_parity_contract.json`
+- `ast_dump_contract_gate` (local gate target)
+  - deterministic + bounded AST dump contract verification for both dump surfaces:
+    - generation-input AST dump replay determinism and truncation envelope checks,
+    - parser-returned AST dump replay determinism and truncation envelope checks,
+    - negative-path write-failure checks for both dump surfaces.
 - `ebnf_frontend_readiness` (local report target)
   - executes `EBNF -> JSON -> parser/stimuli` readiness checks for `ebnf/json/regex` grammars
 - `ebnf_frontend_gate` (local strict target)
@@ -2085,6 +2090,11 @@ make -C rust SHELL=/bin/bash sv_syntax_closure_gate
 Stimuli-module parity command:
 ```bash
 make -C rust SHELL=/bin/bash stimuli_module_parity_gate
+```
+
+AST dump contract command:
+```bash
+make -C rust SHELL=/bin/bash ast_dump_contract_gate
 ```
 
 Aggregate SOTA gate command:
@@ -2616,6 +2626,7 @@ Ephemeral/runtime reports:
 - `rust/target/annotation_stimuli_quality_gate/*`
 - `rust/target/ebnf_stimuli_quality_gate/*`
 - `rust/target/sv_preprocessor_quality_gate/*`
+- `rust/target/ast_dump_contract_gate/*`
 - `rust/target/sota_exit_gate/*`
 
 Important:

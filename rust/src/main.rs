@@ -2,7 +2,7 @@
 //!
 //! Command-line interface for the Rust AST transformation pipeline.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
     RecoveryStimuliMode, StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics,
@@ -932,7 +932,10 @@ fn maybe_dump_generation_ast(
     };
     let json = encode_canonical_json(&dump, pretty)?;
     let write_result =
-        write_json_dump_with_limit(path, &json, max_bytes, pretty, "generation_input_ast")?;
+        write_json_dump_with_limit(path, &json, max_bytes, pretty, "generation_input_ast")
+            .with_context(|| {
+                format!("failed to write generation-input AST JSON '{}'", path)
+            })?;
     if write_result.truncated {
         println!(
             "Wrote generation-input AST truncation diagnostics JSON to {} (full_bytes={}, max_bytes={}, written_bytes={})",
