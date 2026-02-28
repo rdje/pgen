@@ -437,6 +437,30 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     in `rust/config/sota_exit_policy.env`.
     `sota_exit_gate` now treats `sv_preprocessor_quality_gate` as required by default.
 
+### Phase R (New): AST Observability and Debug Artifacts
+Objective: make AST visibility first-class for generator and generated-parser debugging, return-annotation verification, and deterministic failure triage.
+
+- [ ] Add AST-pipeline generation-input AST dump option:
+  - CLI switch to emit the normalized AST that feeds parser/stimuli codegen.
+  - path override support and deterministic default output path (`gen_ast.log`).
+  - explicit enable/disable behavior so default non-debug runs remain unchanged.
+- [ ] Add generated-parser returned-AST dump option:
+  - generated parser runtime switch to emit the parser return AST for a parsed snippet/file.
+  - path override support and deterministic default output path (`parser_ast.log`).
+  - support both parser-executable workflows and embedding API entry points.
+- [ ] Add dump-format and safety contract:
+  - stable machine-readable format (`json`) plus human-readable pretty mode.
+  - deterministic key/order normalization for replay/diff workflows.
+  - bounded-size safeguards + truncation diagnostics for very large ASTs.
+- [ ] Add gate-level validation for AST dump behavior:
+  - contract tests that assert dump artifact presence/format/content stability.
+  - replay determinism checks (same input+seed => byte-identical AST dumps).
+  - negative-path checks (invalid path/permission) with structured diagnostics.
+- [ ] Document AST dump workflows in user-facing docs:
+  - generator AST triage flow (`EBNF -> normalized AST -> codegen`).
+  - parser return-AST inspection flow for return-annotation conformance checks.
+  - practical examples for SV/VHDL/regex onboarding and debugging.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -454,6 +478,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Added Phase R (`AST Observability and Debug Artifacts`) to roadmap, including planned CLI/API dump options for generator-input AST (`gen_ast.log`) and generated-parser return AST (`parser_ast.log`) with deterministic artifact contracts and gate-level validation.
 - 2026-02-28: Added deterministic width-compatibility semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v14 + `width_compatibility_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit contract/env policy controls and summary counters.
 - 2026-02-28: Added mandatory Rust-change clippy workflow hook (`make clippy_on_rust_change`) with scripted Rust/generated-Rust change detection, strict source clippy enforcement, generated-parser integration clippy execution, and strict opt-in policy (`PGEN_CLIPPY_GENERATED_STRICT=1`) for generated lint debt.
 - 2026-02-28: Added deterministic declared-identifier semantic contract suite enforcement to Phase P (`systemverilog_core_v0_contract.json` v13 + `declared_identifier_contract_suite` stage in `sv_stimuli_quality_gate`) with explicit `foreach` iterator declaration fix and summary counters.

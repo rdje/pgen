@@ -9720,3 +9720,27 @@ Changes:
 ### Plan update
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Phase P semantic-closure section updated with explicit deterministic width-compatibility contract-suite progress entry.
+
+---
+
+## 2026-02-28: Roadmap contract added for generator/parser AST dump observability
+
+### Root cause
+AST dump visibility was requested for two critical debug surfaces but was not yet tracked as an explicit roadmap deliverable:
+- normalized generation-input AST used by parser/stimuli codegen,
+- parser-returned AST emitted by generated parsers.
+
+Without explicit planning, these observability capabilities risked being treated as ad-hoc debug work instead of contractized implementation/gate milestones.
+
+### Fixes implemented
+- Added a dedicated roadmap phase:
+  - `Phase R (AST Observability and Debug Artifacts)` in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`.
+- Captured concrete deliverables:
+  - AST-pipeline CLI dump option for generation-input AST with default `gen_ast.log`,
+  - generated-parser runtime/API dump option for parser-returned AST with default `parser_ast.log`,
+  - deterministic output-format/safety contract and bounded-size behavior,
+  - gate-level validation requirements and documentation tasks.
+- Added a roadmap changelog entry for this planning increment.
+
+### Validation
+- Docs-only change; no runtime behavior changed in this increment.

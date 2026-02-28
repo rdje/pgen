@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-p-width-compat-contract-suite)
+Last updated: 2026-02-28 (+0100, task: roadmap-phase-r-ast-observability)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,7 +23,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
-- Worktree: dirty (pending commit workflow for Phase P width-compatibility semantic contract-suite increment; run `git status -sb`).
+- Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
 - Latest commit: see tail entry in "Session Git History (Hash + Message)".
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
@@ -1141,6 +1141,19 @@ Use this file to resume work without replaying full chat history.
   - verified trace lines are written to `rust/trace.log` and not emitted as `[PGEN]` lines on stdout.
   - verified trace header format includes `[<file>:<line>] [<function>]`.
 
+### 2026-02-28: Added roadmap Phase R for AST dump observability planning
+- Root cause:
+  - AST dump debug needs were identified for two surfaces (generator-input AST and generated-parser returned AST) but were not tracked as explicit roadmap deliverables.
+- Fix:
+  - Added `Phase R (AST Observability and Debug Artifacts)` in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with planned work items for:
+    - generator-input AST dump (`gen_ast.log`) CLI support,
+    - generated-parser returned-AST dump (`parser_ast.log`) runtime/API support,
+    - deterministic dump formatting/safety contracts,
+    - gate-level validation and UG documentation tasks.
+  - Synced planning entry into `CHANGES.md` and `DEVELOPMENT_NOTES.md`.
+- Validation:
+  - docs-only planning increment; no runtime behavior changed.
+
 ### 2026-02-26: EBNF parseability promotion in non-annotation loop
 - Root cause:
   - `ebnf` parseability was optional in contract due to missing executable registry path.
@@ -1170,15 +1183,19 @@ Use this file to resume work without replaying full chat history.
    - provide project-level runner scripts for available external preprocessors and start collecting taxonomy deltas on curated corpora.
 2. Continue Phase P semantic-closure implementation for SV:
    - promote currently optional semantic baseline toggles toward required contract checks once false-positive rate is controlled.
-3. Add annotation-driven SV stimuli steering:
+3. Start Phase R implementation for AST observability:
+   - generator-input AST dump path,
+   - generated-parser return-AST dump path,
+   - deterministic format/replay contract checks.
+4. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
-4. Expand contractized SV/VHDL corpora:
+5. Expand contractized SV/VHDL corpora:
    - add deterministic targeted families for declaration/use, port binding, generate, and preprocess-heavy cases.
-5. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
+6. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-6. Continue Rust-native EBNF migration hardening:
+7. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-7. Keep roadmap + UG + memory synced after every gate/contract increment.
+8. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

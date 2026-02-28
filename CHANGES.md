@@ -10553,3 +10553,21 @@ Advance Phase P semantic-closure validation with deterministic, contractized wid
 - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 bash rust/scripts/sv_stimuli_quality_gate.sh`
 - Result: pass.
+
+---
+
+## 2026-02-28: Added AST dump observability track to live roadmap
+
+### Goal
+Capture planned AST dump/debug capabilities as explicit executable roadmap work so generator and generated-parser AST visibility is tracked and delivered with deterministic contracts.
+
+### Changes
+- Updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with new `Phase R (AST Observability and Debug Artifacts)`:
+  - planned generator-input AST dump CLI surface with deterministic default artifact path (`gen_ast.log`),
+  - planned generated-parser returned-AST dump surface with deterministic default artifact path (`parser_ast.log`),
+  - planned format/safety contract (machine-readable + pretty mode, deterministic normalization, bounded-size handling),
+  - planned gate-level validation and user-guide coverage for AST debug workflows.
+- Added roadmap change-log entry documenting this new phase.
+
+### Validation
+- Documentation update only (no runtime code path changed).
