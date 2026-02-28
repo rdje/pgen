@@ -313,6 +313,8 @@ Use parser-returned AST dump when you need the parsed AST produced by generated 
 CLI controls:
 - `parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file]`
 - `parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file]`
+- optional tail flag for both commands:
+  - `--max-bytes <N>`
 
 Default filename contract:
 - when `output_file` is omitted, dump file is:
@@ -324,6 +326,21 @@ Default filename contract:
   - `vhdl_ast.json`
   - `systemverilog_ast.json`
 
+Determinism and safety contract:
+- parser-returned AST dump JSON object keys are canonicalized recursively for deterministic replay/diff output.
+- bounded-size safeguard:
+  - `--max-bytes <N>` bounds parser AST dump output size.
+  - env fallback:
+    - `PGEN_PARSE_DUMP_AST_MAX_BYTES` (used when `--max-bytes` is omitted).
+  - if encoded AST JSON size exceeds configured bound, output file is replaced with deterministic truncation diagnostics envelope:
+    - `kind = "pgen_ast_dump_truncation"`
+    - `truncated = true`
+    - `dump_kind = "parser_return_ast"`
+    - `max_bytes`
+    - `full_bytes`
+    - `reason`
+  - if configured bound is too small to fit diagnostics envelope, command fails explicitly.
+
 Examples:
 ```bash
 # Parse and dump AST to default grammar-based path (ebnf_ast.json)
@@ -333,6 +350,10 @@ cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dua
 # Parse and dump pretty AST to explicit output file
 cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin parseability_probe -- \
   --parse-dump-ast-pretty ebnf /tmp/sample.ebnf /tmp/custom_ebnf_ast.json
+
+# Parse and enforce bounded output size (truncation envelope emitted when oversized)
+cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin parseability_probe -- \
+  --parse-dump-ast builtin_semantic_annotation /tmp/sample.sem /tmp/semantic_ast.json --max-bytes 4096
 ```
 
 Examples:

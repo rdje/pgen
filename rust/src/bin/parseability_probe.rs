@@ -1,10 +1,11 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
+use serde::Serialize;
 
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name>\n  parseability_probe --parse <grammar_name> <input_file>\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json"
+    "Usage:\n  parseability_probe --supports <grammar_name>\n  parseability_probe --parse <grammar_name> <input_file>\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--max-bytes N]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--max-bytes N]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES"
 }
 
 fn default_ast_dump_file(grammar_name: &str) -> String {
@@ -22,6 +23,154 @@ fn default_ast_dump_file(grammar_name: &str) -> String {
         stem
     };
     format!("{}_ast.json", stem)
+}
+
+#[derive(Debug, Serialize)]
+struct AstDumpTruncationDiagnostic {
+    pgen_dump_contract_version: u32,
+    kind: &'static str,
+    truncated: bool,
+    dump_kind: &'static str,
+    max_bytes: usize,
+    full_bytes: usize,
+    reason: &'static str,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct AstDumpWriteResult {
+    truncated: bool,
+    bytes_written: usize,
+    full_bytes: usize,
+}
+
+fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
+    let parsed = value
+        .parse::<usize>()
+        .map_err(|_| anyhow::anyhow!("{} must be an integer >= 1 (got '{}')", label, value))?;
+    if parsed == 0 {
+        bail!("{} must be an integer >= 1", label);
+    }
+    Ok(parsed)
+}
+
+fn resolve_dump_max_bytes(cli_value: Option<usize>) -> Result<Option<usize>> {
+    if let Some(value) = cli_value {
+        if value == 0 {
+            bail!("--max-bytes must be an integer >= 1");
+        }
+        return Ok(Some(value));
+    }
+    let raw = match std::env::var("PGEN_PARSE_DUMP_AST_MAX_BYTES") {
+        Ok(value) => value,
+        Err(_) => return Ok(None),
+    };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let parsed = parse_positive_usize(trimmed, "PGEN_PARSE_DUMP_AST_MAX_BYTES")?;
+    Ok(Some(parsed))
+}
+
+fn parse_dump_command_tail(args: &[String]) -> Result<(Option<String>, Option<usize>)> {
+    let mut output_file: Option<String> = None;
+    let mut max_bytes: Option<usize> = None;
+    let mut idx = 0usize;
+    while idx < args.len() {
+        let token = args[idx].as_str();
+        if token == "--max-bytes" {
+            if max_bytes.is_some() {
+                bail!("--max-bytes cannot be specified multiple times");
+            }
+            let value = args
+                .get(idx + 1)
+                .ok_or_else(|| anyhow::anyhow!("--max-bytes requires a value (integer >= 1)"))?;
+            max_bytes = Some(parse_positive_usize(value, "--max-bytes")?);
+            idx += 2;
+            continue;
+        }
+        if output_file.is_some() {
+            bail!(
+                "unexpected extra positional argument '{}'; expected at most one output_file",
+                token
+            );
+        }
+        output_file = Some(args[idx].clone());
+        idx += 1;
+    }
+    Ok((output_file, max_bytes))
+}
+
+fn canonicalize_json_value(value: serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Array(values) => {
+            serde_json::Value::Array(values.into_iter().map(canonicalize_json_value).collect())
+        }
+        serde_json::Value::Object(map) => {
+            let mut entries = map.into_iter().collect::<Vec<_>>();
+            entries.sort_by(|left, right| left.0.cmp(&right.0));
+            let mut normalized = serde_json::Map::new();
+            for (key, value) in entries {
+                normalized.insert(key, canonicalize_json_value(value));
+            }
+            serde_json::Value::Object(normalized)
+        }
+        other => other,
+    }
+}
+
+fn encode_canonical_json<T: Serialize>(value: &T, pretty: bool) -> Result<String> {
+    let normalized = canonicalize_json_value(serde_json::to_value(value)?);
+    if pretty {
+        Ok(serde_json::to_string_pretty(&normalized)?)
+    } else {
+        Ok(serde_json::to_string(&normalized)?)
+    }
+}
+
+fn write_json_dump_with_limit(
+    output_path: &str,
+    encoded_json: &str,
+    max_bytes: Option<usize>,
+    pretty: bool,
+    dump_kind: &'static str,
+) -> Result<AstDumpWriteResult> {
+    let full_bytes = encoded_json.len();
+    if let Some(max) = max_bytes {
+        if full_bytes > max {
+            let diagnostic = AstDumpTruncationDiagnostic {
+                pgen_dump_contract_version: 1,
+                kind: "pgen_ast_dump_truncation",
+                truncated: true,
+                dump_kind,
+                max_bytes: max,
+                full_bytes,
+                reason: "encoded parser AST JSON exceeded configured max bytes; payload omitted",
+            };
+            let encoded_diagnostic = encode_canonical_json(&diagnostic, pretty)?;
+            let diagnostic_bytes = encoded_diagnostic.len();
+            if diagnostic_bytes > max {
+                bail!(
+                    "AST dump max-bytes ({}) is too small to fit truncation diagnostics (requires at least {} bytes)",
+                    max,
+                    diagnostic_bytes
+                );
+            }
+            std::fs::write(output_path, encoded_diagnostic)?;
+            return Ok(AstDumpWriteResult {
+                truncated: true,
+                bytes_written: diagnostic_bytes,
+                full_bytes,
+            });
+        }
+    }
+
+    std::fs::write(output_path, encoded_json)?;
+    Ok(AstDumpWriteResult {
+        truncated: false,
+        bytes_written: full_bytes,
+        full_bytes,
+    })
 }
 
 #[cfg(feature = "generated_parsers")]
@@ -89,6 +238,7 @@ fn command_parse_dump_ast(
     input_file: &str,
     output_file: Option<&str>,
     pretty: bool,
+    max_bytes: Option<usize>,
 ) -> Result<()> {
     let sample = std::fs::read_to_string(input_file)
         .with_context(|| format!("failed to read input file '{}'", input_file))?;
@@ -112,23 +262,38 @@ fn command_parse_dump_ast(
     let resolved_output_path = output_file
         .map(|value| value.to_string())
         .unwrap_or_else(|| default_ast_dump_file(grammar_name));
-    let encoded = if pretty {
-        serde_json::to_string_pretty(&ast_json)?
-    } else {
-        serde_json::to_string(&ast_json)?
-    };
-    std::fs::write(&resolved_output_path, encoded).with_context(|| {
+    let encoded = encode_canonical_json(&ast_json, pretty)?;
+    let write_result = write_json_dump_with_limit(
+        &resolved_output_path,
+        &encoded,
+        max_bytes,
+        pretty,
+        "parser_return_ast",
+    )
+    .with_context(|| {
         format!(
             "failed to write parser AST log '{}'",
             resolved_output_path.as_str()
         )
     })?;
-    println!(
-        "parse_full passed for grammar '{}' on '{}' (AST dump: {})",
-        grammar_name,
-        input_file,
-        resolved_output_path.as_str()
-    );
+    if write_result.truncated {
+        println!(
+            "parse_full passed for grammar '{}' on '{}' (AST truncation diagnostics: {}, full_bytes={}, max_bytes={}, written_bytes={})",
+            grammar_name,
+            input_file,
+            resolved_output_path.as_str(),
+            write_result.full_bytes,
+            max_bytes.unwrap_or(write_result.full_bytes),
+            write_result.bytes_written
+        );
+    } else {
+        println!(
+            "parse_full passed for grammar '{}' on '{}' (AST dump: {})",
+            grammar_name,
+            input_file,
+            resolved_output_path.as_str()
+        );
+    }
     Ok(())
 }
 
@@ -138,8 +303,9 @@ fn command_parse_dump_ast(
     input_file: &str,
     output_file: Option<&str>,
     pretty: bool,
+    max_bytes: Option<usize>,
 ) -> Result<()> {
-    let _ = (grammar_name, input_file, output_file, pretty);
+    let _ = (grammar_name, input_file, output_file, pretty, max_bytes);
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
@@ -172,32 +338,139 @@ fn main() -> Result<()> {
             command_parse(&args[2], &args[3])
         }
         "--parse-dump-ast" => {
-            if args.len() != 4 && args.len() != 5 {
+            if args.len() < 4 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            let output_file = if args.len() == 5 {
-                Some(args[4].as_str())
-            } else {
-                None
+            let (output_file, cli_max_bytes) = match parse_dump_command_tail(&args[4..]) {
+                Ok(values) => values,
+                Err(err) => {
+                    eprintln!("{}", usage());
+                    eprintln!();
+                    eprintln!("{}", err);
+                    std::process::exit(2);
+                }
             };
-            command_parse_dump_ast(&args[2], &args[3], output_file, false)
+            let max_bytes = resolve_dump_max_bytes(cli_max_bytes)?;
+            command_parse_dump_ast(&args[2], &args[3], output_file.as_deref(), false, max_bytes)
         }
         "--parse-dump-ast-pretty" => {
-            if args.len() != 4 && args.len() != 5 {
+            if args.len() < 4 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            let output_file = if args.len() == 5 {
-                Some(args[4].as_str())
-            } else {
-                None
+            let (output_file, cli_max_bytes) = match parse_dump_command_tail(&args[4..]) {
+                Ok(values) => values,
+                Err(err) => {
+                    eprintln!("{}", usage());
+                    eprintln!();
+                    eprintln!("{}", err);
+                    std::process::exit(2);
+                }
             };
-            command_parse_dump_ast(&args[2], &args[3], output_file, true)
+            let max_bytes = resolve_dump_max_bytes(cli_max_bytes)?;
+            command_parse_dump_ast(&args[2], &args[3], output_file.as_deref(), true, max_bytes)
         }
         _ => {
             eprintln!("{}", usage());
             std::process::exit(2);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        canonicalize_json_value, parse_dump_command_tail, parse_positive_usize,
+        write_json_dump_with_limit,
+    };
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn unique_temp_path(file_name: &str) -> PathBuf {
+        let mut path = std::env::temp_dir();
+        let now_nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        path.push(format!(
+            "pgen_parseability_probe_{}_{}",
+            now_nanos, file_name
+        ));
+        path
+    }
+
+    #[test]
+    fn parse_dump_tail_accepts_output_and_max_bytes() {
+        let args = vec![
+            "out.json".to_string(),
+            "--max-bytes".to_string(),
+            "512".to_string(),
+        ];
+        let (output, max_bytes) = parse_dump_command_tail(&args).expect("tail parsing succeeds");
+        assert_eq!(output.as_deref(), Some("out.json"));
+        assert_eq!(max_bytes, Some(512));
+    }
+
+    #[test]
+    fn parse_dump_tail_accepts_flag_only() {
+        let args = vec!["--max-bytes".to_string(), "2048".to_string()];
+        let (output, max_bytes) = parse_dump_command_tail(&args).expect("tail parsing succeeds");
+        assert_eq!(output, None);
+        assert_eq!(max_bytes, Some(2048));
+    }
+
+    #[test]
+    fn parse_dump_tail_rejects_duplicate_max_bytes() {
+        let args = vec![
+            "--max-bytes".to_string(),
+            "10".to_string(),
+            "--max-bytes".to_string(),
+            "20".to_string(),
+        ];
+        let err = parse_dump_command_tail(&args).expect_err("duplicate max-bytes must fail");
+        assert!(err
+            .to_string()
+            .contains("cannot be specified multiple times"));
+    }
+
+    #[test]
+    fn parse_positive_usize_rejects_zero() {
+        let err = parse_positive_usize("0", "label").expect_err("zero must fail");
+        assert!(err.to_string().contains(">= 1"));
+    }
+
+    #[test]
+    fn canonicalize_json_value_sorts_keys_recursively() {
+        let value = serde_json::json!({
+            "z": { "b": 1, "a": 2 },
+            "a": [ { "y": 0, "x": 1 } ],
+        });
+        let normalized = canonicalize_json_value(value);
+        let encoded = serde_json::to_string(&normalized).expect("encode normalized");
+        assert!(encoded.contains("\"a\":[{\"x\":1,\"y\":0}]"));
+        assert!(encoded.contains("\"z\":{\"a\":2,\"b\":1}"));
+    }
+
+    #[test]
+    fn write_json_dump_with_limit_emits_truncation_envelope() {
+        let path = unique_temp_path("ast_dump.json");
+        let large_payload = format!("{{\"payload\":\"{}\"}}", "x".repeat(4096));
+        let result = write_json_dump_with_limit(
+            path.to_str().expect("path"),
+            large_payload.as_str(),
+            Some(256),
+            false,
+            "parser_return_ast",
+        )
+        .expect("bounded write succeeds");
+        assert!(result.truncated);
+        assert!(result.full_bytes > 256);
+        let raw = std::fs::read_to_string(&path).expect("read output");
+        let json: serde_json::Value = serde_json::from_str(&raw).expect("json parse");
+        assert_eq!(json["kind"], "pgen_ast_dump_truncation");
+        assert_eq!(json["dump_kind"], "parser_return_ast");
+        assert_eq!(json["max_bytes"], 256);
+        let _ = std::fs::remove_file(path);
     }
 }

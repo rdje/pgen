@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-r-generation-ast-dump-safety-contract-baseline)
+Last updated: 2026-02-28 (+0100, task: phase-r-parser-ast-dump-safety-contract-baseline)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,23 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Extended Phase R dump-format/safety contract to parser-returned AST dumps
+- Root cause:
+  - generation-input AST dump already had deterministic canonicalization + bounded truncation safeguards, but parser-returned AST dump (`parseability_probe`) still lacked equivalent contract behavior.
+- Fix:
+  - updated `rust/src/bin/parseability_probe.rs`:
+    - added optional dump-tail flag `--max-bytes <N>`,
+    - added env fallback `PGEN_PARSE_DUMP_AST_MAX_BYTES`,
+    - added recursive JSON key canonicalization before parser AST dump emission,
+    - added bounded-size writer with deterministic truncation envelope (`kind=pgen_ast_dump_truncation`, `dump_kind=parser_return_ast`) and explicit too-small-bound failure.
+  - added unit tests for tail parsing, canonicalization, and truncation envelope emission.
+  - synchronized docs and roadmap:
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Validation:
+  - `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers` passed.
+  - CLI smoke with oversized parser AST and `--max-bytes 256` produced truncation envelope (`kind=pgen_ast_dump_truncation`).
 
 ### 2026-02-28: Added Phase R generation-input AST dump safety contract baseline
 - Root cause:
@@ -1427,7 +1444,6 @@ Use this file to resume work without replaying full chat history.
 2. Continue Phase P semantic-closure implementation for SV:
    - deterministic semantic suites + declared shadow burn-down telemetry are now in place; next step is controlled strict trials (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`) and promotion of runtime `require_declared_identifiers_before_use`.
 3. Continue Phase R implementation for AST observability:
-   - extend parser-returned AST dump (`parseability_probe`) with equivalent bounded-size safety/truncation contract,
    - add gate-level determinism/negative-path checks for both generation and parser AST dump surfaces,
    - add embedding API surface for parser-returned AST dump.
 4. Add annotation-driven SV stimuli steering:
@@ -1446,7 +1462,7 @@ Use this file to resume work without replaying full chat history.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
-- Phase R bounded-size/truncation safety contract is implemented for generation-input AST dumps, but parser-returned AST dump path still needs equivalent bounded-contract coverage.
+- Phase R bounded-size/truncation safety contract is now implemented for both generation-input and parser-returned AST dumps; remaining Phase R gap is gate-level determinism/negative-path enforcement plus embedding API AST dump surface.
 
 ## Quick Commands
 - HDL frontend readiness (report):

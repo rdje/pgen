@@ -10996,3 +10996,38 @@ Advance Phase R by making generation-input AST dumps deterministic for replay/di
 - CLI smoke:
   - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- ../generated/json.json --generate-parser --output <tmp>/parser.rs --dump-gen-ast <tmp>/gen_ast.json --dump-gen-ast-max-bytes 512`
   - verified dump artifact `kind` is `pgen_ast_dump_truncation` under bounded limit.
+
+---
+
+## 2026-02-28: Extended Phase R dump-format/safety contract to parser-returned AST dumps
+
+### Goal
+Close the remaining Phase R dump-format/safety gap by applying deterministic canonicalization and bounded-size safeguards to parser-returned AST dump outputs (`parseability_probe`).
+
+### Changes
+- Updated `rust/src/bin/parseability_probe.rs`:
+  - extended `--parse-dump-ast` and `--parse-dump-ast-pretty` with optional tail flag:
+    - `--max-bytes <N>`
+  - added env fallback:
+    - `PGEN_PARSE_DUMP_AST_MAX_BYTES`
+  - added recursive JSON key canonicalization before parser AST dump serialization.
+  - added bounded dump writer:
+    - emits deterministic truncation diagnostics envelope when encoded parser AST exceeds configured bytes:
+      - `kind = pgen_ast_dump_truncation`
+      - `dump_kind = parser_return_ast`
+      - `max_bytes`, `full_bytes`, `reason`
+    - errors explicitly when configured max-bytes cannot fit truncation diagnostics envelope itself.
+- Added parseability-probe unit coverage:
+  - dump-tail argument parser (`output_file` + `--max-bytes` combinations and invalid duplicates),
+  - canonical key-order normalization,
+  - truncation diagnostics envelope emission.
+- Updated docs/roadmap:
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers`
+- CLI smoke:
+  - parse-dump with oversized AST payload under bound:
+    - `parseability_probe --parse-dump-ast builtin_semantic_annotation <input> <output> --max-bytes 256`
+  - verified output envelope `kind` is `pgen_ast_dump_truncation`.

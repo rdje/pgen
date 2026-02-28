@@ -10257,3 +10257,38 @@ This left dump behavior under-specified for large corpora and cross-run byte-dif
 - bounded dump smoke:
   - generated parser flow with `--dump-gen-ast-max-bytes 512`,
   - verified emitted dump artifact is truncation diagnostics JSON envelope (`kind=pgen_ast_dump_truncation`).
+
+---
+
+## 2026-02-28: Phase R parser-returned AST dump format/safety contract closure
+
+### Root cause
+Phase R generation-input AST dumps already had deterministic key canonicalization and bounded-size truncation safeguards, but parser-returned AST dump path (`parseability_probe`) still emitted unconstrained payloads without equivalent contract guarantees.
+
+### Fixes implemented
+- Extended `rust/src/bin/parseability_probe.rs` parser-dump command surface:
+  - added optional tail flag for dump commands:
+    - `--max-bytes <N>`
+  - added env fallback:
+    - `PGEN_PARSE_DUMP_AST_MAX_BYTES`.
+- Added deterministic serialization contract in parser-dump path:
+  - recursive JSON key-order canonicalization before output encoding.
+- Added bounded-size output handling:
+  - when encoded parser AST exceeds configured bound, output becomes deterministic truncation diagnostics envelope:
+    - `kind: pgen_ast_dump_truncation`
+    - `dump_kind: parser_return_ast`
+    - `max_bytes`, `full_bytes`, `reason`
+  - when configured bound cannot fit diagnostics envelope itself, command fails explicitly.
+- Added parser-dump-specific unit regression coverage:
+  - argument-tail parsing for optional output and max-bytes controls,
+  - canonicalization behavior,
+  - truncation envelope emission path.
+- Synced docs/roadmap:
+  - `PGEN_USER_GUIDE.md` parser-returned AST dump section now documents bounded control + env fallback + truncation envelope contract.
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` marks dump-format/safety baseline complete across both AST dump surfaces.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers`
+- CLI smoke using oversized parse AST payload:
+  - `parseability_probe --parse-dump-ast builtin_semantic_annotation <input> <output> --max-bytes 256`
+  - verified output envelope `kind=pgen_ast_dump_truncation`.
