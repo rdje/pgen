@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-02-28 (+0100, task: phase-p-sv-context-legality-deterministic-suite)
+Last updated: 2026-02-28 (+0100, task: phase-p-declared-shadow-burndown-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,26 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-02-28: Added declared-identifier shadow burn-down telemetry for Phase P semantic-promotion
+- Root cause:
+  - deterministic suites are in place for semantic checks, but runtime `require_declared_identifiers_before_use` still remains disabled in semantic-closure mode due residual lexical-edge false-positive risk.
+- Fix:
+  - promoted contract:
+    - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `v19`
+    - added `semantic_promotion.declared_identifier_shadow_enabled`
+    - added `semantic_promotion.declared_identifier_shadow_strict`
+  - extended gate:
+    - `rust/scripts/sv_stimuli_quality_gate.sh`
+    - new override:
+      - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=auto|0|1`
+    - per-sample shadow checks now run for declared-identifier validation when runtime enforcement is off,
+    - deterministic report output:
+      - `systemverilog_declared_identifier_shadow_report.json`.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` passed.
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh` passed.
 
 ### 2026-02-28: Added deterministic SV context-legality contract suite (Phase P semantic closure)
 - Root cause:
@@ -1345,7 +1365,7 @@ Use this file to resume work without replaying full chat history.
 1. Plug real trusted-reference adapters into SV preprocessor differential gate:
    - provide project-level runner scripts for available external preprocessors and start collecting taxonomy deltas on curated corpora.
 2. Continue Phase P semantic-closure implementation for SV:
-   - deterministic semantic suites are now in place for declared/width/port-binding/package/context checks; next step is promoting currently optional semantic-baseline toggles toward required checks with false-positive burn-down evidence.
+   - deterministic semantic suites + declared shadow burn-down telemetry are now in place; next step is controlled strict trials (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1`) and promotion of runtime `require_declared_identifiers_before_use`.
 3. Continue Phase R implementation for AST observability:
    - embedding API surface for parser-returned AST dump,
    - deterministic format/replay contract checks for both dump surfaces.

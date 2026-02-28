@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-02-28 - Phase P Semantic-Closure Promotion: Declared-Identifier Shadow Burn-Down Telemetry
+### ✅ Achievement Summary
+Added a contractized declared-identifier shadow telemetry stage to `sv_stimuli_quality_gate` so promotion readiness can be measured continuously while runtime enforcement remains controlled.
+
+### Scope of Changes
+- Promoted SV core quality contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version bump:
+    - `18 -> 19`
+  - new section:
+    - `semantic_promotion`:
+      - `declared_identifier_shadow_enabled`
+      - `declared_identifier_shadow_strict`
+- Extended gate runtime:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env override:
+    - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=auto|0|1`
+  - added per-sample shadow execution for `check_declared_identifiers_before_use(...)` when runtime semantic baseline keeps `require_declared_identifiers_before_use=false`.
+  - added deterministic report artifact:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_declared_identifier_shadow_report.json`
+  - strict shadow mode behavior:
+    - fails gate when shadow failures are present (controlled promotion trial mode).
+  - summary now reports:
+    - `declared_shadow_effective`
+    - `declared_shadow_checked`
+    - `declared_shadow_passed`
+    - `declared_shadow_failed`
+    - `declared_shadow_report_json`
+- Updated docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+
 ## 2026-02-28 - Phase P Semantic-Closure Hardening: Deterministic Context-Legality Contract Suite
 ### ✅ Achievement Summary
 Added a deterministic semantic contract suite for context-legality behavior and wired it into `sv_stimuli_quality_gate` as a first-stage pass/fail precheck.

@@ -19,6 +19,7 @@ LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
 LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
 STIMULI_MODE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MODE:-}"
 SEMANTIC_CLOSURE_MODE="${PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE:-0}"
+DECLARED_SHADOW_MODE="${PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE:-auto}"
 DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE:-}"
 ENFORCE_DECLARED_IDENTIFIER_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_DECLARED_IDENTIFIER_SUITE:-}"
 WIDTH_COMPAT_SUITE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_WIDTH_COMPAT_SUITE:-}"
@@ -1174,6 +1175,10 @@ if [[ "$PERF_BUDGET_MODE" != "auto" && "$PERF_BUDGET_MODE" != "0" && "$PERF_BUDG
     echo "error: PGEN_SV_STIMULI_PERF_BUDGET_MODE must be one of: auto, 0, 1" >&2
     exit 2
 fi
+if [[ "$DECLARED_SHADOW_MODE" != "auto" && "$DECLARED_SHADOW_MODE" != "0" && "$DECLARED_SHADOW_MODE" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE must be one of: auto, 0, 1" >&2
+    exit 2
+fi
 if ! [[ "$DIFF_MAX_SAMPLES" =~ ^[0-9]+$ ]] || [[ "$DIFF_MAX_SAMPLES" -lt 1 ]]; then
     echo "error: PGEN_SV_STIMULI_DIFF_MAX_SAMPLES must be an integer >= 1" >&2
     exit 2
@@ -1248,6 +1253,8 @@ perf_max_preprocess_ms_per_sample="$(jq -er '(.performance_budgets.max_preproces
 perf_max_parse_full_ms_per_sample="$(jq -er '(.performance_budgets.max_parse_full_ms_per_sample // 0) | numbers' "$CONTRACT_FILE")"
 perf_max_sample_bytes="$(jq -er '(.performance_budgets.max_sample_bytes // 0) | numbers' "$CONTRACT_FILE")"
 perf_max_preprocessed_bytes="$(jq -er '(.performance_budgets.max_preprocessed_bytes // 0) | numbers' "$CONTRACT_FILE")"
+declared_shadow_contract_enabled="$(jq -er 'if (.semantic_promotion.declared_identifier_shadow_enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
+declared_shadow_contract_strict="$(jq -er 'if (.semantic_promotion.declared_identifier_shadow_strict // false) then 1 else 0 end' "$CONTRACT_FILE")"
 
 sample_count="${SAMPLE_COUNT_OVERRIDE:-$default_sample_count}"
 seed_base="${SEED_BASE_OVERRIDE:-$default_seed_base}"
@@ -1543,6 +1550,9 @@ echo "performance_max_preprocess_ms_per_sample: $perf_max_preprocess_ms_per_samp
 echo "performance_max_parse_full_ms_per_sample: $perf_max_parse_full_ms_per_sample"
 echo "performance_max_sample_bytes: $perf_max_sample_bytes"
 echo "performance_max_preprocessed_bytes: $perf_max_preprocessed_bytes"
+echo "declared_shadow_mode: $DECLARED_SHADOW_MODE"
+echo "declared_shadow_contract_enabled: $declared_shadow_contract_enabled"
+echo "declared_shadow_contract_strict: $declared_shadow_contract_strict"
 
 run_logged "declared_identifier_contract_suite" \
     run_declared_identifier_contract_suite "$declared_identifier_suite_path" "$enforce_declared_identifier_suite"
@@ -1644,6 +1654,36 @@ if [[ "$perf_budget_enabled" -eq 1 && "$parse_full_enabled" -ne 1 && "$perf_max_
     perf_budget_note="${perf_budget_note}; parse_full timing budget skipped (${parse_full_effective})"
 fi
 
+declared_shadow_enabled=0
+declared_shadow_strict=0
+declared_shadow_effective="disabled_by_mode"
+declared_shadow_note="declared-identifier shadow burn-down is disabled by mode"
+if [[ "$require_declared_identifiers_before_use" -eq 1 ]]; then
+    declared_shadow_enabled=0
+    declared_shadow_strict=0
+    declared_shadow_effective="disabled_by_runtime_requirement"
+    declared_shadow_note="shadow burn-down skipped because require_declared_identifiers_before_use is already enforced"
+elif [[ "$DECLARED_SHADOW_MODE" == "1" ]]; then
+    declared_shadow_enabled=1
+    declared_shadow_strict=1
+    declared_shadow_effective="enabled"
+    declared_shadow_note="declared-identifier shadow burn-down enabled by strict mode"
+elif [[ "$DECLARED_SHADOW_MODE" == "auto" ]]; then
+    if [[ "$declared_shadow_contract_enabled" -eq 1 ]]; then
+        declared_shadow_enabled=1
+        declared_shadow_effective="enabled"
+        declared_shadow_note="declared-identifier shadow burn-down enabled by contract"
+        if [[ "$declared_shadow_contract_strict" -eq 1 ]]; then
+            declared_shadow_strict=1
+            declared_shadow_note="${declared_shadow_note}; strict policy enabled by contract"
+        fi
+    else
+        declared_shadow_enabled=0
+        declared_shadow_effective="disabled_by_contract"
+        declared_shadow_note="declared-identifier shadow burn-down disabled by contract"
+    fi
+fi
+
 semantic_pass_count=0
 parse_full_pass_count=0
 parse_full_skip_count=0
@@ -1670,6 +1710,14 @@ perf_parse_full_max_ms=0
 perf_parse_full_samples=0
 perf_sample_bytes_max=0
 perf_preprocessed_bytes_max=0
+declared_shadow_total=0
+declared_shadow_passed=0
+declared_shadow_failed=0
+declared_shadow_report_json="$WORK_DIR/${grammar_name}_declared_identifier_shadow_report.json"
+declared_shadow_cases_jsonl="$WORK_DIR/${grammar_name}_declared_identifier_shadow_cases.jsonl"
+if [[ "$declared_shadow_enabled" -eq 1 ]]; then
+    : >"$declared_shadow_cases_jsonl"
+fi
 profile_count="${#run_profiles[@]}"
 total_samples=$((sample_count * profile_count))
 
@@ -1933,10 +1981,82 @@ for profile_idx in "${!run_profiles[@]}"; do
         fi
         semantic_pass_count=$((semantic_pass_count + 1))
 
+        if [[ "$declared_shadow_enabled" -eq 1 ]]; then
+            declared_shadow_total=$((declared_shadow_total + 1))
+            declared_shadow_case_note=""
+            declared_shadow_case_status="pass"
+            if declared_shadow_case_note="$(check_declared_identifiers_before_use "$preprocessed_file" 2>&1)"; then
+                declared_shadow_passed=$((declared_shadow_passed + 1))
+                if [[ -z "$declared_shadow_case_note" ]]; then
+                    declared_shadow_case_note="declared identifier shadow check passed"
+                fi
+            else
+                declared_shadow_case_status="fail"
+                declared_shadow_failed=$((declared_shadow_failed + 1))
+                if [[ -z "$declared_shadow_case_note" ]]; then
+                    declared_shadow_case_note="declared identifier shadow check failed"
+                fi
+            fi
+
+            jq -n \
+                --arg profile "$lrm_profile" \
+                --argjson sample_index "$idx" \
+                --argjson seed "$seed" \
+                --arg status "$declared_shadow_case_status" \
+                --arg note "$declared_shadow_case_note" \
+                --arg sample_file "$preprocessed_file" \
+                '{
+                    profile: $profile,
+                    sample_index: $sample_index,
+                    seed: $seed,
+                    status: $status,
+                    note: $note,
+                    sample_file: $sample_file
+                }' >>"$declared_shadow_cases_jsonl"
+        fi
+
         final_note="$parse_note"
         echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,$(csv_sanitize "$final_note")" >>"$SUMMARY_CSV"
     done
 done
+
+if [[ -s "$declared_shadow_cases_jsonl" ]]; then
+    declared_shadow_cases_json="$(jq -s '.' "$declared_shadow_cases_jsonl")"
+else
+    declared_shadow_cases_json='[]'
+fi
+
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg requested_mode "$DECLARED_SHADOW_MODE" \
+    --arg effective_mode "$declared_shadow_effective" \
+    --arg note "$declared_shadow_note" \
+    --argjson enabled "$declared_shadow_enabled" \
+    --argjson strict "$declared_shadow_strict" \
+    --argjson total "$declared_shadow_total" \
+    --argjson passed "$declared_shadow_passed" \
+    --argjson failed "$declared_shadow_failed" \
+    --argjson cases "$declared_shadow_cases_json" \
+    '{
+        grammar_name: $grammar_name,
+        requested_mode: $requested_mode,
+        effective_mode: $effective_mode,
+        note: $note,
+        enabled: $enabled,
+        strict: $strict,
+        totals: {
+            checked: $total,
+            passed: $passed,
+            failed: $failed
+        },
+        cases: $cases
+    }' >"$declared_shadow_report_json"
+
+if [[ "$declared_shadow_enabled" -eq 1 && "$declared_shadow_strict" -eq 1 && "$declared_shadow_failed" -gt 0 ]]; then
+    echo "error: strict declared-identifier shadow mode detected failures ($declared_shadow_failed/$declared_shadow_total)" >&2
+    cat "$declared_shadow_report_json" >&2
+    exit 1
+fi
 
 diff_report_json="$WORK_DIR/${grammar_name}_differential_report.json"
 diff_cases_jsonl="$WORK_DIR/${grammar_name}_differential_cases.jsonl"
@@ -2255,6 +2375,13 @@ jq -n \
     echo "context_legality_suite_failed: $context_legality_suite_failed"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
+    echo "declared_shadow_mode: $DECLARED_SHADOW_MODE"
+    echo "declared_shadow_effective: $declared_shadow_effective"
+    echo "declared_shadow_note: $declared_shadow_note"
+    echo "declared_shadow_checked: $declared_shadow_total"
+    echo "declared_shadow_passed: $declared_shadow_passed"
+    echo "declared_shadow_failed: $declared_shadow_failed"
+    echo "declared_shadow_report_json: $declared_shadow_report_json"
     echo "perf_budget_mode: $PERF_BUDGET_MODE"
     echo "perf_budget_effective: $perf_budget_effective"
     echo "perf_budget_note: $perf_budget_note"

@@ -1,6 +1,6 @@
 {
-  "version": 18,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, and deterministic performance/memory-proxy budget checks.",
+  "version": 19,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, deterministic performance/memory-proxy budget checks, and declared-identifier promotion burn-down shadow telemetry controls.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -107,6 +107,10 @@
     "max_parse_full_ms_per_sample": 15000,
     "max_sample_bytes": 1048576,
     "max_preprocessed_bytes": 1048576
+  },
+  "semantic_promotion": {
+    "declared_identifier_shadow_enabled": true,
+    "declared_identifier_shadow_strict": false
   },
   "semantic_baseline": {
     "require_nonempty_preprocessed_output": true,

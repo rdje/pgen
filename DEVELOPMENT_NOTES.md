@@ -10099,3 +10099,51 @@ Without this suite:
   - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
 - Result:
   - gate passed with deterministic context-legality contract-suite stage active.
+
+---
+
+## 2026-02-28: Added declared-identifier shadow burn-down telemetry to `sv_stimuli_quality_gate`
+
+### Root cause
+All deterministic semantic suites are now in place, but one runtime semantic toggle remained intentionally non-required in `sv_semantic_file`:
+- `require_declared_identifiers_before_use=false`
+
+This is due to residual lexical-edge false-positive risk on randomized stimuli. We needed objective promotion evidence from live corpus runs without forcing immediate hard-fail runtime enforcement.
+
+### Fixes implemented
+- Extended core contract:
+  - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - version `18 -> 19`
+  - added `semantic_promotion` controls:
+    - `declared_identifier_shadow_enabled`
+    - `declared_identifier_shadow_strict`
+- Extended gate runtime:
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - new env override:
+    - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=auto|0|1`
+  - behavior:
+    - when runtime semantic baseline keeps `require_declared_identifiers_before_use=false`, gate runs per-sample shadow checks using `check_declared_identifiers_before_use(...)`,
+    - records deterministic per-sample outcome telemetry,
+    - strict mode turns shadow failures into gate failures for controlled promotion trials.
+- Added deterministic shadow report artifact:
+  - `rust/target/sv_stimuli_quality_gate/work/systemverilog_declared_identifier_shadow_report.json`
+  - includes:
+    - requested/effective mode,
+    - strict/evidence policy,
+    - total/passed/failed shadow counts,
+    - per-sample notes and artifact references.
+- Added summary outputs:
+  - `declared_shadow_effective`
+  - `declared_shadow_checked`
+  - `declared_shadow_passed`
+  - `declared_shadow_failed`
+  - `declared_shadow_report_json`
+
+### Validation
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- reduced-cost gate run:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 bash rust/scripts/sv_stimuli_quality_gate.sh`
+- Result:
+  - gate passed with shadow telemetry active,
+  - deterministic shadow report emitted for promotion burn-down tracking.

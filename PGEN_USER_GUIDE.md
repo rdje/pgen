@@ -2132,6 +2132,10 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from contract)
 - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `0`)
   - when set to `1` and `PGEN_SV_STIMULI_QUALITY_MODE` is unset, gate auto-selects `sv_semantic_file`.
+- `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE` (`auto`/`0`/`1`, default `auto`)
+  - `auto`: follow contract `semantic_promotion.declared_identifier_shadow_*` controls.
+  - `0`: disable declared-identifier shadow burn-down telemetry.
+  - `1`: strict trial mode (enable shadow checks and fail gate on any shadow failure).
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE` (override declared-identifier deterministic contract corpus path)
@@ -2283,6 +2287,22 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - behavior:
     - runs before profile/sample generation loops,
     - enforces deterministic pass/fail outcomes for baseline context legality (`always_comb` event-control prohibition, `always_ff` nonblocking requirement, generate `for` iterator `genvar` declaration).
+- declared-identifier promotion burn-down shadow telemetry:
+  - contract keys (`systemverilog_core_v0_contract.json`):
+    - `semantic_promotion.declared_identifier_shadow_enabled`
+    - `semantic_promotion.declared_identifier_shadow_strict`
+  - env override:
+    - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=auto|0|1`
+  - deterministic report artifact:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_declared_identifier_shadow_report.json`
+  - summary metrics:
+    - `declared_shadow_effective`
+    - `declared_shadow_checked`
+    - `declared_shadow_passed`
+    - `declared_shadow_failed`
+  - behavior:
+    - when runtime semantic baseline leaves `require_declared_identifiers_before_use=false`, gate still runs per-sample shadow checks for promotion evidence,
+    - strict mode (`1` or strict contract key) turns shadow failures into gate failures for controlled promotion trials.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

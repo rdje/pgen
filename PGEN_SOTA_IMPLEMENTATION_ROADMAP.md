@@ -295,6 +295,9 @@ Toolbox baseline to leverage end-to-end:
     - establishes fixed pass/fail corpus for `always_*`/generate legality behavior independent of randomized stimuli variance,
     - adds contract/env policy controls for strict enforcement and suite-path override,
     - reports suite pass/fail totals in gate summary output for semantic-closure tracking.
+  - Progress (2026-02-28): added declared-identifier promotion burn-down shadow telemetry in `sv_stimuli_quality_gate` (core contract `v19`, `semantic_promotion.declared_identifier_shadow_*`, env override `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=auto|0|1`):
+    - emits deterministic per-sample shadow report (`systemverilog_declared_identifier_shadow_report.json`) even when `require_declared_identifiers_before_use` stays disabled in runtime semantic baseline,
+    - supports strict shadow mode for promotion trials while default mode remains non-blocking evidence collection.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -503,6 +506,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-02-28: Advanced Phase P semantic-closure promotion path by adding declared-identifier shadow burn-down telemetry/strict-trial controls (`semantic_promotion` in `systemverilog_core_v0_contract.json` v19, `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE`, deterministic `systemverilog_declared_identifier_shadow_report.json` output).
 - 2026-02-28: Advanced Phase P semantic-closure deterministic suite coverage by adding `context_legality_contract_suite` to `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to `v18` with contractized suite path/enforcement controls.
 - 2026-02-28: Advanced Phase P semantic-closure deterministic suite coverage by adding `package_qualification_contract_suite` to `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to `v17` with contractized suite path/enforcement controls.
 - 2026-02-28: Advanced Phase P semantic-closure deterministic suite coverage by adding `port_binding_legality_contract_suite` to `sv_stimuli_quality_gate` and promoting `systemverilog_core_v0_contract.json` to `v16` with contractized suite path/enforcement controls.
