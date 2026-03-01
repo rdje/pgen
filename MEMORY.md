@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-promotion-strict-policy)
+Last updated: 2026-03-01 (+0100, task: phase-p-runtime-declared-promotion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,24 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Promoted runtime declaration-before-use in semantic-closure profile with parseability guardrails
+- Root cause:
+  - promotion readiness and strict aggregate promotion-stage policy were green, but runtime semantic enforcement (`require_declared_identifiers_before_use`) was still disabled in `sv_semantic_file`.
+  - direct unguarded enablement produced semantic failures on non-parseable samples.
+- Fix:
+  - promoted `systemverilog_core_v0_contract.json` to `v20`:
+    - `sv_semantic_file.semantic_overrides.require_declared_identifiers_before_use=true`
+    - `sv_semantic_file.semantic_overrides.require_declared_identifiers_parseable_only=true`
+    - baseline default `semantic_baseline.require_declared_identifiers_parseable_only=false`
+  - updated `sv_stimuli_quality_gate` semantic baseline evaluation to consume parse status and skip declaration checks on non-parseable samples when parseable-only guard is enabled.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` passed with:
+    - `semantic_require_declared_identifiers_before_use: 1`
+    - `semantic_require_declared_identifiers_parseable_only: 1`
+    - `semantic_baseline_passes: 12/12`
+  - `make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` remained green (`enable_runtime_declared_identifiers`).
 
 ### 2026-03-01: Promoted declared-shadow promotion stage to required strict policy
 - Root cause:
@@ -1563,8 +1581,8 @@ Use this file to resume work without replaying full chat history.
    - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
-   - declared-shadow promotion gate is now strict-required in aggregate policy and remains green on baseline deterministic profile,
-   - next step is runtime contract promotion for semantic baseline (`require_declared_identifiers_before_use`) with deterministic guardrails to avoid parseability-driven false positives.
+   - runtime declaration-before-use is now enabled in `sv_semantic_file` with parseability guardrails and remains stable on current deterministic semantic-closure runs,
+   - next step is expanding deterministic semantic corpora and raising parse-full acceptance in semantic-closure mode (reduce soft-fail parse_full debt while preserving semantic determinism).
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:
@@ -1579,7 +1597,7 @@ Use this file to resume work without replaying full chat history.
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
-- Declared-before-use runtime promotion evidence is green and aggregate strict-promotion policy is enabled, but runtime semantic baseline enforcement (`require_declared_identifiers_before_use=true`) has not been flipped yet.
+- Declared-before-use runtime semantic enforcement is now active in `sv_semantic_file` with parseability guardrails; remaining debt is parse-full acceptance (many samples still soft-fail parse_full in `auto` mode).
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
 - Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.

@@ -2524,7 +2524,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `declared_shadow_passed`
     - `declared_shadow_failed`
   - behavior:
-    - when runtime semantic baseline leaves `require_declared_identifiers_before_use=false`, gate still runs per-sample shadow checks for promotion evidence,
+    - when effective semantic policy leaves `require_declared_identifiers_before_use=false` (for example `sv_file` profile), gate runs per-sample shadow checks for promotion evidence,
     - strict mode (`1` or strict contract key) turns shadow failures into gate failures for controlled promotion trials.
 - declared-shadow promotion trial gate:
   - target:
@@ -2575,10 +2575,11 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - default recovery stimuli mode: `baseline`,
     - mode semantic overrides currently enable:
       - `require_port_binding_legality_basic=true`
+      - `require_declared_identifiers_before_use=true`
+      - `require_declared_identifiers_parseable_only=true`
       - `require_package_qualification_resolution=true`
       - `require_width_compatibility_simple=true`
       - `require_context_legality_basic=true`
-      - `require_declared_identifiers_before_use=false` (currently held off in this profile while lexical false-positive hardening continues).
   - mode-level recovery steering:
     - optional profile key:
       - `stimuli_modes.profiles.<mode>.recovery_stimuli_mode`
@@ -2598,10 +2599,11 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_pp_snippet`: `require_port_binding_legality_basic=false`
       - `sv_semantic_file`:
         - `require_port_binding_legality_basic=true`
+        - `require_declared_identifiers_before_use=true`
+        - `require_declared_identifiers_parseable_only=true`
         - `require_package_qualification_resolution=true`
         - `require_width_compatibility_simple=true`
         - `require_context_legality_basic=true`
-        - `require_declared_identifiers_before_use=false`
 - closed-loop contract controls (from `systemverilog_core_v0_contract.json`):
   - `closed_loop.gap_report_threshold`
   - `closed_loop.target_max_attempts`
@@ -2625,7 +2627,9 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - optional basic named-port legality check against known in-file module headers (`semantic_baseline.require_port_binding_legality_basic`).
   - optional structural keyword-balance check (`semantic_baseline.require_balanced_structural_keywords`, currently disabled in default contract due high false-positive risk on current random samples).
   - optional declaration-before-use heuristic (`semantic_baseline.require_declared_identifiers_before_use`).
-    - current implementation uses structured use-site scanning (assignments, conditions, event controls, named-port actuals), strips quoted strings/directives, ignores member/namespace/macro contexts, and handles additional declaration contexts (ports/imports/for/foreach/instantiation); still not default-enabled in semantic-closure profile.
+    - current implementation uses structured use-site scanning (assignments, conditions, event controls, named-port actuals), strips quoted strings/directives, ignores member/namespace/macro contexts, and handles additional declaration contexts (ports/imports/for/foreach/instantiation).
+    - semantic-closure profile (`sv_semantic_file`) now enables this check with parseability guardrails:
+      - `require_declared_identifiers_parseable_only=true` skips this runtime check when `parse_full` status is not `pass`.
     - deterministic contract coverage exists in `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`, including explicit `foreach (arr[idx])` iterator declaration handling.
   - optional package qualification/import resolution heuristic (`semantic_baseline.require_package_qualification_resolution`).
   - optional simple packed-width vs literal-width compatibility check (`semantic_baseline.require_width_compatibility_simple`).

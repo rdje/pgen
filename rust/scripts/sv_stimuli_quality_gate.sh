@@ -532,6 +532,7 @@ csv_sanitize() {
 evaluate_semantic_baseline() {
     local preprocessed_file="$1"
     local preprocess_error_count="$2"
+    local parse_status="${3:-pass}"
     SEMANTIC_EVAL_NOTE="baseline semantic validation passed"
 
     if [[ "$require_nonempty_preprocessed_output" -eq 1 ]] && [[ ! -s "$preprocessed_file" ]]; then
@@ -558,8 +559,12 @@ evaluate_semantic_baseline() {
         fi
     fi
     if [[ "$require_declared_identifiers_before_use" -eq 1 ]]; then
-        if ! SEMANTIC_EVAL_NOTE="$(check_declared_identifiers_before_use "$preprocessed_file")"; then
-            return 1
+        if [[ "$require_declared_identifiers_parseable_only" -eq 1 && "$parse_status" != "pass" ]]; then
+            SEMANTIC_EVAL_NOTE="declared identifier runtime check skipped because parse_full status is '${parse_status}' and parseable-only guard is enabled"
+        else
+            if ! SEMANTIC_EVAL_NOTE="$(check_declared_identifiers_before_use "$preprocessed_file")"; then
+                return 1
+            fi
         fi
     fi
     if [[ "$require_package_qualification_resolution" -eq 1 ]]; then
@@ -583,7 +588,8 @@ evaluate_semantic_baseline() {
 semantic_failure_predicate() {
     local candidate_file="$1"
     local preprocess_error_count="$2"
-    if evaluate_semantic_baseline "$candidate_file" "$preprocess_error_count"; then
+    local parse_status="${3:-pass}"
+    if evaluate_semantic_baseline "$candidate_file" "$preprocess_error_count" "$parse_status"; then
         return 1
     fi
     return 0
@@ -1434,6 +1440,7 @@ require_balanced_structural_keywords="$(jq -er 'if .semantic_baseline.require_ba
 require_unique_named_port_bindings="$(jq -er 'if .semantic_baseline.require_unique_named_port_bindings then 1 else 0 end' "$CONTRACT_FILE")"
 require_port_binding_legality_basic="$(jq -er 'if (.semantic_baseline.require_port_binding_legality_basic // false) then 1 else 0 end' "$CONTRACT_FILE")"
 require_declared_identifiers_before_use="$(jq -er 'if (.semantic_baseline.require_declared_identifiers_before_use // false) then 1 else 0 end' "$CONTRACT_FILE")"
+require_declared_identifiers_parseable_only="$(jq -er 'if (.semantic_baseline.require_declared_identifiers_parseable_only // false) then 1 else 0 end' "$CONTRACT_FILE")"
 require_package_qualification_resolution="$(jq -er 'if (.semantic_baseline.require_package_qualification_resolution // false) then 1 else 0 end' "$CONTRACT_FILE")"
 require_width_compatibility_simple="$(jq -er 'if (.semantic_baseline.require_width_compatibility_simple // false) then 1 else 0 end' "$CONTRACT_FILE")"
 require_context_legality_basic="$(jq -er 'if (.semantic_baseline.require_context_legality_basic // false) then 1 else 0 end' "$CONTRACT_FILE")"
@@ -1444,6 +1451,7 @@ require_balanced_structural_keywords="$(jq -er --arg mode "$stimuli_mode" --argj
 require_unique_named_port_bindings="$(jq -er --arg mode "$stimuli_mode" --argjson fallback "$require_unique_named_port_bindings" 'if (.stimuli_modes.profiles[$mode].semantic_overrides.require_unique_named_port_bindings // null) == null then $fallback else (if .stimuli_modes.profiles[$mode].semantic_overrides.require_unique_named_port_bindings then 1 else 0 end) end' "$CONTRACT_FILE")"
 require_port_binding_legality_basic="$(jq -er --arg mode "$stimuli_mode" --argjson fallback "$require_port_binding_legality_basic" 'if (.stimuli_modes.profiles[$mode].semantic_overrides.require_port_binding_legality_basic // null) == null then $fallback else (if .stimuli_modes.profiles[$mode].semantic_overrides.require_port_binding_legality_basic then 1 else 0 end) end' "$CONTRACT_FILE")"
 require_declared_identifiers_before_use="$(jq -er --arg mode "$stimuli_mode" --argjson fallback "$require_declared_identifiers_before_use" 'if (.stimuli_modes.profiles[$mode].semantic_overrides.require_declared_identifiers_before_use // null) == null then $fallback else (if .stimuli_modes.profiles[$mode].semantic_overrides.require_declared_identifiers_before_use then 1 else 0 end) end' "$CONTRACT_FILE")"
+require_declared_identifiers_parseable_only="$(jq -er --arg mode "$stimuli_mode" --argjson fallback "$require_declared_identifiers_parseable_only" 'if (.stimuli_modes.profiles[$mode].semantic_overrides.require_declared_identifiers_parseable_only // null) == null then $fallback else (if .stimuli_modes.profiles[$mode].semantic_overrides.require_declared_identifiers_parseable_only then 1 else 0 end) end' "$CONTRACT_FILE")"
 require_package_qualification_resolution="$(jq -er --arg mode "$stimuli_mode" --argjson fallback "$require_package_qualification_resolution" 'if (.stimuli_modes.profiles[$mode].semantic_overrides.require_package_qualification_resolution // null) == null then $fallback else (if .stimuli_modes.profiles[$mode].semantic_overrides.require_package_qualification_resolution then 1 else 0 end) end' "$CONTRACT_FILE")"
 require_width_compatibility_simple="$(jq -er --arg mode "$stimuli_mode" --argjson fallback "$require_width_compatibility_simple" 'if (.stimuli_modes.profiles[$mode].semantic_overrides.require_width_compatibility_simple // null) == null then $fallback else (if .stimuli_modes.profiles[$mode].semantic_overrides.require_width_compatibility_simple then 1 else 0 end) end' "$CONTRACT_FILE")"
 require_context_legality_basic="$(jq -er --arg mode "$stimuli_mode" --argjson fallback "$require_context_legality_basic" 'if (.stimuli_modes.profiles[$mode].semantic_overrides.require_context_legality_basic // null) == null then $fallback else (if .stimuli_modes.profiles[$mode].semantic_overrides.require_context_legality_basic then 1 else 0 end) end' "$CONTRACT_FILE")"
@@ -1532,6 +1540,7 @@ echo "failure_replay_shrink_parse_full_failures: $shrink_parse_full_failures"
 echo "failure_replay_shrink_max_iterations: $failure_shrink_max_iterations"
 echo "semantic_require_port_binding_legality_basic: $require_port_binding_legality_basic"
 echo "semantic_require_declared_identifiers_before_use: $require_declared_identifiers_before_use"
+echo "semantic_require_declared_identifiers_parseable_only: $require_declared_identifiers_parseable_only"
 echo "semantic_require_package_qualification_resolution: $require_package_qualification_resolution"
 echo "semantic_require_width_compatibility_simple: $require_width_compatibility_simple"
 echo "semantic_require_context_legality_basic: $require_context_legality_basic"
@@ -1970,7 +1979,7 @@ for profile_idx in "${!run_profiles[@]}"; do
 
         semantic_status="pass"
         semantic_note="baseline semantic validation passed"
-        if ! evaluate_semantic_baseline "$preprocessed_file" "$error_count"; then
+        if ! evaluate_semantic_baseline "$preprocessed_file" "$error_count" "$parse_status"; then
             semantic_status="fail"
             semantic_note="$SEMANTIC_EVAL_NOTE"
         fi
@@ -1978,7 +1987,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         if [[ "$semantic_status" != "pass" ]]; then
             if [[ "$failure_replay_enabled" -eq 1 ]] && [[ "$shrink_semantic_failures" -eq 1 ]]; then
                 semantic_shrink_file="$WORK_DIR/sample_${profile_key}_${idx}.semantic.shrunk.sv"
-                semantic_shrink_lines="$(deterministic_prefix_shrink "$preprocessed_file" "$semantic_shrink_file" "$failure_shrink_max_iterations" semantic_failure_predicate "$error_count")"
+                semantic_shrink_lines="$(deterministic_prefix_shrink "$preprocessed_file" "$semantic_shrink_file" "$failure_shrink_max_iterations" semantic_failure_predicate "$error_count" "$parse_status")"
                 semantic_note="${semantic_note}; shrunk_failure=${semantic_shrink_file}; shrunk_lines=${semantic_shrink_lines}"
                 semantic_shrink_count=$((semantic_shrink_count + 1))
             fi

@@ -270,7 +270,7 @@ Toolbox baseline to leverage end-to-end:
       - `require_package_qualification_resolution=true`
       - `require_width_compatibility_simple=true`
       - `require_context_legality_basic=true`
-      - `require_declared_identifiers_before_use=false` (kept off until remaining lexical false-positive debt is retired)
+      - `require_declared_identifiers_before_use=false` (historical v12 posture; superseded by v20 runtime promotion with parseability guardrails)
     - gate now supports `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1` to auto-select `sv_semantic_file` when no explicit mode override is provided.
   - Progress (2026-02-27): hardened semantic validator heuristics used by semantic-closure profiles:
     - `require_declared_identifiers_before_use` now uses structured use-site scanning (assignments/conditions/events/port-actual expressions), strips quoted strings/directives, ignores member/namespace/macro contexts, handles more declaration contexts (ports/imports/for/foreach/instantiation), and normalizes `timeunit/timeprecision` lines before token scans.
@@ -313,6 +313,10 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-03-01): promoted declared-shadow promotion gate from informational to required strict in aggregate release policy:
     - `rust/config/sota_exit_policy.env` now sets `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1`,
     - aggregate `sota_exit_gate` now executes `sv_declared_shadow_promotion_gate` in strict mode by default.
+  - Progress (2026-03-01): promoted runtime declaration-before-use enforcement in semantic-closure profile with parseability guardrails (`systemverilog_core_v0_contract.json` v20):
+    - `sv_semantic_file` now enables `require_declared_identifiers_before_use=true`,
+    - added `require_declared_identifiers_parseable_only=true` for semantic-closure runs to skip declaration-before-use runtime checks when `parse_full` is not `pass`,
+    - `sv_stimuli_quality_gate` semantic baseline now consumes parse status when evaluating declaration-before-use checks to avoid parseability-driven false positives.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -549,6 +553,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Promoted semantic-closure runtime declaration-before-use enforcement (`systemverilog_core_v0_contract.json` v20) with parseability guardrails (`require_declared_identifiers_parseable_only=true` in `sv_semantic_file`) and parse-status-aware semantic baseline evaluation in `sv_stimuli_quality_gate`.
 - 2026-03-01: Promoted aggregate declared-shadow promotion stage to required strict (`PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1`) after deterministic promotion trials converged to `enable_runtime_declared_identifiers`.
 - 2026-03-01: Stabilized declared-shadow promotion-trial defaults by increasing evidence density (`PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=6`) and adding explicit mode scoping (`PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file` default), with baseline strict-trial recommendation now converging to `enable_runtime_declared_identifiers`.
 - 2026-02-28: Hardened declared-shadow promotion trials with parseability-scoped checking (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY`) and stricter promotion evidence thresholds (`parse_full_mode=auto`, `min_checked=2` defaults).

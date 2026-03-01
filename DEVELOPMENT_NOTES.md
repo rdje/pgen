@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Runtime Promotion Increment: Declared-Before-Use Enabled in Semantic-Closure Profile
+### Context
+Declared-shadow promotion evidence and aggregate strict promotion-gate policy were already green, but `sv_semantic_file` still had runtime `require_declared_identifiers_before_use` disabled. A direct unguarded flip caused semantic failures on non-parseable generated samples, so runtime promotion needed parseability-aware guardrails.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Contract promotion to runtime enforcement (v20)
+`systemverilog_core_v0_contract.json`:
+- `version: 19 -> 20`
+- `stimuli_modes.profiles.sv_semantic_file.semantic_overrides`:
+  - `require_declared_identifiers_before_use=true`
+  - `require_declared_identifiers_parseable_only=true`
+- added baseline default:
+  - `semantic_baseline.require_declared_identifiers_parseable_only=false`
+
+This keeps declaration-before-use runtime enforcement opt-in by profile and explicitly pins parseability scoping for semantic-closure mode.
+
+#### 2) Parse-status-aware semantic baseline evaluation
+`sv_stimuli_quality_gate.sh` updates:
+- `evaluate_semantic_baseline` now takes `parse_status`.
+- runtime declaration check path now supports guardrail behavior:
+  - if `require_declared_identifiers_before_use=1` and `require_declared_identifiers_parseable_only=1` and `parse_status != pass`, the declaration check is skipped with explicit note.
+- semantic failure shrink predicate now receives parse status so shrink replay uses consistent semantic-failure criteria.
+- summary adds:
+  - `semantic_require_declared_identifiers_parseable_only`.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+
+Observed:
+- semantic-closure runtime profile is now active with parseability guardrails:
+  - `semantic_require_declared_identifiers_before_use: 1`
+  - `semantic_require_declared_identifiers_parseable_only: 1`
+- semantic baseline remained stable:
+  - `semantic_baseline_passes: 12/12`
+- promotion recommendation remained stable:
+  - `enable_runtime_declared_identifiers`
+
 ## 2026-03-01 - Phase P Policy Increment: Declared-Shadow Promotion Stage is Now Strict-Required
 ### Context
 Declared-shadow promotion trials had converged to stable green recommendations (`enable_runtime_declared_identifiers`) with parseability-scoped strict-shadow evidence, but aggregate policy still treated the stage as informational.

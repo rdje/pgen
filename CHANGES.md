@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Semantic-Closure Runtime Promotion: Declared-Before-Use with Parseability Guardrails
+### ✅ Achievement Summary
+Enabled runtime declaration-before-use enforcement in the `sv_semantic_file` semantic-closure profile, with parseability-aware guardrails to avoid false positives from non-parseable samples.
+
+### Scope of Changes
+- Promoted SystemVerilog semantic-closure contract in:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `version: 19 -> 20`
+  - `sv_semantic_file.semantic_overrides` now includes:
+    - `require_declared_identifiers_before_use=true`
+    - `require_declared_identifiers_parseable_only=true`
+  - added baseline key:
+    - `semantic_baseline.require_declared_identifiers_parseable_only=false`
+- Hardened runtime semantic evaluation path in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - semantic baseline now consumes `parse_status` and applies parseability guard:
+    - when declaration-before-use is enabled and parseable-only guard is on, runtime declaration checking is skipped for samples where `parse_full != pass`.
+  - propagated parse-status-aware behavior into semantic failure shrinking predicate to keep shrink replay semantics consistent.
+  - added summary trace output:
+    - `semantic_require_declared_identifiers_parseable_only`
+- Synced documentation/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `contract_version: 20`
+    - `semantic_require_declared_identifiers_before_use: 1`
+    - `semantic_require_declared_identifiers_parseable_only: 1`
+    - `semantic_baseline_passes: 12/12`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` ✅
+  - recommendation remained stable:
+    - `enable_runtime_declared_identifiers`
+
 ## 2026-03-01 - Phase P Semantic-Promotion: Aggregate Policy Promotion to Strict
 ### ✅ Achievement Summary
 Promoted declared-shadow promotion trials from informational to required strict in the aggregate SOTA exit policy now that deterministic trial evidence converged.
