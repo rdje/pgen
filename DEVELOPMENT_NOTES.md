@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Promotion Diagnostics: Structured Blocker Taxonomy for Parse-Full Ratio Trials
+### Context
+Promotion recommendations (`raise` vs `hold`) needed explicit blocker attribution. Without taxonomy, `hold` could only be inferred from coarse counters (`trial_failed` vs `trial_gate_failures`) and required manual log inspection for root-cause class.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Key changes:
+- Added per-trial blocker metadata:
+  - `blocker_key`
+  - `blocker_detail`
+- Added deterministic aggregate blocker section in promotion report:
+  - `blockers.failed_trial_count`
+  - `blockers.non_ratio_blocked_trial_count`
+  - `blockers.primary_non_ratio_blocker`
+  - `blockers.breakdown[]`
+  - `blockers.non_ratio_breakdown[]`
+- Added non-ratio blocker classifier signatures:
+  - `semantic_baseline_validation_failed`
+  - `declared_identifier_contract_suite_failed`
+  - `width_compatibility_contract_suite_failed`
+  - `port_binding_legality_contract_suite_failed`
+  - `package_qualification_contract_suite_failed`
+  - `context_legality_contract_suite_failed`
+  - `parse_full_adapter_unavailable`
+  - `parse_full_quality_report_unavailable`
+  - `stage_failure` fallback
+- Ratio-fail trials now emit explicit blocker class:
+  - `parse_full_ratio_threshold_not_met`
+
+Outcome:
+- promotion notes for non-ratio failures now include primary blocker class, enabling objective triage without tailing per-trial logs.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- default run:
+  - `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+- forced non-ratio run (expected failure):
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1`
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=112001`
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=1`
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_semantic_file`
+  - `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+
+Observed:
+- default run report includes `blockers.breakdown=[{key=parse_full_ratio_threshold_not_met,count=3}]`.
+- forced non-ratio run report includes:
+  - `primary_non_ratio_blocker=semantic_baseline_validation_failed`
+  - per-trial `blocker_key=semantic_baseline_validation_failed`.
+
 ## 2026-03-01 - Phase P Promotion Alignment: Parse-Full Ratio Trial Defaults Match Aggregate Policy Surface
 ### Context
 Initial parse-full promotion trial defaults used semantic-closure profile (`sv_semantic_file` + semantic closure enabled), which can introduce semantic-validator failures unrelated to parse-full ratio ratchet decisions.

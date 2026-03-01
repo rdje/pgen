@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Parse-Full Promotion Hardening: Blocker Taxonomy in Trial Reports
+### ✅ Achievement Summary
+Hardened parse-full ratio promotion diagnostics by adding structured blocker taxonomy to per-trial and aggregate promotion reports so `hold` decisions are objectively attributable (ratio debt vs non-ratio blocker class).
+
+### Scope of Changes
+- Extended promotion gate reporting in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+  - additions:
+    - per-trial fields:
+      - `blocker_key`
+      - `blocker_detail`
+    - aggregate `blockers` section:
+      - `failed_trial_count`
+      - `non_ratio_blocked_trial_count`
+      - `primary_non_ratio_blocker`
+      - `breakdown`
+      - `non_ratio_breakdown`
+  - new classifier coverage:
+    - semantic baseline validation failures
+    - semantic contract-suite failures
+    - parse-full adapter/report availability failures
+    - generic stage-failure fallback
+    - explicit ratio-threshold blocker key for ratio failures.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - observed default blocker breakdown:
+    - `parse_full_ratio_threshold_not_met: 3`
+- forced non-ratio classifier scenario:
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=112001 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_semantic_file make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` (expected non-zero) ✅
+  - observed report classification:
+    - `primary_non_ratio_blocker=semantic_baseline_validation_failed`
+- focused aggregate run with promotion stage enabled informationally remained green ✅
+
 ## 2026-03-01 - Phase P Parse-Full Promotion Alignment: Trial Defaults Synced to Aggregate Enforcement Profile
 ### ✅ Achievement Summary
 Aligned `sv_parse_full_ratio_promotion_gate` defaults to the same profile surface enforced by aggregate SV parse-full policy so promotion evidence reflects real ratchet behavior rather than semantic-closure-specific noise.

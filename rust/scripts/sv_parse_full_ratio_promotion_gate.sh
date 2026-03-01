@@ -107,6 +107,43 @@ extract_trial_ratio() {
     return 1
 }
 
+classify_trial_gate_blocker() {
+    local trial_log="$1"
+    local blocker_key="unknown_gate_failure"
+    local blocker_detail=""
+
+    if grep -q "semantic baseline validation failed" "$trial_log"; then
+        blocker_key="semantic_baseline_validation_failed"
+    elif grep -q "declared identifier contract suite failed" "$trial_log"; then
+        blocker_key="declared_identifier_contract_suite_failed"
+    elif grep -q "width compatibility contract suite failed" "$trial_log"; then
+        blocker_key="width_compatibility_contract_suite_failed"
+    elif grep -q "port binding legality contract suite failed" "$trial_log"; then
+        blocker_key="port_binding_legality_contract_suite_failed"
+    elif grep -q "package qualification contract suite failed" "$trial_log"; then
+        blocker_key="package_qualification_contract_suite_failed"
+    elif grep -q "context legality contract suite failed" "$trial_log"; then
+        blocker_key="context_legality_contract_suite_failed"
+    elif grep -q "strict parse_full mode requested but parseability probe did not expose adapter support" "$trial_log"; then
+        blocker_key="parse_full_adapter_unavailable"
+    elif grep -q "strict parse_full quality mode requires parse_full quality report availability" "$trial_log"; then
+        blocker_key="parse_full_quality_report_unavailable"
+    else
+        local failed_stage=""
+        failed_stage="$(awk '/^==> /{stage=$2} /^    fail \(/ {failed=stage} END{if(failed!="") print failed}' "$trial_log" || true)"
+        if [[ -n "$failed_stage" ]]; then
+            blocker_key="stage_failure"
+            blocker_detail="$failed_stage"
+        fi
+    fi
+
+    if [[ -z "$blocker_detail" ]]; then
+        blocker_detail="$(sed -nE 's/^error: (.*)$/\1/p' "$trial_log" | tail -n 1 || true)"
+    fi
+
+    printf '%s\t%s\n' "$blocker_key" "$blocker_detail"
+}
+
 TRIAL_CASES_JSONL="$WORK_DIR/trial_cases.jsonl"
 : >"$TRIAL_CASES_JSONL"
 
@@ -163,18 +200,24 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
 
     trial_status="gate_fail"
     trial_note="strict ratio trial failed before ratio extraction"
+    trial_blocker_key="unknown_gate_failure"
+    trial_blocker_detail=""
     if [[ "$trial_exit" -eq 0 ]]; then
         trial_status="pass"
         trial_note="strict ratio trial passed"
+        trial_blocker_key="none"
         trial_passed=$((trial_passed + 1))
     else
         if [[ -n "$trial_ratio" && "$trial_ratio" -lt "$TARGET_MIN_RATIO" ]]; then
             trial_status="ratio_fail"
             trial_note="strict ratio check failed (${trial_ratio}% < ${TARGET_MIN_RATIO}%)"
+            trial_blocker_key="parse_full_ratio_threshold_not_met"
+            trial_blocker_detail="observed_ratio=${trial_ratio}% target_min_ratio=${TARGET_MIN_RATIO}%"
             trial_failed=$((trial_failed + 1))
         else
             trial_status="gate_fail"
             trial_note="strict ratio trial failed"
+            IFS=$'\t' read -r trial_blocker_key trial_blocker_detail <<<"$(classify_trial_gate_blocker "$trial_log")"
             trial_gate_failures=$((trial_gate_failures + 1))
         fi
     fi
@@ -191,6 +234,8 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
         --argjson exit_code "$trial_exit" \
         --arg status "$trial_status" \
         --arg note "$trial_note" \
+        --arg blocker_key "$trial_blocker_key" \
+        --arg blocker_detail "$trial_blocker_detail" \
         --argjson observed_ratio "$(if [[ -n "$trial_ratio" ]]; then echo "$trial_ratio"; else echo "null"; fi)" \
         '{
             trial_index: $trial_index,
@@ -200,11 +245,34 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
             exit_code: $exit_code,
             status: $status,
             note: $note,
+            blocker_key: $blocker_key,
+            blocker_detail: $blocker_detail,
             observed_ratio_percent: $observed_ratio
         }' >>"$TRIAL_CASES_JSONL"
 done
 
 trial_cases_json="$(jq -s '.' "$TRIAL_CASES_JSONL")"
+blocker_breakdown_json="$(jq -cn --argjson trials "$trial_cases_json" '
+    $trials
+    | map(select(.status != "pass") | {key: .blocker_key})
+    | sort_by(.key)
+    | group_by(.key)
+    | map({key: .[0].key, count: length})
+')"
+non_ratio_blocker_breakdown_json="$(jq -cn --argjson trials "$trial_cases_json" '
+    $trials
+    | map(select(.status == "gate_fail") | {key: .blocker_key})
+    | sort_by(.key)
+    | group_by(.key)
+    | map({key: .[0].key, count: length})
+')"
+primary_non_ratio_blocker="$(jq -r '
+    if length == 0 then
+        "none"
+    else
+        max_by(.count).key
+    end
+' <<<"$non_ratio_blocker_breakdown_json")"
 observed_ratio_avg=0
 if (( ratio_count > 0 )); then
     observed_ratio_avg=$((ratio_sum / ratio_count))
@@ -218,7 +286,11 @@ promotion_recommendation="hold"
 promotion_note=""
 
 if [[ "$trial_gate_failures" -gt 0 ]]; then
-    promotion_note="one or more strict ratio trials failed for non-ratio reasons"
+    if [[ "$primary_non_ratio_blocker" != "none" ]]; then
+        promotion_note="one or more strict ratio trials failed for non-ratio reasons (primary blocker: ${primary_non_ratio_blocker})"
+    else
+        promotion_note="one or more strict ratio trials failed for non-ratio reasons"
+    fi
 elif [[ "$trial_failed" -gt 0 ]]; then
     promotion_note="strict ratio trials still fail target threshold"
 elif [[ "$trial_missing_ratio" -gt 0 ]]; then
@@ -249,6 +321,9 @@ jq -n \
     --argjson observed_ratio_min "$ratio_min" \
     --argjson observed_ratio_max "$ratio_max" \
     --argjson observed_ratio_avg "$observed_ratio_avg" \
+    --arg primary_non_ratio_blocker "$primary_non_ratio_blocker" \
+    --argjson blocker_breakdown "$blocker_breakdown_json" \
+    --argjson non_ratio_blocker_breakdown "$non_ratio_blocker_breakdown_json" \
     --argjson trials_json "$trial_cases_json" \
     '{
         mode: $mode,
@@ -273,6 +348,13 @@ jq -n \
             observed_ratio_max: $observed_ratio_max,
             observed_ratio_avg: $observed_ratio_avg
         },
+        blockers: {
+            failed_trial_count: ($trial_failed + $trial_gate_failures),
+            non_ratio_blocked_trial_count: $trial_gate_failures,
+            primary_non_ratio_blocker: $primary_non_ratio_blocker,
+            breakdown: $blocker_breakdown,
+            non_ratio_breakdown: $non_ratio_blocker_breakdown
+        },
         trials: $trials_json
     }' >"$PROMOTION_REPORT_JSON"
 
@@ -287,6 +369,8 @@ jq -n \
     echo "trial_failed: $trial_failed"
     echo "trial_gate_failures: $trial_gate_failures"
     echo "trial_missing_ratio: $trial_missing_ratio"
+    echo "primary_non_ratio_blocker: $primary_non_ratio_blocker"
+    echo "blocker_breakdown_json: $blocker_breakdown_json"
     echo "observed_ratio_min: $ratio_min"
     echo "observed_ratio_max: $ratio_max"
     echo "observed_ratio_avg: $observed_ratio_avg"

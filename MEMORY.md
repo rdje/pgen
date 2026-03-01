@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-ratio-promotion-alignment)
+Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-ratio-promotion-blocker-taxonomy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -225,6 +225,21 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Added structured blocker taxonomy to parse-full ratio promotion reports
+- Root cause:
+  - promotion `hold` outcomes lacked explicit blocker attribution and required manual log inspection to distinguish ratio debt from non-ratio failures.
+- Fix:
+  - extended `sv_parse_full_ratio_promotion_gate` report surface:
+    - per-trial `blocker_key` + `blocker_detail`,
+    - aggregate `blockers` section with breakdown and `primary_non_ratio_blocker`.
+  - added blocker classifier signatures for semantic baseline, semantic contract suites, parse-full adapter/report availability, and generic stage failure fallback.
+- Validation:
+  - default run classifies ratio-only debt as:
+    - `parse_full_ratio_threshold_not_met`.
+  - forced semantic-closure scenario classifies non-ratio blocker as:
+    - `semantic_baseline_validation_failed`.
+  - focused aggregate run with informational promotion stage remained green.
 
 ### 2026-03-01: Aligned parse-full ratio promotion defaults to aggregate policy profile
 - Root cause:

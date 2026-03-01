@@ -2574,10 +2574,22 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `recommendation` (`raise_min_parse_full_pass_ratio` or `hold`)
     - `eligibility.eligible_for_ratio_promotion`
     - per-trial parse-full ratio outcomes and aggregated min/max/avg ratio telemetry
+    - per-trial blocker attribution:
+      - `trials[].blocker_key`
+      - `trials[].blocker_detail`
+    - aggregate blocker attribution:
+      - `blockers.failed_trial_count`
+      - `blockers.non_ratio_blocked_trial_count`
+      - `blockers.primary_non_ratio_blocker`
+      - `blockers.breakdown`
+      - `blockers.non_ratio_breakdown`
   - behavior:
     - runs strict `sv_stimuli_quality_gate` trials at target ratio threshold to determine if aggregate minimum can be ratcheted safely.
   - default trial profile:
     - aligned to aggregate enforcement surface (`sv_file`, semantic closure disabled) so recommendation debt reflects parse-full ratio only.
+  - blocker interpretation:
+    - ratio debt appears as `parse_full_ratio_threshold_not_met`,
+    - non-ratio blockers (for example `semantic_baseline_validation_failed`) are surfaced explicitly for targeted remediation.
   - default aggregate policy:
     - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`) while ratchet evidence converges.
 - profile behavior:
