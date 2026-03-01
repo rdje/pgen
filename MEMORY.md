@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-promotion-defaults-stabilization)
+Last updated: 2026-03-01 (+0100, task: phase-p-promotion-strict-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,17 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Promoted declared-shadow promotion stage to required strict policy
+- Root cause:
+  - promotion-trial evidence had converged (`enable_runtime_declared_identifiers`) but aggregate policy still ran the stage informational-only.
+- Fix:
+  - updated `rust/config/sota_exit_policy.env`:
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1` (was `0`)
+  - this makes aggregate `sota_exit_gate` execute `sv_declared_shadow_promotion_gate` in strict mode by default.
+- Validation:
+  - focused aggregate run passed with strict promotion stage enabled:
+    - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract ... PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1 ... rust/scripts/sota_exit_gate.sh`
 
 ### 2026-03-01: Stabilized declared-shadow promotion defaults (parseable-yield profile)
 - Root cause:
@@ -1552,8 +1563,8 @@ Use this file to resume work without replaying full chat history.
    - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
-   - declared-shadow promotion gate now recommends `enable_runtime_declared_identifiers` on baseline deterministic profile (`trials=3`, `seed_base=12001`, `count=6`, `sv_file` mode),
-   - next step is policy/contract promotion decision for runtime declared-before-use enforcement (`informational recommendation -> enforced runtime + strict aggregate policy path`).
+   - declared-shadow promotion gate is now strict-required in aggregate policy and remains green on baseline deterministic profile,
+   - next step is runtime contract promotion for semantic baseline (`require_declared_identifiers_before_use`) with deterministic guardrails to avoid parseability-driven false positives.
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:
@@ -1568,8 +1579,7 @@ Use this file to resume work without replaying full chat history.
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
-- Declared-before-use runtime promotion evidence is now green in promotion trials:
-  - recommendation currently converges to `enable_runtime_declared_identifiers` on baseline deterministic profile, but runtime/aggregate strict-policy flip has not been applied yet.
+- Declared-before-use runtime promotion evidence is green and aggregate strict-promotion policy is enabled, but runtime semantic baseline enforcement (`require_declared_identifiers_before_use=true`) has not been flipped yet.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
 - Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.

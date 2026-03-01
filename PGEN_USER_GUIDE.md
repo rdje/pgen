@@ -2540,7 +2540,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - default trial profile:
     - uses `sv_file` mode with parseability-scoped shadow checks to isolate declared-before-use promotion evidence from unrelated semantic-closure blockers.
   - default aggregate policy:
-    - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`).
+    - wired into `sota_exit_gate` as required strict (`run=1`, `strict=1`) after promotion-trial baseline convergence.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

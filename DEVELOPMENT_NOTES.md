@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Policy Increment: Declared-Shadow Promotion Stage is Now Strict-Required
+### Context
+Declared-shadow promotion trials had converged to stable green recommendations (`enable_runtime_declared_identifiers`) with parseability-scoped strict-shadow evidence, but aggregate policy still treated the stage as informational.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Policy flip:
+- `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT: 0 -> 1`
+
+Runtime effect:
+- `sota_exit_gate` now executes:
+  - `env PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=1 make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+  as a required stage by default.
+
+### Validation
+Executed focused aggregate policy run:
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 rust/scripts/sota_exit_gate.sh`
+
+Observed:
+- declared-shadow promotion stage executed in strict mode and passed.
+- aggregate run remained green with the focused required-check set.
+
 ## 2026-03-01 - Phase P Burn-Down Increment: Promotion Trial Baseline Stabilization
 ### Context
 Parseability-scoped strict-shadow logic was in place, but promotion evidence still depended heavily on sparse parseable samples for low sample-count runs. This caused baseline trials to oscillate between useful signals and under-sampled `hold` outcomes.

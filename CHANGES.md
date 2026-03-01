@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Semantic-Promotion: Aggregate Policy Promotion to Strict
+### ✅ Achievement Summary
+Promoted declared-shadow promotion trials from informational to required strict in the aggregate SOTA exit policy now that deterministic trial evidence converged.
+
+### Scope of Changes
+- Updated aggregate policy default in:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - change:
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1` (was `0`)
+  - aggregate behavior:
+    - `sota_exit_gate` now runs `sv_declared_shadow_promotion_gate` in strict mode by default.
+- Synced user/roadmap continuity docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - strict stage result:
+    - `sv_declared_shadow_promotion_gate`: pass
+    - effective mode: strict (`PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=1`)
+
 ## 2026-03-01 - Phase P Semantic-Promotion Burn-Down: Promotion Trial Defaults Stabilized
 ### ✅ Achievement Summary
 Stabilized declared-shadow promotion trials by defaulting to a parseable-yield profile (`sv_file`, higher per-trial sample count), converting baseline promotion evidence from `hold` to `enable_runtime_declared_identifiers`.
