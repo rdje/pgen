@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-ratio-promotion-gate)
+Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-ratio-promotion-alignment)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -225,6 +225,17 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Aligned parse-full ratio promotion defaults to aggregate policy profile
+- Root cause:
+  - promotion trials defaulted to semantic-closure profile (`sv_semantic_file` + semantic closure on), which could fail for semantic reasons unrelated to parse-full ratio ratchet decisions.
+- Fix:
+  - updated promotion gate defaults to aggregate profile surface:
+    - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=0`
+    - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_file`
+- Validation:
+  - standalone promotion gate now reports ratio-only debt (`trial_failed`) with zero non-ratio trial failures (`trial_gate_failures=0`),
+  - focused aggregate run with promotion stage enabled informationally remains green.
 
 ### 2026-03-01: Added deterministic SV parse-full ratio promotion gate + aggregate informational wiring
 - Root cause:

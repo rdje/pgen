@@ -2379,8 +2379,8 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT` (default `6`, sample count per trial)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` (default `12001`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
-- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `1`)
-- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_semantic_file`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `0`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default `20`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STATE_DIR` (default `rust/target/sv_parse_full_ratio_promotion_gate`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
@@ -2576,6 +2576,8 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - per-trial parse-full ratio outcomes and aggregated min/max/avg ratio telemetry
   - behavior:
     - runs strict `sv_stimuli_quality_gate` trials at target ratio threshold to determine if aggregate minimum can be ratcheted safely.
+  - default trial profile:
+    - aligned to aggregate enforcement surface (`sv_file`, semantic closure disabled) so recommendation debt reflects parse-full ratio only.
   - default aggregate policy:
     - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`) while ratchet evidence converges.
 - profile behavior:

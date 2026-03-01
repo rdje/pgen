@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Parse-Full Promotion Alignment: Trial Defaults Synced to Aggregate Enforcement Profile
+### ✅ Achievement Summary
+Aligned `sv_parse_full_ratio_promotion_gate` defaults to the same profile surface enforced by aggregate SV parse-full policy so promotion evidence reflects real ratchet behavior rather than semantic-closure-specific noise.
+
+### Scope of Changes
+- Updated promotion-trial defaults in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+  - changes:
+    - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` default: `1 -> 0`
+    - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` default: `sv_semantic_file -> sv_file`
+  - rationale:
+    - keep promotion evidence aligned with aggregate `sv_stimuli_quality_gate` default policy profile.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - observed deterministic debt signal:
+    - `trial_failed: 3`
+    - `trial_gate_failures: 0`
+    - recommendation remained `hold` due ratio threshold debt only.
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+
 ## 2026-03-01 - Phase P Parse-Full Ratio Promotion Gate: Deterministic Threshold-Ratchet Readiness Trials
 ### ✅ Achievement Summary
 Added a dedicated SystemVerilog parse-full ratio promotion gate that runs deterministic strict trial matrices at a target threshold and emits an explicit ratchet recommendation (`raise_min_parse_full_pass_ratio` vs `hold`).

@@ -345,6 +345,11 @@ Toolbox baseline to leverage end-to-end:
       - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION` / `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION`
       - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` / `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT`,
     - tracked policy default is now `run=1`, `strict=0` while ratchet evidence converges for the next threshold step.
+  - Progress (2026-03-01): aligned parse-full promotion-trial defaults to aggregate enforcement profile surface:
+    - default promotion trials now run with:
+      - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=0`
+      - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_file`
+    - this removes semantic-closure-specific failure noise from threshold-ratchet evidence and keeps promotion decisions tied to aggregate parse-full policy behavior.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -581,6 +586,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Aligned parse-full ratio promotion-trial defaults to aggregate enforcement profile (`sv_file`, semantic closure off) so ratchet recommendations reflect pure parse-full threshold debt.
 - 2026-03-01: Added deterministic `sv_parse_full_ratio_promotion_gate` and aggregate policy wiring for parse-full threshold ratchet readiness (`PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`, strict informational-first by default).
 - 2026-03-01: Ratcheted aggregate SV parse-full minimum pass ratio from `10` to `15` (`PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=15`) after deterministic strict validation remained green.
 - 2026-03-01: Wired SV parse-full quality strictness into aggregate policy (`sota_exit_gate` + `sota_exit_policy.env`) with default required threshold forwarding (`enforce=1`, `min=10`) to required `sv_stimuli_quality_gate` runs.

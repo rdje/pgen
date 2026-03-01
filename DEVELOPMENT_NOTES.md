@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Promotion Alignment: Parse-Full Ratio Trial Defaults Match Aggregate Policy Surface
+### Context
+Initial parse-full promotion trial defaults used semantic-closure profile (`sv_semantic_file` + semantic closure enabled), which can introduce semantic-validator failures unrelated to parse-full ratio ratchet decisions.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Default alignment changes:
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE: 1 -> 0`
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE: sv_semantic_file -> sv_file`
+
+Rationale:
+- aggregate parse-full ratio enforcement is evaluated through default `sv_stimuli_quality_gate` policy surface, so promotion trials should measure the same surface to produce actionable ratchet evidence.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+- focused aggregate run with promotion stage only (`differential_baseline_contract` required).
+
+Observed:
+- promotion trials now report pure ratio debt rather than semantic-gate noise:
+  - `trial_failed=3`
+  - `trial_gate_failures=0`
+- recommendation remains `hold`, but blocker classification is now aligned with parse-full threshold debt.
+
 ## 2026-03-01 - Phase P Promotion Instrumentation: Parse-Full Ratio Trial Gate + Aggregate Wiring
 ### Context
 Aggregate SV parse-full strictness is now enforced at `15%`, but ratcheting further (for example to `20%`) needed an objective, reproducible promotion mechanism separate from one-off manual runs.
