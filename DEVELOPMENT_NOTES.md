@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Aggregate Wiring Increment: Policy-Driven Parse-Full Promotion Target Ratio
+### Context
+Promotion trials were policy-enabled in aggregate runs, but target threshold remained an implicit script default (`20`), limiting central policy control and making threshold changes less explicit in aggregate execution logs.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Added policy/runtime controls:
+- `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+
+Behavior:
+- `sota_exit_gate` validates effective value (`0..100`).
+- promotion stage invocations now forward:
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=<effective policy/runtime value>`
+  for both strict and informational paths.
+- aggregate run header now prints:
+  - `sv_parse_full_ratio_promotion_target_min_ratio: <value>`
+
+Tracked default:
+- `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20`
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with promotion stage only and explicit runtime target override:
+  - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20`
+  - plus reduced trial size for validation runtime control.
+
+Observed:
+- aggregate run passed.
+- aggregate header exposed the effective target ratio.
+- promotion stage consumed the forwarded target ratio under aggregate control.
+
 ## 2026-03-01 - Phase P Promotion Diagnostics: Structured Blocker Taxonomy for Parse-Full Ratio Trials
 ### Context
 Promotion recommendations (`raise` vs `hold`) needed explicit blocker attribution. Without taxonomy, `hold` could only be inferred from coarse counters (`trial_failed` vs `trial_gate_failures`) and required manual log inspection for root-cause class.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-ratio-promotion-blocker-taxonomy)
+Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-promotion-target-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -31,6 +31,7 @@ Use this file to resume work without replaying full chat history.
   - SV parse-full ratio promotion stage enabled informationally:
     - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`
     - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 
@@ -225,6 +226,19 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Made aggregate parse-full promotion target policy-driven
+- Root cause:
+  - aggregate promotion stage was enabled, but target threshold was effectively implicit script default and not centrally policy-driven in `sota_exit_gate`.
+- Fix:
+  - added aggregate policy/runtime knobs:
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+    - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+  - wired validation and forwarding into aggregate stage invocation.
+- Validation:
+  - `bash -n rust/scripts/sota_exit_gate.sh` passed,
+  - focused aggregate run passed and printed effective:
+    - `sv_parse_full_ratio_promotion_target_min_ratio: 20`.
 
 ### 2026-03-01: Added structured blocker taxonomy to parse-full ratio promotion reports
 - Root cause:

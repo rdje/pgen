@@ -2251,6 +2251,7 @@ Aggregate gate tuning:
 - `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO` (`0-100`, default from policy file; minimum parse-full pass ratio percent passed into `sv_stimuli_quality_gate`)
 - `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of parse-full ratio promotion trials)
 - `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when promotion eligibility is not met)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default from policy file; parse-full promotion threshold passed into `sv_parse_full_ratio_promotion_gate`)
 - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
@@ -2592,6 +2593,9 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - non-ratio blockers (for example `semantic_baseline_validation_failed`) are surfaced explicitly for targeted remediation.
   - default aggregate policy:
     - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`) while ratchet evidence converges.
+    - target threshold is policy-driven via:
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+      - runtime override `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

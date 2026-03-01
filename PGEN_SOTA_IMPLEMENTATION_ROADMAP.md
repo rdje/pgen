@@ -361,6 +361,11 @@ Toolbox baseline to leverage end-to-end:
       - `breakdown`
       - `non_ratio_breakdown`
     - this makes `hold` outcomes objectively attributable (ratio threshold debt vs non-ratio blocker class) without ad-hoc log parsing.
+  - Progress (2026-03-01): made aggregate parse-full promotion threshold policy-driven:
+    - added policy/runtime knobs:
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+      - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+    - `sota_exit_gate` now forwards effective target threshold into `sv_parse_full_ratio_promotion_gate` for both strict and informational runs.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -597,6 +602,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Added aggregate policy/runtime target-threshold controls for parse-full promotion trials (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`) and wired forwarding in `sota_exit_gate`.
 - 2026-03-01: Added structured blocker taxonomy to `sv_parse_full_ratio_promotion_gate` reports (per-trial blocker keys/details + aggregate blocker breakdown and primary non-ratio blocker).
 - 2026-03-01: Aligned parse-full ratio promotion-trial defaults to aggregate enforcement profile (`sv_file`, semantic closure off) so ratchet recommendations reflect pure parse-full threshold debt.
 - 2026-03-01: Added deterministic `sv_parse_full_ratio_promotion_gate` and aggregate policy wiring for parse-full threshold ratchet readiness (`PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`, strict informational-first by default).

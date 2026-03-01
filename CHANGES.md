@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Aggregate Control Increment: Policy-Driven Parse-Full Promotion Threshold
+### ✅ Achievement Summary
+Made parse-full promotion-trial target threshold explicitly policy-driven in `sota_exit_gate`, so aggregate runs centrally control the ratchet target passed to `sv_parse_full_ratio_promotion_gate`.
+
+### Scope of Changes
+- Extended aggregate policy/env wiring:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - new knobs:
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+    - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
+  - behavior:
+    - validates target ratio (`0..100`),
+    - forwards effective target into promotion gate in both strict and informational aggregate runs.
+- Updated tracked policy default:
+  - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=2 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=12001 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output includes effective:
+    - `sv_parse_full_ratio_promotion_target_min_ratio: 20`
+
 ## 2026-03-01 - Phase P Parse-Full Promotion Hardening: Blocker Taxonomy in Trial Reports
 ### ✅ Achievement Summary
 Hardened parse-full ratio promotion diagnostics by adding structured blocker taxonomy to per-trial and aggregate promotion reports so `hold` decisions are objectively attributable (ratio debt vs non-ratio blocker class).
