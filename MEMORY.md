@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-parse-full-policy)
+Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-ratio-ratchet-15)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,19 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Ratcheted aggregate SV parse-full minimum pass ratio to 15%
+- Root cause:
+  - aggregate SV parse-full ratio enforcement was active at `10%`; roadmap next step called for controlled threshold ratcheting while preserving deterministic green runs.
+- Fix:
+  - updated tracked policy default:
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=15` (was `10`)
+  - synced UG/roadmap/development notes.
+- Validation:
+  - strict semantic-closure run with `min=15` passed:
+    - `parse_full_pass_ratio_percent=16`
+  - focused aggregate strict run (`sv_stimuli_quality_gate` required) passed and reported:
+    - `sv_stimuli_min_parse_full_pass_ratio: 15`
 
 ### 2026-03-01: Wired SV parse-full ratio controls into aggregate `sota_exit_gate` policy path
 - Root cause:
@@ -1617,8 +1630,8 @@ Use this file to resume work without replaying full chat history.
    - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
-   - runtime declaration-before-use is enabled and parse-full quality thresholding is now aggregate-policy enforced (`enforce=1`, `min=10`),
-   - next step is ratcheting the policy minimum ratio upward (for example `10 -> 15`) while preserving deterministic green aggregate runs.
+   - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=15`),
+   - next step is ratcheting the policy minimum ratio upward again (for example `15 -> 20`) only after repeated deterministic strict evidence remains green.
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:

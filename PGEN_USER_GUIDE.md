@@ -2664,7 +2664,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - aggregate policy default:
     - `sota_exit_gate` forwards parse-full quality controls into `sv_stimuli_quality_gate` with policy defaults:
       - `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1`
-      - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=10`
+      - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=15`
 
 `vhdl_stimuli_quality_gate` closed-loop stage contract:
 - deterministic flow:

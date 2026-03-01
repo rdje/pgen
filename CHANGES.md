@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Parse-Full Ratio Ratchet: Aggregate SV Threshold 10% -> 15%
+### ✅ Achievement Summary
+Raised the aggregate SV parse-full pass-ratio floor from `10%` to `15%` after deterministic strict validation remained green.
+
+### Scope of Changes
+- Updated tracked aggregate policy default in:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - change:
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=15` (was `10`)
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=15 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `parse_full_pass_ratio_percent: 16`
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output shows:
+    - `sv_stimuli_min_parse_full_pass_ratio: 15`
+    - required `sv_stimuli_quality_gate`: pass
+
 ## 2026-03-01 - Phase P Aggregate Policy Hardening: Enforce SV Parse-Full Pass Ratio in `sota_exit_gate`
 ### ✅ Achievement Summary
 Wired parse-full quality controls into aggregate policy execution so required `sv_stimuli_quality_gate` runs now enforce the configured parse-full pass-ratio threshold by default.

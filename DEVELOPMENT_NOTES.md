@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Ratchet Increment: Aggregate SV Parse-Full Min Ratio 10 -> 15
+### Context
+Aggregate policy enforcement for SV parse-full ratio was in place at `10%`. With deterministic strict runs stable at `16%`, the next planned ratchet step was to increase the enforced threshold.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Policy change:
+- `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO: 10 -> 15`
+
+### Validation
+Executed:
+- strict SV stimuli run at ratcheted threshold:
+  - `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1`
+  - `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=15`
+  - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=6`
+- focused aggregate strict run (`sv_stimuli_quality_gate` required).
+
+Observed:
+- strict SV stimuli run remained green with:
+  - `parse_full_pass_ratio_percent: 16`
+- focused aggregate strict run remained green and reported:
+  - `sv_stimuli_min_parse_full_pass_ratio: 15`
+
 ## 2026-03-01 - Phase P Aggregate Wiring Increment: Parse-Full Ratio Policy Forwarding in `sota_exit_gate`
 ### Context
 `sv_stimuli_quality_gate` already supported parse-full ratio enforcement, but aggregate SOTA execution did not have dedicated policy knobs to control/require it consistently. This left strictness dependent on ad-hoc env overrides.
