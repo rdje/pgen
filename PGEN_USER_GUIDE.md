@@ -2242,6 +2242,8 @@ Aggregate gate tuning:
 - `PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT` (`1`/`0`, default from policy file; current tracked policy default is `1`)
 - `PGEN_SOTA_RUN_SV_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file; current tracked policy default is `1`)
+- `PGEN_SOTA_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO` (`1`/`0`, default from policy file; controls parse-full ratio strictness passed into `sv_stimuli_quality_gate`)
+- `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO` (`0-100`, default from policy file; minimum parse-full pass ratio percent passed into `sv_stimuli_quality_gate`)
 - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
@@ -2659,6 +2661,10 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - when enforcement is disabled, parse-full pass ratio is reported as telemetry,
     - when enforcement is enabled and parse-full is unavailable, gate fails,
     - when enforcement is enabled and ratio is below threshold, gate fails.
+  - aggregate policy default:
+    - `sota_exit_gate` forwards parse-full quality controls into `sv_stimuli_quality_gate` with policy defaults:
+      - `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1`
+      - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=10`
 
 `vhdl_stimuli_quality_gate` closed-loop stage contract:
 - deterministic flow:

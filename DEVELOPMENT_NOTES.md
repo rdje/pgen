@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Aggregate Wiring Increment: Parse-Full Ratio Policy Forwarding in `sota_exit_gate`
+### Context
+`sv_stimuli_quality_gate` already supported parse-full ratio enforcement, but aggregate SOTA execution did not have dedicated policy knobs to control/require it consistently. This left strictness dependent on ad-hoc env overrides.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added aggregate policy/runtime knobs for SV parse-full ratio strictness
+`sota_exit_gate.sh`:
+- policy inputs:
+  - `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+  - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO`
+- runtime overrides:
+  - `PGEN_SOTA_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+  - `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO`
+- validates:
+  - enforce knob must be `0|1`,
+  - min ratio must be integer `0..100`.
+- forwards both knobs to `sv_stimuli_quality_gate` for required and informational stage invocations.
+
+#### 2) Enabled strict default policy forwarding
+`sota_exit_policy.env` defaults:
+- `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1`
+- `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=10`
+
+This makes aggregate required SV stimuli runs enforce the parse-full ratio floor by default.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate strict run with only `sv_stimuli_quality_gate` stage enabled.
+
+Observed:
+- aggregate run passed.
+- required `sv_stimuli_quality_gate` consumed forwarded ratio policy controls and remained green.
+
 ## 2026-03-01 - Phase P Parse-Full Quality Increment: Ratio Telemetry and Optional Strict Threshold
 ### Context
 Semantic-closure runtime declaration checks are now enabled with parseability guardrails, but parse-full acceptance remained mostly soft-fail telemetry. We needed an objective, contractized signal for parse-full debt and a safe path to promote strictness incrementally.
@@ -48,6 +88,7 @@ Executed:
 Observed:
 - baseline semantic-closure run remained green with parse-full telemetry visible.
 - strict ratio run at `10%` threshold passed on current deterministic corpus (`16%` observed).
+- focused aggregate strict run (`sota_exit_gate` with `sv_stimuli_quality_gate` required) passed unchanged.
 
 ## 2026-03-01 - Phase P Runtime Promotion Increment: Declared-Before-Use Enabled in Semantic-Closure Profile
 ### Context

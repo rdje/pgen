@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-quality-telemetry)
+Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-parse-full-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -223,6 +223,22 @@ Use this file to resume work without replaying full chat history.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
 
+### 2026-03-01: Wired SV parse-full ratio controls into aggregate `sota_exit_gate` policy path
+- Root cause:
+  - parse-full ratio enforcement existed in `sv_stimuli_quality_gate`, but aggregate policy had no dedicated knobs to forward and require it consistently.
+- Fix:
+  - extended `sota_exit_gate` with policy/runtime knobs:
+    - `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO`
+    - `PGEN_SOTA_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+    - `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO`
+  - added validation and forwarding of these knobs to `sv_stimuli_quality_gate`.
+  - updated tracked policy defaults to enforce ratio floor:
+    - `enforce=1`, `min=10`.
+- Validation:
+  - `bash -n rust/scripts/sota_exit_gate.sh` passed.
+  - focused aggregate strict run (`sv_stimuli_quality_gate` required) passed with policy-forwarded parse-full ratio enforcement.
+
 ### 2026-03-01: Added parse-full quality telemetry + optional strict threshold in SV stimuli gate
 - Root cause:
   - semantic-closure parse-full debt lacked an objective contract surface; parse-full remained mostly soft-fail telemetry without threshold controls.
@@ -241,6 +257,7 @@ Use this file to resume work without replaying full chat history.
   - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
   - semantic-closure run passed with telemetry (`parse_full_pass_ratio_percent=16`).
   - strict threshold smoke (`enforce=1`, `min=10`) passed.
+  - focused aggregate strict run (`sota_exit_gate` with `sv_stimuli_quality_gate` required) passed.
 
 ### 2026-03-01: Promoted runtime declaration-before-use in semantic-closure profile with parseability guardrails
 - Root cause:
@@ -1600,8 +1617,8 @@ Use this file to resume work without replaying full chat history.
    - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
-   - runtime declaration-before-use is enabled and parse-full quality telemetry/threshold controls are now contractized (`v21`),
-   - next step is ratcheting `parse_full_quality.min_pass_ratio` upward in controlled increments (while keeping deterministic green) and expanding parseable semantic-closure corpus depth.
+   - runtime declaration-before-use is enabled and parse-full quality thresholding is now aggregate-policy enforced (`enforce=1`, `min=10`),
+   - next step is ratcheting the policy minimum ratio upward (for example `10 -> 15`) while preserving deterministic green aggregate runs.
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:

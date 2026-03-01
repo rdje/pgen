@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Aggregate Policy Hardening: Enforce SV Parse-Full Pass Ratio in `sota_exit_gate`
+### ✅ Achievement Summary
+Wired parse-full quality controls into aggregate policy execution so required `sv_stimuli_quality_gate` runs now enforce the configured parse-full pass-ratio threshold by default.
+
+### Scope of Changes
+- Extended aggregate gate wiring in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - new policy/runtime knobs:
+    - `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO`
+    - `PGEN_SOTA_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+    - `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO`
+  - behavior:
+    - validates knob values (`0|1`, ratio `0..100`),
+    - forwards knobs to `sv_stimuli_quality_gate` in both required and informational runs.
+- Updated tracked aggregate policy defaults in:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - defaults now require parse-full ratio floor in aggregate SV stimuli runs:
+    - `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1`
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=10`
+- Synced docs/roadmap continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - required `sv_stimuli_quality_gate` passed with forwarded parse-full ratio enforcement policy.
+
 ## 2026-03-01 - Phase P Parse-Full Debt Instrumentation: Contractized Pass-Ratio Telemetry + Optional Strict Threshold
 ### ✅ Achievement Summary
 Added parse-full acceptance quality telemetry and optional strict threshold enforcement to `sv_stimuli_quality_gate`, enabling objective tracking and staged tightening of semantic-closure parseability debt.
@@ -44,6 +75,7 @@ Added parse-full acceptance quality telemetry and optional strict threshold enfo
     - `contract_version: 21`
     - `parse_full_pass_ratio_percent: 16`
 - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=10 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
 
 ## 2026-03-01 - Phase P Semantic-Closure Runtime Promotion: Declared-Before-Use with Parseability Guardrails
 ### ✅ Achievement Summary

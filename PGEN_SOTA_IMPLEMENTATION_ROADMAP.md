@@ -327,6 +327,11 @@ Toolbox baseline to leverage end-to-end:
     - emits deterministic report artifact:
       - `rust/target/sv_stimuli_quality_gate/work/systemverilog_parse_full_quality_report.json`
     - enforcement mode fails gate when parse-full is unavailable or when observed pass ratio is below configured minimum.
+  - Progress (2026-03-01): wired parse-full quality strictness controls into aggregate policy path (`sota_exit_gate` + `sota_exit_policy.env`):
+    - new aggregate policy/runtime knobs:
+      - `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO` / `PGEN_SOTA_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+      - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO` / `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO`
+    - aggregate default now enforces parse-full pass-ratio floor for required `sv_stimuli_quality_gate` runs (`enforce=1`, `min=10`).
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -563,6 +568,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Wired SV parse-full quality strictness into aggregate policy (`sota_exit_gate` + `sota_exit_policy.env`) with default required threshold forwarding (`enforce=1`, `min=10`) to required `sv_stimuli_quality_gate` runs.
 - 2026-03-01: Added parse-full acceptance quality controls to Phase P (`systemverilog_core_v0_contract.json` v21 + `sv_stimuli_quality_gate` telemetry/strict-threshold enforcement with deterministic `systemverilog_parse_full_quality_report.json` artifact).
 - 2026-03-01: Promoted semantic-closure runtime declaration-before-use enforcement (`systemverilog_core_v0_contract.json` v20) with parseability guardrails (`require_declared_identifiers_parseable_only=true` in `sv_semantic_file`) and parse-status-aware semantic baseline evaluation in `sv_stimuli_quality_gate`.
 - 2026-03-01: Promoted aggregate declared-shadow promotion stage to required strict (`PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1`) after deterministic promotion trials converged to `enable_runtime_declared_identifiers`.
