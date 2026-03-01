@@ -2335,6 +2335,8 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_SV_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
 - `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO` (`0`/`1`, overrides contract parse-full ratio enforcement)
+- `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO` (`0-100`, overrides contract parse-full minimum pass ratio percent)
 - `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from contract)
 - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `0`)
   - when set to `1` and `PGEN_SV_STIMULI_QUALITY_MODE` is unset, gate auto-selects `sv_semantic_file`.
@@ -2642,6 +2644,21 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,
   - `1`: required and strict (fails gate if adapter is unavailable or if any sample parse-full rejects).
+- parse-full acceptance quality contract:
+  - contract keys (`systemverilog_core_v0_contract.json`):
+    - `parse_full_quality.enforce_min_pass_ratio`
+    - `parse_full_quality.min_pass_ratio`
+  - deterministic report artifact:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_parse_full_quality_report.json`
+  - summary metrics:
+    - `parse_full_quality_enforced`
+    - `parse_full_quality_effective`
+    - `parse_full_quality_min_pass_ratio`
+    - `parse_full_pass_ratio_percent`
+  - behavior:
+    - when enforcement is disabled, parse-full pass ratio is reported as telemetry,
+    - when enforcement is enabled and parse-full is unavailable, gate fails,
+    - when enforcement is enabled and ratio is below threshold, gate fails.
 
 `vhdl_stimuli_quality_gate` closed-loop stage contract:
 - deterministic flow:

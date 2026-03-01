@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-runtime-declared-promotion)
+Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-quality-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Added parse-full quality telemetry + optional strict threshold in SV stimuli gate
+- Root cause:
+  - semantic-closure parse-full debt lacked an objective contract surface; parse-full remained mostly soft-fail telemetry without threshold controls.
+- Fix:
+  - promoted `systemverilog_core_v0_contract.json` to `v21` with:
+    - `parse_full_quality.enforce_min_pass_ratio`
+    - `parse_full_quality.min_pass_ratio`
+  - extended `sv_stimuli_quality_gate`:
+    - computes `parse_full_pass_ratio_percent`,
+    - emits deterministic report `systemverilog_parse_full_quality_report.json`,
+    - supports env overrides:
+      - `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+      - `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO`
+    - strict mode now fails if parse-full is unavailable or ratio is below configured minimum.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - semantic-closure run passed with telemetry (`parse_full_pass_ratio_percent=16`).
+  - strict threshold smoke (`enforce=1`, `min=10`) passed.
 
 ### 2026-03-01: Promoted runtime declaration-before-use in semantic-closure profile with parseability guardrails
 - Root cause:
@@ -1581,8 +1600,8 @@ Use this file to resume work without replaying full chat history.
    - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
-   - runtime declaration-before-use is now enabled in `sv_semantic_file` with parseability guardrails and remains stable on current deterministic semantic-closure runs,
-   - next step is expanding deterministic semantic corpora and raising parse-full acceptance in semantic-closure mode (reduce soft-fail parse_full debt while preserving semantic determinism).
+   - runtime declaration-before-use is enabled and parse-full quality telemetry/threshold controls are now contractized (`v21`),
+   - next step is ratcheting `parse_full_quality.min_pass_ratio` upward in controlled increments (while keeping deterministic green) and expanding parseable semantic-closure corpus depth.
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:
@@ -1597,7 +1616,7 @@ Use this file to resume work without replaying full chat history.
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
-- Declared-before-use runtime semantic enforcement is now active in `sv_semantic_file` with parseability guardrails; remaining debt is parse-full acceptance (many samples still soft-fail parse_full in `auto` mode).
+- Declared-before-use runtime semantic enforcement is active in `sv_semantic_file` with parseability guardrails; parse-full debt is now measured (`parse_full_pass_ratio_percent`) but still significant in semantic-closure mode.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
 - Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.

@@ -1,6 +1,6 @@
 {
-  "version": 20,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, deterministic performance/memory-proxy budget checks, declared-identifier promotion burn-down shadow telemetry controls, and runtime declared-before-use semantic enforcement in semantic-closure profile with parseability guardrails.",
+  "version": 21,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, deterministic performance/memory-proxy budget checks, parse-full acceptance telemetry/threshold controls, declared-identifier promotion burn-down shadow telemetry controls, and runtime declared-before-use semantic enforcement in semantic-closure profile with parseability guardrails.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -108,6 +108,10 @@
     "max_parse_full_ms_per_sample": 15000,
     "max_sample_bytes": 1048576,
     "max_preprocessed_bytes": 1048576
+  },
+  "parse_full_quality": {
+    "enforce_min_pass_ratio": false,
+    "min_pass_ratio": 10
   },
   "semantic_promotion": {
     "declared_identifier_shadow_enabled": true,

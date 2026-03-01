@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Parse-Full Debt Instrumentation: Contractized Pass-Ratio Telemetry + Optional Strict Threshold
+### ✅ Achievement Summary
+Added parse-full acceptance quality telemetry and optional strict threshold enforcement to `sv_stimuli_quality_gate`, enabling objective tracking and staged tightening of semantic-closure parseability debt.
+
+### Scope of Changes
+- Extended SV stimuli quality gate in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - new contract/env controls:
+    - `parse_full_quality.enforce_min_pass_ratio`
+    - `parse_full_quality.min_pass_ratio`
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+    - `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO`
+  - new behavior:
+    - computes parse-full pass ratio from observed parse-full samples,
+    - emits deterministic report:
+      - `rust/target/sv_stimuli_quality_gate/work/systemverilog_parse_full_quality_report.json`,
+    - strict mode fails when:
+      - parse-full stage is unavailable, or
+      - observed pass ratio is below configured minimum.
+  - summary additions:
+    - `parse_full_quality_enforced`
+    - `parse_full_quality_effective`
+    - `parse_full_quality_min_pass_ratio`
+    - `parse_full_pass_ratio_percent`
+    - `parse_full_quality_report_json`
+- Promoted contract schema in:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - `version: 20 -> 21`
+  - added default quality policy:
+    - `parse_full_quality.enforce_min_pass_ratio=false`
+    - `parse_full_quality.min_pass_ratio=10`
+- Synced docs and roadmap:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `contract_version: 21`
+    - `parse_full_pass_ratio_percent: 16`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=10 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+
 ## 2026-03-01 - Phase P Semantic-Closure Runtime Promotion: Declared-Before-Use with Parseability Guardrails
 ### ✅ Achievement Summary
 Enabled runtime declaration-before-use enforcement in the `sv_semantic_file` semantic-closure profile, with parseability-aware guardrails to avoid false positives from non-parseable samples.

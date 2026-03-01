@@ -13,6 +13,8 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 
 CONTRACT_FILE="${PGEN_SV_STIMULI_QUALITY_CONTRACT:-$RUST_DIR/test_data/grammar_quality/systemverilog_core_v0_contract.json}"
 PARSE_FULL_MODE="${PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE:-auto}"
+PARSE_FULL_MIN_PASS_RATIO_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO:-}"
+PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO:-}"
 SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
@@ -1174,6 +1176,16 @@ if [[ "$PARSE_FULL_MODE" != "auto" && "$PARSE_FULL_MODE" != "0" && "$PARSE_FULL_
     echo "error: PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE must be one of: auto, 0, 1" >&2
     exit 2
 fi
+if [[ -n "$PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE" ]] && [[ "$PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE" != "0" && "$PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO must be 0 or 1 when set" >&2
+    exit 2
+fi
+if [[ -n "$PARSE_FULL_MIN_PASS_RATIO_OVERRIDE" ]]; then
+    if ! [[ "$PARSE_FULL_MIN_PASS_RATIO_OVERRIDE" =~ ^[0-9]+$ ]] || [[ "$PARSE_FULL_MIN_PASS_RATIO_OVERRIDE" -lt 0 ]] || [[ "$PARSE_FULL_MIN_PASS_RATIO_OVERRIDE" -gt 100 ]]; then
+        echo "error: PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO must be an integer between 0 and 100 when set" >&2
+        exit 2
+    fi
+fi
 if [[ "$DIFF_MODE" != "auto" && "$DIFF_MODE" != "0" && "$DIFF_MODE" != "1" ]]; then
     echo "error: PGEN_SV_STIMULI_DIFF_MODE must be one of: auto, 0, 1" >&2
     exit 2
@@ -1264,6 +1276,8 @@ perf_max_preprocess_ms_per_sample="$(jq -er '(.performance_budgets.max_preproces
 perf_max_parse_full_ms_per_sample="$(jq -er '(.performance_budgets.max_parse_full_ms_per_sample // 0) | numbers' "$CONTRACT_FILE")"
 perf_max_sample_bytes="$(jq -er '(.performance_budgets.max_sample_bytes // 0) | numbers' "$CONTRACT_FILE")"
 perf_max_preprocessed_bytes="$(jq -er '(.performance_budgets.max_preprocessed_bytes // 0) | numbers' "$CONTRACT_FILE")"
+parse_full_quality_contract_enforced="$(jq -er 'if (.parse_full_quality.enforce_min_pass_ratio // false) then 1 else 0 end' "$CONTRACT_FILE")"
+parse_full_quality_min_pass_ratio="$(jq -er '(.parse_full_quality.min_pass_ratio // 0) | numbers' "$CONTRACT_FILE")"
 declared_shadow_contract_enabled="$(jq -er 'if (.semantic_promotion.declared_identifier_shadow_enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
 declared_shadow_contract_strict="$(jq -er 'if (.semantic_promotion.declared_identifier_shadow_strict // false) then 1 else 0 end' "$CONTRACT_FILE")"
 
@@ -1391,6 +1405,16 @@ fi
 if ! [[ "$perf_max_preprocessed_bytes" =~ ^[0-9]+$ ]]; then
     echo "error: performance_budgets.max_preprocessed_bytes must be an integer >= 0" >&2
     exit 2
+fi
+if ! [[ "$parse_full_quality_min_pass_ratio" =~ ^[0-9]+$ ]] || [[ "$parse_full_quality_min_pass_ratio" -lt 0 ]] || [[ "$parse_full_quality_min_pass_ratio" -gt 100 ]]; then
+    echo "error: parse_full_quality.min_pass_ratio must be an integer between 0 and 100" >&2
+    exit 2
+fi
+if [[ -n "$PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE" ]]; then
+    parse_full_quality_contract_enforced="$PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE"
+fi
+if [[ -n "$PARSE_FULL_MIN_PASS_RATIO_OVERRIDE" ]]; then
+    parse_full_quality_min_pass_ratio="$PARSE_FULL_MIN_PASS_RATIO_OVERRIDE"
 fi
 
 declare -a supported_stimuli_modes=()
@@ -1564,6 +1588,8 @@ echo "performance_max_preprocess_ms_per_sample: $perf_max_preprocess_ms_per_samp
 echo "performance_max_parse_full_ms_per_sample: $perf_max_parse_full_ms_per_sample"
 echo "performance_max_sample_bytes: $perf_max_sample_bytes"
 echo "performance_max_preprocessed_bytes: $perf_max_preprocessed_bytes"
+echo "parse_full_quality_enforced: $parse_full_quality_contract_enforced"
+echo "parse_full_quality_min_pass_ratio: $parse_full_quality_min_pass_ratio"
 echo "declared_shadow_mode: $DECLARED_SHADOW_MODE"
 echo "declared_shadow_parseable_only: $DECLARED_SHADOW_PARSEABLE_ONLY"
 echo "declared_shadow_contract_enabled: $declared_shadow_contract_enabled"
@@ -2300,6 +2326,8 @@ fi
 perf_generate_avg_ms=0
 perf_preprocess_avg_ms=0
 perf_parse_full_avg_ms=0
+parse_full_samples_total=0
+parse_full_pass_ratio_percent=0
 if (( total_samples > 0 )); then
     perf_generate_avg_ms=$((perf_generate_total_ms / total_samples))
     perf_preprocess_avg_ms=$((perf_preprocess_total_ms / total_samples))
@@ -2307,6 +2335,60 @@ fi
 if (( perf_parse_full_samples > 0 )); then
     perf_parse_full_avg_ms=$((perf_parse_full_total_ms / perf_parse_full_samples))
 fi
+parse_full_samples_total=$((parse_full_pass_count + parse_full_fail_count))
+if (( parse_full_samples_total > 0 )); then
+    parse_full_pass_ratio_percent=$((parse_full_pass_count * 100 / parse_full_samples_total))
+fi
+parse_full_quality_effective="observed_only"
+parse_full_quality_note="parse_full pass ratio is reported for telemetry only"
+if [[ "$parse_full_quality_contract_enforced" -eq 1 ]]; then
+    if [[ "$parse_full_enabled" -ne 1 ]]; then
+        parse_full_quality_effective="strict_unavailable_parse_full"
+        parse_full_quality_note="strict parse_full ratio enforcement requested but parse_full stage is unavailable (${parse_full_effective})"
+        echo "error: ${parse_full_quality_note}" >&2
+        exit 1
+    fi
+    parse_full_quality_effective="strict_enforced"
+    parse_full_quality_note="strict parse_full ratio enforcement is enabled"
+    if (( parse_full_pass_ratio_percent < parse_full_quality_min_pass_ratio )); then
+        echo "error: strict parse_full pass ratio check failed (${parse_full_pass_ratio_percent}% < ${parse_full_quality_min_pass_ratio}%)" >&2
+        exit 1
+    fi
+else
+    if [[ "$parse_full_enabled" -ne 1 ]]; then
+        parse_full_quality_effective="skipped_parse_full_unavailable"
+        parse_full_quality_note="parse_full ratio telemetry skipped because parse_full stage is unavailable (${parse_full_effective})"
+    fi
+fi
+
+parse_full_quality_report_json="$WORK_DIR/${grammar_name}_parse_full_quality_report.json"
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg effective_mode "$parse_full_quality_effective" \
+    --arg note "$parse_full_quality_note" \
+    --arg parse_full_effective "$parse_full_effective" \
+    --argjson enforced "$parse_full_quality_contract_enforced" \
+    --argjson min_pass_ratio "$parse_full_quality_min_pass_ratio" \
+    --argjson pass_count "$parse_full_pass_count" \
+    --argjson fail_count "$parse_full_fail_count" \
+    --argjson skip_count "$parse_full_skip_count" \
+    --argjson samples_total "$parse_full_samples_total" \
+    --argjson pass_ratio_percent "$parse_full_pass_ratio_percent" \
+    '{
+        grammar_name: $grammar_name,
+        enforced: $enforced,
+        effective_mode: $effective_mode,
+        note: $note,
+        min_pass_ratio: $min_pass_ratio,
+        parse_full_effective: $parse_full_effective,
+        observed: {
+            pass_count: $pass_count,
+            fail_count: $fail_count,
+            skip_count: $skip_count,
+            samples_total: $samples_total,
+            pass_ratio_percent: $pass_ratio_percent
+        }
+    }' >"$parse_full_quality_report_json"
 
 perf_report_json="$WORK_DIR/${grammar_name}_performance_report.json"
 jq -n \
@@ -2407,6 +2489,12 @@ jq -n \
     echo "context_legality_suite_failed: $context_legality_suite_failed"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
+    echo "parse_full_quality_enforced: $parse_full_quality_contract_enforced"
+    echo "parse_full_quality_effective: $parse_full_quality_effective"
+    echo "parse_full_quality_note: $parse_full_quality_note"
+    echo "parse_full_quality_min_pass_ratio: $parse_full_quality_min_pass_ratio"
+    echo "parse_full_pass_ratio_percent: $parse_full_pass_ratio_percent"
+    echo "parse_full_quality_report_json: $parse_full_quality_report_json"
     echo "declared_shadow_mode: $DECLARED_SHADOW_MODE"
     echo "declared_shadow_parseable_only: $DECLARED_SHADOW_PARSEABLE_ONLY"
     echo "declared_shadow_effective: $declared_shadow_effective"

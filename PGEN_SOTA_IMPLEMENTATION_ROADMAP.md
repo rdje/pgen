@@ -317,6 +317,16 @@ Toolbox baseline to leverage end-to-end:
     - `sv_semantic_file` now enables `require_declared_identifiers_before_use=true`,
     - added `require_declared_identifiers_parseable_only=true` for semantic-closure runs to skip declaration-before-use runtime checks when `parse_full` is not `pass`,
     - `sv_stimuli_quality_gate` semantic baseline now consumes parse status when evaluating declaration-before-use checks to avoid parseability-driven false positives.
+  - Progress (2026-03-01): added parse-full acceptance telemetry/threshold controls (`systemverilog_core_v0_contract.json` v21) in `sv_stimuli_quality_gate`:
+    - new contract surface:
+      - `parse_full_quality.enforce_min_pass_ratio`
+      - `parse_full_quality.min_pass_ratio`
+    - new env overrides:
+      - `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+      - `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO`
+    - emits deterministic report artifact:
+      - `rust/target/sv_stimuli_quality_gate/work/systemverilog_parse_full_quality_report.json`
+    - enforcement mode fails gate when parse-full is unavailable or when observed pass ratio is below configured minimum.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -553,6 +563,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Added parse-full acceptance quality controls to Phase P (`systemverilog_core_v0_contract.json` v21 + `sv_stimuli_quality_gate` telemetry/strict-threshold enforcement with deterministic `systemverilog_parse_full_quality_report.json` artifact).
 - 2026-03-01: Promoted semantic-closure runtime declaration-before-use enforcement (`systemverilog_core_v0_contract.json` v20) with parseability guardrails (`require_declared_identifiers_parseable_only=true` in `sv_semantic_file`) and parse-status-aware semantic baseline evaluation in `sv_stimuli_quality_gate`.
 - 2026-03-01: Promoted aggregate declared-shadow promotion stage to required strict (`PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1`) after deterministic promotion trials converged to `enable_runtime_declared_identifiers`.
 - 2026-03-01: Stabilized declared-shadow promotion-trial defaults by increasing evidence density (`PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=6`) and adding explicit mode scoping (`PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file` default), with baseline strict-trial recommendation now converging to `enable_runtime_declared_identifiers`.

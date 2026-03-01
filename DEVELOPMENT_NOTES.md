@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Parse-Full Quality Increment: Ratio Telemetry and Optional Strict Threshold
+### Context
+Semantic-closure runtime declaration checks are now enabled with parseability guardrails, but parse-full acceptance remained mostly soft-fail telemetry. We needed an objective, contractized signal for parse-full debt and a safe path to promote strictness incrementally.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added parse-full quality contract surface (v21)
+`systemverilog_core_v0_contract.json`:
+- `version: 20 -> 21`
+- new section:
+  - `parse_full_quality.enforce_min_pass_ratio` (default `false`)
+  - `parse_full_quality.min_pass_ratio` (default `10`)
+
+This keeps default behavior non-blocking while making strict promotion explicit and contract-driven.
+
+#### 2) Added parse-full acceptance telemetry + strict threshold enforcement
+`sv_stimuli_quality_gate.sh` updates:
+- new env overrides:
+  - `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
+  - `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO`
+- computes:
+  - `parse_full_pass_ratio_percent = pass / (pass + fail)` on observed parse-full samples.
+- emits deterministic report artifact:
+  - `rust/target/sv_stimuli_quality_gate/work/systemverilog_parse_full_quality_report.json`
+- strict behavior:
+  - if enforcement is on and parse-full stage is unavailable -> gate fails.
+  - if enforcement is on and ratio < minimum -> gate fails.
+- summary output now includes:
+  - `parse_full_quality_enforced`
+  - `parse_full_quality_effective`
+  - `parse_full_quality_min_pass_ratio`
+  - `parse_full_pass_ratio_percent`
+  - `parse_full_quality_report_json`
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=10 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- baseline semantic-closure run remained green with parse-full telemetry visible.
+- strict ratio run at `10%` threshold passed on current deterministic corpus (`16%` observed).
+
 ## 2026-03-01 - Phase P Runtime Promotion Increment: Declared-Before-Use Enabled in Semantic-Closure Profile
 ### Context
 Declared-shadow promotion evidence and aggregate strict promotion-gate policy were already green, but `sv_semantic_file` still had runtime `require_declared_identifiers_before_use` disabled. A direct unguarded flip caused semantic failures on non-parseable generated samples, so runtime promotion needed parseability-aware guardrails.
