@@ -2351,12 +2351,13 @@ Optional SV stimuli quality-gate tuning:
   - `0`: skip promotion-trial gate.
   - `1`: strict promotion mode (fails when runtime enforcement is not yet eligible).
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS` (default `3`)
-- `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT` (default `2`, sample count per trial)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT` (default `6`, sample count per trial)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE` (default `12001`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS` (default `400`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (default `2`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `1`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STATE_DIR` (default `rust/target/sv_declared_shadow_promotion_gate`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
@@ -2536,6 +2537,8 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - aggregated strict-trial totals (`checked/passed/failed`)
     - `totals.skipped_unparseable` from parseable-only filtering in underlying strict trials
     - per-trial logs and shadow-report references
+  - default trial profile:
+    - uses `sv_file` mode with parseability-scoped shadow checks to isolate declared-before-use promotion evidence from unrelated semantic-closure blockers.
   - default aggregate policy:
     - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`).
 - profile behavior:

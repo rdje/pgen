@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Burn-Down Increment: Promotion Trial Baseline Stabilization
+### Context
+Parseability-scoped strict-shadow logic was in place, but promotion evidence still depended heavily on sparse parseable samples for low sample-count runs. This caused baseline trials to oscillate between useful signals and under-sampled `hold` outcomes.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Increased promotion-trial evidence density
+`sv_declared_shadow_promotion_gate` default sample count changed:
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT: 2 -> 6`
+
+Rationale:
+- keep strict-shadow promotion evidence focused on parseable corpus while reducing under-sampled trials that produce no checked shadow cases.
+
+#### 2) Added explicit promotion stimuli-mode control
+New promotion gate control:
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE`
+  - allowed values:
+    - `sv_file`
+    - `sv_snippet`
+    - `sv_pp_file`
+    - `sv_pp_snippet`
+    - `sv_semantic_file`
+  - default:
+    - `sv_file`
+
+Trial invocation now forwards:
+- `PGEN_SV_STIMULI_QUALITY_MODE=$PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE`
+
+Promotion report now includes:
+- `promotion_stimuli_mode`
+
+#### 3) Documentation synchronization
+Updated `PGEN_USER_GUIDE.md` to reflect:
+- default count `6`,
+- new `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE`,
+- default promotion profile rationale (parseability-scoped strict-shadow checks in `sv_file` mode).
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+
+Observed:
+- recommendation converged to:
+  - `enable_runtime_declared_identifiers`
+- aggregate strict-trial summary:
+  - `totals_checked=5`
+  - `totals_failed=0`
+  - `trial_passed=3`
+  - `trial_failed=0`
+
 ## 2026-03-01 - Phase P Burn-Down Increment: Parseability-Scoped Declared-Shadow Trials
 ### Context
 Strict shadow trials were failing on noisy generated samples with undeclared-identifier reports that came from lexically chaotic, non-parseable artifacts. This mixed two debts:

@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Semantic-Promotion Burn-Down: Promotion Trial Defaults Stabilized
+### ✅ Achievement Summary
+Stabilized declared-shadow promotion trials by defaulting to a parseable-yield profile (`sv_file`, higher per-trial sample count), converting baseline promotion evidence from `hold` to `enable_runtime_declared_identifiers`.
+
+### Scope of Changes
+- Hardened promotion-trial defaults and mode controls in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+  - updated defaults:
+    - `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=6` (was `2`)
+    - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file` (new)
+  - explicit stimuli-mode validation added:
+    - `sv_file|sv_snippet|sv_pp_file|sv_pp_snippet|sv_semantic_file`
+  - strict-trial invocation now forwards:
+    - `PGEN_SV_STIMULI_QUALITY_MODE=$PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE`
+  - promotion report now records:
+    - `promotion_stimuli_mode`
+- Updated user guide defaults and promotion-trial behavior notes in:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - promotion controls now document:
+    - `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT` default `6`
+    - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` default `sv_file`
+    - default trial profile rationale (parseability-scoped strict-shadow evidence isolation).
+- Synced technical continuity documents:
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` ✅
+  - `recommendation=enable_runtime_declared_identifiers`
+  - `eligible_for_runtime_enforcement=1`
+  - `totals_checked=5`
+  - `totals_failed=0`
+  - `trial_passed=3`
+  - `trial_failed=0`
+
 ## 2026-03-01 - Phase P Semantic-Promotion Burn-Down: Parseability-Scoped Strict Shadow Trials
 ### ✅ Achievement Summary
 Reduced false-positive declared-shadow failures by scoping strict-shadow checks to parseable samples during promotion trials, and converted the current blocker into an objective parseability debt signal.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-parseability-scoped-shadow-trials)
+Last updated: 2026-03-01 (+0100, task: phase-p-promotion-defaults-stabilization)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -222,6 +222,25 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Stabilized declared-shadow promotion defaults (parseable-yield profile)
+- Root cause:
+  - parseability-scoped strict-shadow trials were correct, but low default per-trial sample counts still produced under-sampled outcomes (`checked=0`) on baseline seed paths.
+- Fix:
+  - updated `rust/scripts/sv_declared_shadow_promotion_gate.sh` defaults:
+    - `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=6` (was `2`)
+    - new `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file`
+  - strict trial runner now forwards selected promotion stimuli mode:
+    - `PGEN_SV_STIMULI_QUALITY_MODE=$PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE`
+  - promotion report now records `promotion_stimuli_mode`.
+- Validation:
+  - `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh` passed.
+  - `make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` passed.
+  - baseline deterministic recommendation now:
+    - `recommendation=enable_runtime_declared_identifiers`
+    - `eligible_for_runtime_enforcement=1`
+    - `totals_checked=5`
+    - `totals_failed=0`
 
 ### 2026-03-01: Scoped strict-shadow trials to parseable samples (promotion burn-down)
 - Root cause:
@@ -1533,7 +1552,8 @@ Use this file to resume work without replaying full chat history.
    - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
-   - strict-shadow trials are now parseability-scoped; next step is increasing parseable sample yield in semantic-closure mode (baseline seed path `12001` currently gives `checked=0`, `skipped_unparseable=2`) until promotion report recommendation flips to `enable_runtime_declared_identifiers`.
+   - declared-shadow promotion gate now recommends `enable_runtime_declared_identifiers` on baseline deterministic profile (`trials=3`, `seed_base=12001`, `count=6`, `sv_file` mode),
+   - next step is policy/contract promotion decision for runtime declared-before-use enforcement (`informational recommendation -> enforced runtime + strict aggregate policy path`).
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:
@@ -1548,8 +1568,8 @@ Use this file to resume work without replaying full chat history.
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
-- Declared-before-use runtime promotion is still blocked on strict-shadow burn-down:
-  - promotion report currently recommends `hold` on baseline seed path (`12001`) due insufficient parseable samples under parseability-scoped shadow trials.
+- Declared-before-use runtime promotion evidence is now green in promotion trials:
+  - recommendation currently converges to `enable_runtime_declared_identifiers` on baseline deterministic profile, but runtime/aggregate strict-policy flip has not been applied yet.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
 - SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
 - Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.

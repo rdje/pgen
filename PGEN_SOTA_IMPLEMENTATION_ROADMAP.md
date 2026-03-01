@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-02-28
+Last updated: 2026-03-01
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -306,6 +306,10 @@ Toolbox baseline to leverage end-to-end:
     - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=1` now limits strict-shadow checks to `parse_full=pass` samples in promotion-trial runs,
     - strict mode now fails fast if parseable-only filtering yields zero checked samples,
     - promotion gate defaults updated to `parse_full_mode=auto` and `min_checked=2`.
+  - Progress (2026-03-01): stabilized promotion-trial defaults and mode scoping in `sv_declared_shadow_promotion_gate`:
+    - increased default per-trial sample count (`PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=6`) to reduce under-sampled strict-shadow evidence,
+    - added explicit promotion stimuli-mode control (`PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE`, default `sv_file`) and report field (`promotion_stimuli_mode`),
+    - baseline deterministic run (`trials=3`, `seed_base=12001`) now recommends `enable_runtime_declared_identifiers` with `totals_checked=5` and `totals_failed=0`.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -542,6 +546,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Stabilized declared-shadow promotion-trial defaults by increasing evidence density (`PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=6`) and adding explicit mode scoping (`PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file` default), with baseline strict-trial recommendation now converging to `enable_runtime_declared_identifiers`.
 - 2026-02-28: Hardened declared-shadow promotion trials with parseability-scoped checking (`PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY`) and stricter promotion evidence thresholds (`parse_full_mode=auto`, `min_checked=2` defaults).
 - 2026-02-28: Added `sv_declared_shadow_promotion_gate` and aggregate-policy wiring for controlled strict-shadow promotion trials (`PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE`, report artifact `systemverilog_declared_identifier_promotion_report.json`, informational-first in `sota_exit_gate`).
 - 2026-02-28: Completed Phase R user-facing workflow documentation by adding AST debug playbooks in `PGEN_USER_GUIDE.md` for SV/VHDL/regex onboarding and deterministic triage (`gen_ast.json` + parser-returned AST + embedding API dump path).
