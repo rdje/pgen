@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-02-28
+Last updated: 2026-03-01
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -2207,6 +2207,11 @@ SV parser/stimuli preprocess-first closed-loop command:
 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
 ```
 
+SV parse-full ratio promotion command:
+```bash
+make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate
+```
+
 VHDL parser/stimuli closed-loop command:
 ```bash
 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate
@@ -2244,6 +2249,8 @@ Aggregate gate tuning:
 - `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file; current tracked policy default is `1`)
 - `PGEN_SOTA_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO` (`1`/`0`, default from policy file; controls parse-full ratio strictness passed into `sv_stimuli_quality_gate`)
 - `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO` (`0-100`, default from policy file; minimum parse-full pass ratio percent passed into `sv_stimuli_quality_gate`)
+- `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of parse-full ratio promotion trials)
+- `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when promotion eligibility is not met)
 - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
@@ -2363,6 +2370,19 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `1`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STATE_DIR` (default `rust/target/sv_declared_shadow_promotion_gate`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE` (`auto`/`0`/`1`, default `auto`)
+  - controls standalone `sv_parse_full_ratio_promotion_gate` behavior.
+  - `auto`: run strict-ratio trials and emit recommendation without failing on ineligible outcomes.
+  - `0`: skip parse-full ratio promotion gate.
+  - `1`: strict promotion mode (fails when threshold-ratchet eligibility is not met).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` (default `3`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT` (default `6`, sample count per trial)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` (default `12001`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `1`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_semantic_file`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default `20`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STATE_DIR` (default `rust/target/sv_parse_full_ratio_promotion_gate`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE` (override declared-identifier deterministic contract corpus path)
@@ -2545,6 +2565,19 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - uses `sv_file` mode with parseability-scoped shadow checks to isolate declared-before-use promotion evidence from unrelated semantic-closure blockers.
   - default aggregate policy:
     - wired into `sota_exit_gate` as required strict (`run=1`, `strict=1`) after promotion-trial baseline convergence.
+- parse-full ratio promotion trial gate:
+  - target:
+    - `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - deterministic report artifact:
+    - `rust/target/sv_parse_full_ratio_promotion_gate/work/systemverilog_parse_full_ratio_promotion_report.json`
+  - report fields:
+    - `recommendation` (`raise_min_parse_full_pass_ratio` or `hold`)
+    - `eligibility.eligible_for_ratio_promotion`
+    - per-trial parse-full ratio outcomes and aggregated min/max/avg ratio telemetry
+  - behavior:
+    - runs strict `sv_stimuli_quality_gate` trials at target ratio threshold to determine if aggregate minimum can be ratcheted safely.
+  - default aggregate policy:
+    - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`) while ratchet evidence converges.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-ratio-ratchet-15)
+Last updated: 2026-03-01 (+0100, task: phase-p-parse-full-ratio-promotion-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -28,6 +28,9 @@ Use this file to resume work without replaying full chat history.
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
+  - SV parse-full ratio promotion stage enabled informationally:
+    - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 
@@ -222,6 +225,23 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Added deterministic SV parse-full ratio promotion gate + aggregate informational wiring
+- Root cause:
+  - aggregate parse-full ratio ratcheting had no dedicated promotion-trial contract, forcing ad-hoc manual threshold decisions.
+- Fix:
+  - added `sv_parse_full_ratio_promotion_gate`:
+    - deterministic strict trial matrix with target-threshold parse-full ratio enforcement,
+    - recommendation report (`raise_min_parse_full_pass_ratio` vs `hold`) at:
+      - `rust/target/sv_parse_full_ratio_promotion_gate/work/systemverilog_parse_full_ratio_promotion_report.json`.
+  - wired `sota_exit_gate` policy/runtime controls:
+    - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION` / `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` / `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT`
+  - set tracked default to informational-first (`run=1`, `strict=0`).
+- Validation:
+  - script syntax checks passed (`bash -n` for promotion gate and aggregate gate),
+  - standalone promotion gate executed and emitted summary/report artifacts,
+  - focused aggregate run executed promotion stage in informational mode with required-check set held stable.
 
 ### 2026-03-01: Ratcheted aggregate SV parse-full minimum pass ratio to 15%
 - Root cause:

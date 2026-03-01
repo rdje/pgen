@@ -336,6 +336,15 @@ Toolbox baseline to leverage end-to-end:
     - `rust/config/sota_exit_policy.env` now sets `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=15`,
     - strict semantic-closure run remained green with observed ratio `16%`,
     - focused aggregate strict run (`sv_stimuli_quality_gate` required) remained green.
+  - Progress (2026-03-01): added dedicated parse-full ratio promotion-trial gate (`sv_parse_full_ratio_promotion_gate`) and wired it into aggregate SOTA policy in informational-first mode:
+    - gate runs deterministic strict `sv_stimuli_quality_gate` trial matrix at configurable target threshold and emits:
+      - `rust/target/sv_parse_full_ratio_promotion_gate/work/systemverilog_parse_full_ratio_promotion_report.json`
+      with recommendation:
+      - `raise_min_parse_full_pass_ratio` or `hold`,
+    - aggregate knobs added:
+      - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION` / `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION`
+      - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` / `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT`,
+    - tracked policy default is now `run=1`, `strict=0` while ratchet evidence converges for the next threshold step.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -572,6 +581,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Added deterministic `sv_parse_full_ratio_promotion_gate` and aggregate policy wiring for parse-full threshold ratchet readiness (`PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`, strict informational-first by default).
 - 2026-03-01: Ratcheted aggregate SV parse-full minimum pass ratio from `10` to `15` (`PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=15`) after deterministic strict validation remained green.
 - 2026-03-01: Wired SV parse-full quality strictness into aggregate policy (`sota_exit_gate` + `sota_exit_policy.env`) with default required threshold forwarding (`enforce=1`, `min=10`) to required `sv_stimuli_quality_gate` runs.
 - 2026-03-01: Added parse-full acceptance quality controls to Phase P (`systemverilog_core_v0_contract.json` v21 + `sv_stimuli_quality_gate` telemetry/strict-threshold enforcement with deterministic `systemverilog_parse_full_quality_report.json` artifact).

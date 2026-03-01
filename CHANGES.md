@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Parse-Full Ratio Promotion Gate: Deterministic Threshold-Ratchet Readiness Trials
+### ✅ Achievement Summary
+Added a dedicated SystemVerilog parse-full ratio promotion gate that runs deterministic strict trial matrices at a target threshold and emits an explicit ratchet recommendation (`raise_min_parse_full_pass_ratio` vs `hold`).
+
+### Scope of Changes
+- Added new promotion gate script:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+  - behavior:
+    - runs strict `sv_stimuli_quality_gate` trials with parse-full ratio enforcement at configurable target threshold,
+    - extracts/aggregates observed parse-full pass ratios per trial,
+    - emits deterministic machine-readable report:
+      - `rust/target/sv_parse_full_ratio_promotion_gate/work/systemverilog_parse_full_ratio_promotion_report.json`,
+    - supports `auto|0|1` promotion mode (`auto` report-only, `1` strict eligibility enforcement).
+- Added Make target and help entry:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - new target:
+    - `sv_parse_full_ratio_promotion_gate`
+- Wired aggregate SOTA policy + stage execution:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - new policy/runtime knobs:
+    - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT`
+    - `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION`
+    - `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT`
+  - default aggregate posture:
+    - `run=1`, `strict=0` (informational-first while ratchet evidence converges).
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+
 ## 2026-03-01 - Phase P Parse-Full Ratio Ratchet: Aggregate SV Threshold 10% -> 15%
 ### ✅ Achievement Summary
 Raised the aggregate SV parse-full pass-ratio floor from `10%` to `15%` after deterministic strict validation remained green.

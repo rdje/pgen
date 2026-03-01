@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Promotion Instrumentation: Parse-Full Ratio Trial Gate + Aggregate Wiring
+### Context
+Aggregate SV parse-full strictness is now enforced at `15%`, but ratcheting further (for example to `20%`) needed an objective, reproducible promotion mechanism separate from one-off manual runs.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+#### 1) Added deterministic parse-full ratio promotion gate
+`sv_parse_full_ratio_promotion_gate.sh`:
+- runs configurable strict trial matrix over `sv_stimuli_quality_gate`:
+  - each trial enables parse-full ratio enforcement at target threshold:
+    - `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1`
+    - `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=<target>`
+- trial controls:
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE=auto|0|1`
+  - `..._TRIALS`, `..._COUNT`, `..._SEED_BASE`
+  - `..._PARSE_FULL_MODE`, `..._SEMANTIC_CLOSURE_MODE`, `..._STIMULI_MODE`
+  - `..._TARGET_MIN_RATIO`
+- deterministic outputs:
+  - per-trial logs under `rust/target/sv_parse_full_ratio_promotion_gate/logs/`
+  - report JSON:
+    - `rust/target/sv_parse_full_ratio_promotion_gate/work/systemverilog_parse_full_ratio_promotion_report.json`
+  - text summary:
+    - `rust/target/sv_parse_full_ratio_promotion_gate/summary.txt`
+- recommendation contract:
+  - `raise_min_parse_full_pass_ratio` only when all strict trials pass with extractable ratio telemetry,
+  - otherwise `hold`.
+
+#### 2) Added Make entrypoint
+`rust/Makefile`:
+- new help row and target:
+  - `sv_parse_full_ratio_promotion_gate`
+
+#### 3) Wired aggregate policy execution
+`sota_exit_gate.sh` and policy env:
+- added policy defaults:
+  - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`
+  - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0`
+- added runtime overrides:
+  - `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION`
+  - `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT`
+- added validation + summary echo for both knobs.
+- aggregate stage behavior:
+  - strict required path runs:
+    - `env PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE=1 make ... sv_parse_full_ratio_promotion_gate`
+  - informational path runs:
+    - `env PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE=auto make ... sv_parse_full_ratio_promotion_gate`
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+- focused aggregate execution with only parse-full ratio promotion stage enabled (required checks minimized to `differential_baseline_contract`).
+
+Observed:
+- new promotion gate syntax and execution path are valid.
+- standalone promotion gate emits deterministic summary/report artifacts.
+- aggregate gate runs the new stage in informational mode by default and reports it in summary output without destabilizing required-stage policy.
+
 ## 2026-03-01 - Phase P Ratchet Increment: Aggregate SV Parse-Full Min Ratio 10 -> 15
 ### Context
 Aggregate policy enforcement for SV parse-full ratio was in place at `10%`. With deterministic strict runs stable at `16%`, the next planned ratchet step was to increase the enforced threshold.
