@@ -194,6 +194,10 @@ echo "check,required,status,notes,log" >"$SUMMARY_CSV"
 
 required_failures=0
 all_failures=0
+SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_AVG="<unset>"
 
 run_check() {
     local name="$1"
@@ -460,13 +464,18 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         promotion_recommendation="$(jq -er '.recommendation // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         promotion_primary_blocker="$(jq -er '.blockers.primary_non_ratio_blocker // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         promotion_ratio_avg="$(jq -er '.totals.observed_ratio_avg // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
-        echo "sv_parse_full_ratio_promotion_report_json: $SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON"
-        echo "sv_parse_full_ratio_promotion_recommendation: $promotion_recommendation"
-        echo "sv_parse_full_ratio_promotion_primary_non_ratio_blocker: $promotion_primary_blocker"
-        echo "sv_parse_full_ratio_promotion_observed_ratio_avg: $promotion_ratio_avg"
+        SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON"
+        SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="$promotion_recommendation"
+        SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="$promotion_primary_blocker"
+        SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_AVG="$promotion_ratio_avg"
     else
-        echo "sv_parse_full_ratio_promotion_report_json: <missing>"
+        SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<missing>"
     fi
+
+    echo "sv_parse_full_ratio_promotion_report_json: $SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON"
+    echo "sv_parse_full_ratio_promotion_recommendation: $SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION"
+    echo "sv_parse_full_ratio_promotion_primary_non_ratio_blocker: $SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER"
+    echo "sv_parse_full_ratio_promotion_observed_ratio_avg: $SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_AVG"
 fi
 
 if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
@@ -489,6 +498,14 @@ fi
         column -s, -t "$SUMMARY_CSV"
     else
         cat "$SUMMARY_CSV"
+    fi
+    if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
+        echo
+        echo "Promotion Telemetry"
+        echo "sv_parse_full_ratio_promotion_report_json: $SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON"
+        echo "sv_parse_full_ratio_promotion_recommendation: $SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION"
+        echo "sv_parse_full_ratio_promotion_primary_non_ratio_blocker: $SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER"
+        echo "sv_parse_full_ratio_promotion_observed_ratio_avg: $SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_AVG"
     fi
 } >"$SUMMARY_TXT"
 

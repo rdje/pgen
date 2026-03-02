@@ -2618,6 +2618,10 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_parse_full_ratio_promotion_recommendation`
       - `sv_parse_full_ratio_promotion_primary_non_ratio_blocker`
       - `sv_parse_full_ratio_promotion_observed_ratio_avg`.
+    - aggregate summary artifact also persists these fields in:
+      - `rust/target/sota_exit_gate/summary.txt`
+      under section:
+      - `Promotion Telemetry`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

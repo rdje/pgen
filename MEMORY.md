@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-promotion-observability)
+Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-promotion-summary-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -232,6 +232,15 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Persisted promotion telemetry into aggregate summary artifact
+- Root cause:
+  - promotion telemetry was visible in live aggregate output but absent from persisted `summary.txt`, weakening CI artifact handoff.
+- Fix:
+  - `sota_exit_gate` now stores promotion telemetry fields and appends a `Promotion Telemetry` section to `rust/target/sota_exit_gate/summary.txt` when promotion stage runs.
+- Validation:
+  - focused aggregate run passed,
+  - `summary.txt` contained report path, recommendation, primary non-ratio blocker, and observed ratio average.
 
 ### 2026-03-01: Added aggregate-scoped promotion artifacts and inline recommendation telemetry
 - Root cause:

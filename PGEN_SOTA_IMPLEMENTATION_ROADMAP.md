@@ -383,6 +383,8 @@ Toolbox baseline to leverage end-to-end:
       - recommendation,
       - primary non-ratio blocker,
       - observed ratio average.
+  - Progress (2026-03-01): persisted aggregate promotion telemetry into summary artifacts:
+    - `rust/target/sota_exit_gate/summary.txt` now includes a dedicated `Promotion Telemetry` section when promotion stage runs, mirroring report-path/recommendation/blocker/ratio fields for CI artifact handoff.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -619,6 +621,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Added persisted promotion telemetry section to aggregate summary artifact (`rust/target/sota_exit_gate/summary.txt`) for parse-full promotion stage runs.
 - 2026-03-01: Added aggregate-scoped promotion artifact routing and inline promotion telemetry emission in `sota_exit_gate` (`report_json`, recommendation, primary blocker, avg ratio).
 - 2026-03-01: Added aggregate policy/runtime trial-shape controls for parse-full promotion stage (`TRIALS/COUNT/SEED_BASE/PARSE_FULL_MODE/SEMANTIC_CLOSURE_MODE/STIMULI_MODE`) and wired validation + forwarding in `sota_exit_gate`.
 - 2026-03-01: Added aggregate policy/runtime target-threshold controls for parse-full promotion trials (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`) and wired forwarding in `sota_exit_gate`.

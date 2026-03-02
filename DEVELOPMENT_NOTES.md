@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Aggregate Observability Increment: Promotion Telemetry Persisted in `summary.txt`
+### Context
+Aggregate gate printed promotion telemetry on stdout, but the persisted summary artifact did not include those recommendation/blocker lines, reducing handoff value of `rust/target/sota_exit_gate/summary.txt`.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+
+Changes:
+- added aggregate-level telemetry variables for parse-full promotion stage.
+- promotion stage now stores parsed report values into those variables.
+- `summary.txt` generation now appends a `Promotion Telemetry` section (when promotion stage runs) containing:
+  - report path,
+  - recommendation,
+  - primary non-ratio blocker,
+  - observed ratio average.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with promotion stage enabled.
+
+Observed:
+- aggregate run passed,
+- `summary.txt` now includes a `Promotion Telemetry` section with the same values printed on stdout.
+
 ## 2026-03-01 - Phase P Aggregate Observability Increment: Promotion Report Telemetry Surfaced in `sota_exit_gate`
 ### Context
 Promotion-stage recommendations were visible only by reading stage-local logs or report files. Aggregate gate output lacked direct recommendation/blocker telemetry and promotion artifacts were not scoped under aggregate state.
