@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Aggregate Control Increment: Policy-Driven Parse-Full Promotion Trial Shape
+### ✅ Achievement Summary
+Extended `sota_exit_gate` so aggregate policy controls not only promotion target threshold but also full promotion trial shape (trials/count/seed/modes), with validation and forwarding to `sv_parse_full_ratio_promotion_gate`.
+
+### Scope of Changes
+- Extended aggregate policy/runtime controls in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - new knobs:
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE`
+    - runtime overrides:
+      - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS`
+      - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_COUNT`
+      - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE`
+      - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE`
+      - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE`
+      - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE`
+  - behavior:
+    - validates each knob domain,
+    - prints effective values in aggregate header,
+    - forwards effective values into promotion stage for strict and informational modes.
+- Added tracked policy defaults:
+  - `..._TRIALS=3`
+  - `..._COUNT=6`
+  - `..._SEED_BASE=12001`
+  - `..._PARSE_FULL_MODE=auto`
+  - `..._SEMANTIC_CLOSURE_MODE=0`
+  - `..._STIMULI_MODE=sv_file`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=2 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=12001 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE=auto PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=0 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_file PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output includes effective forwarded trial-shape knobs.
+
 ## 2026-03-01 - Phase P Aggregate Control Increment: Policy-Driven Parse-Full Promotion Threshold
 ### ✅ Achievement Summary
 Made parse-full promotion-trial target threshold explicitly policy-driven in `sota_exit_gate`, so aggregate runs centrally control the ratchet target passed to `sv_parse_full_ratio_promotion_gate`.

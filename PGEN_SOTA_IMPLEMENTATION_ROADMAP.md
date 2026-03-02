@@ -366,6 +366,15 @@ Toolbox baseline to leverage end-to-end:
       - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
       - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
     - `sota_exit_gate` now forwards effective target threshold into `sv_parse_full_ratio_promotion_gate` for both strict and informational runs.
+  - Progress (2026-03-01): made aggregate parse-full promotion trial shape policy-driven:
+    - added policy/runtime knobs for trial controls:
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_COUNT`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE`
+    - `sota_exit_gate` now validates and forwards all effective trial-shape controls to promotion-stage invocations.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -602,6 +611,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Added aggregate policy/runtime trial-shape controls for parse-full promotion stage (`TRIALS/COUNT/SEED_BASE/PARSE_FULL_MODE/SEMANTIC_CLOSURE_MODE/STIMULI_MODE`) and wired validation + forwarding in `sota_exit_gate`.
 - 2026-03-01: Added aggregate policy/runtime target-threshold controls for parse-full promotion trials (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`) and wired forwarding in `sota_exit_gate`.
 - 2026-03-01: Added structured blocker taxonomy to `sv_parse_full_ratio_promotion_gate` reports (per-trial blocker keys/details + aggregate blocker breakdown and primary non-ratio blocker).
 - 2026-03-01: Aligned parse-full ratio promotion-trial defaults to aggregate enforcement profile (`sv_file`, semantic closure off) so ratchet recommendations reflect pure parse-full threshold debt.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-promotion-target-policy)
+Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-promotion-trial-shape-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -32,6 +32,12 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`
     - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=3`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=6`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=12001`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE=auto`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=0`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_file`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 
@@ -226,6 +232,18 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Made aggregate parse-full promotion trial shape policy-driven
+- Root cause:
+  - aggregate promotion stage controlled target threshold, but trial shape still depended on script defaults and could not be centrally tuned under aggregate policy.
+- Fix:
+  - added aggregate policy/runtime knobs for:
+    - trials/count/seed_base,
+    - parse_full_mode/semantic_closure_mode/stimuli_mode,
+  - added validation and forwarding of effective values in `sota_exit_gate` for promotion-stage invocations.
+- Validation:
+  - `bash -n rust/scripts/sota_exit_gate.sh` passed,
+  - focused aggregate run passed with explicit `PGEN_SOTA_SV_*` trial-shape overrides and logged effective forwarded values.
 
 ### 2026-03-01: Made aggregate parse-full promotion target policy-driven
 - Root cause:

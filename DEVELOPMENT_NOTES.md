@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Aggregate Wiring Increment: Policy-Driven Parse-Full Promotion Trial Shape Controls
+### Context
+Aggregate parse-full promotion stage already accepted policy-driven target threshold, but trial shape still relied on promotion-script defaults, limiting central reproducibility control in aggregate policy execution.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Added aggregate policy/runtime controls:
+- `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS`
+- `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_COUNT`
+- `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE`
+- `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE`
+- `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE`
+- `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE`
+
+Behavior:
+- `sota_exit_gate` validates all effective values (type/domain checks).
+- aggregate header now prints all effective trial-shape values.
+- promotion stage invocations (strict + informational) now receive all trial-shape settings via environment forwarding.
+
+Tracked default policy values:
+- `TRIALS=3`
+- `COUNT=6`
+- `SEED_BASE=12001`
+- `PARSE_FULL_MODE=auto`
+- `SEMANTIC_CLOSURE_MODE=0`
+- `STIMULI_MODE=sv_file`
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with promotion stage only and explicit runtime overrides:
+  - target ratio + trial-shape controls.
+
+Observed:
+- aggregate run passed.
+- aggregate output showed effective forwarded trial-shape settings.
+- promotion log reflected forwarded `target_min_ratio` and trial-shape parameters.
+
 ## 2026-03-01 - Phase P Aggregate Wiring Increment: Policy-Driven Parse-Full Promotion Target Ratio
 ### Context
 Promotion trials were policy-enabled in aggregate runs, but target threshold remained an implicit script default (`20`), limiting central policy control and making threshold changes less explicit in aggregate execution logs.

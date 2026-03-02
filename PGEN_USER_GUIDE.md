@@ -2252,6 +2252,12 @@ Aggregate gate tuning:
 - `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of parse-full ratio promotion trials)
 - `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when promotion eligibility is not met)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default from policy file; parse-full promotion threshold passed into `sv_parse_full_ratio_promotion_gate`)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` (integer `>=1`, default from policy file; aggregate promotion trial count)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_COUNT` (integer `>=1`, default from policy file; per-trial sample count for aggregate promotion runs)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` (integer `>=0`, default from policy file; aggregate promotion deterministic seed base)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default from policy file; parse-full mode forwarded to promotion trials)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default from policy file; semantic-closure mode forwarded to promotion trials)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to promotion trials)
 - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
@@ -2596,6 +2602,14 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - target threshold is policy-driven via:
       - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
       - runtime override `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`.
+    - trial shape is also policy-driven via:
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE`
+      plus matching `PGEN_SOTA_SV_*` runtime overrides.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.
