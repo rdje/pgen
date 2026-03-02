@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Aggregate Observability Increment: Promotion Report Telemetry Surfaced in `sota_exit_gate`
+### Context
+Promotion-stage recommendations were visible only by reading stage-local logs or report files. Aggregate gate output lacked direct recommendation/blocker telemetry and promotion artifacts were not scoped under aggregate state.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- aggregate now forces promotion stage state dir to:
+  - `rust/target/sota_exit_gate/work/sv_parse_full_ratio_promotion_gate`
+- after promotion-stage run, aggregate parses:
+  - `.../work/systemverilog_parse_full_ratio_promotion_report.json`
+  and emits:
+  - `sv_parse_full_ratio_promotion_report_json`
+  - `sv_parse_full_ratio_promotion_recommendation`
+  - `sv_parse_full_ratio_promotion_primary_non_ratio_blocker`
+  - `sv_parse_full_ratio_promotion_observed_ratio_avg`
+
+Effect:
+- aggregate run output now provides immediate promotion readiness signal without manual report-path discovery.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with promotion stage only and explicit trial-shape overrides.
+
+Observed:
+- aggregate run passed.
+- promotion report path now resolves inside aggregate state tree.
+- recommendation/blocker/ratio telemetry lines were printed in aggregate output.
+
 ## 2026-03-01 - Phase P Aggregate Wiring Increment: Policy-Driven Parse-Full Promotion Trial Shape Controls
 ### Context
 Aggregate parse-full promotion stage already accepted policy-driven target threshold, but trial shape still relied on promotion-script defaults, limiting central reproducibility control in aggregate policy execution.

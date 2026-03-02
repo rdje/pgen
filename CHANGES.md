@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Aggregate Observability Increment: Inline Promotion Telemetry + Aggregate-Scoped Artifacts
+### ✅ Achievement Summary
+Hardened aggregate promotion-stage observability by routing promotion artifacts under `sota_exit_gate` state and printing key recommendation telemetry directly in aggregate output.
+
+### Scope of Changes
+- Updated aggregate promotion-stage execution in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - changes:
+    - forces aggregate-scoped promotion state dir:
+      - `rust/target/sota_exit_gate/work/sv_parse_full_ratio_promotion_gate`
+    - parses promotion report when available and prints:
+      - `sv_parse_full_ratio_promotion_report_json`
+      - `sv_parse_full_ratio_promotion_recommendation`
+      - `sv_parse_full_ratio_promotion_primary_non_ratio_blocker`
+      - `sv_parse_full_ratio_promotion_observed_ratio_avg`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=2 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=12001 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE=auto PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=0 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_file PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output now includes:
+    - `sv_parse_full_ratio_promotion_report_json: .../rust/target/sota_exit_gate/work/sv_parse_full_ratio_promotion_gate/work/systemverilog_parse_full_ratio_promotion_report.json`
+    - recommendation/blocker/ratio summary lines.
+
 ## 2026-03-01 - Phase P Aggregate Control Increment: Policy-Driven Parse-Full Promotion Trial Shape
 ### ✅ Achievement Summary
 Extended `sota_exit_gate` so aggregate policy controls not only promotion target threshold but also full promotion trial shape (trials/count/seed/modes), with validation and forwarding to `sv_parse_full_ratio_promotion_gate`.

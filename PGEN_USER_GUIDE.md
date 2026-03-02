@@ -2610,6 +2610,14 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE`
       - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE`
       plus matching `PGEN_SOTA_SV_*` runtime overrides.
+  - aggregate observability behavior:
+    - when run from `sota_exit_gate`, promotion artifacts are written under:
+      - `rust/target/sota_exit_gate/work/sv_parse_full_ratio_promotion_gate`
+    - aggregate output prints:
+      - `sv_parse_full_ratio_promotion_report_json`
+      - `sv_parse_full_ratio_promotion_recommendation`
+      - `sv_parse_full_ratio_promotion_primary_non_ratio_blocker`
+      - `sv_parse_full_ratio_promotion_observed_ratio_avg`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

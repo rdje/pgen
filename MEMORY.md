@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-promotion-trial-shape-policy)
+Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-promotion-observability)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -232,6 +232,21 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Added aggregate-scoped promotion artifacts and inline recommendation telemetry
+- Root cause:
+  - aggregate promotion stage pass/fail was visible, but recommendation/blocker telemetry required manual log/report discovery outside aggregate output.
+- Fix:
+  - forced promotion stage state dir under aggregate gate state tree:
+    - `rust/target/sota_exit_gate/work/sv_parse_full_ratio_promotion_gate`
+  - added aggregate output lines:
+    - `sv_parse_full_ratio_promotion_report_json`
+    - `sv_parse_full_ratio_promotion_recommendation`
+    - `sv_parse_full_ratio_promotion_primary_non_ratio_blocker`
+    - `sv_parse_full_ratio_promotion_observed_ratio_avg`
+- Validation:
+  - `bash -n rust/scripts/sota_exit_gate.sh` passed,
+  - focused aggregate run passed and emitted all new telemetry lines with aggregate-scoped report path.
 
 ### 2026-03-01: Made aggregate parse-full promotion trial shape policy-driven
 - Root cause:

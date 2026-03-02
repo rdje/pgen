@@ -425,6 +425,9 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
 fi
 
 if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
+    SV_PARSE_FULL_RATIO_PROMOTION_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parse_full_ratio_promotion_gate"
+    SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON="${SV_PARSE_FULL_RATIO_PROMOTION_STAGE_STATE_DIR}/work/systemverilog_parse_full_ratio_promotion_report.json"
+
     if [[ "$REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT" -eq 1 ]]; then
         run_check "sv_parse_full_ratio_promotion_gate" "required" "strict parse-full ratio promotion-trial gate" \
             env \
@@ -436,6 +439,7 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
                 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE="$SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE" \
                 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE="$SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE" \
                 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE="$SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE" \
+                PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STATE_DIR="$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_STATE_DIR" \
                 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate
     else
         run_check "sv_parse_full_ratio_promotion_gate" "informational" "report-only parse-full ratio promotion-trial gate" \
@@ -448,7 +452,20 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
                 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE="$SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE" \
                 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE="$SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE" \
                 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE="$SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE" \
+                PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STATE_DIR="$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_STATE_DIR" \
                 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate
+    fi
+
+    if [[ -f "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" ]]; then
+        promotion_recommendation="$(jq -er '.recommendation // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        promotion_primary_blocker="$(jq -er '.blockers.primary_non_ratio_blocker // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        promotion_ratio_avg="$(jq -er '.totals.observed_ratio_avg // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        echo "sv_parse_full_ratio_promotion_report_json: $SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON"
+        echo "sv_parse_full_ratio_promotion_recommendation: $promotion_recommendation"
+        echo "sv_parse_full_ratio_promotion_primary_non_ratio_blocker: $promotion_primary_blocker"
+        echo "sv_parse_full_ratio_promotion_observed_ratio_avg: $promotion_ratio_avg"
+    else
+        echo "sv_parse_full_ratio_promotion_report_json: <missing>"
     fi
 fi
 
