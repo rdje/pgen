@@ -2249,6 +2249,16 @@ Aggregate gate tuning:
 - `PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file; current tracked policy default is `1`)
 - `PGEN_SOTA_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO` (`1`/`0`, default from policy file; controls parse-full ratio strictness passed into `sv_stimuli_quality_gate`)
 - `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO` (`0-100`, default from policy file; minimum parse-full pass ratio percent passed into `sv_stimuli_quality_gate`)
+- `PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of declared-shadow promotion trials)
+- `PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when declared-shadow promotion is not eligible)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_TRIALS` (integer `>=1`, default from policy file; aggregate declared-shadow promotion trial count)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_COUNT` (integer `>=1`, default from policy file; per-trial sample count for aggregate declared-shadow promotion)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE` (integer `>=0`, default from policy file; aggregate declared-shadow promotion deterministic seed base)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS` (integer `>=1`, default from policy file; forwarded target-attempt budget for declared-shadow promotion trials)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default from policy file; parse-full mode forwarded to declared-shadow promotion trials)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (integer `>=1`, default from policy file; minimum checked shadow samples required by promotion gate)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default from policy file; semantic-closure mode forwarded to declared-shadow promotion trials)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to declared-shadow promotion trials)
 - `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of parse-full ratio promotion trials)
 - `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when promotion eligibility is not met)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default from policy file; parse-full promotion threshold passed into `sv_parse_full_ratio_promotion_gate`)
@@ -2572,6 +2582,25 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - uses `sv_file` mode with parseability-scoped shadow checks to isolate declared-before-use promotion evidence from unrelated semantic-closure blockers.
   - default aggregate policy:
     - wired into `sota_exit_gate` as required strict (`run=1`, `strict=1`) after promotion-trial baseline convergence.
+    - trial shape is policy-driven via:
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_TRIALS`
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_COUNT`
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE`
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS`
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE`
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED`
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE`
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE`
+      plus matching `PGEN_SOTA_SV_*` runtime overrides.
+  - aggregate observability behavior:
+    - when run from `sota_exit_gate`, declared-shadow artifacts are written under:
+      - `rust/target/sota_exit_gate/work/sv_declared_shadow_promotion_gate`
+    - aggregate output and `summary.txt` include:
+      - `sv_declared_shadow_promotion_report_json`
+      - `sv_declared_shadow_promotion_recommendation`
+      - `sv_declared_shadow_promotion_eligible_for_runtime_enforcement`
+      - `sv_declared_shadow_promotion_totals_failed`
+      - `sv_declared_shadow_promotion_totals_checked`.
 - parse-full ratio promotion trial gate:
   - target:
     - `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`

@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-01 - Phase P Aggregate Wiring/Observability Increment: Declared-Shadow Promotion Stage Parity
+### Context
+Aggregate gate had rich control/telemetry for parse-full promotion stage, but declared-shadow promotion stage still relied on hardcoded aggregate invocation shape and did not expose recommendation telemetry in aggregate summary artifacts.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Aggregate policy/runtime controls added for declared-shadow promotion stage:
+- `TRIALS`
+- `COUNT`
+- `SEED_BASE`
+- `TARGET_MAX_ATTEMPTS`
+- `PARSE_FULL_MODE`
+- `MIN_CHECKED`
+- `SEMANTIC_CLOSURE_MODE`
+- `STIMULI_MODE`
+
+Behavior:
+- `sota_exit_gate` validates all effective declared-shadow trial-shape controls.
+- stage invocation now forwards all controls in strict and informational modes.
+- stage now runs under aggregate-scoped state:
+  - `rust/target/sota_exit_gate/work/sv_declared_shadow_promotion_gate`
+- aggregate output + `summary.txt` now surface declared-shadow telemetry:
+  - report path,
+  - recommendation,
+  - runtime-enforcement eligibility,
+  - failed/checked totals.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with declared-shadow stage enabled and explicit `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_*` overrides.
+
+Observed:
+- aggregate run passed.
+- declared-shadow stage consumed forwarded overrides.
+- aggregate output and `summary.txt` contained declared-shadow telemetry section.
+
 ## 2026-03-01 - Phase P Aggregate Observability Increment: Promotion Telemetry Persisted in `summary.txt`
 ### Context
 Aggregate gate printed promotion telemetry on stdout, but the persisted summary artifact did not include those recommendation/blocker lines, reducing handoff value of `rust/target/sota_exit_gate/summary.txt`.

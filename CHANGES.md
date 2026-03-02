@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-03-01 - Phase P Aggregate Parity Increment: Declared-Shadow Promotion Policy Controls + Telemetry
+### ✅ Achievement Summary
+Brought declared-shadow promotion stage to aggregate parity with parse-full promotion by adding policy-driven trial-shape controls, aggregate-scoped artifact routing, and persisted declared-shadow telemetry in aggregate summary output.
+
+### Scope of Changes
+- Extended aggregate gate integration for declared-shadow promotion in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - added policy/runtime forwarding + validation for:
+    - `TRIALS`
+    - `COUNT`
+    - `SEED_BASE`
+    - `TARGET_MAX_ATTEMPTS`
+    - `PARSE_FULL_MODE`
+    - `MIN_CHECKED`
+    - `SEMANTIC_CLOSURE_MODE`
+    - `STIMULI_MODE`
+  - stage now runs with aggregate-scoped state dir:
+    - `rust/target/sota_exit_gate/work/sv_declared_shadow_promotion_gate`
+  - aggregate output + summary now include:
+    - `sv_declared_shadow_promotion_report_json`
+    - `sv_declared_shadow_promotion_recommendation`
+    - `sv_declared_shadow_promotion_eligible_for_runtime_enforcement`
+    - `sv_declared_shadow_promotion_totals_failed`
+    - `sv_declared_shadow_promotion_totals_checked`
+- Added tracked policy defaults:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_TRIALS=3`
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_COUNT=6`
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE=12001`
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS=400`
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=auto`
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=2`
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE=1`
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=0 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE=12001 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS=200 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=auto PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE=1 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output and `summary.txt` include declared-shadow telemetry section.
+
 ## 2026-03-01 - Phase P Aggregate Observability Increment: Persist Promotion Telemetry in Summary Artifact
 ### ✅ Achievement Summary
 Extended `sota_exit_gate` summary artifact generation so parse-full promotion recommendation telemetry is persisted in `summary.txt`, not only streamed to stdout.

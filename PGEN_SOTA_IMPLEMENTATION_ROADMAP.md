@@ -313,6 +313,13 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-03-01): promoted declared-shadow promotion gate from informational to required strict in aggregate release policy:
     - `rust/config/sota_exit_policy.env` now sets `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1`,
     - aggregate `sota_exit_gate` now executes `sv_declared_shadow_promotion_gate` in strict mode by default.
+  - Progress (2026-03-01): made aggregate declared-shadow promotion trial shape policy-driven and observable:
+    - added policy/runtime controls for:
+      - `TRIALS`, `COUNT`, `SEED_BASE`, `TARGET_MAX_ATTEMPTS`, `PARSE_FULL_MODE`, `MIN_CHECKED`, `SEMANTIC_CLOSURE_MODE`, `STIMULI_MODE`,
+    - `sota_exit_gate` now validates/forwards those controls into declared-shadow promotion stage,
+    - declared-shadow promotion stage now runs under aggregate-scoped state dir:
+      - `rust/target/sota_exit_gate/work/sv_declared_shadow_promotion_gate`,
+    - aggregate output and summary artifact now include declared-shadow promotion telemetry (report path, recommendation, eligibility, failed/checked totals).
   - Progress (2026-03-01): promoted runtime declaration-before-use enforcement in semantic-closure profile with parseability guardrails (`systemverilog_core_v0_contract.json` v20):
     - `sv_semantic_file` now enables `require_declared_identifiers_before_use=true`,
     - added `require_declared_identifiers_parseable_only=true` for semantic-closure runs to skip declaration-before-use runtime checks when `parse_full` is not `pass`,
@@ -621,6 +628,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-01: Added aggregate policy/runtime trial-shape controls and summary telemetry surfacing for declared-shadow promotion stage in `sota_exit_gate`.
 - 2026-03-01: Added persisted promotion telemetry section to aggregate summary artifact (`rust/target/sota_exit_gate/summary.txt`) for parse-full promotion stage runs.
 - 2026-03-01: Added aggregate-scoped promotion artifact routing and inline promotion telemetry emission in `sota_exit_gate` (`report_json`, recommendation, primary blocker, avg ratio).
 - 2026-03-01: Added aggregate policy/runtime trial-shape controls for parse-full promotion stage (`TRIALS/COUNT/SEED_BASE/PARSE_FULL_MODE/SEMANTIC_CLOSURE_MODE/STIMULI_MODE`) and wired validation + forwarding in `sota_exit_gate`.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-promotion-summary-telemetry)
+Last updated: 2026-03-01 (+0100, task: phase-p-aggregate-declared-shadow-promotion-parity)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -38,6 +38,17 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE=auto`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=0`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_file`
+  - SV declared-shadow promotion stage strict-enabled with policy-driven trial shape:
+    - `PGEN_SOTA_POLICY_RUN_SV_DECLARED_SHADOW_PROMOTION=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=1`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_TRIALS=3`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_COUNT=6`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_SEED_BASE=12001`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS=400`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE=auto`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=2`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE=1`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 
@@ -232,6 +243,17 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-01: Added aggregate policy/telemetry parity for declared-shadow promotion stage
+- Root cause:
+  - declared-shadow promotion stage lacked aggregate policy-driven trial-shape controls and did not emit persisted stage telemetry in aggregate summary artifacts.
+- Fix:
+  - added `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_*` + `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_*` controls for trial-shape tuning,
+  - wired validation + forwarding in `sota_exit_gate`,
+  - routed stage artifacts under aggregate state and emitted declared-shadow telemetry in stdout and `summary.txt`.
+- Validation:
+  - focused aggregate run with declared-shadow stage enabled and explicit trial-shape overrides passed,
+  - aggregate output and summary included declared-shadow telemetry fields (report path/recommendation/eligibility/failed/checked).
 
 ### 2026-03-01: Persisted promotion telemetry into aggregate summary artifact
 - Root cause:
