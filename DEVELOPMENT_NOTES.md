@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase Q Dynamic Differential Expansion: Additional Templates + Diagnostics Contract Invariants
+### Context
+After introducing the dynamic template-based offline oracle gate, the next hardening step was to increase edge-case coverage and make diagnostics behavior contractized (not only output text comparison).
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh`
+
+Changes:
+- Expanded deterministic template families:
+  - `template_nested_ifdef` for nested conditional steering behavior.
+  - `template_macro_function_args` for macro function argument substitution behavior.
+- Added diagnostics contract invariants:
+  - expected diagnostics artifact must be JSON array.
+  - observed diagnostics artifact must be JSON array (`diagnostics_contract_violation` taxonomy otherwise).
+  - per-case warning/error counts must match expected invariant values.
+- Added invariant observability surfaces:
+  - per-case `diagnostics_invariant` envelope in report cases.
+  - aggregate counters:
+    - `diagnostics_invariant_pass_count`
+    - `diagnostics_invariant_fail_count`
+  - taxonomy counter:
+    - `diff_taxonomy_diagnostics_contract_violation`
+- Updated gate report and summary to include new template counters and diagnostics invariant counters.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=auto PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_COUNT=24 bash rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_COUNT=24 bash rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate`
+
+Observed:
+- dynamic template run remained deterministic and green.
+- expanded template families were exercised in stable distribution.
+- diagnostics invariants were all passing (`pass_count == cases_checked`, `fail_count == 0`) for the validated runs.
+
 ## 2026-03-03 - Phase Q Differential Hardening: Dynamic Template-Based Offline Oracle Gate
 ### Context
 Curated static corpora are necessary for fixed contract anchors, but not sufficient alone for large-scale automated coverage. We needed a scalable dynamic path that predicts expected preprocessing outcomes without depending on external tools (`iverilog`/`verilator`).

@@ -647,6 +647,15 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - strict mode fails only on `bug_mismatch`, enabling dynamic high-volume regression checks with objective pass/fail semantics.
     - wired executable Make target:
       - `make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate`
+  - Progress (2026-03-03): expanded template differential contract with additional edge-case template families and diagnostics invariants:
+    - added template families:
+      - `template_nested_ifdef`
+      - `template_macro_function_args`
+    - diagnostics behavior is now explicitly contractized:
+      - expected/observed diagnostics must be JSON arrays,
+      - warning/error count invariants are tracked per case and aggregated in summary/report outputs,
+      - added mismatch taxonomy for diagnostics shape violations (`diagnostics_contract_violation`).
+    - this strengthens objective failure attribution beyond text-only output deltas.
 - [x] Promote preprocessor gate policy:
   - informational first while grammar closes,
   - required strict before declaring Phase P (Nexsim SV parser closure) complete.
@@ -719,6 +728,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Expanded dynamic template SV preprocessor differential gate with nested-conditional/macro-arg templates and diagnostics-invariant contract counters/taxonomy (`diagnostics_contract_violation`).
 - 2026-03-03: Added dynamic template-based offline SV preprocessor oracle differential gate (`sv_preprocessor_template_differential_gate`) with deterministic seed-driven case synthesis, predicted expected outputs/diagnostics, and strict bug-only failure semantics.
 - 2026-03-03: Added offline curated SV preprocessor differential gate (`sv_preprocessor_curated_differential_gate`) with checked-in expected-artifact oracle corpus, deterministic classification (`expected_match`/`expected_mismatch`/`bug_mismatch`), strict bug-only failure mode, and Makefile wiring.
 - 2026-03-03: Added aggregate `sv_preprocessor_quality_gate` artifact scoping (`rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`) and telemetry surfacing (effective parseability/differential modes, mismatch count, key taxonomy counters, report paths) in `sota_exit_gate`.

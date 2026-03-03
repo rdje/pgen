@@ -2410,6 +2410,8 @@ make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate
   - `template_ifdef_branch`
   - `template_token_paste`
   - `template_define_undef_ifdef`
+  - `template_nested_ifdef`
+  - `template_macro_function_args`
 - tuning knobs:
   - `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
     - `0`: disable template differential stage
@@ -2424,6 +2426,12 @@ make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate
   - `expected_match`: observed category is `match`
   - `expected_mismatch`: observed category is in expected set but non-primary (for example whitespace-only output drift)
   - `bug_mismatch`: observed category is outside expected set and is treated as regression debt
+- diagnostics invariants:
+  - expected diagnostics must be a JSON array.
+  - observed diagnostics must be a JSON array (`diagnostics_contract_violation` taxonomy on contract failure).
+  - warning/error counts are checked per case against expected values and aggregated as:
+    - `diagnostics_invariant_pass_count`
+    - `diagnostics_invariant_fail_count`
 
 Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`)

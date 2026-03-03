@@ -79,7 +79,7 @@ build_template_case() {
     local template_name_out="$6"
     local case_label_out="$7"
 
-    local template_id="$((seed % 4))"
+    local template_id="$((seed % 6))"
 
     case "$template_id" in
         0)
@@ -178,6 +178,75 @@ EOF_EXPECTED
             echo "template_define_undef_ifdef" >"$template_name_out"
             echo "dyn_undef_false_${macro_suffix}" >"$case_label_out"
             ;;
+        4)
+            local nested_suffix="$(((seed * 19) % 10000))"
+            local outer_name="OUTER_${nested_suffix}"
+            local inner_name="INNER_${nested_suffix}"
+            local define_inner="$((seed % 2))"
+            if [[ "$define_inner" -eq 1 ]]; then
+                cat >"$input_file" <<EOF_CASE
+\`define ${outer_name}
+\`ifdef ${outer_name}
+\`define ${inner_name}
+\`ifdef ${inner_name}
+module dyn_nested_true_${nested_suffix};
+endmodule
+\`else
+module dyn_nested_inner_false_${nested_suffix};
+endmodule
+\`endif
+\`else
+module dyn_nested_outer_false_${nested_suffix};
+endmodule
+\`endif
+EOF_CASE
+                cat >"$expected_output_file" <<EOF_EXPECTED
+module dyn_nested_true_${nested_suffix};
+endmodule
+EOF_EXPECTED
+                echo "dyn_nested_true_${nested_suffix}" >"$case_label_out"
+            else
+                cat >"$input_file" <<EOF_CASE
+\`define ${outer_name}
+\`ifdef ${outer_name}
+\`ifdef ${inner_name}
+module dyn_nested_true_${nested_suffix};
+endmodule
+\`else
+module dyn_nested_inner_false_${nested_suffix};
+endmodule
+\`endif
+\`else
+module dyn_nested_outer_false_${nested_suffix};
+endmodule
+\`endif
+EOF_CASE
+                cat >"$expected_output_file" <<EOF_EXPECTED
+module dyn_nested_inner_false_${nested_suffix};
+endmodule
+EOF_EXPECTED
+                echo "dyn_nested_inner_false_${nested_suffix}" >"$case_label_out"
+            fi
+            echo "template_nested_ifdef" >"$template_name_out"
+            ;;
+        5)
+            local arg_suffix="$(((seed * 23) % 10000))"
+            local lhs="$(((seed % 9) + 1))"
+            local rhs="$((((seed / 3) % 9) + 1))"
+            cat >"$input_file" <<EOF_CASE
+\`define ADD2(a,b) ((a)+(b))
+module dyn_macro_args_${arg_suffix};
+  localparam int VALUE = \`ADD2(${lhs},${rhs});
+endmodule
+EOF_CASE
+            cat >"$expected_output_file" <<EOF_EXPECTED
+module dyn_macro_args_${arg_suffix};
+  localparam int VALUE = ((${lhs})+(${rhs}));
+endmodule
+EOF_EXPECTED
+            echo "template_macro_function_args" >"$template_name_out"
+            echo "dyn_macro_args_${arg_suffix}" >"$case_label_out"
+            ;;
         *)
             echo "error: unsupported template id '$template_id' for seed '$seed'" >&2
             exit 1
@@ -216,6 +285,7 @@ taxonomy_match_count=0
 taxonomy_diagnostics_mismatch_count=0
 taxonomy_whitespace_only_output_mismatch_count=0
 taxonomy_output_mismatch_count=0
+taxonomy_diagnostics_contract_violation_count=0
 taxonomy_rust_failed_expected_passed_count=0
 taxonomy_reference_artifact_missing_count=0
 
@@ -223,6 +293,11 @@ template_define_width_count=0
 template_ifdef_branch_count=0
 template_token_paste_count=0
 template_define_undef_ifdef_count=0
+template_nested_ifdef_count=0
+template_macro_function_args_count=0
+
+diagnostics_invariant_pass_count=0
+diagnostics_invariant_fail_count=0
 
 : >"$CASES_JSONL"
 
@@ -274,6 +349,12 @@ if [[ "$DIFF_MODE" != "0" ]]; then
             template_define_undef_ifdef)
                 template_define_undef_ifdef_count=$((template_define_undef_ifdef_count + 1))
                 ;;
+            template_nested_ifdef)
+                template_nested_ifdef_count=$((template_nested_ifdef_count + 1))
+                ;;
+            template_macro_function_args)
+                template_macro_function_args_count=$((template_macro_function_args_count + 1))
+                ;;
             *)
                 echo "error: unknown generated template name '$template_name'" >&2
                 exit 1
@@ -290,9 +371,18 @@ if [[ "$DIFF_MODE" != "0" ]]; then
             rust_exit=$?
         fi
 
+        if ! jq -e 'type == "array"' "$expected_diag_file" >/dev/null 2>&1; then
+            echo "error: expected diagnostics file is not a JSON array: $expected_diag_file" >&2
+            exit 1
+        fi
+
+        expected_warning_count=0
+        expected_error_count=0
         rust_warnings=0
         rust_errors=0
+        rust_diag_array_ok=0
         if [[ -s "$rust_diag_file" ]] && jq -e 'type == "array"' "$rust_diag_file" >/dev/null 2>&1; then
+            rust_diag_array_ok=1
             rust_warnings="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$rust_diag_file")"
             rust_errors="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$rust_diag_file")"
         fi
@@ -303,6 +393,9 @@ if [[ "$DIFF_MODE" != "0" ]]; then
         elif [[ ! -f "$rust_output_file" || ! -f "$rust_diag_file" ]]; then
             category="reference_artifact_missing"
         else
+            if (( rust_diag_array_ok == 0 )); then
+                category="diagnostics_contract_violation"
+            else
             output_exact_match=0
             output_whitespace_match=0
             diagnostics_match=0
@@ -332,6 +425,7 @@ if [[ "$DIFF_MODE" != "0" ]]; then
             else
                 category="output_mismatch"
             fi
+            fi
         fi
 
         case "$category" in
@@ -346,6 +440,9 @@ if [[ "$DIFF_MODE" != "0" ]]; then
                 ;;
             output_mismatch)
                 taxonomy_output_mismatch_count=$((taxonomy_output_mismatch_count + 1))
+                ;;
+            diagnostics_contract_violation)
+                taxonomy_diagnostics_contract_violation_count=$((taxonomy_diagnostics_contract_violation_count + 1))
                 ;;
             rust_failed_expected_passed)
                 taxonomy_rust_failed_expected_passed_count=$((taxonomy_rust_failed_expected_passed_count + 1))
@@ -369,8 +466,16 @@ if [[ "$DIFF_MODE" != "0" ]]; then
                 expected_mismatch_count=$((expected_mismatch_count + 1))
             fi
         else
-            classification="bug_mismatch"
-            bug_mismatch_count=$((bug_mismatch_count + 1))
+                classification="bug_mismatch"
+                bug_mismatch_count=$((bug_mismatch_count + 1))
+        fi
+
+        diagnostics_invariant_ok=0
+        if (( rust_diag_array_ok == 1 )) && (( rust_warnings == expected_warning_count )) && (( rust_errors == expected_error_count )); then
+            diagnostics_invariant_ok=1
+            diagnostics_invariant_pass_count=$((diagnostics_invariant_pass_count + 1))
+        else
+            diagnostics_invariant_fail_count=$((diagnostics_invariant_fail_count + 1))
         fi
 
         jq -n \
@@ -390,6 +495,10 @@ if [[ "$DIFF_MODE" != "0" ]]; then
             --argjson rust_exit "$rust_exit" \
             --argjson rust_warnings "$rust_warnings" \
             --argjson rust_errors "$rust_errors" \
+            --argjson expected_warning_count "$expected_warning_count" \
+            --argjson expected_error_count "$expected_error_count" \
+            --argjson rust_diag_array_ok "$rust_diag_array_ok" \
+            --argjson diagnostics_invariant_ok "$diagnostics_invariant_ok" \
             '{
                 index: $index,
                 seed: $seed,
@@ -408,6 +517,14 @@ if [[ "$DIFF_MODE" != "0" ]]; then
                     exit_code: $rust_exit,
                     warning_count: $rust_warnings,
                     error_count: $rust_errors
+                },
+                diagnostics_invariant: {
+                    rust_diag_is_json_array: ($rust_diag_array_ok == 1),
+                    expected_warning_count: $expected_warning_count,
+                    expected_error_count: $expected_error_count,
+                    observed_warning_count: $rust_warnings,
+                    observed_error_count: $rust_errors,
+                    pass: ($diagnostics_invariant_ok == 1)
                 }
             }' >>"$CASES_JSONL"
 
@@ -443,12 +560,17 @@ jq -n \
     --argjson taxonomy_diagnostics_mismatch_count "$taxonomy_diagnostics_mismatch_count" \
     --argjson taxonomy_whitespace_only_output_mismatch_count "$taxonomy_whitespace_only_output_mismatch_count" \
     --argjson taxonomy_output_mismatch_count "$taxonomy_output_mismatch_count" \
+    --argjson taxonomy_diagnostics_contract_violation_count "$taxonomy_diagnostics_contract_violation_count" \
     --argjson taxonomy_rust_failed_expected_passed_count "$taxonomy_rust_failed_expected_passed_count" \
     --argjson taxonomy_reference_artifact_missing_count "$taxonomy_reference_artifact_missing_count" \
     --argjson template_define_width_count "$template_define_width_count" \
     --argjson template_ifdef_branch_count "$template_ifdef_branch_count" \
     --argjson template_token_paste_count "$template_token_paste_count" \
     --argjson template_define_undef_ifdef_count "$template_define_undef_ifdef_count" \
+    --argjson template_nested_ifdef_count "$template_nested_ifdef_count" \
+    --argjson template_macro_function_args_count "$template_macro_function_args_count" \
+    --argjson diagnostics_invariant_pass_count "$diagnostics_invariant_pass_count" \
+    --argjson diagnostics_invariant_fail_count "$diagnostics_invariant_fail_count" \
     --argjson strict_failure "$strict_failure" \
     --argjson cases "$cases_json" \
     '{
@@ -463,11 +585,17 @@ jq -n \
                 template_define_width: $template_define_width_count,
                 template_ifdef_branch: $template_ifdef_branch_count,
                 template_token_paste: $template_token_paste_count,
-                template_define_undef_ifdef: $template_define_undef_ifdef_count
+                template_define_undef_ifdef: $template_define_undef_ifdef_count,
+                template_nested_ifdef: $template_nested_ifdef_count,
+                template_macro_function_args: $template_macro_function_args_count
             }
         },
         cases_declared: $cases_declared,
         cases_checked: $cases_checked,
+        diagnostics_invariant: {
+            passed_cases: $diagnostics_invariant_pass_count,
+            failed_cases: $diagnostics_invariant_fail_count
+        },
         classification_counts: {
             expected_match: $expected_match_count,
             expected_mismatch: $expected_mismatch_count,
@@ -478,6 +606,7 @@ jq -n \
             diagnostics_mismatch: $taxonomy_diagnostics_mismatch_count,
             whitespace_only_output_mismatch: $taxonomy_whitespace_only_output_mismatch_count,
             output_mismatch: $taxonomy_output_mismatch_count,
+            diagnostics_contract_violation: $taxonomy_diagnostics_contract_violation_count,
             rust_failed_expected_passed: $taxonomy_rust_failed_expected_passed_count,
             reference_artifact_missing: $taxonomy_reference_artifact_missing_count
         },
@@ -501,6 +630,10 @@ template_define_width_count,$template_define_width_count
 template_ifdef_branch_count,$template_ifdef_branch_count
 template_token_paste_count,$template_token_paste_count
 template_define_undef_ifdef_count,$template_define_undef_ifdef_count
+template_nested_ifdef_count,$template_nested_ifdef_count
+template_macro_function_args_count,$template_macro_function_args_count
+diagnostics_invariant_pass_count,$diagnostics_invariant_pass_count
+diagnostics_invariant_fail_count,$diagnostics_invariant_fail_count
 classification_expected_match,$expected_match_count
 classification_expected_mismatch,$expected_mismatch_count
 classification_bug_mismatch,$bug_mismatch_count
@@ -508,6 +641,7 @@ diff_taxonomy_match,$taxonomy_match_count
 diff_taxonomy_diagnostics_mismatch,$taxonomy_diagnostics_mismatch_count
 diff_taxonomy_whitespace_only_output_mismatch,$taxonomy_whitespace_only_output_mismatch_count
 diff_taxonomy_output_mismatch,$taxonomy_output_mismatch_count
+diff_taxonomy_diagnostics_contract_violation,$taxonomy_diagnostics_contract_violation_count
 diff_taxonomy_rust_failed_expected_passed,$taxonomy_rust_failed_expected_passed_count
 diff_taxonomy_reference_artifact_missing,$taxonomy_reference_artifact_missing_count
 report_json,$REPORT_JSON

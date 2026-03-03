@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-03 - Phase Q Dynamic Differential Expansion: Nested Conditional + Macro-Arg Templates and Diagnostics Invariants
+### ✅ Achievement Summary
+Expanded the dynamic template-based SV preprocessor differential gate with additional edge-case templates and explicit diagnostics contract invariants.
+
+### Scope of Changes
+- Updated dynamic template gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh`
+  - added template families:
+    - `template_nested_ifdef`
+    - `template_macro_function_args`
+  - strengthened diagnostics checks:
+    - enforce diagnostics JSON-array contract,
+    - enforce expected warning/error count invariants per generated case,
+    - emit invariant pass/fail counters and per-case diagnostics invariant envelope.
+  - added taxonomy bucket:
+    - `diagnostics_contract_violation`
+  - report/summary now include expanded template counters and diagnostics invariant counters.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh` ✅
+- `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=auto PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_COUNT=24 /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh` ✅
+- `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_COUNT=24 /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_preprocessor_template_differential_gate` ✅
+
 ## 2026-03-03 - Phase Q Differential Hardening Increment: Dynamic Template-Based SV Preprocessor Oracle Gate
 ### ✅ Achievement Summary
 Added a fully dynamic template-based differential gate for SV preprocessing that predicts expected output/diagnostics from deterministic templates (offline oracle model) and classifies expected-vs-bug outcomes at scale.
