@@ -2663,7 +2663,9 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_parse_full_ratio_promotion_report_json`
       - `sv_parse_full_ratio_promotion_recommendation`
       - `sv_parse_full_ratio_promotion_primary_non_ratio_blocker`
-      - `sv_parse_full_ratio_promotion_observed_ratio_avg`.
+      - `sv_parse_full_ratio_promotion_observed_ratio_avg`
+      - `sv_parse_full_ratio_promotion_failed_trial_count`
+      - `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`.
     - aggregate summary artifact also persists these fields in:
       - `rust/target/sota_exit_gate/summary.txt`
       under section:

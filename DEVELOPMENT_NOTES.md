@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Aggregate Telemetry Increment: Parse-Full Promotion Blocker Counts
+### Context
+Aggregate parse-full promotion telemetry surfaced recommendation, primary blocker, and observed ratio average, but did not expose blocker-count counters directly. Quick aggregate triage still required opening promotion report JSON to read failed/non-ratio-blocked trial counts.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- Added stage-report parsing for:
+  - `.blockers.failed_trial_count`
+  - `.blockers.non_ratio_blocked_trial_count`
+- Added aggregate telemetry variables + output/summary fields:
+  - `sv_parse_full_ratio_promotion_failed_trial_count`
+  - `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`
+- Persisted same fields into:
+  - `rust/target/sota_exit_gate/summary.txt`
+  under parse-full promotion telemetry section.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with parse-full promotion stage enabled and reduced trial/sample count.
+
+Observed:
+- aggregate output and summary now include:
+  - `sv_parse_full_ratio_promotion_failed_trial_count`
+  - `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`
+- values match parse-full promotion report blocker counters.
+
 ## 2026-03-03 - Phase P Aggregate Telemetry Increment: Declared-Shadow Blocker Counts
 ### Context
 Aggregate declared-shadow promotion telemetry already exposed recommendation, totals, primary blocker, and parseability scope, but did not expose blocker-count counters directly. This required opening stage report JSON for quick failed/non-shadow-blocked trial count checks.

@@ -261,6 +261,8 @@ SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_AVG="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_FAILED_TRIAL_COUNT="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_NON_RATIO_BLOCKED_TRIAL_COUNT="<unset>"
 
 run_check() {
     local name="$1"
@@ -595,10 +597,14 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         promotion_recommendation="$(jq -er '.recommendation // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         promotion_primary_blocker="$(jq -er '.blockers.primary_non_ratio_blocker // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         promotion_ratio_avg="$(jq -er '.totals.observed_ratio_avg // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        promotion_failed_trial_count="$(jq -er '.blockers.failed_trial_count // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        promotion_non_ratio_blocked_trial_count="$(jq -er '.blockers.non_ratio_blocked_trial_count // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON"
         SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="$promotion_recommendation"
         SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="$promotion_primary_blocker"
         SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_AVG="$promotion_ratio_avg"
+        SV_PARSE_FULL_RATIO_PROMOTION_FAILED_TRIAL_COUNT="$promotion_failed_trial_count"
+        SV_PARSE_FULL_RATIO_PROMOTION_NON_RATIO_BLOCKED_TRIAL_COUNT="$promotion_non_ratio_blocked_trial_count"
     else
         SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<missing>"
     fi
@@ -607,6 +613,8 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
     echo "sv_parse_full_ratio_promotion_recommendation: $SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION"
     echo "sv_parse_full_ratio_promotion_primary_non_ratio_blocker: $SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER"
     echo "sv_parse_full_ratio_promotion_observed_ratio_avg: $SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_AVG"
+    echo "sv_parse_full_ratio_promotion_failed_trial_count: $SV_PARSE_FULL_RATIO_PROMOTION_FAILED_TRIAL_COUNT"
+    echo "sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count: $SV_PARSE_FULL_RATIO_PROMOTION_NON_RATIO_BLOCKED_TRIAL_COUNT"
 fi
 
 if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
@@ -650,6 +658,8 @@ fi
         echo "sv_parse_full_ratio_promotion_recommendation: $SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION"
         echo "sv_parse_full_ratio_promotion_primary_non_ratio_blocker: $SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER"
         echo "sv_parse_full_ratio_promotion_observed_ratio_avg: $SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_AVG"
+        echo "sv_parse_full_ratio_promotion_failed_trial_count: $SV_PARSE_FULL_RATIO_PROMOTION_FAILED_TRIAL_COUNT"
+        echo "sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count: $SV_PARSE_FULL_RATIO_PROMOTION_NON_RATIO_BLOCKED_TRIAL_COUNT"
     fi
 } >"$SUMMARY_TXT"
 

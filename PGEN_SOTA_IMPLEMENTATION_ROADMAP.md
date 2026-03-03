@@ -423,6 +423,14 @@ Toolbox baseline to leverage end-to-end:
       - recommendation,
       - primary non-ratio blocker,
       - observed ratio average.
+  - Progress (2026-03-03): extended aggregate parse-full promotion telemetry with blocker-count fields:
+    - aggregate `sota_exit_gate` promotion telemetry now also surfaces:
+      - `sv_parse_full_ratio_promotion_failed_trial_count`
+      - `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`
+    - both fields are parsed from promotion report blockers:
+      - `blockers.failed_trial_count`
+      - `blockers.non_ratio_blocked_trial_count`
+    - this removes blocker-count report lookup friction during aggregate ratchet triage.
   - Progress (2026-03-01): persisted aggregate promotion telemetry into summary artifacts:
     - `rust/target/sota_exit_gate/summary.txt` now includes a dedicated `Promotion Telemetry` section when promotion stage runs, mirroring report-path/recommendation/blocker/ratio fields for CI artifact handoff.
 - [ ] Add SV stimuli generation modes with semantic steering:
@@ -661,6 +669,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Added aggregate parse-full promotion blocker-count telemetry surfacing (`sv_parse_full_ratio_promotion_failed_trial_count`, `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`) by parsing promotion report blocker counters in `sota_exit_gate`.
 - 2026-03-03: Added aggregate declared-shadow blocker-count telemetry surfacing (`sv_declared_shadow_promotion_failed_trial_count`, `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`) by parsing promotion report blocker counters in `sota_exit_gate`.
 - 2026-03-03: Surfaced declared-shadow promotion parseability-scope telemetry in aggregate gate output/summary (`sv_declared_shadow_promotion_declared_shadow_parseable_only`) by reading stage report field `declared_shadow_parseable_only`.
 - 2026-03-03: Added declared-shadow promotion parseability-scope policy/runtime controls (`...DECLARED_SHADOW_PARSEABLE_ONLY`) in standalone + aggregate paths, with validation/forwarding in `sota_exit_gate` and report surfacing in `sv_declared_shadow_promotion_gate`.
