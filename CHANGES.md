@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-03 - Phase Q Differential Hardening Increment: Dynamic Template-Based SV Preprocessor Oracle Gate
+### ✅ Achievement Summary
+Added a fully dynamic template-based differential gate for SV preprocessing that predicts expected output/diagnostics from deterministic templates (offline oracle model) and classifies expected-vs-bug outcomes at scale.
+
+### Scope of Changes
+- Added executable dynamic template gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh`
+  - deterministic report:
+    - `rust/target/sv_preprocessor_template_differential_gate/work/systemverilog_preprocessor_template_differential_report.json`
+  - template families:
+    - `template_define_width`
+    - `template_ifdef_branch`
+    - `template_token_paste`
+    - `template_define_undef_ifdef`
+  - classification buckets:
+    - `expected_match`
+    - `expected_mismatch`
+    - `bug_mismatch`
+  - strict mode (`PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=1`) fails only on `bug_mismatch`.
+- Added Make target:
+  - `make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate`
+  - wired in `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh` ✅
+- `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=auto /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh` ✅
+- `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=1 /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_preprocessor_template_differential_gate` ✅
+
 ## 2026-03-03 - Phase Q Differential Hardening Increment: Offline Curated SV Preprocessor Differential Gate
 ### ✅ Achievement Summary
 Added a curated SystemVerilog preprocessor differential gate that classifies expected-vs-bug taxonomy outcomes using checked-in expected artifacts, with no dependency on `iverilog`/`verilator`.

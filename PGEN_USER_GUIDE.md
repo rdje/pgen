@@ -2396,6 +2396,35 @@ make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate
   - `expected_mismatch`: observed category is within case `expected_categories` but non-primary
   - `bug_mismatch`: observed category is outside case `expected_categories` and is treated as regression debt
 
+`sv_preprocessor_template_differential_gate` (dynamic offline predictor):
+- command:
+```bash
+make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate
+```
+- approach:
+  - synthesizes deterministic SV preprocessor snippets from seed-driven templates,
+  - predicts expected output/diagnostics from template logic (independent from runtime preprocessor path),
+  - compares Rust preprocessor output vs predicted expected artifacts.
+- default template families:
+  - `template_define_width`
+  - `template_ifdef_branch`
+  - `template_token_paste`
+  - `template_define_undef_ifdef`
+- tuning knobs:
+  - `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
+    - `0`: disable template differential stage
+    - `auto`: run template differential and report classification
+    - `1`: strict mode (fails on `bug_mismatch`)
+  - `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_COUNT` (default `32`)
+  - `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_SEED_BASE` (default `13001`)
+  - `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_STATE_DIR` (default `rust/target/sv_preprocessor_template_differential_gate`)
+- deterministic report artifact:
+  - `rust/target/sv_preprocessor_template_differential_gate/work/systemverilog_preprocessor_template_differential_report.json`
+- classification semantics:
+  - `expected_match`: observed category is `match`
+  - `expected_mismatch`: observed category is in expected set but non-primary (for example whitespace-only output drift)
+  - `bug_mismatch`: observed category is outside expected set and is treated as regression debt
+
 Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`)
 - `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)

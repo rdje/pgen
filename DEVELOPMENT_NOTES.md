@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase Q Differential Hardening: Dynamic Template-Based Offline Oracle Gate
+### Context
+Curated static corpora are necessary for fixed contract anchors, but not sufficient alone for large-scale automated coverage. We needed a scalable dynamic path that predicts expected preprocessing outcomes without depending on external tools (`iverilog`/`verilator`).
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- Added dynamic template differential gate with deterministic seed-driven case synthesis:
+  - templates synthesize both input SV snippets and expected output/diagnostics artifacts.
+  - no external trusted-reference backend required.
+- Added template families:
+  - macro width substitution
+  - ifdef branch control
+  - token paste expansion
+  - define/undef/ifdef interaction
+- Added classification model:
+  - `expected_match`
+  - `expected_mismatch`
+  - `bug_mismatch`
+  and strict mode fail-on-bug only (`PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=1`).
+- Added deterministic report artifact:
+  - `rust/target/sv_preprocessor_template_differential_gate/work/systemverilog_preprocessor_template_differential_report.json`
+- Added Make target:
+  - `sv_preprocessor_template_differential_gate`
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=auto bash rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=1 bash rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate`
+
+Observed:
+- both auto and strict modes pass deterministically in offline environment.
+- strict mode behavior is objective and bounded to `bug_mismatch` only.
+- dynamic template stage scales automated differential coverage without requiring large static corpora.
+
 ## 2026-03-03 - Phase Q Differential Hardening: Offline Curated SV Preprocessor Taxonomy Gate
 ### Context
 We needed curated differential evidence/classification for SV preprocessor behavior without relying on host-installed external preprocessors (`iverilog`/`verilator`), while still producing deterministic expected-vs-bug mismatch accounting.

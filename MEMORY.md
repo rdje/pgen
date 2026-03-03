@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-q-offline-curated-sv-preprocessor-differential-gate)
+Last updated: 2026-03-03 (+0100, task: phase-q-dynamic-template-sv-preprocessor-differential-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `4c034c1` (`Scope aggregate sv_preprocessor_quality_gate artifacts under sota_exit_gate state and surface preprocessor differential telemetry.`).
+- Latest commit: `302832e` (`Add offline curated SV preprocessor differential gate with expected-artifact oracle and taxonomy classification.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -90,6 +90,19 @@ Use this file to resume work without replaying full chat history.
       - `expected_match`
       - `expected_mismatch`
       - `bug_mismatch`
+  - New dynamic template preprocessor differential gate is available:
+    - target: `make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate`
+    - no external `iverilog`/`verilator` dependency
+    - deterministic seed-driven template synthesis with predicted outputs/diagnostics
+    - template families:
+      - `template_define_width`
+      - `template_ifdef_branch`
+      - `template_token_paste`
+      - `template_define_undef_ifdef`
+    - classification buckets:
+      - `expected_match`
+      - `expected_mismatch`
+      - `bug_mismatch`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 
@@ -127,12 +140,33 @@ Use this file to resume work without replaying full chat history.
 - Result:
   - Curated preprocessor differential classification is now deterministic and fully offline.
 
+### 2026-03-03: Added dynamic template-based SV preprocessor differential gate
+- Root cause:
+  - Purely static corpora do not scale for broad automated differential evidence; we needed deterministic dynamic generation/prediction without external tool dependencies.
+- Fix:
+  - Added `rust/scripts/sv_preprocessor_template_differential_gate.sh`:
+    - generates deterministic SV snippets from seed-driven templates,
+    - predicts expected output/diagnostics offline via template logic,
+    - compares runtime output vs predicted expected artifacts,
+    - classifies `expected_match`/`expected_mismatch`/`bug_mismatch`.
+  - Added Make target:
+    - `sv_preprocessor_template_differential_gate`.
+  - Added strict behavior:
+    - `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=1` fails only when `bug_mismatch_count > 0`.
+- Validation:
+  - `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=auto bash rust/scripts/sv_preprocessor_template_differential_gate.sh` passed.
+  - `PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_MODE=1 bash rust/scripts/sv_preprocessor_template_differential_gate.sh` passed.
+  - `make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate` passed.
+- Result:
+  - Differential automation now scales dynamically while remaining deterministic and offline.
+
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
 - Commit count at last refresh (before current uncommitted changes): `175`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 302832e Add offline curated SV preprocessor differential gate with expected-artifact oracle and taxonomy classification.
 - 4c034c1 Scope aggregate sv_preprocessor_quality_gate artifacts under sota_exit_gate state and surface preprocessor differential telemetry.
 - ef6acaa Scope aggregate sv_stimuli_quality_gate artifacts under sota_exit_gate state and surface core telemetry.
 - e7e8ee1 Add deterministic initial replay equivalence checks to SV closed-loop gate
@@ -1827,21 +1861,23 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Expand offline curated SV preprocessor differential corpus:
+1. Expand dynamic template differential families and invariants:
+   - add nested conditional/macro-arg edge-case templates and stronger diagnostics-invariant checks.
+2. Expand offline curated SV preprocessor differential corpus:
    - add additional directive-heavy families (`undef`, nested conditionals, macro arg edge cases, include policy negatives),
    - tighten per-case `expected_categories` where stable (move tolerated drift toward exact match).
-2. Continue Phase P semantic-closure implementation for SV:
+3. Continue Phase P semantic-closure implementation for SV:
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=15`),
    - latest promotion evidence at target `20` is still `hold` (`observed_ratio_min=8`, `observed_ratio_max=16`, `observed_ratio_avg=13`, ratio-only blockers), so keep `min=15` and continue parse-full debt burn-down before re-ratchet.
-3. Add annotation-driven SV stimuli steering:
+4. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
-4. Expand contractized SV/VHDL corpora:
+5. Expand contractized SV/VHDL corpora:
    - add deterministic targeted families for declaration/use, port binding, generate, and preprocess-heavy cases.
-5. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
+6. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-6. Continue Rust-native EBNF migration hardening:
+7. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-7. Keep roadmap + UG + memory synced after every gate/contract increment.
+8. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
