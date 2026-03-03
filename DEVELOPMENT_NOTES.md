@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Parse-Full Burn-Down: Parseable-Subset Mode Wiring and Validation
+### Context
+Parse-full telemetry on broad `sv_file` stimuli remained volatile and often low because generated samples frequently mixed high-fanout constructs and trivia/comment noise. We needed an executable parse-full burn-down lane that stays grammar-driven, not hardcoded in Rust.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+Changes:
+- Added parseable-subset grammar entry path:
+  - `systemverilog_parseable_file := parseable_source_item*`
+  - `parseable_source_item := semi | package_import_declaration | timeunits_declaration | compiler_directive`
+- Added semantic steering for subset entry:
+  - `@branch_policy: priority_first`
+  - `@priority` weighting to keep generation biased toward parser-friendly items.
+- Hardened trivia steering:
+  - `trivia` now has explicit branch priorities favoring `white_space`.
+  - `white_space` is now semantically tagged (`@token_class: whitespace`) and space-biased (`@enum: [" "]`) to suppress noisy token variants in generated samples.
+- Contractized the mode in SV quality gate contract (`version: 22`):
+  - new mode `sv_parseable_file` with:
+    - `entry_rule=systemverilog_parseable_file`
+    - `closed_loop_enabled=true`
+    - `parse_full_eligible=true`
+    - semantic toggles intentionally relaxed for parse-full burn-down focus.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_parseable_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- Gate passed with deterministic dual-profile execution (`2017`, `2023`).
+- Parse-full acceptance became fully green in this mode:
+  - `parse_full_passes=12/12`
+  - `parse_full_pass_ratio_percent=100`.
+- Deterministic semantic suites remained fully green:
+  - declared identifier `14/14`,
+  - width compatibility `10/10`,
+  - port binding `10/10`,
+  - package qualification `10/10`,
+  - context legality `10/10`.
+- Closed-loop debt reduced (`closed_loop_initial_targets_total=82`, `closed_loop_replay_targets_total=27`).
+
+### Notes
+- This increment is intentionally scoped as a parse-full burn-down profile (`sv_parseable_file`), not a replacement for full `sv_file` semantic-closure hardening.
+- It provides a stable, objective lane to continue annotation-driven parseability convergence while preserving EBNF-agnostic Rust pipeline behavior.
+
 ## 2026-03-03 - Phase P Annotation-Driven SV Steering Expansion: High-Fanout Rule Coverage
 ### Context
 After the initial SV steering baseline, branch/value steering coverage was still narrow. The next step was to extend directives to additional high-fanout grammar rules that dominate generated stimuli shape.

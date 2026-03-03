@@ -1,6 +1,6 @@
 {
-  "version": 21,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, deterministic performance/memory-proxy budget checks, parse-full acceptance telemetry/threshold controls, declared-identifier promotion burn-down shadow telemetry controls, and runtime declared-before-use semantic enforcement in semantic-closure profile with parseability guardrails.",
+  "version": 22,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware, parseable-subset, and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, deterministic performance/memory-proxy budget checks, parse-full acceptance telemetry/threshold controls, declared-identifier promotion burn-down shadow telemetry controls, and runtime declared-before-use semantic enforcement in semantic-closure profile with parseability guardrails.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -12,7 +12,7 @@
   },
   "stimuli_modes": {
     "default_mode": "sv_file",
-    "supported_modes": ["sv_file", "sv_snippet", "sv_pp_file", "sv_pp_snippet", "sv_semantic_file"],
+    "supported_modes": ["sv_file", "sv_parseable_file", "sv_snippet", "sv_pp_file", "sv_pp_snippet", "sv_semantic_file"],
     "profiles": {
       "sv_file": {
         "entry_rule": "systemverilog_file",
@@ -21,6 +21,19 @@
         "recovery_stimuli_mode": "baseline",
         "semantic_overrides": {
           "require_port_binding_legality_basic": true
+        }
+      },
+      "sv_parseable_file": {
+        "entry_rule": "systemverilog_parseable_file",
+        "closed_loop_enabled": true,
+        "parse_full_eligible": true,
+        "recovery_stimuli_mode": "baseline",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": false,
+          "require_declared_identifiers_before_use": false,
+          "require_package_qualification_resolution": false,
+          "require_width_compatibility_simple": false,
+          "require_context_legality_basic": false
         }
       },
       "sv_snippet": {

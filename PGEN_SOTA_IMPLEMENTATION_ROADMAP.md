@@ -495,6 +495,12 @@ Toolbox baseline to leverage end-to-end:
     - added steering on item/declaration fanout rules (`module_item`, `non_port_module_item`, `program_item`, `non_port_program_item`, `module_or_generate_item`, `interface_or_generate_item`, `package_or_generate_item_declaration`, `generate_item`, `block_item_declaration`, `statement_or_null`) and selected lexical/shape rules (`module_keyword`, `module_header_ports`, `named_port_connection`, `hierarchy_separator`, `primary`, `data_type`, `identifier`),
     - corrected identifier steering priority to favor `simple_identifier` over `escaped_identifier`,
     - validation remained green through `sv_stimuli_quality_gate` with all deterministic semantic suites passing; parse-full telemetry stayed at `0%` in this run, so parse-full debt burn-down remains open.
+  - Progress (2026-03-03): added parseable-subset stimuli profile + grammar steering for parse-full burn-down:
+    - `systemverilog.ebnf` now exposes `systemverilog_parseable_file := parseable_source_item*` with directed subset (`semi`, `package_import_declaration`, `timeunits_declaration`, `compiler_directive`) and explicit trivia/whitespace steering,
+    - `systemverilog_core_v0_contract.json` (`version: 22`) now includes `sv_parseable_file` mode (`entry_rule=systemverilog_parseable_file`, parse-full eligible, closed-loop enabled),
+    - validated with deterministic dual-profile run:
+      - `PGEN_SV_STIMULI_QUALITY_MODE=sv_parseable_file ... sv_stimuli_quality_gate`
+      - observed `parse_full_pass_ratio_percent=100` (`12/12`) while semantic deterministic suites remained fully green.
 - [x] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.

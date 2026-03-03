@@ -19,6 +19,19 @@
 systemverilog_file := source_item*
 
 @branch_policy: priority_first
+@priority: [20, 6, 4, 2]
+@coverage_target: 8
+@critical_path: true
+systemverilog_parseable_file := parseable_source_item*
+
+@branch_policy: priority_first
+@priority: [20, 6, 4, 2]
+parseable_source_item := semi
+                       | package_import_declaration
+                       | timeunits_declaration
+                       | compiler_directive
+
+@branch_policy: priority_first
 @priority: [12, 3, 2, 1, 1]
 source_item := description
              | package_import_declaration
@@ -701,7 +714,11 @@ lifetime := kw_static
 # Tokens and punctuation
 # ---------------------------------------------------------------------------
 
+@branch_policy: priority_first
+@priority: [20, 1, 1]
 trivia := (white_space | line_comment | block_comment)*
+@token_class: whitespace
+@enum: [" "]
 white_space := /[ \t\r\n]+/
 line_comment := /\/\/[^\n]*(\n|$)/
 block_comment := /\/\*([^*]|\*+[^*/])*\*+\//

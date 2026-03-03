@@ -2258,7 +2258,7 @@ Aggregate gate tuning:
 - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default from policy file; parse-full mode forwarded to declared-shadow promotion trials)
 - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (integer `>=1`, default from policy file; minimum checked shadow samples required by promotion gate)
 - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default from policy file; semantic-closure mode forwarded to declared-shadow promotion trials)
-- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to declared-shadow promotion trials)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to declared-shadow promotion trials)
 - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY` (`0`/`1`, default from policy file; forwarded parseability scope for strict declared-shadow checks inside promotion trials)
 - `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of parse-full ratio promotion trials)
 - `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when promotion eligibility is not met)
@@ -2268,7 +2268,7 @@ Aggregate gate tuning:
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` (integer `>=0`, default from policy file; aggregate promotion deterministic seed base)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default from policy file; parse-full mode forwarded to promotion trials)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default from policy file; semantic-closure mode forwarded to promotion trials)
-- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to promotion trials)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to promotion trials)
 - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
@@ -2459,7 +2459,7 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO` (`0`/`1`, overrides contract parse-full ratio enforcement)
 - `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO` (`0-100`, overrides contract parse-full minimum pass ratio percent)
-- `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from contract)
+- `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from contract)
 - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `0`)
   - when set to `1` and `PGEN_SV_STIMULI_QUALITY_MODE` is unset, gate auto-selects `sv_semantic_file`.
 - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE` (`auto`/`0`/`1`, default `auto`)
@@ -2481,7 +2481,7 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (default `2`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `1`)
-- `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY` (`0`/`1`, default `1`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STATE_DIR` (default `rust/target/sv_declared_shadow_promotion_gate`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE` (`auto`/`0`/`1`, default `auto`)
@@ -2494,7 +2494,7 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` (default `12001`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `0`)
-- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default `20`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STATE_DIR` (default `rust/target/sv_parse_full_ratio_promotion_gate`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
@@ -2787,6 +2787,12 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - closed-loop enabled by default,
     - parse-full eligible,
     - default recovery stimuli mode: `baseline`.
+  - `sv_parseable_file`:
+    - entry rule: `systemverilog_parseable_file`,
+    - parse-full burn-down focused subset mode,
+    - closed-loop enabled by default,
+    - parse-full eligible,
+    - default recovery stimuli mode: `baseline`.
   - `sv_snippet`:
     - entry rule: `source_item`,
     - closed-loop disabled by default,
@@ -2831,6 +2837,12 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - overrides are applied after global `semantic_baseline` defaults to compute effective per-mode semantic checks.
     - current contract policy:
       - `sv_file`: `require_port_binding_legality_basic=true`
+      - `sv_parseable_file`:
+        - `require_port_binding_legality_basic=false`
+        - `require_declared_identifiers_before_use=false`
+        - `require_package_qualification_resolution=false`
+        - `require_width_compatibility_simple=false`
+        - `require_context_legality_basic=false`
       - `sv_snippet`: `require_port_binding_legality_basic=false`
       - `sv_pp_file`: `require_port_binding_legality_basic=true`
       - `sv_pp_snippet`: `require_port_binding_legality_basic=false`

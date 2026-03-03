@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-03 - Phase P Parse-Full Burn-Down Increment: Parseable-Subset SV Mode + Grammar Steering
+### ✅ Achievement Summary
+Added a dedicated parseable-subset SystemVerilog stimuli mode and corresponding grammar entry so parse-full-oriented burn-down runs can execute a deterministic, parser-friendly subset without hardcoding SV logic in Rust.
+
+### Scope of Changes
+- Updated `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`:
+  - added `systemverilog_parseable_file := parseable_source_item*` with semantic steering (`@branch_policy`, `@priority`, `@coverage_target`, `@critical_path`),
+  - added `parseable_source_item` subset (`semi`, `package_import_declaration`, `timeunits_declaration`, `compiler_directive`),
+  - tightened trivia steering by prioritizing `white_space` and annotating whitespace token generation (`@token_class: whitespace`, `@enum: [" "]`).
+- Updated `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`:
+  - bumped contract to `version: 22`,
+  - added `sv_parseable_file` mode profile:
+    - `entry_rule=systemverilog_parseable_file`
+    - `closed_loop_enabled=true`
+    - `parse_full_eligible=true`
+    - conservative semantic-overrides posture for parse-full burn-down runs.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_parseable_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+- key outcomes:
+  - `parse_full_pass_ratio_percent=100` (`12/12` across `2017` + `2023` profiles),
+  - semantic contract suites remained green (`declared=14/14`, `width=10/10`, `port=10/10`, `package=10/10`, `context=10/10`),
+  - closed-loop target debt decreased (`initial=82`, `replay=27`).
+
 ## 2026-03-03 - Phase P Annotation-Driven SV Stimuli Steering: Rule-Level Expansion Pass
 ### ✅ Achievement Summary
 Expanded semantic steering coverage in `systemverilog.ebnf` from initial baseline to additional high-fanout rules used heavily by SV stimuli generation.

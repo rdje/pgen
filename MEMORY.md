@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-p-annotation-driven-sv-steering-rule-level-expansion)
+Last updated: 2026-03-03 (+0100, task: phase-p-parse-full-burndown-parseable-subset-mode)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `a1c7bbc` (`Start annotation-driven SV stimuli steering rollout via semantic directives in systemverilog.ebnf.`).
+- Latest commit: `e81101f` (`Expand annotation-driven SV steering coverage in systemverilog.ebnf.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -139,6 +139,29 @@ Use this file to resume work without replaying full chat history.
     - lexical/shape steering:
       - `module_keyword`, `module_header_ports`, `named_port_connection`, `hierarchy_separator`,
       - `primary`, `data_type`, `identifier` (favoring `simple_identifier`).
+  - parse-full burn-down subset mode is now wired:
+    - grammar entry: `systemverilog_parseable_file := parseable_source_item*`,
+    - contract mode: `sv_parseable_file` (`entry_rule=systemverilog_parseable_file`, parse-full eligible, closed-loop enabled),
+    - latest deterministic gate evidence:
+      - `PGEN_SV_STIMULI_QUALITY_MODE=sv_parseable_file ... sv_stimuli_quality_gate`
+      - `parse_full_pass_ratio_percent=100` (`12/12` across `2017` + `2023` profiles).
+
+### 2026-03-03: Added SV parseable-subset mode for parse-full burn-down evidence
+- Root cause:
+  - parse-full telemetry on broad SV mode remained debt-heavy/variable despite steering expansion.
+- Fix:
+  - added parseable-subset grammar path in `grammars/systemverilog.ebnf`:
+    - `systemverilog_parseable_file`
+    - `parseable_source_item`
+  - added whitespace/trivia steering for cleaner generated corpora:
+    - `trivia` branch priorities now favor `white_space`,
+    - `white_space` now carries `@token_class: whitespace` + `@enum: [" "]`.
+  - added new contract mode in `systemverilog_core_v0_contract.json` (`version: 22`):
+    - `sv_parseable_file` with parse-full-eligible closed-loop execution.
+- Validation:
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_parseable_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` passed.
+- Result:
+  - parse-full pass ratio reached `100%` (`12/12`) in this mode with all deterministic semantic suites still green.
 
 ### 2026-03-03: Added aggregate SV preprocessor quality artifact scoping + telemetry
 - Root cause:
@@ -2025,8 +2048,8 @@ Use this file to resume work without replaying full chat history.
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=15`),
    - latest promotion evidence at target `20` is still `hold` (`observed_ratio_min=8`, `observed_ratio_max=16`, `observed_ratio_avg=13`, ratio-only blockers), so keep `min=15` and continue parse-full debt burn-down before re-ratchet.
 2. Add annotation-driven SV stimuli steering:
-   - initial baseline + rule-level expansion are now in place on major fanout rules,
-   - next increment should explicitly target parse-full-improving subsets (annotation strategy tuned using shrunk parse-fail artifacts) and semantically legal SV file profiles.
+   - initial baseline + rule-level expansion are in place, and parseable-subset mode (`sv_parseable_file`) is now contractized with `100%` parse-full in deterministic validation,
+   - next increment should transfer these gains back into broader `sv_file` profile quality without regressing semantic-closure behavior.
 3. Expand contractized SV/VHDL corpora:
    - SV preprocess-heavy deterministic semantic suite increment is done (`version: 2` across enforced SV semantic suites),
    - next corpus increment should target VHDL deterministic semantic/parseability families and additional SV parse-full-improving families.
