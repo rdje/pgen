@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Aggregate Telemetry Increment: Parse-Full Promotion Observed-Ratio Range
+### Context
+Aggregate parse-full promotion telemetry exposed only observed ratio average, which masked dispersion across promotion trials and required opening report JSON to inspect min/max ratio spread.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- Added stage-report parsing for:
+  - `.totals.observed_ratio_min`
+  - `.totals.observed_ratio_max`
+- Added aggregate telemetry variables + output/summary fields:
+  - `sv_parse_full_ratio_promotion_observed_ratio_min`
+  - `sv_parse_full_ratio_promotion_observed_ratio_max`
+- Persisted same fields into:
+  - `rust/target/sota_exit_gate/summary.txt`
+  under parse-full promotion telemetry section.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with parse-full promotion stage enabled and reduced trial/sample count.
+
+Observed:
+- aggregate output and summary now include:
+  - `sv_parse_full_ratio_promotion_observed_ratio_min`
+  - `sv_parse_full_ratio_promotion_observed_ratio_max`
+- values match parse-full promotion report totals.
+
 ## 2026-03-03 - Phase P Aggregate Telemetry Increment: Parse-Full Promotion Blocker Counts
 ### Context
 Aggregate parse-full promotion telemetry surfaced recommendation, primary blocker, and observed ratio average, but did not expose blocker-count counters directly. Quick aggregate triage still required opening promotion report JSON to read failed/non-ratio-blocked trial counts.

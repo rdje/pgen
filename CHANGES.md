@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-03 - Phase P Aggregate Observability Increment: Parse-Full Promotion Ratio Range Telemetry
+### ✅ Achievement Summary
+Extended aggregate parse-full promotion telemetry to include observed ratio range (`min/max`) from promotion report totals so aggregate triage can assess dispersion, not just average.
+
+### Scope of Changes
+- Updated aggregate gate telemetry parsing/output in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - new parsed fields from stage report:
+    - `.totals.observed_ratio_min`
+    - `.totals.observed_ratio_max`
+  - new aggregate telemetry fields in stdout + summary:
+    - `sv_parse_full_ratio_promotion_observed_ratio_min`
+    - `sv_parse_full_ratio_promotion_observed_ratio_max`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=2 PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output/summary include:
+    - `sv_parse_full_ratio_promotion_observed_ratio_min`
+    - `sv_parse_full_ratio_promotion_observed_ratio_max`.
+
 ## 2026-03-03 - Phase P Aggregate Observability Increment: Parse-Full Promotion Blocker Counts
 ### ✅ Achievement Summary
 Extended aggregate parse-full promotion telemetry to include blocker-count fields from promotion report blockers so aggregate triage has failed/non-ratio-blocked trial counts without opening stage reports.
