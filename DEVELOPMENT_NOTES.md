@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Annotation-Driven SV Stimuli Steering: Initial Grammar-Embedded Baseline
+### Context
+Phase P still had an open gap for annotation-driven SV stimuli steering beyond mode-level toggles. The stimuli engine already supports semantic steering directives, but `grammars/systemverilog.ebnf` had no steering annotations wired yet.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+
+Changes:
+- Added initial semantic steering directives on high-impact SV rules:
+  - `systemverilog_file`:
+    - `@coverage_target: 4`
+    - `@critical_path: true`
+  - `source_item`:
+    - `@branch_policy: priority_first`
+    - `@priority: [12, 3, 2, 1, 1]`
+  - `description`:
+    - `@branch_policy: priority_first`
+    - `@priority: [12, 4, 3, 2, 1]`
+  - `statement`:
+    - `@branch_policy: priority_first`
+    - `@priority: [10, 5, 4, 3, 3, 2, 8, 8, 3, 2, 1]`
+  - token-family hints:
+    - `simple_identifier`: `@token_class: identifier`
+    - `integral_number`: `@token_class: integer`
+- No code changes were required in the Rust AST pipeline because the steering mechanism was already implemented; this increment activates it for SV grammar flow.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- Gate passed with all deterministic semantic suites still enforced and green:
+  - declared identifier: `14/14`
+  - width compatibility: `10/10`
+  - port binding legality: `10/10`
+  - package qualification: `10/10`
+  - context legality: `10/10`
+- This establishes an initial SV grammar-embedded steering baseline and keeps future expansion focused on broader rule-level annotation rollout.
+
 ## 2026-03-03 - Phase P Semantic-Closure Increment: Preprocess-Heavy Deterministic Semantic Suite Expansion
 ### Context
 Phase P semantic closure required stronger deterministic corpus evidence for preprocess-shaped inputs. Existing semantic suites were mostly plain snippets and under-covered directive-heavy patterns encountered after/around preprocessing.

@@ -2879,6 +2879,11 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - generate `for` iterators must be declared `genvar`.
     - deterministic contract coverage in `rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json` includes directive-noise and preprocess-conditional `always_ff` families.
   - optional basic named-port legality checks (`semantic_baseline.require_port_binding_legality_basic`) are backed by deterministic contract coverage in `rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`, including preprocess-conditional unknown-binding failure families.
+  - initial annotation-driven SV stimuli steering is now embedded directly in `grammars/systemverilog.ebnf`:
+    - top-level/statement branch steering via `@branch_policy: priority_first` + `@priority: [...]`,
+    - top-level coverage hints via `@coverage_target` + `@critical_path`,
+    - token-family steering via `@token_class` on `simple_identifier`/`integral_number`.
+    This is an initial baseline; broader rule-level semantic steering rollout remains in progress.
 - parse-full stage behavior:
   - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,

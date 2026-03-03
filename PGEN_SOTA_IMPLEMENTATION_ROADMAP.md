@@ -486,6 +486,11 @@ Toolbox baseline to leverage end-to-end:
       - `sv_snippet` -> `near_sync_negative`
     This advances mode-level steering using existing stimuli engine controls while annotation-driven branch/value steering expansion remains pending.
   - Progress (2026-02-27): expanded mode roster with `sv_semantic_file` and updated gate fallback parse-full eligibility defaults so semantic-closure file runs keep parse-full capability without custom script forks.
+  - Progress (2026-03-03): started annotation-driven steering rollout directly in `grammars/systemverilog.ebnf` with initial semantic directives on high-impact rules:
+    - `source_item`, `description`, `statement` now declare explicit branch steering (`@branch_policy: priority_first`, `@priority: [...]`),
+    - top-level coverage hints are now present (`@coverage_target`, `@critical_path` on `systemverilog_file`),
+    - token-family steering baseline added (`@token_class: identifier` on `simple_identifier`, `@token_class: integer` on `integral_number`).
+    Validation remained green in `sv_stimuli_quality_gate`; this is the initial steering baseline and further rule-level annotation expansion is still pending.
 - [x] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.
@@ -756,6 +761,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Started annotation-driven SV stimuli steering rollout by adding initial semantic directives to `grammars/systemverilog.ebnf` (`source_item`/`description`/`statement` branch steering, top-level coverage hints, and token-class hints on identifier/integral rules) and validated with `sv_stimuli_quality_gate`.
 - 2026-03-03: Expanded deterministic SV semantic contract suites to preprocess-heavy directive families (`version: 2` across declared-identifier/package-qualification/width/context/port-binding suites) and validated end-to-end through enforced `sv_stimuli_quality_gate` semantic contract stages.
 - 2026-03-03: Expanded offline curated SV preprocessor corpus to `version: 4` by adding deterministic include-policy negative families (`include_missing_file_negative`, `include_cycle_negative`) with explicit expected-failure category contracts (`rust_failed_expected_passed`), yielding strict curated gate split `expected_match=7`, `expected_mismatch=2`, `bug_mismatch=0`.
 - 2026-03-03: Expanded offline curated SV preprocessor corpus to 7 directive-heavy cases (including undef/nested-conditional/macro-arg/include), refreshed expected artifacts, and tightened curated expected categories to strict `match` only.

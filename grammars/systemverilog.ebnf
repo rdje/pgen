@@ -12,14 +12,22 @@
 #
 # This is intentionally a pragmatic seed grammar for progressive refinement.
 
+@branch_policy: priority_first
+@priority: [12, 3, 2, 1, 1]
+@coverage_target: 4
+@critical_path: true
 systemverilog_file := source_item*
 
+@branch_policy: priority_first
+@priority: [12, 3, 2, 1, 1]
 source_item := description
              | package_import_declaration
              | timeunits_declaration
              | compiler_directive
              | semi
 
+@branch_policy: priority_first
+@priority: [12, 4, 3, 2, 1]
 description := module_declaration
              | interface_declaration
              | program_declaration
@@ -375,6 +383,8 @@ always_construct := kw_always statement_or_null
 statement_or_null := statement
                    | semi
 
+@branch_policy: priority_first
+@priority: [10, 5, 4, 3, 3, 2, 8, 8, 3, 2, 1]
 statement := begin_end_block
            | if_statement
            | case_statement
@@ -614,6 +624,7 @@ compiler_directive := trivia /`[^\r\n]*/
 identifier := escaped_identifier
            | simple_identifier
 
+@token_class: identifier
 simple_identifier := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
 escaped_identifier := trivia /\\[!-~]+/
 
@@ -629,6 +640,7 @@ task_identifier := identifier
 number := real_number
         | integral_number
 
+@token_class: integer
 integral_number := trivia /[0-9][0-9_]*/
                  | trivia /[0-9][0-9_]*'[sS]?[dDhHoObB][0-9a-fA-FxXzZ?_]+/
 
