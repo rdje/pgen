@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-03 - Phase P Promotion Diagnostics Increment: Declared-Shadow Blocker Taxonomy Parity
+### ✅ Achievement Summary
+Added structured blocker taxonomy to `sv_declared_shadow_promotion_gate` and surfaced the primary non-shadow blocker in aggregate `sota_exit_gate` telemetry so `hold` outcomes are objectively attributable without manual log scraping.
+
+### Scope of Changes
+- Updated declared-shadow promotion report generation in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+  - per-trial report rows now include:
+    - `blocker_key`
+    - `blocker_detail`
+  - report now includes aggregate blocker section:
+    - `blockers.failed_trial_count`
+    - `blockers.non_shadow_blocked_trial_count`
+    - `blockers.primary_non_shadow_blocker`
+    - `blockers.breakdown`
+    - `blockers.non_shadow_breakdown`
+  - classifier now distinguishes shadow violations vs non-shadow failures (for example `semantic_baseline_validation_failed`, `no_parseable_shadow_samples`, stage failures, missing report).
+- Extended aggregate observability in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - parsed + emitted new telemetry field:
+    - `sv_declared_shadow_promotion_primary_non_shadow_blocker`
+  - persisted same field into aggregate `summary.txt` declared-shadow telemetry section.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` ✅
+  - report includes `trials[].blocker_key` and aggregate `blockers.*` taxonomy fields.
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=0 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output and `summary.txt` include `sv_declared_shadow_promotion_primary_non_shadow_blocker`.
+
 ## 2026-03-01 - Phase P Aggregate Parity Increment: Declared-Shadow Promotion Policy Controls + Telemetry
 ### ✅ Achievement Summary
 Brought declared-shadow promotion stage to aggregate parity with parse-full promotion by adding policy-driven trial-shape controls, aggregate-scoped artifact routing, and persisted declared-shadow telemetry in aggregate summary output.

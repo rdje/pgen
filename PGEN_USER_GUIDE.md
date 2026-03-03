@@ -2577,6 +2577,15 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `eligibility.eligible_for_runtime_enforcement`
     - aggregated strict-trial totals (`checked/passed/failed`)
     - `totals.skipped_unparseable` from parseable-only filtering in underlying strict trials
+    - per-trial blocker attribution:
+      - `trials[].blocker_key`
+      - `trials[].blocker_detail`
+    - aggregate blocker attribution:
+      - `blockers.failed_trial_count`
+      - `blockers.non_shadow_blocked_trial_count`
+      - `blockers.primary_non_shadow_blocker`
+      - `blockers.breakdown`
+      - `blockers.non_shadow_breakdown`
     - per-trial logs and shadow-report references
   - default trial profile:
     - uses `sv_file` mode with parseability-scoped shadow checks to isolate declared-before-use promotion evidence from unrelated semantic-closure blockers.
@@ -2600,7 +2609,8 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_declared_shadow_promotion_recommendation`
       - `sv_declared_shadow_promotion_eligible_for_runtime_enforcement`
       - `sv_declared_shadow_promotion_totals_failed`
-      - `sv_declared_shadow_promotion_totals_checked`.
+      - `sv_declared_shadow_promotion_totals_checked`
+      - `sv_declared_shadow_promotion_primary_non_shadow_blocker`.
 - parse-full ratio promotion trial gate:
   - target:
     - `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`

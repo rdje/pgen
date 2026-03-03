@@ -247,6 +247,7 @@ SV_DECLARED_SHADOW_PROMOTION_RECOMMENDATION="<unset>"
 SV_DECLARED_SHADOW_PROMOTION_ELIGIBLE="<unset>"
 SV_DECLARED_SHADOW_PROMOTION_TOTALS_FAILED="<unset>"
 SV_DECLARED_SHADOW_PROMOTION_TOTALS_CHECKED="<unset>"
+SV_DECLARED_SHADOW_PROMOTION_PRIMARY_NON_SHADOW_BLOCKER="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="<unset>"
@@ -518,11 +519,13 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
         declared_shadow_eligible="$(jq -er '(.eligibility.eligible_for_runtime_enforcement // false) | if . then "true" else "false" end' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         declared_shadow_failed="$(jq -er '.totals.failed // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         declared_shadow_checked="$(jq -er '.totals.checked // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        declared_shadow_primary_non_shadow_blocker="$(jq -er '.blockers.primary_non_shadow_blocker // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         SV_DECLARED_SHADOW_PROMOTION_REPORT_JSON="$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON"
         SV_DECLARED_SHADOW_PROMOTION_RECOMMENDATION="$declared_shadow_recommendation"
         SV_DECLARED_SHADOW_PROMOTION_ELIGIBLE="$declared_shadow_eligible"
         SV_DECLARED_SHADOW_PROMOTION_TOTALS_FAILED="$declared_shadow_failed"
         SV_DECLARED_SHADOW_PROMOTION_TOTALS_CHECKED="$declared_shadow_checked"
+        SV_DECLARED_SHADOW_PROMOTION_PRIMARY_NON_SHADOW_BLOCKER="$declared_shadow_primary_non_shadow_blocker"
     else
         SV_DECLARED_SHADOW_PROMOTION_REPORT_JSON="<missing>"
     fi
@@ -532,6 +535,7 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
     echo "sv_declared_shadow_promotion_eligible_for_runtime_enforcement: $SV_DECLARED_SHADOW_PROMOTION_ELIGIBLE"
     echo "sv_declared_shadow_promotion_totals_failed: $SV_DECLARED_SHADOW_PROMOTION_TOTALS_FAILED"
     echo "sv_declared_shadow_promotion_totals_checked: $SV_DECLARED_SHADOW_PROMOTION_TOTALS_CHECKED"
+    echo "sv_declared_shadow_promotion_primary_non_shadow_blocker: $SV_DECLARED_SHADOW_PROMOTION_PRIMARY_NON_SHADOW_BLOCKER"
 fi
 
 if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
@@ -613,6 +617,7 @@ fi
         echo "sv_declared_shadow_promotion_eligible_for_runtime_enforcement: $SV_DECLARED_SHADOW_PROMOTION_ELIGIBLE"
         echo "sv_declared_shadow_promotion_totals_failed: $SV_DECLARED_SHADOW_PROMOTION_TOTALS_FAILED"
         echo "sv_declared_shadow_promotion_totals_checked: $SV_DECLARED_SHADOW_PROMOTION_TOTALS_CHECKED"
+        echo "sv_declared_shadow_promotion_primary_non_shadow_blocker: $SV_DECLARED_SHADOW_PROMOTION_PRIMARY_NON_SHADOW_BLOCKER"
     fi
     if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         echo

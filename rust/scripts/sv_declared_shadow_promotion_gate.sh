@@ -102,6 +102,57 @@ trial_failed=0
 trial_missing_report=0
 trial_gate_failures=0
 
+classify_trial_gate_blocker() {
+    local trial_log="$1"
+    local trial_status="$2"
+    local report_present="$3"
+    local checked="$4"
+    local failed="$5"
+    local blocker_key="unknown_gate_failure"
+    local blocker_detail=""
+
+    if [[ "$trial_status" == "pass" ]]; then
+        blocker_key="none"
+    elif [[ "$report_present" -eq 0 ]]; then
+        blocker_key="shadow_report_unavailable"
+        blocker_detail="declared shadow report missing"
+    elif [[ "$trial_status" == "shadow_fail" ]]; then
+        blocker_key="declared_identifier_shadow_violation"
+        blocker_detail="failed=${failed}/${checked}"
+    elif grep -q "strict declared-identifier shadow mode requires at least one parseable sample" "$trial_log"; then
+        blocker_key="no_parseable_shadow_samples"
+    elif grep -q "semantic baseline validation failed" "$trial_log"; then
+        blocker_key="semantic_baseline_validation_failed"
+    elif grep -q "declared identifier contract suite failed" "$trial_log"; then
+        blocker_key="declared_identifier_contract_suite_failed"
+    elif grep -q "width compatibility contract suite failed" "$trial_log"; then
+        blocker_key="width_compatibility_contract_suite_failed"
+    elif grep -q "port binding legality contract suite failed" "$trial_log"; then
+        blocker_key="port_binding_legality_contract_suite_failed"
+    elif grep -q "package qualification contract suite failed" "$trial_log"; then
+        blocker_key="package_qualification_contract_suite_failed"
+    elif grep -q "context legality contract suite failed" "$trial_log"; then
+        blocker_key="context_legality_contract_suite_failed"
+    elif grep -q "strict parse_full mode requested but parseability probe did not expose adapter support" "$trial_log"; then
+        blocker_key="parse_full_adapter_unavailable"
+    elif grep -q "strict parse_full quality mode requires parse_full quality report availability" "$trial_log"; then
+        blocker_key="parse_full_quality_report_unavailable"
+    else
+        local failed_stage=""
+        failed_stage="$(awk '/^==> /{stage=$2} /^    fail \(/ {failed=stage} END{if(failed!="") print failed}' "$trial_log" || true)"
+        if [[ -n "$failed_stage" ]]; then
+            blocker_key="stage_failure"
+            blocker_detail="$failed_stage"
+        fi
+    fi
+
+    if [[ "$blocker_key" != "none" && -z "$blocker_detail" ]]; then
+        blocker_detail="$(sed -nE 's/^error: (.*)$/\1/p' "$trial_log" | tail -n 1 || true)"
+    fi
+
+    printf '%s\t%s\n' "$blocker_key" "$blocker_detail"
+}
+
 for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
     trial_seed_base=$((SEED_BASE + (trial_idx * 100000)))
     trial_state_dir="$WORK_DIR/trial_${trial_idx}"
@@ -169,6 +220,10 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
         trial_gate_failures=$((trial_gate_failures + 1))
     fi
 
+    trial_blocker_key="unknown_gate_failure"
+    trial_blocker_detail=""
+    IFS=$'\t' read -r trial_blocker_key trial_blocker_detail <<<"$(classify_trial_gate_blocker "$trial_log" "$trial_status" "$report_present" "$checked" "$failed")"
+
     jq -n \
         --argjson trial_index "$trial_idx" \
         --argjson seed_base "$trial_seed_base" \
@@ -179,6 +234,8 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
         --arg status "$trial_status" \
         --arg note "$trial_note" \
         --arg effective_mode "$effective_mode" \
+        --arg blocker_key "$trial_blocker_key" \
+        --arg blocker_detail "$trial_blocker_detail" \
         --argjson checked "$checked" \
         --argjson passed "$passed" \
         --argjson failed "$failed" \
@@ -192,6 +249,8 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
             status: $status,
             note: $note,
             effective_mode: $effective_mode,
+            blocker_key: $blocker_key,
+            blocker_detail: $blocker_detail,
             totals: {
                 checked: $checked,
                 passed: $passed,
@@ -201,12 +260,37 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
 done
 
 trial_cases_json="$(jq -s '.' "$TRIAL_CASES_JSONL")"
+blocker_breakdown_json="$(jq -cn --argjson trials "$trial_cases_json" '
+    $trials
+    | map(select(.status != "pass") | {key: .blocker_key})
+    | sort_by(.key)
+    | group_by(.key)
+    | map({key: .[0].key, count: length})
+')"
+non_shadow_blocker_breakdown_json="$(jq -cn --argjson trials "$trial_cases_json" '
+    $trials
+    | map(select(.status == "gate_fail" or .status == "infra_error") | {key: .blocker_key})
+    | sort_by(.key)
+    | group_by(.key)
+    | map({key: .[0].key, count: length})
+')"
+primary_non_shadow_blocker="$(jq -r '
+    if length == 0 then
+        "none"
+    else
+        max_by(.count).key
+    end
+' <<<"$non_shadow_blocker_breakdown_json")"
 eligible_for_runtime_enforcement=0
 promotion_recommendation="hold"
 promotion_note=""
 
-if [[ "$trial_missing_report" -gt 0 ]]; then
-    promotion_note="one or more trials did not produce declared shadow reports"
+if [[ "$trial_gate_failures" -gt 0 || "$trial_missing_report" -gt 0 ]]; then
+    if [[ "$primary_non_shadow_blocker" != "none" ]]; then
+        promotion_note="one or more strict shadow trials failed for non-shadow reasons (primary blocker: ${primary_non_shadow_blocker})"
+    else
+        promotion_note="one or more strict shadow trials failed for non-shadow reasons"
+    fi
 elif [[ "$total_checked" -lt "$MIN_CHECKED" ]]; then
     promotion_note="insufficient checked samples (${total_checked} < ${MIN_CHECKED})"
 elif [[ "$total_failed" -eq 0 && "$trial_failed" -eq 0 && "$trial_gate_failures" -eq 0 ]]; then
@@ -234,6 +318,9 @@ jq -n \
     --argjson trial_failed "$trial_failed" \
     --argjson trial_gate_failures "$trial_gate_failures" \
     --argjson trial_missing_report "$trial_missing_report" \
+    --arg primary_non_shadow_blocker "$primary_non_shadow_blocker" \
+    --argjson blocker_breakdown "$blocker_breakdown_json" \
+    --argjson non_shadow_blocker_breakdown "$non_shadow_blocker_breakdown_json" \
     --argjson eligible "$eligible_for_runtime_enforcement" \
     --argjson trial_cases "$trial_cases_json" \
     '{
@@ -259,6 +346,13 @@ jq -n \
             trial_gate_failures: $trial_gate_failures,
             trial_missing_report: $trial_missing_report
         },
+        blockers: {
+            failed_trial_count: ($trial_failed + $trial_gate_failures + $trial_missing_report),
+            non_shadow_blocked_trial_count: ($trial_gate_failures + $trial_missing_report),
+            primary_non_shadow_blocker: $primary_non_shadow_blocker,
+            breakdown: $blocker_breakdown,
+            non_shadow_breakdown: $non_shadow_blocker_breakdown
+        },
         trials: $trial_cases
     }' >"$PROMOTION_REPORT_JSON"
 
@@ -274,6 +368,8 @@ jq -n \
     echo "trial_failed: $trial_failed"
     echo "trial_gate_failures: $trial_gate_failures"
     echo "trial_missing_report: $trial_missing_report"
+    echo "primary_non_shadow_blocker: $primary_non_shadow_blocker"
+    echo "blocker_breakdown_json: $blocker_breakdown_json"
     echo "report_json: $PROMOTION_REPORT_JSON"
 } >"$SUMMARY_TXT"
 

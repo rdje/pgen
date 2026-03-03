@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Diagnostics Increment: Declared-Shadow Promotion Blocker Taxonomy + Aggregate Primary-Blocker Surfacing
+### Context
+Declared-shadow promotion produced recommendation and totals telemetry, but did not provide structured blocker attribution comparable to parse-full promotion. `hold` outcomes still required manual trial-log inspection to classify whether debt was true shadow violations vs unrelated gate failures.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Declared-shadow promotion gate changes:
+- Added trial blocker classifier with deterministic keys for:
+  - shadow-report absence (`shadow_report_unavailable`)
+  - strict declared-shadow violations (`declared_identifier_shadow_violation`)
+  - no-parseable-sample strict failures (`no_parseable_shadow_samples`)
+  - known suite/parseability blockers (`semantic_baseline_validation_failed`, `declared_identifier_contract_suite_failed`, `width_compatibility_contract_suite_failed`, `port_binding_legality_contract_suite_failed`, `package_qualification_contract_suite_failed`, `context_legality_contract_suite_failed`, `parse_full_adapter_unavailable`, `parse_full_quality_report_unavailable`)
+  - fallback stage classification (`stage_failure`) and `unknown_gate_failure`.
+- Added per-trial report fields:
+  - `trials[].blocker_key`
+  - `trials[].blocker_detail`
+- Added aggregate blocker section in promotion report:
+  - `blockers.failed_trial_count`
+  - `blockers.non_shadow_blocked_trial_count`
+  - `blockers.primary_non_shadow_blocker`
+  - `blockers.breakdown`
+  - `blockers.non_shadow_breakdown`
+- Promotion note now explicitly names primary non-shadow blocker when applicable.
+
+Aggregate gate changes:
+- `sota_exit_gate` now reads declared-shadow blocker summary from promotion report:
+  - `.blockers.primary_non_shadow_blocker`
+- Exposes and persists:
+  - `sv_declared_shadow_promotion_primary_non_shadow_blocker`
+  in stdout and `rust/target/sota_exit_gate/summary.txt`.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused declared-shadow promotion run:
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1`
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=2`
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1`
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto`
+  - `make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+- focused aggregate run with declared-shadow stage only (informational strictness disabled).
+
+Observed:
+- declared-shadow promotion report now includes per-trial and aggregate blocker taxonomy fields.
+- aggregate output + summary now include `sv_declared_shadow_promotion_primary_non_shadow_blocker`.
+
 ## 2026-03-01 - Phase P Aggregate Wiring/Observability Increment: Declared-Shadow Promotion Stage Parity
 ### Context
 Aggregate gate had rich control/telemetry for parse-full promotion stage, but declared-shadow promotion stage still relied on hardcoded aggregate invocation shape and did not expose recommendation telemetry in aggregate summary artifacts.

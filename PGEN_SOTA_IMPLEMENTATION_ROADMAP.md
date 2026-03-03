@@ -320,6 +320,19 @@ Toolbox baseline to leverage end-to-end:
     - declared-shadow promotion stage now runs under aggregate-scoped state dir:
       - `rust/target/sota_exit_gate/work/sv_declared_shadow_promotion_gate`,
     - aggregate output and summary artifact now include declared-shadow promotion telemetry (report path, recommendation, eligibility, failed/checked totals).
+  - Progress (2026-03-03): hardened declared-shadow promotion diagnostics with structured blocker taxonomy parity:
+    - per-trial fields now include:
+      - `trials[].blocker_key`
+      - `trials[].blocker_detail`
+    - aggregate blocker section now includes:
+      - `blockers.failed_trial_count`
+      - `blockers.non_shadow_blocked_trial_count`
+      - `blockers.primary_non_shadow_blocker`
+      - `blockers.breakdown`
+      - `blockers.non_shadow_breakdown`
+    - aggregate `sota_exit_gate` telemetry now also surfaces:
+      - `sv_declared_shadow_promotion_primary_non_shadow_blocker`
+    - this makes declared-shadow `hold` outcomes objectively attributable (true shadow violations vs non-shadow gate blockers) without ad-hoc trial-log parsing.
   - Progress (2026-03-01): promoted runtime declaration-before-use enforcement in semantic-closure profile with parseability guardrails (`systemverilog_core_v0_contract.json` v20):
     - `sv_semantic_file` now enables `require_declared_identifiers_before_use=true`,
     - added `require_declared_identifiers_parseable_only=true` for semantic-closure runs to skip declaration-before-use runtime checks when `parse_full` is not `pass`,
@@ -628,6 +641,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Added structured blocker taxonomy to `sv_declared_shadow_promotion_gate` reports (per-trial blocker keys/details + aggregate non-shadow blocker attribution) and surfaced aggregate `sv_declared_shadow_promotion_primary_non_shadow_blocker` telemetry in `sota_exit_gate`.
 - 2026-03-01: Added aggregate policy/runtime trial-shape controls and summary telemetry surfacing for declared-shadow promotion stage in `sota_exit_gate`.
 - 2026-03-01: Added persisted promotion telemetry section to aggregate summary artifact (`rust/target/sota_exit_gate/summary.txt`) for parse-full promotion stage runs.
 - 2026-03-01: Added aggregate-scoped promotion artifact routing and inline promotion telemetry emission in `sota_exit_gate` (`report_json`, recommendation, primary blocker, avg ratio).
