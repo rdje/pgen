@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-p-aggregate-sv-stimuli-telemetry)
+Last updated: 2026-03-03 (+0100, task: phase-q-aggregate-sv-preprocessor-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: see tail entry in "Session Git History (Hash + Message)".
+- Latest commit: `ef6acaa` (`Scope aggregate sv_stimuli_quality_gate artifacts under sota_exit_gate state and surface core telemetry.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -76,8 +76,28 @@ Use this file to resume work without replaying full chat history.
     - `sv_stimuli_quality_parse_full_pass_ratio_percent`
     - `sv_stimuli_quality_diff_mismatch_count`
     - `sv_stimuli_quality_performance_enabled`
+  - Aggregate `sv_preprocessor_quality_gate` now runs under aggregate state and emits differential telemetry:
+    - stage dir: `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
+    - `sv_preprocessor_quality_parseability_mode_effective`
+    - `sv_preprocessor_quality_diff_mode_effective`
+    - `sv_preprocessor_quality_diff_mismatch_count`
+    - key taxonomy counters (`output_mismatch`, `rust_failed_reference_passed`, `reference_failed_rust_passed`)
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
+
+### 2026-03-03: Added aggregate SV preprocessor quality artifact scoping + telemetry
+- Root cause:
+  - Aggregate `sota_exit_gate` executed `sv_preprocessor_quality_gate` without aggregate-scoped state routing and without surfaced preprocessor differential telemetry.
+- Fix:
+  - Updated `rust/scripts/sota_exit_gate.sh` to:
+    - route stage artifacts under `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`,
+    - forward `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR`,
+    - surface effective mode and mismatch/taxonomy telemetry in stdout + summary.
+- Validation:
+  - `bash -n rust/scripts/sota_exit_gate.sh` passed.
+  - focused aggregate run (required checks limited to `differential_baseline_contract`, preprocessor stage enabled) passed and emitted telemetry fields.
+- Result:
+  - Aggregate triage for preprocessor differential runs no longer requires manual drill-down into stage-local files.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
@@ -85,6 +105,7 @@ Use this file to resume work without replaying full chat history.
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- ef6acaa Scope aggregate sv_stimuli_quality_gate artifacts under sota_exit_gate state and surface core telemetry.
 - e7e8ee1 Add deterministic initial replay equivalence checks to SV closed-loop gate
 - fd7c349 Align SV stimuli sample-stage order with Phase Q parser/stimuli contract
 - f5c2928 Track preprocess convergence debt in SV stimuli closed-loop gate
@@ -1782,7 +1803,7 @@ Use this file to resume work without replaying full chat history.
    - collect taxonomy deltas and classify expected-vs-bug mismatches.
 2. Continue Phase P semantic-closure implementation for SV:
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=15`),
-   - next step is ratcheting the policy minimum ratio upward again (for example `15 -> 20`) only after repeated deterministic strict evidence remains green.
+   - latest promotion evidence at target `20` is still `hold` (`observed_ratio_min=8`, `observed_ratio_max=16`, `observed_ratio_avg=13`, ratio-only blockers), so keep `min=15` and continue parse-full debt burn-down before re-ratchet.
 3. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 4. Expand contractized SV/VHDL corpora:

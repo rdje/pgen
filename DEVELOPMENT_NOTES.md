@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase Q Aggregate Telemetry Increment: SV Preprocessor Quality Stage Scoping + Differential Taxonomy Metrics
+### Context
+Aggregate `sota_exit_gate` executed `sv_preprocessor_quality_gate` without stage-specific state scoping and without surfacing preprocessor differential metrics. Aggregate triage required opening stage-local artifacts manually.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- Added aggregate-scoped stage directory for `sv_preprocessor_quality_gate`:
+  - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
+- Aggregate now forwards:
+  - `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR=<aggregate stage dir>`
+  in strict and informational preprocessor runs.
+- Added summary/differential parsing + aggregate telemetry for:
+  - effective modes:
+    - `parseability_mode_effective`
+    - `diff_mode_effective`
+  - mismatch/taxonomy counters:
+    - `diff_mismatch_count`
+    - `taxonomy_counts.output_mismatch`
+    - `taxonomy_counts.rust_failed_reference_passed`
+    - `taxonomy_counts.reference_failed_rust_passed`
+  - report artifact path:
+    - `work/systemverilog_preprocessor_differential_report.json`
+- Added persisted `SV Preprocessor Quality Telemetry` section to aggregate `summary.txt`.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with:
+  - required checks limited to `differential_baseline_contract`
+  - `run_sv_preprocessor_quality=1`
+  - `require_sv_preprocessor_quality_strict=0`
+
+Observed:
+- aggregate run passed.
+- `sv_preprocessor_quality_gate` artifacts produced under aggregate stage dir.
+- aggregate stdout + `summary.txt` include:
+  - effective parseability/differential modes,
+  - differential mismatch/taxonomy counters,
+  - aggregate-scoped report artifact paths.
+
 ## 2026-03-03 - Phase P Aggregate Telemetry Increment: SV Stimuli Quality Stage Scoping + Core Metrics
 ### Context
 Aggregate `sota_exit_gate` executed `sv_stimuli_quality_gate` without stage-specific state scoping and without surfacing report-derived SV quality metrics. Aggregate triage required manual navigation to default gate paths and direct report inspection.

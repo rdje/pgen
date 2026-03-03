@@ -2356,6 +2356,19 @@ PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=$PWD/rust/scripts/sv_preprocessor_referenc
 PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto \
 make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
 ```
+- aggregate observability behavior (`sota_exit_gate`):
+  - aggregate stage state dir:
+    - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
+  - aggregate output and `summary.txt` include:
+    - `sv_preprocessor_quality_state_dir`
+    - `sv_preprocessor_quality_summary_csv`
+    - `sv_preprocessor_quality_differential_report_json`
+    - `sv_preprocessor_quality_parseability_mode_effective`
+    - `sv_preprocessor_quality_diff_mode_effective`
+    - `sv_preprocessor_quality_diff_mismatch_count`
+    - `sv_preprocessor_quality_diff_taxonomy_output_mismatch`
+    - `sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed`
+    - `sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed`
 
 Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`)

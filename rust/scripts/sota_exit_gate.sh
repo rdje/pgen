@@ -265,6 +265,15 @@ SV_PARSE_FULL_RATIO_PROMOTION_FAILED_TRIAL_COUNT="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_NON_RATIO_BLOCKED_TRIAL_COUNT="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_MIN="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_MAX="<unset>"
+SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR="<unset>"
+SV_PREPROCESSOR_QUALITY_SUMMARY_CSV="<unset>"
+SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON="<unset>"
+SV_PREPROCESSOR_QUALITY_PARSEABILITY_MODE_EFFECTIVE="<unset>"
+SV_PREPROCESSOR_QUALITY_DIFF_MODE_EFFECTIVE="<unset>"
+SV_PREPROCESSOR_QUALITY_DIFF_MISMATCH_COUNT="<unset>"
+SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_OUTPUT_MISMATCH="<unset>"
+SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED="<unset>"
+SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED="<unset>"
 SV_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="<unset>"
 SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="<unset>"
@@ -476,13 +485,73 @@ if [[ "$RUN_HDL_FRONTEND_READINESS" -eq 1 ]]; then
 fi
 
 if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
+    SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR="${STATE_DIR}/work/sv_preprocessor_quality_gate"
+    SV_PREPROCESSOR_QUALITY_STAGE_SUMMARY_CSV="${SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR}/summary.csv"
+    SV_PREPROCESSOR_QUALITY_STAGE_DIFF_REPORT_JSON="${SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR}/work/systemverilog_preprocessor_differential_report.json"
+    SV_PREPROCESSOR_QUALITY_STAGE_LOG_FILE="${LOG_DIR}/sv_preprocessor_quality_gate.log"
+
     if [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
         run_check "sv_preprocessor_quality_gate" "required" "strict SystemVerilog preprocessor closed-loop quality gate" \
-            make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
+            env \
+                PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
     else
         run_check "sv_preprocessor_quality_gate" "informational" "report-only SystemVerilog preprocessor closed-loop quality gate" \
-            make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
+            env \
+                PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
     fi
+
+    if [[ -f "$SV_PREPROCESSOR_QUALITY_STAGE_SUMMARY_CSV" ]]; then
+        sv_preproc_parseability_effective="$(awk -F, '$1=="parseability_mode_effective"{print $2}' "$SV_PREPROCESSOR_QUALITY_STAGE_SUMMARY_CSV" | tail -n 1 || true)"
+        sv_preproc_diff_mode_effective="$(awk -F, '$1=="diff_mode_effective"{print $2}' "$SV_PREPROCESSOR_QUALITY_STAGE_SUMMARY_CSV" | tail -n 1 || true)"
+        sv_preproc_diff_mismatch_count="$(awk -F, '$1=="diff_mismatch_count"{print $2}' "$SV_PREPROCESSOR_QUALITY_STAGE_SUMMARY_CSV" | tail -n 1 || true)"
+        SV_PREPROCESSOR_QUALITY_SUMMARY_CSV="$SV_PREPROCESSOR_QUALITY_STAGE_SUMMARY_CSV"
+        SV_PREPROCESSOR_QUALITY_PARSEABILITY_MODE_EFFECTIVE="${sv_preproc_parseability_effective:-unknown}"
+        SV_PREPROCESSOR_QUALITY_DIFF_MODE_EFFECTIVE="${sv_preproc_diff_mode_effective:-unknown}"
+        SV_PREPROCESSOR_QUALITY_DIFF_MISMATCH_COUNT="${sv_preproc_diff_mismatch_count:-unknown}"
+    else
+        SV_PREPROCESSOR_QUALITY_SUMMARY_CSV="<missing>"
+        sv_preproc_parseability_effective=""
+        sv_preproc_diff_mode_effective=""
+        sv_preproc_diff_mismatch_count=""
+        if [[ -f "$SV_PREPROCESSOR_QUALITY_STAGE_LOG_FILE" ]]; then
+            sv_preproc_parseability_effective="$(sed -nE 's/^parseability_mode_effective[, ]+(.+)$/\1/p' "$SV_PREPROCESSOR_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+            sv_preproc_diff_mode_effective="$(sed -nE 's/^diff_mode_effective[, ]+(.+)$/\1/p' "$SV_PREPROCESSOR_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+            sv_preproc_diff_mismatch_count="$(sed -nE 's/^diff_mismatch_count[, ]+([0-9]+)$/\1/p' "$SV_PREPROCESSOR_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+            if [[ -z "$sv_preproc_diff_mismatch_count" ]]; then
+                sv_preproc_diff_mismatch_count="$(sed -nE 's/^error: strict differential mode detected mismatches \(([0-9]+)\)$/\1/p' "$SV_PREPROCESSOR_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+            fi
+        fi
+        SV_PREPROCESSOR_QUALITY_PARSEABILITY_MODE_EFFECTIVE="${sv_preproc_parseability_effective:-unknown}"
+        SV_PREPROCESSOR_QUALITY_DIFF_MODE_EFFECTIVE="${sv_preproc_diff_mode_effective:-unknown}"
+        SV_PREPROCESSOR_QUALITY_DIFF_MISMATCH_COUNT="${sv_preproc_diff_mismatch_count:-unknown}"
+    fi
+
+    if [[ -f "$SV_PREPROCESSOR_QUALITY_STAGE_DIFF_REPORT_JSON" ]]; then
+        sv_preproc_diff_output_mismatch="$(jq -er '.taxonomy_counts.output_mismatch // "unknown"' "$SV_PREPROCESSOR_QUALITY_STAGE_DIFF_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        sv_preproc_diff_rust_failed_reference_passed="$(jq -er '.taxonomy_counts.rust_failed_reference_passed // "unknown"' "$SV_PREPROCESSOR_QUALITY_STAGE_DIFF_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        sv_preproc_diff_reference_failed_rust_passed="$(jq -er '.taxonomy_counts.reference_failed_rust_passed // "unknown"' "$SV_PREPROCESSOR_QUALITY_STAGE_DIFF_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON="$SV_PREPROCESSOR_QUALITY_STAGE_DIFF_REPORT_JSON"
+        SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_OUTPUT_MISMATCH="$sv_preproc_diff_output_mismatch"
+        SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED="$sv_preproc_diff_rust_failed_reference_passed"
+        SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED="$sv_preproc_diff_reference_failed_rust_passed"
+    else
+        SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON="<missing>"
+        SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_OUTPUT_MISMATCH="unknown"
+        SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED="unknown"
+        SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED="unknown"
+    fi
+
+    echo "sv_preprocessor_quality_state_dir: $SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR"
+    echo "sv_preprocessor_quality_summary_csv: $SV_PREPROCESSOR_QUALITY_SUMMARY_CSV"
+    echo "sv_preprocessor_quality_differential_report_json: $SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON"
+    echo "sv_preprocessor_quality_parseability_mode_effective: $SV_PREPROCESSOR_QUALITY_PARSEABILITY_MODE_EFFECTIVE"
+    echo "sv_preprocessor_quality_diff_mode_effective: $SV_PREPROCESSOR_QUALITY_DIFF_MODE_EFFECTIVE"
+    echo "sv_preprocessor_quality_diff_mismatch_count: $SV_PREPROCESSOR_QUALITY_DIFF_MISMATCH_COUNT"
+    echo "sv_preprocessor_quality_diff_taxonomy_output_mismatch: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_OUTPUT_MISMATCH"
+    echo "sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED"
+    echo "sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED"
 fi
 
 if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
@@ -741,6 +810,19 @@ fi
         echo "sv_stimuli_quality_diff_mismatch_count: $SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT"
         echo "sv_stimuli_quality_performance_report_json: $SV_STIMULI_QUALITY_PERF_REPORT_JSON"
         echo "sv_stimuli_quality_performance_enabled: $SV_STIMULI_QUALITY_PERF_ENABLED"
+    fi
+    if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
+        echo
+        echo "SV Preprocessor Quality Telemetry"
+        echo "sv_preprocessor_quality_state_dir: $SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR"
+        echo "sv_preprocessor_quality_summary_csv: $SV_PREPROCESSOR_QUALITY_SUMMARY_CSV"
+        echo "sv_preprocessor_quality_differential_report_json: $SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON"
+        echo "sv_preprocessor_quality_parseability_mode_effective: $SV_PREPROCESSOR_QUALITY_PARSEABILITY_MODE_EFFECTIVE"
+        echo "sv_preprocessor_quality_diff_mode_effective: $SV_PREPROCESSOR_QUALITY_DIFF_MODE_EFFECTIVE"
+        echo "sv_preprocessor_quality_diff_mismatch_count: $SV_PREPROCESSOR_QUALITY_DIFF_MISMATCH_COUNT"
+        echo "sv_preprocessor_quality_diff_taxonomy_output_mismatch: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_OUTPUT_MISMATCH"
+        echo "sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED"
+        echo "sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED"
     fi
     if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         echo

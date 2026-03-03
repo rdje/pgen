@@ -561,6 +561,16 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - shrinking for failing preprocessability samples.
   - Progress (2026-02-27): gate script implemented (`rust/scripts/sv_preprocessor_quality_gate.sh`) with stage-0 deterministic replay checks, closed-loop stage progression invariants, key preprocessor-rule hit assertions, target-drive integrity checks, and deterministic coverage-guided fuzz replay verification.
   - Progress (2026-02-28): enabled executable parser-registry parseability path for `systemverilog_preprocessor` by wiring dynamic generated-parser adapter support (`build.rs`, `lib.rs`, `parser_registry`) and updating `sv_preprocessor_quality_gate` to self-generate `systemverilog_preprocessor_parser.rs` then rebuild `ast_pipeline` with `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH` before stage execution. `auto` parseability mode now resolves to `enabled` in gate summary with real parseability validation active.
+  - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
+    - aggregate now routes stage artifacts under:
+      - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
+    - aggregate telemetry now surfaces:
+      - summary artifact/report paths,
+      - `parseability_mode_effective`,
+      - `diff_mode_effective`,
+      - `diff_mismatch_count`,
+      - key differential taxonomy counters (`output_mismatch`, `rust_failed_reference_passed`, `reference_failed_rust_passed`).
+    - this removes aggregate triage friction for preprocessor trusted-reference differential outcomes.
 - [x] Add preprocessor semantic controls and validator contracts (annotation-driven where appropriate):
   - include path policy + depth budget,
   - macro redefinition policy,
@@ -685,6 +695,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Added aggregate `sv_preprocessor_quality_gate` artifact scoping (`rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`) and telemetry surfacing (effective parseability/differential modes, mismatch count, key taxonomy counters, report paths) in `sota_exit_gate`.
 - 2026-03-03: Added aggregate `sv_stimuli_quality_gate` artifact scoping (`rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`) and telemetry surfacing (parse-full ratio, differential mismatch count, performance-enabled flag + report paths) in `sota_exit_gate`.
 - 2026-03-03: Added aggregate parse-full promotion observed-ratio range telemetry surfacing (`sv_parse_full_ratio_promotion_observed_ratio_min`, `sv_parse_full_ratio_promotion_observed_ratio_max`) by parsing promotion report totals in `sota_exit_gate`.
 - 2026-03-03: Added aggregate parse-full promotion blocker-count telemetry surfacing (`sv_parse_full_ratio_promotion_failed_trial_count`, `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`) by parsing promotion report blocker counters in `sota_exit_gate`.
