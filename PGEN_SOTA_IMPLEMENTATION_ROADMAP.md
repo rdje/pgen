@@ -342,6 +342,8 @@ Toolbox baseline to leverage end-to-end:
     - `sota_exit_gate` now validates/forwards this control to promotion-stage runs.
     - promotion report now includes:
       - `declared_shadow_parseable_only`
+    - aggregate `sota_exit_gate` promotion telemetry now also surfaces:
+      - `sv_declared_shadow_promotion_declared_shadow_parseable_only`
     - this allows deterministic A/B promotion evidence collection with and without parseability-scoped declared-shadow checks.
   - Progress (2026-03-01): promoted runtime declaration-before-use enforcement in semantic-closure profile with parseability guardrails (`systemverilog_core_v0_contract.json` v20):
     - `sv_semantic_file` now enables `require_declared_identifiers_before_use=true`,
@@ -651,6 +653,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Surfaced declared-shadow promotion parseability-scope telemetry in aggregate gate output/summary (`sv_declared_shadow_promotion_declared_shadow_parseable_only`) by reading stage report field `declared_shadow_parseable_only`.
 - 2026-03-03: Added declared-shadow promotion parseability-scope policy/runtime controls (`...DECLARED_SHADOW_PARSEABLE_ONLY`) in standalone + aggregate paths, with validation/forwarding in `sota_exit_gate` and report surfacing in `sv_declared_shadow_promotion_gate`.
 - 2026-03-03: Added structured blocker taxonomy to `sv_declared_shadow_promotion_gate` reports (per-trial blocker keys/details + aggregate non-shadow blocker attribution) and surfaced aggregate `sv_declared_shadow_promotion_primary_non_shadow_blocker` telemetry in `sota_exit_gate`.
 - 2026-03-01: Added aggregate policy/runtime trial-shape controls and summary telemetry surfacing for declared-shadow promotion stage in `sota_exit_gate`.

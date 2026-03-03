@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Aggregate Telemetry Increment: Runtime Parseability Scope for Declared-Shadow Promotion
+### Context
+Aggregate gate printed declared-shadow promotion configuration (`sv_declared_shadow_promotion_declared_shadow_parseable_only`) from policy/runtime inputs, but did not surface the stage-report effective value. This made aggregate artifacts less explicit when proving runtime-effective trial scope.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- Added stage-report parse for:
+  - `.declared_shadow_parseable_only`
+- Added aggregate telemetry variable:
+  - `SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
+- Emitted/persisted telemetry field:
+  - `sv_declared_shadow_promotion_declared_shadow_parseable_only`
+  in both aggregate stdout and `rust/target/sota_exit_gate/summary.txt`.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with declared-shadow stage only and explicit override:
+  - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY=0`
+
+Observed:
+- aggregate output and summary now include:
+  - `sv_declared_shadow_promotion_declared_shadow_parseable_only: 0`
+- value matches promotion report artifact field `declared_shadow_parseable_only`.
+
 ## 2026-03-03 - Phase P Control Increment: Declared-Shadow Promotion Parseability Scope as Policy
 ### Context
 Declared-shadow promotion gate hardcoded `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=1`, which prevented deterministic A/B evidence collection between parseability-scoped and unscoped strict-shadow promotion trials from policy/aggregate control surfaces.
