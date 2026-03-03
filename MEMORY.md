@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-p-declared-shadow-blocker-taxonomy-parity)
+Last updated: 2026-03-03 (+0100, task: phase-p-declared-shadow-parseability-scope-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -49,10 +49,17 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=2`
     - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE=1`
     - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE=sv_file`
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY=1`
   - Declared-shadow promotion diagnostics parity:
     - report now includes blocker taxonomy (`trials[].blocker_key/detail`, `blockers.*`),
     - aggregate `sota_exit_gate` now surfaces:
       - `sv_declared_shadow_promotion_primary_non_shadow_blocker`.
+  - Declared-shadow promotion parseability scope is now policy-driven in standalone + aggregate gate paths:
+    - standalone knob:
+      - `PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
+    - aggregate policy/runtime knobs:
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
+      - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 

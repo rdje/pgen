@@ -2259,6 +2259,7 @@ Aggregate gate tuning:
 - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (integer `>=1`, default from policy file; minimum checked shadow samples required by promotion gate)
 - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default from policy file; semantic-closure mode forwarded to declared-shadow promotion trials)
 - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to declared-shadow promotion trials)
+- `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY` (`0`/`1`, default from policy file; forwarded parseability scope for strict declared-shadow checks inside promotion trials)
 - `PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of parse-full ratio promotion trials)
 - `PGEN_SOTA_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when promotion eligibility is not met)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default from policy file; parse-full promotion threshold passed into `sv_parse_full_ratio_promotion_gate`)
@@ -2386,6 +2387,7 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED` (default `2`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `1`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY` (`0`/`1`, default `1`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STATE_DIR` (default `rust/target/sv_declared_shadow_promotion_gate`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE` (`auto`/`0`/`1`, default `auto`)
   - controls standalone `sv_parse_full_ratio_promotion_gate` behavior.
@@ -2575,6 +2577,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - report fields:
     - `recommendation` (`enable_runtime_declared_identifiers` or `hold`)
     - `eligibility.eligible_for_runtime_enforcement`
+    - `declared_shadow_parseable_only` (effective parseability scope forwarded to strict declared-shadow trial checks)
     - aggregated strict-trial totals (`checked/passed/failed`)
     - `totals.skipped_unparseable` from parseable-only filtering in underlying strict trials
     - per-trial blocker attribution:
@@ -2600,6 +2603,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED`
       - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE`
       - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE`
+      - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
       plus matching `PGEN_SOTA_SV_*` runtime overrides.
   - aggregate observability behavior:
     - when run from `sota_exit_gate`, declared-shadow artifacts are written under:

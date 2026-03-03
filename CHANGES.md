@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-03 - Phase P Promotion Control Increment: Policy-Driven Declared-Shadow Parseability Scope
+### ✅ Achievement Summary
+Made declared-shadow promotion trial parseability scope configurable in both standalone and aggregate paths by replacing hardcoded parseable-only behavior with explicit policy/runtime controls.
+
+### Scope of Changes
+- Updated standalone promotion gate in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+  - new env control:
+    - `PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY` (`0|1`, default `1`)
+  - strict trial invocation now forwards:
+    - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=$PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
+  - report now surfaces:
+    - `declared_shadow_parseable_only`
+- Updated aggregate gate and policy in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+  - new aggregate controls:
+    - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
+    - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
+  - aggregate gate validates and forwards the effective value in both strict/informational promotion-stage runs.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` ✅
+  - report includes `declared_shadow_parseable_only: 0`.
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=0 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate stage consumed forwarded parseability-scope override.
+
 ## 2026-03-03 - Phase P Promotion Diagnostics Increment: Declared-Shadow Blocker Taxonomy Parity
 ### ✅ Achievement Summary
 Added structured blocker taxonomy to `sv_declared_shadow_promotion_gate` and surfaced the primary non-shadow blocker in aggregate `sota_exit_gate` telemetry so `hold` outcomes are objectively attributable without manual log scraping.

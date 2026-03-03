@@ -19,6 +19,7 @@ PARSE_FULL_MODE="${PGEN_SV_DECLARED_SHADOW_PROMOTION_PARSE_FULL_MODE:-auto}" # a
 MIN_CHECKED="${PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED:-2}"
 SEMANTIC_CLOSURE_MODE="${PGEN_SV_DECLARED_SHADOW_PROMOTION_SEMANTIC_CLOSURE_MODE:-1}" # 0|1
 PROMOTION_STIMULI_MODE="${PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE:-sv_file}"
+DECLARED_SHADOW_PARSEABLE_ONLY="${PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY:-1}" # 0|1
 
 if [[ "$PROMOTION_MODE" != "auto" && "$PROMOTION_MODE" != "0" && "$PROMOTION_MODE" != "1" ]]; then
     echo "error: PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE must be one of: auto, 0, 1" >&2
@@ -56,6 +57,10 @@ if [[ "$PROMOTION_STIMULI_MODE" != "sv_file" && "$PROMOTION_STIMULI_MODE" != "sv
     echo "error: PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE must be one of: sv_file, sv_snippet, sv_pp_file, sv_pp_snippet, sv_semantic_file" >&2
     exit 2
 fi
+if ! [[ "$DECLARED_SHADOW_PARSEABLE_ONLY" =~ ^[01]$ ]]; then
+    echo "error: PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY must be 0 or 1" >&2
+    exit 2
+fi
 
 mkdir -p "$LOG_DIR" "$WORK_DIR"
 
@@ -69,6 +74,7 @@ echo "target_max_attempts: $TARGET_MAX_ATTEMPTS"
 echo "parse_full_mode: $PARSE_FULL_MODE"
 echo "semantic_closure_mode: $SEMANTIC_CLOSURE_MODE"
 echo "promotion_stimuli_mode: $PROMOTION_STIMULI_MODE"
+echo "declared_shadow_parseable_only: $DECLARED_SHADOW_PARSEABLE_ONLY"
 echo "min_checked: $MIN_CHECKED"
 
 if [[ "$PROMOTION_MODE" == "0" ]]; then
@@ -171,7 +177,7 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
             PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE="$SEMANTIC_CLOSURE_MODE" \
             PGEN_SV_STIMULI_QUALITY_MODE="$PROMOTION_STIMULI_MODE" \
             PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE=1 \
-            PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=1 \
+            PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY="$DECLARED_SHADOW_PARSEABLE_ONLY" \
             PGEN_SV_STIMULI_DIFF_MODE=0 \
             PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 \
             ./scripts/sv_stimuli_quality_gate.sh
@@ -306,6 +312,7 @@ jq -n \
     --arg recommendation "$promotion_recommendation" \
     --arg note "$promotion_note" \
     --arg promotion_stimuli_mode "$PROMOTION_STIMULI_MODE" \
+    --argjson declared_shadow_parseable_only "$DECLARED_SHADOW_PARSEABLE_ONLY" \
     --argjson trials "$TRIALS" \
     --argjson sample_count "$SAMPLE_COUNT" \
     --argjson min_checked "$MIN_CHECKED" \
@@ -329,6 +336,7 @@ jq -n \
         recommendation: $recommendation,
         note: $note,
         promotion_stimuli_mode: $promotion_stimuli_mode,
+        declared_shadow_parseable_only: $declared_shadow_parseable_only,
         parse_full_mode: $parse_full_mode,
         semantic_closure_mode: $semantic_closure_mode,
         eligibility: {
@@ -369,6 +377,7 @@ jq -n \
     echo "trial_gate_failures: $trial_gate_failures"
     echo "trial_missing_report: $trial_missing_report"
     echo "primary_non_shadow_blocker: $primary_non_shadow_blocker"
+    echo "declared_shadow_parseable_only: $DECLARED_SHADOW_PARSEABLE_ONLY"
     echo "blocker_breakdown_json: $blocker_breakdown_json"
     echo "report_json: $PROMOTION_REPORT_JSON"
 } >"$SUMMARY_TXT"

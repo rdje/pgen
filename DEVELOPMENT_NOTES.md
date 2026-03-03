@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Control Increment: Declared-Shadow Promotion Parseability Scope as Policy
+### Context
+Declared-shadow promotion gate hardcoded `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY=1`, which prevented deterministic A/B evidence collection between parseability-scoped and unscoped strict-shadow promotion trials from policy/aggregate control surfaces.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- Added standalone promotion gate knob:
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY` (`0|1`, default `1`)
+- Standalone gate now validates and forwards this knob into strict-shadow trial runs as:
+  - `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_PARSEABLE_ONLY`
+- Added aggregate policy/runtime knob pair:
+  - `PGEN_SOTA_POLICY_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
+  - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
+- `sota_exit_gate` now validates, prints, and forwards effective parseability-scope value for both strict and informational declared-shadow promotion stage runs.
+- Promotion report now records:
+  - `declared_shadow_parseable_only`
+  for deterministic artifact-level evidence of trial scope.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused standalone run with parseability scope override:
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto`
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1`
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=2`
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1`
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY=0`
+  - `make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+- focused aggregate run with declared-shadow stage only and forwarded parseability-scope override.
+
+Observed:
+- standalone report includes `declared_shadow_parseable_only` with override value.
+- aggregate stage consumed forwarded parseability-scope control without hardcoded behavior.
+
 ## 2026-03-03 - Phase P Diagnostics Increment: Declared-Shadow Promotion Blocker Taxonomy + Aggregate Primary-Blocker Surfacing
 ### Context
 Declared-shadow promotion produced recommendation and totals telemetry, but did not provide structured blocker attribution comparable to parse-full promotion. `hold` outcomes still required manual trial-log inspection to classify whether debt was true shadow violations vs unrelated gate failures.
