@@ -2867,14 +2867,18 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - current implementation uses structured use-site scanning (assignments, conditions, event controls, named-port actuals), strips quoted strings/directives, ignores member/namespace/macro contexts, and handles additional declaration contexts (ports/imports/for/foreach/instantiation).
     - semantic-closure profile (`sv_semantic_file`) now enables this check with parseability guardrails:
       - `require_declared_identifiers_parseable_only=true` skips this runtime check when `parse_full` status is not `pass`.
-    - deterministic contract coverage exists in `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`, including explicit `foreach (arr[idx])` iterator declaration handling.
+    - deterministic contract coverage exists in `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`, including explicit `foreach (arr[idx])` iterator declaration handling and preprocess-heavy conditional-directive families.
   - optional package qualification/import resolution heuristic (`semantic_baseline.require_package_qualification_resolution`).
+    - deterministic contract coverage in `rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json` includes macro-qualified package reference pass/fail families.
   - optional simple packed-width vs literal-width compatibility check (`semantic_baseline.require_width_compatibility_simple`).
     - current implementation covers packed declarations of `logic|reg|wire|bit` and indexed LHS assignment forms.
+    - deterministic contract coverage in `rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json` includes preprocess-conditional overflow families.
   - optional basic context legality checks (`semantic_baseline.require_context_legality_basic`):
     - `always_comb` must not contain event controls,
     - `always_ff` must not contain blocking assignments,
     - generate `for` iterators must be declared `genvar`.
+    - deterministic contract coverage in `rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json` includes directive-noise and preprocess-conditional `always_ff` families.
+  - optional basic named-port legality checks (`semantic_baseline.require_port_binding_legality_basic`) are backed by deterministic contract coverage in `rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`, including preprocess-conditional unknown-binding failure families.
 - parse-full stage behavior:
   - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,

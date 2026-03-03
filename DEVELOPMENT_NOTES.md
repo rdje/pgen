@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Semantic-Closure Increment: Preprocess-Heavy Deterministic Semantic Suite Expansion
+### Context
+Phase P semantic closure required stronger deterministic corpus evidence for preprocess-shaped inputs. Existing semantic suites were mostly plain snippets and under-covered directive-heavy patterns encountered after/around preprocessing.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`
+
+Changes:
+- Bumped all five enforced SV semantic suite manifests to `version: 2`.
+- Added preprocess-heavy deterministic families:
+  - declared-identifier suite: conditional-directive declared vs undeclared branches.
+  - package-qualification suite: macro-qualified package reference pass/fail families.
+  - width-compatibility suite: preprocess-conditional overflow family plus macro-noise equal-width family.
+  - context-legality suite: directive-noise `always_comb` pass family and preprocess-conditional `always_ff` blocking fail family.
+  - port-binding suite: directive-noise named-port pass family and preprocess-conditional unknown named-port fail family.
+- No gate logic changes were needed because these suites are already enforced by `sv_stimuli_quality_gate`.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- Gate passed with all semantic contract suites enforced and green:
+  - `declared_identifier_suite_passed=14/14`
+  - `width_compatibility_suite_passed=10/10`
+  - `port_binding_suite_passed=10/10`
+  - `package_qualification_suite_passed=10/10`
+  - `context_legality_suite_passed=10/10`
+- This provides deterministic preprocess-shaped semantic coverage without introducing generator/runtime regressions.
+
 ## 2026-03-03 - Phase Q Curated Differential Expansion: Include-Policy Negative Families
 ### Context
 After tightening stable curated directive families to strict `match`, the next hardening gap was deterministic negative include-policy coverage inside the same offline curated oracle path.

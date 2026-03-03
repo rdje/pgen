@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Deterministic semantic contract suite for width-compatibility validator behavior in sv_stimuli_quality_gate.",
   "cases": [
     {
@@ -41,6 +41,16 @@
       "name": "bit_declaration_literal_overflow_fail",
       "expect_pass": false,
       "input": "module m; bit [0:0] b; assign b = 2'd3; endmodule"
+    },
+    {
+      "name": "macro_noise_equal_width_literal_pass",
+      "expect_pass": true,
+      "input": "module m; logic [3:0] a; `define GOOD_LIT 4'hA assign a = 4'hA; endmodule"
+    },
+    {
+      "name": "preprocessor_conditional_overflow_fail",
+      "expect_pass": false,
+      "input": "module m; logic [1:0] a; `ifdef USE_WIDE assign a = 3'b111; `else assign a = 2'b10; `endif endmodule"
     }
   ]
 }

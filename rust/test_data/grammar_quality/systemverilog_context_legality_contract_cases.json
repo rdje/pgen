@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Deterministic semantic contract suite for context legality behavior in sv_stimuli_quality_gate.",
   "cases": [
     {
@@ -41,6 +41,16 @@
       "name": "comment_noise_context_pass",
       "expect_pass": true,
       "input": "module top; // always_ff with nonblocking should pass\nlogic clk; logic q; logic d; always_ff @(posedge clk) begin /* no blocking */ q <= d; end endmodule"
+    },
+    {
+      "name": "directive_noise_always_comb_pass",
+      "expect_pass": true,
+      "input": "module top; logic a; logic b; `define TAG 1 always_comb begin b = a; end endmodule"
+    },
+    {
+      "name": "preprocessor_conditional_always_ff_blocking_fail",
+      "expect_pass": false,
+      "input": "module top; logic clk; logic d; logic q; `ifdef BAD always_ff @(posedge clk) begin q = d; end `else always_ff @(posedge clk) begin q <= d; end `endif endmodule"
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Deterministic semantic contract suite for basic named-port legality behavior in sv_stimuli_quality_gate.",
   "cases": [
     {
@@ -41,6 +41,16 @@
       "name": "comment_noise_named_port_pass",
       "expect_pass": true,
       "input": "module child(input logic a); endmodule module top; logic sig; /* comment */ child u0(.a(sig)); // trailing comment\nendmodule"
+    },
+    {
+      "name": "directive_noise_named_port_pass",
+      "expect_pass": true,
+      "input": "module child(input logic a); endmodule module top; logic sig; `define TAG 1 child u0(.a(sig)); endmodule"
+    },
+    {
+      "name": "preprocessor_conditional_unknown_named_port_fail",
+      "expect_pass": false,
+      "input": "module child(input logic a); endmodule module top; logic sig; `ifdef BAD child u0(.oops(sig)); `else child u0(.a(sig)); `endif endmodule"
     }
   ]
 }

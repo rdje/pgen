@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Deterministic semantic contract suite for package qualification resolution behavior in sv_stimuli_quality_gate.",
   "cases": [
     {
@@ -41,6 +41,16 @@
       "name": "type_reference_unresolved_fail",
       "expect_pass": false,
       "input": "module top; typedef missing_pkg::t_t thing_t; endmodule"
+    },
+    {
+      "name": "macro_qualified_package_reference_pass",
+      "expect_pass": true,
+      "input": "package cfg_pkg; localparam int V = 2; endpackage module top; int y; `define GOOD_PKG_REF cfg_pkg::V assign y = `GOOD_PKG_REF; endmodule"
+    },
+    {
+      "name": "macro_qualified_package_reference_fail",
+      "expect_pass": false,
+      "input": "module top; int y; `define BAD_PKG_REF bad_pkg::X assign y = `BAD_PKG_REF; endmodule"
     }
   ]
 }

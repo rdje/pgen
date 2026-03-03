@@ -449,6 +449,15 @@ Toolbox baseline to leverage end-to-end:
     - this allows aggregate-side visibility of ratio dispersion, not only average.
   - Progress (2026-03-01): persisted aggregate promotion telemetry into summary artifacts:
     - `rust/target/sota_exit_gate/summary.txt` now includes a dedicated `Promotion Telemetry` section when promotion stage runs, mirroring report-path/recommendation/blocker/ratio fields for CI artifact handoff.
+  - Progress (2026-03-03): expanded deterministic SV semantic contract corpora with preprocess-heavy directive families:
+    - updated enforced suites to `version: 2`:
+      - `systemverilog_declared_identifier_contract_cases.json`
+      - `systemverilog_package_qualification_contract_cases.json`
+      - `systemverilog_width_compatibility_contract_cases.json`
+      - `systemverilog_context_legality_contract_cases.json`
+      - `systemverilog_port_binding_legality_contract_cases.json`
+    - added directive-noise and conditional/macro-qualified cases to exercise semantic check behavior on preprocess-shaped samples (not only plain raw snippets),
+    - validated via deterministic `sv_stimuli_quality_gate` run with all semantic contract suites enforced and passing.
 - [ ] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
@@ -747,6 +756,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Expanded deterministic SV semantic contract suites to preprocess-heavy directive families (`version: 2` across declared-identifier/package-qualification/width/context/port-binding suites) and validated end-to-end through enforced `sv_stimuli_quality_gate` semantic contract stages.
 - 2026-03-03: Expanded offline curated SV preprocessor corpus to `version: 4` by adding deterministic include-policy negative families (`include_missing_file_negative`, `include_cycle_negative`) with explicit expected-failure category contracts (`rust_failed_expected_passed`), yielding strict curated gate split `expected_match=7`, `expected_mismatch=2`, `bug_mismatch=0`.
 - 2026-03-03: Expanded offline curated SV preprocessor corpus to 7 directive-heavy cases (including undef/nested-conditional/macro-arg/include), refreshed expected artifacts, and tightened curated expected categories to strict `match` only.
 - 2026-03-03: Expanded dynamic template SV preprocessor differential gate with nested-conditional/macro-arg templates and diagnostics-invariant contract counters/taxonomy (`diagnostics_contract_violation`).

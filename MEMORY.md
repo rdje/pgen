@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-q-curated-corpus-include-policy-negative-expansion)
+Last updated: 2026-03-03 (+0100, task: phase-p-semantic-suite-preprocess-heavy-expansion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `9e4c155` (`Expand dynamic SV preprocessor template differential gate with additional edge templates and diagnostics contract invariants.`).
+- Latest commit: `d5b4895` (`Expand curated SV preprocessor differential corpus with include-policy negative families and close Phase Q differential hardening.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -118,6 +118,14 @@ Use this file to resume work without replaying full chat history.
         - `diagnostics_invariant_fail_count`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
+- SV semantic deterministic suite baseline:
+  - enforced suite manifests now at `version: 2` for:
+    - `systemverilog_declared_identifier_contract_cases.json`
+    - `systemverilog_package_qualification_contract_cases.json`
+    - `systemverilog_width_compatibility_contract_cases.json`
+    - `systemverilog_context_legality_contract_cases.json`
+    - `systemverilog_port_binding_legality_contract_cases.json`
+  - suites now include preprocess-heavy directive families (macro/conditional noise) in addition to plain snippet families.
 
 ### 2026-03-03: Added aggregate SV preprocessor quality artifact scoping + telemetry
 - Root cause:
@@ -231,12 +239,35 @@ Use this file to resume work without replaying full chat history.
 - Result:
   - Curated offline differential coverage now spans both stable positive conformance and deterministic include-policy failure families with zero bug mismatches.
 
+### 2026-03-03: Expanded deterministic SV semantic contract suites with preprocess-heavy families
+- Root cause:
+  - Phase P semantic closure lacked deterministic suite coverage for preprocess-shaped directive patterns.
+- Fix:
+  - Updated enforced semantic suite manifests to `version: 2`:
+    - `systemverilog_declared_identifier_contract_cases.json`
+    - `systemverilog_package_qualification_contract_cases.json`
+    - `systemverilog_width_compatibility_contract_cases.json`
+    - `systemverilog_context_legality_contract_cases.json`
+    - `systemverilog_port_binding_legality_contract_cases.json`
+  - Added directive-heavy deterministic cases (macro-qualified references, conditional-directive families, directive-noise context/port patterns).
+- Validation:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` passed.
+  - Suite counters:
+    - `declared_identifier_suite_passed=14/14`
+    - `width_compatibility_suite_passed=10/10`
+    - `port_binding_suite_passed=10/10`
+    - `package_qualification_suite_passed=10/10`
+    - `context_legality_suite_passed=10/10`
+- Result:
+  - Deterministic semantic closure evidence now covers preprocess-heavy patterns in addition to plain snippet families.
+
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `175`
+- Commit count at last refresh (before current uncommitted changes): `176`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- d5b4895 Expand curated SV preprocessor differential corpus with include-policy negative families and close Phase Q differential hardening.
 - 9e4c155 Expand dynamic SV preprocessor template differential gate with additional edge templates and diagnostics contract invariants.
 - 0dd06ee Add dynamic template-based offline SV preprocessor differential oracle gate.
 - 302832e Add offline curated SV preprocessor differential gate with expected-artifact oracle and taxonomy classification.
@@ -1940,7 +1971,8 @@ Use this file to resume work without replaying full chat history.
 2. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
 3. Expand contractized SV/VHDL corpora:
-   - add deterministic targeted families for declaration/use, port binding, generate, and preprocess-heavy cases.
+   - SV preprocess-heavy deterministic semantic suite increment is done (`version: 2` across enforced SV semantic suites),
+   - next corpus increment should target VHDL deterministic semantic/parseability families and additional SV parse-full-improving families.
 4. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
 5. Continue Rust-native EBNF migration hardening:

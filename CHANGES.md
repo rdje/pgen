@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-03-03 - Phase P Semantic-Closure Increment: Preprocess-Heavy Deterministic Semantic Contract Corpora
+### ✅ Achievement Summary
+Expanded the enforced deterministic SV semantic contract suites with preprocess-heavy directive families (macro/conditional noise), so semantic closure checks now cover preprocess-shaped patterns in addition to plain snippets.
+
+### Scope of Changes
+- Updated semantic contract suite corpora to `version: 2`:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`
+- Added new deterministic case families:
+  - declared-before-use with conditional-directive branches,
+  - package qualification with macro-qualified package references,
+  - width compatibility with preprocess-conditional overflow paths,
+  - context legality with directive-noise and conditional `always_ff` blocking-path checks,
+  - port-binding legality with preprocess-conditional unknown named-port checks.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+- semantic contract suite counters (all enforced, all passing):
+  - `declared_identifier_suite_passed=14/14`
+  - `width_compatibility_suite_passed=10/10`
+  - `port_binding_suite_passed=10/10`
+  - `package_qualification_suite_passed=10/10`
+  - `context_legality_suite_passed=10/10`
+
 ## 2026-03-03 - Phase Q Curated Differential Expansion: Include-Policy Negative Families
 ### ✅ Achievement Summary
 Extended the curated offline SV preprocessor differential corpus with deterministic include-policy negative cases, so strict runs now prove both stable positive matches and expected failure-class behavior with zero bug mismatches.
