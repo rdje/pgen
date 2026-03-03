@@ -2884,6 +2884,11 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - top-level coverage hints via `@coverage_target` + `@critical_path`,
     - token-family steering via `@token_class` on `simple_identifier`/`integral_number`.
     This is an initial baseline; broader rule-level semantic steering rollout remains in progress.
+  - rule-level expansion now also covers additional high-fanout rules:
+    - item/declaration flow: `module_item`, `non_port_module_item`, `program_item`, `non_port_program_item`, `module_or_generate_item`, `interface_or_generate_item`, `package_or_generate_item_declaration`, `generate_item`, `block_item_declaration`, `statement_or_null`,
+    - lexical/shape flow: `module_keyword`, `module_header_ports`, `named_port_connection`, `hierarchy_separator`, `primary`, `data_type`, `identifier`.
+  - important steering detail:
+    - `identifier` steering now explicitly favors `simple_identifier` over `escaped_identifier` to reduce exotic-name noise in generated SV stimuli.
 - parse-full stage behavior:
   - `auto`: gate builds a temporary `systemverilog` adapter from the generated parser artifact and runs parse-full when available; parse-full rejections are recorded as soft-fail stage entries (gate continues),
   - `0`: disabled,

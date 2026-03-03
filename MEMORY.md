@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-p-annotation-driven-sv-steering-initial-rollout)
+Last updated: 2026-03-03 (+0100, task: phase-p-annotation-driven-sv-steering-rule-level-expansion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `f98cda9` (`Expand deterministic SV semantic contract suites with preprocess-heavy directive families.`).
+- Latest commit: `a1c7bbc` (`Start annotation-driven SV stimuli steering rollout via semantic directives in systemverilog.ebnf.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -131,6 +131,14 @@ Use this file to resume work without replaying full chat history.
     - top-level coverage hints (`@coverage_target`, `@critical_path`),
     - branch steering (`@branch_policy`, `@priority`) on `source_item`, `description`, and `statement`,
     - token-family hints (`@token_class`) on `simple_identifier` and `integral_number`.
+  - rule-level expansion now extends steering to additional high-fanout rules:
+    - item/declaration/procedural fanout:
+      - `module_item`, `non_port_module_item`, `program_item`, `non_port_program_item`,
+      - `module_or_generate_item`, `interface_or_generate_item`, `package_or_generate_item_declaration`,
+      - `generate_item`, `block_item_declaration`, `statement_or_null`.
+    - lexical/shape steering:
+      - `module_keyword`, `module_header_ports`, `named_port_connection`, `hierarchy_separator`,
+      - `primary`, `data_type`, `identifier` (favoring `simple_identifier`).
 
 ### 2026-03-03: Added aggregate SV preprocessor quality artifact scoping + telemetry
 - Root cause:
@@ -292,12 +300,28 @@ Use this file to resume work without replaying full chat history.
 - Result:
   - Annotation-driven SV steering is now active at grammar level with a deterministic initial baseline; expansion to broader rule coverage remains pending.
 
+### 2026-03-03: Expanded annotation-driven SV steering to additional high-fanout rules
+- Root cause:
+  - Initial steering baseline covered only a small subset of SV rules and did not yet shape many high-fanout generation paths.
+- Fix:
+  - Extended semantic steering directives in `grammars/systemverilog.ebnf` to additional rules:
+    - fanout/item rules: `module_item`, `non_port_module_item`, `program_item`, `non_port_program_item`, `module_or_generate_item`, `interface_or_generate_item`, `package_or_generate_item_declaration`, `generate_item`, `block_item_declaration`, `statement_or_null`.
+    - lexical/shape rules: `module_keyword`, `module_header_ports`, `named_port_connection`, `hierarchy_separator`, `primary`, `data_type`, `identifier`.
+  - Corrected identifier steering priority to favor `simple_identifier` over `escaped_identifier`.
+- Validation:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` passed.
+  - Semantic suites remained green (`declared_identifier 14/14`, `width 10/10`, `port_binding 10/10`, `package_qualification 10/10`, `context_legality 10/10`).
+  - Parse-full telemetry in this run remained `0%`.
+- Result:
+  - Steering coverage is materially broader while preserving deterministic gate stability; parse-full debt remains an open closure target.
+
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `177`
+- Commit count at last refresh (before current uncommitted changes): `178`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- a1c7bbc Start annotation-driven SV stimuli steering rollout via semantic directives in systemverilog.ebnf.
 - f98cda9 Expand deterministic SV semantic contract suites with preprocess-heavy directive families.
 - d5b4895 Expand curated SV preprocessor differential corpus with include-policy negative families and close Phase Q differential hardening.
 - 9e4c155 Expand dynamic SV preprocessor template differential gate with additional edge templates and diagnostics contract invariants.
@@ -2001,8 +2025,8 @@ Use this file to resume work without replaying full chat history.
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=15`),
    - latest promotion evidence at target `20` is still `hold` (`observed_ratio_min=8`, `observed_ratio_max=16`, `observed_ratio_avg=13`, ratio-only blockers), so keep `min=15` and continue parse-full debt burn-down before re-ratchet.
 2. Add annotation-driven SV stimuli steering:
-   - initial grammar-embedded steering baseline is now present (`source_item`/`description`/`statement` + token-class hints),
-   - next increment should expand rule-level semantic steering coverage toward parse-full-improving subsets and semantically legal SV shapes.
+   - initial baseline + rule-level expansion are now in place on major fanout rules,
+   - next increment should explicitly target parse-full-improving subsets (annotation strategy tuned using shrunk parse-fail artifacts) and semantically legal SV file profiles.
 3. Expand contractized SV/VHDL corpora:
    - SV preprocess-heavy deterministic semantic suite increment is done (`version: 2` across enforced SV semantic suites),
    - next corpus increment should target VHDL deterministic semantic/parseability families and additional SV parse-full-improving families.

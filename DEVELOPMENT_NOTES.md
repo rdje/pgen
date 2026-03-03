@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Annotation-Driven SV Steering Expansion: High-Fanout Rule Coverage
+### Context
+After the initial SV steering baseline, branch/value steering coverage was still narrow. The next step was to extend directives to additional high-fanout grammar rules that dominate generated stimuli shape.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+
+Changes:
+- Added branch steering (`@branch_policy`, `@priority`) to additional item/declaration/procedural fanout rules:
+  - `module_keyword`, `module_header_ports`, `module_item`, `non_port_module_item`
+  - `program_item`, `non_port_program_item`, `program_generate_item`, `anonymous_program_item`
+  - `module_or_generate_item`, `interface_or_generate_item`, `package_or_generate_item_declaration`
+  - `generate_item`, `block_item_declaration`, `statement_or_null`
+- Added steering on frequently sampled expression/type/name rules:
+  - `primary`, `data_type`, `named_port_connection`, `hierarchy_separator`
+  - `identifier` now explicitly prioritizes `simple_identifier` over `escaped_identifier` (`@priority: [1, 20]`).
+- This increment remains EBNF-driven (no SV-specific Rust AST pipeline code edits).
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed:
+- Gate passed; deterministic semantic suites stayed green:
+  - declared identifier: `14/14`
+  - width compatibility: `10/10`
+  - port binding legality: `10/10`
+  - package qualification: `10/10`
+  - context legality: `10/10`
+- Parse-full telemetry remained `0%` for this run; this pass increases steering coverage surface and stability, but does not yet close parse-full debt.
+
 ## 2026-03-03 - Phase P Annotation-Driven SV Stimuli Steering: Initial Grammar-Embedded Baseline
 ### Context
 Phase P still had an open gap for annotation-driven SV stimuli steering beyond mode-level toggles. The stimuli engine already supports semantic steering directives, but `grammars/systemverilog.ebnf` had no steering annotations wired yet.

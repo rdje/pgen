@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-03-03 - Phase P Annotation-Driven SV Stimuli Steering: Rule-Level Expansion Pass
+### ✅ Achievement Summary
+Expanded semantic steering coverage in `systemverilog.ebnf` from initial baseline to additional high-fanout rules used heavily by SV stimuli generation.
+
+### Scope of Changes
+- Extended `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf` with additional semantic steering directives:
+  - declaration/item fanout steering:
+    - `module_keyword`
+    - `module_header_ports`
+    - `module_item`
+    - `non_port_module_item`
+    - `program_item`
+    - `non_port_program_item`
+    - `program_generate_item`
+    - `anonymous_program_item`
+    - `module_or_generate_item`
+    - `interface_or_generate_item`
+    - `package_or_generate_item_declaration`
+    - `generate_item`
+    - `block_item_declaration`
+    - `statement_or_null`
+  - expression/type/identifier steering:
+    - `primary`
+    - `data_type`
+    - `identifier` (favor `simple_identifier`)
+    - `named_port_connection`
+    - `hierarchy_separator`
+- Steering remains grammar-embedded (EBNF annotations), with no SV-specific hardcoded Rust pipeline logic.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+- semantic suites remained fully green:
+  - `declared_identifier_suite_passed=14/14`
+  - `width_compatibility_suite_passed=10/10`
+  - `port_binding_suite_passed=10/10`
+  - `package_qualification_suite_passed=10/10`
+  - `context_legality_suite_passed=10/10`
+- parse-full telemetry in this run remained unchanged (`parse_full_pass_ratio_percent=0`), so this increment is structural steering expansion, not parse-full closure.
+
 ## 2026-03-03 - Phase P Annotation-Driven SV Stimuli Steering: Initial Grammar-Embedded Baseline
 ### ✅ Achievement Summary
 Started annotation-driven SV stimuli steering rollout by embedding initial semantic directives directly in the SystemVerilog grammar, while keeping `sv_stimuli_quality_gate` green.
