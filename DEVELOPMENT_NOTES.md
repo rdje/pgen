@@ -1,4 +1,75 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase Q Curated Differential Expansion: Include-Policy Negative Families
+### Context
+After tightening stable curated directive families to strict `match`, the next hardening gap was deterministic negative include-policy coverage inside the same offline curated oracle path.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
+
+Changes:
+- Advanced curated corpus manifest to `version: 4`.
+- Added deterministic include-policy negative curated cases:
+  - `include_missing_file_negative.sv`
+  - `include_cycle_negative.sv` (+ fixtures `include_cycle_a.svh`, `include_cycle_b.svh`)
+- Added expected-artifact placeholders for deterministic failure classification:
+  - `*.expected.sv` (empty output contract for failure families)
+  - `*.expected.diag.json` (diagnostics placeholder envelope)
+- Added explicit expected category contracts for negatives:
+  - `expected_categories: ["rust_failed_expected_passed"]`
+- Preserved strict `match` contracts on previously stabilized positive families.
+
+### Validation
+Executed:
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto bash rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1 bash rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate`
+
+Observed:
+- strict curated differential run remains green with:
+  - `diff_cases_declared=9`
+  - `classification_expected_match=7`
+  - `classification_expected_mismatch=2`
+  - `classification_bug_mismatch=0`
+- failure taxonomy is now deterministic for include-policy negatives:
+  - `diff_taxonomy_rust_failed_expected_passed=2`.
+
+## 2026-03-03 - Phase Q Curated Differential Expansion: 7-Case Directive Corpus + Match-Only Contracts
+### Context
+After establishing offline curated differential gating, the next requirement was to expand directive coverage and tighten contract strictness for stable cases by removing tolerated mismatch categories.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
+
+Changes:
+- Expanded curated corpus manifest to `version: 3`.
+- Added 4 new directive-heavy curated inputs:
+  - `macro_define_undef_guard.sv`
+  - `nested_conditionals.sv`
+  - `macro_function_args.sv`
+  - `include_local_file.sv` (+ fixture include payload `include_payload.svh`)
+- Refreshed expected artifacts (`*.expected.sv`, `*.expected.diag.json`) using deterministic `--preprocess-systemverilog` output.
+- Tightened all curated case category contracts to:
+  - `expected_categories: ["match"]`
+  removing prior tolerance for whitespace-only drift on stable cases.
+
+### Validation
+Executed:
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto bash rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1 bash rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate`
+
+Observed:
+- expanded curated gate passed in both auto and strict modes.
+- summary/report show:
+  - `diff_cases_declared=7`
+  - `classification_expected_match=7`
+  - `classification_bug_mismatch=0`
+  - all mismatch taxonomy counts remain `0`.
+
 ## 2026-03-03 - Phase Q Dynamic Differential Expansion: Additional Templates + Diagnostics Contract Invariants
 ### Context
 After introducing the dynamic template-based offline oracle gate, the next hardening step was to increase edge-case coverage and make diagnostics behavior contractized (not only output text comparison).

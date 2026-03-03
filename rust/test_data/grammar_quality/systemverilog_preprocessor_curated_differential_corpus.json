@@ -1,6 +1,6 @@
 {
   "grammar_name": "systemverilog_preprocessor",
-  "version": 2,
+  "version": 4,
   "cases": [
     {
       "name": "macro_define_width",
@@ -8,10 +8,9 @@
       "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_width.expected.sv",
       "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_width.expected.diag.json",
       "expected_categories": [
-        "match",
-        "whitespace_only_output_mismatch"
+        "match"
       ],
-      "note": "Width macro expansion should remain stable."
+      "note": "Width macro expansion should remain byte-stable."
     },
     {
       "name": "macro_conditional_branch",
@@ -19,10 +18,9 @@
       "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_conditional_branch.expected.sv",
       "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_conditional_branch.expected.diag.json",
       "expected_categories": [
-        "match",
-        "whitespace_only_output_mismatch"
+        "match"
       ],
-      "note": "Defined branch selection should be deterministic."
+      "note": "Defined branch selection should remain deterministic."
     },
     {
       "name": "macro_token_paste",
@@ -30,10 +28,69 @@
       "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_token_paste.expected.sv",
       "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_token_paste.expected.diag.json",
       "expected_categories": [
-        "match",
-        "whitespace_only_output_mismatch"
+        "match"
       ],
       "note": "Token paste output should remain deterministic."
+    },
+    {
+      "name": "macro_define_undef_guard",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_undef_guard.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_undef_guard.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_undef_guard.expected.diag.json",
+      "expected_categories": [
+        "match"
+      ],
+      "note": "Undef should disable macro-defined branch selection."
+    },
+    {
+      "name": "nested_conditionals",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/nested_conditionals.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/nested_conditionals.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/nested_conditionals.expected.diag.json",
+      "expected_categories": [
+        "match"
+      ],
+      "note": "Nested ifdef/else stacks should resolve to the selected nested branch only."
+    },
+    {
+      "name": "macro_function_args",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_function_args.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_function_args.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_function_args.expected.diag.json",
+      "expected_categories": [
+        "match"
+      ],
+      "note": "Function-like macro argument substitution should be deterministic."
+    },
+    {
+      "name": "include_local_file",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_local_file.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_local_file.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_local_file.expected.diag.json",
+      "expected_categories": [
+        "match"
+      ],
+      "note": "Local include expansion should inline payload deterministically."
+    },
+    {
+      "name": "include_missing_file_negative",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_missing_file_negative.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_missing_file_negative.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_missing_file_negative.expected.diag.json",
+      "expected_categories": [
+        "rust_failed_expected_passed"
+      ],
+      "note": "Missing include payload should fail preprocessing deterministically."
+    },
+    {
+      "name": "include_cycle_negative",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_cycle_negative.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_cycle_negative.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_cycle_negative.expected.diag.json",
+      "expected_categories": [
+        "rust_failed_expected_passed"
+      ],
+      "note": "Include cycle should fail preprocessing deterministically."
     }
   ]
 }

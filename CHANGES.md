@@ -1,4 +1,64 @@
 # CHANGES.md
+## 2026-03-03 - Phase Q Curated Differential Expansion: Include-Policy Negative Families
+### ✅ Achievement Summary
+Extended the curated offline SV preprocessor differential corpus with deterministic include-policy negative cases, so strict runs now prove both stable positive matches and expected failure-class behavior with zero bug mismatches.
+
+### Scope of Changes
+- Expanded curated corpus manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+  - advanced to `version: 4`
+- Added deterministic include-policy negative curated assets:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_missing_file_negative.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_cycle_negative.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_cycle_a.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_cycle_b.svh`
+  - supporting expected artifacts (`*.expected.sv`, `*.expected.diag.json`)
+- Added explicit expected-failure category contracts for negative families:
+  - `expected_categories: ["rust_failed_expected_passed"]`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_curated_differential_gate.sh` ✅
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1 /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_curated_differential_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate` ✅
+- strict summary counters:
+  - `diff_cases_declared=9`
+  - `classification_expected_match=7`
+  - `classification_expected_mismatch=2`
+  - `classification_bug_mismatch=0`
+
+## 2026-03-03 - Phase Q Curated Differential Expansion: Directive Coverage + Match-Only Contracts
+### ✅ Achievement Summary
+Expanded the offline curated SV preprocessor differential corpus to 7 directive-heavy cases and tightened all curated contract categories to strict `match`.
+
+### Scope of Changes
+- Expanded curated corpus manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+  - advanced to `version: 3`
+- Added curated test assets:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_undef_guard.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/nested_conditionals.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_function_args.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_local_file.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/include_payload.svh`
+  - corresponding refreshed expected artifacts (`*.expected.sv`, `*.expected.diag.json`)
+- Tightened curated classification contracts:
+  - all curated cases now use `expected_categories: ["match"]`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_curated_differential_gate.sh` ✅
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1 /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_curated_differential_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate` ✅
+
 ## 2026-03-03 - Phase Q Dynamic Differential Expansion: Nested Conditional + Macro-Arg Templates and Diagnostics Invariants
 ### ✅ Achievement Summary
 Expanded the dynamic template-based SV preprocessor differential gate with additional edge-case templates and explicit diagnostics contract invariants.

@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-03-01
+Last updated: 2026-03-03
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -2395,6 +2395,25 @@ make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate
   - `expected_match`: observed category is `match`
   - `expected_mismatch`: observed category is within case `expected_categories` but non-primary
   - `bug_mismatch`: observed category is outside case `expected_categories` and is treated as regression debt
+- current curated corpus baseline:
+  - `systemverilog_preprocessor_curated_differential_corpus.json` `version: 4`
+  - 9 deterministic cases across positive and negative directive families:
+    - define width
+    - conditional branch
+    - token paste
+    - define/undef guard
+    - nested conditionals
+    - function-like macro arguments
+    - local include expansion
+    - include missing file (negative deterministic failure family)
+    - include cycle (negative deterministic failure family)
+  - category contract split:
+    - positive stable families: `expected_categories: ["match"]`
+    - deterministic negative families: `expected_categories: ["rust_failed_expected_passed"]`
+  - expected strict-mode summary shape on current baseline:
+    - `classification_expected_match=7`
+    - `classification_expected_mismatch=2`
+    - `classification_bug_mismatch=0`
 
 `sv_preprocessor_template_differential_gate` (dynamic offline predictor):
 - command:

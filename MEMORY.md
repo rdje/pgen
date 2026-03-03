@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-q-dynamic-template-expansion-and-diagnostics-invariants)
+Last updated: 2026-03-03 (+0100, task: phase-q-curated-corpus-include-policy-negative-expansion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `0dd06ee` (`Add dynamic template-based offline SV preprocessor differential oracle gate.`).
+- Latest commit: `9e4c155` (`Expand dynamic SV preprocessor template differential gate with additional edge templates and diagnostics contract invariants.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -90,6 +90,9 @@ Use this file to resume work without replaying full chat history.
       - `expected_match`
       - `expected_mismatch`
       - `bug_mismatch`
+    - corpus expanded to 9 cases (`version: 4`) with explicit contract split:
+      - 7 stable positive families: `expected_categories: ["match"]`
+      - 2 deterministic include-policy negatives: `expected_categories: ["rust_failed_expected_passed"]`
   - New dynamic template preprocessor differential gate is available:
     - target: `make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate`
     - no external `iverilog`/`verilator` dependency
@@ -188,12 +191,53 @@ Use this file to resume work without replaying full chat history.
 - Result:
   - Dynamic differential coverage is broader and diagnostics behavior is now contractized with objective failure attribution.
 
+### 2026-03-03: Expanded curated offline corpus and tightened to match-only contracts
+- Root cause:
+  - Curated corpus still had only 3 cases and tolerated whitespace-only mismatches for stable families.
+- Fix:
+  - Expanded curated corpus manifest to `version: 3` with 7 cases by adding:
+    - `macro_define_undef_guard`
+    - `nested_conditionals`
+    - `macro_function_args`
+    - `include_local_file` (with local include fixture `include_payload.svh`)
+  - Regenerated expected artifacts (`*.expected.sv`, `*.expected.diag.json`) deterministically from current preprocessor behavior.
+  - Tightened all curated entries to `expected_categories: ["match"]`.
+- Validation:
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto bash rust/scripts/sv_preprocessor_curated_differential_gate.sh` passed.
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1 bash rust/scripts/sv_preprocessor_curated_differential_gate.sh` passed.
+  - `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate` passed.
+- Result:
+  - Curated offline differential gate now enforces strict byte-level/dataset-level conformance over broader directive coverage.
+
+### 2026-03-03: Expanded curated offline corpus with deterministic include-policy negatives
+- Root cause:
+  - Curated corpus covered positive directive families but lacked deterministic negative include-policy/failure families.
+- Fix:
+  - Advanced curated corpus manifest to `version: 4` and added:
+    - `include_missing_file_negative`
+    - `include_cycle_negative` (with fixtures `include_cycle_a.svh`, `include_cycle_b.svh`)
+  - Added explicit expected-failure contracts for those families:
+    - `expected_categories: ["rust_failed_expected_passed"]`
+  - Preserved strict `match` contracts for the 7 stabilized positive families.
+- Validation:
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto bash rust/scripts/sv_preprocessor_curated_differential_gate.sh` passed.
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1 bash rust/scripts/sv_preprocessor_curated_differential_gate.sh` passed.
+  - `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate` passed.
+  - strict summary counters:
+    - `diff_cases_declared=9`
+    - `classification_expected_match=7`
+    - `classification_expected_mismatch=2`
+    - `classification_bug_mismatch=0`
+- Result:
+  - Curated offline differential coverage now spans both stable positive conformance and deterministic include-policy failure families with zero bug mismatches.
+
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
 - Commit count at last refresh (before current uncommitted changes): `175`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 9e4c155 Expand dynamic SV preprocessor template differential gate with additional edge templates and diagnostics contract invariants.
 - 0dd06ee Add dynamic template-based offline SV preprocessor differential oracle gate.
 - 302832e Add offline curated SV preprocessor differential gate with expected-artifact oracle and taxonomy classification.
 - 4c034c1 Scope aggregate sv_preprocessor_quality_gate artifacts under sota_exit_gate state and surface preprocessor differential telemetry.
@@ -1890,21 +1934,18 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Expand offline curated SV preprocessor differential corpus:
-   - add additional directive-heavy families (`undef`, nested conditionals, macro arg edge cases, include policy negatives),
-   - tighten per-case `expected_categories` where stable (move tolerated drift toward exact match).
-2. Continue Phase P semantic-closure implementation for SV:
+1. Continue Phase P semantic-closure implementation for SV:
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=15`),
    - latest promotion evidence at target `20` is still `hold` (`observed_ratio_min=8`, `observed_ratio_max=16`, `observed_ratio_avg=13`, ratio-only blockers), so keep `min=15` and continue parse-full debt burn-down before re-ratchet.
-3. Add annotation-driven SV stimuli steering:
+2. Add annotation-driven SV stimuli steering:
    - wire semantic-annotation controls into stimuli branch/value decisions beyond current mode/profile toggles.
-4. Expand contractized SV/VHDL corpora:
+3. Expand contractized SV/VHDL corpora:
    - add deterministic targeted families for declaration/use, port binding, generate, and preprocess-heavy cases.
-5. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
+4. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-6. Continue Rust-native EBNF migration hardening:
+5. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-7. Keep roadmap + UG + memory synced after every gate/contract increment.
+6. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

@@ -1,0 +1,2 @@
+module macro_define_undef_guard_false;
+endmodule

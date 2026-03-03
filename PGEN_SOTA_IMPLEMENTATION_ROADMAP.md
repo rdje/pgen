@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-01
+Last updated: 2026-03-03
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -599,7 +599,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `closed_loop_replay_preprocess_errors_total`
     - when `closed_loop.require_non_increasing_target_debt=true`, gate now enforces non-increasing preprocess error debt (`replay_preprocess_errors <= initial_preprocess_errors`) in addition to parser target-debt non-increase.
   - Progress (2026-02-27): aligned per-sample stage execution order to `preprocess -> parse_full(optional) -> semantic_validate_baseline` so gate sequencing matches Phase Q parser/stimuli integration contract while retaining strict parse-full failure enforcement.
-- [ ] Add differential hardening for preprocessor behavior against trusted references (where available) and publish mismatch taxonomy.
+- [x] Add differential hardening for preprocessor behavior against trusted references (where available) and publish mismatch taxonomy.
   - Progress (2026-02-27): added trusted-reference differential stage in `rust/scripts/sv_preprocessor_quality_gate.sh` with configurable mode controls:
     - `PGEN_SV_PREPROCESSOR_DIFF_MODE=auto|0|1`
     - `PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES`
@@ -636,6 +636,15 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - this curated path is fully offline and does not require `iverilog` or `verilator`.
     - wired executable Make target:
       - `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate`
+  - Progress (2026-03-03): expanded curated corpus coverage and tightened category contracts:
+    - corpus manifest advanced to `version: 3` with additional directive-heavy cases:
+      - `macro_define_undef_guard`
+      - `nested_conditionals`
+      - `macro_function_args`
+      - `include_local_file`
+    - refreshed checked-in expected artifacts (`*.expected.sv`, `*.expected.diag.json`) from deterministic preprocess runs.
+    - tightened all curated case expectations to `expected_categories: [\"match\"]` for strict byte-level + diagnostics conformance on stable families.
+    - strict curated gate now proves zero tolerated drift on the expanded 7-case corpus.
   - Progress (2026-03-03): added dynamic template-based offline oracle differential gate (`rust/scripts/sv_preprocessor_template_differential_gate.sh`) to scale deterministic differential coverage without maintaining large static corpora:
     - deterministic templates (define-width, ifdef-branch, token-paste, define+undef+ifdef) synthesize input SV snippets and independent expected outputs/diagnostics from seed-derived parameters,
     - deterministic report artifact:
@@ -656,6 +665,17 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - warning/error count invariants are tracked per case and aggregated in summary/report outputs,
       - added mismatch taxonomy for diagnostics shape violations (`diagnostics_contract_violation`).
     - this strengthens objective failure attribution beyond text-only output deltas.
+  - Progress (2026-03-03): expanded curated offline corpus with deterministic include-policy negative families:
+    - corpus manifest advanced to `version: 4` with:
+      - `include_missing_file_negative`
+      - `include_cycle_negative`
+    - expected category contracts for those negatives are now explicit:
+      - `expected_categories: ["rust_failed_expected_passed"]`
+    - strict curated gate remains green with objective split:
+      - `classification_expected_match=7`
+      - `classification_expected_mismatch=2`
+      - `classification_bug_mismatch=0`
+    - this closes Phase Q differential hardening with both stable positive families and deterministic policy-negative failure families in the offline oracle path.
 - [x] Promote preprocessor gate policy:
   - informational first while grammar closes,
   - required strict before declaring Phase P (Nexsim SV parser closure) complete.
@@ -667,7 +687,6 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
 ### Phase R (New): AST Observability and Debug Artifacts
 Objective: make AST visibility first-class for generator and generated-parser debugging, return-annotation verification, and deterministic failure triage.
 
-- [ ] Add AST-pipeline generation-input AST dump option:
 - [x] Add AST-pipeline generation-input AST dump option:
   - CLI switch to emit the normalized AST that feeds parser/stimuli codegen.
   - path override support and deterministic default output path (`gen_ast.json`).
@@ -728,6 +747,8 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Expanded offline curated SV preprocessor corpus to `version: 4` by adding deterministic include-policy negative families (`include_missing_file_negative`, `include_cycle_negative`) with explicit expected-failure category contracts (`rust_failed_expected_passed`), yielding strict curated gate split `expected_match=7`, `expected_mismatch=2`, `bug_mismatch=0`.
+- 2026-03-03: Expanded offline curated SV preprocessor corpus to 7 directive-heavy cases (including undef/nested-conditional/macro-arg/include), refreshed expected artifacts, and tightened curated expected categories to strict `match` only.
 - 2026-03-03: Expanded dynamic template SV preprocessor differential gate with nested-conditional/macro-arg templates and diagnostics-invariant contract counters/taxonomy (`diagnostics_contract_violation`).
 - 2026-03-03: Added dynamic template-based offline SV preprocessor oracle differential gate (`sv_preprocessor_template_differential_gate`) with deterministic seed-driven case synthesis, predicted expected outputs/diagnostics, and strict bug-only failure semantics.
 - 2026-03-03: Added offline curated SV preprocessor differential gate (`sv_preprocessor_curated_differential_gate`) with checked-in expected-artifact oracle corpus, deterministic classification (`expected_match`/`expected_mismatch`/`bug_mismatch`), strict bug-only failure mode, and Makefile wiring.
