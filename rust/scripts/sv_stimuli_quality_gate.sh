@@ -1789,6 +1789,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         run_logged "profile_${profile_key}_closed_loop_initial" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --enforce-word-boundary-spacing \
             --count "$sample_count" \
             --seed "$profile_seed_base" \
             --entry-rule "$mode_entry_rule" \
@@ -1809,6 +1810,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         run_logged "profile_${profile_key}_closed_loop_initial_replay" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --enforce-word-boundary-spacing \
             --count "$sample_count" \
             --seed "$profile_seed_base" \
             --entry-rule "$mode_entry_rule" \
@@ -1831,6 +1833,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         run_logged "profile_${profile_key}_closed_loop_replay" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --enforce-word-boundary-spacing \
             --count "$replay_sample_count" \
             --seed "$closed_loop_replay_seed" \
             --entry-rule "$mode_entry_rule" \
@@ -1914,6 +1917,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         run_logged "sample_${profile_key}_${idx}_generate_stimulus" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --enforce-word-boundary-spacing \
             --count 1 \
             --seed "$seed" \
             --entry-rule "$mode_entry_rule" \

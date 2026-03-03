@@ -501,6 +501,13 @@ Toolbox baseline to leverage end-to-end:
     - validated with deterministic dual-profile run:
       - `PGEN_SV_STIMULI_QUALITY_MODE=sv_parseable_file ... sv_stimuli_quality_gate`
       - observed `parse_full_pass_ratio_percent=100` (`12/12`) while semantic deterministic suites remained fully green.
+  - Progress (2026-03-03): added pipeline-level word-boundary spacing control and enabled it for SV gate generation paths:
+    - new CLI/control surface in `ast_pipeline`:
+      - `--enforce-word-boundary-spacing`
+    - generator behavior:
+      - when enabled, terminal-`\\b` regex samples append a delimiter space when ending in word characters, reducing merged-token outputs.
+    - `sv_stimuli_quality_gate` now passes this control in all stimuli generation stages (closed-loop + per-sample generation),
+    - deterministic `sv_file` parse-full telemetry improved in the same trial shape from `16%` (`2/12`) to `41%` (`5/12`) while keeping semantic suites green.
 - [x] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.

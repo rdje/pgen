@@ -185,6 +185,7 @@ High-value stimuli flags:
 - `--dump-gen-ast-pretty`
 - `--dump-gen-ast-max-bytes`
 - `--recovery-stimuli-mode` (`baseline`, `recovery_biased`, `near_sync_negative`)
+- `--enforce-word-boundary-spacing` (append delimiter spaces after terminal `\\b` regex samples to reduce merged-token outputs)
 - `--validate-parseability`
 - `--coverage-input`
 - `--coverage-output`
@@ -2831,6 +2832,9 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `recovery_biased`
       - `near_sync_negative`
     - gate forwards this to all mode-run stimuli generation calls via `--recovery-stimuli-mode`.
+  - word-boundary spacing control:
+    - `ast_pipeline` supports `--enforce-word-boundary-spacing` for stimuli generation modes.
+    - `sv_stimuli_quality_gate` enables this control on all generation stages to reduce fused keyword/identifier artifacts from terminal `\\b` regex tokens (for example `input...` + identifier) before preprocess/parse_full checks.
   - mode-level semantic overrides:
     - optional profile key:
       - `stimuli_modes.profiles.<mode>.semantic_overrides.<semantic_baseline_toggle>`

@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P SV Parse-Full Burn-Down: Word-Boundary Spacing Policy
+### Context
+`sv_file` parse-full failures were frequently caused by merged lexical words in generated stimuli (for example adjacent keyword/identifier-like fragments around regex tokens with terminal `\\b`). Parser-side grammar correctly enforced boundaries, so the fix belongs in generation quality, not parser relaxation.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`
+- `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+
+Changes:
+- Added generic config switch:
+  - `StimuliConfig.enforce_word_boundary_spacing` (default `false`).
+- Added CLI plumbing:
+  - `ast_pipeline --enforce-word-boundary-spacing`.
+- Added regex post-processing policy in stimuli generation:
+  - when enabled and the effective regex pattern ends in terminal `\\b`, append a delimiter space if the generated candidate ends with a word character.
+  - this prevents fused outputs such as `inputsignedX...` in generated corpora.
+- Added unit regression:
+  - `word_boundary_spacing_policy_appends_separator_for_terminal_boundary`.
+- Enabled policy in SV quality gate generation paths by wiring `--enforce-word-boundary-spacing` into every gate stimuli-generation invocation (initial/replay/sample).
+
+### Validation
+Executed:
+- `cargo test --manifest-path rust/Cargo.toml word_boundary_spacing_policy_appends_separator_for_terminal_boundary`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `make -C rust SHELL=/bin/bash clippy_on_rust_change`
+
+Observed:
+- `sv_file` parse-full pass ratio improved from prior deterministic baseline `16%` (`2/12`) to `41%` (`5/12`) under identical trial shape.
+- deterministic semantic suites remained green.
+- clippy flow passed.
+
+### Notes
+- This is intentionally generic (pipeline-level control), with mode/gate opt-in.
+- Additional parse-full debt remains for `sv_file`; next iterations should target remaining shrunk counterexamples while preserving strict grammar semantics and deterministic gate behavior.
+
 ## 2026-03-03 - Phase P Parse-Full Burn-Down: Parseable-Subset Mode Wiring and Validation
 ### Context
 Parse-full telemetry on broad `sv_file` stimuli remained volatile and often low because generated samples frequently mixed high-fanout constructs and trivia/comment noise. We needed an executable parse-full burn-down lane that stays grammar-driven, not hardcoded in Rust.

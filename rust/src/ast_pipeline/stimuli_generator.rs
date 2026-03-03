@@ -42,6 +42,7 @@ pub struct StimuliConfig {
     pub max_repeat: usize,
     pub max_rule_visits: usize,
     pub recovery_mode: RecoveryStimuliMode,
+    pub enforce_word_boundary_spacing: bool,
     pub trace_verbosity: TraceVerbosity,
 }
 
@@ -53,6 +54,7 @@ impl Default for StimuliConfig {
             max_repeat: 4,
             max_rule_visits: 8,
             recovery_mode: RecoveryStimuliMode::Baseline,
+            enforce_word_boundary_spacing: false,
             trace_verbosity: global_trace_verbosity(),
         }
     }
@@ -2519,6 +2521,10 @@ impl<'a> StimuliGenerator<'a> {
                 current_rule, pattern
             ),
         );
+        let trimmed = pattern.trim();
+        if trimmed.is_empty() {
+            return String::new();
+        }
         let constraints = self.rule_value_constraints(current_rule);
         if let Some(semantic_hint) = self.semantic_hint_for_rule(current_rule) {
             if self.value_satisfies_constraints(&semantic_hint, &constraints) {
@@ -2529,13 +2535,8 @@ impl<'a> StimuliGenerator<'a> {
                         current_rule, semantic_hint
                     ),
                 );
-                return semantic_hint;
+                return self.apply_word_boundary_spacing(trimmed, semantic_hint);
             }
-        }
-
-        let trimmed = pattern.trim();
-        if trimmed.is_empty() {
-            return String::new();
         }
 
         if !constraints.enum_values.is_empty() {
@@ -2560,7 +2561,8 @@ impl<'a> StimuliGenerator<'a> {
                         current_rule, valid_enum_values[idx]
                     ),
                 );
-                return valid_enum_values[idx].to_string();
+                return self
+                    .apply_word_boundary_spacing(trimmed, valid_enum_values[idx].to_string());
             }
         }
 
@@ -2572,7 +2574,7 @@ impl<'a> StimuliGenerator<'a> {
                     current_rule, candidate
                 ),
             );
-            return candidate;
+            return self.apply_word_boundary_spacing(trimmed, candidate);
         }
 
         let sample_once = |this: &mut Self| match regex_syntax::parse(trimmed) {
@@ -2589,7 +2591,7 @@ impl<'a> StimuliGenerator<'a> {
                     current_rule, candidate
                 ),
             );
-            return candidate;
+            return self.apply_word_boundary_spacing(trimmed, candidate);
         }
 
         for _ in 0..64 {
@@ -2602,7 +2604,7 @@ impl<'a> StimuliGenerator<'a> {
                         current_rule, candidate
                     ),
                 );
-                return candidate;
+                return self.apply_word_boundary_spacing(trimmed, candidate);
             }
         }
 
@@ -2615,7 +2617,7 @@ impl<'a> StimuliGenerator<'a> {
                         current_rule, fallback
                     ),
                 );
-                return fallback.clone();
+                return self.apply_word_boundary_spacing(trimmed, fallback.clone());
             }
         }
 
@@ -2627,7 +2629,7 @@ impl<'a> StimuliGenerator<'a> {
                 current_rule, fallback
             ),
         );
-        fallback
+        self.apply_word_boundary_spacing(trimmed, fallback)
     }
 
     fn regex_matches_entire(pattern: &str, candidate: &str) -> bool {
@@ -2637,6 +2639,36 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         false
+    }
+
+    fn apply_word_boundary_spacing(&self, pattern: &str, candidate: String) -> String {
+        if !self.config.enforce_word_boundary_spacing {
+            return candidate;
+        }
+        if !Self::pattern_has_terminal_word_boundary(pattern) {
+            return candidate;
+        }
+        let Some(last_char) = candidate.chars().last() else {
+            return candidate;
+        };
+        if !Self::is_word_char(last_char) {
+            return candidate;
+        }
+        let mut spaced = candidate;
+        spaced.push(' ');
+        spaced
+    }
+
+    fn pattern_has_terminal_word_boundary(pattern: &str) -> bool {
+        let mut trimmed = pattern.trim_end();
+        while let Some(stripped) = trimmed.strip_suffix('$') {
+            trimmed = stripped.trim_end();
+        }
+        trimmed.ends_with("\\b")
+    }
+
+    fn is_word_char(ch: char) -> bool {
+        ch.is_ascii_alphanumeric() || ch == '_'
     }
 
     fn constraint_driven_candidate(
@@ -4461,6 +4493,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
         )
@@ -4483,6 +4516,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
         )
@@ -4506,6 +4540,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode,
+                enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
         )
@@ -4823,6 +4858,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 2,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
         );
@@ -4914,6 +4950,43 @@ mod tests {
         assert!(
             re.is_match(&value[0]),
             "generated sample must satisfy word-boundary regex: {:?}",
+            value[0]
+        );
+    }
+
+    #[test]
+    fn word_boundary_spacing_policy_appends_separator_for_terminal_boundary() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "input\\b"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = StimuliGenerator::new(
+            "word_boundary_spacing".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(2028),
+                max_depth: 4,
+                max_repeat: 2,
+                max_rule_visits: 4,
+                recovery_mode: RecoveryStimuliMode::Baseline,
+                enforce_word_boundary_spacing: true,
+                trace_verbosity: TraceVerbosity::None,
+            },
+        );
+
+        let value = generator
+            .generate_many(1, None)
+            .expect("word-boundary spacing generation should succeed");
+        assert!(
+            value[0].starts_with("input"),
+            "word-boundary sample should preserve regex literal prefix: {:?}",
+            value[0]
+        );
+        assert!(
+            value[0].ends_with(' '),
+            "word-boundary spacing should append delimiter space: {:?}",
             value[0]
         );
     }

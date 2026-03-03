@@ -123,6 +123,10 @@ struct Args {
     )]
     recovery_stimuli_mode: String,
 
+    /// Append a delimiter space after terminal word-boundary regex samples (for example `keyword\\b`) to reduce merged-token stimuli
+    #[arg(long)]
+    enforce_word_boundary_spacing: bool,
+
     /// Validate generated stimuli by parsing each sample with the matching generated parser
     #[arg(long)]
     validate_parseability: bool,
@@ -383,10 +387,11 @@ fn main() -> Result<()> {
             || args.gap_report_json.is_some()
             || args.gap_report_text.is_some()
             || args.gap_report_threshold != 1
-            || args.recovery_stimuli_mode != "baseline";
+            || args.recovery_stimuli_mode != "baseline"
+            || args.enforce_word_boundary_spacing;
         if has_shared_stimuli_flags {
             return Err(anyhow::anyhow!(
-                "--validate-parseability/--coverage-*/--gap-report-*/--recovery-stimuli-mode require --generate-stimuli or --generate-stimuli-module"
+                "--validate-parseability/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
             ));
         }
     }
@@ -583,6 +588,7 @@ fn main() -> Result<()> {
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             recovery_mode,
+            enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
             trace_verbosity,
         };
         let mut generator = StimuliGenerator::new(
@@ -647,6 +653,7 @@ fn main() -> Result<()> {
                     max_repeat: args.max_repeat,
                     max_rule_visits: args.max_depth.max(2),
                     recovery_mode,
+                    enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
                     trace_verbosity,
                 },
             );
@@ -685,6 +692,7 @@ fn main() -> Result<()> {
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             recovery_mode,
+            enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
             trace_verbosity,
         };
 

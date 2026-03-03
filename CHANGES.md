@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-03-03 - Phase P SV Parse-Full Burn-Down: Word-Boundary Spacing Control + Gate Wiring
+### ✅ Achievement Summary
+Added a generic stimuli-generation control to reduce merged-token outputs around terminal regex word-boundary tokens, then wired it into SV quality gate generation stages to improve `sv_file` parse-full acceptance.
+
+### Scope of Changes
+- Updated `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`:
+  - extended `StimuliConfig` with `enforce_word_boundary_spacing`,
+  - added regex-candidate post-processing for terminal `\\b` patterns (append delimiter space when needed),
+  - added regression test:
+    - `word_boundary_spacing_policy_appends_separator_for_terminal_boundary`.
+- Updated `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`:
+  - new CLI flag:
+    - `--enforce-word-boundary-spacing`
+  - plumbed into both `--generate-stimuli` and `--generate-stimuli-module` config paths.
+- Updated `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`:
+  - enabled `--enforce-word-boundary-spacing` for all SV stimuli generation stages:
+    - closed-loop initial,
+    - closed-loop initial replay,
+    - closed-loop replay,
+    - per-sample generation.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml word_boundary_spacing_policy_appends_separator_for_terminal_boundary` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - parse-full improved from prior `16%` (`2/12`) to `41%` (`5/12`) in the same deterministic trial shape.
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-03 - Phase P Parse-Full Burn-Down Increment: Parseable-Subset SV Mode + Grammar Steering
 ### ✅ Achievement Summary
 Added a dedicated parseable-subset SystemVerilog stimuli mode and corresponding grammar entry so parse-full-oriented burn-down runs can execute a deterministic, parser-friendly subset without hardcoding SV logic in Rust.
