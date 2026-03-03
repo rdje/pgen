@@ -1,0 +1,39 @@
+{
+  "grammar_name": "systemverilog_preprocessor",
+  "version": 2,
+  "cases": [
+    {
+      "name": "macro_define_width",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_width.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_width.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_define_width.expected.diag.json",
+      "expected_categories": [
+        "match",
+        "whitespace_only_output_mismatch"
+      ],
+      "note": "Width macro expansion should remain stable."
+    },
+    {
+      "name": "macro_conditional_branch",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_conditional_branch.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_conditional_branch.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_conditional_branch.expected.diag.json",
+      "expected_categories": [
+        "match",
+        "whitespace_only_output_mismatch"
+      ],
+      "note": "Defined branch selection should be deterministic."
+    },
+    {
+      "name": "macro_token_paste",
+      "input": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_token_paste.sv",
+      "expected_output": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_token_paste.expected.sv",
+      "expected_diagnostics": "rust/test_data/grammar_quality/systemverilog_preprocessor_curated/macro_token_paste.expected.diag.json",
+      "expected_categories": [
+        "match",
+        "whitespace_only_output_mismatch"
+      ],
+      "note": "Token paste output should remain deterministic."
+    }
+  ]
+}

@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase Q Differential Hardening: Offline Curated SV Preprocessor Taxonomy Gate
+### Context
+We needed curated differential evidence/classification for SV preprocessor behavior without relying on host-installed external preprocessors (`iverilog`/`verilator`), while still producing deterministic expected-vs-bug mismatch accounting.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+
+Changes:
+- Added dedicated curated differential gate with offline oracle model:
+  - runs `ast_pipeline --preprocess-systemverilog` on curated cases,
+  - compares output + diagnostics against checked-in expected artifacts,
+  - emits deterministic taxonomy + classification report.
+- Added classification model:
+  - `expected_match`
+  - `expected_mismatch`
+  - `bug_mismatch`
+  based on per-case `expected_categories`.
+- Added strict behavior:
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1` fails gate only when `bug_mismatch_count > 0`.
+- Added curated corpus/expected artifacts for deterministic seed coverage:
+  - macro width substitution
+  - conditional branch selection
+  - token paste expansion
+- Added Make target:
+  - `sv_preprocessor_curated_differential_gate`
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto bash rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1 bash rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate`
+
+Observed:
+- auto and strict modes both passed in offline environment.
+- deterministic report produced at:
+  - `rust/target/sv_preprocessor_curated_differential_gate/work/systemverilog_preprocessor_curated_differential_report.json`
+- classification/taxonomy counters were stable and byte-deterministic for the curated corpus.
+
 ## 2026-03-03 - Phase Q Aggregate Telemetry Increment: SV Preprocessor Quality Stage Scoping + Differential Taxonomy Metrics
 ### Context
 Aggregate `sota_exit_gate` executed `sv_preprocessor_quality_gate` without stage-specific state scoping and without surfacing preprocessor differential metrics. Aggregate triage required opening stage-local artifacts manually.

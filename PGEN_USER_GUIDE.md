@@ -2370,6 +2370,32 @@ make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate
     - `sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed`
     - `sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed`
 
+`sv_preprocessor_curated_differential_gate` (offline expected-artifact differential):
+- command:
+```bash
+make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate
+```
+- term definition:
+  - `oracle model`: the source-of-truth used to decide pass/fail behavior.
+  - `offline oracle model`: source-of-truth is local checked-in artifacts (no external tool dependency).
+- oracle model:
+  - compares Rust preprocessor output/diagnostics against checked-in expected artifacts from curated corpus.
+  - does not require `iverilog` or `verilator`.
+- tuning knobs:
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE` (`auto`/`0`/`1`, default `auto`)
+    - `0`: disable curated differential stage
+    - `auto`: run curated differential and report classification
+    - `1`: strict mode (fails on `bug_mismatch`)
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_CORPUS` (default `rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`)
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MAX_CASES` (default `0`, meaning all corpus cases)
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_STATE_DIR` (default `rust/target/sv_preprocessor_curated_differential_gate`)
+- deterministic report artifact:
+  - `rust/target/sv_preprocessor_curated_differential_gate/work/systemverilog_preprocessor_curated_differential_report.json`
+- classification semantics:
+  - `expected_match`: observed category is `match`
+  - `expected_mismatch`: observed category is within case `expected_categories` but non-primary
+  - `bug_mismatch`: observed category is outside case `expected_categories` and is treated as regression debt
+
 Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`)
 - `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)

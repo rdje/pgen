@@ -623,6 +623,19 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_reference_runner.sh --probe` now reports backend availability explicitly,
     - `sv_preprocessor_quality_gate` now auto-downgrades to `unsupported_reference_runner` on probe failure in `DIFF_MODE=auto`,
     - strict mode (`DIFF_MODE=1`) now fails early with explicit probe-log pointer when backend is unavailable.
+  - Progress (2026-03-03): added dedicated curated differential corpus gate (`rust/scripts/sv_preprocessor_curated_differential_gate.sh`) with checked-in expected-artifact oracle and expected-vs-bug taxonomy classification:
+    - deterministic curated corpus manifest:
+      - `rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+    - deterministic report artifact:
+      - `rust/target/sv_preprocessor_curated_differential_gate/work/systemverilog_preprocessor_curated_differential_report.json`
+    - explicit classification counts:
+      - `expected_match`
+      - `expected_mismatch`
+      - `bug_mismatch`
+    - strict mode now fails only on `bug_mismatch` classifications, enabling controlled expected-debt tracking while still hard-failing real semantic/parseability asymmetry regressions.
+    - this curated path is fully offline and does not require `iverilog` or `verilator`.
+    - wired executable Make target:
+      - `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate`
 - [x] Promote preprocessor gate policy:
   - informational first while grammar closes,
   - required strict before declaring Phase P (Nexsim SV parser closure) complete.
@@ -695,6 +708,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Added offline curated SV preprocessor differential gate (`sv_preprocessor_curated_differential_gate`) with checked-in expected-artifact oracle corpus, deterministic classification (`expected_match`/`expected_mismatch`/`bug_mismatch`), strict bug-only failure mode, and Makefile wiring.
 - 2026-03-03: Added aggregate `sv_preprocessor_quality_gate` artifact scoping (`rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`) and telemetry surfacing (effective parseability/differential modes, mismatch count, key taxonomy counters, report paths) in `sota_exit_gate`.
 - 2026-03-03: Added aggregate `sv_stimuli_quality_gate` artifact scoping (`rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`) and telemetry surfacing (parse-full ratio, differential mismatch count, performance-enabled flag + report paths) in `sota_exit_gate`.
 - 2026-03-03: Added aggregate parse-full promotion observed-ratio range telemetry surfacing (`sv_parse_full_ratio_promotion_observed_ratio_min`, `sv_parse_full_ratio_promotion_observed_ratio_max`) by parsing promotion report totals in `sota_exit_gate`.

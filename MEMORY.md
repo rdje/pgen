@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-q-aggregate-sv-preprocessor-telemetry)
+Last updated: 2026-03-03 (+0100, task: phase-q-offline-curated-sv-preprocessor-differential-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `ef6acaa` (`Scope aggregate sv_stimuli_quality_gate artifacts under sota_exit_gate state and surface core telemetry.`).
+- Latest commit: `4c034c1` (`Scope aggregate sv_preprocessor_quality_gate artifacts under sota_exit_gate state and surface preprocessor differential telemetry.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -82,6 +82,14 @@ Use this file to resume work without replaying full chat history.
     - `sv_preprocessor_quality_diff_mode_effective`
     - `sv_preprocessor_quality_diff_mismatch_count`
     - key taxonomy counters (`output_mismatch`, `rust_failed_reference_passed`, `reference_failed_rust_passed`)
+  - New offline curated preprocessor differential gate is available:
+    - target: `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate`
+    - corpus: `rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+    - no external `iverilog`/`verilator` dependency
+    - classification buckets:
+      - `expected_match`
+      - `expected_mismatch`
+      - `bug_mismatch`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 
@@ -99,12 +107,33 @@ Use this file to resume work without replaying full chat history.
 - Result:
   - Aggregate triage for preprocessor differential runs no longer requires manual drill-down into stage-local files.
 
+### 2026-03-03: Added offline curated SV preprocessor differential gate
+- Root cause:
+  - Differential taxonomy hardening needed deterministic expected-vs-bug classification without relying on host-installed external preprocessors.
+- Fix:
+  - Added `rust/scripts/sv_preprocessor_curated_differential_gate.sh`:
+    - compares `--preprocess-systemverilog` output and diagnostics against checked-in expected artifacts from curated corpus.
+    - supports `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto|0|1`.
+    - strict mode fails only on `bug_mismatch`.
+  - Added curated corpus + expected artifacts under:
+    - `rust/test_data/grammar_quality/systemverilog_preprocessor_curated/`
+    - `rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+  - Added Make target:
+    - `sv_preprocessor_curated_differential_gate`.
+- Validation:
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=auto bash rust/scripts/sv_preprocessor_curated_differential_gate.sh` passed.
+  - `PGEN_SV_PREPROCESSOR_CURATED_DIFF_MODE=1 bash rust/scripts/sv_preprocessor_curated_differential_gate.sh` passed.
+  - `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate` passed.
+- Result:
+  - Curated preprocessor differential classification is now deterministic and fully offline.
+
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
 - Commit count at last refresh (before current uncommitted changes): `175`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 4c034c1 Scope aggregate sv_preprocessor_quality_gate artifacts under sota_exit_gate state and surface preprocessor differential telemetry.
 - ef6acaa Scope aggregate sv_stimuli_quality_gate artifacts under sota_exit_gate state and surface core telemetry.
 - e7e8ee1 Add deterministic initial replay equivalence checks to SV closed-loop gate
 - fd7c349 Align SV stimuli sample-stage order with Phase Q parser/stimuli contract
@@ -1798,9 +1827,9 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Start curated differential corpus runs for SV preprocessor gate using standardized runner:
-   - execute strict/auto trials with `rust/scripts/sv_preprocessor_reference_runner.sh` on environments that provide `iverilog` or `verilator`,
-   - collect taxonomy deltas and classify expected-vs-bug mismatches.
+1. Expand offline curated SV preprocessor differential corpus:
+   - add additional directive-heavy families (`undef`, nested conditionals, macro arg edge cases, include policy negatives),
+   - tighten per-case `expected_categories` where stable (move tolerated drift toward exact match).
 2. Continue Phase P semantic-closure implementation for SV:
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=15`),
    - latest promotion evidence at target `20` is still `hold` (`observed_ratio_min=8`, `observed_ratio_max=16`, `observed_ratio_avg=13`, ratio-only blockers), so keep `min=15` and continue parse-full debt burn-down before re-ratchet.
@@ -1820,7 +1849,7 @@ Use this file to resume work without replaying full chat history.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Declared-before-use runtime semantic enforcement is active in `sv_semantic_file` with parseability guardrails; parse-full debt is now measured (`parse_full_pass_ratio_percent`) but still significant in semantic-closure mode.
 - Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
-- SV preprocessor differential taxonomy stage now has standardized runner wiring, but strict portability still depends on host availability of trusted backends (`iverilog` and/or `verilator`).
+- SV preprocessor trusted-reference differential path still depends on host availability of external backends (`iverilog`/`verilator`), but offline curated differential gate now provides deterministic no-external baseline evidence.
 - Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.
 
 ## Quick Commands
