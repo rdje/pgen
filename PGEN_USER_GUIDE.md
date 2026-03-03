@@ -2511,6 +2511,17 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - threshold values,
     - observed per-stage totals/averages/maxima,
     - max generated/preprocessed sample size.
+- aggregate observability behavior (`sota_exit_gate`):
+  - aggregate stage state dir:
+    - `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`
+  - aggregate output and `summary.txt` include:
+    - `sv_stimuli_quality_state_dir`
+    - `sv_stimuli_quality_parse_full_quality_report_json`
+    - `sv_stimuli_quality_parse_full_pass_ratio_percent`
+    - `sv_stimuli_quality_diff_report_json`
+    - `sv_stimuli_quality_diff_mismatch_count`
+    - `sv_stimuli_quality_performance_report_json`
+    - `sv_stimuli_quality_performance_enabled`
 - deterministic port-binding legality semantic contract precheck:
   - contract keys (`systemverilog_core_v0_contract.json`):
     - `semantic_contracts.port_binding_legality_suite_path`

@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-03 - Phase P Aggregate Observability Increment: SV Stimuli Quality Artifact Scoping + Telemetry
+### ✅ Achievement Summary
+Extended aggregate `sota_exit_gate` integration for `sv_stimuli_quality_gate` by routing stage artifacts under aggregate state and surfacing core SV quality telemetry (parse-full ratio, differential mismatch count, performance enable state) in aggregate stdout/summary.
+
+### Scope of Changes
+- Updated aggregate gate execution/telemetry in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - aggregate now runs `sv_stimuli_quality_gate` with:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`
+  - parsed/surfaced report telemetry:
+    - parse-full quality:
+      - `sv_stimuli_quality_parse_full_quality_report_json`
+      - `sv_stimuli_quality_parse_full_pass_ratio_percent`
+    - differential:
+      - `sv_stimuli_quality_diff_report_json`
+      - `sv_stimuli_quality_diff_mismatch_count`
+    - performance:
+      - `sv_stimuli_quality_performance_report_json`
+      - `sv_stimuli_quality_performance_enabled`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_STIMULI_QUALITY_COUNT=2 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output/summary now include SV stimuli quality telemetry section and aggregate-scoped artifact paths.
+
 ## 2026-03-03 - Phase P Aggregate Observability Increment: Parse-Full Promotion Ratio Range Telemetry
 ### ✅ Achievement Summary
 Extended aggregate parse-full promotion telemetry to include observed ratio range (`min/max`) from promotion report totals so aggregate triage can assess dispersion, not just average.

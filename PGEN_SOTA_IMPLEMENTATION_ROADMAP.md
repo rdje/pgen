@@ -372,6 +372,14 @@ Toolbox baseline to leverage end-to-end:
       - `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO` / `PGEN_SOTA_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO`
       - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO` / `PGEN_SOTA_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO`
     - aggregate default now enforces parse-full pass-ratio floor for required `sv_stimuli_quality_gate` runs (`enforce=1`, `min=10`).
+  - Progress (2026-03-03): made aggregate `sv_stimuli_quality_gate` execution artifact-scoped and telemetry-visible:
+    - aggregate now routes stage artifacts under:
+      - `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`
+    - aggregate telemetry now surfaces:
+      - parse-full quality report path + observed pass ratio percent,
+      - differential report path + mismatch count,
+      - performance report path + enabled flag.
+    - this removes per-stage artifact-discovery friction when triaging aggregate SV quality outcomes.
   - Progress (2026-03-01): ratcheted aggregate SV parse-full pass-ratio threshold from `10%` to `15%` after deterministic green validation:
     - `rust/config/sota_exit_policy.env` now sets `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=15`,
     - strict semantic-closure run remained green with observed ratio `16%`,
@@ -677,6 +685,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-03: Added aggregate `sv_stimuli_quality_gate` artifact scoping (`rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`) and telemetry surfacing (parse-full ratio, differential mismatch count, performance-enabled flag + report paths) in `sota_exit_gate`.
 - 2026-03-03: Added aggregate parse-full promotion observed-ratio range telemetry surfacing (`sv_parse_full_ratio_promotion_observed_ratio_min`, `sv_parse_full_ratio_promotion_observed_ratio_max`) by parsing promotion report totals in `sota_exit_gate`.
 - 2026-03-03: Added aggregate parse-full promotion blocker-count telemetry surfacing (`sv_parse_full_ratio_promotion_failed_trial_count`, `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`) by parsing promotion report blocker counters in `sota_exit_gate`.
 - 2026-03-03: Added aggregate declared-shadow blocker-count telemetry surfacing (`sv_declared_shadow_promotion_failed_trial_count`, `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`) by parsing promotion report blocker counters in `sota_exit_gate`.

@@ -265,6 +265,13 @@ SV_PARSE_FULL_RATIO_PROMOTION_FAILED_TRIAL_COUNT="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_NON_RATIO_BLOCKED_TRIAL_COUNT="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_MIN="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_OBSERVED_RATIO_MAX="<unset>"
+SV_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
+SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="<unset>"
+SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="<unset>"
+SV_STIMULI_QUALITY_DIFF_REPORT_JSON="<unset>"
+SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT="<unset>"
+SV_STIMULI_QUALITY_PERF_REPORT_JSON="<unset>"
+SV_STIMULI_QUALITY_PERF_ENABLED="<unset>"
 
 run_check() {
     local name="$1"
@@ -479,19 +486,84 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
 fi
 
 if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
+    SV_STIMULI_QUALITY_STAGE_STATE_DIR="${STATE_DIR}/work/sv_stimuli_quality_gate"
+    SV_STIMULI_QUALITY_STAGE_WORK_DIR="${SV_STIMULI_QUALITY_STAGE_STATE_DIR}/work"
+    SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_WORK_DIR}/systemverilog_parse_full_quality_report.json"
+    SV_STIMULI_QUALITY_STAGE_DIFF_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_WORK_DIR}/systemverilog_differential_report.json"
+    SV_STIMULI_QUALITY_STAGE_PERF_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_WORK_DIR}/systemverilog_performance_report.json"
+    SV_STIMULI_QUALITY_STAGE_LOG_FILE="${LOG_DIR}/sv_stimuli_quality_gate.log"
+
     if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
         run_check "sv_stimuli_quality_gate" "required" "strict preprocess-first SystemVerilog stimuli quality gate" \
             env \
+                PGEN_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
                 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO="$SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO" \
                 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO="$SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO" \
                 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     else
         run_check "sv_stimuli_quality_gate" "informational" "report-only preprocess-first SystemVerilog stimuli quality gate" \
             env \
+                PGEN_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
                 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO="$SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO" \
                 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO="$SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO" \
                 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     fi
+
+    if [[ -f "$SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON" ]]; then
+        stimuli_parse_full_ratio="$(jq -er '.observed.pass_ratio_percent // "unknown"' "$SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="$SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON"
+        SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="$stimuli_parse_full_ratio"
+    else
+        SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="<missing>"
+        stimuli_parse_full_ratio=""
+        if [[ -f "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" ]]; then
+            stimuli_parse_full_ratio="$(sed -nE 's/^parse_full_pass_ratio_percent: ([0-9]+)$/\1/p' "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+            if [[ -z "$stimuli_parse_full_ratio" ]]; then
+                stimuli_parse_full_ratio="$(sed -nE 's/^error: strict parse_full pass ratio check failed \(([0-9]+)% < [0-9]+%\)$/\1/p' "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+            fi
+        fi
+        SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="${stimuli_parse_full_ratio:-unknown}"
+    fi
+
+    if [[ -f "$SV_STIMULI_QUALITY_STAGE_DIFF_REPORT_JSON" ]]; then
+        stimuli_diff_mismatch_count="$(jq -er '.mismatch_count // "unknown"' "$SV_STIMULI_QUALITY_STAGE_DIFF_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        SV_STIMULI_QUALITY_DIFF_REPORT_JSON="$SV_STIMULI_QUALITY_STAGE_DIFF_REPORT_JSON"
+        SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT="$stimuli_diff_mismatch_count"
+    else
+        SV_STIMULI_QUALITY_DIFF_REPORT_JSON="<missing>"
+        stimuli_diff_mismatch_count=""
+        if [[ -f "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" ]]; then
+            stimuli_diff_mismatch_count="$(sed -nE 's/^diff_mismatch_count: ([0-9]+)$/\1/p' "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+        fi
+        SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT="${stimuli_diff_mismatch_count:-unknown}"
+    fi
+
+    if [[ -f "$SV_STIMULI_QUALITY_STAGE_PERF_REPORT_JSON" ]]; then
+        stimuli_perf_enabled="$(jq -er 'if (.enabled // false) then "true" else "false" end' "$SV_STIMULI_QUALITY_STAGE_PERF_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        SV_STIMULI_QUALITY_PERF_REPORT_JSON="$SV_STIMULI_QUALITY_STAGE_PERF_REPORT_JSON"
+        SV_STIMULI_QUALITY_PERF_ENABLED="$stimuli_perf_enabled"
+    else
+        SV_STIMULI_QUALITY_PERF_REPORT_JSON="<missing>"
+        stimuli_perf_effective=""
+        if [[ -f "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" ]]; then
+            stimuli_perf_effective="$(sed -nE 's/^perf_budget_effective: (.*)$/\1/p' "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+        fi
+        if [[ "$stimuli_perf_effective" == "enabled" ]]; then
+            SV_STIMULI_QUALITY_PERF_ENABLED="true"
+        elif [[ "$stimuli_perf_effective" == "disabled_by_mode" || "$stimuli_perf_effective" == "disabled_by_contract" ]]; then
+            SV_STIMULI_QUALITY_PERF_ENABLED="false"
+        else
+            SV_STIMULI_QUALITY_PERF_ENABLED="unknown"
+        fi
+    fi
+
+    echo "sv_stimuli_quality_state_dir: $SV_STIMULI_QUALITY_STAGE_STATE_DIR"
+    echo "sv_stimuli_quality_parse_full_quality_report_json: $SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON"
+    echo "sv_stimuli_quality_parse_full_pass_ratio_percent: $SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT"
+    echo "sv_stimuli_quality_diff_report_json: $SV_STIMULI_QUALITY_DIFF_REPORT_JSON"
+    echo "sv_stimuli_quality_diff_mismatch_count: $SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT"
+    echo "sv_stimuli_quality_performance_report_json: $SV_STIMULI_QUALITY_PERF_REPORT_JSON"
+    echo "sv_stimuli_quality_performance_enabled: $SV_STIMULI_QUALITY_PERF_ENABLED"
 fi
 
 if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
@@ -658,6 +730,17 @@ fi
         echo "sv_declared_shadow_promotion_declared_shadow_parseable_only: $SV_DECLARED_SHADOW_PROMOTION_REPORT_DECLARED_SHADOW_PARSEABLE_ONLY"
         echo "sv_declared_shadow_promotion_failed_trial_count: $SV_DECLARED_SHADOW_PROMOTION_FAILED_TRIAL_COUNT"
         echo "sv_declared_shadow_promotion_non_shadow_blocked_trial_count: $SV_DECLARED_SHADOW_PROMOTION_NON_SHADOW_BLOCKED_TRIAL_COUNT"
+    fi
+    if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
+        echo
+        echo "SV Stimuli Quality Telemetry"
+        echo "sv_stimuli_quality_state_dir: $SV_STIMULI_QUALITY_STAGE_STATE_DIR"
+        echo "sv_stimuli_quality_parse_full_quality_report_json: $SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON"
+        echo "sv_stimuli_quality_parse_full_pass_ratio_percent: $SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT"
+        echo "sv_stimuli_quality_diff_report_json: $SV_STIMULI_QUALITY_DIFF_REPORT_JSON"
+        echo "sv_stimuli_quality_diff_mismatch_count: $SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT"
+        echo "sv_stimuli_quality_performance_report_json: $SV_STIMULI_QUALITY_PERF_REPORT_JSON"
+        echo "sv_stimuli_quality_performance_enabled: $SV_STIMULI_QUALITY_PERF_ENABLED"
     fi
     if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         echo

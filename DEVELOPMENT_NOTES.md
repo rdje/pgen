@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Aggregate Telemetry Increment: SV Stimuli Quality Stage Scoping + Core Metrics
+### Context
+Aggregate `sota_exit_gate` executed `sv_stimuli_quality_gate` without stage-specific state scoping and without surfacing report-derived SV quality metrics. Aggregate triage required manual navigation to default gate paths and direct report inspection.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- Added aggregate-scoped stage directory for `sv_stimuli_quality_gate`:
+  - `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`
+- Aggregate now forwards:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=<aggregate stage dir>`
+  in strict and informational SV stimuli runs.
+- Added report parsing + aggregate telemetry for:
+  - parse-full quality:
+    - report path + `observed.pass_ratio_percent`
+  - differential:
+    - report path + `mismatch_count`
+  - performance:
+    - report path + `enabled`
+- Added persisted `SV Stimuli Quality Telemetry` section to aggregate `summary.txt`.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with:
+  - required checks limited to `differential_baseline_contract`
+  - `run_sv_stimuli_quality=1`
+  - `require_sv_stimuli_quality_strict=0`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=2`
+
+Observed:
+- aggregate run passed.
+- `sv_stimuli_quality_gate` artifacts produced under aggregate stage dir.
+- aggregate stdout + `summary.txt` include:
+  - parse-full ratio, differential mismatch count, and performance-enabled telemetry with report paths.
+
 ## 2026-03-03 - Phase P Aggregate Telemetry Increment: Parse-Full Promotion Observed-Ratio Range
 ### Context
 Aggregate parse-full promotion telemetry exposed only observed ratio average, which masked dispersion across promotion trials and required opening report JSON to inspect min/max ratio spread.

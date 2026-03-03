@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-p-aggregate-parse-full-ratio-range-telemetry)
+Last updated: 2026-03-03 (+0100, task: phase-p-aggregate-sv-stimuli-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -71,6 +71,11 @@ Use this file to resume work without replaying full chat history.
   - Aggregate parse-full promotion telemetry now also surfaces observed ratio range:
     - `sv_parse_full_ratio_promotion_observed_ratio_min`
     - `sv_parse_full_ratio_promotion_observed_ratio_max`
+  - Aggregate `sv_stimuli_quality_gate` now runs under aggregate state and emits core telemetry:
+    - stage dir: `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`
+    - `sv_stimuli_quality_parse_full_pass_ratio_percent`
+    - `sv_stimuli_quality_diff_mismatch_count`
+    - `sv_stimuli_quality_performance_enabled`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 
