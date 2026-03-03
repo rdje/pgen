@@ -2615,7 +2615,9 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_declared_shadow_promotion_totals_failed`
       - `sv_declared_shadow_promotion_totals_checked`
       - `sv_declared_shadow_promotion_primary_non_shadow_blocker`
-      - `sv_declared_shadow_promotion_declared_shadow_parseable_only`.
+      - `sv_declared_shadow_promotion_declared_shadow_parseable_only`
+      - `sv_declared_shadow_promotion_failed_trial_count`
+      - `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`.
 - parse-full ratio promotion trial gate:
   - target:
     - `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`

@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-03 - Phase P Aggregate Telemetry Increment: Declared-Shadow Blocker Counts
+### Context
+Aggregate declared-shadow promotion telemetry already exposed recommendation, totals, primary blocker, and parseability scope, but did not expose blocker-count counters directly. This required opening stage report JSON for quick failed/non-shadow-blocked trial count checks.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Changes:
+- Added stage-report parsing for:
+  - `.blockers.failed_trial_count`
+  - `.blockers.non_shadow_blocked_trial_count`
+- Added aggregate telemetry variables + output/summary fields:
+  - `sv_declared_shadow_promotion_failed_trial_count`
+  - `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`
+- Persisted same fields into:
+  - `rust/target/sota_exit_gate/summary.txt`
+  under the declared-shadow promotion telemetry section.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- focused aggregate run with declared-shadow stage only and explicit parseability-scope override.
+
+Observed:
+- aggregate output and summary now include:
+  - `sv_declared_shadow_promotion_failed_trial_count`
+  - `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`
+- values match promotion report blocker counters.
+
 ## 2026-03-03 - Phase P Aggregate Telemetry Increment: Runtime Parseability Scope for Declared-Shadow Promotion
 ### Context
 Aggregate gate printed declared-shadow promotion configuration (`sv_declared_shadow_promotion_declared_shadow_parseable_only`) from policy/runtime inputs, but did not surface the stage-report effective value. This made aggregate artifacts less explicit when proving runtime-effective trial scope.

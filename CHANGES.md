@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-03 - Phase P Aggregate Observability Increment: Declared-Shadow Blocker Counts in Aggregate Telemetry
+### ✅ Achievement Summary
+Extended aggregate declared-shadow promotion telemetry to include blocker-count fields from promotion report blockers, so aggregate triage no longer needs direct report inspection for failed/non-shadow-blocked trial counts.
+
+### Scope of Changes
+- Updated aggregate gate telemetry parsing/output in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - new parsed fields from stage report:
+    - `.blockers.failed_trial_count`
+    - `.blockers.non_shadow_blocked_trial_count`
+  - new aggregate telemetry fields in stdout + summary:
+    - `sv_declared_shadow_promotion_failed_trial_count`
+    - `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=1 PGEN_SOTA_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT=0 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+  - aggregate output/summary include:
+    - `sv_declared_shadow_promotion_failed_trial_count`
+    - `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`.
+
 ## 2026-03-03 - Phase P Aggregate Observability Increment: Declared-Shadow Parseability-Scope Telemetry
 ### ✅ Achievement Summary
 Extended aggregate declared-shadow promotion telemetry to include the effective parseability-scope setting from the stage report so aggregate artifacts expose both configuration intent and runtime-effective stage evidence.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-p-aggregate-declared-shadow-parseability-telemetry)
+Last updated: 2026-03-03 (+0100, task: phase-p-aggregate-declared-shadow-blocker-count-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -62,6 +62,9 @@ Use this file to resume work without replaying full chat history.
       - `PGEN_SOTA_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY`
   - Aggregate declared-shadow promotion telemetry now also surfaces runtime-effective stage scope:
     - `sv_declared_shadow_promotion_declared_shadow_parseable_only`
+  - Aggregate declared-shadow promotion telemetry now also surfaces blocker counters:
+    - `sv_declared_shadow_promotion_failed_trial_count`
+    - `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`
 - Non-annotation parseability contract:
   - `ebnf` is now `require_parseability=true` (with `ebnf_dual_run` adapter path).
 
