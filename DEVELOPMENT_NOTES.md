@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Aggregate SV Minimum 30 -> 35
+### Context
+After the prior `25 -> 30` ratchet, strict deterministic `sv_file` acceptance remained fully green. Aggregate policy could safely tighten once more while preserving deterministic stability.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+
+Changes:
+- Ratcheted required aggregate parse-full minimum:
+  - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=35` (from `30`).
+- Advanced promotion trial target:
+  - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=40` (from `35`).
+- Synced docs/continuity surfaces:
+  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=35 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - strict threshold run passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=40 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - target `40`, `trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
+
+### Notes
+- Aggregate policy now enforces required parse-full floor `35` and keeps promotion telemetry on next ratchet target `40`.
+- Evidence remains deterministic and stable across both LRM profiles in this trial configuration.
+
 ## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Aggregate SV Minimum 25 -> 30
 ### Context
 After the prior `20 -> 25` ratchet, strict deterministic `sv_file` evidence still stayed at full acceptance. Aggregate policy could be tightened again without reducing stability.

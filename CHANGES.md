@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Promote Aggregate SV Min Ratio from 30 to 35
+### ✅ Achievement Summary
+Ratcheted aggregate required `sv_stimuli_quality_gate` parse-full threshold from `30` to `35` after strict deterministic validation at `35` and green promotion evidence beyond that threshold.
+
+### Scope of Changes
+- Updated aggregate policy:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=35` (was `30`)
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=40` (was `35`) for next ratchet evidence collection.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=35 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - strict threshold run passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=40 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - next-target evidence is green (`trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`).
+
 ## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Promote Aggregate SV Min Ratio from 25 to 30
 ### ✅ Achievement Summary
 Ratcheted aggregate required `sv_stimuli_quality_gate` parse-full threshold from `25` to `30` after strict deterministic validation at `30` and green promotion evidence beyond that threshold.
