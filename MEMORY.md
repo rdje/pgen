@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-04 (+0100, task: phase-p-parse-full-policy-ratchet-15-to-20)
+Last updated: 2026-03-04 (+0100, task: phase-p-parse-full-policy-ratchet-20-to-25)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,14 +24,14 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `50ba3e2` (`Harden SV stimuli segment spacing and mode profile generation caps`).
+- Latest commit: `125db14` (`Ratchet aggregate SV parse-full policy floor from 15 to 20`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
   - SV parse-full ratio promotion stage enabled informationally:
     - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`
     - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0`
-    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=25`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=30`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=3`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=6`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=12001`
@@ -77,7 +77,7 @@ Use this file to resume work without replaying full chat history.
     - `sv_stimuli_quality_diff_mismatch_count`
     - `sv_stimuli_quality_performance_enabled`
   - Aggregate SV parse-full strict floor now set to:
-    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=20`
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=25`
   - Aggregate `sv_preprocessor_quality_gate` now runs under aggregate state and emits differential telemetry:
     - stage dir: `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
     - `sv_preprocessor_quality_parseability_mode_effective`
@@ -192,6 +192,23 @@ Use this file to resume work without replaying full chat history.
     - `trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`.
 - Result:
   - aggregate policy floor is now aligned with deterministic evidence, and promotion telemetry now tracks the next ratchet candidate.
+
+### 2026-03-04: Ratcheted aggregate parse-full floor from 20 to 25 and advanced promotion target to 30
+- Root cause:
+  - deterministic strict evidence remained fully green at threshold `25`, so aggregate floor `20` was stale and no longer reflected proven quality.
+- Fix:
+  - updated `rust/config/sota_exit_policy.env`:
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=25` (from `20`),
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=30` (from `25`).
+- Validation:
+  - strict threshold run:
+    - `PGEN_SV_STIMULI_QUALITY_MODE=sv_file ... PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=25 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+  - informational next-target run:
+    - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=30 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+    - `trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
+- Result:
+  - aggregate policy now enforces a stronger required parse-full floor (`25`) and tracks next-ratchet evidence at `30`.
 
 ### 2026-03-03: Added generator word-boundary spacing control and SV gate wiring
 - Root cause:
@@ -401,10 +418,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `234`
+- Commit count at last refresh (before current uncommitted changes): `235`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 125db14 Ratchet aggregate SV parse-full policy floor from 15 to 20
 - 50ba3e2 Harden SV stimuli segment spacing and mode profile generation caps
 - 805463c Add word-boundary spacing control for SV stimuli and improve sv_file parse-full
 - fa919f8 Add sv_parseable_file mode and parseable-subset SV steering for parse-full burn-down
@@ -2110,8 +2128,8 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Continue Phase P semantic-closure implementation for SV:
-   - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=20`),
-   - promotion evidence at target `25` is already green (`trial_passed=3/3`, observed ratio `100/100/100`), so the next decision point is whether to ratchet required aggregate min from `20` to `25`.
+   - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=25`),
+   - promotion evidence at target `30` is already green (`trial_passed=3/3`, observed ratio `100/100/100`), so the next decision point is whether to ratchet required aggregate min from `25` to `30`.
 2. Add annotation-driven SV stimuli steering:
    - initial baseline + rule-level expansion are in place, parseable-subset mode (`sv_parseable_file`) is contractized with `100%` parse-full, and `sv_file` deterministic run is now also at `100%` for current trial shape,
    - next increment should broaden trial shapes/corpus stress (counts/seeds/contracts) while preserving `sv_file` parse-full stability and semantic-suite closure.

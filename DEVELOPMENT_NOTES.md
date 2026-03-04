@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Aggregate SV Minimum 20 -> 25
+### Context
+After the prior `15 -> 20` ratchet, strict deterministic `sv_file` evidence remained fully green at higher thresholds. Aggregate policy could safely tighten again without introducing noisy regressions.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+
+Changes:
+- Ratcheted required aggregate parse-full minimum:
+  - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=25` (from `20`).
+- Advanced promotion trial target:
+  - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=30` (from `25`).
+- Synced docs/continuity surfaces:
+  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=25 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - strict threshold run passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=30 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - target `30`, `trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
+
+### Notes
+- Aggregate policy now enforces a stronger floor (`25`) while keeping promotion telemetry focused on the next ratchet candidate (`30`).
+- Deterministic evidence remains stable across dual LRM profile execution in this trial shape.
+
 ## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Aggregate SV Minimum 15 -> 20
 ### Context
 After segment-boundary spacing and mode-cap hardening, deterministic `sv_file` parse-full runs converged at `100%`, but aggregate policy still enforced a stale lower floor (`15`). This under-represented current closure quality and delayed objective threshold ratcheting.
