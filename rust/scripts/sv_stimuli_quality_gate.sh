@@ -1440,9 +1440,19 @@ mode_entry_rule="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$
 mode_closed_loop_enabled="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].closed_loop_enabled // ($mode != "sv_snippet" and $mode != "sv_pp_snippet")) then 1 else 0 end' "$CONTRACT_FILE")"
 mode_parse_full_eligible="$(jq -er --arg mode "$stimuli_mode" 'if (.stimuli_modes.profiles[$mode].parse_full_eligible // ($mode == "sv_file" or $mode == "sv_pp_file" or $mode == "sv_semantic_file")) then 1 else 0 end' "$CONTRACT_FILE")"
 mode_recovery_stimuli_mode="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].recovery_stimuli_mode // "baseline") | strings' "$CONTRACT_FILE")"
+mode_max_depth="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].max_depth // 24) | numbers' "$CONTRACT_FILE")"
+mode_max_repeat="$(jq -er --arg mode "$stimuli_mode" '(.stimuli_modes.profiles[$mode].max_repeat // 4) | numbers' "$CONTRACT_FILE")"
 
 if [[ "$mode_recovery_stimuli_mode" != "baseline" && "$mode_recovery_stimuli_mode" != "recovery_biased" && "$mode_recovery_stimuli_mode" != "near_sync_negative" ]]; then
     echo "error: unsupported recovery stimuli mode '$mode_recovery_stimuli_mode' for stimuli mode '$stimuli_mode' (supported: baseline, recovery_biased, near_sync_negative)" >&2
+    exit 2
+fi
+if ! [[ "$mode_max_depth" =~ ^[0-9]+$ ]] || [[ "$mode_max_depth" -lt 1 ]]; then
+    echo "error: stimuli mode '$stimuli_mode' max_depth must be an integer >= 1" >&2
+    exit 2
+fi
+if ! [[ "$mode_max_repeat" =~ ^[0-9]+$ ]] || [[ "$mode_max_repeat" -lt 1 ]]; then
+    echo "error: stimuli mode '$stimuli_mode' max_repeat must be an integer >= 1" >&2
     exit 2
 fi
 
@@ -1552,6 +1562,8 @@ echo "stimuli_mode_entry_rule: $mode_entry_rule"
 echo "stimuli_mode_closed_loop_enabled: $mode_closed_loop_enabled"
 echo "stimuli_mode_parse_full_eligible: $mode_parse_full_eligible"
 echo "stimuli_mode_recovery_stimuli_mode: $mode_recovery_stimuli_mode"
+echo "stimuli_mode_max_depth: $mode_max_depth"
+echo "stimuli_mode_max_repeat: $mode_max_repeat"
 echo "closed_loop_enabled: $closed_loop_enabled"
 echo "closed_loop_effective_enabled: $closed_loop_effective_enabled"
 echo "closed_loop_gap_report_threshold: $gap_report_threshold"
@@ -1793,6 +1805,8 @@ for profile_idx in "${!run_profiles[@]}"; do
             --count "$sample_count" \
             --seed "$profile_seed_base" \
             --entry-rule "$mode_entry_rule" \
+            --max-depth "$mode_max_depth" \
+            --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             --output "$closed_loop_initial_stimuli" \
             --coverage-output "$closed_loop_initial_coverage" \
@@ -1814,6 +1828,8 @@ for profile_idx in "${!run_profiles[@]}"; do
             --count "$sample_count" \
             --seed "$profile_seed_base" \
             --entry-rule "$mode_entry_rule" \
+            --max-depth "$mode_max_depth" \
+            --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             --output "$closed_loop_initial_replay_stimuli" \
             --coverage-output "$closed_loop_initial_replay_coverage" \
@@ -1837,6 +1853,8 @@ for profile_idx in "${!run_profiles[@]}"; do
             --count "$replay_sample_count" \
             --seed "$closed_loop_replay_seed" \
             --entry-rule "$mode_entry_rule" \
+            --max-depth "$mode_max_depth" \
+            --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             --output "$closed_loop_replay_stimuli" \
             --coverage-output "$closed_loop_replay_coverage" \
@@ -1921,6 +1939,8 @@ for profile_idx in "${!run_profiles[@]}"; do
             --count 1 \
             --seed "$seed" \
             --entry-rule "$mode_entry_rule" \
+            --max-depth "$mode_max_depth" \
+            --max-repeat "$mode_max_repeat" \
             --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
             --output "$sample_file"
         require_nonempty_file "$sample_file"

@@ -508,6 +508,15 @@ Toolbox baseline to leverage end-to-end:
       - when enabled, terminal-`\\b` regex samples append a delimiter space when ending in word characters, reducing merged-token outputs.
     - `sv_stimuli_quality_gate` now passes this control in all stimuli generation stages (closed-loop + per-sample generation),
     - deterministic `sv_file` parse-full telemetry improved in the same trial shape from `16%` (`2/12`) to `41%` (`5/12`) while keeping semantic suites green.
+  - Progress (2026-03-04): completed next parse-full burn-down increment by hardening sequence/quantified segment concatenation and wiring mode profile generation caps:
+    - `StimuliGenerator` now applies lexical boundary-safe concatenation across generated sequence/quantified fragments when `--enforce-word-boundary-spacing` is active, preventing adjacent word-segment fusion beyond terminal-`\\b` cases.
+    - `sv_stimuli_quality_gate` now reads and forwards per-mode:
+      - `stimuli_modes.profiles.<mode>.max_depth`
+      - `stimuli_modes.profiles.<mode>.max_repeat`
+      into all generation phases.
+    - `systemverilog_core_v0_contract.json` advanced to `version: 23` with `sv_file` profile caps (`max_depth=20`, `max_repeat=2`).
+    - deterministic dual-profile validation run reached:
+      - `parse_full_pass_ratio_percent=100` (`12/12`) in `sv_file` mode while semantic suites remained fully green.
 - [x] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.

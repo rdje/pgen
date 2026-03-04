@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-04 - Phase P SV Parse-Full Burn-Down: Sequence-Segment Word Spacing + Mode Profile Depth/Repeat Wiring
+### ✅ Achievement Summary
+Closed the current `sv_file` parse-full burn-down increment by fixing lexical-word fusion across generated sequence/quantified segments and by enforcing mode-profile depth/repeat controls in SV quality gate generation calls.
+
+### Scope of Changes
+- Updated `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`:
+  - added generic lexical-word boundary helpers:
+    - `is_lexical_word_char`
+    - `starts_with_lexical_word_char`
+    - `ends_with_lexical_word_char`
+  - added `append_generated_segment(...)` and routed sequence/quantified concatenation through it,
+  - when `enforce_word_boundary_spacing=true`, adjacent generated segments now get a delimiter space when they would otherwise fuse lexical words,
+  - added regression test:
+    - `word_spacing_policy_separates_adjacent_word_segments_in_sequences`.
+- Updated `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`:
+  - added mode-profile extraction and validation:
+    - `stimuli_modes.profiles.<mode>.max_depth`
+    - `stimuli_modes.profiles.<mode>.max_repeat`
+  - wired these values into all SV stimuli generation invocations:
+    - closed-loop initial,
+    - closed-loop initial replay,
+    - closed-loop replay,
+    - per-sample generation.
+- Updated `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`:
+  - bumped contract to `version: 23`,
+  - added `sv_file` profile generation caps:
+    - `"max_depth": 20`
+    - `"max_repeat": 2`.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml word_boundary_spacing_policy_appends_separator_for_terminal_boundary` ✅
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml word_spacing_policy_separates_adjacent_word_segments_in_sequences` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - `parse_full_pass_ratio_percent=100` (`12/12`) in deterministic dual-profile run.
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-03 - Phase P SV Parse-Full Burn-Down: Word-Boundary Spacing Control + Gate Wiring
 ### ✅ Achievement Summary
 Added a generic stimuli-generation control to reduce merged-token outputs around terminal regex word-boundary tokens, then wired it into SV quality gate generation stages to improve `sv_file` parse-full acceptance.

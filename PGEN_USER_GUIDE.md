@@ -2834,7 +2834,24 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - gate forwards this to all mode-run stimuli generation calls via `--recovery-stimuli-mode`.
   - word-boundary spacing control:
     - `ast_pipeline` supports `--enforce-word-boundary-spacing` for stimuli generation modes.
-    - `sv_stimuli_quality_gate` enables this control on all generation stages to reduce fused keyword/identifier artifacts from terminal `\\b` regex tokens (for example `input...` + identifier) before preprocess/parse_full checks.
+    - when enabled, spacing policy applies to:
+      - terminal `\\b` regex candidates,
+      - sequence/quantified fragment concatenation where adjacent generated segments would fuse lexical words.
+    - `sv_stimuli_quality_gate` enables this control on all generation stages to reduce fused keyword/identifier artifacts before preprocess/parse_full checks.
+  - mode-level generation bounds:
+    - optional profile keys:
+      - `stimuli_modes.profiles.<mode>.max_depth`
+      - `stimuli_modes.profiles.<mode>.max_repeat`
+    - gate behavior:
+      - validates both values as integers `>= 1`,
+      - forwards them to all generation calls as:
+        - `--max-depth`
+        - `--max-repeat`.
+    - current contract baseline:
+      - `sv_file` uses conservative caps:
+        - `max_depth=20`
+        - `max_repeat=2`
+      to keep full-file stimuli parseable while preserving deterministic coverage/gap loop behavior.
   - mode-level semantic overrides:
     - optional profile key:
       - `stimuli_modes.profiles.<mode>.semantic_overrides.<semantic_baseline_toggle>`

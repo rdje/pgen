@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-03 (+0100, task: phase-p-sv-file-parse-full-burndown-word-boundary-spacing)
+Last updated: 2026-03-04 (+0100, task: phase-p-sv-file-parse-full-burndown-segment-spacing-and-mode-caps)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `fa919f8` (`Add sv_parseable_file mode and parseable-subset SV steering for parse-full burn-down`).
+- Latest commit: `805463c` (`Add word-boundary spacing control for SV stimuli and improve sv_file parse-full`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -145,10 +145,32 @@ Use this file to resume work without replaying full chat history.
     - latest deterministic gate evidence:
       - `PGEN_SV_STIMULI_QUALITY_MODE=sv_parseable_file ... sv_stimuli_quality_gate`
       - `parse_full_pass_ratio_percent=100` (`12/12` across `2017` + `2023` profiles).
-  - `sv_file` burn-down now includes generator-side boundary-spacing control:
+  - `sv_file` burn-down now includes generator-side boundary-spacing control + mode profile generation caps:
     - new CLI control: `--enforce-word-boundary-spacing`,
     - wired in `sv_stimuli_quality_gate` generation paths,
-    - deterministic `sv_file` evidence improved from `16%` to `41%` parse-full pass ratio (`2/12` -> `5/12`).
+    - sequence/quantified segment concatenation now also enforces lexical boundary spacing under the same flag,
+    - `sv_file` profile now uses contractized caps:
+      - `max_depth=20`
+      - `max_repeat=2`
+    - deterministic `sv_file` evidence now reaches `100%` parse-full pass ratio (`12/12`) in dual-profile run.
+
+### 2026-03-04: Closed current `sv_file` parse-full burn-down increment with segment-boundary spacing + mode caps
+- Root cause:
+  - terminal-`\b` spacing fix reduced debt but generated sequence/quantified fragments could still fuse lexical words via raw concatenation, and mode-level generation caps declared in contract were not yet enforced in gate invocations.
+- Fix:
+  - `StimuliGenerator` now uses lexical-boundary-safe `append_generated_segment(...)` in sequence/quantified generation paths when `enforce_word_boundary_spacing` is enabled.
+  - `sv_stimuli_quality_gate` now reads/validates/forwards:
+    - `stimuli_modes.profiles.<mode>.max_depth`
+    - `stimuli_modes.profiles.<mode>.max_repeat`
+    across initial/replay/per-sample generation phases.
+  - `systemverilog_core_v0_contract.json` advanced to `version: 23` with `sv_file.max_depth=20`, `sv_file.max_repeat=2`.
+- Validation:
+  - `cargo test --manifest-path rust/Cargo.toml word_boundary_spacing_policy_appends_separator_for_terminal_boundary` passed.
+  - `cargo test --manifest-path rust/Cargo.toml word_spacing_policy_separates_adjacent_word_segments_in_sequences` passed.
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_file ... sv_stimuli_quality_gate` passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+  - `make -C rust SHELL=/bin/bash clippy_on_rust_change` passed.
+- Result:
+  - deterministic `sv_file` parse-full burn-down lane is currently fully green for this trial shape while semantic deterministic suites remain green.
 
 ### 2026-03-03: Added generator word-boundary spacing control and SV gate wiring
 - Root cause:
@@ -358,10 +380,13 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `178`
+- Commit count at last refresh (before current uncommitted changes): `233`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 805463c Add word-boundary spacing control for SV stimuli and improve sv_file parse-full
+- fa919f8 Add sv_parseable_file mode and parseable-subset SV steering for parse-full burn-down
+- e81101f Expand annotation-driven SV stimuli steering to additional high-fanout grammar rules.
 - a1c7bbc Start annotation-driven SV stimuli steering rollout via semantic directives in systemverilog.ebnf.
 - f98cda9 Expand deterministic SV semantic contract suites with preprocess-heavy directive families.
 - d5b4895 Expand curated SV preprocessor differential corpus with include-policy negative families and close Phase Q differential hardening.
@@ -2066,8 +2091,8 @@ Use this file to resume work without replaying full chat history.
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=15`),
    - latest promotion evidence at target `20` is still `hold` (`observed_ratio_min=8`, `observed_ratio_max=16`, `observed_ratio_avg=13`, ratio-only blockers), so keep `min=15` and continue parse-full debt burn-down before re-ratchet.
 2. Add annotation-driven SV stimuli steering:
-   - initial baseline + rule-level expansion are in place, and parseable-subset mode (`sv_parseable_file`) is contractized with `100%` parse-full in deterministic validation,
-   - generator-side word-boundary spacing control now improved `sv_file` parse-full to `41%`; next increment should target remaining shrunk counterexamples to keep ratcheting upward without semantic-closure regressions.
+   - initial baseline + rule-level expansion are in place, parseable-subset mode (`sv_parseable_file`) is contractized with `100%` parse-full, and `sv_file` deterministic run is now also at `100%` for current trial shape,
+   - next increment should broaden trial shapes/corpus stress (counts/seeds/contracts) while preserving `sv_file` parse-full stability and semantic-suite closure.
 3. Expand contractized SV/VHDL corpora:
    - SV preprocess-heavy deterministic semantic suite increment is done (`version: 2` across enforced SV semantic suites),
    - next corpus increment should target VHDL deterministic semantic/parseability families and additional SV parse-full-improving families.

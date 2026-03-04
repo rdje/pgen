@@ -1909,13 +1909,9 @@ impl<'a> StimuliGenerator<'a> {
             let mut output = String::new();
             for (idx, element) in elements.iter().enumerate() {
                 let element_path = format!("{}/s{}", node_path, idx);
-                output.push_str(&self.generate_node(
-                    element,
-                    current_rule,
-                    depth,
-                    call_stack,
-                    &element_path,
-                )?);
+                let generated =
+                    self.generate_node(element, current_rule, depth, call_stack, &element_path)?;
+                self.append_generated_segment(&mut output, &generated);
             }
             return Ok(output);
         }
@@ -1941,7 +1937,7 @@ impl<'a> StimuliGenerator<'a> {
                         if let Some(name) = capture_name {
                             named_captures.insert(name, generated.clone());
                         }
-                        output.push_str(&generated);
+                        self.append_generated_segment(&mut output, &generated);
                         captures.push(generated);
                     }
                     Err(err) => {
@@ -2109,7 +2105,7 @@ impl<'a> StimuliGenerator<'a> {
                     call_stack,
                     &quantified_path,
                 ) {
-                    Ok(generated) => output.push_str(&generated),
+                    Ok(generated) => self.append_generated_segment(&mut output, &generated),
                     Err(err) => {
                         failed = true;
                         last_error = Some(err);
@@ -2669,6 +2665,38 @@ impl<'a> StimuliGenerator<'a> {
 
     fn is_word_char(ch: char) -> bool {
         ch.is_ascii_alphanumeric() || ch == '_'
+    }
+
+    fn is_lexical_word_char(ch: char) -> bool {
+        ch.is_ascii_alphanumeric() || ch == '_' || ch == '$'
+    }
+
+    fn starts_with_lexical_word_char(value: &str) -> bool {
+        value
+            .chars()
+            .next()
+            .map(Self::is_lexical_word_char)
+            .unwrap_or(false)
+    }
+
+    fn ends_with_lexical_word_char(value: &str) -> bool {
+        value
+            .chars()
+            .next_back()
+            .map(Self::is_lexical_word_char)
+            .unwrap_or(false)
+    }
+
+    fn append_generated_segment(&self, output: &mut String, segment: &str) {
+        if self.config.enforce_word_boundary_spacing
+            && !output.is_empty()
+            && !segment.is_empty()
+            && Self::ends_with_lexical_word_char(output.as_str())
+            && Self::starts_with_lexical_word_char(segment)
+        {
+            output.push(' ');
+        }
+        output.push_str(segment);
     }
 
     fn constraint_driven_candidate(
@@ -4987,6 +5015,47 @@ mod tests {
         assert!(
             value[0].ends_with(' '),
             "word-boundary spacing should append delimiter space: {:?}",
+            value[0]
+        );
+    }
+
+    #[test]
+    fn word_spacing_policy_separates_adjacent_word_segments_in_sequences() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("regex", "module"),
+                    token("regex", "automatic"),
+                    token("regex", "[A-Za-z]+"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = StimuliGenerator::new(
+            "word_spacing_sequence".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(2029),
+                max_depth: 4,
+                max_repeat: 2,
+                max_rule_visits: 4,
+                recovery_mode: RecoveryStimuliMode::Baseline,
+                enforce_word_boundary_spacing: true,
+                trace_verbosity: TraceVerbosity::None,
+            },
+        );
+
+        let value = generator
+            .generate_many(1, None)
+            .expect("word-segment spacing generation should succeed");
+        assert!(
+            value[0].starts_with("module automatic "),
+            "word spacing should separate adjacent lexical segments: {:?}",
             value[0]
         );
     }

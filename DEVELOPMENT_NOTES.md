@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-04 - Phase P SV Parse-Full Burn-Down: Sequence/Quantified Segment Boundary Hardening + Mode Cap Wiring
+### Context
+After terminal-`\b` spacing hardening, `sv_file` parse-full debt remained due to a second lexical-fusion path: generated sequence/quantified fragments were still concatenated with raw `push_str`, allowing adjacent word-like segments to merge. In parallel, mode-level `max_depth`/`max_repeat` controls were defined in contract but not yet enforced by the SV gate command surface.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+Changes:
+- `StimuliGenerator` concatenation hardening:
+  - introduced lexical-word helpers:
+    - `is_lexical_word_char`
+    - `starts_with_lexical_word_char`
+    - `ends_with_lexical_word_char`
+  - introduced `append_generated_segment(&mut String, &str)`:
+    - when `enforce_word_boundary_spacing` is active, inserts one delimiter space only when concatenation would fuse two lexical-word edges.
+  - replaced direct concatenation in:
+    - `generate_sequence` (both fast/legacy and capture-aware paths),
+    - `generate_quantified`.
+  - added regression:
+    - `word_spacing_policy_separates_adjacent_word_segments_in_sequences`.
+- SV quality gate mode-cap wiring:
+  - loaded/validated optional contract keys:
+    - `stimuli_modes.profiles.<mode>.max_depth` (fallback `24`)
+    - `stimuli_modes.profiles.<mode>.max_repeat` (fallback `4`)
+  - propagated both flags to every stimuli generation invocation in gate flow:
+    - closed-loop initial,
+    - closed-loop initial replay,
+    - closed-loop replay,
+    - per-sample generation.
+- Contractized `sv_file` profile caps:
+  - bumped `systemverilog_core_v0_contract.json` `version` to `23`,
+  - set:
+    - `"max_depth": 20`
+    - `"max_repeat": 2`.
+
+### Validation
+Executed:
+- `cargo test --manifest-path rust/Cargo.toml word_boundary_spacing_policy_appends_separator_for_terminal_boundary`
+- `cargo test --manifest-path rust/Cargo.toml word_spacing_policy_separates_adjacent_word_segments_in_sequences`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `make -C rust SHELL=/bin/bash clippy_on_rust_change`
+
+Observed:
+- deterministic `sv_file` run reached full parse-full acceptance:
+  - `parse_full_pass_ratio_percent=100` (`12/12` across `2017` + `2023`),
+  - semantic deterministic suites stayed green,
+  - closed-loop target debt remained non-increasing (`initial 1281 -> replay 979`).
+- clippy flow remained green.
+
+### Notes
+- This increment stays EBNF-agnostic in Rust logic:
+  - no SV-specific parser relaxations were introduced,
+  - improvements are generic concatenation policy + contract-driven mode-shaping.
+- Next burn-down increments should preserve this deterministic baseline while expanding semantic-closure strictness and broader corpus stress.
+
 ## 2026-03-03 - Phase P SV Parse-Full Burn-Down: Word-Boundary Spacing Policy
 ### Context
 `sv_file` parse-full failures were frequently caused by merged lexical words in generated stimuli (for example adjacent keyword/identifier-like fragments around regex tokens with terminal `\\b`). Parser-side grammar correctly enforced boundaries, so the fix belongs in generation quality, not parser relaxation.

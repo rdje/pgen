@@ -1,6 +1,6 @@
 {
-  "version": 22,
-  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware, parseable-subset, and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy, deterministic performance/memory-proxy budget checks, parse-full acceptance telemetry/threshold controls, declared-identifier promotion burn-down shadow telemetry controls, and runtime declared-before-use semantic enforcement in semantic-closure profile with parseability guardrails.",
+  "version": 23,
+  "description": "Phase Q/P preprocessor-first contract for SystemVerilog stimuli quality checks with deterministic closed-loop coverage/gap replay, structural semantic baseline checks, semantic-closure validator toggles, deterministic declared-identifier/width-compatibility/port-binding/package-qualification/context-legality semantic contract suites, dual LRM profile matrix support, explicit stimuli modes (including preprocess-aware, parseable-subset, and semantic-closure file modes), deterministic failure replay/shrinking, basic port-binding legality checks, mode-level semantic override profiles, mode-level stimuli steering policy (including profile depth/repeat caps), deterministic performance/memory-proxy budget checks, parse-full acceptance telemetry/threshold controls, declared-identifier promotion burn-down shadow telemetry controls, and runtime declared-before-use semantic enforcement in semantic-closure profile with parseability guardrails.",
   "grammar_name": "systemverilog",
   "ebnf_path": "grammars/systemverilog.ebnf",
   "sample_count": 6,
@@ -18,6 +18,8 @@
         "entry_rule": "systemverilog_file",
         "closed_loop_enabled": true,
         "parse_full_eligible": true,
+        "max_depth": 20,
+        "max_repeat": 2,
         "recovery_stimuli_mode": "baseline",
         "semantic_overrides": {
           "require_port_binding_legality_basic": true
