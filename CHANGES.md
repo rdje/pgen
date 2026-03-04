@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Promote Aggregate SV Min Ratio from 15 to 20
+### ✅ Achievement Summary
+Ratcheted aggregate required `sv_stimuli_quality_gate` parse-full threshold from `15` to `20` after deterministic strict promotion evidence converged at and beyond the new threshold.
+
+### Scope of Changes
+- Updated aggregate policy:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=20` (was `15`)
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=25` (was `20`) for next ratchet evidence collection.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - target `20`, recommendation `raise_min_parse_full_pass_ratio`
+  - `trial_passed=3/3`, `observed_ratio_min=max=avg=100`.
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=20 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - strict threshold run passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - next-target evidence already green (`trial_passed=3/3`, recommendation remains `raise_min_parse_full_pass_ratio`).
+
 ## 2026-03-04 - Phase P SV Parse-Full Burn-Down: Sequence-Segment Word Spacing + Mode Profile Depth/Repeat Wiring
 ### ✅ Achievement Summary
 Closed the current `sv_file` parse-full burn-down increment by fixing lexical-word fusion across generated sequence/quantified segments and by enforcing mode-profile depth/repeat controls in SV quality gate generation calls.

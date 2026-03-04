@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Aggregate SV Minimum 15 -> 20
+### Context
+After segment-boundary spacing and mode-cap hardening, deterministic `sv_file` parse-full runs converged at `100%`, but aggregate policy still enforced a stale lower floor (`15`). This under-represented current closure quality and delayed objective threshold ratcheting.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+
+Changes:
+- Ratcheted required aggregate parse-full minimum:
+  - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=20` (from `15`).
+- Advanced promotion trial target to keep ratchet loop active:
+  - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=25` (from `20`).
+- Synced docs/continuity surfaces:
+  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+
+### Validation
+Executed:
+- `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - target `20`, `trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=6 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=20 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - strict threshold run passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=25 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - next-target evidence also passed (`trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`).
+
+### Notes
+- Aggregate policy is now aligned with proven deterministic evidence.
+- Promotion target now tracks the next ratchet candidate (`25`), so promotion telemetry remains actionable instead of restating already-applied threshold debt.
+
 ## 2026-03-04 - Phase P SV Parse-Full Burn-Down: Sequence/Quantified Segment Boundary Hardening + Mode Cap Wiring
 ### Context
 After terminal-`\b` spacing hardening, `sv_file` parse-full debt remained due to a second lexical-fusion path: generated sequence/quantified fragments were still concatenated with raw `push_str`, allowing adjacent word-like segments to merge. In parallel, mode-level `max_depth`/`max_repeat` controls were defined in contract but not yet enforced by the SV gate command surface.
