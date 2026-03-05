@@ -477,6 +477,15 @@ Toolbox baseline to leverage end-to-end:
     - `rust/config/sota_exit_policy.env` now sets:
       - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=70`
     - informational promotion trial at target `70` converged (`trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`).
+  - Progress (2026-03-05): ratcheted aggregate SV parse-full pass-ratio threshold from `65%` to `70%` after continued strict deterministic convergence:
+    - strict `sv_stimuli_quality_gate` at enforced min `70` passed with:
+      - `parse_full_pass_ratio_percent=100` (`12/12`),
+    - aggregate policy now sets:
+      - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=70`.
+  - Progress (2026-03-05): advanced promotion target to the next ratchet candidate:
+    - `rust/config/sota_exit_policy.env` now sets:
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=75`
+    - informational promotion trial at target `75` converged (`trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`).
   - Progress (2026-03-01): added dedicated parse-full ratio promotion-trial gate (`sv_parse_full_ratio_promotion_gate`) and wired it into aggregate SOTA policy in informational-first mode:
     - gate runs deterministic strict `sv_stimuli_quality_gate` trial matrix at configurable target threshold and emits:
       - `rust/target/sv_parse_full_ratio_promotion_gate/work/systemverilog_parse_full_ratio_promotion_report.json`
@@ -880,6 +889,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-05: Ratcheted aggregate required SV parse-full minimum from `65` to `70` (`PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=70`) after strict deterministic validation at min `70` (`parse_full_pass_ratio_percent=100`, `12/12`), and advanced next promotion target to `75` (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=75`) with green informational evidence (`trial_passed=3/3`, observed ratio `100/100/100`).
 - 2026-03-05: Ratcheted aggregate required SV parse-full minimum from `60` to `65` (`PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=65`) after strict deterministic validation at min `65` (`parse_full_pass_ratio_percent=100`, `12/12`), and advanced next promotion target to `70` (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=70`) with green informational evidence (`trial_passed=3/3`, observed ratio `100/100/100`).
 - 2026-03-05: Ratcheted aggregate required SV parse-full minimum from `55` to `60` (`PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=60`) after strict deterministic validation at min `60` (`parse_full_pass_ratio_percent=100`, `12/12`), and advanced next promotion target to `65` (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=65`) with green informational evidence (`trial_passed=3/3`, observed ratio `100/100/100`).
 - 2026-03-05: Ratcheted aggregate required SV parse-full minimum from `50` to `55` (`PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=55`) after strict deterministic validation at min `55` (`parse_full_pass_ratio_percent=100`, `12/12`), and advanced next promotion target to `60` (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=60`) with green informational evidence (`trial_passed=3/3`, observed ratio `100/100/100`).
