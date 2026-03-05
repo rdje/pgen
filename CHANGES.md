@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-05 - Phase P Parse-Full Policy Ratchet: Promote Aggregate SV Min Ratio from 45 to 50
+### ✅ Achievement Summary
+Ratcheted aggregate required `sv_stimuli_quality_gate` parse-full threshold from `45` to `50` after strict deterministic validation at `50` and green promotion evidence beyond that threshold.
+
+### Scope of Changes
+- Updated aggregate policy:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=50` (was `45`)
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=55` (was `50`) for next ratchet evidence collection.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=50 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - strict threshold run passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=55 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - next-target evidence is green (`trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`).
+
 ## 2026-03-04 - Phase P Parse-Full Policy Ratchet: Promote Aggregate SV Min Ratio from 40 to 45
 ### ✅ Achievement Summary
 Ratcheted aggregate required `sv_stimuli_quality_gate` parse-full threshold from `40` to `45` after strict deterministic validation at `45` and green promotion evidence beyond that threshold.
