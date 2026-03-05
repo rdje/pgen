@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-05 - Phase P Parse-Full Policy Ratchet: Aggregate SV Minimum 70 -> 75
+### Context
+After the prior `65 -> 70` ratchet, strict deterministic `sv_file` acceptance remained fully green. Aggregate policy could tighten again while preserving deterministic stability.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+
+Changes:
+- Ratcheted required aggregate parse-full minimum:
+  - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=75` (from `70`).
+- Advanced promotion trial target:
+  - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=80` (from `75`).
+- Synced docs/continuity surfaces:
+  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=75 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - strict threshold run passed with `parse_full_pass_ratio_percent=100` (`12/12`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=80 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - target `80`, `trial_passed=3/3`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
+
+### Notes
+- Aggregate policy now enforces required parse-full floor `75` and keeps promotion telemetry on next ratchet target `80`.
+- Evidence remains deterministic and stable across both LRM profiles in this trial configuration.
+
 ## 2026-03-05 - Phase P Parse-Full Policy Ratchet: Aggregate SV Minimum 65 -> 70
 ### Context
 After the prior `60 -> 65` ratchet, strict deterministic `sv_file` acceptance remained fully green. Aggregate policy could tighten again while preserving deterministic stability.
