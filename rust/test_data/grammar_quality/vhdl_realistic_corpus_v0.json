@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "description": "Deterministic VHDL realistic corpus for parse-full and budget hardening in vhdl_stimuli_quality_gate.",
+  "cases": [
+    {
+      "name": "entity_and2_architecture",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/entity_and2_architecture.vhd",
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "entity_only_port_decl",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/entity_only_port_decl.vhd",
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "package_constant_only",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/package_constant_only.vhd",
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "process_wait_statement",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/process_wait_statement.vhd",
+      "expect_parse_full_pass": false
+    },
+    {
+      "name": "use_package_vector_width",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/use_package_vector_width.vhd",
+      "expect_parse_full_pass": false
+    },
+    {
+      "name": "direct_entity_instantiation",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/direct_entity_instantiation.vhd",
+      "expect_parse_full_pass": false
+    }
+  ]
+}

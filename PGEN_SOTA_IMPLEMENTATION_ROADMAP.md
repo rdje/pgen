@@ -205,6 +205,15 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add dedicated VHDL closed-loop stimuli quality gate (`make vhdl_stimuli_quality_gate`) with contractized controls.
   - Progress (2026-02-27): added `rust/scripts/vhdl_stimuli_quality_gate.sh` + contract manifest `rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to enforce deterministic `EBNF -> JSON -> parser -> coverage/gap -> replay -> parse_full(optional)` execution on `grammars/vhdl.ebnf`.
   - Progress (2026-02-27): added `rust/Makefile` target `vhdl_stimuli_quality_gate` and validated the gate with deterministic closed-loop convergence (`replay_targets <= initial_targets`) on the VHDL seed grammar.
+  - Progress (2026-03-06): expanded VHDL corpus hardening with deterministic realistic-corpus stage and contractized thresholds:
+    - promoted `vhdl_core_v0_contract.json` to `version: 2` with new `realistic_corpus` section (`enforce`, corpus path, parse-full latency and sample-size budgets),
+    - added curated deterministic corpus manifest + fixtures:
+      - `rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
+      - `rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
+      - includes currently-supported parse-full families and known unsupported-but-realistic constructs as expected-fail minimums,
+    - `vhdl_stimuli_quality_gate` now emits dedicated realistic-corpus report artifact:
+      - `rust/target/vhdl_stimuli_quality_gate/work/vhdl_realistic_corpus_report.json`,
+      - plus summary telemetry for case counts and parse timing/size metrics.
 - [x] Wire `vhdl_stimuli_quality_gate` into aggregate SOTA exit policy with informational-first defaults.
   - Progress (2026-02-27): added aggregate policy defaults in `rust/config/sota_exit_policy.env`:
     - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
@@ -991,6 +1000,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Expanded Phase O VHDL corpus hardening by adding a deterministic realistic-corpus stage to `vhdl_stimuli_quality_gate` (contract `v2`) with curated fixture manifest and explicit report telemetry (`vhdl_realistic_corpus_report.json`).
 - 2026-03-06: Marked Phase P Nexsim differential/integration hardening item complete after adding `sv_stimuli_quality_gate` realistic-corpus budget stage (`nexsim_realistic_corpus`, contract `v25`) with deterministic corpus fixtures and dedicated report telemetry.
 - 2026-03-06: Marked Phase P SV semantic-steering mode item complete after adding explicit grammar steering on `module_header_ports` and parameter-port rules and validating `sv_file`, `sv_parseable_file`, `sv_snippet`, and `sv_semantic_file` mode behavior under deterministic `sv_stimuli_quality_gate` runs.
 - 2026-03-06: Marked Phase P semantic-closure profile/validator item complete after fixing declared-before-use false positives on `type` parameter declarations and revalidating semantic-closure deterministic run green (`semantic_baseline_passes=4/4`, semantic suites all pass).

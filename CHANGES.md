@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-03-06 - Phase O VHDL Corpus Hardening: Realistic-Corpus Stage in `vhdl_stimuli_quality_gate` (Contract v2)
+### ✅ Achievement Summary
+Expanded contractized VHDL hardening with a deterministic realistic-corpus stage in `vhdl_stimuli_quality_gate`, including curated VHDL fixtures, parse-full latency/size budgets, and a dedicated report artifact for repeatable evidence.
+
+### Scope of Changes
+- Gate/runtime hardening:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+    - added realistic-corpus controls:
+      - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE=auto|0|1`
+      - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS`
+      - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES`
+    - added deterministic realistic-corpus stage with per-case:
+      - parse-full timing budget enforcement,
+      - sample-size budget enforcement,
+      - expectation policy (`expect_parse_full_pass` true/false),
+    - emits report artifact:
+      - `vhdl_realistic_corpus_report.json`.
+- Contract update:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+    - `version: 2` (from `1`)
+    - added `realistic_corpus` section with enforce/path/threshold policy.
+- New curated VHDL realistic corpus:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
+    - mix of currently-supported parse-full families and known unsupported-but-realistic constructs as expected-fail minimums.
+- Docs/roadmap sync:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json` ✅
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate` ✅
+  - realistic corpus stage telemetry:
+    - `realistic_corpus_cases_declared=6`
+    - `realistic_corpus_cases_executed=6`
+    - `realistic_corpus_observed_parse_pass_total=3`
+    - `realistic_corpus_observed_parse_fail_total=3`
+    - `realistic_corpus_expected_fail_parse_pass_total=0`.
+
 ## 2026-03-06 - Phase P Nexsim Integration Closure: Realistic SV Corpus Budgets in `sv_stimuli_quality_gate` (Contract v25)
 ### ✅ Achievement Summary
 Closed the remaining Phase P Nexsim differential/integration hardening item by adding a deterministic realistic-corpus budget stage to `sv_stimuli_quality_gate` with contractized thresholds, curated SV fixtures, and explicit report telemetry.

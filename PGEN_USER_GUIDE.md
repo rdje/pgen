@@ -2530,6 +2530,12 @@ Optional VHDL stimuli quality-gate tuning:
 - `PGEN_VHDL_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_VHDL_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
 - `PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE` (`auto`/`0`/`1`, default `auto`)
+  - `0`: disable VHDL realistic-corpus validation stage.
+  - `auto`: follow contract toggle `realistic_corpus.enforce`.
+  - `1`: strict-enable realistic-corpus validation regardless of contract toggle.
+- `PGEN_VHDL_STIMULI_REALISTIC_CORPUS` (override realistic-corpus manifest path)
+- `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES` (integer `>=0`, default `0` meaning run all corpus cases)
 - `PGEN_VHDL_STIMULI_QUALITY_STATE_DIR` (default `rust/target/vhdl_stimuli_quality_gate`)
 
 Optional SV syntax-closure gate tuning:
@@ -3006,6 +3012,22 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - `auto`: gate builds a temporary `vhdl` parser-registry adapter from generated parser artifact and runs parse-full when available,
   - `0`: disabled,
   - `1`: strict required mode (fails gate when adapter unavailable or any sample parse-full rejects).
+- deterministic realistic-corpus stage:
+  - contract keys (`vhdl_core_v0_contract.json`):
+    - `realistic_corpus.enforce`
+    - `realistic_corpus.cases_path`
+    - `realistic_corpus.max_parse_full_ms_per_case`
+    - `realistic_corpus.max_sample_bytes`
+  - runtime controls:
+    - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE=auto|0|1`
+    - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS`
+    - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES`
+  - deterministic report artifact:
+    - `rust/target/vhdl_stimuli_quality_gate/work/vhdl_realistic_corpus_report.json`
+  - behavior:
+    - runs curated VHDL fixtures through parse-full with per-case latency/size budget enforcement,
+    - `expect_parse_full_pass=true` => parse-full pass is required,
+    - `expect_parse_full_pass=false` => parse-full fail is currently accepted; parse-full pass is counted as improvement telemetry.
 
 `sv_syntax_closure_gate` no-regression contract:
 - deterministic flow:

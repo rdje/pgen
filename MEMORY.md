@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-p-nexsim-realistic-corpus-closure)
+Last updated: 2026-03-06 (+0100, task: phase-o-vhdl-realistic-corpus-gate-v2)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `fb2884f` (`Expand SV declared-identifier suite and fix indexed-LHS undeclared detection.`).
+- Latest commit: `c84e0d2` (`Close Phase P Nexsim integration hardening with realistic-corpus budgets`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -830,10 +830,13 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `255`
+- Commit count at last refresh (before current uncommitted changes): `258`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- c84e0d2 Close Phase P Nexsim integration hardening with realistic-corpus budgets
+- f2093c7 Close Phase P SV semantic-steering mode item with header/parameter priority steering
+- a1a306b Close Phase-P semantic-closure validator milestone and fix type-parameter false positives.
 - fb2884f Expand SV declared-identifier suite and fix indexed-LHS undeclared detection.
 - 86910f3 Add configurable seed-stride control to SV parse-full promotion trials.
 - f32eb49 Promote SV closed-loop contract defaults from 6/6 to 8/8 (v24)
@@ -1052,6 +1055,30 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-06: Expanded VHDL quality gate with deterministic realistic-corpus stage (contract `v2`)
+- Root cause:
+  - VHDL closed-loop validation was driven mostly by synthetic generated samples; Phase O required stronger, deterministic realism checks with explicit budgets and expectation polarity.
+- Fix:
+  - upgraded `rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to `version: 2` and added contractized realistic-corpus controls:
+    - `realistic_corpus.enforce`
+    - `realistic_corpus.cases_path`
+    - `realistic_corpus.max_parse_full_ms_per_case`
+    - `realistic_corpus.max_sample_bytes`
+  - added deterministic curated corpus manifest + fixtures:
+    - `rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
+    - `rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
+  - wired `rust/scripts/vhdl_stimuli_quality_gate.sh` realistic-corpus stage with:
+    - `auto|0|1` runtime mode control
+    - per-case parse-full and sample-size budget enforcement
+    - expected-pass vs expected-fail behavior (`expected_fail` pass counted as improvement telemetry, not hard failure)
+    - report artifact:
+      - `rust/target/vhdl_stimuli_quality_gate/work/vhdl_realistic_corpus_report.json`
+- Validation:
+  - `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh` passed.
+  - `jq empty rust/test_data/grammar_quality/vhdl_core_v0_contract.json` passed.
+  - `jq empty rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json` passed.
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate` passed.
 
 ### 2026-03-01: Added aggregate policy/telemetry parity for declared-shadow promotion stage
 - Root cause:
@@ -2559,16 +2586,17 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Expand contractized SV/VHDL corpora:
-   - SV preprocess-heavy deterministic semantic suite increment is done (`version: 2` across enforced SV semantic suites),
-   - next corpus increment should target VHDL deterministic semantic/parseability families and additional SV parse-full-improving families.
+1. Expand VHDL realistic corpus breadth beyond seed fixtures:
+   - add additional deterministic legal/illegal families (package/use, process/clocked, generate-like structure equivalents, subtype/range forms),
+   - keep contract budgets objective and tune only with evidence.
 2. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
-   - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-3. Close roadmap operational policy tail:
+   - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate and realistic-corpus stability are proven across broader corpus.
+3. Expand SV Nexsim realistic corpus and semantic closure evidence while preserving `100%` parse-full floor policy.
+4. Close roadmap operational policy tail:
    - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
-4. Continue Rust-native EBNF migration hardening:
+5. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-5. Keep roadmap + UG + memory synced after every gate/contract increment.
+6. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

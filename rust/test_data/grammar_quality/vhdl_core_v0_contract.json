@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "description": "Phase O VHDL pre-merge quality contract for deterministic closed-loop stimuli generation and optional parse-full validation.",
+  "version": 2,
+  "description": "Phase O VHDL pre-merge quality contract for deterministic closed-loop stimuli generation, optional parse-full validation, and realistic curated corpus checks.",
   "grammar_name": "vhdl",
   "ebnf_path": "grammars/vhdl.ebnf",
   "entry_rule": "vhdl_file",
@@ -12,5 +12,11 @@
     "target_max_attempts": 5000,
     "replay_sample_count": 8,
     "require_non_increasing_target_debt": true
+  },
+  "realistic_corpus": {
+    "enforce": true,
+    "cases_path": "rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json",
+    "max_parse_full_ms_per_case": 15000,
+    "max_sample_bytes": 131072
   }
 }

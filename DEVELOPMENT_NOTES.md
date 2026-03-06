@@ -1,4 +1,60 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase O VHDL Corpus Hardening: Contractized Realistic-Corpus Stage in `vhdl_stimuli_quality_gate`
+### Context
+Next-priority roadmap work after Phase P closure was expanding contractized SV/VHDL corpora. VHDL gate coverage was generated-stimuli-only; there was no deterministic curated corpus stage to track realistic parser acceptance debt with explicit, budgeted evidence.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
+
+Contract/control surface:
+- promoted `vhdl_core_v0_contract.json` to `version: 2`.
+- added `realistic_corpus` section:
+  - `enforce`
+  - `cases_path`
+  - `max_parse_full_ms_per_case`
+  - `max_sample_bytes`.
+- added runtime controls:
+  - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE=auto|0|1`
+  - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS`
+  - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES`.
+
+Runtime stage behavior:
+- when enabled, gate now executes deterministic curated-case parse-full checks.
+- each case enforces:
+  - parse-full latency budget,
+  - sample-size budget.
+- expectation policy:
+  - `expect_parse_full_pass=true` => parse-full pass required.
+  - `expect_parse_full_pass=false` => parse-full fail accepted; pass counted as improvement telemetry.
+- stage emits dedicated report artifact:
+  - `rust/target/vhdl_stimuli_quality_gate/work/vhdl_realistic_corpus_report.json`.
+
+Curated corpus:
+- added deterministic manifest + 6 fixtures:
+  - supported parse-full families (entity/architecture, entity-only, package-only),
+  - known unsupported-but-realistic families (`process wait`, package-width use, direct entity instantiation) encoded as expected-fail minimums.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh` (passed)
+- `jq empty rust/test_data/grammar_quality/vhdl_core_v0_contract.json` (passed)
+- `jq empty rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json` (passed)
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate` (passed)
+
+Observed (realistic corpus stage):
+- `realistic_corpus_cases_declared=6`
+- `realistic_corpus_cases_executed=6`
+- `realistic_corpus_observed_parse_pass_total=3`
+- `realistic_corpus_observed_parse_fail_total=3`
+- `realistic_corpus_expected_fail_parse_pass_total=0`.
+
+### Notes
+- This increment advances the “expand contractized SV/VHDL corpora” priority and sets objective evidence for eventual VHDL aggregate strict-promotion decisions.
+
 ## 2026-03-06 - Phase P Nexsim Integration Closure: Contractized Realistic-Corpus Stage in `sv_stimuli_quality_gate`
 ### Context
 Phase P had one remaining open item: Nexsim differential/integration hardening needed executable budget checks on realistic SV fixtures, not only generated random stimuli. Existing gate stages covered differential taxonomy and generic performance proxies, but lacked a deterministic curated corpus path.
