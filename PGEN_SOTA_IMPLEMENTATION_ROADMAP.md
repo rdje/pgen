@@ -239,8 +239,9 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Wire `vhdl_stimuli_quality_gate` into aggregate SOTA exit policy with informational-first defaults.
   - Progress (2026-02-27): added aggregate policy defaults in `rust/config/sota_exit_policy.env`:
     - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
-    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0`
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1`
   - Progress (2026-02-27): updated `rust/scripts/sota_exit_gate.sh` to ingest/validate runtime env flags, print effective VHDL gate mode in summary output, and execute `vhdl_stimuli_quality_gate` as informational or strict-required depending on policy.
+  - Progress (2026-03-06): promoted aggregate VHDL stimuli quality stage from informational to required strict (`run=1`, `strict=1`) after strict-promotion ratchet and focused aggregate strict-path validation remained green.
 - [x] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
   - Progress (2026-02-27): wired HDL readiness into aggregate `sota_exit_gate` as informational-first (`run=1`, `strict=0`) via policy/runtime controls while `vhdl.ebnf` remains pending.
   - Progress (2026-02-27): promoted HDL readiness to aggregate required strict mode (`run=1`, `strict=1`) after `systemverilog` + `vhdl` strict gate stability.
@@ -1022,6 +1023,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Promoted aggregate VHDL stimuli quality stage to required strict by setting `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1` after VHDL strict-promotion ratchet evidence remained green.
 - 2026-03-06: Promoted aggregate VHDL strict-promotion mode to required strict by setting `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1` after converged deterministic trial evidence and focused strict-path validation.
 - 2026-03-06: Added deterministic `vhdl_strict_promotion_gate` and aggregate policy telemetry wiring (`RUN/REQUIRE VHDL strict promotion` + `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_*`) to formalize objective evidence before enabling required strict VHDL aggregate mode.
 - 2026-03-06: Expanded VHDL realistic corpus manifest (`vhdl_realistic_corpus_v0.json` -> `version: 2`) from 6 to 14 deterministic cases (8 expected-pass / 6 expected-fail), with full gate telemetry parity revalidated.

@@ -3083,6 +3083,10 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - `auto`: gate builds a temporary `vhdl` parser-registry adapter from generated parser artifact and runs parse-full when available,
   - `0`: disabled,
   - `1`: strict required mode (fails gate when adapter unavailable or any sample parse-full rejects).
+- aggregate policy default:
+  - `sota_exit_gate` now executes this stage as required strict (`run=1`, `strict=1`) via:
+    - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1`.
 - deterministic realistic-corpus stage:
   - contract keys (`vhdl_core_v0_contract.json`):
     - `realistic_corpus.enforce`

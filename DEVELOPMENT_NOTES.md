@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase O Policy Ratchet: VHDL Stimuli Quality Is Now Required in Aggregate Mode
+### Context
+After promoting `vhdl_strict_promotion_gate` to required strict, the next roadmap action was to ratchet aggregate `vhdl_stimuli_quality_gate` from informational to required strict so VHDL closed-loop quality becomes a hard release condition.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+
+Policy update:
+- switched aggregate VHDL stimuli stage strictness:
+  - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1` (previously `0`).
+
+Documentation synchronization:
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation
+Executed focused aggregate strict-path check:
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=1 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sota_exit_gate`
+  - passed with VHDL stimuli quality stage in required strict mode.
+
+### Notes
+- Aggregate VHDL path now has both strict-promotion and stimuli-quality stages enforced as required checks.
+
 ## 2026-03-06 - Phase O Policy Ratchet: VHDL Strict-Promotion Is Now Required in Aggregate Mode
 ### Context
 The VHDL strict-promotion mechanism was implemented and already returning deterministic `enable_required_strict_mode` recommendations, but aggregate policy still ran it informationally (`strict=0`). The highest-priority next task was to ratchet that stage to required strict.
