@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-p-parse-full-policy-ratchet-95-to-100)
+Last updated: 2026-03-06 (+0100, task: phase-p-ceiling-promotion-evidence-density-3x6-to-4x8)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `971f7b9` (`Ratchet aggregate SV parse-full policy floor from 90 to 95`).
+- Latest commit: `9de2614` (`Ratchet aggregate SV parse-full policy floor from 95 to 100`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -32,8 +32,8 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_POLICY_RUN_SV_PARSE_FULL_RATIO_PROMOTION=1`
     - `PGEN_SOTA_POLICY_REQUIRE_SV_PARSE_FULL_RATIO_PROMOTION_STRICT=0`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100`
-    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=3`
-    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=6`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=12001`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE=auto`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=0`
@@ -155,6 +155,26 @@ Use this file to resume work without replaying full chat history.
       - `max_depth=20`
       - `max_repeat=2`
     - deterministic `sv_file` evidence now reaches `100%` parse-full pass ratio (`12/12`) in dual-profile run.
+
+### 2026-03-06: Broadened ceiling parse-full promotion evidence density from 3x6 to 4x8
+- Root cause:
+  - ceiling policy (`min=100`, `target=100`) was green under `3x6`, but sustained-ceiling confidence needed denser deterministic promotion evidence before broad corpus expansions.
+- Fix:
+  - updated `rust/config/sota_exit_policy.env`:
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4` (from `3`),
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8` (from `6`).
+  - kept ceiling acceptance policy unchanged:
+    - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=100`,
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100`.
+- Validation:
+  - wider strict quality run:
+    - `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=8 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - passed with `parse_full_pass_ratio_percent=100` (`16/16`).
+  - denser promotion run:
+    - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+    - `trial_passed=4/4`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
+- Result:
+  - aggregate promotion telemetry is now backed by denser deterministic evidence while ceiling floor/target semantics remain unchanged.
 
 ### 2026-03-06: Ratcheted aggregate parse-full floor from 95 to 100 with promotion target held at ceiling
 - Root cause:
@@ -673,10 +693,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `250`
+- Commit count at last refresh (before current uncommitted changes): `251`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 9de2614 Ratchet aggregate SV parse-full policy floor from 95 to 100
 - 971f7b9 Ratchet aggregate SV parse-full policy floor from 90 to 95
 - f1a46e6 Ratchet aggregate SV parse-full policy floor from 85 to 90
 - e39be92 Ratchet aggregate SV parse-full policy floor from 80 to 85
@@ -2399,7 +2420,7 @@ Use this file to resume work without replaying full chat history.
 ## Next Likely Tasks (Priority)
 1. Continue Phase P semantic-closure implementation for SV:
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=100`),
-   - promotion evidence at target `100` is green (`trial_passed=3/3`, observed ratio `100/100/100`), so next work should focus on sustaining ceiling behavior under broader trial shapes/corpus stress.
+   - promotion evidence at target `100` now includes denser deterministic shape (`trial_passed=4/4` at `count=8`, observed ratio `100/100/100`), so next work should broaden seed/corpus stress while preserving semantic-suite closure.
 2. Add annotation-driven SV stimuli steering:
    - initial baseline + rule-level expansion are in place, parseable-subset mode (`sv_parseable_file`) is contractized with `100%` parse-full, and `sv_file` deterministic run is now also at `100%` for current trial shape,
    - next increment should broaden trial shapes/corpus stress (counts/seeds/contracts) while preserving `sv_file` parse-full stability and semantic-suite closure.

@@ -2947,6 +2947,9 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=100`
     - next promotion-trial target (informational ratchet evidence):
       - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100`
+    - current promotion-trial evidence density:
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4`
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8`
 
 `vhdl_stimuli_quality_gate` closed-loop stage contract:
 - deterministic flow:

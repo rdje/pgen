@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase P Ceiling Evidence Hardening: Parse-Full Promotion Trial Shape 3x6 -> 4x8
+### Context
+After ratcheting aggregate parse-full minimum to `100`, promotion evidence remained green at ceiling target `100` under trial shape `3x6`. The next closure step was to increase deterministic evidence density before moving to broader corpus-level expansions.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+
+Changes:
+- Increased parse-full promotion trial density:
+  - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4` (from `3`).
+  - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8` (from `6`).
+- Kept ceiling policy unchanged:
+  - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=100`
+  - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100`
+- Synced docs/continuity surfaces:
+  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+
+### Validation
+Executed:
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=8 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - strict wider-sample run passed with `parse_full_pass_ratio_percent=100` (`16/16`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - denser promotion run passed with `trial_passed=4/4`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
+
+### Notes
+- This task increases confidence in sustained ceiling behavior without changing acceptance floor/target policy semantics.
+- Next closure increment should stress broader seed/corpus profiles while maintaining semantic suite stability.
+
 ## 2026-03-06 - Phase P Parse-Full Policy Ratchet: Aggregate SV Minimum 95 -> 100
 ### Context
 After the prior `90 -> 95` ratchet, strict deterministic `sv_file` acceptance remained fully green and reached sustained ceiling behavior. Aggregate policy could be tightened to the maximum parse-full threshold.

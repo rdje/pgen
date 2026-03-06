@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-06 - Phase P Parse-Full Promotion Evidence Density: Increase Trial Shape from 3x6 to 4x8
+### ✅ Achievement Summary
+Broadened deterministic ceiling-evidence collection for SV parse-full promotion by increasing promotion trial density from `3x6` to `4x8` while keeping aggregate required floor and target pinned at `100`.
+
+### Scope of Changes
+- Updated aggregate policy:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4` (was `3`)
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8` (was `6`)
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=8 PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - strict wider-sample run passed with `parse_full_pass_ratio_percent=100` (`16/16`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - denser promotion evidence remained green (`trial_passed=4/4`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`).
+
 ## 2026-03-06 - Phase P Parse-Full Policy Ratchet: Promote Aggregate SV Min Ratio from 95 to 100
 ### ✅ Achievement Summary
 Ratcheted aggregate required `sv_stimuli_quality_gate` parse-full threshold from `95` to `100` after strict deterministic validation at `100` and confirmed sustained promotion evidence at the ceiling target.
