@@ -1,0 +1,39 @@
+---
+title: "Section 2: IEEE Standard for VHDL Language Reference Manual"
+document: "VHDL Language Reference Manual"
+standard: "IEEE 1076-2019"
+domain: "VHDL"
+section: "2"
+source_txt: "section-2-normative-references.txt"
+source_pdf: "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf"
+---
+
+# Section 2: IEEE Standard for VHDL Language Reference Manual
+
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+18
+Copyright © 2019 IEEE. All rights reserved.
+2. Normative references
+The following referenced documents are indispensable for the application of this document (i.e., they must
+be understood and used, so each referenced document is cited in text and its relationship to this document is
+explained). For dated references, only the edition cited applies. For undated references, the latest edition of
+the referenced document (including any amendments or corrigenda) applies.
+IEEE 1076 Open Source Repository.5
+IEEE Std 754™-2019, IEEE Standard for Floating-Point Arithmetic.6, 7
+IEEE Std 1735™-2014, IEEE Recommended Practice for Encryption and Management of Electronic Design
+Intellectual Property (IP).
+IEEE Std 1850™-2010, IEEE Standard for Property Specification Language (PSL).
+ISO/IEC 8859-1:1998, Information technology—8-bit single-byte coded graphic character sets—Part 1:
+Latin alphabet No. 1.8
+ISO/IEC 9899:2018, Information technology—Programming Languages—C.
+ISO/IEC 19501:2005, Information technology—Open Distributed Processing—Unified Modeling Language
+(UML) Version 1.4.2.
+5Jim Lewis, Patrick Lehmann, Robert Gaddi, et al., 2018. “Packages” https://opensource.ieee.org/vasg/Packages/-/archive/release/
+Packages-release.zip  (supplement to https://opensource.ieee.org/vasg/Packages).
+6IEEE publications are available from The Institute of Electrical and Electronics Engineers (http://standards.ieee.org).
+7The IEEE standards or products referred to in this clause are trademarks of the Institute of Electrical and Electronics Engineers, Inc.
+8ISO publications are available from the International Organization for Standardization (http://www.iso.org/). IEC publications are
+available from the International Electrotechnical Commission (http://www.iec.ch). ISO/IEC publications are available from the
+American National Standards Institute (http://www.ansi.org/).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

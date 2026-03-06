@@ -1,0 +1,896 @@
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+507
+Copyright © 2019 IEEE. All rights reserved.
+24. Standard tool directives
+24.1 Protect tool directives
+24.1.1 General
+Protect tool directives18 allow exchange of VHDL descriptions in which portions are encrypted. This allows
+an author of a VHDL description to provide the description to one or more users in such a way that the users’
+tools can process the description, but the text of the description is not disclosed to the users. The protect tool
+directives specified in this standard follow the recommendations of IEEE Std 1735-2014. Portions of this
+clause are incorporated by reference from that standard.
+A protect directive is a tool directive in which the identifier is the word protect. A protect directive directs
+the tool to perform encryption or decryption of a portion of the text of a VHDL design file. Protect directives
+are used to form protection envelopes, which include specification of cryptographic methods and keys to be
+used by a tool. An encryption envelope contains protect directives and a portion of the description, called the
+source text, that is to be encrypted. A decryption envelope contains protect directives and previously
+encrypted text to be decrypted.
+Protection envelopes permit encryption and decryption of portions of descriptions using symmetric and
+asymmetric ciphers. A symmetric cipher involves use of the same key, called the secret key, for both
+encryption and decryption. An asymmetric cipher involves use of a public key for encryption and a
+corresponding private key for decryption.
+Protection envelopes also permit encryption using digital envelopes, in which a portion of a description is
+encrypted using a symmetric cipher with an automatically generated session key, and then the session key is
+encrypted. Decryption of the protected envelope involves first decrypting the session key, followed by
+decrypting the portion of the description with the symmetric cipher using the decrypted session key.
+The encrypted portion of a description may also be digitally signed by an author to allow checking that the
+encrypted text is unaltered. This involves computation of a digest by application of a hash function to the
+unencrypted text. The digest is then encrypted using an asymmetric cipher with the private key of the author.
+The decryption tool decrypts the description and recomputes the digest on the decrypted text. The
+decryption also decrypts the encrypted digest using the author’s public key and compares the two digests. If
+they are the same, the description is unaltered; otherwise, it has been altered and should not be trusted.
+Encrypted text, keys, and digests are encoded in decryption envelopes. An encoding method transforms the
+octets of encrypted information into graphic characters so that the information can be stored or transmitted
+without being altered by agents that interpret nongraphic characters.
+An encryption envelope may contain a decryption envelope that is to be further encrypted. The result of
+encrypting the encryption envelope is a decryption envelope that contains an encrypted decryption envelope
+nested within it. The depth to which such decryption envelopes may be nested is implementation defined,
+but shall be no less than eight (that is, an innermost decryption envelope enclosed recursively within seven
+nested decryption envelopes).
+The operation of encrypting an encryption envelope involves creating a corresponding decryption envelope
+as described in this subclause (24.1). The operation of decrypting a decryption envelope involves recreating
+the source text of the encryption envelope from which the decryption envelope was created.
+18Material derived from the document titled “A Mechanism for VHDL Source Protection” © 2004, Cadence Design Systems Inc. Used,
+modified, and reprinted by permission.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+508
+Copyright © 2019 IEEE. All rights reserved.
+As part of the analysis phase of tool execution (see Clause 20), a tool may perform encryption or decryption
+of a design file. The means by which it is determined whether the tool performs such processing is
+implementation defined.
+It is an error if a protect tool directive appears other than as part of an encryption envelope or a decryption
+envelope. The effect of a protect tool directive, other than a protect decrypt license directive or a protect
+runtime license directive, is limited to the immediately enclosing protection envelope.
+This standard does not specify any means by which encryption keys are exchanged among authors, users,
+and tools. It is assumed that the tools performing encryption and decryption have access to the required keys
+specified in protection envelopes. It is an error if a protection envelope requires use of a specified key and a
+tool processing the protection envelope does not have access to the key. Similarly, it is an error if a
+protection envelope requires use of one or more of a set of keys and a tool processing the protection
+envelope does not have access to any of the keys.
+The graphic characters in a protect directive form a sequence of lexical elements that conform to the
+following grammar:
+protect_directive ::=
+`protect keyword_expression { , keyword_expression }
+keyword_expression ::=
+keyword
+| 
+keyword = literal
+| 
+keyword = keyword_list
+keyword_list ::= ( keyword_expression { , keyword_expression } )
+keyword ::= identifier
+A protect directive containing more than one keyword expression is equivalent to a sequence of protect
+directives, each containing one keyword expression. The protect directives appear in the sequence in the
+same order as the keyword expressions in the original protect directive.
+The directive identifier protect and the various keywords defined for each protect directive are shown in
+boldface in this subclause (24.1). The individual protect directives are described in 24.1.2, and the literals
+used to identify ciphers, hash functions, and encodings are described in 24.1.3. Rules for forming and
+processing encryption and decryption envelopes are described in 24.1.4 and 24.1.5, respectively.
+Example:
+The protect directive
+‘protect data_keyowner="ACME Corp.", data_keyname="secret-1",
+data_method="aes192-cbc"
+is equivalent to the following sequence of protect directives:
+`protect data_keyowner="ACME Corp."
+`protect data_keyname="secret-1"
+`protect data_method="aes192-cbc"
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+509
+Copyright © 2019 IEEE. All rights reserved.
+NOTE—Products that include cryptographic algorithms may be subject to government regulations in some jurisdictions.
+Users of this standard are advised to seek the advice of competent counsel to determine their obligations under those
+regulations.
+24.1.2 Protect directives
+24.1.2.1 Protect begin directive
+protect_begin_directive :: =   ` protect begin
+A protect begin directive is part of an encryption envelope and indicates the beginning of the text of a
+description to be encrypted. The text to be encrypted, if any, begins with the first character after the end of
+the line containing the protect begin directive and ends with the character immediately preceding the next
+protect end directive.
+24.1.2.2 Protect end directive
+protect_end_directive :: =  ` protect end
+A protect end directive is part of an encryption envelope and indicates the end of the text of a description to
+be encrypted.
+24.1.2.3 Protect begin protected directive
+protect_begin_protected_directive :: =  ` protect begin_protected
+A protect begin protected directive forms the beginning of a decryption envelope.
+24.1.2.4 Protect end protected directive
+protect_end_protected_directive :: =  ` protect end_protected
+A protect end protected directive forms the end of a decryption envelope.
+24.1.2.5 Protect author directive
+protect_author_directive :: = ` protect author = string_literal
+A protect author directive identifies the author of the portion of the VHDL description in the enclosing
+encryption or decryption envelope. The string literal identifies the author.
+If a protect author directive appears in an encryption envelope, other than in the source text, then the
+directive shall appear unchanged in the corresponding decryption envelope. If a protect author directive
+appears in a decryption envelope, it has no effect on decryption of the decryption envelope.
+24.1.2.6 Protect author info directive
+protect_author_info_directive :: =
+` protect author_info = string_literal
+A protect author info directive provides descriptive information about the author of the portion of the VHDL
+description in the enclosing encryption or decryption envelope. The string literal provides the descriptive
+information.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+510
+Copyright © 2019 IEEE. All rights reserved.
+If a protect author info directive appears in an encryption envelope, other than in the source text, then the
+directive shall appear unchanged in the corresponding decryption envelope. If a protect author info directive
+appears in a decryption envelope, it has no effect on decryption of the decryption envelope.
+24.1.2.7 Protect encrypt agent directive
+protect_encrypt_agent_directive :: = ` protect encrypt_agent = string_literal
+A protect encrypt agent directive identifies the tool that created the enclosing decryption envelope. The
+string literal identifies the tool. An encryption tool shall include a protect encrypt agent directive in each
+decryption envelope it creates. The directive has no effect on decryption of the decryption envelope.
+24.1.2.8 Protect encrypt agent info directive
+protect_encrypt_agent_info_directive :: =
+` protect encrypt_agent_info = string_literal
+A protect encrypt agent info directive provides descriptive information about the tool that created the
+enclosing decryption envelope. The string literal provides the descriptive information. The directive has no
+effect on decryption of the decryption envelope.
+24.1.2.9 Protect key keyowner directive
+protect_key_keyowner_directive :: =  ` protect key_keyowner = string_literal
+A protect key keyowner directive identifies the owner of a key or key pair used to encrypt a session key. The
+string literal identifies the person, organization, or tool that owns the key or key pair.
+24.1.2.10 Protect key keyname directive
+protect_key_keyname_directive :: =  ` protect key_keyname = string_literal
+A protect key keyname directive identifies a particular key or key pair of a given key owner used to encrypt
+a session key. The string literal is the name of the key or key pair. If a key owner has more than one key, the
+key name may be used jointly with the key owner identified in a protect key keyowner directive to identify a
+given key or key pair.
+24.1.2.11 Protect key method directive
+protect_key_method_directive :: =  ` protect key_method = string_literal
+A protect key method directive identifies the cipher used to encrypt a session key. The string literal
+identifies the cipher (see 24.1.3.2).
+24.1.2.12 Protect key block directive
+protect_key_block_directive :: =  ` protect key_block
+A protect key block directive specifies use of a digital envelope. A protect key block directive appearing in
+an encryption envelope specifies that the encryption tool shall generate a session key to encrypt the portion
+of the VHDL description in the encryption envelope, and that the session key be encrypted. The
+corresponding decryption envelope shall contain a corresponding key block containing the encrypted
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+511
+Copyright © 2019 IEEE. All rights reserved.
+session key. A protect key block directive appearing in a decryption envelope indicates that an encrypted
+session key immediately follows.
+24.1.2.13 Protect data keyowner directive
+protect_data_keyowner_directive :: =  ` protect data_keyowner = string_literal
+A protect data keyowner directive identifies the owner of a key or key pair used to encrypt a portion of a
+VHDL description. The string literal identifies the person, organization, or tool that owns the key or key
+pair.
+24.1.2.14 Protect data keyname directive
+protect_data_keyname_directive :: =  ` protect data_keyname = string_literal
+A protect data keyname directive identifies a particular key or key pair of a given key owner used to encrypt
+a portion of a VHDL description. The string literal is the name of the key or key pair. If a key owner has
+more than one key, the key name may be used jointly with the key owner identified in a protect data
+keyowner directive to identify a given key or key pair.
+24.1.2.15 Protect data method directive
+protect_data_method_directive :: =  ` protect data_method = string_literal
+A protect data method directive identifies the cipher used to encrypt a portion of a VHDL description. The
+string literal identifies the cipher (see 24.1.3.2).
+24.1.2.16 Protect data block directive
+protect_data_block_directive :: =  ` protect data_block
+A protect data block directive appearing in a decryption envelope indicates that an encrypted portion of a
+VHDL description immediately follows.
+24.1.2.17 Protect digest keyowner directive
+protect_digest_keyowner_directive :: =  ` protect digest_keyowner = string_literal
+A protect digest keyowner directive identifies the owner of a key pair used to encrypt a digest of a portion of
+a VHDL description. The string literal identifies the person, organization, or tool that owns the key pair.
+24.1.2.18 Protect digest keyname directive
+protect_digest_keyname_directive :: =  ` protect digest_keyname = string_literal
+A protect digest keyname directive identifies a particular key pair of a given key owner used to encrypt a
+digest of a portion of a VHDL description. The string literal is the name of the key pair. If a key owner has
+more than one key, the key name may be used jointly with the key owner identified in a protect digest
+keyowner directive to identify a given key pair.
+24.1.2.19 Protect digest key method directive
+protect_digest_key_method_directive :: =  ` protect digest_key_method = string_literal
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+512
+Copyright © 2019 IEEE. All rights reserved.
+A protect digest key method directive identifies the cipher used to encrypt a digest of a portion of a VHDL
+description. The string literal identifies the cipher (see 24.1.3.2).
+24.1.2.20 Protect digest method directive
+protect_digest_method_directive :: =  ` protect digest_method = string_literal
+A protect digest method directive identifies a hash function used to compute a digest of a portion of a VHDL
+description. The string literal identifies the hash function (see 24.1.3.3).
+24.1.2.21 Protect digest block directive
+protect_digest_block_directive :: =  ` protect digest_block
+A protect digest block directive specifies use of a digital signature. A protect digest block directive
+appearing in an encryption envelope specifies that the encryption tool shall compute a digest of the portion
+of the VHDL description in the encryption envelope, and that the digest be encrypted. The corresponding
+decryption envelope shall contain a corresponding digest block containing the encrypted digest. A protect
+digest block directive appearing in a decryption envelope indicates that an encrypted digest immediately
+follows.
+24.1.2.22 Protect encoding directive
+protect_encoding_directive :: =
+` protect encoding = ( encoding_type_description
+ 
+[ , encoding_line_length_description ] [ , encoding_bytes_description ] )
+encoding_type_description ::= enctype = string_literal
+encoding_line_length_description ::= line_length = integer
+encoding_bytes_description ::= bytes = integer
+A protect encoding directive describes an encoding used for encrypted text in a decryption envelope.
+If a protect encoding directive appears in an encryption envelope, other than in the source text, then the
+encryption tool shall use the encoding method to encode encrypted text in the corresponding decryption
+envelope. If an encryption envelope contains no protect encoding directive, a tool may choose an encoding
+method in an implementation-defined manner.
+A protect encoding directive in a decryption envelope describes the encoding used in the immediately
+following key block, data block, or digest block.
+The string literal following the enctype keyword identifies the encoding method (see 24.1.3.1).
+The integer following the line_length keyword specifies the maximum number of characters, after
+encoding, that are permitted in each line of encoded text. For an encoding type other than "raw", a tool that
+encodes text shall insert end-of-line separators into the encoded text as follows:
+a)
+If the standard or specification describing the encoding method specifies a fixed or maximum
+number of characters per line, the tool shall check that each line contains the fixed number, or no
+more than the maximum number, of characters. In this case, an encoding line length description has
+no effect.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+513
+Copyright © 2019 IEEE. All rights reserved.
+b)
+If the standard or specification describing the encoding method does not specify a number of
+characters per line, then
+—
+If a protect encoding directive in an encryption envelope contains an encoding line length
+description, the tool shall check that each line contains no more than the specified number of
+characters.
+—
+Otherwise, the tool may choose a maximum line length in an implementation-defined manner
+and shall check that each line contains no more than that number of characters.
+For the "raw" encoding type, an encoding line length description has no effect.
+The integer following the bytes keyword specifies the number of octets, before encoding and insertion of
+end-of-line separators, in the unencoded text.
+A directive in an encryption envelope may contain an encoding bytes description, but such an encoding
+bytes description has no effect. A protect encoding directive in a decryption envelope shall contain an
+encoding bytes description. Moreover, the directive shall contain an encoding line length description if the
+standard or specification describing the encoding method does not specify a number of characters per line.
+24.1.2.23 Protect viewport directive
+IEEE Std 1735-2014, 9.5, is incorporated by reference.
+24.1.2.24 Protect license directives
+protect_decrypt_license_directive ::= ` protect decrypt_license = license_description
+protect_runtime_license_directive ::= ` protect runtime_license = license_description
+license_description ::=
+( library = string_literal , entry = string_literal , feature = string_literal ,
+[ exit = string_literal , ] match = integer )
+A protect license directive provides information to be used by a tool to acquire one or more licenses. A
+protect decrypt license directive describes acquisition information for a license that allows a decryption tool
+to proceed with decryption of the enclosing VHDL description. A protect runtime license directive describes
+acquisition information for a license that allows a decryption tool to proceed with execution of the enclosing
+VHDL description.
+The string literal following the library keyword identifies an object library. The mapping between the string
+value and a host physical object library is not defined by this standard. If the host system cannot locate the
+physical object library identified by the string value, acquisition of the license fails.
+The string literal following the entry keyword identifies an entry point in the object library that can be called
+to acquire a license. It is an error if the host system cannot locate an entry point using the string value. The
+string literal following the exit keyword, if present, identifies an entry point in the object library that can be
+called to release a license. It is an error if the exit keyword and a string value are specified and the host
+system cannot locate an entry point using the string value.
+A tool acquires a license described by a license description by calling the license acquisition entry point,
+passing as a parameter the value of the string literal that follows the feature keyword. The acquisition entry
+point shall return an integer value. The decryption tool shall compare the returned integer value with the
+value of the integer following the match keyword. If the values are equal, the tool is granted the license;
+otherwise, the tool is denied the license and may use the return value of the acquisition entry point in an
+error message or may pass the return value as a status value to the host system environment.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+514
+Copyright © 2019 IEEE. All rights reserved.
+It is an error if a protect decrypt license directive or protect runtime license directive appears in a version
+2 envelope.
+If a protect decrypt license directive or protect runtime license directive appears in an encryption envelope,
+other than in the source text, the directive shall appear unchanged in the corresponding decryption envelope. 
+If a protect decrypt license directive or protect runtime license directive appears in a corresponding
+decryption envelope or within a decrypted portion of a VHDL description, a decryption tool shall acquire
+the license described by the directive. For a protect decrypt license directive, if the tool is granted the
+license, it may proceed with further analysis of the VHDL description and may decrypt any enclosing
+decryption envelope and subsequent decryption envelopes in the VHDL description. Upon completion of
+decryption, the tool shall call the license release entry point. If the tool fails to acquire the license or is
+denied the license, the tool shall not proceed with any further analysis or decryption of the VHDL
+description. For a protect runtime license directive, if the tool is granted the license, it may proceed to
+execute the VHDL description. Upon termination of execution, the tool shall call the license release entry
+point. If the tool fails to acquire the license or is denied the license, the tool shall not execute the VHDL
+description.
+NOTE—A protect decrypt license directive may appear as part of the source text in an encryption envelope. In that case,
+it is encrypted as part of the source text. If a decryption tool successfully decrypts the text, it will acquire the decryption
+license. If acquisition fails or is denied, the tool was not supposed to have decrypted the source text and will not proceed
+with further analysis.
+24.1.2.25 Protect comment directive
+protect_comment_directive :: =  ` protect comment = string_literal
+A protect comment directive provides information for the enlightenment of the human reader. If a protect
+comment directive appears in an encryption envelope, whether preceding or in the source text, then the
+directive shall appear unchanged in the corresponding decryption envelope. A protect comment directive
+appearing in the source text in an encryption envelope shall not be encrypted as part of the source text. If a
+protect comment directive appears in a decryption envelope, it has no effect on decryption of the decryption
+envelope.
+24.1.2.26 Protect version directive
+IEEE Std 1735-2014, 5.2, is incorporated by reference.
+24.1.2.27 Protect key public key directive
+protect_key_public_key_directive ::= `protect key_public_key
+A protect key public key directive identifies the public member of a key pair, and is the only portable
+mechanism available to Version 1 envelopes to convey a public key to the tool. A protect key public key
+directive in an envelope indicates that a public key immediately follows.
+24.1.3 Encoding, encryption, and digest methods
+24.1.3.1 Encoding methods
+This standard defines the following strings in encoding type descriptions and the corresponding encoding
+methods:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+515
+Copyright © 2019 IEEE. All rights reserved.
+The encoding methods identified by required or legacy encoding type strings shall be implemented by a tool.
+A tool may implement an encoding method identified by a deprecated encoding type string, but if it does
+implement such a method, it shall use the corresponding encoding type string to identify that method. It is an
+error if a deprecated encoding type string is used in a Version 1 or Version 2 envelope.
+A tool may implement further encoding methods and use other encoding type strings to identify those
+methods. Any further encoding method implemented by a tool should produce only printing graphic
+characters in the encoded text. Moreover, the tool, given the number of octets in the unencoded text, should
+be able to determine the exact number of characters of encoded text required to be decoded to yield the
+unencoded text. The effect of use of an encoding method that does not meet these conditions is not specified
+by this standard.
+It is an error if a protect directive identifies an encoding method that is not implemented by a tool processing
+the protect directive.
+NOTE—The text produced by "raw" encoding may contain characters that signify the end of a line in some
+implementations. Transmission of a VHDL description containing such characters between host systems may involve
+translation of the characters, thus changing the content, length, or both, of the encrypted text. A change in the length of
+the text may cause an error when the text is read by a decryption tool.
+24.1.3.2 Encryption methods
+This standard defines the following strings in encryption method descriptions and the corresponding ciphers:
+Encoding type string
+Status
+Encoding methods
+"uuencode"
+Deprecated
+IEEE Std 1003.1™-2004 [B9] (uuencode Historical 
+Algorithm)
+"base64"
+Required
+IETF RFC 2045 [B12] [also IEEE Std 1003.1-2004 [B9] 
+(uuencode-m)]
+"quoted-printable"
+ Deprecated
+IETF RFC 2045 [B12]
+"raw"
+ Legacy
+Identity transformation; no encoding is performed, and 
+the data may contain non-printing characters.
+Encryption method 
+string
+Status
+Cipher
+Cipher type
+"des-cbc"
+Deprecated
+DES CBC mode (FIPS PUB 46-3 [B4],
+FIPS PUB 81 [B5]).
+Symmetric
+"3des-cbc"
+Deprecated
+Triple DES CBC mode (ANSI X9.52 [B2],
+FIPS PUB 46-3 [B4]).
+Symmetric
+"aes128-cbc"
+Required
+AES CBC mode with 128-bit key
+(FIPS PUB 197 [B8]).
+Symmetric
+"aes192-cbc"
+Legacy
+AES CBC mode with 192-bit key
+(FIPS PUB 197 [B8]).
+Symmetric
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+516
+Copyright © 2019 IEEE. All rights reserved.
+The ciphers identified by required or legacy encryption method strings shall be implemented by a tool. A
+tool may implement a cipher identified by a deprecated encryption method string, but if it does implement
+such a cipher, it shall use the corresponding encryption method string to identify that cipher. It is an error if
+a deprecated encryption method string is used in a Version 1 or Version 2 envelope. A tool may implement
+further ciphers and use other encryption method strings to identify those ciphers.
+If a symmetric cipher is used in cipher-block chaining (CBC) mode, requiring an initialization vector, the
+encryption tool shall generate the initialization vector and include it as the first block of the encrypted infor-
+mation. It is recommended that the initialization vector be randomly generated for each use of the cipher.
+It is an error if a protect directive identifies a cipher that is not implemented by a tool processing the protect
+directive.
+NOTE—Use of a symmetric cipher to encrypt a session key in a digital envelope is not a common use case. Nonetheless,
+should such a cipher be used for that purpose, an initialization vector must be generated and included as the first block of
+encrypted information in the decrypt key block.
+24.1.3.3 Digest methods
+This standard defines the following strings digest method descriptions and the corresponding hash functions:
+The hash functions identified by required or legacy digest method strings shall be implemented by a tool. A
+tool may implement a hash function identified by a deprecated digest method string, but if it does implement
+such a hash function, it shall use the corresponding digest method string to identify that hash function. It is
+an error if a deprecated digest method string is used in a Version 1 or Version 2 envelope. A tool may
+implement further hash functions and use other digest method strings to identify those hash functions.
+It is an error if a protect directive identifies a hash function that is not implemented by a tool processing the
+protect directive.
+"aes256-cbc"
+Required
+AES CBC mode with 256-bit key
+(FIPS PUB 197 [B8]).
+Symmetric
+"rsa"
+Required
+RSAES-PKCS1-V1_5 (IETF RFC 3447 [B13]). 
+Key lengths of 2048 bits or more shall be supported 
+by the tool.
+Asymmetric
+Digest method string
+Status
+Hash function
+"sha1"
+Deprecated
+Secure Hash Algorithm 1 (SHA-1) (FIPS PUB 180-3 [B6]).
+"md5"
+Deprecated
+Message Digest Algorithm 5 (IETF RFC 1321 [B11]).
+"SHA256"
+Required
+Secure Hash Algorithm 2 (SHA-256)
+(FIPS PUB 180-4 [B7]).
+"SHA512"
+Required
+Secure Hash Algorithm 2 (SHA-512)
+(FIPS PUB 180-4 [B7]).
+Encryption method 
+string
+Status
+Cipher
+Cipher type
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+517
+Copyright © 2019 IEEE. All rights reserved.
+24.1.4 Encryption envelopes
+24.1.4.1 General
+An encryption envelope contains a portion of a VHDL description to be encrypted, along with protection
+directives that specify how the text of that portion is to be encrypted. A tool that performs such encryption is
+called an encryption tool. An encryption tool processes a design file containing one or more encryption
+envelopes and produces a design file in which each encryption envelope is replaced by a corresponding
+decryption envelope, and other text is unchanged. The tool may store the resulting design file in an
+implementation-defined manner.
+encryption_envelope ::=
+{ encrypt_specification }
+protect_begin_directive
+source_text
+protect_end_directive
+encrypt_specification ::=
+encrypt_author_specification
+| 
+encrypt_key_specification
+| 
+encrypt_data_specification
+| 
+encrypt_digest_specification
+| 
+encrypt_license_specification
+| 
+protect_encoding_directive
+| 
+protect_viewport_directive
+encrypt_author_specification ::=
+protect_author_directive [ protect_author_info_directive ]
+| 
+protect_author_info_directive [ protect_author_directive ]
+encrypt_license_specification ::=
+protect_decrypt_license_directive [ protect_runtime_license_directive ]
+| 
+protect_runtime_license_directive [ protect_decrypt_license_directive ]
+The protect directives in an encryption envelope may be combined into protect directives with multiple
+keyword expressions (see 24.1.1), provided the equivalent sequence of protect directives each containing
+one keyword expression conforms to the rules for forming an encryption envelope.
+An encryption envelope may contain protect comment directives within or between any specifications or
+directives, or within the source text. Such protect comment directives do not form part of a specification or
+part of the source text, but are included unchanged in the corresponding decryption envelope.
+The source text in an encryption envelope is a sequence of lexical elements and separators (see 15.3). The
+encryption tool performs no analysis on the lexical elements, other than determining that the text is properly
+composed of lexical elements and separators, identifying protect comment directives, and locating the first
+protect end directive, which indicates the end of the source text.
+It is an error if an encryption envelope contains more than one of each of an encrypt author specification, an
+encrypt license specification, an encrypt data specification, an encrypt digest specification, or a protect
+encoding directive.
+NOTE 1—Encryption envelopes cannot be nested. All characters between a protect begin directive and the first
+subsequent protect end directive, including any characters that would otherwise form an encryption envelope, but
+excluding any protect comment directives, are treated as text to be encrypted.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+518
+Copyright © 2019 IEEE. All rights reserved.
+NOTE 2—The text to be encrypted may include a decryption envelope. Since all characters between the protect begin
+and protect end directives of an encryption envelope, other than characters in a protect comment directive, form text to
+be encrypted, any protect directives in the decryption envelope are not interpreted when processing the encryption
+envelope. The result of encrypting the text is a decryption envelope containing a nested encrypted decryption envelope.
+NOTE 3—If an implementation uses one or more characters to signify the end of a line, any such characters occurring
+between protect begin and protect end directives are included as part of the text to be encrypted. If the corresponding
+decryption envelope is decrypted on another implementation that signifies the end of a line differently, the number of
+lines in the resulting text may be different (see 15.3).
+24.1.4.2 Encrypt key specifications
+encrypt_key_specification ::=
+{ encrypt_key_directive }
+protect_key_block_directive
+encrypt_key_directive
+protect_key_keyowner_directive
+| 
+protect_key_keyname_directive
+| 
+protect_key_method_directive
+| 
+protect_key_public_key_directive
+An encrypt key specification shall contain at most one of each of the encrypt key directives. If any encrypt
+key directive appears, then both a protect key keyowner directive and a protect key method directive shall
+appear.
+If an encrypt key specification occurs in an encryption envelope, then the encryption tool shall form a digital
+envelope in the corresponding decryption envelope. The tool shall use a symmetric cipher to encrypt the
+source text and shall choose a session key in an implementation-defined manner for use with that cipher.
+The tool shall also include a decrypt key block in the corresponding decryption envelope that contains the
+encoded encrypted session key and the protect directives required to decode and decrypt the session key.
+If no encrypt key directives appear in an encrypt key specification, then the encryption tool chooses a cipher
+and a key in an implementation-defined manner to encrypt the session key. Otherwise, the encryption tool
+shall use the cipher and key identified by the encrypt key directives to encrypt the session key. If the cipher
+is an asymmetric cipher, the public key of the identified key pair is used.
+If more than one encrypt key specification occurs in an encryption envelope, the encryption tool shall
+choose only one session key to encrypt the source text. The tool shall include a decrypt key block, as
+described in this subclause, for each encrypt key specification appearing in the encryption envelope.
+24.1.4.3 Encrypt data specifications
+encrypt_data_specification ::=
+encrypt_data_directive
+{ encrypt_data_directive }
+encrypt_data_directive ::=
+protect_data_keyowner_directive
+| 
+protect_data_keyname_directive
+| 
+protect_data_method_directive
+If an encryption envelope contains one or more encrypt key specifications, then any encrypt data
+specification in that envelope shall contain exactly one protect data method directive and no other encrypt
+data directive. The protect data method directive, if present, shall identify a symmetric cipher, and that
+cipher is used to encrypt the source text using the session key chosen by the tool.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+519
+Copyright © 2019 IEEE. All rights reserved.
+If an encryption envelope contains no encrypt key specification, then any encrypt data specification in that
+envelope shall contain exactly one protect data keyowner directive and exactly one protect data method
+directive, and at most one protect data keyname directive. The protect data method directive may identify a
+symmetric cipher or an asymmetric cipher. The encryption tool shall use the cipher and key identified by the
+encrypt data directives to encrypt the source text. If the cipher is an asymmetric cipher, the public key of the
+identified key pair is used.
+If an encryption envelope contains no encrypt data specification, then the encryption tool chooses a cipher in
+an implementation-defined manner to encrypt the source text. If the encryption envelope contains one or
+more encrypt key specifications, then the tool uses the chosen session key with the chosen cipher.
+Otherwise, the tool chooses a key in an implementation-defined manner for use with the chosen cipher.
+The encryption tool shall include a decrypt data block in the corresponding decryption envelope containing
+the encoded encrypted source text and the protect directives required to decode and decrypt the source text.
+24.1.4.4 Encrypt digest specifications
+encrypt_digest_specification ::=
+{ encrypt_digest_directive }
+protect_digest_block_directive
+encrypt_digest_directive ::=
+protect_digest_keyowner_directive
+| 
+protect_digest_keyname_directive
+| 
+protect_digest_key_method_directive
+| 
+protect_digest_method_directive
+An encrypt digest specification shall contain at most one of each of the encrypt digest directives. If a protect
+digest keyowner directive appears, then a protect digest key method directive shall appear and a protect
+digest keyname directive may appear. It is an error if a protect digest keyname directive appears and there is
+no protect digest keyowner directive.
+If an encrypt digest specification occurs in an encryption envelope, then the encryption tool shall form a
+digital signature in the corresponding decryption envelope. The tool shall use a hash function to compute a
+digest of the source text and shall encrypt the digest with an asymmetric cipher using a private key. The tool
+shall also include a decrypt digest block in the corresponding decryption envelope that contains the encoded
+encrypted digest and the protect directives required to decode and decrypt the digest.
+If no protect digest method directive appears in an encrypt digest specification, then the encryption tool
+chooses a hash function in an implementation-defined manner to compute the digest. Otherwise, the
+encryption tool shall use the hash function identified by the protect digest method directive to compute the
+digest.
+If no protect digest keyowner directive and protect digest key method directive appear in an encrypt digest
+specification, then the encryption tool chooses a cipher and a key in an implementation-defined manner to
+encrypt the digest. Otherwise, the encryption tool shall use the cipher and key identified by the directives to
+encrypt the digest.
+24.1.5 Decryption envelopes
+24.1.5.1 General
+A decryption envelope contains an encrypted portion of a VHDL description, along with protection
+directives that specify how the text of that portion is to be decrypted. A tool that performs such decryption is
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+520
+Copyright © 2019 IEEE. All rights reserved.
+called a decryption tool. A decryption tool processes a design file containing one or more decryption
+envelopes and produces a design file with each decryption envelope replaced by the decrypted text, and with
+other text unchanged. The resulting design file may be further analyzed and interpreted by the tool or may be
+stored in an implementation-defined manner, provided the decrypted text is not disclosed to the user of the
+tool.
+decryption_envelope ::=
+protect_begin_protected_directive
+[ decrypt_author_specification ]
+[ decrypt_license_specification ]
+decrypt_encrypt_agent_specification
+{ protect_viewport_directive }
+{ decrypt_key_block }
+decrypt_data_block
+[ decrypt_digest_block ]
+protect_end_protected_directive
+decrypt_author_specification ::=
+protect_author_directive [ protect_author_info_directive ]
+| 
+protect_author_info_directive [ protect_author_directive ]
+decrypt_license_specification ::=
+protect_decrypt_license_directive [ protect_runtime_license_directive ]
+| 
+protect_runtime_license_directive [ protect_decrypt_license_directive ]
+decrypt_encrypt_agent_specification ::=
+protect_encrypt_agent_directive [ protect_encrypt_agent_info_directive ]
+| 
+protect_encrypt_agent_info_directive  protect_encrypt_agent_directive
+The protect directives in a decryption envelope may be combined into protect directives with multiple
+keyword expressions (see 24.1.1), provided the equivalent sequence of protect directives each containing
+one keyword expression conforms to the rules for forming a decryption envelope.
+A decryption envelope may contain protect comment directives, including those that appear in any part of
+the corresponding encryption envelope, within or between any specifications or directives. Such protect
+comment directives do not form part of a specification.
+The encoded text in a decrypt key block, a decrypt data block, or a decrypt digest block is a sequence of
+characters (see 24.1.3.1).
+If a decrypted portion of a design file contains further decryption envelopes, the decryption tool shall further
+process those decryption envelopes as described in this subclause (24.1.5).
+24.1.5.2 Decrypt key blocks
+decrypt_key_block ::=
+protect_key_keyowner_directive
+[ protect_key_keyname_directive ]
+protect_key_method_directive
+protect_encoding_directive
+protect_key_block_directive
+encoded_text
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+521
+Copyright © 2019 IEEE. All rights reserved.
+A decrypt key block in a decryption envelope contains an encoded encrypted session key for a digital
+envelope. A decryption tool shall determine in an implementation-defined manner whether it has access to
+the key identified by the protect key keyowner directive and the protect key keyname directive (if present).
+If the cipher identified by the protect key method directive is an asymmetric cipher, the tool determines
+whether is has access to the private key of the identified key pair.
+If more than one decrypt key block appears in a decryption envelope, the decryption tool shall determine
+whether it has access to the key identified by any of the decrypt key blocks. If may choose any of the decrypt
+key blocks for which it has access to the identified key to obtain the session key.
+For a given protect key block, if the tool has access to the identified key, it uses the encoding identified by
+the protect encoding directive to decode the encoded text to obtain the encrypted session key. The tool then
+uses the cipher identified by the protect key method directive with the identified key to decrypt the session
+key.
+24.1.5.3 Decrypt data blocks
+decrypt_data_block ::=
+[ protect_data_keyowner_directive
+[ protect_data_keyname_directive ] ]
+protect_data_method_directive
+protect_encoding_directive
+protect_data_block_directive
+encoded_text
+A decrypt data block in a decryption envelope contains an encoded encrypted portion of a VHDL
+description. If the decryption envelope contains one or more decrypt key blocks, the key used for decryption
+is a session key, and a decryption tool shall obtain the session key as described in 24.1.5.2. It is an error if
+the decryption envelope contains one or more decrypt key blocks and the decrypt data block contains a
+protect data keyowner directive.
+If the decryption envelope contains no decrypt key blocks, then the decrypt data block shall contain a protect
+data keyowner directive and may contain a protect data keyname directive. The key identified by the protect
+data keyowner directive and the protect data keyname directive (if present) is the key used to decrypt the
+encrypted portion of the VHDL description. If the cipher identified by the protect data method directive is an
+asymmetric cipher, the private key of the identified key pair is used. It is an error if the decryption tool does
+not have access to the identified key.
+The decryption tool uses the encoding identified by the protect encoding directive to decode the encoded
+text to obtain the encrypted portion of the VHDL description. The tool then uses the cipher identified by the
+protect data method directive with the session key or identified key, as appropriate, to decrypt the portion of
+the VHDL description.
+24.1.5.4 Decrypt digest blocks
+decrypt_digest_block ::=
+protect_digest_keyowner_directive
+[  protect_digest_keyname_directive ]
+protect_digest_key_method_directive
+protect_digest_method_directive
+protect_encoding_directive
+protect_digest_block_directive
+encoded_text
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+522
+Copyright © 2019 IEEE. All rights reserved.
+A decrypt digest block in a decryption envelope contains an encoded digital signature of a portion of a
+VHDL description. A decryption tool shall determine in an implementation-defined manner whether it has
+access to the public key of the key pair identified by the protect digest keyowner directive and the protect
+digest keyname directive (if present). It is an error if the tool does not have access to the key. Otherwise, the
+tool shall verify the digital signature as follows:
+a)
+The tool shall compute a digest of the decrypted portion of the VHDL description (see 24.1.5.3)
+using the hash function identified by the decrypt digest method directive.
+b)
+The tool shall use the encoding identified by the protect encoding directive to decode the encoded
+text to obtain the encrypted signature digest, and then use the cipher identified by the protect digest
+key method directive with the identified public key to decrypt the signature digest.
+c)
+It is an error if the computed digest differs from the signature digest.
+24.1.6 Protection requirements for decryption tools
+Since the purpose of encrypting portions of a VHDL description is to prevent disclosure of those portions to
+a user, a decryption tool, after processing a decryption envelope, shall conform to the following restriction,
+unless otherwise permitted in an implementation-defined manner by the effect of acquiring a license (see
+24.1.2.24):
+—
+A decryption tool shall not display or store in any form accessible to the user or other tools any parts
+of decrypted portions of a VHDL description, decrypted keys, or decrypted digests.
+—
+If a decryption tool transforms a decrypted portion of a VHDL description (for example, by
+synthesizing a circuit and describing it in VHDL or any other representation), then these
+requirements shall apply to the transformed portion also.
+—
+If a decryption tool provides a means for the tool user to gain access to a representation of a VHDL
+description or an elaboration of a VHDL description (for example, by means of a user interface or an
+applications programming interface such as VHPI), then the tool shall not provide access to any
+representation of a decrypted portion of a VHDL description other than a representation of an object
+specified by a protect viewport directive.
+—
+Any message (for example, an error message) generated by a decryption tool shall not include
+information that discloses content of a decrypted portion of a VHDL description, a decrypted key, or
+a decrypted digest. For example, a message shall not include a name or hierarchical path name
+identifying part of a decrypted portion of a VHDL description.
+—
+If a decryption tool executes an assertion statement (see 10.3) that causes an assertion violation, or
+executes a report statement (see 10.4), the message shall not include the name of the design unit
+containing the statement, the rules of 10.3 and 10.4 notwithstanding.
+—
+The value of any 'INSTANCE_NAME or 'PATH_NAME predefined attribute (see 16.2) formed by
+the decryption tool shall not include any element that is a name or label defined in a decrypted
+portion of a VHDL description, the rules of 16.2 notwithstanding.
+—
+If a decrypted portion of a VHDL description includes an instantiation of a declaration that is
+declared in a portion of the VHDL description that is not encrypted, a decryption tool may provide
+access to a representation of the design subhierarchy whose root is the instance, provided the means
+of providing access does not contradict other requirements of this subclause. For example, a VHPI
+tool may return a handle to a VHPI object representing such an instance and allow navigation of
+associations from that reference object, provided the target objects represent parts of the design
+subhierarchy.
+24.1.7 Key management
+Clause 6 of IEEE Std 1735-2014 is incorporated by reference. The specified pragma values from that clause
+shall refer to the protect directives with the corresponding name.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+523
+Copyright © 2019 IEEE. All rights reserved.
+24.1.8 Rights management
+Clause 7 of IEEE Std 1735-2014 is incorporated by reference.
+24.1.9 License management
+Clause 8 of IEEE Std 1735-2014 is incorporated by reference.
+24.1.10 Visibility management
+Clause 9 of IEEE Std 1735-2014 is incorporated by reference.
+24.1.11 Common rights
+Clause 10 of IEEE Std 1735-2014 is incorporated by reference.
+24.2 Conditional analysis tool directives
+24.2.1 General
+Conditional analysis directives allow the VHDL description to be varied according to the choice of tool or
+usage. Each directive occupies a complete line of graphic characters. The directive may be commented out
+by preceding it with --, in which case the directive is ignored.
+The tool shall provide string identifiers and values which are visible to the conditional analysis directives.
+These identifiers may be built into the tool or provided to the tool invocation by the user. The tool shall
+provide a mechanism for the user to supply identifiers and associated values, such as DEBUG_LEVEL "2".
+The analysis phase of tool execution shall ignore the lines of description which are excluded and therefore
+perform no syntax checks on those lines.
+conditional_analysis_directive ::= 
+` if conditional_analysis_expression then
+| 
+` elsif conditional_analysis_expression then
+| 
+` else
+| 
+` end [ if ]
+| 
+` warning string_literal
+| 
+` error string_literal
+The order in which these directives are used and their meaning is like the if statement (10.8) and is specified
+by the following grammar, where source_text means a sequence of graphic characters, which may be valid
+VHDL:
+conditional_analysis_block ::=
+source_text { conditional_analysis_block }
+| 
+` warning string_literal { conditional_analysis_block }
+| 
+` error string_literal { conditional_analysis_block }
+| 
+` if conditional_analysis_expression then { conditional_analysis_block }
+{` elsif conditional_analysis_expression then { conditional_analysis_block } }
+[` else { conditional_analysis_block } ]
+` end [ if ] { conditional_analysis_block }
+The `if directive includes the following  analysis block if the expression is TRUE and excludes the block if
+the expression is FALSE. The `elsif directive includes the following  analysis block if the expression is the
+first one in the set to be TRUE and excludes the block if the expression is FALSE or if a previous
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+524
+Copyright © 2019 IEEE. All rights reserved.
+conditional analysis expression in the set was TRUE. The `else directive includes the following analysis
+block if none of the conditional analysis expressions in the set was TRUE, and excludes the block otherwise.
+The `warning directive shall cause the analyzer to report a warning that includes the string literal in the
+analysis log but not stop the analysis. The `error directive shall cause the analysis to fail as well as reporting
+an error that includes the string literal in the analysis log.
+conditional_analysis_expression ::= 
+conditional_analysis_relation
+| 
+conditional_analysis_relation { and conditional_analysis_relation }
+| 
+conditional_analysis_relation { or conditional_analysis_relation }
+| 
+conditional_analysis_relation { xor conditional_analysis_relation }
+| 
+conditional_analysis_relation { xnor conditional_analysis_relation }
+conditional_analysis_relation ::=
+(  conditional_analysis_expression )
+| 
+not ( conditional_analysis_expression )
+| 
+conditional_analysis_identifier = string_literal
+| 
+conditional_analysis_identifier /= string_literal
+| 
+conditional_analysis_identifier < string_literal
+| 
+conditional_analysis_identifier <= string_literal
+| 
+conditional_analysis_identifier > string_literal
+| 
+conditional_analysis_identifier >= string_literal
+in accordance with the rest of VHDL, the conditional analysis identifier is not case sensitive, but the string
+literal is. If the conditional analysis identifier has not been defined, its string value is assumed to be the
+empty string "". The relational operators shall behave as in 9.2.3 where the operands are one-dimensional
+arrays of type CHARACTER.
+24.2.2 Standard conditional analysis identifiers
+The tool shall supply the following identifiers:
+VHDL_VERSION
+     TOOL_TYPE
+     TOOL_VENDOR
+    
+ TOOL_NAME
+    
+ TOOL_EDITION
+     TOOL_VERSION
+The VHDL_VERSION identifier shall have one of the following string values:
+"1987", "1993", "2000", "2002", "2008", etc.
+The TOOL_TYPE identifier shall have one of the following string values:
+     "SIMULATION", "SYNTHESIS", "FORMAL"
+The values of the other identifiers are at the discretion of the tool vendor. The tool name is expected to be
+more generic than the tool edition. The tool version is expected to increase chronologically so that the
+ordering operators can be used. Given an older tool version OLD_VERSION and a newer tool version
+NEW_VERSION, the expression NEW_VERSION > OLD_VERSION should return TRUE. 
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

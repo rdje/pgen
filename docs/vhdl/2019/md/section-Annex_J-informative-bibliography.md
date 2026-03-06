@@ -1,0 +1,4410 @@
+---
+title: "Section Annex.J: IEEE Standard for VHDL Language Reference Manual"
+document: "VHDL Language Reference Manual"
+standard: "IEEE 1076-2019"
+domain: "VHDL"
+section: "Annex.J"
+source_txt: "section-Annex_J-informative-bibliography.txt"
+source_pdf: "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf"
+---
+
+# Section Annex.J: IEEE Standard for VHDL Language Reference Manual
+
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+632
+Copyright © 2019 IEEE. All rights reserved.
+Annex J
+(informative)
+Bibliography
+Bibliographical references are resources that provide additional or helpful material but do not need to be
+understood or used to implement this standard. Reference to these resources is made for informational use
+only.
+[B1] Anderson, Ross, Biham, Eli, and Knudsen, Lars, Serpent: A Proposal for the Advanced Encryption
+Standard, available at https://www.cl.cam.ac.uk/~rja14/serpent.html.
+[B2] ANSI X9.52-1998, American National Standard for Financial Services—Triple Data Encryption
+Algorithm Modes of Operation.21
+[B3] ElGamal, Taher, “A Public-Key Cryptosystem and a Signature Scheme Based on Discrete
+Logarithms,” IEEE Transactions on Information Theory, vol. IT-31, no. 4, 1985, pp. 469–472.
+[B4] FIPS PUB 46-3, Data Encryption Standard (DES), 1999 October 25.22
+[B5] FIPS PUB 81, DES Modes of Operation, 1980 December 25.
+[B6] FIPS PUB 180-3, Secure Hash Standard (SHS), October 2008.
+[B7] FIPS PUB 180-4, Secure Hash Standard (SHS), March 2012.
+[B8] FIPS PUB 197, Advanced Encryption Standard (AES), 2001 November 26.
+[B9] IEEE Std 1003.1™, 2004 Edition, IEEE Standard for Information Technology—Portable Operating
+System Interface (POSIX®).23, 24
+[B10] IEEE Std 1149.1™-2013, IEEE Standard Test Access Port and Boundary Scan Architecture.
+[B11] IETF RFC 1321, The MD5 Message-Digest Algorithm, April 1992.25
+[B12] IETF RFC 2045, Multipurpose Internet Mail Extensions (MIME) Part One: Format of Internet
+Message Bodies, November 1996.
+[B13] IETF RFC 3447, PKCS #1: RSA Cryptography Specifications, Version 2.1, February 2003.
+21ANSI publications are available from the American National Standards Institute (http://www.ansi.org/).
+22FIPS publications are available from the National Technical Information Service, U. S. Department of Commerce (http://
+www.ntis.org/).
+23IEEE publications are available from The Institute of Electrical and Electronics Engineers (http://standards.ieee.org).
+24The IEEE standards or products referred to in this clause are trademarks of the Institute of Electrical and Electronics Engineers, Inc.
+25IETF documents (i.e., RFCs) are available for download at http://www.rfc-archive.org/.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+633
+Copyright © 2019 IEEE. All rights reserved.
+Index
+A
+ABOVE attribute
+implicit signal 89
+abs operator 161
+fixed-point 578
+floating-point 587, 591
+absolute design hierarchy search string 481
+absolute library search string 481
+absolute pathname 145, 145
+abstract class (information model) 355
+abstract literal 54, 163, 258, 261, 261
+access incomplete type 83
+access mode (file) 37, 72
+access type 68
+definition 68, 86
+designated type and subtype 68
+equality 153
+with index constraint 62
+native format 444
+predefined = and /= operators 98
+prefix 138
+with record constraint 67, 219
+recursive 69
+resolution function 88
+string representation 80
+where prohibited 34, 71, 90, 91, 98, 123
+access value 68, 138
+allocator. See allocator
+designated object 68, 89
+selected name 140
+index range of designated object 62
+null 49, 68, 163, 163
+where prohibited 168
+VHPI representation 441
+access_incomplete_type_definition 81, 82
+active
+driver. See driver, active
+port. See port, active
+signal. See signal, active
+ACTIVE attribute 235, 278, 279
+globally static primary 174
+of interface object 100
+locally static primary 172
+reading 99
+actual 110
+aggregate with others choice 166
+designator 109
+expression as 110
+generic. See generic, actual
+part 109
+port. See port, actual
+type of 111
+ADD function 587
+floating-point 592
+ADD_CARRY function
+fixed-point 580
+adding operator 148, 149, 156
+addition operator (+) 42, 156
+fixed-point 577
+floating-point 587, 591
+advanced debug and runtime simulation capability
+set 357
+advanced foreign model capability set 357
+AES encryption method 515
+aggregate 49, 148, 164, 164, 168, 181
+array 165
+assignment target 181, 189
+direction 167
+distinguished from parenthesized expression
+164
+globally static 174
+index range 167
+locally static 172
+record 165
+where prohibited 168
+Aggregate class diagram 391
+alias
+attribute of 127
+bounds and direction 120
+declaration 21, 23, 37, 44, 46, 77, 85, 119, 119,
+201
+elaboration 239
+implicit 121, 220
+designator 119
+globally static 173
+index range 120
+indication (subtype or subnature) 119
+locally static name 139
+locally static primary 172
+nonobject 119, 121
+object 119, 120
+prefix of attribute name 144
+restrictions 119
+SUBTYPE attribute 271
+type and subtype of 120
+aliasDecl class
+reading an object 443
+updating an object 445
+AliasDecl class diagram 382
+alias_declaration
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+634
+Copyright © 2019 IEEE. All rights reserved.
+declaration 75
+all
+in attribute specification 127
+in component specification 129
+in disconnection specification 135
+in sensitivity list 200, 201
+in use clause 222
+allocator 68, 70, 149, 170, 170
+basic operation 49
+globally static 174
+index range 62
+where prohibited 168
+ambiguity (overloading) 41
+analysis 225
+information model 355
+order of 228
+analysis phase 413, 420
+callback 435
+encryption and decryption during 508
+ancestor 38
+and operator 42, 150
+fixed-point 579
+floating-point 592
+anonymous type. See type, anonymous
+anonymous_type_indication 81
+anyCollection class
+creation 459
+applicable disconnection specification 137, 206
+application context (VHPI) 413
+application name 416
+architecture 207
+attribute specification for 127
+body 22, 22, 85, 225
+configuration 27
+declarative part 22, 23, 23
+declarative region 216
+existence 241
+foreign. See foreign, architecture
+most recently analyzed 134
+scope of 217
+statement part 22, 24, 24
+visibility 218
+arithmetic operator
+floating-point 587
+metalogical value 329
+size of result 571
+in synthesis package 565
+arithmetic package 330
+allowable modifications 331
+compatibility with previous editions of IEEE Std
+## 1076 332
+
+array
+aggregate 165
+bounds 61
+constraint 59, 62, 68, 87
+in allocator 170
+compatibility with subtype 62
+dimensionality 59
+element
+DefName and DefCaseName properties
+373
+FullName and FullCaseName properties
+377
+indexed name 142
+Name and CaseName properties 369
+element constraint 59
+element resolution 87, 87
+index range. See index, range
+multidimensional 59
+null 62, 63, 151
+bit string literal 163
+concatenation result 157
+equality 153
+minimum length 163
+string literal 163
+synthesis 331
+one-dimensional 59
+aggregate 165
+case generate statement expression 213
+case statement expression 193
+concatenation operator 156
+file of 71
+literal 163
+logical operator 150
+matching element 153
+matching relational operator 155
+native format 444
+predefined operation 64
+shift operator 155
+slice name 143
+string representation 80
+VHPI representation 441
+type 59
+partially constrained 62
+predefined 64
+predefined operation 64
+unconstrained 62
+See also type, composite
+type definition 58, 59
+elaboration 237
+array incomplete type 83
+array type 49
+array_incomplete_type_definition 81
+array_index_incomplete_type 82
+array_index_incomplete_type_list 82
+array_mode_view_indication 97
+ASCENDING attribute 270, 276
+ascending range 51, 52, 270, 271
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+635
+Copyright © 2019 IEEE. All rights reserved.
+ASCII 256
+assertion 178, 203
+implicit condition conversion 162
+statement 176, 178, 178
+in an encrypted description 522
+equivalent to concurrent assertion 203
+violation 179
+assignment 49, 99
+of aggregate with others choice 166
+metalogical value 329
+See also signal assignment statement; variable
+assignment statement
+association (information model) 355, 364
+in encrypted description 522
+traversal 360, 362
+association (interface)
+element 62, 109
+individually 62, 111
+list 109, 109
+generic 113
+port 118
+named 110, 113, 118
+parameter of predefined attribute 269
+parameter of predefined operator 150
+parameter 167, 192
+positional 110, 113, 118
+reading an object 99
+updating an object 99
+in whole 62, 111
+asymmetric cipher 507, 519, 521, 599
+attribute
+of alias 127
+declaration 21, 23, 37, 44, 46, 77, 85, 122, 122,
+201
+elaboration 239
+type 127
+designator 126, 144
+globally static 174
+implementation defined kind 529
+index range 62
+locally static 172
+name 50, 138, 138, 143, 143
+as actual generic subprogram 114, 144
+DefName and DefCaseName properties
+375
+FullName and FullCaseName properties
+379
+function call 144
+Name and CaseName properties 371
+as resolution function 43
+static 139
+where prohibited 124
+predefined 49, 122, 144, 218, 235, 269
+function parameters 269
+signal-valued 36
+specification 21, 23, 25, 37, 44, 46, 75, 77, 126,
+126, 201
+aggregate with others choice 166
+elaboration 240
+predefined attribute 128
+user-defined 122, 126
+globally static 174
+locality of information 128
+locally static 172
+of object member 144
+visibility 219
+Attribute class diagram 391
+attrName class
+DefName and DefCaseName properties 375
+FullName and FullCaseName properties 379
+Name and CaseName properties 371
+AttrSpec class diagram 395
+AttrSpecIterations class diagram 395
+author 509
+B
+Backus-Naur Form 15
+base (number) 262
+BASE attribute 270
+base class 365
+Base class diagram 411
+base specifier (bit string literal) 263
+base type 49, 86, 87, 270
+function result 40
+parameter 40
+qualified expression 168
+in signal assignment 181
+type conversion 168
+in variable assignment 189
+See also type
+base64 encoding method 515
+based integer 262
+based literal 261, 261, 262
+basic character 256
+basic debug and runtime simulation capability set
+357
+basic foreign model capability set 357
+basic graphic character 256
+basic identifier 260, 260, 260
+basic operation 49
+basic signal. See signal, basic
+BasicSignal class diagram 405
+binary number
+VHPI representation 440
+binary operator 41
+binary_miscellaneous_operator 150
+BINARY_READ alias
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+636
+Copyright © 2019 IEEE. All rights reserved.
+declaration 307
+fixed-point 583
+floating-point 595
+BINARY_WRITE alias
+declaration 308
+fixed-point 583
+floating-point 595
+binding indication 29, 129, 130, 130, 130, 207
+default 30, 131, 133, 207, 229
+deferred binding 133, 135
+generic map aspect in 113
+incremental 131
+open entity aspect 133
+port map aspect in 118
+primary 130
+bit string literal 49, 163, 258, 263, 263
+in aggregate 165
+bounds and direction 163
+index range 163
+BIT type 52
+declaration 289
+in matching case statement 193
+predefined operator 150, 153
+synthesis 327, 327
+bit value 263
+BITSTOREAL function
+floating-point 594
+BIT_VECTOR type 64
+declaration 298
+in NUMERIC_BIT_UNSIGNED package 331
+block
+configuration 25, 26, 26, 27, 29, 241
+declarative region 216
+implicit 28
+scope extension from block 217
+visibility extension from block 220
+declarative item 23, 200
+declarative part 199, 200, 213
+design hierarchy 19
+external 19, 26
+elaboration 229
+header 199
+elaboration 232, 241
+generic map aspect 114
+port map aspect 118
+internal 19, 26
+label
+in external name 146
+scope extension into configuration 217
+specification 26
+statement 199, 199, 199
+configuration 27
+declarative region 216
+elaboration 230, 241
+implicit condition conversion 162
+represented by generate statement 242
+visibility of formal 219
+statement part 199, 200
+visibility extension into configuration 220
+block (exclusive access) 244
+file operation 74
+vhpi_protected_call function 487
+blockStmt class
+Name and CaseName properties 368
+Boolean property (information model)
+getting value 362, 465
+BOOLEAN type 52
+declaration 288
+of GUARD signal 200
+predefined operator 150
+synthesis 327, 327
+BOOLEAN_VECTOR type 64
+declaration 296
+borrow 566
+bound (component) 130, 131, 133, 243
+Boundary Scan Description Language 100
+bounds
+of alias 120
+array 61
+bit string literal 163
+floating point type 56
+integer type 53
+physical type 54
+of slice 143
+string literal 163
+subtype of external name 146
+box (<>)
+in entity class entry 123
+in index subtype definition 59
+in interface package generic map aspect 105,
+115
+in interface subprogram default 107
+branch class
+execution callback 431
+BREAD alias
+declaration 307
+fixed-point 583
+floating-point 588, 595
+BREAK_NUMBER function
+floating-point 587, 594
+buffer 97
+buffer mode 100, 249
+See also mode
+bus 96
+bus 90
+BWRITE alias
+declaration 308
+fixed-point 583
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+637
+Copyright © 2019 IEEE. All rights reserved.
+floating-point 588, 595
+C
+C fprintf function 58
+C identifier 416
+modification during code generation 417
+C printf function 452, 485
+C vprintf function 506
+callback 356, 425
+action 435
+data structure 425, 426, 466, 494
+memory allocation 427
+modification 426
+disabled 425, 494
+disabling 426, 462
+enabled 425, 494
+enabling 426, 462
+execution 426
+flag 494
+foreign model 429
+function 425, 425
+information 426, 466
+mature 425, 462
+object 427
+reason 425, 427
+registration 415, 425, 493
+removal 426, 499
+statement 431
+callback class 425
+Callbacks class diagram 409
+capability set 356
+carry 566
+case generate statement 212, 213, 213
+case generate alternative 213
+elaboration 242
+visibility of alternative label 219
+case statement 176, 193, 193
+case statement alternative 193
+choice
+aggregate with others choice 166
+equivalent to selected signal assignment 187
+equivalent to selected variable assignment 191
+CaseIfWaitReturnStmt class diagram 399
+CaseName property 367
+caseStmt class
+execution callback 431
+certification authority 603
+change
+signal 249
+variable 190
+character
+literal 51, 119, 124, 127, 140, 258, 262, 262,
+279, 281
+attribute specification for 128
+as name 138
+SignatureName property 372
+visibility 220
+set 256
+type 52, 193, 213
+VHPI representation 439, 441
+whitespace 309
+CHARACTER type 52, 263
+declaration 290
+native format 444
+string representation 79
+charLiteral class
+SignatureName property 372
+choice 164, 193
+in aggregate 164, 165
+in case generate statement
+array length 214
+type of 213
+in case statement
+aggregate with others choice 166
+array length 194
+metalogical value 329
+type of 193
+locally static 165
+null range 165
+others
+in aggregate 164, 164, 165
+in case generate statement 214
+in case statement 194
+representing metalogical values 195
+where prohibited 181, 190
+choices 164, 188, 193, 213
+chosen representation (floating-point type) 56
+cipher 507, 510, 511, 515
+asymmetric 507, 519, 521, 599
+default 598
+symmetric 507, 518, 597, 599
+cipher-block chaining 516
+class (information model) 355, 358
+diagram 364
+implementation defined 529
+inheritance 365
+CLASSFP function
+floating-point 595
+classified generic type 101
+clock declaration (PSL) 125
+closely related type 110, 111, 169
+collection
+creation using VHPI 459
+of drivers
+scheduling transactions using VHPI 449,
+501
+Collection class diagram 412
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+638
+Copyright © 2019 IEEE. All rights reserved.
+comment
+protect directive 514
+in tabular registry file 416
+in VHDL description 256, 258, 266
+compatibility
+array constraint 62
+constraint 88, 238
+range constraint 51
+record constraint 67
+subtype 51
+compInstStmt class
+Name and CaseName properties 368
+complete context 61, 146, 168, 193, 213, 223
+completion
+loop iteration 195
+simulation 254
+component
+configuration 27, 29, 29
+binding indication 130
+declarative region 216
+implicit 28, 229
+scope extension from block 217
+visibility extension from block 221
+declaration 23, 44, 85, 123, 123, 207
+attribute specification for 127
+declarative region 216
+elaboration 239
+instance 207
+configuration 27
+configuration of bound architecture 27
+default binding 133
+elaboration 243
+equivalent block statements 207
+fully bound 30
+instantiated unit 206, 207
+label in external name 146
+unbound 29, 146, 229
+instantiation statement 199, 206, 206
+elaboration 243
+generic map aspect 114
+port map aspect 118
+scope of local generic declaration 217
+scope of local port declaration 217
+specification 29, 129
+instantiation list 129
+visibility of local generic 219
+visibility of local port 219
+composite
+parameter 35, 36
+signal. See signal, composite
+Composite class diagram 382
+composite type 49
+concatenation operator (&) 156
+metalogical value 329
+concProcCallStmt class
+execution callback 431
+ConcSigAssignStmt class diagram 400
+concStmt class
+DefName and DefCaseName properties 373
+ConcStmt class diagram 401
+concurrent assertion statement 22, 199, 203, 203
+ambiguity with PSL assertion directive 204
+elaboration 244
+sensitivity set 177
+concurrent conditional signal assignment 204
+concurrent procedure call statement 22, 199, 202,
+202
+representing a process 203
+sensitivity set 177
+concurrent region 145
+concurrent selected signal assignment 204
+concurrent signal assignment statement 199, 204,
+204
+elaboration 244
+sensitivity set 177
+concurrent simple signal assignment 204
+concurrent statement 24, 199, 199, 199, 200, 213
+elaboration 244
+FullName and FullCaseName properties 376
+implicit label 367
+load of a signal 409
+condition 176, 178, 186, 192, 195, 196, 212, 542
+guard 88, 90, 199, 200, 250, 251
+implicit condition conversion 162
+condition clause 176
+implicit condition conversion 162
+condition operator (??) 148, 149, 161
+implicit application 162
+conditional signal assignment 180, 186, 186
+conditional waveform assignment 186
+conditional waveforms 186, 204, 535
+conditional_expression 148
+conditional_or_unaffected 180
+conditional_or_unaffected_expression 148
+ConfigDecl class diagram 380
+configuration 19, 229
+declaration 25, 85, 207, 225
+attribute specification for 127
+declarative region 216
+scope extension from block 217
+visibility extension from block 220
+declarative item 25
+declarative part 25
+elaboration 229
+instance
+elaboration 244
+equivalent block statements 209
+item 26, 27
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+639
+Copyright © 2019 IEEE. All rights reserved.
+specification 23, 129, 129, 207
+compound 129
+elaboration 130, 240
+implicit 29, 229, 241
+simple 129
+conformance 48
+lexical 38, 46, 48, 77, 224
+profile 48, 105, 107, 114
+connectivity capability set 356
+Connectivity class diagram 406
+constant 89
+attribute specification for 127
+declaration 21, 23, 37, 44, 46, 77, 89, 89, 89, 201
+elaboration 238
+deferred 46, 48, 89
+explicitly declared 89
+external name 146
+generate parameter 213
+generic. See generic, constant
+globally static 173
+locally static 172
+loop parameter 195
+parameter. See parameter, constant
+synthesis 328
+value 89
+Constants class diagram 383
+constrained array definition 59
+constraint 49, 62, 87, 88
+in access type definition 68
+compatibility 88, 238
+globally static 174
+locally static 173
+where prohibited 69
+See also array, constraint; index, constraint; re-
+cord, constraint
+Constraint class diagram 389
+context
+application (VHPI) 413
+clause 225, 226, 227, 227, 227
+preceding context declaration 225
+complete 61, 146, 168, 193, 213, 223
+declaration 225, 227, 227
+synthesis 332
+use clause 222
+item 227
+reference 227
+Contributor class diagram 406
+contributor to a signal 407
+control action 458
+implementation defined 458, 529
+conversion code 452, 485, 506
+conversion function 110
+in actual part 62
+in association 247
+contributor 408
+load of a signal 409
+in fixed-point package 570, 575
+in floating-point package 587
+in formal part 63
+on a net 250
+in parameter association 36, 37
+uninstantated subprogram 33
+convertible universal operand 170
+COPYSIGN function
+floating-point 594
+cryptographic protocol 597
+current time 246
+current time (Tc) 424, 474
+initialization 252
+reset phase 438
+restart phase 438
+save phase 437
+simulation cycle 252, 253
+current value
+driver 246, 248, 278, 279
+vhpiCbValueChange callback 428
+signal 278
+initialization 252
+kernel variable 245, 249
+D
+data
+block 511
+encoding 512
+method 511
+deadlock 245
+DEALLOCATE operation 70
+deallocation 70
+debug and runtime simulation capability set 357
+decimal literal 261, 261, 261
+decimal number
+VHPI representation 440
+decl class
+DefName and DefCaseName properties 372,
+373
+FullName and FullCaseName properties 376
+InstanceName property 379
+Name and CaseName properties 367
+PathName property 379
+declaration 85
+DefName and DefCaseName properties 373
+elaboration 236
+hidden 220
+hidden by PSL keyword 220
+Name and CaseName properties 367
+PSL declaration 21, 23, 44, 85, 220
+character set 257
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+640
+Copyright © 2019 IEEE. All rights reserved.
+elaboration 236
+lexical element 258
+in package 45
+scope 217
+visibility using expanded name 220
+declarative part 135
+attribute specification placement 127
+elaboration 235
+declarative region 216
+concurrent 145
+disjoint 216
+identified by external pathname 145
+library 216
+root 145, 216
+DeclInheritance class diagram 383
+decorate with attribute 126
+decryption
+author specification 520
+data block 520, 521, 521
+digest block 520, 521, 521
+encrypt agent specification 520
+envelope 507, 519, 520
+in encryption envelope 518
+key block 520, 520, 520
+license 513
+license specification 520
+tool 520, 597, 604
+decryption license 514
+protection requirement 522
+default (generic map aspect of generic package) 105
+default binding 30, 131, 133, 207, 229
+default disconnection specification 137
+default entity aspect 133
+default expression. See expression, default
+default force mode 182
+default generic map aspect 133, 134
+default initial value. See initial value, default
+default port map aspect 133, 134
+default value. See signal, default value; port, default
+value
+DefCaseName property 372
+deferred binding 133, 135
+deferred constant 46, 48, 89
+DefName property 372
+search to locate object 481
+delay
+disconnection 135
+in waveform element 55, 183
+delay mechanism 180, 181, 186, 187, 204, 501, 535
+DELAYED attribute 38, 277, 279
+contributor to a signal 408
+initialization 252
+of interface object 100
+of port associated with expression 235
+reading 99
+of signal parameter 36, 100
+static name 139
+updating 251
+DELAY_LENGTH subtype
+declaration 295
+delimiter 258
+delta cycle 252
+number at current time 474
+denormal number 585
+denotation of a name 85
+dependence
+design unit 133, 228, 230
+signal 251, 252, 253
+deposit
+driver 246, 253, 448
+signal 247, 248, 249, 447
+variable 446
+derefObj class
+DefName and DefCaseName properties 374
+Name and CaseName properties 370
+updating an object 445
+DES encryption method 515
+design
+file 225, 225, 256
+analysis 420
+library 225
+unit 225, 225
+Name and CaseName properties 371
+design entity. See entity (design)
+design hierarchy 19, 144, 280, 282
+elaboration 229, 420
+information model 355, 413
+searching 481
+designator 85, 220
+attribute 123
+subprogram 32, 33, 37, 40, 105
+in path name 280
+designUnit class
+Name and CaseName properties 371
+UnitName property 372
+DesignUnit class diagram 381
+digest 507, 519, 522, 602
+block 512
+encoding 512
+method 512, 516
+digit 256, 256, 260, 261, 262
+digital certificate 603
+digital envelope 507, 510, 518, 521, 599
+digital signature 507, 512, 519, 522, 602
+direct binding. See standard direct binding
+DIRECTION 52
+direction 51
+of aggregate 167
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+641
+Copyright © 2019 IEEE. All rights reserved.
+of alias 120
+bit string literal 163
+discrete range 60
+of slice 143
+string literal 163
+subtype indication 88
+subtype of external name 146
+type conversion 169
+DIRECTION type 52
+directive
+PSL directive 22, 199, 220
+assertion ambiguity 204
+character set 257
+initialization 252
+interpretation 241, 245
+lexical element 258
+simulation cycle 253
+tool. See tool, directive
+directly visible. See visibility, direct
+disabled callback 425, 494
+disconnection
+specification 21, 23, 44, 135, 135
+applicable 137, 206
+default 137
+elaboration 241
+implicit 136
+in package 45
+statement 206
+DisconnectionSpec class diagram 396
+discrete range 27, 59, 61, 143, 164, 195
+in aggregate 164, 165
+case statement choice 194
+direction 60
+globally static
+case generate statement choice 214
+locally static
+case statement choice 194
+static 213
+type of 28, 62
+discrete type 50
+case generate statement expression 213
+case statement expression 193
+discrete_incomplete_type_definition 81
+DIVIDE function
+fixed-point 572, 579
+floating-point 587, 592
+DIVIDEBYP2 function
+floating-point 587, 592
+division
+operator (/) 159
+fixed-point 572, 578
+floating-point 587, 591
+universal expression 175
+by power of 2 568
+don’t care ('–') 327, 330, 561, 563
+in matching case statement 194, 195
+matching ordering operator 153
+synthesis 563
+driver 246
+active 246, 250, 252, 253, 435, 493
+vhpiCbTransaction callback 429
+applicable disconnection specification 135
+contributor to a signal 408
+creation during elaboration 230, 244
+creation using VHPI 459
+current value 246, 248, 278
+vhpiCbValueChange callback 428
+deposit 246, 253, 448
+force 246, 253, 448
+initial transaction 91, 98, 230, 246
+on a net 250
+null transaction 43
+projected output waveform 183
+release 448
+scheduling a transaction using VHPI 449, 501
+signal parameter 36
+driver class
+creation 459
+reading an object 442
+updating an object 445, 448
+Driver class diagram 407
+driverCollection class
+creation 459
+DRIVING attribute 172, 174, 235, 278
+of signal parameter 100
+within a process 278
+driving value
+port
+associated with expression 235
+unassociated 235
+with no source 100
+signal 247, 252
+kernel variable 245, 249
+simulated net 409
+DRIVING_VALUE attribute 172, 174, 235, 279
+of signal parameter 100
+within a process 279
+driving-value deposit. See signal, deposit
+driving-value force. See signal, force
+driving-value release. See signal, release
+dynamic elaboration 244, 421
+subprogram call callback 433
+dynamic elaboration capability set 357
+dynamic object (information model) 355, 359
+invalidity during reset 424
+dynamically elaborated declaration
+FullName and FullCaseName properties 377
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+642
+Copyright © 2019 IEEE. All rights reserved.
+E
+edge detection 330
+execution
+function (foreign model)
+in object library 416
+effective value
+port
+associated with expression 235
+unassociated 235
+signal 247, 248, 252
+simulated net 409
+effective-value deposit. See signal, deposit
+effective-value force. See signal, force
+effective-value release. See signal, release
+elaboration 229
+dynamic 244
+function (foreign model) 241, 415, 420, 470
+callback registration 425
+name 416
+in object library 416
+registration 496
+in standard direct binding 419
+in standard indirect binding 418
+information model 355
+phase 413, 420
+callback 435
+resolution limit selection 55
+specifier 416, 419
+element 50
+association 164
+named 164
+positional 164
+constraint 59, 66, 87
+declaration 66
+of an object 89
+resolution 87, 87
+selected name 140
+simple name
+as choice 194, 214
+subtype 276
+subtype definition 66
+ELEMENT attribute 276
+element_array_mode_view_indication 97
+element_mode_indication 97
+element_mode_view_indication 97
+element_record_mode_view_indication 97
+enabled callback 425, 494
+encoded text 520, 521
+encoding
+bytes description 512
+line length description 512
+method 507, 512, 514, 599
+type description 512
+encryption
+author specification 517
+data directive 518
+data specification 517, 518, 518
+digest directive 519
+digest specification 517, 519, 519
+envelope 507, 517, 517
+nesting 517
+key directive 518
+key specification 517, 518, 518
+license specification 517
+method 515
+specification 517
+tool 510, 517, 597
+end of line
+in encryption envelope 518
+in error message 179
+in report message 180
+in TEXT file 308
+in VHDL description 259
+ENDFILE function 72, 311
+entity
+instance 209
+entity (design) 19, 229
+aspect 130, 132, 133
+default 133
+bound to a component instance 130
+declaration 19, 19, 85, 207, 225
+attribute specification for 127
+declarative region 216
+visible 133
+declarative item 20
+declarative part 19, 20, 20
+elaboration of instance 244
+existence 241
+header 19, 20, 20
+implied by binding indication 133
+instance 209
+DefName and DefCaseName properties
+373
+equivalent block statements 209
+Name and CaseName properties 368
+name in external name 146
+name list 126
+root of design hierarchy 229
+scope in architecture body 217
+scope of formal generic declaration 217
+scope of formal port declaration 217
+statement 22
+statement part 19, 21, 22
+verification unit binding 134
+visibility 218
+visibility of formal generic 219
+visibility of formal port 219
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+643
+Copyright © 2019 IEEE. All rights reserved.
+entity (named)
+class 123, 126
+entry 123
+entry list 123
+designator 126, 127
+specification 126
+tag 127
+entry point 416, 513
+enumerated type 49
+enumeration literal 51, 85, 163
+alias 121
+identified by use clause 222
+implicit alias 121
+SignatureName property 372
+VHPI representation 439, 440
+enumeration type 51
+alias 121
+definition 50, 51
+elaboration 237
+literal 163
+native format 444
+predefined 52
+string representation 79
+in use clause 222
+enumLiteral class
+SignatureName property 372
+ENV package 226, 311
+EQ function
+floating-point 587, 592
+eqProcessStmt class
+execution callback 431
+Name and CaseName properties 368
+equality operator
+matching (?=) 152
+in case statement execution 194
+fixed-point 578
+floating-point 591
+ordinary (=) 152
+in case generate statement elaboration 242
+in case statement execution 194
+fixed-point 578
+floating-point 591
+metalogical value 328
+in signal update 249
+erroneous 16
+error 16
+error information structure 453
+error message 179
+evaluation
+allocator 171
+array aggregate 167
+external name 146
+function call 168
+indexed name 143
+literal 164
+name 138
+qualified expression 168
+reading an object 99
+record aggregate 165
+slice name 143
+universal expression 175
+waveform 183
+event 177
+composite signal 279
+in guarded assignment 205
+implicit signal 251
+signal 249, 253, 277, 278
+vhpiCbSensitivity callback 430
+EVENT attribute 99, 172, 174, 235, 277, 279
+of interface object 100
+exclusive access 38, 244
+file operation 74
+vhpi_protected_call function 487
+execution 229, 229, 245, 252
+callback 426
+case statement 194
+concurrent assertion statement 204
+concurrent procedure call statement 203
+concurrent signal assignment statement 206
+concurrent statement 199
+exit statement 196
+force assignment 184
+function (foreign model) 245, 253, 415, 421,
+422, 470
+name 416, 419
+registration 496
+in standard direct binding 419
+in standard indirect binding 418
+if statement 193
+information model 355
+loop statement 195
+next statement 196
+null statement 197
+process statement 202
+release assignment 184
+report statement 179
+runtime license 513
+simple assignment statement 183
+specifier 416, 419
+tool 414
+variable assignment statement 190
+wait assertion statement 179
+wait statement 177
+waveform assignment 183
+exit statement 176, 196, 196
+implicit condition conversion 162
+expanded bit value 263
+expanded context clause 227
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+644
+Copyright © 2019 IEEE. All rights reserved.
+expanded name 48, 140, 141, 220
+for declaration within a construct 140
+locally static 139
+in sensitivity set 177
+static 138
+explicit ancestor 38, 202
+explicit signal 38
+explicitly declared
+constant 89
+file 94
+object 89
+elaboration 238
+signal 90
+type 86
+variable 92
+exponent
+in abstract literal 261, 262
+floating-point 584
+exponentiation operator (**) 161
+expr class
+reading an object 443
+expression 148, 148
+actual designator 109
+as actual generic 114
+in binding indication 130
+in assertion 178
+associated with port 118
+contributor 408
+in binding indication 130
+attribute parameter 144
+in attribute specification 126, 532
+in case generate statement 213
+condition 149
+in constant declaration 89
+default
+aggregate with others choice 166
+contributor to a signal 408
+generic constant 105, 106, 233
+interface object 98, 111
+parameter 167, 192
+port 235
+signal 90, 90
+disconnection delay 135
+element of aggregate 164
+file logical name 94
+file open kind 94
+globally static 172, 173, 213
+case generate statement choice 214
+in case statement 193
+in indexed name 142
+initial value 92, 92
+locally static 53, 54, 56, 127, 172
+case statement choice 194
+operand 163
+parenthesized 149
+PSL 149
+pulse rejection limit 181
+in qualified expression 168
+in report statement 179
+in selected assignment 187, 188, 191, 204
+signal force value 180
+simple 148, 164
+static 172
+default for interface object 96
+in generate specification 27
+generate specification in path name 145
+in if generate statement 213
+synthesis 328
+timeout 176
+type 149
+in type conversion 168
+universal 175
+variable assignment value 189
+in waveform element 183
+Expression class diagram 392
+expression_or_unaffected 148
+extended digit 262, 263
+extended identifier 260, 260, 416
+external block 19, 26
+elaboration 229
+external file 37, 72, 95
+external name 120, 138, 144, 144
+base type 146
+bounds and direction of subtype 146
+constant 144
+evaluation 146
+index range 146
+matching element 146
+no object 146
+pathname 144, 145, 145
+signal 144
+subtype 146
+variable 144, 145
+F
+factor 148, 148
+FALLING_EDGE function 57, 330, 331
+field 309, 310
+file 89
+access mode 37, 72
+attribute specification for 127
+declaration 21, 23, 37, 44, 46, 77, 89, 94, 94, 201
+elaboration 239
+explicitly declared 94
+external 37, 72, 95
+logical name 94, 95
+open 37, 72, 95
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+645
+Copyright © 2019 IEEE. All rights reserved.
+open information 94
+operation 71
+execution 244
+nonportable use 557
+parameter. See parameter, file
+referenced by pure function 39
+type 70
+definition 70, 86
+resolution function 88
+string representation 80
+where prohibited 34, 71, 90, 91, 98, 123
+file incomplete type 84
+FILE_CANSEEK function 72
+FILE_CLOSE procedure 71, 72
+file_incomplete_type_definition 81, 82
+FileInheritance class diagram 384
+FILE_MODE function 72
+FILE_OPEN function 71
+FILE_OPEN procedure 71, 95
+FILE_OPEN_KIND type 52
+declaration 301
+FILE_OPEN_STATUS type 52
+declaration 302
+FILE_ORIGIN_KIND type 52
+FILE_POSITION function 72
+FILE_REWIND procedure 71
+FILE_SEEK procedure 71
+FILE_SIZE function 72
+FILE_STATE function 71
+FILE_TRUNCATE procedure 71
+FIND_LEFTMOST function
+fixed-point 574, 579
+FIND_RIGHTMOST function
+fixed-point 574, 579
+FINISH procedure 311
+finishing simulation 458
+FINITE function
+floating-point 595
+fixed point package 569
+FIXED_FLOAT_TYPES package 333, 586
+FIXED_GENERIC_PKG package 115, 333, 576
+FIXED_PKG package 333, 576
+fixed-point package 333
+FLOAT subtype 586, 587
+FLOAT_GENERIC_PKG package 333, 589
+floating incomplete type 83
+floating point
+package 584
+floating point numbers 584
+type 586
+precision 560
+type
+bounds 56
+VHPI representation 441
+floating type definition 50, 56
+elaboration 237
+floating_incomplete_type_definition 81
+floating-point
+comparison nonportable 557
+package 333
+signal
+event nonportable 557
+type 56
+native format 444
+predefined 56
+predefined operator 159, 161
+string representation 80
+type conversion 169
+VHPI representation 439
+floating-point type 49
+FLOAT_PKG package 333, 589
+FLUSH procedure 72, 99
+for generate 216
+for generate statement 212, 213
+elaboration 242
+for loop
+execution callback 431
+for iteration scheme 195
+See also loop
+force
+assignment 181
+driver 246, 253, 448
+mode 180, 182, 188
+signal 181, 182, 247, 249, 447
+variable 446
+force 180, 188
+forcing STD_ULOGIC value 327, 561
+foreign
+application 414
+callback registration 425
+information 469
+registration 414, 496
+registry 416
+uniqueness of name 417
+architecture
+elaboration 236, 241, 420
+execution function 253
+initialization 253, 422
+nonportable 557
+registration 496
+registry 416
+attribute value 418
+data structure 470, 496
+function
+called during elaboration 236
+function call 449
+result 421, 449, 492
+model 414
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+646
+Copyright © 2019 IEEE. All rights reserved.
+callback 429
+callback registration 425
+capability set 357
+elaboration function 241
+execution function 245
+information 469
+registration 414, 496
+uniqueness of name 417
+subprogram 38
+dynamic elaboration 236, 421
+execution 244
+nonportable 557
+pure function 39
+registry 416
+FOREIGN attribute 38, 127, 236, 241, 244, 414
+declaration 304
+for foreign model 418
+placement 304
+ForeignModel class diagram 410
+forGenerate class
+Name and CaseName properties 368
+forLoop class
+DefName and DefCaseName properties 373
+formal 110
+designator 109
+generic constant. See generic, constant, formal
+generic package. See generic, package
+generic subprogram. See generic, subprogram
+generic type. See generic, type
+generic. See generic, formal
+parameter list 32, 34, 105
+parameter. See parameter, formal
+part 109
+port. See port, formal
+type of 111
+format
+conversion 464
+effector 256, 256
+end of line 259
+implementation defined 529
+of value structure 440
+formatting object value 443
+fraction (floating-point) 584
+FROM_BINARY_STRING alias
+fixed-point 584
+floating-point 596
+FROM_BSTRING alias
+fixed-point 584
+floating-point 596
+FROM_HEX_STRING alias
+fixed-point 584
+floating-point 596
+FROM_HSTRING function
+fixed-point 584
+floating-point 596
+FROM_OCTAL_STRING alias
+fixed-point 584
+floating-point 596
+FROM_OSTRING function
+fixed-point 584
+floating-point 596
+FROM_STRING function
+fixed-point 584
+floating-point 596
+full instance based path 280
+full path instance element 280
+full path to instance 280
+full type declaration 86
+FullCaseName property 376
+FullName property 376
+search to local object 481
+fully constrained subtype 49, 60, 66, 271
+elaboration 237
+funcCall class
+Name and CaseName properties 369
+updating an object 445, 449
+function
+attribute specification for 127
+conversion. See conversion function
+declaration 32
+impure 33, 39
+nonportable 557
+in protected type 34
+pure 33, 39
+predefined operator 150
+in protected type 34
+resolution. See resolution function
+result
+aggregate with others choice 166
+base type 40
+subtype 33
+return 197
+specification 32
+uninstantiated 167
+VHPI
+implementation defined 529
+function call 138, 148, 167, 167
+in actual part 110
+attribute name 144
+distinguishing from indexed name 168
+foreign function 449
+formal generic function 168
+in formal part 110
+globally static 174
+locally static 172
+PSL 149
+SignatureName property 372
+where prohibited 124, 140
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+647
+Copyright © 2019 IEEE. All rights reserved.
+G
+GE function
+floating-point 587, 593
+generate
+label
+in external name 146
+parameter 88, 90, 213
+discrete range 61
+globally static 173
+specification 26, 27
+statement 199, 212, 212
+body 212, 213
+configuration 26, 27
+declarative region 216
+elaboration 242
+representing block statements 242
+generate statement 216
+generateStmt class
+Name and CaseName properties 368
+GenerateStmt class diagram 401
+generic
+actual 40, 47, 113
+of instantiated package 105
+matching 105
+association list
+elaboration 233
+clause 20, 44, 106, 106, 123, 199
+elaboration 233
+constant 20, 114
+actual 106
+elaboration 233
+external name 146
+formal 88, 90, 106
+globally static 173
+incremental binding 131
+local 88, 90
+locally static 172
+matching 115
+declaration
+elaboration 233
+default 33, 45
+formal 40, 47, 106, 113
+unassociated 134
+implicit association 233
+interface list 106
+list 32, 106
+local 123
+attribute 129
+default association 134
+external name 147
+map aspect 113, 113
+in binding indication 130
+in block header 199
+in component instantiation 207
+default 133, 134
+elaboration 233
+implicit 105, 115
+in interface package declaration 105
+matching 115
+in package header 44
+in package instantiation 47
+in subprogram header 32
+in subprogram instantiation 40
+package 105, 115
+actual 107, 130
+elaboration 234
+formal 107
+matching 115
+unassociated 107
+of root design entity 229
+nonportable 557
+subprogram 104, 114
+actual 107, 130
+call 107, 192
+elaboration 234
+formal 107
+matching 115
+purity 107
+unassociated 107
+type 86, 90, 91, 94, 101
+actual 107, 114, 130
+elaboration 233
+formal 107
+matching 115
+genericDecl class
+updating an object 445
+generic-mapped package 45, 47, 114
+elaboration 230, 240
+generic-mapped subprogram 33, 40, 114
+elaboration 237
+Generics class diagram 384
+globally static
+attribute 174
+constraint 174
+expression 172, 173, 213
+primary 173
+range 174
+subtype 175, 213
+graphic character 256, 260, 262, 263, 268, 419
+printable 483
+greater-than operator
+matching (?>) 152
+fixed-point 578
+floating-point 591
+ordinary (>) 152
+fixed-point 578
+floating-point 591
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+648
+Copyright © 2019 IEEE. All rights reserved.
+metalogical value 328
+greater-than-or-equal operator
+matching (?>=) 152
+fixed-point 578
+floating-point 591
+ordinary (>=) 152
+fixed-point 578
+floating-point 591
+metalogical value 328
+group
+attribute specification for 127
+constituent 124
+entity class 124
+constituent list 124
+declaration 21, 23, 25, 37, 44, 46, 77, 85, 124,
+124, 201
+group template 123
+declaration 21, 23, 37, 44, 46, 77, 85, 123, 123,
+201
+GroupDecl class diagram 384
+GT function
+floating-point 587, 592
+guard condition 88, 90, 199, 200, 250, 251
+implicit condition conversion 162
+GUARD signal 38, 88, 200, 205, 247
+current value 245
+net 250
+in sensitivity list 206
+update 250
+guarded 204
+guarded assignment 205
+guarded signal 36, 43, 90, 98, 135, 183
+applicable disconnection specification 137
+in concurrent signal assignment 205
+specification 135
+guarded target 205
+H
+handle 358
+comparison 359
+creation 358
+equivalence 358, 359, 456
+release 358, 499
+resource sharing 358
+target identified by name 481
+target of one-to-many association 477
+target of one-to-one association 476
+validity 359
+hash function 507, 512, 516, 519, 522, 602
+hexadecimal number
+VHPI representation 440
+HEX_READ alias
+declaration 307
+fixed-point 583
+floating-point 596
+HEX_WRITE alias
+declaration 308
+fixed-point 583
+floating-point 595
+hiding 40, 220
+See also visibility
+hierarchy capability set 356
+HIGH attribute 270, 274, 275
+high-impedance STD_ULOGIC value 328, 329, 330,
+331, 561
+result of arithmetic operation 567
+result of relational operation 567
+homograph 27, 220
+and potential visibility 223
+and use clause 223
+where permitted 221
+HREAD procedure 309
+declaration 307
+fixed-point 575, 583
+floating-point 588, 595
+HWRITE procedure 310
+declaration 308
+fixed-point 575, 583
+floating-point 588, 595
+I
+identifier 66, 97, 258, 260, 260
+alias 119
+architecture 22, 133, 207
+attribute 122
+component 123
+configuration 25
+context 227
+entity 19
+enumeration literal 51
+generic package 105
+group 124
+group template 123
+label 213
+library logical name 226
+package 44, 47
+parameter specification 195
+record element 66
+subprogram 33
+subtype 87
+tool directive 268, 508
+type 69, 86
+unit (physical type) 54, 54
+visibility 220
+identifier list 66
+constant 89
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+649
+Copyright © 2019 IEEE. All rights reserved.
+file 94
+interface 96
+record element 66
+signal 90
+variable 92
+identity operator (+) 42, 158
+IEEE library 172, 226
+IEEE Std 1076-1987 332
+IEEE Std 1076-1993 332
+IEEE Std 1076-2002 364
+IEEE Std 754 56, 560, 584
+IEEE_BIT_CONTEXT context 332
+IEEE_STD_CONTEXT context 332
+if generate statement 212
+elaboration 242
+implicit condition conversion 162
+visibility of alternative label 219
+if statement 176, 192, 192, 542
+equivalent to conditional signal assignment 186
+implicit condition conversion 162
+ifStmt class
+execution callback 431
+illegal 16
+IMAGE attribute 114, 272, 274
+nonportable use 557
+immediate scope 217, 220
+immediately within (declarative region) 216
+implicit
+declaration
+visibility 218
+initial value 244
+label 366
+signal. See signal, implicit
+implicitly declared operation 172
+hidden 220
+imply a design entity 133
+impure function 33, 39
+nonportable 557
+in protected type 34
+in 97
+in mode 100, 249
+See also mode
+incomplete type declaration 69, 69, 86
+incomplete_subtype_indication 81
+incomplete_type_definition 81
+incomplete_type_mark 81
+incremental binding 130
+indication 131
+index
+constraint 59, 61
+locally static 165, 166
+satisfaction 62
+range 59, 61, 143, 275, 276
+of aggregate 167
+aggregate with others choice 165
+aggregate without others choice 166
+of alias 120
+bit string literal 163
+of concatenation result 157
+determination 62, 233, 234, 244, 271
+of external name 146
+in fixed-point package 577
+in floating-point package 587
+of logical operator result in synthesis pack-
+age 569
+parameter 35, 36, 192
+port 108
+of shift operator result 155
+string literal 163
+in type conversion 169
+undefined 60, 62
+subtype 59
+subtype definition 59
+value 143
+indexed name 49, 138, 142, 142
+distinguishing from function call 168
+globally static 174
+locally static 139
+locally static expression 173
+static 139
+indexedName class
+DefName and DefCaseName properties 373
+FullName and FullCaseName properties 377
+Name and CaseName properties 369
+updating an object 445
+indirect binding. See standard indirect binding
+inequality operator
+matching (?/=) 152
+fixed-point 578
+floating-point 591
+ordinary (/=) 152
+fixed-point 578
+floating-point 591
+metalogical value 328
+inertial
+in port association 109
+elaboration 234
+in signal assignment 181
+inertial delay 181, 183
+infinity 585
+infinity (floating-point) 585
+information model 355, 364
+access during registration phase 421
+classes available during registration phase 415
+handle 358
+machine-readable 364
+searching 481
+inheritance relationship (information model) 355
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+650
+Copyright © 2019 IEEE. All rights reserved.
+initial transaction 230, 246
+initial value 49
+aggregate with others choice 166
+allocated object 170
+default 92
+aggregate with others choice 166
+allocated object 170
+expression 92
+initialization 229, 252
+function
+callback registration 425
+phase 421, 422, 423
+callback 436
+initialization vector 516
+inout 97
+inout mode 100, 249
+See also mode
+INPUT file
+declaration 306
+instance based path 282
+instance name 280
+INSTANCE_NAME attribute 144, 172, 174, 280,
+286, 379
+for encrypted description 522
+nonportable use 557
+InstanceName property 379
+instantiation
+component. See component, instance
+entity. See entity, instance
+subprogram. See subprogram, instantiation
+integer 261, 262, 263, 512, 513
+literal 53, 261
+property
+getting value 362, 465
+implementation defined 529
+type 52
+bounds 53
+definition 50, 53
+elaboration 237
+native format 444
+predefined 53
+predefined operator 159, 161
+string representation 80
+type conversion 169
+VHPI representation 439, 441
+INTEGER type 53, 61
+integer type 49
+integer types 49
+integer_incomplete_type_definition 81
+INTEGER_VECTOR type 64
+declaration 300
+interactive command mode
+callback 436
+interface
+constant
+declaration 96
+declaration 85, 96, 96, 106
+element 106
+file
+declaration 96
+function specification 104, 105
+list 34, 106, 106, 107
+object 96
+attribute specification for 127
+declaration 89, 96, 96, 96
+index range 62
+package 105
+declaration 96, 105, 105
+generic map aspect 105
+See also generic, package
+procedure specification 104
+signal
+declaration 96
+subprogram 104
+declaration 104, 104
+default 104, 105, 105, 107, 233
+specification 104
+See also generic, subprogram
+subprogram declaration 96
+type 101
+declaration 96, 101, 101
+See also generic, type
+variable
+declaration 96
+interface_type_indication 96
+internal representation (VHPI) 442
+interrupt event
+callback 437
+ISNAN function
+floating-point 595
+IS_NEGATIVE function
+floating-point 592
+ISO C 356
+ISO/IEC 8859-1 character set 52, 256
+IsSimNet property 409
+IS_X function 331
+fixed-point 575, 581
+floating-point 594
+ISX value (floating-point) 585
+iteration scheme 195
+iterator 484
+scanning 500
+Iterator class diagram 412
+J
+JUSTIFY function 309
+declaration 306
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+651
+Copyright © 2019 IEEE. All rights reserved.
+K
+kernel process 245
+key
+block 510
+encoding 512
+default 598
+exchange 508, 603
+method 510
+name 510, 511
+owner 510, 511
+store 604
+keyword (protect directive) 508
+expression 508
+list 508
+keyword (PSL) 220, 267
+Kind property 358
+L
+label 213
+alternative 27, 212, 213
+assertion statement 178, 203
+attribute specification for 127
+in block configuration 26
+block statement 199
+case statement 193
+component instance 206
+in configuration specification 129
+exit statement 196
+in external name 145, 146
+generate statement 212, 213
+if statement 192, 542
+implicit 366
+implicitly declared 176
+loop statement 195
+next statement 196
+null statement 197
+in path name 280, 281, 282
+procedure call 191, 202
+process statement 200
+report statement 179
+signal assignment 180, 204
+variable assignment 189
+wait statement 176
+LAST_ACTIVE attribute 99, 172, 174, 235, 278,
+279
+of interface object 100
+LAST_EVENT attribute 99, 172, 174, 235, 278, 279
+of interface object 100
+LAST_VALUE attribute 99, 172, 174, 235, 278, 279
+of composite signal 279
+of interface object 100
+LE function
+floating-point 587, 593
+leader (path name) 280, 282
+LEFT attribute 270, 274, 275
+left bound 51, 270, 275
+left of 51
+left to right order 51
+LEFTOF attribute 114, 273
+legal 16
+length
+bit string literal 264
+choice in case statement 194
+LENGTH attribute 276
+less-than operator
+matching (?<) 152
+fixed-point 578
+floating-point 591
+ordinary (<) 152
+fixed-point 578
+floating-point 591
+metalogical value 328
+less-than-or-equal operator
+matching (?<=) 152
+fixed-point 578
+floating-point 591
+ordinary (<=) 152
+fixed-point 578
+floating-point 591
+metalogical value 328
+letter 260, 262
+letter or digit 260
+lexical element 218, 256, 258
+lexicalScope class
+DefName and DefCaseName properties 372
+LexicalScope class diagram 381
+library 225
+clause 226, 227
+declarative region 216
+expanded name for contained unit 140
+of foreign models 414
+information model 355, 413
+searching 481
+logical name 145
+in default binding 134
+registry 416
+resource 226
+unit 225, 225
+existence 133
+scope 217
+working 226
+license 513
+description 513
+lifetime of object (information model) 359
+line feed 179, 180, 308
+line length 311
+encoded text 512
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+652
+Copyright © 2019 IEEE. All rights reserved.
+linkage 97
+linkage mode 100
+port 249, 557
+See also mode
+literal 148, 163, 163, 281, 508
+attribute specification for 127
+evaluation 164
+globally static 173
+locally static 172
+literal class
+reading an object 443
+Literal class diagram 393
+livelock 245
+load of a signal 407
+Loads class diagram 407
+local
+generic constant. See generic, constant, local
+item name 280, 281, 282
+port. See port, local
+locally static
+choice 165
+constraint 173
+expression 53, 54, 56, 127, 172
+index constraint 165
+case statement expression 166
+name 111, 118, 135, 139, 181, 190
+primary 172, 173
+range 173
+subtype 173
+case statement expression 193
+LOGB function
+floating-point 594
+logic type
+interpretation 327
+logic value
+system (STD_LOGIC_1164) 561
+VHPI representation 441
+logical expression 148
+logical name
+file 94, 95
+library 145, 145, 226, 280
+in default binding 134
+scope 217
+visibility 221
+list 226
+object library 416
+logical operator 149, 150
+metalogical value 329
+reduction 151
+short-circuit 150
+in synthesis package 569
+logical table 562
+logical value 327
+longest static prefix 139, 246
+in sensitivity set 177
+loop
+label 281
+parameter 88, 90, 195, 224
+discrete range 61
+elaboration 244
+statement 176, 195, 195
+declarative region 216
+execution 244
+implicit label 366
+LoopNextStmt class diagram 402
+loopStmt class
+execution callback 431
+Name and CaseName properties 368
+LOW attribute 270, 274, 275
+lower bound 51, 270, 275
+lowercase letter 256, 256, 260
+corresponding uppercase letter 257
+LT function
+floating-point 587, 592
+M
+MAC function
+floating-point 592
+marked transaction 183
+matching
+actual generic 105
+case statement 193
+element 153
+in aggregate 165
+alias 120, 239
+of external name 146
+port 235
+signal update 249
+type conversion 170
+variable assignment 190
+equality operator
+applied to case statement choices 194
+generic map aspect 115
+index value 165
+relational operator 152
+don’t care value 327
+synthesis 330
+signature 42, 144
+MATH_COMPLEX package 325, 560
+testbench 561
+mathematical operation 116
+mathematical package 325
+MATH_REAL package 325, 560
+testbench 561
+mature callback 425, 462
+MAXIMUM function 57, 64
+fixed-point 574, 579
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+653
+Copyright © 2019 IEEE. All rights reserved.
+floating-point 593
+MD5 digest method 516
+member 50
+message (VHPI) 485, 506
+metalogical value 327, 328, 330, 331, 585
+result of arithmetic operation 567
+result of relational operation 567
+method 41, 76, 487
+name 138
+Name and CaseName properties 369
+MINIMUM function 57, 64
+fixed-point 574, 579
+floating-point 593
+miscellaneous operator 150, 161
+mod operator 159
+fixed-point 578
+floating-point 587, 591
+mode 96, 96, 97, 100, 108
+mode view 98
+mode_indication 96
+model 245
+name (foreign) 416, 418
+mode_view_declaration 20, 97
+declaration 23, 44
+mode_view_element_definition 97
+mode_view_indication 96, 97
+mode_view_name 97
+mode_view_simple_name 97
+modified relative search string 482
+MODULO function
+fixed-point 579
+floating-point 587, 592
+most recently analyzed architecture 134
+most specialized class (information model) 355
+multidimensional array
+aggregate 165
+matching element 153
+multiple-object declaration 89
+multiplication
+by power of 2 568
+multiplication operator (*) 159, 571
+fixed-point 577
+floating-point 587, 591
+universal expression 175
+multiplicity 364
+MULTIPLY function
+floating-point 587, 592
+multiplying operator 148, 150, 159
+multivalue logic package 326
+mutual exclusion
+determinacy 93
+portability 93
+N
+name 124, 138, 138, 148
+access function (VHPI) 363
+actual designator 109
+alias 119
+architecture 26
+assignment target 181
+component 129, 207
+denotation 85
+entity 22, 25, 133
+evaluation 138
+expanded 140
+external 120
+in external name 145
+formal designator 109
+function 109, 167
+group template 124
+indexed. See indexed name
+locally static 111, 118, 135, 139, 181, 190
+procedure 192
+resolution function 87
+selected. See selected name
+in sensitivity set 176
+signal 135, 176, 181
+locally static 206
+static 139, 176, 202
+slice. See slice, name
+static 36, 108, 120, 138
+subelement 138
+subprogram 105
+subtype 87
+type 87
+uninstantiated package 47, 105
+uninstantiated subprogram 40
+unit (physical type) 54, 54
+variable 189
+static 139
+verification unit 134
+name class
+FullName and FullCaseName properties 376
+reading an object 442
+Name class diagram 393
+Name property 367
+name property 366
+named association
+element. See element, association, named
+interface. See association (interface), named
+NaN (floating-point) 585
+nand operator 42, 150
+fixed-point 579
+floating-point 592
+NANFP function
+floating-point 595
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+654
+Copyright © 2019 IEEE. All rights reserved.
+native format 443
+NATURAL subtype
+declaration 296
+navigability 364
+NE function
+floating-point 587, 592
+negation operator (–) 42
+fixed-point 577
+floating-point 587, 591
+NEG_INFFP function
+floating-point 595
+NEG_ZEROFP function
+floating-point 595
+net 229, 250
+GUARD signal 250
+simulated 407
+new
+allocator 170
+package instantiation 47
+subprogram instantiation 40
+next statement 176, 196, 196
+implicit condition conversion 162
+NEXTAFTER function
+floating-point 595
+nonobject alias 119, 121
+nonportable construct 557
+nonpostponed process 201
+initialization 252
+nor operator 42, 150
+fixed-point 579
+floating-point 592
+NORMALIZE function
+floating-point 587, 594
+Not a Number (floating-point) 585
+not operator 150
+fixed-point 579
+floating-point 592
+NOW function 279
+declaration 296
+value during elaboration 236
+NO_WARNING constant 332
+null
+array. See array, null
+range 51
+choice 165
+for iteration scheme 196
+slice 143
+statement 176, 197, 197
+equivalent to unaffected 182
+transaction. See transaction, null
+waveform 206
+waveform element 183
+null
+access value 49, 68, 163, 163
+where prohibited 168
+in null statement 197
+in registry entry 416
+NULL handle 365
+null object 365
+numeric literal 49, 163
+conformance 48
+numeric type 50
+closely related 169
+predefined operator 156, 158, 161
+NUMERIC_BIT package 172, 330, 564
+NUMERIC_BIT_UNSIGNED package 172, 330,
+564
+NUMERIC_STD package 172, 330, 564
+NUMERIC_STD_UNSIGNED package 172, 330,
+564
+O
+objDecl class
+updating an object 445
+object 88
+alias 119, 120
+attribute specification for 127
+callback 427
+declaration 85, 88, 89, 89
+elaboration 238
+designated by access value 68, 89
+selected name 140
+explicitly declared 89
+elaboration 238
+information model 355
+lifetime 359
+resource sharing 358
+interface 96
+library 415
+in license directive 513
+name 416, 418
+path 419
+specifier 419
+value
+formatting 443
+reading 442
+updating 445
+VHPI representation 441
+Object class diagram 385
+octal number
+VHPI representation 440
+OCTAL_READ alias
+declaration 307
+fixed-point 583
+floating-point 595
+OCTAL_WRITE alias
+declaration 308
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+655
+Copyright © 2019 IEEE. All rights reserved.
+fixed-point 583
+floating-point 595
+off (driver) 43
+one-dimensional array. See array, one-dimensional
+one-time callback 425
+one-to-many association
+implementation defined 529
+information model 355
+multiplicity 364
+navigating 477, 484
+traversal 362
+one-to-one association
+implementation defined 529
+information model 355
+mulitplicity 364
+navigating 476
+traversal 360
+open
+actual designator 109
+in array constraint 59
+in binding indication 133
+open (file) 72, 95
+operand 163
+operation 49
+arithmetic 53, 54, 56
+array 64
+basic 49
+file 71
+fixed-point 577
+implicitly declared 172
+hidden 220
+information model 355
+predefined 288
+scalar type 57
+short-circuit 150
+evaluation 151
+universal_integer 175
+universal_real 175
+operator 149
+alias 121
+binary 41
+overloading 33, 41
+precedence 149
+symbol 33
+as alias designator 119
+in attribute specification 127
+attribute specification for 128
+as name 138, 140, 279, 281
+overloading 41
+as subprogram designator 33
+visibility 220
+unary 41
+visibility 220
+or operator 42, 150
+fixed-point 579
+floating-point 592
+order of analysis 228
+ordered association 364, 477, 484
+ordinary case statement 193
+ordinary relational operator 152
+OREAD procedure 309
+declaration 307
+fixed-point 575, 583
+floating-point 588, 595
+other special character 256, 257
+others
+choice. See choice, others
+in attribute specification 126
+in component specification 129
+in disconnection specification 135
+out 97
+out mode 100, 249
+See also mode
+OUTPUT file
+declaration 306
+output file (tool) 485, 506
+overflow 326, 560, 565, 568, 571
+overloading 218, 220
+attribute specification 128
+enumeration literal 52
+in fixed-point package 573
+in MATH_COMPLEX package 561
+operator 33, 41
+operator symbol 120
+resolution 223
+condition conversion 162
+subprogram 40
+OWRITE procedure 310
+declaration 308
+fixed-point 575, 583
+floating-point 588, 595
+P
+package 32
+body 20, 23, 37, 45, 45, 46, 77, 200, 225
+declarative item 46
+declarative part 45, 46
+declarative region 216
+elaboration 240
+implicit 40, 48
+declaration 20, 23, 37, 44, 44, 46, 77, 85, 200,
+225
+attribute specification for 127
+declarative region 216
+declarative item 44
+declarative part 44
+DefName and DefCaseName properties 373
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+656
+Copyright © 2019 IEEE. All rights reserved.
+elaboration 230, 239
+expanded name for contained declaration 140
+in external name 145
+generic. See generic, package
+generic-mapped 45, 47, 114
+elaboration 230, 240
+header 44
+elaboration 232, 239
+generic map aspect 114
+instance
+as actual generic package 115
+declaration 20, 23, 37, 44, 46, 47, 47, 77, 85,
+200, 225
+elaboration 240
+equivalent package 47
+in external name 146
+in a package declaration 47
+interface 105
+Name and CaseName properties 368
+package based path 280, 282
+path instance element 280
+pathname 145, 145
+scope of contained declaration 217
+simple 44
+UML 365
+uninstantiated 45, 47, 115
+elaboration 240
+scope of formal generic declaration 217
+visibility of contained declaration 221
+where prohibited 145, 222
+visibility of contained declaration 218
+visibility of formal generic 219
+packInst class
+DefName and DefCaseName properties 373
+Name and CaseName properties 368
+parameter 40
+actual 34, 192
+in function call 167
+association 167, 192
+elaboration 244
+base type 40
+class 34
+composite 35, 36
+constant 35
+file 36, 95
+formal 34, 88, 90, 167, 192
+nonportable use 557
+index range 35, 36, 192
+information model object 421
+interface list 106
+elaboration 236
+mode 34
+passing 35, 36, 111
+signal 36
+contributor 408
+excluded from sensitivity list 201
+specification 195, 212
+subtype 35, 36
+variable 35
+force and release 446
+parameter_map_aspect 167
+parent 38, 177, 201, 202
+parenthesized expression
+distinguished from aggregate 164
+globally static 174
+locally static 172
+in type conversion 169
+partial pathname 145
+partially constrained subtype 50, 60, 66
+elaboration 237
+passive process 202
+passive statements 22
+path instance element 282
+path name 282
+path to instance 282
+pathname 145
+element 145
+PATH_NAME attribute 144, 172, 174, 282, 286, 379
+for encrypted description 522
+nonportable use 557
+PathName property 379
+permanent (VHPI string or structure) 452
+physical
+literal 54, 163
+property
+getting value 363, 472
+implementation defined 529
+type 53
+alias 121
+bounds 54
+definition 50, 53
+elaboration 237
+native format 444
+predefined 55
+predefined operator 159
+string representation 80
+in use clause 222
+value
+VHPI representation 439, 441
+physical type 49
+physical_incomplete_type_definition 81
+plain_return_statement 197
+pointer to string or structure 452
+port
+active 235
+actual 108, 118
+clause 20, 107, 107, 123, 199
+elaboration 234
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+657
+Copyright © 2019 IEEE. All rights reserved.
+contributor 408
+default expression 235
+default value 98, 248, 249
+dependence on implicit signal 251
+driving value 248
+associated expression 235
+no source 100, 248
+vhpiCbValueChange callback 428
+effective value 249
+elaboration 234
+expression as an actual 108
+elaboration 234
+equivalent assignment 108
+external name 146
+formal 20, 88, 107, 118
+incremental binding 131
+index range 108
+interface list 106
+linkage mode 249, 557
+list 107
+load of a sginal 409
+local 88, 123
+attribute 129
+default association 134
+external name 147
+restrictions 118
+map aspect 118, 118, 130, 199, 207
+default 133, 134
+elaboration 234
+mode 108
+on a net 250
+resolved 564
+restrictions 108
+of root design entity 229
+nonportable 557
+unassociated 134
+driving value 235
+unconnected 249
+port class
+reading an object 442
+updating an object 445
+portDecl class
+updating an object 445
+Ports class diagram 386
+POS attribute 114, 273
+POS_INFFP function
+floating-point 595
+position number 273
+enumeration literal 52
+integer value 53
+of physical structure 439
+physical value 54
+of time structure 440
+positional association
+element. See element, association, positional
+interface. See association (interface), positional
+POSITIVE subtype
+declaration 296
+post-analysis capability set 357
+postponed 200, 202, 203, 204
+postponed process 201, 279
+initialization 253
+simulation cycle 254
+potentially visible 221, 223
+precedence 149
+precision 325
+PRED attribute 114, 273
+predefined attribute. See attribute, predefined
+predefined environment 269
+predefined operation 288
+hidden 220
+identified by use clause 222
+implicit alias 121
+prefix 138, 138, 140, 142, 143, 144
+access type 138
+appropriate 138
+type 138
+prefixedName class
+updating an object 445
+primary (expression) 148
+globally static 173
+locally static 172, 173
+value 149
+primary binding indication 130
+primary unit (design unit) 85, 225
+expanded name for 140
+in library declarative region 216
+in root declarative region 216
+visibility 218
+primary unit (physical type) 54
+declaration 53, 54
+private key 507, 519, 521, 599, 602
+private_declararation
+declaration 75
+private_declaration
+declaration 75
+private_incomplete_type_definition 81
+procedure
+attribute specification for 127
+call 191, 192, 202
+generic procedure 192
+call statement 176, 191, 191
+equivalent to concurrent procedure call 202
+SignatureName property 372
+declaration 32
+return 197
+specification 32
+uninstantiated 192
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+658
+Copyright © 2019 IEEE. All rights reserved.
+process 229
+creation using VHPI 459
+declarative item 200
+declarative part 200
+declarative region 216
+driver 246
+creation during elaboration 230, 244
+elaboration 244
+equivalent to concurrent assertion 203, 244
+equivalent to concurrent procedure call 202
+equivalent to concurrent signal assignment 205,
+244
+equivalent to concurrent statement
+implicit label 367
+equivalent to DELAYED attribute 251, 277
+execution 245
+implicit label 367
+initialization 252
+load of a signal 409
+nonpostponed. See nonpostponed process
+passive 202
+postponed. See postponed process
+represented by concurrent procedure call 203
+resumption 177, 250, 253, 254
+callback 432
+sensitivity list 200, 201
+statement 22, 199, 200, 200
+statement part 200, 201
+suspension 177, 254
+callback 432
+processStmt class
+creation 459
+execution callback 431
+profile 40, 121, 144, 224
+conformance 48, 105, 107, 114
+enumeration literal 52
+projected output waveform 183, 246, 449
+propagation of signal values 246
+property (information model) 355
+getting value 362, 465, 472, 473
+property (PSL)
+attribute specification for 127
+simple subset 86
+protect directive 507, 508, 509, 597
+author directive 509, 509, 517, 520
+author info directive 509, 509, 517, 520
+begin directive 509, 509, 517
+begin protected directive 509, 509, 520
+comment directive 514, 514, 517, 520
+data block directive 511, 511, 521
+data keyname directive 511, 511, 518, 521
+data keyowner directive 511, 511, 518, 521
+data method directive 511, 511, 518, 521
+decrypt license directive 513, 517, 520
+digest block directive 512, 512, 519, 521
+digest key method directive 511, 511, 519, 521
+digest keyname directive 511, 511, 519, 521
+digest keyowner directive 511, 511, 519, 521
+digest method directive 512, 512, 519, 521
+encoding directive 512, 512, 517, 520, 521
+encrypt agent directive 510, 510, 520
+encrypt agent info directive 510, 510, 520
+end directive 509, 509, 517
+end protected directive 509, 509, 520
+key block directive 510, 510, 518, 520
+key keyname directive 510, 510, 518, 520
+key keyowner directive 510, 510, 518, 520
+key method directive 510, 510, 518, 520
+license directive 513
+runtime license directive 513, 517, 520
+viewport directive 513, 517, 520
+protected type 75
+access using vhpi_protected_call function 486
+body 75, 77, 77
+declarative item 77
+declarative part 77
+declarative region 216
+elaboration 237, 239
+in package 45
+wait statement 178
+declaration 75, 75, 75
+declarative item 75
+declarative part 75
+declarative region 216
+definition 45, 75, 86
+elaboration 237
+exclusive access 38, 244
+expanded name for contained declaration 140
+method 41, 76, 487
+execution 244
+name 138
+Name and CaseName properties 369
+object elaboration 239
+resolution function 88
+scope of contained declaration 217
+shared variable 92
+string representation 80
+visibility of method 219
+where prohibited 34, 71, 90, 98, 123, 189
+protected type declaration 216
+protected_type_declarative_part 75
+protected_type_header 75
+protectedTypeInst class
+DefName and DefCaseName properties 373
+Name and CaseName properties 368
+protected_type_instance_definition 86
+protected_type_instantiation_definition 79
+protection envelope 507, 597
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+659
+Copyright © 2019 IEEE. All rights reserved.
+protection requirement 522
+pseudo-random number generator 560
+PSL declaration. See declaration, PSL declaration
+PSL directive. See directive, PSL directive
+PSL expression 149
+PSL function call 149
+PSL incorporated into VHDL 16
+PSL keyword 220, 267
+PSL verification unit. See verification unit
+public key 507, 518, 519, 522, 599, 602
+infrastructure (PKI) 603
+pulse rejection limit 55, 181, 183, 501
+pure function 33, 39
+in protected type 34
+Q
+QNANFP function
+floating-point 595
+qualified expression 49, 149, 168, 168, 170
+aggregate with others choice 166
+globally static 174
+locally static 172
+quantity
+declaration
+elaboration 238
+question mark delimiter (?)
+in case statement 193
+in concurrent selected signal assignment 204
+in selected signal assignment 187, 188, 189
+in selected variable assignment 191, 191
+quiet
+NaN 585
+signal 247, 277
+QUIET attribute 38, 89, 99, 235, 245, 247, 277, 279
+contributor to a signal 408
+initialization 252
+of interface object 100
+of signal parameter 36, 100
+static name 139
+update 250, 251
+quoted-printable encoding method 515
+R
+RAMP attribute
+of signal parameter 100
+random number generator 560
+range 50, 59
+ascending 51, 52, 270, 271
+constraint 50, 53, 56, 87
+compatibility with subtype 51
+descending 51
+globally static 174
+left bound 51
+locally static 173
+lower bound 51
+nonportable use 557
+null 51
+choice 165
+for iteration scheme 196
+right bound 51
+upper bound 51
+RANGE attribute 275
+raw encoding method 513, 515
+READ procedure
+file operation 72, 74, 99
+fixed-point 575, 583
+floating-point 588, 595
+TEXTIO operation 309
+declaration 306
+reading an object 99
+VHPI 442
+READLINE procedure 99, 308
+declaration 306
+read-only file 72
+real
+literal 261
+property
+getting value 363, 472
+implementation defined 529
+REAL type 56, 560
+declaration 294
+REALTOBITS function
+floating-point 594
+REAL_VECTOR type 64
+declaration 301
+rebound (incremental binding) 131
+RECIPROCAL function
+fixed-point 572, 579
+floating-point 587, 592
+record
+aggregate 165
+constraint 66, 68, 87, 219
+in allocator 170
+compatibility with subtype 67
+element
+DefName and DefCaseName properties
+374
+FullName and FullCaseName properties
+378
+Name and CaseName properties 369
+selected name 140
+element constraint 66
+element resolution 87
+matching element 153
+resolution 87, 87, 219
+type 65
+declarative region 216
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+660
+Copyright © 2019 IEEE. All rights reserved.
+scope of element declaration 217
+visibility of element declaration 218, 219
+See also type, composite
+type definition 58, 66
+elaboration 237
+record type 49
+record_element_list 97
+record_element_simple_name 97
+record_mode_view_indication 97
+reference class (VHPI) 364
+reference object (VHPI) 364
+reflection 334, 624
+region class
+FullName and FullCaseName properties 376
+InstanceName property 379
+PathName property 379
+RegionInstance class diagram 387
+register 90
+register signal
+active 247
+registration function 415, 416, 417, 470
+callback registration 425
+name 416
+registration phase 414
+callback 435
+registry file. See tabular registry
+reject 181
+relation 148
+relational expression
+metalogical value 328
+relational operator 148, 149, 152, 574
+floating-point 587
+in synthesis package 567
+relative pathname 145, 145
+relative search string 481
+release
+assignment 181
+driver 448
+signal 181, 182, 247, 248, 253, 447
+variable 446
+release 180
+rem operator 159
+fixed-point 578
+floating-point 587, 591
+REMAINDER function
+fixed-point 579
+floating-point 587, 592
+repetitive callback 425
+report statement 176, 179, 179
+in an encrypted description 522
+equivalent to vhpi_assert function 452
+representation
+floating point type 56
+reserved word 15, 218, 266
+reset capability set 357
+reset phase 423, 458
+callback 438
+RESIZE function
+fixed-point 572, 573, 580
+floating-point 587, 593
+resolution function 43, 87, 90
+invocation 43
+on a net 250
+nonportable use 557
+in STD_LOGIC_1164 package 563
+uninstantiated subprogram 33
+resolution indication 87, 90
+corresponding to a subtype 87
+where prohibited 60, 170
+resolution limit 55, 318, 440
+nonportable 557
+RESOLUTION_LIMIT function 311
+RESOLVED function 327
+resolved port 564
+resolved signal 43, 88, 90, 247, 563
+composite 91, 184
+updating a member 493
+driving value 248
+resolved value 43
+resource library 226
+resource reclamation 358
+resource sharing 358
+restart phase 423, 468
+automatic restore 423
+callback 437
+saved data set 467
+resumption 177, 250, 253, 254
+callback 432
+return statement 176, 196, 196
+REVERSE_RANGE attribute 276
+RIGHT attribute 270, 274, 275
+right bound 51, 270, 275
+RIGHTOF attribute 114, 274
+RIPEMD-160 digest method 516
+RISING_EDGE function 57, 330, 331
+rol operator 155
+fixed-point 578
+role name 364
+root declarative region 145, 216, 223, 226
+root design entity instance
+FullName and FullCaseName properties 376
+rootInst class
+DefName and DefCaseName properties 373
+Name and CaseName properties 368
+ror operator 155
+fixed-point 578
+rounding 573, 586
+RSA encryption method 516
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+661
+Copyright © 2019 IEEE. All rights reserved.
+runtime license 513
+S
+satisfaction of index constraint 62, 68
+saturation 573
+save phase 253, 254, 422, 490
+automatic save 423
+callback 437
+saved data set 490
+save/restart capability set 357
+scalar
+type 50
+operation 57
+type definition 50, 86
+VHPI representation 440
+scalar array 153
+scalar type 49
+scalar_incomplete_type_definition 81
+ScalarType class diagram 389
+SCALB function
+fixed-point 574, 580
+floating-point 594
+schedule
+deposit 246, 247, 248, 249, 447, 448
+force 184, 246, 247, 249, 447, 448
+release 184, 247, 248
+transaction 449
+scope 85, 216
+context clause 227
+of declaration 216
+extension into block configuration 27
+immediate 217, 220
+use clause 222
+scope object (VHPI) 481
+search string 481
+secondary unit (design unit) 225
+in root declarative region 216
+secondary unit (physical type) 54
+declaration 54
+nonportable use 557
+secret key 507, 597
+Secure Hash Algorithm digest method 516
+selected assignment
+force assignment 187, 188, 188
+selected expressions 188, 191
+signal assignment 180, 187, 187
+variable assignment 189, 191, 191
+waveform assignment 187, 188
+waveforms 187, 188, 204
+selected name 49, 140, 140, 222, 227
+globally static 174
+locally static 139
+locally static expression 173
+static 138
+selected_name 138
+selectedName class
+DefName and DefCaseName properties 374
+FullName and FullCaseName properties 378
+Name and CaseName properties 369
+updating an object 445
+selection
+visibility 218
+sensitivity 250
+clause 176
+of concurrent assertion 204
+of concurrent procedure call 203
+of concurrent signal assignment 206
+edge-detection function 327
+list 99, 176, 200
+all 177
+process 201
+resumption callback 432
+set 176
+bitmap 430
+bitmap macro 527
+vhpiCbSensitivity callback 430
+in simulation cycle 254
+separator 258
+seqProcCall class
+Name and CaseName properties 369
+SeqSigAssignStmt class diagram 402
+seqStmt class
+execution callback 431
+SeqStmtInheritance class diagram 403
+sequence (PSL)
+attribute specification for 127
+sequence of statements 176, 195
+sequential block statement 216
+sequential statement 38, 176, 176, 201
+equivalent to conditional signal assignment 186
+equivalent to selected signal assignment 188
+equivalent to selected variable assignment 191
+sequential_block_declarative_part 198
+sequential_block_statement 197
+statement 176
+sequential_block_statement_part 198
+session key 507, 510, 518, 521, 600
+severity level
+continuing execution 179, 180
+VHPI error 453
+SEVERITY_LEVEL type 52, 178, 179
+declaration 291
+SFIXED subtype 570
+SFIXED_HIGH function
+fixed-point 582
+SFIXED_LOW function
+fixed-point 582
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+662
+Copyright © 2019 IEEE. All rights reserved.
+SFIX_HIGH function
+fixed-point 583
+SFIX_LOW function
+fixed-point 583
+SHA digest method 516
+shared variable 89, 92
+access using vhpi_protected_call function 486
+declaration 21, 23, 92
+external name 146
+nonportable 557
+in package 45, 46
+in subprogram 38
+where prohibited 92, 202
+shift expression 148
+shift function
+in synthesis package 568
+shift operator 148, 149, 155, 574
+metalogical value 329
+short-circuit operation 150
+evaluation 151
+SIDE type
+declaration 306
+sigDecl class
+updating an object 445
+sign
+bit (floating-point) 584
+operator 148, 150, 158
+signal 89
+active 43, 246, 247, 250, 252, 277, 278, 435, 493
+vhpiCbTransaction callback 429
+actual port 118, 130
+assignment statement 176, 180, 180
+base type 181
+drivers defined 246
+in procedure outside a process 184
+attribute specification for 127
+basic 247
+contributors and loads 407
+change 249
+composite
+driving value 248
+effective value 249
+event 279
+update 249
+contributor 407, 408
+current value 278
+initialization 252
+kernel variable 245, 249
+declaration 21, 23, 44, 89, 90, 90
+elaboration 238
+in package 45
+default value 90, 230, 246, 248
+aggregate with others choice 166
+implicit 91
+dependence 251, 252, 253
+deposit 247, 248, 249, 447
+driving value 247, 252
+kernel variable 249
+effective value 247, 248, 252
+event 177, 249, 253, 277, 278
+vhpiCbSensitivity callback 430
+vhpiCbValueChange callback 428
+explicit 38
+explicitly declared 90
+external name 146
+force 181, 182, 247, 249, 447
+GUARD. See GUARD signal
+guarded 36, 43, 90, 98, 135, 183
+applicable disconnection specification 137
+implicit 38, 89, 247
+active 247
+dependence 251
+event 251
+initialization 252
+on a net 250
+update 250, 250
+initial value 91
+kind 90, 90
+list 135
+load 407
+name 181
+locally static 206
+static 139, 176, 202
+on a net 250
+parameter. See parameter, signal
+quiet 247, 277
+release 181, 182, 247, 248, 253, 447
+resolved 43, 88, 90, 247, 563
+composite 43, 91, 184, 248, 493
+driving value 248
+resolved value 43
+scalar
+update 249
+source 564
+active 246
+multiple 43
+transform 205
+update 249, 253, 447
+initialization 252
+value propagation 246
+signal class
+updating an object 446
+signaling NaN 585
+Signals class diagram 387
+signature 42, 42
+in alias declaration 119, 121
+in attribute name 144
+in attribute specification 127
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+663
+Copyright © 2019 IEEE. All rights reserved.
+in name attribute 280, 282
+restrictions 120, 144
+in subprogram declaration 40
+signature (digital) 507, 512
+SignatureName property 372
+SIGNED type 331
+conversion to UNSIGNED 568
+mixed with UNSIGNED type 564
+sign-extension function
+metalogical value 329
+sigParamDecl class
+updating an object 445
+SimNet association 409
+simple expression 148, 164
+simple force assignment 180
+simple name 138, 281
+architecture 280
+attribute designator 144
+conformance 48
+entity 145, 280, 282
+locally static 139
+named entity 127
+object 145
+package 45, 145, 280, 282
+record element 66, 87, 164
+selected name suffix 140
+in sensitivity set 177
+static 138
+variable 280, 282
+simple package 44
+simple release assignment 180
+simple signal assignment 180, 180, 180
+simple subprogram 33
+simple variable assignment 189, 189, 189
+simple waveform assignment 180
+simple_mode_indication 96
+SIMPLE_NAME attribute 144, 174, 279, 286, 287
+SimpleName class diagram 394
+simple_range 51
+simplified bit value 263
+simulated net 407
+simulation cycle 229, 252, 253
+callback 434
+time of next (Tn) 252, 253
+time of next (Tn) 254
+time of next (Tn) 254, 422, 423, 470
+simulation phase 421, 422
+callback 434, 436
+SimulatorKernel class diagram 410
+single-object declaration 89
+sla operator 155
+fixed-point 578
+SLEW attribute 99
+slice 49
+bounds and direction 143
+DefName and DefCaseName properties 374
+FullName and FullCaseName properties 378
+globally static 174
+name 138, 138, 143, 143
+as formal designator 62
+locally static 139
+locally static expression 173
+static 139
+Name and CaseName properties 370
+null 143
+of an object 89
+sliceName class
+DefName and DefCaseName properties 374
+FullName and FullCaseName properties 378
+Name and CaseName properties 370
+updating an object 445
+sll operator 155
+fixed-point 578
+source (signal) 564
+active 246
+multiple 43
+source text 517
+space character 256, 256
+special character 256, 256
+specification 126
+elaboration 240
+SpecInheritance class diagram 396
+SQRT function
+floating-point 592
+sra operator 155
+fixed-point 578
+SREAD procedure 309
+declaration 307
+srl operator 155
+fixed-point 578
+STABLE attribute 38, 89, 235, 245, 247, 277, 279
+contributor to a signal 408
+initialization 252
+of interface object 100
+of signal parameter 36, 100
+static name 139
+update 250
+standard direct architecture binding 419
+standard direct binding 418, 419, 419
+standard direct subprogram binding 419
+standard indirect binding 418, 418, 418
+STANDARD package 49, 226, 287
+statement
+callback 431
+DefName and DefCaseName properties 373
+Name and CaseName properties 368
+transform 205
+statement part
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+664
+Copyright © 2019 IEEE. All rights reserved.
+elaboration 241
+static
+discrete range 213
+expression 172
+default for interface object 96
+in generate specification 27
+generate specification in path name 145
+in if generate statement 213
+synthesis 328
+name 36, 108, 120, 138
+object
+information model 355, 359
+validity during reset 424
+signal name 139, 176, 202
+variable name 139
+static access capability set 356
+static_expression 96
+STD library 226
+stdCallbacks package 409
+stdConnectivity package 404
+stdEngine package 409
+stdExpr package 391
+stdForeign package 410
+stdHierarchy package 382
+STD_LOGIC type
+multiple sources 564
+native format 444
+VHPI representation 441
+STD_LOGIC_1164 package 153, 172, 326, 327, 561
+synthesis of types 327
+STD_LOGIC_TEXTIO package 326
+STD_LOGIC_VECTOR type
+multiple sources 564
+STD_MATCH function 327, 330, 331, 569
+fixed-point 579
+floating-point 593
+stdMeta package 410
+stdSpec package 394
+stdStmts package 398
+stdSubprograms package 396
+stdTool package 412
+stdTypes package 388
+STD_ULOGIC type
+condition operator 162
+in matching case statement 193
+native format 444
+predefined operator 153
+single source 564
+synthesis 327, 327
+VHPI representation 441
+STD_ULOGIC_VECTOR type
+in NUMERIC_STD_UNSIGNED package 331
+single source 564
+stdUninstantiated package 379
+STOP procedure 311
+stopping simulation 458
+strength 562
+string
+VHPI representation 441
+string literal 33, 49, 163, 258, 262, 262, 509, 510,
+511, 512, 513, 514
+in aggregate 165
+bounds and direction 163
+fixed-point value 577
+index range 163
+where prohibited 168
+string property
+getting value 363, 473
+implementation defined 529
+string representation 79, 272, 273, 309, 310
+STRING type 64, 79, 178, 179
+declaration 296
+STRING_READ alias
+declaration 307
+STRING_WRITE alias
+declaration 308
+StructStmt class diagram 403
+StructuralRegions class diagram 388
+subaggregate 165
+aggregate with others choice 166
+SubBody class diagram 397
+subclass (information model) 355
+subelement 50
+name 138
+subpCall class 379
+DefName and DefCaseName properties 373
+execution callback 433
+SignatureName property 372
+SubpCall class diagram 398
+subpDecl class
+SignatureName property 372
+subprogram 32
+as actual generic 114
+alias 121
+attribute specification for 127
+body 20, 23, 37, 37, 46, 77, 200
+declarative region 216
+elaboration 236
+call 38
+DefName and DefCaseName properties
+373
+execution 244
+execution callback 433
+generic subprogram 107
+Name and CaseName properties 369
+SignatureName property 372
+declaration 20, 23, 32, 32, 37, 38, 44, 46, 75, 77,
+85, 200
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+665
+Copyright © 2019 IEEE. All rights reserved.
+declarative region 216
+elaboration 236
+declarative item 37
+declarative part 37
+foreign. See foreign, subprogram
+generic. See generic, subprogram
+generic-mapped 33, 40, 114
+elaboration 237
+header 32
+elaboration 232, 236
+generic map aspect 114
+instantiation 34, 38, 39
+declaration 20, 23, 37, 39, 40, 44, 46, 75, 77,
+85, 200
+elaboration 236
+equivalent subprogram 40
+in a package declaration 40
+interface 104
+kind 37, 38, 40
+overloading 40
+protected type method 76
+scope of formal parameter declaration 217
+SignatureName property 372
+simple 33
+specification 32, 37
+conformance 48
+statement part 37, 38
+uninstantiated 33, 38, 39
+call 33
+elaboration 236
+recursive call 34
+resolution function 43
+scope of formal generic declaration 217
+visibility of formal generic type 219
+visibility of formal generic 219
+visibility of formal parameter 219
+SUBTRACT function
+floating-point 587, 592
+subtraction operator (–) 42
+fixed-point 577
+floating-point 587, 591
+subtype 49, 86
+of alias 120
+alias of 121
+allocator 170
+of anonymous type 53, 54, 56, 60, 66
+array 59, 60
+attribute specification for 127
+check
+attribute specification 240
+driving value of signal 249
+effective value of signal 249
+expression associated with port 235
+port association 235
+compatibility with another subtype 51
+compatibility with constraint 238
+declaration 20, 23, 37, 44, 46, 77, 85, 86, 87, 201
+elaboration 238
+of external name 146
+force assignment 184
+foreign function result 449
+fully constrained 49, 60, 66, 271
+elaboration 237
+globally static 175, 213
+implicit conversion 169, 240, 249
+index 59
+index range 62
+indication 59, 66, 68, 87, 87, 89, 90, 92, 94, 96,
+109, 119, 144, 145, 170
+as actual generic type 114
+conformance 48
+direction 88
+in nonobject alias 121
+locally static 173
+case statement expression 193
+parameter 36, 192
+partially constrained 50, 60, 66
+elaboration 237
+qualified expression 168
+same 115
+type conversion 168, 169
+unconstrained 49, 59, 66, 87
+in use clause 222
+variable assignment 190
+waveform assignment 183
+SUBTYPE attribute 271
+SUCC attribute 114, 273
+suffix 140
+superclass (information model) 355
+suspension 177, 254
+callback 432
+SWRITE alias 311
+declaration 308
+symmetric cipher 507, 518, 597, 599
+synthesis
+context declaration 332
+mathematical packages 561
+numeric package 326, 564
+scope 327
+terminology 327
+tool 327, 522
+T
+tabular registry 415
+entry 416
+file 416
+target (assignment) 180, 181, 186, 187, 188, 189,
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+666
+Copyright © 2019 IEEE. All rights reserved.
+191, 204, 535
+target class (information model) 364
+target library for default binding 134
+target object (information model) 364
+TEE procedure 308
+declaration 307
+term 148
+terminal
+declaration
+elaboration 238
+termination phase 424, 458
+callback 435
+TEXT type
+declaration 305
+TEXTIO package 74, 226, 305
+nonportable use 557
+three-state buffer 329
+time
+callback 433
+VHPI representation 440, 441
+time member
+of callback data structure 427
+time structure 440
+TIME type 55, 183
+declaration 294
+native format 444
+timeout clause 176
+timeout interval 177
+callback 429
+time callback 433
+TIME_VECTOR type 64
+declaration 301
+TO_01 function 331
+fixed-point 575, 581
+floating-point 594
+TO_BINARY_STRING alias 65
+fixed-point 583
+floating-point 596
+TO_BSTRING alias 65
+fixed-point 583
+floating-point 596
+TO_FLOAT function
+floating-point 587, 588, 593
+TO_HEX_STRING alias 65
+fixed-point 583
+floating-point 596
+TO_HSTRING function 65
+fixed-point 575, 583
+floating-point 588, 596
+TO_INTEGER function
+fixed-point 581
+floating-point 587, 594
+TO_OCTAL_STRING alias 65
+fixed-point 583
+floating-point 596
+tool 355
+control 458
+directive 256, 258, 268, 268, 507
+execution 414, 435
+Tool class diagram 413
+TO_OSTRING function 65
+fixed-point 575, 583
+floating-point 588, 596
+top-level interface object 229
+TO_REAL function
+fixed-point 581
+floating-point 587, 594
+TO_SFIX function
+fixed-point 575, 582
+TO_SFIXED function
+fixed-point 581
+floating-point 587, 594
+TO_SIGNED function
+fixed-point 581
+floating-point 587, 594
+TO_SLV function
+fixed-point 581
+floating-point 588, 593
+TO_STD_LOGIC_VECTOR alias
+fixed-point 581
+floating-point 588, 593
+TO_STDLOGICVECTOR alias
+fixed-point 581
+floating-point 588, 593
+TO_STD_ULOGIC_VECTOR alias
+fixed-point 581
+floating-point 593
+TO_STDULOGICVECTOR alias
+fixed-point 581
+floating-point 593
+TO_STRING function 57, 65
+declaration 304
+fixed-point 575, 583
+floating-point 588, 596
+string representation 80
+TO_SULV function
+fixed-point 581
+floating-point 593
+TO_UFIX function
+fixed-point 575, 582
+TO_UFIXED function
+fixed-point 580
+floating-point 587, 594
+TO_UNSIGNED function
+fixed-point 581
+floating-point 587, 594
+TO_UX01 function 331
+fixed-point 575, 581
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+667
+Copyright © 2019 IEEE. All rights reserved.
+floating-point 594
+TO_X01 function 331
+fixed-point 575, 581
+floating-point 594
+TO_X01Z function 331
+fixed-point 575, 581
+floating-point 594
+transaction 183, 246
+base type 181
+marked 183
+null 43, 90, 183, 184, 206, 278
+activity 246
+restrictions 248
+scheduled using VHPI 450
+scheduling using VHPI 449, 501
+TRANSACTION attribute 38, 89, 99, 245, 247, 277
+contributor to a signal 408
+initial value 253
+of interface object 100
+of signal parameter 36, 100
+static name 139
+update 250, 251
+transaction class
+reading an object 442
+transient (VHPI string or structure) 452
+transport 181
+transport delay 181
+trigger 425
+trigger object 425
+variable 427
+triple DES encryption method 515
+type 49
+of actual 111
+of aggregate 165
+alias 121
+of alias 120
+of allocated object 170
+allocator 170
+anonymous 53, 54, 56, 60, 66, 86
+array. See array, type
+of attribute expression 127
+attribute specification for 127
+bit string literal 163
+closely related 110, 111, 169
+composite 58
+definition 58, 86
+string representation 80
+conversion 49, 149, 168, 168, 565
+in actual part 62, 110, 409
+in association 247
+condition operator (??) 162
+floating-point type 169
+in formal part 63, 110
+in in formal part 408
+globally static 174
+implicit 49, 53, 56, 61, 170, 190, 233
+integer type 169
+locally static 172
+metalogical value 329
+nonportable 557
+in parameter association 36, 37
+qualified expression 168
+in synthesis package 568
+declaration 20, 23, 37, 44, 46, 77, 85, 86, 86, 201
+elaboration 237
+definition 86
+discrete 50
+case generate statement expression 213
+case statement expression 193
+explicitly declared 86
+of expression 149
+of external name 146
+floating-point. See floating-point, type
+of formal 111
+generic. See generic, type
+incomplete 69
+integer. See integer, type
+interface 101
+mark 32, 42, 59, 70, 87, 105, 109, 122, 135, 168
+in use clause 222
+prefix 138
+record. See record, type
+string literal 163
+in use clause 222
+TypeConvAllocator class diagram 394
+TypeInheritance class diagram 390
+TypeSubtype class diagram 390
+U
+UFIXED subtype 570
+UFIXED_HIGH function
+fixed-point 582
+UFIXED_LOW function
+fixed-point 582
+UFIX_HIGH function
+fixed-point 582
+UFIX_LOW function
+fixed-point 583
+U_FLOAT alias 587
+UML notation 356, 364
+unaffected 181, 206
+unary operator 41
+unary_expression 148
+unassociated 115, 118
+incremental binding 131
+unbounded array definition 59
+unclassified generic type 101
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+668
+Copyright © 2019 IEEE. All rights reserved.
+unconnected port 249
+unconstrained subtype 49, 59, 66, 87
+elaboration 237
+underflow 326, 560
+underline 260, 261, 262, 263
+unguarded target 205
+Unified Modeling Language (UML) 356, 364
+uninitialized STD_ULOGIC value 327, 561, 562
+in condition 562
+propagation 562
+uninstantiated function 167
+uninstantiated package. See package, uninstantiated
+uninstantiated procedure 192
+uninstantiated subprogram. See subprogram, unin-
+stantiated
+unit (design unit)
+expanded name for 140
+unit (physical type) 440, 442
+attribute specification for 127
+identified by use clause 222
+implicit alias 121
+name 54
+primary 54
+secondary 54
+UnitName property 372
+universal expression 175
+universal_integer type 49, 53, 61, 160, 175, 190, 261
+declaration 291
+implicit type conversion 170, 182, 197
+literal 163
+operation 175
+universal_real type 49, 56, 175, 261
+declaration 292
+implicit type conversion 170, 182, 190, 197
+literal 163
+operation 175
+unknown STD_ULOGIC value 327, 561
+assignment 562
+UNORDERED function
+floating-point 595
+unresolved_array_subtype_indication 97
+UNRESOLVED_FLOAT type 587
+unresolved_record_subtype_indication 97
+UNRESOLVED_SFIXED type 569
+UNRESOLVED_SIGNED type 331
+UNRESOLVED_UFIXED type 569
+UNRESOLVED_UNSIGNED type 331
+UNSIGNED type 331
+conversion to SIGNED 568
+mixed with SIGNED type 564
+update
+implicit signal 250, 250
+mode (vhpi) 445
+object 99
+object value (information model) 445
+projected output waveform 183
+signal 249, 253
+initialization 252
+upper bound 51, 270, 275
+uppercase letter 256, 256, 260
+corresponding lowercase letter 257
+use clause 21, 23, 25, 26, 37, 44, 45, 46, 75, 77, 201,
+220, 222, 222, 227
+in block configuration 27
+Name and CaseName properties 371
+scope 217
+visibility 221
+useClause class
+Name and CaseName properties 371
+user_data member (callback data structure) 426
+user-defined attribute. See attribute, user-defined
+U_SFIXED alias 570
+U_SIGNED alias 331
+utility function 356
+uuencode encoding method 515
+U_UFIXED alias 570
+U_UNSIGNED alias 331
+V
+VAL attribute 114, 273
+VALID_FPSTATE type 585
+value
+defined when read 236
+format 475
+format conversion 464
+of primary 149
+reading using VHPI 439, 475
+structure 439, 440, 475, 493, 501
+format conversion 464
+transaction 183
+update using VHPI 439, 492
+VHPI representation 439
+VALUE attribute 114, 172, 273, 274
+value member (callback data structure) 427
+value_return_statement 197
+VarAssignAssertReportStmt class diagram 404
+varDecl class
+updating an object 445
+variable 89
+assignment statement 176, 189, 189
+base type 189
+composite 190
+attribute specification for 127
+change 190
+vhpiCbValueChange callback 428
+declaration 21, 23, 37, 44, 46, 77, 89, 92, 92, 201
+elaboration 238
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+669
+Copyright © 2019 IEEE. All rights reserved.
+DefName and DefCaseName properties 373
+deposit 446
+designated object 68
+DefName and DefCaseName properties
+375
+Name and CaseName properties 371
+explicitly declared 92
+external name 146
+force 446
+name 189
+static 139
+Name and CaseName properties 368
+object of access type 68
+parameter. See parameter, variable
+persistence 93
+release 446
+shared 92
+external name 146
+where prohibited 202
+variable class
+updating an object 446
+Variables class diagram 388
+varParamDecl class
+updating an object 445
+verification unit 30, 134, 220, 225
+binding 229
+binding indication 25, 29, 129, 134, 134
+character set 257
+elaboration 230
+explicitly bound 135
+lexical element 258
+list 134
+scope of declaration in design entity 217
+visibility of contained declaration 222
+VHPI access function 360
+VHPI extension 529
+VHPI formal notation 364
+VHPI function 452
+VHPI header file 527
+VHPI naming convention 356
+VHPI organization 355
+VHPI program 355
+VHPI reserved word 418
+vhpiAnalysisPhase enumeration constant 414
+vhpiAppF reserved word 416
+vhpiArchF reserved word 416
+vhpi_assert function 452
+vhpiBinStrVal format 440
+vhpiCapabilitiesP property 357
+vhpiCapabilitiesT type 356
+vhpiCbAfterDelay callback 252, 253, 254, 433, 435
+vhpiCbDataT type 425
+vhpiCbEndOfAnalysis callback 420, 435
+vhpiCbEndOfElaboration callback 229, 420, 435
+vhpiCbEndOfInitialization callback 253, 436
+vhpiCbEndOfProcesses callback 253, 254, 434
+vhpiCbEndOfReset callback 424, 438
+vhpiCbEndOfRestart callback 423, 437, 468
+saving registration 422
+vhpiCbEndOfSave callback 422, 437
+vhpiCbEndOfSimulation callback 254, 422, 436,
+459
+vhpiCbEndOfSubpCall callback 433
+vhpiCbEndOfTimeStep callback 254, 255, 435
+vhpiCbEndOfTool callback 424, 435
+vhpiCbEnterInteractive callback 436
+vhpiCbExitInteractive callback 436
+vhpiCbForce callback 428
+vhpiCbLastKnownDeltaCycle callback 254, 434
+vhpiCbNextTimeStep callback 253, 434
+vhpiCbQuiescence callback 254
+vhpiCbQuiescense callback 436
+vhpiCbRelease callback 429
+vhpiCbRepAfterDelay callback 252, 253, 254, 433,
+435
+vhpiCbRepEndOfProcesses callback 253, 254, 434
+vhpiCbRepEndOfTimeStep callback 254, 255, 435
+vhpiCbRepLastKnownDeltaCycle callback 254, 434
+vhpiCbRepNextTimeStep callback 253, 434
+vhpiCbRepStartOfNextCycle callback 252, 253, 434
+vhpiCbRepStartOfPostponed callback 253, 254, 434
+vhpiCbRepStartOfProcesses callback 252, 253, 434
+vhpiCbRepTimeOut callback 252, 253, 254, 429,
+435
+vhpiCbResume callback 253, 254, 432
+vhpiCbSensitivity callback 253, 430
+vhpiCbSigInterrupt callback 437
+vhpiCbStartOfAnalysis callback 420, 435
+vhpiCbStartOfElaboration callback 229, 420, 435
+vhpiCbStartOfInitialization callback 422, 436
+vhpiCbStartofInitialization callback 252
+vhpiCbStartOfNextCycle callback 252, 253, 434
+vhpiCbStartOfPostponed callback 253, 254, 434
+vhpiCbStartOfProcesses callback 252, 253, 434
+vhpiCbStartOfReset callback 423, 438
+vhpiCbStartOfRestart callback 423, 437, 468
+saving registration 422
+vhpiCbStartOfSave callback 422, 437
+vhpiCbStartOfSimulation callback 254, 422, 436
+vhpiCbStartOfSubpCall callback 433
+vhpiCbStartOfTool callback 414, 435
+vhpiCbStmt callback 431
+vhpiCbSuspend callback 253, 254, 432
+vhpiCbTimeOut callback 252, 253, 254, 429
+vhpiCbTimeout callback 254, 435
+vhpiCbTransaction callback 246, 250, 251
+vhpiCbTransaction callbacl 429
+vhpiCbValueChange callback 246, 250, 251, 428
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+670
+Copyright © 2019 IEEE. All rights reserved.
+VHPICharCodes array 526
+vhpiCharT type 439
+vhpiCharVal format 441
+vhpi_check_error function 453
+vhpi_compare_handles function 456
+vhpi_control function 318, 457
+vhpi_create function 459
+vhpiDecStrVal format 440
+vhpi_def.c file 526
+vhpiDeposit mode 445
+vhpiDeposit update mode 250
+vhpiDepositPropagate mode 445
+VHPIDIRECT reserved word 419
+vhpi_disable_cb function 426, 462
+vhpiElaborationPhase enumeration constant 414
+vhpi_enable_cb function 426, 462
+vhpiEnumT type 439
+vhpiEnumVal format 440
+vhpiEnumVecVal format 441
+vhpiFalse constant 362
+vhpiForce mode 445
+vhpiCbForce callback 429
+vhpiForce update mode 250
+vhpiForcePropagate mode 445
+vhpiCbForce callback 429
+vhpiFormatT type 440
+vhpi_format_value function 464
+vhpiFullNameP property 363
+vhpiFuncF reserved word 416
+vhpi_get function 362, 465
+vhpi_get_cb_info function 426, 466
+vhpi_get_data function 467
+vhpi_get_foreignf_info function 469
+vhpi_get_next_time function 470
+vhpi_get_phys function 363, 472
+VHPI_GET_PRINTABLE_STRINGCODE macro
+527
+vhpi_get_real function 363, 472
+vhpi_get_str function 363, 473
+vhpi_get_time function 474
+result during reset phase 438
+result during restart phase 438
+result during save phase 437
+vhpi_get_value function 442, 475
+for formal parmeter 421
+storage allocation 442
+vhpi_handle function 360, 476
+vhpi_handle_by_index function 362, 477
+vhpi_handle_by_name function 363, 481
+vhpiHandleT type 358
+vhpiHexStrVal format 440
+vhpiInitializationPhase enumeration constant 414
+vhpiIntPropertyT type 362
+vhpiIntT type 362, 439
+vhpiIntVal format 441
+vhpiIntVecVal format 441
+vhpi_is_printable function 483
+definition 526
+vhpi_iterator function 362, 484
+vhpiLibF reserved word 416
+vhpiLogicVal format 441
+vhpiLogicVecVal format 441
+vhpiLongIntT type 439
+vhpiLongIntVal format 441
+vhpiLongIntVecVal format 441
+vhpiObjTypeVal format 441, 444
+vhpiOctStrVal format 440
+vhpiOneToManyT type 362
+vhpiOneToOneT type 360
+vhpiPhaseT type 414
+vhpiPhysPropertyT type 363
+vhpiPhysT type 363, 439
+vhpiPhysVal format 441
+vhpiPhysVecVal format 442
+vhpi_printf function 485
+vhpiProcF reserved word 416
+vhpi_protected_call function 486
+vhpiProvidesAdvancedDebugRuntime enumeration
+constant 357
+vhpiProvidesAdvancedForeignModel enumeration
+constant 357
+vhpiProvidesConnectivity enumeration constant 356
+vhpiProvidesDebugRuntime enumeration constant
+357
+vhpiProvidesDynamicElab enumeration constant
+357
+vhpiProvidesForeignModel enumeration constant
+357
+vhpiProvidesHierarchy enumeration constant 356
+vhpiProvidesPostAnalysis enumeration constant 357
+vhpiProvidesReset enumeration constant 357
+vhpiProvidesSaveRestart enumeration constant 357
+vhpiProvidesStaticAccess enumeration constant 356
+vhpiPtrVal format 441
+vhpiPtrVecVal format 442
+vhpi_put_data function 422, 490
+vhpi_put_value 100
+vhpi_put_value function 250, 445, 492
+for formal parameter 421
+where prohobited 436
+vhpiRawDataVal format 442, 444
+vhpiRealPropertyT type 363
+vhpiRealT type 363, 439
+vhpiRealVal format 441
+vhpiRealVecVal format 441
+vhpi_register_cb function 425, 493
+vhpi_register_foreignf function 417, 496
+vhpiRegistrationPhase enumeration constant 414
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+671
+Copyright © 2019 IEEE. All rights reserved.
+vhpiRelease mode 445
+vhpiCbRelease callback 429
+vhpi_release_handle function 499
+vhpi_remove_cb function 426, 499
+vhpiResetPhase enumeration constant 414
+vhpiRestartPhase enumeration constant 414
+vhpiSavePhase enumeration constant 414
+vhpi_scan function 362, 500
+vhpi_schedule_transaction function 501
+for formal parameter 421
+where prohibited 436
+vhpi_sens.c file 527
+VHPI_SENS_CLR macro 528
+VHPI_SENS_FIRST macro 528
+VHPI_SENS_ISSET macro 528
+VHPI_SENS_SET macro 527
+VHPI_SENS_ZERO macro 527
+vhpiSimulationPhase enumeration constant 414
+vhpiSizeConstraint mode 445, 449
+vhpiSmallEnumT type 439
+vhpiSmallEnumVal format 441
+vhpiSmallEnumVecVal format 441
+vhpiSmallPhysT type 439
+vhpiSmallPhysVal format 441
+vhpiSmallPhysVecVal format 442
+vhpiStrPropertyT type 363
+vhpiStrVal format 441
+vhpiTerminationPhase enumeration constant 414
+vhpiTimeT type 440
+vhpiTimeVal format 441
+vhpiTimeVecVal format 442
+vhpiTrue constant 362
+vhpiUndefined constant 362
+vhpi_user.h file 527
+vhpiValueT type 440
+vhpi_vprintf function 506
+view 631
+visibility 85, 216, 218, 228
+by selection 45
+context clause 227
+direct 45, 220, 222
+potential visibility exceptions 223
+extension into block configuration 27
+package body declarative item 46
+potential 223
+in protected type body 77
+by selection 218, 222
+visible entity declaration 133, 229
+vunit 134
+W
+wait statement 176, 176, 176, 432
+in function 178
+implicit condition conversion 162
+implicit in process statement 201
+process with sensitivity list 178
+prohibited in procedure 202
+in protected type 178
+resumption callback 432
+suspension callback 432
+waveform 180, 181, 186, 188, 204
+assignment 181
+element 181, 183
+weak STD_ULOGIC value 327, 561
+while loop
+execution callback 431
+while iteration scheme 195
+implicit condition conversion 162
+See also loop
+whitespace character 309
+WIDTH subtype
+declaration 306
+WORK library 226
+where prohibited 227
+working library 226
+WRITE procedure 72, 99, 310, 311
+declaration 307
+fixed-point 575, 583
+floating-point 588, 595
+string representation 80
+WRITELINE procedure 99, 308
+declaration 307
+write-only file 72
+X
+xnor operator 42, 150
+fixed-point 579
+floating-point 592
+xor operator 42, 150
+fixed-point 579
+floating-point 592
+Z
+zero (floating-point) 585
+ZEROFP function
+floating-point 595
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+
+RAISING THE
+WORLD’S
+STANDARDS
+
+Connect with us on:
+Twitter: twitter.com/ieeesa
+Facebook: facebook.com/ieeesa
+LinkedIn: linkedin.com/groups/1791118
+Beyond Standards blog: beyondstandards.ieee.org
+YouTube: youtube.com/ieeesa
+
+standards.ieee.org
+Phone: +1 732 981 0060
+
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

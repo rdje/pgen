@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-o-vhdl-stimuli-required-ratchet)
+Last updated: 2026-03-06 (+0100, task: dual-sv-lrm-capture-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,14 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `3617f0b` (`Promote VHDL strict-promotion to required aggregate mode`).
+- Latest commit: run `git log -1 --oneline` at resume time (do not rely on stale hash text).
+- SV dual-LRM conversion snapshot status:
+  - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
+  - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),
+  - extracted grammar artifacts present per version (`grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`),
+  - canonical grammar snapshots promoted in `grammars/`:
+    - `systemverilog_2017_lrm_extracted.ebnf`
+    - `systemverilog_2023_lrm_extracted.ebnf`.
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`

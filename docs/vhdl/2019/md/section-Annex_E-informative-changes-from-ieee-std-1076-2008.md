@@ -1,0 +1,47 @@
+---
+title: "Section Annex.E: IEEE Standard for VHDL Language Reference Manual"
+document: "VHDL Language Reference Manual"
+standard: "IEEE 1076-2019"
+domain: "VHDL"
+section: "Annex.E"
+source_txt: "section-Annex_E-informative-changes-from-ieee-std-1076-2008.txt"
+source_pdf: "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf"
+---
+
+# Section Annex.E: IEEE Standard for VHDL Language Reference Manual
+
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+558
+Copyright © 2019 IEEE. All rights reserved.
+Annex E
+(informative)
+Changes from IEEE Std 1076-2008
+This annex lists those clauses that have been changed from IEEE Std 1076-2008 during its revision. The
+clause numbers are from the 2019 revision.
+Protected types were improved (see 5.6). Unspecified types were added (see 5.8).
+Major additional functionality was added to interfaces including a new way to define complex interfaces and
+a new way to connect ports (see 6.5.3). Interfaces may be defined for record views that turn a record to a list
+of ports. The design enables separate subtypes and directions with nesting of views.
+Several changes were made to expressions. Expressions were added for conditional control flow returns (see
+9.2.9). Dynamically allocated storage now assumes an underlying automatic deallocation of undesignated
+objects by which no explicit deallocation is done (see 9.3.7). Functions have visibility to the array
+constraints they are returning with (see 9.3.4).
+Type INTEGER has changed. Previously type INTEGER was required to have at least a 32-bit one’s
+complement range. Now type INTEGER is required to have at least a 64-bit two’s complement range.
+Sequential block statements were added that can be nested (see 10.15).
+Attributes were added (see 16.2).
+Application programming interfaces (API) were augmented or added including:
+Simulator API (see 16.5.3)
+Data and time API (see 16.5.4)
+Directory API (see 16.5.5)
+Environment API (see 16.5.6)
+Current file, line and call path API (see 16.5.7)
+PSL API (see 16.5.8)
+Report and assert statement API (see 16.5.9)
+Reflection API (see 16.12)
+Tool facilities were augmented including updates to the encryption facilities and conditional analysis (see
+### 24.1 and 24.2).
+
+Simplifications were made to regularize the grammar.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

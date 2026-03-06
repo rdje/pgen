@@ -1,0 +1,1157 @@
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+605
+Copyright © 2019 IEEE. All rights reserved.
+Annex I
+(informative) 
+Glossary
+For the purposes of this document, the following terms and definitions apply. These and other terms within
+IEEE standards are found in the IEEE Standards Dictionary Online available at: http://dictionary.ieee.org/.
+An IEEE account is required for access to the dictionary, and one can be created at no charge on the
+dictionary sign-in page.
+This glossary contains brief, informal descriptions for a number of terms and phrases used to define this
+language. The complete, formal definition of each term or phrase is provided in the main body of the
+standard.
+For each entry, the relevant clause or subclause numbers in the text are given. Some descriptions refer to
+multiple clauses in which the single concept is discussed; for these, the clause number containing the
+definition of the concept is given in italics. Other descriptions contain multiple clause numbers when they
+refer to multiple concepts; for these, none of the clause numbers are italicized.
+absolute design hierarchy search string: A search string provided to the vhpi_handle_by_name
+function that represents the full name of an object in the design hierarchy information model. (23.22)
+absolute library search string: A search string provided to the vhpi_handle_by_name function that
+represents the full name of an object in the library information model. (23.22)
+abstract class: A class that cannot be the most specialized class of any object. (17.2.1)
+abstract literal: A literal of the universal_real abstract type or the universal_integer abstract type.
+(15.3, 15.5.1)
+access mode: The mode in which a file object is opened, which can be either read-only or write-only. The
+access mode depends on the value supplied to the Open_Kind parameter. (5.5.2, 16.3)
+access type: A type that provides access to an object of a given type. Access to such an object is achieved by
+an access value returned by an allocator; the access value is said to designate the object. (5.1, 5.4)
+access value: A value of an access type. This value is returned by an allocator and designates an object
+(which will be a variable) of a given type. A null access value designates no object. An access value can only
+designate an object created by an allocator; it cannot designate an object declared by an object declaration.
+(5.1, 5.4)
+action callback: A callback whose trigger event relates to occurrence of phases of tool execution and other
+aspects of tool execution. (21.3.7)
+active driver: A driver that acquires a new value during a simulation cycle regardless of whether the new
+value is different from the previous value. (14.7.3.1, 14.7.5)
+actual: An expression, a port, a signal, a variable, a subtype, a subprogram, or a package associated with a
+formal port, formal parameter, or formal generic. (5.3.2.2, 6.4.2.3, 6.5.6.2, 6.5.6.3, 6.5.7.1, 6.5.7.2, 6.5.7.3,
+7.3.2)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+606
+Copyright © 2019 IEEE. All rights reserved.
+aggregate: (A) The kind of expression, denoting a value of a composite type. The value is specified by
+giving the value of each of the elements of the composite type. Either a positional association or a named
+association will be used to indicate which value is associated with which element. (B) A kind of target of a
+variable assignment statement or signal assignment statement assigning a composite value. The target is
+then said to be in the form of an aggregate. (9.3.2, 9.3.3, 9.3.5, 9.3.6, 9.4.3)
+alias: An alternate name for a named entity. (6.6)
+allocator: An operation used to create anonymous, variable objects accessible by means of access values.
+(5.4, 9.3.7)
+analysis: The syntactic and semantic analysis of source code in a VHDL design file and the insertion of
+intermediate form representations of design units into a design library. (13.1, 13.2, 13.5)
+analysis phase: That phase of tool execution in which analysis of a design file occurs. (Clause 13, 20.3)
+anonymous: The undefined simple name of an item, which is created implicitly. The base type of a numeric
+type or an array type is anonymous; similarly, the object denoted by an access value is anonymous. (6.2)
+application context: The application context of a class specifies whether objects of the class may exist in
+either or both of the library information model or the design hierarchy information model, and as a
+consequence, when the object is accessible to VHPI programs. (19.18)
+application name: An identifier that, jointly with an object library name, uniquely identifies a foreign
+application. (20.2.2)
+appropriate: A prefix is said to be appropriate for a type if the type of the prefix is the type considered, or if
+the type of the prefix is an access type whose designated type is the type considered. (8.1)
+architecture body: A body associated with an entity declaration to describe the internal organization or
+operation of a design entity. An architecture body is used to describe the behavior, dataflow, or structure of
+a design entity. (3, 3.3)
+array object: An object of an array type. (Clause 5)
+array type: A type, the value of which consists of elements that are all of the same subtype (and hence, of
+the same type). Each element is uniquely distinguished by an index (for a one-dimensional array) or by a
+sequence of indexes (for a multidimensional array). Each index will be a value of a discrete type and shall lie
+in the correct index range. (5.3.2)
+ascending range: A range L to R. (5.2.1)
+ASCII: American Standard Code for Information Interchange. The package Standard contains the definition
+of the type CHARACTER, the first 128 values of which represent the ASCII character set. (5.2.2.2, 16.3)
+assertion violation: A violation that occurs when the condition of an assertion statement evaluates to false.
+(10.3)
+associated driver: The single driver for a signal in the (explicit or equivalent) process statement containing
+the signal assignment statement. (14.7.2)
+associated individually: A property of a formal port, generic constant, or parameter of a composite type
+with respect to some association list. A composite formal whose association is defined by multiple
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+607
+Copyright © 2019 IEEE. All rights reserved.
+association elements in a single association list is said to be associated individually in that list. The formats
+of such association elements will denote non-overlapping subelements or slices of the formal. (6.5.7.1)
+associated in whole: When a single association element of a composite formal supplies the association for
+the entire formal. (6.5.7.1)
+association element: An element that associates an actual or local with a local or formal. (6.5.7.1)
+association list: A list that establishes correspondences between formal or local port or parameter names
+and local or actual names or expressions. (6.5.7.1)
+association relationship: A relationship between objects in an information model that has semantic
+significance. (17.2.1)
+asymmetric cipher: A cipher requiring one key of a key pair for encryption of information and the other
+key of the pair for decryption. The owner of the key pair keeps one key of the pair private (the private key)
+and publishes the other key (the public key). (24.1.1, 24.1.3.2)
+attribute: A definition of some characteristic of a named entity. Some attributes are predefined for types,
+ranges, values, signals, and functions. The remaining attributes are user defined and are always constants.
+(6.7)
+based literal: An abstract literal expressed in a form that specifies the base explicitly. The base is restricted
+to the range 2 to 16. (15.5.3)
+base specifier: A lexical element that indicates whether a bit string literal is to be interpreted as a binary,
+octal, decimal, or hexadecimal value. (15.8)
+base type: The type from which a subtype defines a subset of possible values, otherwise known as a
+constraint. This subset is not required to be proper. The base type of a type is the type itself. The base type of
+a subtype is found by recursively examining the type mark in the subtype indication defining the subtype. If
+the type mark denotes a type, that type is the base type of the subtype; otherwise, the type mark is a subtype,
+and this procedure is repeated on that subtype (5.1). See also: subtype.
+basic operation: An operation that is inherent in one of the following:
+—
+An assignment (in an assignment statement or initialization)
+—
+An allocator
+—
+A selected name, an indexed name, or a slice name
+—
+A qualification (in a qualified expression), an explicit type conversion, a formal or actual designator
+in the form of a type conversion, or an implicit type conversion of a value of type universal_integer
+or universal_real to the corresponding value of another numeric type, or
+—
+A numeric literal (for a universal type), the literal null (for an access type), a string literal, a bit string
+literal, an aggregate, or a predefined attribute (5.1)
+basic signal: A signal that determines the driving values for all other signals. A basic signal is
+—
+Either a scalar signal or a resolved signal
+—
+Not a subelement of a resolved signal
+—
+Not an implicit signal of the form S'STABLE(T), S'QUIET(T), or S'TRANSACTION, and
+—
+Not an implicit signal GUARD (14.7.3.2)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+608
+Copyright © 2019 IEEE. All rights reserved.
+belong: (A) (to a range): A property of a value with respect to some range. The value V is said to belong to
+a range if the relations (lower bound <= V) and (V <= upper bound) are both true, where lower bound and
+upper bound are the lower and upper bounds, respectively, of the range. (5.2.1, 5.3.2) (B) (to a subtype): A
+property of a value with respect to some subtype. A value is said to belong to a subtype of a given type if it
+belongs to the type and satisfies the applicable constraint. (5.1, 5.3.2)
+binding: The process of associating a design entity and, optionally, an architecture with an instance of a
+component. A binding can be specified in an explicit or a default binding indication. (3.4, 7.3.2, 7.3.3,
+14.4.3.3, 14.5.4)
+bit string literal: A literal formed by a sequence of extended digits enclosed between two quotation (")
+characters and preceded by a base specifier. The type of a bit string literal is determined from the context.
+(9.3.2, 15.8)
+block: (A) The representation of a portion of the hierarchy of a design. A block is either an external block or
+an internal block. (3.1, 3.3.2, 3.4.1, 3.4.2, 3.4.3, 6.5.6.2, 6.5.6.3) (B) The act of suspending the execution of
+a process for the purposes of providing exclusive access to either a file object or an object of a protected
+type. (5.5.2, 14.6)
+bound: A label that is identified in the instantiation list of a configuration specification. (7.3.1)
+box: (A) The symbol <> in an index subtype definition, which stands for an undefined range. Different
+objects of the type need not have the same bounds and direction. (5.3.2.1) (B) The symbol <> as the
+subprogram default in a formal generic subprogram declaration, and which stands for a subprogram with the
+same name and parameter and result type profile as the formal subprogram visible at the place of
+instantiation of the enclosing uninstantiated declaration. (6.5.4) (C) The symbol <> in an interface package
+generic map aspect indicating that the actual instantiated package may have any actual generics. (6.5.5)
+buffer: One possible mode. A port of mode buffer contributes its driving value to the network containing
+the port; the design entity containing the port is also allowed to read its driving value. (6.5.2, 6.5.6.3)
+bus: One kind of guarded signal. A bus floats to a user-specified value when all of its drivers are turned off.
+(6.4.2.3, 6.5.2)
+callback: A mechanism for a VHPI program to gain control during tool execution. (Clause 21)
+callback data structure: A C struct of type vhpiCbDataT that specifies a callback. It is used to register a
+callback and to acquire information about a callback and is passed to a callback function upon invocation of
+the function. (21.2.2, 21.2.5, 21.2.6)
+callback function: A function in a VHPI program, identified to the tool by registration, that is called by the
+tool upon occurrence of a nominated trigger event. (21.1)
+callback reason: A specification of an occurrence that may trigger invocation of a callback function. (21.1)
+capability set: A permissible subset of the VHPI information model and functions provided by a tool. (17.3)
+change: The current value of a signal of type T is said to change as the result of an update if and only if
+application of the predefined “=” operator for type T to the current value of the signal and the value of the
+signal prior to the update evaluates to FALSE. (14.7.3.4)
+character literal: A literal of the CHARACTER type. Character literals are formed by enclosing one of the
+graphic characters (including the space and nonbreaking space characters) between two apostrophe (')
+characters. (15.3, 15.6)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+609
+Copyright © 2019 IEEE. All rights reserved.
+character type: An enumeration type with at least one of its enumeration literals as a character literal.
+(5.2.2, 5.2.2.2)
+chosen implementation: An implementation of floating-point types that conforms to IEEE Std 754-2019
+and with a minimum representation size of 64 bits. (5.2.5.1)
+cipher: An algorithm for encrypting and decrypting information. A cipher is either symmetric, requiring a
+single secret key for both encryption and decryption, or asymmetric, requiring one key of a key pair for
+encryption and the other key of the pair for decryption. (24.1.1, 24.1.3.2)
+class: An abstract data type within an information model. (17.2.1)
+closely related types: Two type marks that denote the same type or two numeric types. Two array types are
+closely related if they have the same dimensionality and if the element types are closely related. Explicit
+type conversion is only allowed between closely related types. (9.3.6)
+comment: Informative text added to a description. (15.9)
+complete: A loop that has finished executing. Similarly, an iteration scheme of a loop is complete when the
+condition of a while iteration scheme is FALSE or all of the values of the discrete range of a for iteration
+scheme have been assigned to the iteration parameter. (10.10)
+complete context: A declaration, a specification, a statement, or, in certain cases, a discrete range or an
+expression; complete contexts are used in overload resolution. (12.5)
+composite type: A type whose values have elements. There are two classes of composite types: array types
+and record types. (5.1, 5.3)
+concurrent region: A block declarative region (including an external block and any block equivalent to a
+generate statement), or a package declarative region (including a generic-mapped package equivalent to a
+package instantiation) declared immediately within a concurrent region. (8.7)
+concurrent statement: A statement that executes asynchronously, with no defined relative order.
+Concurrent statements are used for dataflow and structural descriptions. (Clause 11)
+configuration: A construct that defines how component instances in a given block are bound to design
+entities in order to describe how design entities are put together to form a complete design. (3.1, 3.4. 7.3)
+conforming profiles: Two subprogram declarations are said to have conforming profiles if and only if both
+are procedures or both are functions, the parameter and result type profiles of the subprograms are the same
+and, at each parameter position, the corresponding parameters have the same class and mode. (4.10)
+connected: A formal port associated with an actual port or signal. A formal port associated with the
+reserved word open is said to be unconnected. (6.5.6.3)
+constant: An object whose value cannot be changed. Constants are either explicitly declared, subelements
+of explicitly declared constants, or interface constants. Constants declared in packages can also be deferred
+constants. (6.4.2.2)
+constraint: A subset of the values of a type. The set of possible values for an object of a given type that can
+be subjected to a condition is called a constraint. A value is said to satisfy the constraint if it satisfies the
+corresponding condition. There are index constraints and range constraints. (5.1)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+610
+Copyright © 2019 IEEE. All rights reserved.
+contributor: A contributor of a given signal is a driver, signal, expression, or conversion whose value
+determines the value of the given signal. (19.12.2)
+conversion function: A function used to convert values flowing through associations. For interface objects
+of mode in, conversion functions are allowed only on actuals. For interface objects of mode out or buffer,
+conversion functions are allowed only on formals. For interface objects of mode inout or linkage,
+conversion functions are allowed on both formals and actuals. Conversion functions have a single
+parameter. A conversion function associated with an actual accepts the type of the actual and returns the
+type of the formal. A conversion function associated with a formal accepts the type of the formal and returns
+the type of the actual. (6.5.7.1)
+convertible: A property of an operand with respect to some type. An operand is convertible to some type if
+there exists an implicit conversion to that type. (9.3.6)
+current value: The value component of the single transaction of a driver whose time component is not
+greater than the current simulation time. (14.7.1, 14.7.2, 14.7.3. 14.7.4)
+decimal literal: An abstract literal that is expressed in decimal notation. The base of the literal is implicitly
+10. The literal may optionally contain an exponent or a decimal point and fractional part. (15.5.2)
+declaration: A construct that defines a declared entity and associates an identifier (or some other notation)
+with it. This association is in effect within a region of text that is called the scope of the declaration. Within
+the scope of a declaration, there are places where it is possible to use the identifier to refer to the associated
+declared entity; at such places, the identifier is said to be the simple name of the named entity. The simple
+name is said to denote the associated named entity. (Clause 6)
+declarative part: A syntactic component of certain declarations or statements (such as entity declarations,
+architecture bodies, and block statements). The declarative part defines the lexical area (usually introduced
+by a reserved word such as is and terminated with another reserved word such as begin) within which
+declarations may occur. (3.2.3, 3.3.2, 3.4.1, 4.8, 11.2, 11.3, 11.7.2, 11.7.3)
+declarative region: A semantic component of certain declarations or statements. Certain declarative regions
+include disjoint parts; for example, the declarative region of a package declaration, which, if there is an
+associated package body, extends to the end of that package body. (12.1)
+decorate: To associate a user-defined attribute with a named entity and to define the value of that attribute.
+(7.2)
+decryption envelope: A collection of protect tool directives that specify ciphers and keys used to decrypt a
+portion of a VHDL description. The decryption envelope also contains the encoded encrypted portion of the
+VHDL description. (24.1.5)
+decryption tool: A tool that processes decryption envelopes in a VHDL description to yield the original
+source text. The decryption tool may perform subsequent analysis and interpretation of the description, but
+will not disclose the decrypted text to the user of the tool. (24.1.5)
+default expression: A default value that is used for a formal generic constant, port, or parameter if the
+interface object is unassociated. A default expression is also used to provide an initial value for signals and
+their drivers. (6.4.2.3, 6.5.7)
+deferred constant: A constant that is declared without an assignment symbol (:=) and expression in a
+package declaration. A corresponding full declaration of the constant will exist in the package body to
+define the value of the constant. (6.4.2.2)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+611
+Copyright © 2019 IEEE. All rights reserved.
+delimited comment: A comment that starts with a solidus (slash) character immediately followed by an
+asterisk character and extends up to the first subsequent occurrence of an asterisk character immediately
+followed by a solidus character. (15.9)
+delta cycle: A simulation cycle in which the simulation time at the beginning of the cycle is the same as at
+the end of the cycle. That is, simulation time is not advanced in a delta cycle. Only nonpostponed processes
+can be executed during a delta cycle. (14.7.5.1)
+denote: A property of the identifier given in a declaration. Where the declaration is visible, the identifier
+given in the declaration is said to denote the named entity declared in the declaration. (6.1)
+depend: (A) (on a library unit): A design unit that explicitly or implicitly mentions other library units in a
+use clause. These dependencies affect the allowed order of analysis of design units. (13.5) (B) (on a signal
+value): A property of a signal with respect to some other signal. The current value of an implicit signal R is
+said to depend on the current value of another signal S if R denotes an implicit signal S'STABLE(T),
+S'QUIET(T), or S'TRANSACTION, or if R denotes an implicit GUARD signal and S is any other implicit
+signal named within the guard condition that defines the current value of R. The current value of an interface
+signal R is said to depend on the current value of an implicit signal S if R denotes a port of mode in and S is
+the actual associated with that port. (14.7.4)
+deposit: An update of the current value of a variable other than by assignment, of a driver other than by
+advancement of a transaction to the first position in the driver’s projected output waveform, or of a signal
+other than resulting from update of other parts of the net of which the signal is a part. A deposited value
+remains only until a subsequent update of the variable, driver, or signal. (14.7.2, 14.7.3, 22.5.2, 22.5.3,
+22.5.4)
+descending range: A range L downto R. (5.2.1)
+design entity: An entity declaration together with an associated architecture body. Different design entities
+may share the same entity declaration, thus describing different components with the same interface or
+different views of the same component. (3.1)
+design file: One or more design units in sequence. (13.1)
+design hierarchy: The complete representation of a design that results from the successive decomposition
+of a design entity into subcomponents and binding of those components to other design entities that may be
+decomposed in a similar manner. (3.1)
+design hierarchy information model: The information model that represents the elaborated VHDL model.
+(17.2.1)
+design library: A host-dependent storage facility for intermediate-form representations of analyzed design
+units (13.2)
+design unit: A construct that can be independently analyzed and stored in a design library. A design unit is
+either an entity declaration, an architecture body, a configuration declaration, a package declaration, a
+package body, a package instantiation declaration, a context declaration, or a PSL verification unit. (13.1)
+designate: A property of access values that relates the value to some object when the access value is
+non-null. A non-null access value is said to designate an object. (5.4.1)
+designated type: For an access type, the base type of the subtype defined by the subtype indication of the
+access type definition. (5.4)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+612
+Copyright © 2019 IEEE. All rights reserved.
+designated subtype: For an access type, the subtype defined by the subtype indication of the access type
+definition. (5.4.1)
+designated type: For an access type, the base type of the subtype defined by the subtype indication of the
+access type definition. (5.4.1)
+designator: (A) Syntax that forms part of an association element. A formal designator specifies which
+formal parameter, port, or generic (or which subelement or slice of a parameter, port, or generic) is to be
+associated with an actual by the given association element. An actual designator specifies which actual
+expression, signal, variable, subtype, subprogram, or package is to be associated with a formal (subelements
+of a formal). An actual designator may also specify that the formal in the given association element is to be
+left unassociated (with an actual designator of open). (6.5.7.1) (B) An identifier, character literal, or operator
+symbol that defines an alias for some other name. (6.6.1) (C) A simple name that denotes a predefined or
+user-defined attribute in an attribute name, or a user-defined attribute in an attribute specification (7.2, 8.6)
+(D) A simple name, character literal, or operator symbol, and possibly a signature, that denotes a named
+entity in the entity name list of an attribute specification. (7.2) (E) An identifier or operator symbol that
+defines the name of a subprogram. (4.2.1) (F) An identifier, character literal, or operator symbol associated
+with a named entity by a declaration. (6.1)
+digest: A summary of information, computed using a hash function. (24.1.1)
+digital envelope: An encryption scheme in which information is encrypted using a symmetric cipher with a
+session key chosen by an encryption tool, and then the session key is encrypted. Decryption of the protected
+envelope involves first decrypting the session key, followed by decrypting the information with the
+symmetric cipher using the decrypted session key. (24.1.1)
+digital signature: A scheme that allows verification that information is received unaltered from the
+originator of the information. The originator computes a digest of the information using a hash function and
+encrypts the digest with an asymmetric cipher using the private key of a key pair. The recipient decrypts the
+digest using the public key of the originator, recomputes the digest by applying the hash function to the
+received information, and compares the two digests. If they differ, the received information differs from the
+originator’s information. (24.1.1)
+directly visible: A visible declaration that is not visible by selection. A declaration is directly visible within
+its immediate scope, excluding any places where the declaration is hidden. A declaration occurring
+immediately within the visible part of a package can be made directly visible by means of a use clause. (12.3
+and 12.4) See also: visible.
+disabled callback: A callback for which the callback function will not be called if the trigger event occurs.
+(21.1)
+discrete array: A one-dimensional array whose elements are of a discrete type. (9.2.3)
+discrete range: A range whose bounds are of a discrete type. (5.3.2.1, 5.3.2.2)
+discrete type: An enumeration type or an integer type. Each value of a discrete type has a position number
+that is an integer value. Indexing and iteration rules use values of discrete types. (5.2.1)
+don’t care value: The enumeration literal '–' of the type STD_ULOGIC defined in the package
+STD_LOGIC_1164. (16.8.2.2)
+driver: A container for a projected output waveform of a signal. The value of the signal is a function of the
+current values of its drivers. Each process that assigns to a given signal implicitly contains a driver for that
+signal. A signal assignment statement affects only the associated driver(s). (14.5.5, 14.7.2, 14.7.3, 14.7.4)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+613
+Copyright © 2019 IEEE. All rights reserved.
+driving value: The value a signal provides as a source of other signals. (14.7.3)
+driving-value forced signal: A signal whose driving value is set to a given value and cannot be changed by
+a deposit or update of other parts of the net of which the signal is a part. (14.7.3.2, 22.5.3)
+dynamic object: An object in an information model that, once created, may cease to exist at a later time
+during execution of the tool. (17.2.1)
+effective value: The value obtained by evaluating a reference to the signal within an expression. (14.7.3)
+effective-value forced signal: A signal whose effective value is set to a given value and cannot be changed
+by a deposit or update of other parts of the net of which the signal is a part. (14.7.3.3, 22.5.3)
+elaboration: The process by which a declaration achieves its effect. Prior to the completion of its
+elaboration (including before the elaboration), a declaration is not yet elaborated. (Clause 14)
+elaboration function: A function in a foreign architecture that performs elaboration of the foreign
+architecture. (20.4.1)
+elaboration phase: That phase of tool execution in which static elaboration of a design hierarchy occurs.
+(14.2, 20.4)
+element: A constituent of a composite type. (5.1) See also: subelement.
+enabled callback: A callback for which the callback function will be called if the trigger event occurs.
+(21.1)
+encoding method: An algorithm that transforms the octets of information into graphic characters so that the
+information can be stored or transmitted without being altered by agents that interpret nongraphic
+characters. (24.1.1, 24.1.3.1)
+encryption envelope: A collection of protect tool directives that specify ciphers and keys used to encrypt an
+enclosed portion of a VHDL description. (24.1.4)
+encryption tool: A tool that processes encryption envelopes in a VHDL description and produces a VHDL
+description containing the corresponding decryption envelopes. (24.1.4)
+entity declaration: A definition of the interface between a given design entity and the environment in which
+it is used. It may also specify declarations and statements that are part of the design entity. A given entity
+declaration may be shared by many design entities, each of which has a different architecture. Thus, an
+entity declaration can potentially represent a class of design entities, each with the same interface. (3.1, 3.2)
+enumeration literal: A literal of an enumeration type. An enumeration literal is either an identifier or a
+character literal. (5.2.2.1, 9.3.2)
+enumeration type: A type whose values are defined by listing (enumerating) them. The values of the type
+are represented by enumeration literals. (5.2.1, 5.2.2)
+erroneous: An error condition that cannot always be detected. (1.3.3)
+error: A condition that makes the source description illegal. If an error is detected at the time of analysis of
+a design unit, it prevents the creation of a library unit for the given design unit. A runtime error causes
+simulation to terminate. (1.3.3, 13.5)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+614
+Copyright © 2019 IEEE. All rights reserved.
+error information structure: A C struct of type vhpiErrorInfoT that represents error information
+provided by the tool to a VHPI program upon occurrence of an error. (23.3)
+event: A change in the current value of a signal, which occurs when the signal is updated with its effective
+value. (14.7.3.4)
+execute: (A) When first the design hierarchy of a model is elaborated, then its nets are initialized, and finally
+simulation proceeds with repetitive execution of the simulation cycle, during which processes are executed
+and nets are updated. (B) When a process performs the actions specified by the algorithm described in its
+statement part. (Clause 14, 14.7)
+execution function: A function in a foreign model that performs initialization (in the case of a foreign
+architecture) or dynamic elaboration (in the case of a foreign subprogram). (20.4.2, 20.5)
+expanded name: A selected name (in the syntactic sense) that denotes one or all of the primary units in a
+library or any named entity within a primary unit. (8.3, 10.2) See also: selected name.
+explicit ancestor: The parent of the implicit signal that is defined by the predefined attributes 'DELAYED,
+'QUIET, 'STABLE, or 'TRANSACTION. It is determined using the prefix of the attribute. If the prefix
+denotes an explicit signal or a slice, or subelement (or member thereof), then that is the explicit ancestor of
+the implicit signal. If the prefix is one of the implicit signals defined by the predefined attributes
+'DELAYED, 'QUIET, 'STABLE, or 'TRANSACTION, this rule is applied recursively. If the prefix is an
+implicit signal GUARD, the signal has no explicit ancestor. (4.3)
+explicit signal: A signal, other than those defined by the predefined attributes 'DELAYED, 'QUIET,
+'STABLE, 'TRANSACTION, any implicit signal GUARD, or their slices, subelements, or slices of their
+subelements. A slice, subelement, or a slice of a subelment of an explicit signal is also an explicit signal.
+(4.3)
+explicitly declared constant: A constant of a specified type that is declared by a constant declaration.
+(6.4.2.2)
+explicitly declared object: An object of a specified type that is declared by an object declaration. An object
+declaration is called a single-object declaration if its identifier list has a single identifier; it is called a
+multiple-object declaration if the identifier list has two or more identifiers. (6.4.1, 6.4.2) See also: implicitly
+declared object.
+expression: A formula that defines the computation of a value. (9.1)
+extend: A property of source text forming a declarative region with disjoint parts. In a declarative region
+with disjoint parts, if a portion of text is said to extend from some specific point of a declarative region to the
+end of the region, then this portion is the corresponding subset of the declarative region (and does not
+include intermediate declarative items between an interface declaration and a corresponding body
+declaration). (12.1)
+extended digit: A lexical element that is either a digit or a letter. (15.5.3)
+external block: A top-level design entity that resides in a library and may be used as a component in other
+designs. (3.1)
+file type: A type that provides access to objects containing a sequence of values of a given type. File types
+are typically used to access files in the host system environment. The value of a file object is the sequence of
+values contained in the host system file. (5.1, 5.5)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+615
+Copyright © 2019 IEEE. All rights reserved.
+floating-point types: A scalar type whose values approximate real numbers. The representation of a
+floating-point type conforms to IEEE Std 754-2019 and has a minimum size of 64 bits. (5.2.1, 5.2.5)
+forced driver: A driver whose current value is set to a given value and cannot be changed by a deposit or a
+transaction becoming the first transaction in the driver’s projected output waveform. (14.7.2, 22.5.4)
+forced variable: A variable whose value is set to a given value and cannot be changed by a deposit or
+assignment. (10.6.2.1, 22.5.2)
+foreign application: A VHPI program other than a foreign model. (20.1)
+foreign model: A design entity whose architecture is decorated with the 'FOREIGN attribute in the form of
+a standard indirect binding or a standard direct binding, or a subprogram similarly decorated. (20.1)
+foreign model callback: A callback that allows a foreign model to achieve an effect similar to that of a wait
+statement, by being triggered after a timeout or upon an event on one or more signals. (21.3.3)
+foreign subprogram: A subprogram that is decorated with the attribute 'FOREIGN, defined in package
+STANDARD. The STRING value of the attribute may specify implementation-dependent information about
+the foreign subprogram. Foreign subprograms may have non-VHDL implementations. An implementation
+may place restrictions on the allowable modes, classes, and types of the formal parameters to a foreign
+subprogram, such as constraints on the number and allowable order of the parameters. (4.3)
+formal: A formal port or formal generic of a design entity, a block statement, or a formal parameter of a
+subprogram. (4.2.2, 6.5.7.1, 6.5.7.2, 6.5.7.3, 11.2)
+format: The format of a value structure specifies how the value is represented. (22.2.8)
+full declaration: A constant declaration occurring in a package body with the same identifier as that of a
+deferred constant declaration in the corresponding package declaration. (4.8)
+full type declaration: A type declaration corresponding to an incomplete type declaration.
+fully bound: A binding indication for the component instance implies an entity declaration and an
+architecture. (7.3.2.2)
+generate parameter: A constant object whose type is the base type of the discrete range of a generate
+parameter specification. A generate parameter is declared by a generate statement. (11.8)
+generic: An interface declaration in the block header of a block statement, a component declaration, or an
+entity declaration, in the package header of a package declaration, in the subprogram header of a
+subprogram specification, or in the protected type header of a protected type declaration. Generics provide a
+channel for static information to be communicated to a block, a package, a subprogram or a protected type
+from its environment. Unlike explicit declarations, a generic’s value can be supplied externally.
+generic interface list: A list that defines local or formal generics. (6.5.6.1, 6.5.6.2)
+generic-mapped package: A package declared by a package declaration containing a generic clause and a
+generic map aspect. A generic-mapped package may be declared explicitly or may be equivalent to a
+package instantiation. (4.7, 4.9)
+generic-mapped protected type: A protected type declared by a protected type declaration containing a
+generic list and a generic map aspect. A generic-mapped protected type may be declared explicitly, or may
+be equivalent to a protected type instantiation (5.6.2).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+616
+Copyright © 2019 IEEE. All rights reserved.
+generic-mapped subprogram: A subprogram declared by a subprogram declaration containing a generic
+list and a generic map aspect. A generic-mapped subprogram may be declared explicitly or may be
+equivalent to a subprogram instantiation. (4.2.1, 4.4)
+globally static expression: An expression that can be evaluated as soon as the design hierarchy in which it
+appears is elaborated. A locally static expression is also globally static unless the expression appears in a
+dynamically elaborated context. (9.4.1)
+globally static primary: A primary whose value can be determined during the elaboration of its complete
+context and that does not thereafter change. Globally static primaries can only appear within statically
+elaborated contexts. (9.4.3)
+group: A named collection of named entities. Groups relate different named entities for the purposes not
+specified by the language. In particular, groups may be decorated with attributes. (6.9, 6.10)
+guard: See: guard condition.
+guard condition: A Boolean-valued expression associated with a block statement that controls assignments
+to guarded signals within the block. A guard condition defines an implicit signal GUARD that may be used
+to control the operation of certain statements within the block. (6.4.2.3, 11.2, 11.6)
+guarded assignment: A concurrent signal assignment statement that includes the reserved word guarded,
+which specifies that the signal assignment statement is executed when a signal GUARD changes from
+FALSE to TRUE, or when that signal has been TRUE and an event occurs on one of the signals referenced
+in the corresponding GUARD condition. The signal GUARD will be one of the implicitly declared GUARD
+signals associated with block statements that have guard conditions, or it will be an explicitly declared signal
+of type BOOLEAN that is visible at the point of the concurrent signal assignment statement. (11.6)
+guarded signal: A signal declared as a register or a bus. Such signals have special semantics when their
+drivers are updated from within guarded signal assignment statements. (6.4.2.3)
+guarded target: A signal assignment target consisting only of guarded signals. An unguarded target is a
+target consisting only of unguarded signals. (11.6)
+handle: An opaque reference to an object in the VHPI information model. (17.4.1)
+hash function: A function that produces a summary of information. The likelihood of two different pieces
+of information yielding the same summary is negligible. Moreover, the original information cannot be
+determined from the summary. (24.1.1, 24.1.3.3)
+hidden: A declaration that is not directly visible. A declaration is hidden in its scope by a homograph of the
+declaration. (12.3)
+high-impedance value: The enumeration literal 'Z' of the type STD_ULOGIC defined in the package
+STD_LOGIC_1164. (16.8.2.2)
+homograph: A reflexive property of two declarations. Each of two declarations is said to be a homograph
+of the other if both declarations have the same identifier and overloading is allowed for at most one of the
+two. If overloading is allowed for both declarations, then each of the two is a homograph of the other if they
+have the same identifier, operator symbol, or character literal, as well as the same parameter and result type
+profile. (4.5.1, 12.3)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+617
+Copyright © 2019 IEEE. All rights reserved.
+identify: A property of a name appearing in an element association of an assignment target in the form of an
+aggregate. The name is said to identify a signal or variable and any subelements of that signal or variable.
+(10.5.2.1, 10.6.2.1)
+immediate scope: A property of a declaration with respect to the declarative region within which the
+declaration immediately occurs. The immediate scope of the declaration extends from the beginning of the
+declaration to the end of the declarative region. (12.2)
+immediately within: A property of a declaration with respect to some declarative region. A declaration is
+said to occur immediately within a declarative region if this region is the innermost region that encloses the
+declaration, not counting the declarative region (if any) associated with the declaration itself. (12.1)
+implicit label: Where a statement omits a label, an implicit label is used to construct name properties for the
+statement. The implicit label is determined by the statement’s position in the immediately enclosing
+statement part. (19.4.2)
+implicitly declared object: An object whose declaration is not explicit in the source description, but is a
+consequence of other constructs; for example, signal GUARD. (6.4.1, 11.2, 16.2) See also: explicitly
+declared object.
+implicit signal: Any signal S'STABLE(T), S'QUIET(T), S'DELAYED(T), or S'TRANSACTION, or any
+implicit GUARD signal. A slice  (or slice thereof) of an implicit signal is also an implicit signal.
+(14.7.3, 14.7.4, 14.7.5)
+imply: A property of a binding indication in a configuration specification with respect to the design entity
+indicated by the binding indication. The binding indication is said to imply the design entity; the design
+entity is indicated directly, indirectly, or by default. (7.3.2.2)
+impure function: A function that may return a different value each time it is called, even when different
+calls have the same actual parameter values. A pure function returns the same value each time it is called
+using the same values as actual parameters. An impure function can update objects outside of its scope and
+can access a broader class of values than a pure function. (4.1)
+in: One possible mode of a port or subprogram parameter; also, the only allowed mode of a generic constant.
+A port of mode in may be read within the design entity containing the port but does not contribute a driving
+value to the network containing the port. A subprogram parameter of mode in may be read but not modified
+by the containing subprogram. (4.2.2, 6.5.2, 6.5.6.2, 6.5.6.3)
+incremental binding: A binding indication in a configuration declaration that either re-associates a
+previously associated local generic constant or that associates a previously unassociated local port is said to
+incrementally rebind the component instance or instances to which the binding indication applies. (7.3.2.1)
+index constraint: A constraint that determines the index range for every index of an array type, and thereby
+the bounds of the array. An index constraint is compatible with an array type if and only if the constraint
+defined by each discrete range in the index constraint is compatible with the corresponding index subtype in
+the array type. An array value satisfies an index constraint if the array value and the index constraint have
+the same index range at each index position. (5.2.1, 5.3.2.2)
+index range: A multidimensional array has a distinct element for each possible sequence of index values
+that can be formed by selecting one value for each index (in the given order). The possible values for a given
+index are all the values that belong to the corresponding range. This range of values is called the index
+range. (5.3.2.1)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+618
+Copyright © 2019 IEEE. All rights reserved.
+index subtype: For a given index position of an array, the index subtype is denoted by the type mark of the
+corresponding index subtype definition. (5.3.2.1)
+inertial delay: A delay model used for switching circuits; a pulse whose duration is shorter than the
+switching time of the circuit will not be transmitted. Inertial delay is the default delay mode for signal
+assignment statements. (10.5.2.1) See also: transport delay.
+information model: An abstract representation of the topology and state of a VHDL model. (17.2.1)
+inheritance relationship: A relationship between a subclass and a superclass whereby the subclass
+implicitly has all of the properties, operations, and associations of the superclass. The relationship may be
+directly between a subclass and a superclass or indirectly through one or more intermediate superclasses.
+(17.2.1)
+initial value expression: An expression that specifies the initial value to be assigned to a variable. (6.4.2.4)
+initialization phase: That phase of tool execution in which initialization of an elaborated design hierarchy
+occurs. (14.7.5.2, 20.5)
+inout: One possible mode of a port or subprogram parameter. A port of mode inout may be read within the
+design entity containing the port and also contributes a driving value to the network containing the port. A
+subprogram parameter of mode inout may be both read and modified by the containing subprogram.
+(4.2.2.1, 6.5.2, 6.5.6.3)
+inputs: The signals identified by the longest static prefix of each signal name appearing as a primary in each
+expression (other than time expressions) within a concurrent signal assignment statement. (11.6)
+instance: A subcomponent of a design entity whose prototype is a component declaration, design entity, or
+configuration declaration. Each instance of a component may have different actuals associated with its local
+ports and generics. A component instantiation statement whose instantiated unit denotes a component
+creates an instance of the corresponding component. A component instantiation statement whose
+instantiated unit denotes either a design entity or a configuration declaration creates an instance of the
+denoted design entity. (11.7.1, 11.7.2, 11.7.3)
+integer literal: An abstract literal of the type universal_integer that does not contain a base point. (15.5.1)
+integer type: A discrete scalar type whose values represent integer numbers within a specified range.
+(5.2.1, 5.2.3)
+interface list: A list that declares the interface objects required by a subprogram, component, design entity,
+or block statement. (6.5.6)
+internal block: A nested block in a design unit, as defined by a block statement. (3.1)
+invalid handle: A handle that previously referred to an object that subsequently ceased to exist. (17.4.5)
+ISO: International Organization for Standardization.
+ISO/IEC 8859-1: The ISO Latin-1 character set. Package STANDARD contains the definition of type
+CHARACTER, which represents the ISO Latin-1 character set. (5.2.2.2, 16.3)
+kernel process: A conceptual representation of the agent that coordinates the activity of user-defined
+processes during a simulation. The kernel process causes the execution of I/O operations, the propagation of
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+619
+Copyright © 2019 IEEE. All rights reserved.
+signal values, and the updating of values of implicit signals [such as S'STABLE(T)]; in addition, it detects
+events that occur and causes the appropriate processes to execute in response to those events. (14.7.1)
+left bound: For a range L to R or L downto R, the value L. (5.2.1)
+left of: When both a value V1 and a value V2 belong to a range and either the range is an ascending range
+and V2 is the successor of V1, or the range is a descending range and V2 is the predecessor of V1. (5.2.1)
+left-to-right order: When each value in a list of values is to the left of the next value in the list within that
+range, except for the last value in the list. (5.2.1)
+lexically conform: Two subprogram specifications are said to lexically conform if, apart from certain
+allowed minor variations, both specifications are formed by the same sequence of lexical elements, and
+corresponding lexical elements are given the same meaning by the visibility rules. Lexical conformance is
+defined similarly for deferred constant declarations. (4.10)
+library: See: design library.
+library information model: The information model that represents the design units that comprise a VHDL
+model after analysis and prior to elaboration. (17.2.1)
+library unit: The representation in a design library of an analyzed design unit. (13.1)
+lifetime of an object: The duration of existence of the object in the VHPI information model. (17.4.5)
+linkage: One possible port mode. A design entity whose entity interface contains a port of mode linkage
+implies that the behavior of the design entity is not expressed in terms of VHDL semantics. (6.5.2, 6.5.6.3)
+literal: A value that is directly specified in the description of a design. A literal can be a bit string literal,
+enumeration literal, numeric literal, string literal, or the literal null. (9.3.2)
+load: A load of a given signal is a process, port, signal, or conversion whose value depends on the value of
+the given signal. (19.12.2)
+local contributor: A contributor defined by a VHDL model or created using the vhpi_create function,
+prior to any optimization of the representation of contributors and loads of a net. (19.12.2)
+local generic: An interface declaration in a component declaration that serves to connect a formal generic in
+the interface list of an entity and an actual generic, value, subtype, subprogram, or package in the design unit
+instantiating that entity. (6.4.1, 6.5.7, 6.8)
+local load: A load defined by a VHDL model, prior to any optimization of the representation of contributors
+and loads of a net. (19.12.2)
+locally static expression: An expression that can be evaluated during the analysis of the design unit in
+which it appears. (9.4.1, 9.4.2)
+locally static name: A name in which every expression is locally static (if every discrete range that appears
+as part of the name denotes a locally static range or subtype and if no prefix within the name is either an
+object or value of an access type or a function call). (8.1)
+locally static primary: One of a certain group of primaries that includes literals, certain constants, and
+certain attributes. (9.4.2)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+620
+Copyright © 2019 IEEE. All rights reserved.
+locally static subtype: A subtype whose bounds and direction can be determined during the analysis of the
+design unit in which it appears. (9.4.2)
+local port: A signal declared in the interface list of a component declaration that serves to connect a formal
+port in the interface list of an entity and an actual port or signal in the design unit instantiating that entity.
+(6.4.1, 6.5.7, 6.8)
+longest static prefix: The name of a signal or a variable name, if the name is a static signal or variable
+name. Otherwise, the longest static prefix is the longest prefix of the name that is a static signal or variable
+name. (8.1) See also: static signal name.
+loop parameter: A constant, implicitly declared by the for clause of a loop statement, used to count the
+number of iterations of a loop. (10.10)
+lower bound: The left bound of an ascending range or the right bound of a descending range. (5.2.1)
+match: A property of a signature with respect to the parameter and subtype profile of a subprogram or
+enumeration literal. The signature is said to match the parameter and result type profile if certain conditions
+are true. (4.5.3)
+matching case statement: A case statement that includes the question mark delimiter, in which choices are
+compared with the expression using the “?=” operator. (10.9)
+matching elements: Corresponding elements of two composite type values that are used for certain logical
+and relational operations. (9.2.3)
+matching index value: In an element association with a choice that is a discrete range and an expression of
+the type of the aggregate, the index value in the range that corresponds to a given element of the expression
+value. (9.3.3.3)
+mature callback: A one-time callback whose trigger event has occurred. (21.1)
+member: A slice of an object, a subelement, or an object; or a slice of a subelement of an object. (5.1)
+metalogical value:  One of the enumeration literals 'U', 'X', 'W' or '–' of the type STD_ULOGIC defined in
+the package STD_LOGIC_1164. (16.8.2.2)
+method: An abstract operation that operates atomically and exclusively on a single object of a protected
+type. (5.6.2)
+mode: The direction of information flow through the port or parameter. Modes are in, out, inout, buffer, or
+linkage. (6.5.2, 6.5.6.3)
+mode view declaration: A declaration of the modes of the individual elements of a composite interface
+object. A mode view is associated with a composite type or subtype. There may be more than one mode
+view associated with a given composite type or subtype (6.5.2, 6.5.3)
+model: The result of the elaboration of a design hierarchy. The model can be executed in order to simulate
+the design it represents. (14.1, 14.7)
+model name: An identifier that, jointly with an object library name, uniquely identifies a foreign model.
+(20.2.2)
+modified relative search string: A relative search string modified by the insertion of signatures. (23.22)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+621
+Copyright © 2019 IEEE. All rights reserved.
+most specialized class: That class of which a given object is a member and for which there is no subclass of
+which the object is also a member. (17.2.1)
+multiplicity: The number of permissible target objects of a navigable association. Multiplicities may be 0..1
+or 1 for a one-to-one association or 0..* or 1..* for one-to-many associations. (19.2.1)
+name: A property of an identifier with respect to some named entity. Each form of declaration associates an
+identifier with a named entity. In certain places within the scope of a declaration, it is valid to use the
+identifier to refer to the associated named entity; these places are defined by the visibility rules. At such
+places, the identifier is said to be the name of the named entity. (6.1, 8.1)
+named association: An association element in which the formal designator appears explicitly.
+(6.5.7.1, 9.3.3.1)
+named entity: An item associated with an identifier, character literal, or operator symbol as the result of an
+explicit or implicit declaration. (6.1) See also: name.
+navigable: An association in the information model is navigable from a reference object to a target object if
+it is permissible to acquire a handle for the target object using the vhpi_handle function (for a one-to-one
+association) or the vhpi_iterator function (for a one-to-many association) with a handle to the
+reference object. (19.2.1)
+net: A collection of drivers, signals (including ports and implicit signals), conversion functions, and
+resolution functions that connect different processes. Initialization of a net occurs after elaboration, and a net
+is updated during each simulation cycle. (14.1, 14.2, 14.7.3.4)
+nonobject alias: An alias whose designator denotes some named entity other than an object. (6.6.1, 6.6.2)
+See also: object alias.
+nonpostponed process: An explicit or implicit process whose source statement does not contain the
+reserved word postponed. When a nonpostponed process is resumed, it executes in the current simulation
+cycle. Thus, nonpostponed processes have access to the current values of signals, whether or not those
+values are stable at the current model time. (11.3)
+null array: Any of the discrete ranges in the index constraint of an array that define a null range. (5.3.2.2)
+null range: A range that specifies an empty subset of values. A range L to R is a null range if L > R, and
+range L downto R is a null range if L < R. (5.2.1)
+null slice: A slice whose discrete range is a null range. (8.5)
+null transaction: A transaction produced by evaluating a null waveform element. (10.5.2.2)
+null waveform element: A waveform element that is used to turn off a driver of a guarded signal. (10.5.2.2)
+numeric literal: An abstract literal or a literal of a physical type. (9.3.2)
+numeric type: An integer type, a floating-point type, or a physical type. (5.2.1)
+object: (A) A named entity that has a value of a given type. An object can be a constant, signal, variable, or
+file. (6.4.1) (B) An instance of a class in an information model. An object is also an instance of each
+superclass of the class. (17.2.1)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+622
+Copyright © 2019 IEEE. All rights reserved.
+object alias: An alias whose alias designator denotes an object (that is, a constant, signal, variable, or file).
+(6.6.1, 6.6.1) See also: nonobject alias.
+object callback: A callback whose trigger event relates to the value of a variable or a signal, represented by
+a trigger object. (21.3.2)
+object library: An implementation-defined library containing one or more entry points for elaboration,
+execution or registration functions. (20.2.2)
+one-time callback: A callback for which the callback function is triggered at most once. (21.1)
+one-to-many association: An association in which one reference object is associated with possibly more
+than one target object. (17.2.1)
+one-to-one association: An association in which one reference object is associated with at most one target
+object. (17.2.1)
+operation: A function that pertains to a given object or class in an information model. (17.2.1)
+optimized contributor: A contributor resulting from an implementation-defined optimization of the
+representation of contributors and loads of a net. (19.12.2)
+optimized load: A load resulting from an implementation-defined optimization of the representation of
+contributors and loads of a net. (19.12.2)
+ordered: A constraint upon a one-to-many association that indicates that an ordering relation applies to the
+target objects of the association. (19.2.1)
+ordinary case statement: A case statement that does not include the question mark delimiter, in which
+choices are compared with the expression using the “=” operator. (10.9)
+out: One possible mode of a port or subprogram parameter. A port of mode out contributes a driving value
+to the network containing the port; the design entity containing the port may also read the port. A
+subprogram parameter of mode out can be modified, and, if it is a variable, its value can be read by the
+containing subprogram. The value read is the current value of the formal parameter. (4.2.2, 6.5.2, 6.5.6.3)
+overloaded: Identifiers or enumeration literals that denote two different named entities. Enumeration
+literals, subprograms, and predefined operators may be overloaded. At any place where an overloaded
+enumeration literal occurs in the text of a program, the type of the enumeration literal will be determinable
+from the context. (4.2.1, 4.5.1, 4.5.2, 4.5.3, 5.2.2.1)
+parameter: A constant, signal, variable, or file declared in the interface list of a subprogram specification.
+The characteristics of the class of objects to which a given parameter belongs are also characteristics of the
+parameter. In addition, a parameter has an associated mode that specifies the direction of dataflow allowed
+through the parameter. (4.2.2.1, 4.2.2.2, 4.2.2.3, 4.2.2.4, 4.5, 4.8)
+parameter and result type profile: Two subprograms that have the same parameter type profile, and either
+both are functions with the same result base type, or neither of the two is a function. (4.5.1)
+parameter interface list: An interface list that declares the parameters for a subprogram. It may contain
+interface constant declarations, interface signal declarations, interface variable declarations, interface file
+declarations, or any combination thereof. (6.5.6.1)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+623
+Copyright © 2019 IEEE. All rights reserved.
+parameter type profile: Two formal parameter lists that have the same number of parameters, and at each
+parameter position the corresponding parameters have the same base type. (4.5.1)
+parent: A process or a subprogram that contains a procedure call statement for a given procedure or for a
+parent of the given procedure. (4.3)
+passive process: A process statement where neither the process itself, nor any procedure of which the
+process is a parent, contains a signal assignment statement. (11.3)
+permanent: A permanent string or structure is allocated by the tool in storage that is not subsequently
+overwritten during the invocation of the tool. A VHPI program may store a pointer to a permanent string or
+structure for subsequent reference to the string or structure. (23.1)
+physical literal: A numeric literal of a physical type. (5.2.4.1)
+physical structure: A C struct of type vhpiPhysT that represents a value of a physical type. (22.2.6)
+physical type: A numeric scalar type that is used to represent measurements of some quantity. Each value of
+a physical type has a position number that is an integer value. Any value of a physical type is an integral
+multiple of the primary unit of measurement for that type. (5.2.1, 5.2.4)
+port: A channel for dynamic communication between a block and its environment. A signal declared in the
+interface list of an entity declaration, in the header of a block statement, or in the interface list of a
+component declaration. In addition to the characteristics of signals, ports also have an associated mode; the
+mode constrains the directions of dataflow allowed through the port. (6.4.2.3, 6.5.6.3)
+port interface list: An interface list that declares the inputs and outputs of a block, component, or design
+entity. It consists entirely of interface signal declarations. (6.5.6.1, 6.5.6.3, 11.2)
+positional association: An association element that does not contain an explicit appearance of the formal
+designator. An actual designator at a given position in an association list corresponds to the interface
+element at the same position in the interface list. (6.5.7.1, 9.3.3.1)
+postponed process: An explicit or implicit process whose source statement contains the reserved word
+postponed. When a postponed process is resumed, it does not execute until the final simulation cycle at the
+current modeled time. Thus, a postponed process accesses the values of signals that are the “stable” values at
+the current simulated time. (11.3)
+predefined operations: Implicitly defined subprograms and predefined operators that operate on the
+predefined types. (5.2.6, 5.3.2.4, 5.4.3, 5.5.2, 9.2)
+predefined operators: Implicitly defined operators that operate on the predefined types. Every predefined
+operator is a pure function. No predefined operators have named formal parameters; therefore, named
+association cannot be used in a function whose name denotes a predefined operator. (9.2, 16.3)
+primary: One of the elements making up an expression. Each primary has a value and a type. (9.1)
+private key: One key of a key pair used with an asymmetric cipher for the encryption or decryption of
+information. The private key is known only to the owner of the key pair. (24.1.1)
+projected output waveform: A sequence of one or more transactions representing the current and projected
+future values of the driver. (14.7.2)
+property: An item of data that pertains to a given object or class in an information model. (17.2.1)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+624
+Copyright © 2019 IEEE. All rights reserved.
+protected type: A type whose objects are protected from simultaneous access by more than one process.
+(5.6)
+protection envelope: A collection of protect tool directives that specify ciphers and keys used to encrypt or
+decrypt an enclosed portion of a VHDL description. A protection envelope is either an encryption envelope
+or a decryption envelope. (24.1.1)
+public key: One key of a key pair used with an asymmetric cipher for the encryption or decryption of
+information. The public key is published by the owner of the key pair. (24.1.1)
+pulse rejection limit: The threshold time limit for which a signal value whose duration is greater than the
+limit will be propagated. A pulse rejection limit is specified by the reserved word reject in an inertially
+delayed signal assignment statement. (10.5.2.1)
+pure function: A function that returns the same value each time it is called with the same values as actual
+parameters. An impure function may return a different value each time it is called, even when different calls
+have the same actual parameter values. (4.2.2)
+quiet: In a given simulation cycle, a signal that is not active. (14.7.3.1)
+range: A specified subset of values of a scalar type. (5.2.1) See also: ascending range; belong (to a
+range); descending range; left bound; lower bound; right bound; upper bound.
+range constraint: A construct that specifies the range of values in a type. A range constraint is compatible
+with a subtype if each bound of the range belongs to the subtype or if the range constraint defines a null
+range. The direction of a range constraint is the same as the direction of its range. (5.2.1, 5.2.3.1, 5.2.4.1,
+5.2.5.1)
+read: The value of an object is said to be read when its value is referenced or when certain of its attributes
+are referenced. (6.5.2)
+real literal: An abstract literal of the type universal_real that contains a base point. (15.5.1)
+record type: A composite type whose values consist of named elements. (5.3.3, 9.3.3.2)
+reference: Access to a named entity. Every appearance of a designator (a name, character literal, or operator
+symbol) is a reference to the named entity denoted by the designator, unless the designator appears in a
+library clause or use clause. (12.4, 13.2)
+reference class: The class of an object from which a navigable association may be navigated using the
+vhpi_handle or vhpi_iterator function. (19.2.1)
+reference object: An object from which a navigable association may be navigated using the
+vhpi_handle or vhpi_iterator function. (19.2.1)
+reflection: Reflection allows the user to lift any VHDL value into a generic type called a
+VALUE_MIRROR. This value mirror is implemented as a protected type. Its implementation is simulator-
+specific and completely hidden from the user. Only a public interface is provided in a package called
+REFLECTION. A value mirror holds a copy of the value that it encapsulates and a reference to the meta data
+(or SUBTYPE_MIRROR) that describes the value. A SUBTYPE_MIRROR is a fully elaborated description
+of the subtype. There are nine kinds of value and type mirrors, one for each VHDL type (sub)class. You can
+cast a mirror to its more precise type with the to_* methods. (16.12)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+625
+Copyright © 2019 IEEE. All rights reserved.
+register: A kind of guarded signal that retains its last driven value when all of its drivers are turned off.
+(6.4.2.3)
+registration: The means whereby a VHPI program identifies a foreign model, foreign application, or
+callback to the tool so that the tool can invoke the foreign model, application, or callback. (20.2.1, 21.2.2)
+registration function: A function in a library of foreign models that performs registration of the foreign
+models in the library. (20.2.2)
+registration phase: That phase of tool execution in which the tool has begun executing, and foreign models
+and applications are identified to the tool. (20.2)
+regular structure: Instances of one or more components arranged and interconnected (via signals) in a
+repetitive way. Each instance may have characteristics that depend upon its position within the group of
+instances. Regular structures may be represented through the use of the generate statement. (11.8)
+relative search string: A search string provided to the vhpi_handle_by_name function that represents
+a name to be concatenated to the full name of a reference object. (23.22)
+release a forced object: An update of a driver, signal, or variable that causes the object no longer to be
+forced. (22.5)
+release a handle: A VHPI program that releases a handle referring to an object indicates to the tool that the
+VHPI program no longer needs the reference to the object. The tool may reclaim resources used to
+implement the reference. (17.4.3)
+repetitive callback: A callback for which the callback function may be triggered multiple times. (21.1)
+reset phase: That phase of tool execution in which a VHDL model is restarted from the state it was in at the
+end of initialization. (20.9)
+resolution: The process of determining the resolved value of a resolved signal based on the values of
+multiple sources for that signal. (4.6, 6.4.2.3)
+resolution function: A user-defined function that computes the resolved value of a resolved signal.
+(4.6, 6.4.2.3)
+resolution limit: The primary unit of type TIME (by default, 1 fs). Any TIME value whose absolute value is
+smaller than this limit is truncated to zero (0) time units. (5.2.4.2)
+resolved signal: A signal that has an associated resolution function. (6.4.2.3)
+resolved value: The output of the resolution function associated with the resolved signal, which is
+determined as a function of the collection of inputs from the multiple sources of the signal. (4.6, 6.4.2.3)
+resource library: A library containing library units that are referenced within the design unit being
+analyzed. (13.2)
+restart phase: That phase of tool execution in which a previously saved VHDL model is restarted from the
+point of its save. (20.8)
+result subtype: The subtype of the returned value of a function. (4.2.1)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+626
+Copyright © 2019 IEEE. All rights reserved.
+resume: The action of a wait statement upon an enclosing process when the conditions on which the wait
+statement is waiting are satisfied. If the enclosing process is a nonpostponed process, the process will
+subsequently execute during the current simulation cycle. Otherwise, the process is a postponed process,
+which will execute during the final simulation cycle at the current simulated time. (14.7.5)
+right bound: For a range L to R or L downto R, the value R. (5.2.1)
+right of: When a value V1 and a value V2 belong to a range and either the range is an ascending range and
+V2 is the predecessor of V1, or the range is a descending range and V2 is the successor of V1. (5.2.1)
+role name: An annotation of a navigable association that identifies that association. (19.2.1)
+satisfy: A property of a value with respect to some constraint. The value is said to satisfy a constraint if the
+value is in the subset of values determined by the constraint. (5.1, 5.3.2.2)
+save phase: That phase of tool execution in which the current state of a VHDL model is saved for possible
+restart. (20.7)
+scalar type: A type whose values have no elements. Scalar types consist of enumeration types, integer
+types, physical types, and floating-point types. Enumeration types and integer types are called discrete types.
+Integer types, floating-point types, and physical types are called numeric types. All scalar types are ordered;
+that is, all relational operators are predefined for their values. (5.1, 5.2)
+schedule a transaction: An update of a driver or a collection of drivers using the
+vhpi_schedule_transaction function to add transactions to the projected output waveforms. (22.6)
+scheduled deposit: An update for a driver or signal performed using the vhpi_put_value function with
+an update mode of vhpiDepositPropagage. The deposit occurs on the driver or signal on the next
+signal update phase of a simulation cycle. (14.7.2, 14.7.3, 22.5.3, 22.5.4)
+scheduled force: An update for a driver or signal performed using the vhpi_put_value function with an
+update mode of vhpiForcePropagage. The driver or signal becomes forced on the next signal update
+phase of a simulation cycle. (14.7.2, 14.7.3, 22.5.3, 22.5.4)
+scope: A portion of the text in which a declaration may be visible. This portion is defined by visibility and
+overloading rules. (12.2)
+secret key: A key used with a symmetric cipher for the encryption and decryption of information. (24.1.1)
+selected name: Syntactically, a name having a prefix and suffix separated by a dot. Certain selected names
+are used to denote record elements or objects denoted by an access value. The remaining selected names are
+referred to as expanded names. (8.3, 10.2) See also: expanded name.
+sensitivity set: The set of signals to which a wait statement is sensitive. The sensitivity set is given explicitly
+in an on clause or is implied by an until clause. (10.2)
+sensitivity-set bitmap: A value structure indicating on which signals in the sensitivity set of a callback an
+event occurred. (21.3.3.3)
+sequential statements: Statements that execute in sequence in the order in which they appear. Sequential
+statements are used for algorithmic descriptions. (Clause 10)
+session key: A key for a symmetric cipher, chosen by an encryption tool for encryption of information in a
+digital envelope. The session key is encrypted and provided with the encrypted information. (24.1.1)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+627
+Copyright © 2019 IEEE. All rights reserved.
+shared variable: A variable accessible by more than one process. Such variables will be of a protected type.
+(6.4.2.4)
+short-circuit operation: An operation for which the right operand is evaluated only if the left operand has a
+certain value. The short-circuit operations are the predefined logical operations and, or, nand, and nor for
+operands of types BIT and BOOLEAN. (9.2.1)
+signal: An object with a past history of values. A signal may have multiple drivers, each with a current value
+and projected future values. The term signal refers to objects declared by signal declarations or port
+declarations. (6.4.2.3)
+signal transform: A sequential statement within a statement transform that determines which one of the
+alternative waveforms, if any, is to be assigned to an output signal. A signal transform is the same simple,
+conditional, or selected signal assignment statement as is contained in the concurrent signal assignment
+statement for which the statement transform is defined. (11.6)
+simple name: The identifier associated with a named entity, either in its own declaration or in an alias
+declaration. (8.2)
+simple package: A package declared by a package declaration containing no generic clause and no generic
+map aspect. (4.7)
+simple protected type: A protected type declared by a protected type declaration containing no generic list
+and no generic map aspect. (5.6.2)
+simple subprogram: A subprogram declared by a subprogram declaration containing no generic list and no
+generic map aspect. (4.2.1)
+simulated net: A set of objects, represented by objects of class signal, that have the same effective and
+driving values, as appropriate, at all simulations times. (19.12.2)
+simulation cycle: One iteration in the repetitive execution of the processes defined by process statements in
+a model. The first simulation cycle occurs after initialization. A simulation cycle can be a delta cycle or a
+time-advance cycle. (14.7.5)
+simulation phase: That phase of tool execution in which execution of an elaborated and initialized design
+hierarchy occurs. (14.7.5.3, 20.6)
+simulation phase callback: A callback whose trigger event relates to steps of the simulation cycle. (21.3.6)
+single-line comment: A comment that starts with two adjacent hyphens and extends up to the end of the
+line. (15.9)
+single-object declaration: An object declaration whose identifier list contains a single identifier; it is called
+a multiple-object declaration if the identifier list contains two or more identifiers. (6.4.2.1)
+slice: A one-dimensional array of a sequence of consecutive elements of another one-dimensional array.
+(8.5)
+source: A contributor to the value of a signal. A source can be a driver or port of a block with which a signal
+is associated or a composite collection of sources. (6.4.2.3)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+628
+Copyright © 2019 IEEE. All rights reserved.
+specification: A class of construct that associates additional information with a named entity. There are
+three kinds of specifications: attribute specifications, configuration specifications, and disconnection
+specifications. (Clause 7)
+standard direct binding: A form of foreign attribute value that specifies an object library path, elaboration
+function name, and execution function name for a foreign model. (20.2.4.3)
+standard indirect binding: A form of foreign attribute value that specifies an object library name and a
+model name. The tool uses the foreign attribute value in conjunction with registration information to locate
+the elaboration and executions functions for the foreign model. (20.2.4.2)
+statement callback: A callback whose trigger event relates to execution of one or more statements of
+suspension or resumption of a process. (21.3.4)
+statement transform: The first sequential statement in the process equivalent to the concurrent signal
+assignment statement. The statement transform defines the actions of the concurrent signal assignment
+statement when it executes. The statement transform is followed by a wait statement, which is the final
+statement in the equivalent process. (11.6)
+static: See: globally static expression; globally static primary; locally static expression; locally static
+name; locally static primary; locally static subtype.
+static name: A name in which every expression that appears as part of the name (for example, as an index
+expression) is a static expression (if every discrete range that appears as part of the name denotes a static
+range or subtype and if no prefix within the name is either an object or value of an access type or a function
+call). (8.1)
+static object: An object in an information model that, once created, remains in existence until termination of
+the tool. (17.2.1)
+static range: A range whose bounds are static expressions. (9.4)
+static signal name: A static name that denotes a signal. (8.1)
+static variable name: A static name that denotes a variable. (8.1)
+string literal: A sequence of graphic characters, or possibly none, enclosed between two quotation marks
+(''). The type of a string literal is determined from the context. (9.3.2, 15.7)
+string representation: A string that represents the value of a given type. A string representation of a value
+is returned by the TO_STRING operation. (5.7)
+subaggregate: An aggregate appearing as the expression in an element association within another,
+multidimensional array aggregate. The subaggregate is an (n–1)-dimensional array aggregate, where n is the
+dimensionality of the outer aggregate. Aggregates of multidimensional arrays are expressed in row-major
+(right-most index varies fastest) order. (9.3.3.3)
+subclass: The class in an inheritance relationship that inherits properties, operations, and associations.
+(17.2.1)
+subelement: An element of another element. Where other subelements are excluded, the term element is
+used. (5.1)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+629
+Copyright © 2019 IEEE. All rights reserved.
+subprogram specification: Specifies the designator of the subprogram, any formal parameters of the
+subprogram, and the result type for a function subprogram. (4.2.1)
+subtype: A type together with a constraint. A value belongs to a subtype of a given type if it belongs to the
+type and satisfies the constraint; the given type is called the base type of the subtype. A type is a subtype of
+itself. Such a subtype is said to be unconstrained because it corresponds to a condition that imposes no
+restriction. A subtype S1 is compatible with a subtype S2 if the range constraint associated with S1 is
+compatible with S2. (5.1)
+superclass: The class in an inheritance relationship from which properties, operations, and associations are
+inherited. (17.2.1)
+suspend: A process that stops executing and waits for an event or for a time period to elapse. (14.7.5)
+symmetric cipher: A cipher requiring a single key, called the secret key, for both encryption and decryption
+of information. (24.1.1, 24.1.3.2)
+synthesis tool: Any tool that interprets VHDL source code as a description of an electronic circuit in
+accordance with the terms of this standard and derives an alternate description of that circuit. (16.8.1.2)
+tabular registry: A text file containing the registration information for foreign models and applications.
+(20.2.2)
+target class: The class of an object to which navigation via a navigable association is permitted using the
+vhpi_handle or vhpi_iterator function. (19.2.1)
+target library: A library containing the design unit in which a given component is declared. The target
+library is used to determine the visible entity declaration under certain circumstances for a default binding
+indication (7.3.3)
+target object: An object to which navigation via a navigable association is permitted using the
+vhpi_handle or vhpi_iterator function. (19.2.1)
+termination phase: That phase of tool execution in which the tool has completed execution and is
+terminating. (20.10)
+time callback: A callback whose trigger event relates to progress of simulation time. (21.3.5)
+time structure: A C struct of type vhpiTimeT that represents a nonnegative time. (22.2.7)
+timeout interval: The maximum time a process will be suspended, as specified by the timeout period in the
+until clause of a wait statement. (10.2)
+to the left of: See: left of.
+to the right of: See: right of.
+tool: A program that maintains a representation of a VHDL model and provides the VHPI functions.
+(17.2.1)
+transaction: A pair consisting of a value and a time. The value represents a (current or) future value of the
+driver; the time represents the relative delay before the value becomes the current value. (14.7.2)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+630
+Copyright © 2019 IEEE. All rights reserved.
+transient: A transient string or structure is allocated by the tool in storage that may subsequently be
+overwritten. The value of the string or structure persists at least until the earlier of the next call to the given
+VHPI function by the same thread of control or the return to the tool by the thread of control that called the
+given VHPI function. If a VHPI program needs to refer to the value of a transient string or structure beyond
+the interval for which it persists, the VHPI program will copy the value. (23.1)
+transport delay: An optional delay model for signal assignment. Transport delay is characteristic of
+hardware devices (such as transmission lines) that exhibit nearly infinite frequency response: any pulse is
+transmitted, no matter how short its duration. (10.5.2.1) See also: inertial delay.
+trigger event: An occurrence of a callback reason that causes a callback, if enabled, to be invoked. (21.1)
+trigger object: An object in an information model that is associated with a trigger event for a callback.
+(21.1)
+type: A set of values and a set of operations. (Clause 5)
+type conversion: An expression that converts the value of a subexpression from one type to the designated
+type of the type conversion. Associations in the form of a type conversion are also allowed. These
+associations have functions and restrictions similar to conversion functions but can be used in places where
+conversion functions cannot. In both cases (expressions and associations), the converted type will be closely
+related to the designated type. (6.5.7.1, 9.3.6) See also: closely related types; conversion function.
+unaffected: A waveform in a signal assignment statement that does not affect the driver of the target.
+(10.5.2.1)
+unassociated formal: A formal that is not associated with an actual. (6.5.7.2, 6.5.7.3)
+unconstrained subtype: A subtype that corresponds to a condition that imposes no restriction. (5.1, 6.3)
+uninstantiated package: A package declared by a package declaration containing a generic clause and no
+generic map aspect. An uninstantiated package may be instantiated with a package instantiation declaration.
+(4.7, 4.9)
+uninstantiated protected type: A protected type declared by a protected type declaration containing a
+generic list and no generic map aspect. An uninstantiated protected type may be instantiated with a protected
+type instantiation declaration or in variable declaration (5.6.2)
+uninstantiated subprogram: A subprogram declared by a subprogram declaration containing a generic list
+and no generic map aspect. An uninstantiated subprogram may be instantiated with a subprogram
+instantiation declaration. (4.2.1, 4.4)
+unit name: A name defined by a unit declaration (either the primary unit declaration or a secondary unit
+declaration) in a physical type declaration. (5.2.4.1)
+universal_integer: An anonymous predefined integer type that is used for all integer literals. The position
+number of an integer value is the corresponding value of the type universal_integer. (5.2.3.1, 9.3.2, 9.3.6)
+universal_real: An anonymous predefined type that is used for literals of floating-point types. Other
+floating-point types have no literals. However, for each floating-point type there exists an implicit
+conversion that converts a value of type universal_real into the corresponding value (if any) of the
+floating-point type. (5.2.5.1, 9.3.2, 9.3.6)
+unspecified type: A type definition which has no explicit type declaration (6.5.2).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+631
+Copyright © 2019 IEEE. All rights reserved.
+update: An action on the value of a signal, variable, or file. The value of a signal is said to be updated when
+the signal appears as the target (or a element of the target) of a signal assignment statement (indirectly);
+when it is associated with an interface object of mode out, buffer, inout, or linkage; or when one of its
+subelements (individually or as part of a slice) is updated. The value of a signal is also said to be updated
+when it is a subelement or slice of a resolved signal, and the resolved signal, is updated. The value of a
+variable is said to be updated when the variable appears as the target (or a element of the target) of a variable
+assignment statement (indirectly), when it is associated with an interface object of mode out or linkage, or
+when one of its subelements (individually or as part of a slice) is updated. The value of a file is said to be
+updated when a WRITE or FLUSH operation is performed on the file object. (6.5.2)
+upper bound: The right bound of an ascending range or the left bound of a descending range. (5.2.1)
+valid handle: A handle that refers to an object that exists. (14.7.5)
+value structure: A C struct of type vhpiValueT that represents a scalar value, a one-dimensional array of
+scalar values, or a value of any type represented in an implementation-defined internal representation.
+(22.2.8)
+variable: An object with a single current value. (6.4.2.4)
+VHPI program: A program that calls the VHPI functions. (17.2.1)
+view: View mode enables individual mode control (in, out, inout, buffer or linkage) over the elements of an
+interface object having composite type. (6.5.2)
+visible: When the declaration of an identifier defines a possible meaning of an occurrence of the identifier
+used in the declaration. A visible declaration is visible by selection (for example, by using an expanded
+name) or directly visible (for example, by using a simple name). (12.3)
+visible entity declaration: The entity declaration selected for default binding in the absence of explicit
+binding information for a given component instance. (7.3.3)
+waveform: A series of transactions, each of which represents a future value of the driver of a signal. The
+transactions in a waveform are ordered with respect to time, so that one transaction appears before another if
+the first represents a value that will occur sooner than the value represented by the other. (10.5.2.1)
+whitespace character: A space, a nonbreaking space, or a horizontal tabulation character (SP, NBSP, or
+HT). (16.4)
+working library: A design library into which the library unit resulting from the analysis of a design unit is
+placed. (13.2)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

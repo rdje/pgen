@@ -1,4 +1,64 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Dual-SV LRM Capture Closure: Full Versioned TXT/MD + EBNF Extraction Promotion
+### Context
+The SV LRM conversion workspace had partial/non-versioned expectations and no guaranteed path for PDFs without embedded TOC. We needed complete, tracked `txt`/`md` trees for both IEEE 1800-2017 and IEEE 1800-2023 plus canonical extracted EBNF snapshots.
+
+### Implementation
+Primary conversion hardening:
+- `/Users/richarddje/Documents/github/pgen/tools/split_sections.py`
+  - added `heading_from_page_text(...)` to detect clause headings directly from page text.
+  - added `collect_sections_without_toc(...)` fallback path when PDF TOC is absent.
+  - updated main flow to select:
+    - `pdf_toc` mode when TOC exists,
+    - `page_heading_fallback` mode otherwise.
+  - added manifest metadata:
+    - `detection_mode`.
+
+Workspace/documentation updates:
+- `/Users/richarddje/Documents/github/pgen/docs/systemverilog/README.md`
+  - switched to versioned workspace contract:
+    - `docs/systemverilog/2017/*`
+    - `docs/systemverilog/2023/*`.
+- `/Users/richarddje/Documents/github/pgen/docs/vhdl/README.md`
+  - aligned to versioned `docs/vhdl/2019/*`.
+- `/Users/richarddje/Documents/github/pgen/tools/LRM_CONVERSION_WORKFLOW.md`
+  - documented both SV versions and fallback extraction behavior.
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - updated artifact map and quick commands to the versioned paths.
+- `/Users/richarddje/Documents/github/pgen/README.md`
+  - updated key paths to versioned LRM workspaces and canonical extracted SV EBNF artifacts.
+
+Canonical extracted EBNF promotion:
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_2017_lrm_extracted.ebnf`
+  - sourced from `docs/systemverilog/2017/grammar_clean.ebnf`.
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_2023_lrm_extracted.ebnf`
+  - sourced from `docs/systemverilog/2023/grammar_clean.ebnf`.
+
+Roadmap synchronization:
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - added explicit 2026-03-06 progress for full dual-SV extraction closure and canonical snapshot promotion.
+
+### Validation
+Completeness checks:
+- `find docs/systemverilog/2017/txt -type f -name 'section-*.txt' | wc -l` -> `59`
+- `find docs/systemverilog/2017/md -type f -name 'section-*.md' | wc -l` -> `59`
+- `find docs/systemverilog/2023/txt -type f -name 'section-*.txt' | wc -l` -> `58`
+- `find docs/systemverilog/2023/md -type f -name 'section-*.md' | wc -l` -> `58`
+
+Manifest/extraction checks:
+- `jq '{detection_mode:.detection_mode, section_count:.section_count}' docs/systemverilog/2017/txt/sections_manifest.json`
+  - `detection_mode=page_heading_fallback`, `section_count=59`.
+- `jq '{detection_mode:.detection_mode, section_count:.section_count}' docs/systemverilog/2023/txt/sections_manifest.json`
+  - `detection_mode=pdf_toc`, `section_count=58`.
+- `jq '{rule_count:.rule_count}' docs/systemverilog/2017/grammar_report.json`
+  - `rule_count=426`.
+- `jq '{rule_count:.rule_count}' docs/systemverilog/2023/grammar_report.json`
+  - `rule_count=492`.
+
+### Notes
+- SV extraction is now explicitly versioned and tracked.
+- The fallback mode is deterministic and auditable via `sections_manifest.json`.
+
 ## 2026-03-06 - Phase O Policy Ratchet: VHDL Stimuli Quality Is Now Required in Aggregate Mode
 ### Context
 After promoting `vhdl_strict_promotion_gate` to required strict, the next roadmap action was to ratchet aggregate `vhdl_stimuli_quality_gate` from informational to required strict so VHDL closed-loop quality becomes a hard release condition.

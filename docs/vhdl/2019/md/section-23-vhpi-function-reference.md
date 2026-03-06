@@ -1,0 +1,2039 @@
+---
+title: "Section 23: IEEE Standard for VHDL Language Reference Manual"
+document: "VHDL Language Reference Manual"
+standard: "IEEE 1076-2019"
+domain: "VHDL"
+section: "23"
+source_txt: "section-23-vhpi-function-reference.txt"
+source_pdf: "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf"
+---
+
+# Section 23: IEEE Standard for VHDL Language Reference Manual
+
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+452
+Copyright © 2019 IEEE. All rights reserved.
+23. VHPI function reference
+### 23.1 General
+
+This clause describes each of the functions in the VHPI. It describes the arguments required to be passed to
+each function, the operation performed by the function, and the result value returned by the function to a
+VHPI program.
+Where a given VHPI function called by a thread of control in a VHPI program returns a pointer to a string or
+a structure, either as the result of the function or in a location pointed to by an argument of the function, the
+string or structure is either permanent or transient. Unless otherwise specified, the default is for such a string
+or structure to be transient. In the case of a string, the string is represented as a null-terminated array of
+characters. A permanent string or structure is allocated by the tool in storage that is not subsequently
+overwritten during the invocation of the tool. A VHPI program may store a pointer to a permanent string or
+structure for subsequent reference to the string or structure. A transient string or structure is allocated by the
+tool in storage that may subsequently be overwritten. The value of the string or structure persists at least
+until the earlier of
+—
+the next call to the given VHPI function by the same thread of control, or
+—
+return to the tool by the thread of control that called the given VHPI function.
+If a VHPI program needs to refer to the value of a transient string or structure beyond the interval for which
+it persists, the VHPI program shall copy the value.
+### 23.2 vhpi_assert
+
+Reports an error message.
+Synopsis:
+int vhpi_assert(vhpiSeverityT severity, char *formatmsg, ...);
+Description:
+The vhpi_assert function performs an operation that is equivalent to the VHDL report statement. The
+character string pointed to by the formatmsg argument is a format string that may contain conversion
+codes as defined for the C printf function in ISO/IEC 9899:2018. The format string and subsequent argu-
+ments to the vhpi_assert function are interpreted in the same way as specified in ISO/IEC 9899:2018
+for the C printf function to form a formatted character string that corresponds to the string expression
+value in a report statement, and the value of the severity argument corresponds to the severity expression
+value in report statement.
+Return value:
+## 0 if the operation completes without error, or 1 otherwise.
+
+NOTE—Execution of the vhpi_assert function may cause a simulation to stop, depending on the value of the
+severity argument and on the simulator.
+Example:
+In the following VHPI program, the vhpi_assert function is used to report an error message if the value
+of a signal named clk is not '1'.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+453
+Copyright © 2019 IEEE. All rights reserved.
+int check_clock_signal(vhpiHandleT scopeHdl) {
+  vhpiHandleT clkHdl;
+  vhpiValueT value;
+  /* look up a VHDL object of name clk at the scope instance */
+  /* get a handle to the clk named object */
+  clkHdl = vhpi_handle_by_name("clk", scopeHdl);
+  if (!clkHdl) return 1;
+  value.format = vhpiLogicVal;
+  vhpi_get_value(clkHdl, &value);
+  if (value.logic == vhpiBit0) {
+    vhpi_assert(vhpiError, "clock not high: %d", value.logic);
+    return 1;
+  }
+  return 0;
+}
+### 23.3 vhpi_check_error
+
+Retrieves information about an error raised by a VHPI function.
+Synopsis:
+int vhpi_check_error (vhpiErrorInfoT *error_info_p);
+Description:
+The vhpi_check_error function checks whether the immediately previous call to a VHPI function
+raised an error. The error_info_p argument is either a pointer to an error information structure in
+which error information is returned or NULL. If the value of error_info_p is not NULL, the
+vhpi_check_error function writes information about the error into the error information structure.
+Memory for the structure shall be allocated by the VHPI program that calls vhpi_check_error before
+the call.
+If no error was raised by the previous call to a VHPI function and the value of the error_info_p is not
+NULL, the values written into members of the structure, if any, are not specified. Otherwise, if an error
+occurred and the value of the error_info_p is not NULL, the members of the structure are written as
+follows:
+—
+severity: The severity level of the error.
+—
+message: A pointer to a string that describes the error.
+—
+str: A pointer to a string whose content is implementation defined.
+—
+file: A pointer to a string containing the name of the VHDL source file that contains the VHDL
+item corresponding to the VHPI handle passed to the VHPI function that raised the error; or NULL if
+no such VHDL source file can be identified.
+—
+line: The number of the line in the VHDL source file containing the VHDL item corresponding to
+the VHPI handle passed to the VHPI function that raised the error; or –1 if no such line can be
+identified.
+Return value:
+## 0 if no error occurred on the previous call to a VHPI function, or 1 otherwise.
+
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+454
+Copyright © 2019 IEEE. All rights reserved.
+NOTE 1—An implementation might use the str member of the error information structure to return such information
+as a mnemonic abbreviation of the error description or the name of a product that raised the error.
+NOTE 2—An implementation may provide error information in a log file or a standard output stream. Such provision is
+independent of the use of the vhpi_check_error by a VHPI program function to retrieve error information.
+Examples:
+In the following VHPI program, the vhpi_check_error function is used to determine whether a
+previous function raised an error. If it did, the severity information provided by the vhpi_check_error
+function is used to determine what recovery action to take.
+vhpiErrorInfoT err;
+if (vhpi_check_error(&err)) {
+  switch (err.severity) {
+  case vhpiError:
+  case vhpiFailure:
+  case vhpiInternal:
+    return;
+  case vhpiSystem:
+    if (errno == ...)
+      return;
+    break;
+  default:
+    /* examine and decide if need termination */
+    ...
+  }
+}
+Given the following VHDL model in the file myvhdl.vhd
+entity TOP is
+end TOP;
+architecture MY_VHDL of TOP is
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+455
+Copyright © 2019 IEEE. All rights reserved.
+   constant VAL: INTEGER := 0;
+   signal S1, S2, S3: BIT;
+begin
+   u1: C_AND (S1, S2, S3);
+   process (S1)
+      variable VA: INTEGER:= VAL;
+   begin
+      VA := MYFUNC(S1);
+   end process;
+end MY_VHDL;
+The following VHPI program uses the vhpi_check_error function to determine whether the call to
+vhpi_iterator succeeded. The VHPI program also uses the vhpi_check_error function to check
+whether the call to vhpi_handle succeded during each iteration of the while loop. If the call raised an
+error with severity greater than vhpiWarning, the VHPI program uses the file name and line number
+information, if provided, in an error message.
+/* hdl is a handle to the root instance */
+void traverse_hierarchy(vhpiHandleT hdl) {
+  vhpiHandleT subHdl, itr, duHdl;
+  vhpiErrorInfoT err;
+  itr = vhpi_iterator(vhpiInternalRegions, hdl);
+  /* if error code is != 0 do not continue */
+  if (vhpi_check_error(NULL)) return;
+  if (itr)
+    while (subHdl = vhpi_scan(itr)) {
+      duHdl = vhpi_handle(vhpiDesignUnit, subHdl);
+      if (vhpi_check_error(&err)) {
+        if (err.severity > vhpiWarning)
+          if (err.file != NULL)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+456
+Copyright © 2019 IEEE. All rights reserved.
+            vhpi_printf("An error occurred during call to "
+                        "traverse_hierarchy at filename %s line %d\n",
+                        err.file, err.line);
+          else
+            vhpi_printf("An error occurred during call to "
+                        "traverse_hierarchy\n");
+        return;
+      }
+      switch (vhpi_get(vhpiKindP, subHdl)) {
+        ...
+      }
+    }
+}
+Since the internal region of the process object in the information model does not have a one-to-one
+association with a design unit object, the VHPI program produces the following output:
+An error occurred during call to traverse_hierarchy at file myvhdl.vhd line 8
+### 23.4 vhpi_compare_handles
+
+Compares handles.
+Synopsis:
+int vhpi_compare_handles (vhpiHandleT handle1, vhpiHandleT handle2);
+Description:
+Determines whether the arguments handle1 and handle2 refer to the same object.
+Return value:
+## 1 if handle1 and handle2 refer to the same object, or 0 otherwise.
+
+NOTE—Handle equivalence cannot be checked with the C comparison operator ==, since two handles with different
+representations may nonetheless refer to the same object.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+457
+Copyright © 2019 IEEE. All rights reserved.
+Example:
+The following function in a VHPI program searches for a declaration of a signal named clk in a given
+scope. It uses the vhpi_compare_handles function to compare a handle to an object named clk with
+handles to successive signal declarations in the scope.
+vhpiHandleT find_clock_signal(vhpiHandleT scopeHdl) {
+  vhpiHandleT sigHdl, clkHdl, itrHdl;
+  int found = 0;
+  clkHdl = vhpi_handle_by_name("clk", scopeHdl);
+  itrHdl = vhpi_iterate(vhpiSigDecl, scopeHdl);
+  while (sigHdl = vhpi_scan(itrHdl)) {
+    if (vhpi_compare_handles(sigHdl, clkHdl)) {
+      found = 1;
+      break;
+    } else
+      vhpi_release_handle(sigHdl);
+  }
+  vhpi_release_handle(itrHdl);
+  if found
+    return(sigHdl);
+  else
+    return(NULL);
+}
+### 23.5 vhpi_control
+
+Issues a control request to the VHPI tool.
+Synopsis:
+int vhpi_control (vhpiSimControlT command, ...);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+458
+Copyright © 2019 IEEE. All rights reserved.
+Description:
+The value of the command argument specifies the control action requested. Subsequent arguments specify
+additional information required by the tool to perform the control action.
+This standard specifies three control actions, corresponding to the enumeration values vhpiStop,
+vhpiFinish, and vhpiReset of type vhpiSimControlT. If a tool implements any of these control
+actions, the effect shall be as follows:
+—
+If command is vhpiStop, after control returns to the tool from the callback function from which
+the vhpi_control function was invoked, the tool stops simulation then accepts further directives
+from an interactive user or a command source. Additional arguments to vhpi_control beyond
+the command argument may be interpreted by the tool in an implementation-defined manner. The
+tool shall provide an implementation-defined default action if no additional arguments are provided.
+—
+If command is vhpiFinish, after control returns to the tool from the callback function from
+which the vhpi_control function was invoked, the tool enters the termination phase (see 20.10).
+Additional arguments to vhpi_control beyond the command argument may be interpreted by
+the tool in an implementation-defined manner. The tool shall provide an implementation-defined
+default action if no additional arguments are provided.
+—
+If command is vhpiReset, after control returns to the tool from the callback function from which
+the vhpi_control function was invoked, the tool enters the reset phase (see 20.9). Additional
+arguments to vhpi_control beyond the command argument may be interpreted by the tool in an
+implementation-defined manner. The tool shall provide an implementation-defined default action if
+no additional arguments are provided.
+For each of these control actions, if implemented, the number of steps of the simulation cycle performed by
+the tool between return of control to the tool and the tool performing the requested control action is
+implementation defined, except that no new simulation cycle is commenced before the control action is
+performed.
+If command is a value other than one of vhpiStop, vhpiFinish, or vhpiReset, the tool performs an
+implementation-defined control action, which may make use of additional arguments beyond the command
+argument. The tool may perform the requested control action immediately or may queue the request to be
+performed at an implementation-defined time after control returns to the tool from the callback function
+from which the vhpi_control function was invoked.
+If a VHPI program calls the vhpi_control function before the tool has performed a control action
+requested by a prior call to the function, the order in which the control actions are performed is
+implementation defined, except that control actions corresponding to vhpiStop, vhpiFinish, and
+vhpiReset are performed in the order in which they are requested.
+Return value:
+## 0 if the operation completes without error, or 1 otherwise.
+
+Errors:
+It is an error if vhpi_control is called with the command argument having the value vhpiStop,
+vhpiFinish, or vhpiReset while the tool is any execution phase other than the simulation phase.
+If a tool does not implement a control action requested using vhpi_control, the vhpi_control
+function shall raise an error.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+459
+Copyright © 2019 IEEE. All rights reserved.
+NOTE—In response to a call to vhpi_control with the argument vhpiFinish, the tool does not perform any
+vhpiCbEndOfSimulation callbacks.
+Example:
+The following VHPI program performs some operations and then calls vhpi_control with
+vhpiFinish to terminate tool execution.
+void user_app() {
+  /* Application traverse hierarchy */
+  ...
+  /* Application collect information */
+  ...
+  vhpi_control(vhpiFinish);
+}
+### 23.6 vhpi_create
+
+Creates an object of class processStmt, driver, driverCollection, or anyCollection; or
+appends an object to a collection.
+Synopsis:
+vhpiHandleT vhpi_create (vhpiClassKindT kind,
+                         vhpiHandleT handle1, vhpiHandleT handle2);
+Description:
+The kind argument specifies the class of object to be created.
+If the value of kind is vhpiProcessStmtK, handle1 shall refer to an object of class archBody
+whose IsForeign property has the value vhpiTrue, and handle2 shall be NULL. The function creates
+an object of class processStmt associated with the object referred to by handle1.
+If the value of kind is vhpiDriverK, handle1 shall refer to an object of class basicSignal, and
+handle2 shall either refer to an object of class processStmt whose IsForeign property has the
+value vhpiTrue or be NULL. The function creates an object of class driver associated with the object
+referred to by handle1. The value of the IsForeign property of the created object is vhpiTrue. If
+handle2 is not NULL, the object of class driver is also associated with the object referred to by
+handle2; otherwise the object of class driver is not associated with a target object of class
+processStmt.
+For an object of class processStmt created by a call to the vhpi_create function, the value of the
+IsForeign property is vhpiTrue, the values of the IsPassive and IsPostponed properties are
+vhpiFalse. The values of properties representing line numbers are vhpiUndefined. The values of
+name properties are not specified by this standard. Associations representing declarations, specifications,
+statements, and the sensitivity list of the process have no target objects.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+460
+Copyright © 2019 IEEE. All rights reserved.
+If the value of kind is vhpiDriverCollectionK, handle1 shall either be NULL or refer to an object
+of class driverCollection, and handle2 shall refer to an object of class driver or
+driverCollection. If handle1 is NULL, the function creates a new collection object of class
+driverCollection and appends one or more objects of class driver as members to the collection. If
+handle1 is not NULL, the function appends one or more objects of class driver as members to the
+collection object referred to by handle1. In either case, if handle2 refers to an object of class driver,
+that object is the single object appended as a member to the collection by the function. Otherwise, if
+handle2 refers to an object of class driverCollection, all of the members in the collection referred
+to by handle2 are appended, in the order in which they occur in the collection referred to by handle2, to
+the new collection or to the collection referred to by handle1.
+If the value of kind is vhpiAnyCollectionK, handle1 shall either be NULL or refer to an object of
+class anyCollection, and handle2 shall refer to an object of any class. If handle1 is NULL, the
+function creates a new collection object of class anyCollection and appends one or more objects as
+members to the collection. If handle1 is not NULL, the function appends one or more objects as members
+to the collection object referred to by handle1. In either case, if handle2 refers to an object of some
+class other than collection, that object is the single object appended as a member to the collection by
+the function. Otherwise, if handle2 refers to an object of class collection, all of the members in the
+collection referred to by handle2 are appended, in the order in which they occur in the collection referred
+to by handle2, to the new collection or to the collection referred to by handle1.
+Return value:
+A handle to the newly created object or collection or to the augmented collection, as appropriate, if the
+operation completes without error, or NULL otherwise.
+Errors:
+It is an error if vhpi_create is called with kind having the value vhpiProcessStmtK or
+vhpiDriverK other than during the elaboration, initialization, or simulation phases of tool execution (see
+Clause 20).
+It is an error if vhpi_create is called with kind having the value vhpiDriverK and handle2 being
+not NULL, and the process represented by the object referred to by handle2 already has a driver for the
+basic signal represented by the object referred to by handle1.
+It is an error if the members of a collection object of class driverCollection are not all drivers of
+subelements of the same declared signal.
+Example:
+In the following VHPI program, the function vhpi_create is used to create a process in a foreign
+architecture and to create a driver for each signal declared in the architecture.
+void create_vhpi_driver(vhpiHandleT archHdl) {
+  vhpiHandleT drivHdl, sigItr, sigHdl, processHdl;
+  vhpiHandleT arr_driv[MAX_DRIVERS];
+  int i = 0;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+461
+Copyright © 2019 IEEE. All rights reserved.
+  if (!vhpi_get(vhpiIsForeignP, archHdl))
+    return;
+  /* create a VHPI process */
+  processHdl = vhpi_create(vhpiProcessK, archHdl, NULL);
+  /* iterate on the signals declared  the architecture and create a
+     VHPI driver for each of them */
+  sigItr = vhpi_iterator(vhpiSigDecls, archHdl);
+  if (!sigItr) return;
+  while (sigHdl = vhpi_scan(sigItr)) {
+    drivHdl = vhpi_create(vhpiDriverK, sigHdl, processdl);
+    arr_driv[i] = drivHdl;
+    i++;
+  }
+}
+In the following VHPI program, the function vhpi_create is used to create a collection of drivers for the
+basic signals of a signal.
+void create_vhpi_collection(vhpiHandleT sigHdl) {
+  vhpiHandleT itBasic, basicH, itDriver, driverH;
+  vhpiHandleT h = NULL;
+  itBasic =  vhpi_iterator(vhpiBasicSignals, sigHdl);
+  while (basicH = vhpi_scan(itBasic)) {
+    itDriver = vhpi_iterator(vhpiDrivers, basicH)
+    while (driverH = vhpi_scan(itDriver) {
+      h = vhpi_create(vhpiDriverCollectionK, h, driverH);
+    }
+  }
+}
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+462
+Copyright © 2019 IEEE. All rights reserved.
+### 23.7 vhpi_disable_cb
+
+Disables a registered callback.
+Synopsis:
+int vhpi_disable_cb (vhpiHandleT cb_obj);
+Description:
+If the object referred to by the cb_obj argument is an enabled callback, the function disables it, thus
+preventing execution of the callback function when the callback trigger event occurs.
+Return value:
+## 0 if the operation completes without error, or 1 otherwise.
+
+Errors:
+If the object is a disabled or mature callback, the function leaves the callback unchanged and raises an error
+condition with severity vhpiWarning.
+See also:
+vhpi_register_cb, vhpi_enable_cb, vhpi_get_cb_info, vhpi_remove_cb.
+### 23.8 vhpi_enable_cb
+
+Enables a registered callback.
+Synopsis:
+int vhpi_enable_cb (vhpiHandleT cb_obj);
+Description:
+If the object referred to by the cb_obj argument is a disabled callback, the function enables it, thus
+allowing call of the callback function when the callback trigger event occurs.
+Return value:
+## 0 if the operation completes without error, or 1 otherwise.
+
+Errors:
+If the object is an enabled or mature callback, the function leaves the callback unchanged and raises an error
+condition with severity vhpiWarning.
+See also:
+vhpi_register_cb, vhpi_disable_cb, vhpi_get_cb_info, vhpi_remove_cb.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+463
+Copyright © 2019 IEEE. All rights reserved.
+Example:
+In the following VHPI program, the function vhpi_enable_cb is used to enable a callback that was
+registered but is disabled.
+static vhpiHandleT mylastcbk = 0;
+void activate_cbk(vhpiHandle cbHdl) {
+  vhpiStateT cbState;
+  cbState = vhpi_get(vhpiStateP, cbHdl);
+  if (cbState == vhpiDisable)
+    vhpi_enable_cb(cbHdl);
+}
+void register_cbk() {
+  vhpiCbDataT cbData;
+  vhpiHandleT cbHdl;
+  int flags;
+  flags = vhpiDisableCb | vhpiReturnCb;
+  cbData.reason = vhpiCbEndOfSimulation;
+  cbData.cb_rtn = myf;
+  cbHdl = vhpi_register_cb(&cbData, flags);
+  mylastcbk = cbHdl;
+}
+int main (int argc, char *argv[] ){
+  register_cbk();
+  ...
+  activate_cbk(mylastcbk);
+  return(0);
+}
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+464
+Copyright © 2019 IEEE. All rights reserved.
+### 23.9 vhpi_format_value
+
+Changes the format used to represent a value.
+Synopsis:
+int vhpi_format_value (vhpiValueT *in_value_p,
+                       vhpiValueT *out_value_p);
+Description:
+The in_value_p argument is a pointer to a value structure, referred to in this description as the input
+value structure, representing the value to be represented in a new format. The out_value_p argument is a
+pointer to a value structure, referred to in this description as the output value structure, specifying the new
+format and containing storage into which the newly formatted value is written. Storage for both value
+structures is allocated by the VHPI program before calling the function.
+The function converts the value that is represented in the input value structure to the format specified in the
+format member of the output value structure. If the newly formatted value is a scalar, the function writes
+the newly formatted value to the value member of the output value structure. If the newly formatted value
+is represented as an array, string, or using internal representation and the value of the value member of the
+output value structure is NULL, the function does not write the newly formatted value, but returns the
+minimum number of bytes of storage that would be required to write the value.
+If the newly formatted value is represented as an array, string, or using internal representation, the VHPI
+program, before calling vhpi_format_value, shall allocate storage for the newly formatted value and
+shall write the size in bytes and the address of the storage into the bufSize and value members,
+respectively, of the output value structure. In that case, the function writes the newly formatted value to the
+storage pointed to by the value member of the output value structure (see 22.2).
+If the newly formatted value is represented as a physical or time value or an array of physical or time values,
+the VHPI program, before calling vhpi_format_value, shall write the position number of a scale factor
+into the unit member of the output value structure.
+The value format conversions that can be performed by the vhpi_format_value function are
+implementation defined.
+Return value:
+## 0 if the newly formatted value is a scalar and the operation completes without error; or the minimum size in
+
+bytes of storage required to represent the value in the specified format if the newly formatted value is
+represented as an array, string, or using internal representation and either the value member of the output
+value structure is NULL or the size provided in the bufSize member of the output value structure is
+insufficient; or a negative integer otherwise.
+Errors:
+It is an error if either in_value_p or out_value_p is NULL. It is an error if the newly formatted value
+is outside of the range of values that can be represented. It is an error if the combination of the format
+members of the input and output value structures specify a value format conversion that cannot be
+performed.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+465
+Copyright © 2019 IEEE. All rights reserved.
+It is an error if the amount of storage allocated for a value represented as an array, string, or using internal
+representation is insufficient for the newly formatted value.
+See also:
+vhpi_get_value.
+Example:
+In the following VHPI program, the vhpi_format_value function is called first to convert a real value
+to an integer value, and second to convert a time value from a precision of fs to a precision of ns.
+vhpiValueT value, newValue;
+vhpiValueT * valuep, newValuep;
+vhpiErrInfoT errInfo;
+valuep = &value;
+newValuep = &newValue;
+value.format = vhpiRealVal;
+if (vhpi_get_value(objHdl, valuep))
+  vhpi_check_error(&errInfo);
+newValue.format = vhpiIntVal;
+if (vhpi_format_value(valuep, newValuep))
+  vhpi_check_error(&errInfo);
+value.format = vhpiTimeVal;
+vhpi_get_value(objHdl, valuep);
+newValue.unit = vhpiNS; /* physical position of ns */
+newValue.format = vhpiTimeVal;
+if (vhpi_format_value(valuep, newValuep))
+  vhpi_check_error(&errInfo);
+### 23.10 vhpi_get
+
+Gets the value of an integer or Boolean property of an object.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+466
+Copyright © 2019 IEEE. All rights reserved.
+Synopsis:
+vhpiIntT vhpi_get(vhpiIntPropertyT property, vhpiHandleT object);
+Description:
+The property argument is an enumeration constant that corresponds to an integer or Boolean property.
+The object argument is a handle to an object that has the corresponding integer or Boolean property. The
+function reads the value of the property of the object.
+Return value:
+The value of the property if the property can be read, or vhpiUndefined otherwise.
+See also:
+vhpi_get_phys, vhpi_get_real, vhpi_get_str.
+NOTE—Some integer properties may legally have the same value as vhpiUndefined. In such cases, a VHPI
+program should use the vhpi_check_error function to determine whether an error was raised by vhpi_get rather
+than simply testing the return value of vhpi_get.
+### 23.11 vhpi_get_cb_info
+
+Gets information about a registered callback.
+Synopsis:
+int vhpi_get_cb_info (vhpiHandleT object, vhpiCbDataT *cb_data_p);
+Description:
+The object argument is a handle to an object of class callback. The cb_data_p argument is a pointer
+to a callback data structure. The VHPI program calling vhpi_get_cb_info shall allocate memory for
+the callback data structure before the call.
+The function retrieves information about the callback object referred to by object and writes the
+information to the callback data structure pointed to by cb_data_p. The information returned in the
+callback data structure is equivalent to that provided in a callback data structure to the
+vhpi_register_cb function when the callback was registered. The values of the reason, cb_rtn,
+and user_data members of the callback data structure written by vhpi_get_cb_info are the same as
+the values of the reason, cb_rtn, and user_data members, respectively, of the registration callback
+data structure.
+If the registration callback data structure included a valid handle in the obj member, the obj member of
+the callback data structure written by vhpi_get_cb_info is a handle that refers to the same object as
+that referred to by the obj member of the registration callback data structure; otherwise, the value of the
+obj member of the callback data structure written by vhpi_get_cb_info is not specified.
+If the registration callback data structure included a pointer to a time structure in the time member, the
+time member of the callback data structure written by vhpi_get_cb_info is a pointer to a time struc-
+ture, allocated by the tool, with the same value as the time structure pointed to by the time member of the
+registration callback data structure; otherwise, the time member of the callback data structure written by
+vhpi_get_cb_info is NULL.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+467
+Copyright © 2019 IEEE. All rights reserved.
+If the registration callback data structure included a pointer to a value structure in the value member, the
+value member of the callback data structure written by vhpi_get_cb_info is a pointer to a value
+structure, allocated by the tool, with the same value as the value structure pointed to by the value member
+of the registration callback data structure; otherwise, the value member of the callback data structure
+written by vhpi_get_cb_info is NULL.
+Return value:
+## 0 if the operation completes without error, or 1 otherwise.
+
+Errors:
+A VHPI program that releases a handle that is the value of the obj member of the callback data structure
+written by vhpi_get_cb_info is erroneous.
+See also:
+vhpi_register_cb, vhpi_enable_cb, vhpi_disable_cb, vhpi_remove_cb.
+### 23.12 vhpi_get_data
+
+Gets saved data for restart.
+Synopsis:
+size_t vhpi_get_data(int32_t id,
+                     void * dataLoc, size_t numBytes);
+Description:
+The id argument is an identification number for a saved data set. The dataLoc argument is the address to
+which data read from the saved data set is written. The numBytes argument is the number of bytes of data
+to read.
+The function reads a number of bytes, given by numBytes, from the saved data set identified by id and
+writes the data to the address pointed to by dataLoc. The VHPI program calling vhpi_get_data shall
+allocate storage pointed to by dataLoc before the call.
+The first call to vhpi_get_data with a given value for id during a given occurrence of the restart phase
+of tool execution reads bytes from the saved data set starting from the first location of the saved data set.
+Subsequent calls to vhpi_get_data with the same id value during the same occurrence of the restart
+phase read bytes starting from the location immediately after the last location read by the immediately pre-
+ceding call with the given id value.
+If a data set contains unread bytes of data, a call to vhpi_get_data reads the lesser of numBytes of
+data or the number of unread bytes that remain. If fewer than numBytes bytes remain, the bytes of storage
+pointed to by dataLoc, beyond those written with read data and up to a total of numBytes bytes of data
+in total, are written with the value 0.
+A VHPI program may read fewer bytes of a saved data set than were saved in the data set.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+468
+Copyright © 2019 IEEE. All rights reserved.
+Return value:
+The number of bytes actually read, or 0 if the read failed.
+Errors:
+It is an error if vhpi_get_data is called other than from a vhpiCbStartOfRestart or
+vhpiCbEndOfRestart callback.
+It is an error if the id value is not valid for the occurrence of the restart phase of tool execution during which
+the vhpi_get_data function is called.
+If fewer than numBytes bytes remain to be read, the vhpi_get_data function raises an error condition
+with severity vhpiWarning.
+See also:
+vhpi_put_data.
+NOTE—Since a call to vhpi_get_data may read fewer bytes than requested, the VHPI program should check the
+number of bytes actually read rather than assuming all requested bytes are read.
+Example:
+In the following VHPI program, the vhpi_get_data function is used first to read the number of linked
+list elements in a saved data set and second to read that number of linked list elements. The VHPI program
+function that calls vhpi_get_data is a vhpiCbStartOfRestart callback (see example in 23.27).
+/* type definitions for private data structures to save used by the
+   foreign models or applications */
+struct myStruct{
+  struct myStruct *next;
+  int d1;
+  int d2;
+}
+void consumer_restart(vhpiCbDataT *cbDatap) {
+  int status;
+  int cnt = 0;
+  struct myStruct *wrk;
+  int dataSize = 0;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+469
+Copyright © 2019 IEEE. All rights reserved.
+  /* get the id for this restart callback */
+  int id = (int) cbDatap->user_data;
+  /* get the number of structures */
+  status = vhpi_get_data(id, (char *)&cnt, sizeof(int));
+  if (status != sizeof(int))
+    vhpi_assert(vhpiError, "Data read is not an int %d\n", status);
+  /* allocate memory to receive the data that is read  */
+  firstWrk = calloc(cnt, sizeof(struct myStruct));
+  /* retrieve the data for the first structure */
+  dataSize = cnt * sizeof(struct myStruct);
+  status = vhpi_get_data(id, (char *)wrk, dataSize);
+  if (status != dataSize)
+    vhpi_assert(vhpiError, "Cannot read %d data structures\n", cnt );
+  /* fix up the next pointers in the link list:
+     recreate the linked list */
+  for (wrk = firstWrk; cnt >0; cnt--) {
+    wrk->next = wrk++;
+    wrk = wrk->next;
+  }
+} /* end of consumer_restart */
+### 23.13 vhpi_get_foreignf_info
+
+Gets information about a foreign model or application.
+Synopsis:
+int vhpi_get_foreignf_info (vhpiHandleT hdl,
+                            vhpiForeignDataT *foreignDatap);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+470
+Copyright © 2019 IEEE. All rights reserved.
+Description:
+The hdl argument is a handle to an object of class foreignf, and the foreignDatap argument is a
+pointer to a foreign data structure. The function retrieves information about the foreign model or application
+represented by the object referred to by hdl and writes the information into the foreign data structure
+pointed to by foreignDatap. The VHPI program calling vhpi_get_foreignf_info shall allocate
+memory for the foreign data structure before the call.
+The value of the kind member identifies whether the object referred to by hdl is a foreign architecture,
+function, procedure, or application (see 20.2). If the object referred to by hdl is a foreign architecture and
+an elaboration function was specified during registration of the foreign architecture, the value of the elabf
+member is a pointer to the elaboration function; otherwise the value of the elabf member is NULL. The
+value of the execf member is a pointer to the execution or registration function, as appropriate, specified
+during registration for the object referred to by hdl.
+The value of the libraryName member is a pointer to a permanent string whose value is the object library
+path denoting the physical object library, identified during registration, that contains the entry points for the
+foreign model or application.
+The value of the modelName member is a pointer to a permanent string whose value is the model name or
+application name, as appropriate, of the foreign model or application. If the object referred to by hdl is a
+foreign model that was registered other than using standard direct binding (20.2.4.3), the model name of the
+foreign model is the model name specified during registration of the foreign model. If the object referred to
+by hdl is a foreign model that was registered using standard direct binding, the model name of the foreign
+model is the simple name of the architecture body or the designator of the subprogram, as appropriate, of the
+foreign model. If the object referred to by hdl is a foreign application, the value of the modelName mem-
+ber is a pointer to a permanent string whose value is the application name specified during registration of the
+foreign application.
+Return value:
+## 0 if the operation completes without error, or 1 otherwise.
+
+Errors:
+If the tool has registered but not bound the elaboration, execution, or registration function of a foreign model
+or application or library of foreign models when a VHPI program calls vhpi_get_foreignf_info
+with a handle referring to the foreign model or application or library of foreign models, the
+vhpi_get_foreignf_info function raises an error with severity vhpiWarning.
+See also:
+vhpi_register_foreignf, vhpi_iterator(vhpiForeignfs, NULL).
+### 23.14 vhpi_get_next_time
+
+Gets the time of the next simulation cycle.
+Synopsis:
+int vhpi_get_next_time (vhpiTimeT  *time_p);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+471
+Copyright © 2019 IEEE. All rights reserved.
+Description:
+The time_p argument is a pointer to a time structure in which to write the time of the next simulation
+cycle. The time structure shall be allocated by the VHPI program that calls vhpi_get_next_time
+before the call. The function writes to the time structure the value of Tn, the time of the next simulation cycle
+(see 14.7.5.1).
+Return value:
+vhpiNoActivity if Tn = TIME'HIGH and there are no active drivers, process resumptions, or registered
+and
+enabled
+vhpiCbAfterDelay,
+vhpiCbRepAfterDelay,
+vhpiCbTimeOut,
+or
+vhpiCbRepTimeOut callbacks to occur at Tn; a non-zero value other than vhpiNoActivity if an
+error occurs; or 0 otherwise.
+Errors:
+vhpi_get_next_time shall be called during step m) (see 14.7.5.2) of the initialization phase or during
+the simulation phase of model execution. It is an error if it is called at any other time.
+See also:
+vhpi_get_phys(vhpiResolutionLimitP, NULL), vhpi_get_time.
+NOTE 1—A VHPI program can use the vhpi_format_value function to change the way in which the time value is
+expressed.
+NOTE 2—If the next simulation cycle is a delta cycle, the time of the next simulation cycle is the same as the current
+simulation time.
+Example:
+In the following VHPI program, the function vhpi_get_next_time is used to get the time of the next
+simulation cycle for display in an informative message.
+vhpiTimeT time;
+switch (vhpi_get_next_time(&time)) {
+case vhpiNoActivity:
+  vhpi_printf("simulation is over, %d %d\n", time.high, time.low);
+  break;
+case 0:
+  vhpi_printf("time = %d %d\n", time.high, time.low);
+  break;
+default:
+  vhpi_check_error(&errInfo);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+472
+Copyright © 2019 IEEE. All rights reserved.
+  break;
+}
+### 23.15 vhpi_get_phys
+
+Gets the value of a physical property of an object.
+Synopsis:
+vhpiPhysT vhpi_get_phys (vhpiPhysPropertyT property,
+                         vhpiHandleT object);
+Description:
+The property argument is an enumeration constant that corresponds to a physical property. The object
+argument is a handle to an object that has the corresponding physical property. The function reads the value
+of the property of the object.
+Return value:
+The value of the property if the property can be read, or an unspecified value otherwise.
+See also:
+vhpi_get, vhpi_get_real, vhpi_get_str.
+Example:
+In the following VHPI program, the vhpi_get_phys function is used to read the right bound of the range
+constraint of a physical type declaration.
+vhpiHandleT type; /* a physical type declaration */;
+vhpiHandleT range = vhpi_handle(vhpiConstraint, type);
+vhpiPhysT phys = {0,0};
+phys = vhpi_get_phys(vhpiPhysRightBoundP, range));
+vhpi_printf(" right bound of physical type is %d %d \n",
+            phys.low, phys.high);
+### 23.16 vhpi_get_real
+
+Gets the value of a real property of an object.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+473
+Copyright © 2019 IEEE. All rights reserved.
+Synopsis:
+vhpiRealT vhpi_get_real (vhpiRealPropertyT property, vhpiHandleT
+object);
+Description:
+The property argument is an enumeration constant that corresponds to a real property. The object
+argument is a handle to an object that has the corresponding real property. The function reads the value of
+the property of the object.
+Return value:
+The value of the property if the property can be read, or an unspecified value otherwise.
+See also:
+vhpi_get, vhpi_get_phys, vhpi_get_str.
+Example:
+In the following VHPI program, the vhpi_get_real function is used to read the right bound of the range
+constraint of a floating-point type declaration.
+vhpiHandleT type; /* a float type declaration */;
+vhpiHandleT range = vhpi_handle(vhpiConstraint, type);
+vhpi_printf(" right bound of floating type is %f\n",
+            vhpi_get_real(vhpiFloatRightBoundP, range));
+### 23.17 vhpi_get_str
+
+Gets the value of a string property of an object.
+Synopsis:
+const vhpiCharT * vhpi_get_str (vhpiStrPropertyT property,
+                                vhpiHandleT object);
+Description:
+The property argument is an enumeration constant that corresponds to a string property. The object
+argument is a handle to an object that has the corresponding string property. The function reads the value of
+the property of the object.
+Return value:
+A pointer to a string that is the value of the property, if the property can be read, or NULL otherwise.
+See also:
+vhpi_get, vhpi_get_phys, vhpi_get_real.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+474
+Copyright © 2019 IEEE. All rights reserved.
+NOTE—Some string property values may include special characters (for example, the character \ in an extended
+identifier). VHPI programs that use such property values should verify that special characters are not inadvertently
+misinterpreted, for example, as escape characters, in subsequent operations.
+Example:
+In the following VHPI program, the vhpi_get_str function is used to read the name of the definition of
+a component instance.
+char name[MAX_LENGTH];
+vhpiHandleT inst = vhpi_handle_by_name(":u1", NULL);
+strcpy(name, vhpi_get_str(vhpiDefNameP, inst));
+vhpi_printf("instance u1 is a %s\n", name);
+### 23.18 vhpi_get_time
+
+Gets the current simulation time.
+Synopsis:
+void vhpi_get_time (vhpiTimeT  *time_p, long *cycles);
+Description:
+The time argument is a pointer to a time structure in which to write the current simulation time or NULL.
+The cycles argument is a pointer to location in which to write the number of delta cycles or NULL. The
+VHPI program calling vhpi_get_time shall allocate memory for the time structure and number of delta
+cycles, if required, before the call.
+If the time argument is not NULL, the function writes the current simulation time to the time structure.
+If the cycles argument and the time argument are both not NULL, the function writes the number of delta
+cycles that have occurred at the current time, Tc, to the location pointed to by the cycles argument. If the
+cycles argument is not NULL and the time argument is NULL, the function writes the total number of
+simulation cycles that have occurred in the current invocation of the simulation phase of tool execution to
+the location pointed to by the cycles argument. In either case, the number is expressed as a value of the C
+type long.
+Errors:
+It is an error if vhpi_get_time is called while the tool is any execution phase other than the initialization
+or simulation phases. It is an error if the time and cycles arguments are both NULL.
+See also:
+vhpi_get_phys(vhpiResolutionLimitP, NULL), vhpi_get_next_time.
+NOTE—A VHPI program can use the vhpi_format_value function to change the way in which the time value is
+expressed.
+Example:
+In the following VHPI program, the vhpi_get_time function is used to get the current simulation time
+without the count of delta cycles.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+475
+Copyright © 2019 IEEE. All rights reserved.
+vhpiTimeT time;
+vhpi_get_time(&time, NULL);
+vhpi_printf("time = %d %d\n", time.high, time.low);
+### 23.19 vhpi_get_value
+
+Gets the formatted value of an object that has a value.
+Synopsis:
+int vhpi_get_value (vhpiHandleT expr, vhpiValueT *value_p);
+Description:
+The expr argument is a handle to an object of a class that has the vhpi_get_value operation. The
+value_p argument is a pointer to a value structure specifying the format and containing storage into which
+the formatted value is written. Storage for the value structure is allocated by the VHPI program before
+calling the function.
+The function reads the value of the object referred to by expr (see 22.3) and represents it in the format
+specified in the format member of the value structure (see 22.2). If the formatted value is a scalar, the
+function writes the formatted value to the value member of the value structure. If the formatted value is
+represented as an array, string, or using internal representation and the value of the value member of the
+value structure is NULL, the function does not write the formatted value, but returns the minimum number of
+bytes of storage that would be required to write the value.
+If the formatted value is represented as an array, string, or using internal representation, the VHPI program,
+before calling vhpi_get_value, may allocate storage for the formatted value and write the size in bytes
+and the address of the storage into the bufSize and value members, respectively, of the value structure.
+In that case, the function writes the formatted value to the storage pointed to by the value member of the
+value structure (see 22.2).
+If the format specified in the format member of the value structure is vhpiObjTypeVal, the
+representation of the formatted value depends on the type of the object referred to by objHdl (see 22.4).
+The function writes to the format member of the value structure the value of type vhpiFormatT
+corresponding to the type.
+If the formatted value is represented as a physical or time value or an array of physical or time values, the
+function writes to the unit member of the value structure the position number of a scale factor. If the object
+referred to by expr is a physical or time literal, the scale factor is the position number of the unit of the
+literal; otherwise, the scale factor is 1.
+Return value:
+## 0 if the formatted value is a scalar and the operation completes without error, or if the formatted value is
+
+represented as an array, string, or using internal representation, the value member of the value structure is
+not NULL, the size provided in the bufSize member of the value structure is sufficient and the operation
+completes without error; or the minimum size in bytes of storage required to represent the value in the
+specified format if the formatted value is represented as an array, string, or using internal representation and
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+476
+Copyright © 2019 IEEE. All rights reserved.
+either the value member of the value structure is NULL or the size provided in the bufSize member of
+the value structure is insufficient; or a negative integer otherwise.
+Errors:
+It is an error if the vhpi_get_value function is passed a handle that refers to a VHDL object for which
+reading is not permitted (see Clause 6.5.2). In particular, it is an error if the vhpi_get_value function is
+passed a handle to an object that has the Access property and the value of that property does not have the
+vhpiRead flag set. It is an error if the vhpi_get_value function is passed a handle to an object of class
+expr that represents an expression that is not static.
+It is an error if the format member of the value structure specifies a format that cannot be used to represent
+the value. It is an error if the formatted value is outside of the range of values that can be represented.
+It is an error if the amount of storage allocated for a value represented as an array, string, or using internal
+representation is insufficient for the formatted value.
+A tool may perform optimizations that make the value of an object inaccessible. It is an error if the handle
+expr refers to such an object.
+See also:
+vhpi_put_value, vhpi_schedule_transaction, vhpi_format_value.
+### 23.20 vhpi_handle
+
+Gets a handle to an object that is the target of a one-to-one association.
+Synopsis:
+vhpiHandleT vhpi_handle (vhpiOneToOneT type,
+                         vhpiHandleT referenceHandle);
+Description:
+The type argument is an enumeration value that corresponds to a one-to-one association role. The
+referenceHandle argument is a handle to a reference object, that is, an object of the class that is the
+reference class of the one-to-one association.
+If the association corresponding to the value of type has a multiplicity of 1, or if the association has a
+multiplicity of 0..1 and a target object is associated with the reference object, the function returns a handle to
+the target object of the association. If the association has a multiplicity of 0..1 and no object is associated
+with the reference object, the function returns NULL.
+Return value:
+A handle to the target object if one exists, or NULL otherwise.
+Example:
+In the following VHPI program, the function vhpi_handle is used to get handles to a parent region and
+design unit.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+477
+Copyright © 2019 IEEE. All rights reserved.
+vhpiHandleT get_instance_info(vhpiHandleT scopeHdl) {
+  vhpiHandleT upScopeHdl, duHdl;
+  /* climb the hierarchy one level */
+  /* traverse an association with an explicitly named role */
+  upScopeHdl = vhpi_handle(vhpiUpperRegion, scopeHdl);
+  if (vhpi_get(vhpiKindP, upScopeHdl) == vhpiCompInstStmtK) {
+    /* traverse an association with an implicitly named role */
+    duHdl = vhpi_handle(vhpiDesignUnit, upScopeHdl);
+    return(duHdl);
+  } else
+    return(NULL);
+} /* end get_instance_info() */
+### 23.21 vhpi_handle_by_index
+
+Gets a handle to an object that is a target of an ordered one-to-many association.
+Synopsis:
+vhpiHandleT vhpi_handle_by_index (vhpiOneToManyT itRel,
+vhpiHandleT parent, int32_t indx);
+Description:
+The itRel argument is an enumeration value that corresponds to an ordered one-to-many association role.
+The parent argument is a handle to a reference object, that is, an object of the class that is the reference
+class of the one-to-many association. The indx argument is the index of a target object in the one-to-many
+association.
+If the one-to-many association has a number of target objects that is greater than the value of indx, the
+function returns a handle to the target object whose position in the set of target objects, starting from 0, is
+given by the value of indx; otherwise, the function returns NULL.
+Return value:
+A handle to the target object if one exists, or NULL otherwise.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+478
+Copyright © 2019 IEEE. All rights reserved.
+See also:
+vhpi_iterator, vhpi_scan.
+NOTE 1—Those one-to-many associations that are ordered are specified as ordered associations in Clause 19.
+NOTE 2—The result of calling vhpi_handle_by_index is equivalent to calling vhpi_iterator with the same
+first and second arguments, followed by indx + 1 successive calls to vhpi_scan applied to the resulting iterator.
+Example:
+In the following VHPI program, the vhpi_handle_by_index function is used to access the constraints
+of a given element of a composite object.
+vhpiHandleT find_indexed_constraint(vhpiHandleT parentHdl, int index) {
+  vhpiHandleT subtypeHdl, typeHdl, subHdl;
+  subtypeHdl = vhpi_handle(vhpiType, parentHdl);
+  typeHdl = vhpi_handle(vhpiBaseType, subtypeHdl);
+  if (vhpi_get(vhpiIsCompositeP, typeHdl)) {
+    /* get the given indexed array element or indexed record field
+       of the parent object */
+    subHdl = vhpi_handle_by_index(vhpiConstraints, parentHdl, index);
+    return subHdl;
+  }
+  else
+    return NULL;
+}
+In the following VHPI program, the vhpi_handle_by_index function is used to access the first formal
+parameter of a called subprogram. The formal parameter declarations associated with a subprogram call
+object are ordered according to the declaration of the parameters in the subprogram’s interface list. A handle
+to the subprogram call object is acquired from a callback information structure.
+void exec_proc(vhpiCbDataT cbDatap) {
+  vhpiHandleT subpCallHdl, formal1, formalIt;
+  vhpiValueT value;
+  value.format = vhpiIntVal;
+  value.value.integer = 0;
+  subpCallHdl = cbDatap->obj;
+  /* get a handle to the first formal parameter
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+479
+Copyright © 2019 IEEE. All rights reserved.
+     of the subprogram call */
+  formal1 = vhpi_handle_by_index(vhpiParamDecls, subpCallHdl, 0);
+  switch(vhpi_get(vhpiModeP, formal1)) {
+  case vhpiIN:
+    vhpi_get_value(formal1, &value);
+    break;
+  case vhpiOUT:
+    vhpi_put_value(formal1, &value, vhpiDepositPropagate);
+    break;
+  default:
+    break;
+  }
+}
+Given the following VHDL declarations:
+type my_1D_array is array (2 to 5) of bit;
+type my_2D_array is array (2 to 5, 3 to 5) of integer;
+variable A: my_1D_array := ('1', '0', '1', '0');
+variable M: my_2D_array := ((1, 2, 3),
+                            (4, 5, 6),
+                            (7, 8, 9),
+                            (10, 11, 12));
+type myrecord is record
+
+I: integer;
+
+B: bit;
+
+AR: my_1D_array;
+end record;
+type myrecord_ptr is access myrecord;
+type mybit_vector_ptr is access bit_vector;
+variable R: myrecord := (9, '0', B"1111");
+variable R_p: myrecord_ptr;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+480
+Copyright © 2019 IEEE. All rights reserved.
+variable BV_p: mybit_vector_ptr;
+The following statements in a VHPI program use the vhpi_handle_by_index function to access
+elements of the VHDL variables, as described by the comments:
+/* if Ahdl is an handle to variable A, hdl is a handle to A(2) */
+hdl = vhpi_handle_by_index(vhpiIndexedNames, Ahdl, 0)
+/* if Mhdl is an handle to variable M, hdl is handle to M(2,3) */
+hdl = vhpi_handle_by_index(vhpiIndexedNames, Mhdl, 0)
+/* if Rhdl is an handle to variable R, hdl is a handle to R.I */
+hdl = vhpi_handle_by_index(vhpiSelectedNames, Rhdl, 0)
+/* if Rhdl is an handle to variable R, subeltHdl is a handle to R.AR */
+subeltHdl = vhpi_handle_by_index(vhpiSelectedNames, Rhdl, 2)
+/* and hdl is a handle to R.AR(4} */
+hdl = vhpi_handle_by_index(vhpiIndexedNames, subeltHdl, 2)
+/* if BV_phdl is an handle to variable BV_p,
+   hdl is a handle to BV_p(0) */
+hdl = vhpi_handle_by_index(vhpiIndexedNames, BV_phdl, 0)
+/* if R_phdl is an handle to variable R_p, hdl is a handle to R_p.I */
+hdl = vhpi_handle_by_index(vhpiSelectedNames, R_phdl, 0)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+481
+Copyright © 2019 IEEE. All rights reserved.
+### 23.22 vhpi_handle_by_name
+
+Gets a handle to an object that is identified by its name.
+Synopsis:
+vhpiHandleT vhpi_handle_by_name (const char *name, vhpiHandleT scope);
+Description:
+The name argument is a pointer to a string referred to as the search string. The scope argument is a handle
+to an object of class region that represents an instantiated declarative region in the design hierarchy
+information model; or a handle to an object of class lexicalScope that represents an uninstantiated
+scope in the library information model; or NULL. If the scope argument is not NULL, the object referred to
+by the handle is referred to as the scope object.
+The function uses the search string to locate an object that has the FullName property and whose value for
+that property is matched by the search string. In determining whether a search string matches the value of a
+FullName property, letters are compared without regard to case, unless the letters occur in an extended
+identifier, in which case the case of letters is significant.
+The search string may be of the form described in 19.4.6 for the value of the DefName property of an object
+in the library information model, except that for each occurrence of a subprogram name or enumeration
+literal within the search string, a signature may be inserted immediately following the subprogram name or
+enumeration literal. Such a search string is referred to as an absolute library search string and matches a
+FullName property that is the same string excluding any signatures. If the search string is an absolute
+library search string and the scope argument is not NULL, the scope object shall be of class
+lexicalScope. In that case, the vhpi_handle_by_name function limits the search to those objects
+representing named entities contained, directly or indirectly, in the declarative region represented by the
+scope object. Otherwise, if the scope argument is NULL, the vhpi_handle_by_name function searches
+in the entire library information model. In either case, for each signature in the search string, if any, the
+search is further limited to those objects representing named entities contained, directly or indirectly, in the
+declarative region represented by the object whose Name property matches the subprogram name or
+enumeration literal immediately preceding the signature and whose SignatureName property matches the
+signature.
+The search string may be of the form described in 19.4.7 for the value of the FullName property of an
+object in the design hierarchy information model, except that for each occurrence of a subprogram name or
+enumeration literal within the search string, a signature may be inserted immediately following the
+subprogram name or enumeration literal. Such a search string is referred to as an absolute design hierarchy
+search string, and matches a FullName property that is the same string excluding any signatures. If the
+search string is an absolute design hierarchy search string and the scope argument is not NULL, the scope
+object shall be of class region or decl. In that case, the vhpi_handle_by_name function limits the
+search to those objects representing named entities contained, directly or indirectly, in the instantiated region
+or elaborated declaration, as appropriate, represented by the scope object. Otherwise, if the scope argument
+is NULL, the vhpi_handle_by_name function searches in the entire design hierarchy information
+model. In either case, for each signature in the search string, if any, the search is further limited to those
+objects representing named entities contained, directly or indirectly, in the instantiated region represented by
+the object whose Name property matches the subprogram name or enumeration literal immediately
+preceding the signature and whose SignatureName property matches the signature.
+A search string in a form other than that of an absolute design hierarchy search string or an absolute library
+search string is referred to as a relative search string. If the search string is a relative search string and the
+scope argument is not NULL, the effect of the call to the vhpi_handle_by_name function is the same
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+482
+Copyright © 2019 IEEE. All rights reserved.
+as that of a call to the function with the same scope argument and a modified relative search string, formed
+by concatenating the following two strings in the following order:
+—
+The value of the FullName property of the scope object, into which is inserted, immediately after
+each occurrence of a subprogram name or enumeration literal, the value of the SignatureName
+property of the object representing the subprogram or enumeration literal denoted by the subprogram
+name or enumeration literal, and
+—
+The relative search string.
+A search that locates more than one object is ambiguous. The tool may detect that the search is ambiguous
+and return NULL. If the tool does not detect that the search is ambiguous, it returns a handle to one of the
+located objects chosen in an implementation-defined manner.
+Return value:
+A handle to a located object, if any, or NULL otherwise.
+Errors:
+It is an error if the search string is a relative search string and the scope argument is NULL.
+It is an error if the search string is a relative search string and the modified relative search string is neither a
+well-formed absolute library search string nor a well-formed absolute design hierarchy search string.
+See also:
+vhpi_get_str(vhpiNameP, ...), vhpi_get_str(vhpiFullNameP, ...).
+Example:
+In the following VHPI program, the vhpi_handle_by_name function is used to search for a signal of a
+given simple name within a design hierarchy.
+vhpiHandleT findsignal(char *sigName) {
+  vhpiHandleT subitr, hdl, subhdl, sigHdl;
+  /* first search for the signal in the design hierarchy, starting at
+     the root instance level and recursively descending into the
+     sub-instances
+  */
+  itr = vhpi_handle(vhpiRootInst, NULL);
+  if (itr) {
+    sigHdl = vhpi_handle_by_name(sigName, hdl);
+    if (sigHdl)
+      return sigHdl;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+483
+Copyright © 2019 IEEE. All rights reserved.
+    else {
+      subitr = vhpi_iterator(vhpiInternalRegions, hdl);
+      if (subitr)
+        while (subhdl = vhpi_scan(subitr)) {
+          sigHdl = vhpi_handle_by_name(sigName, subhdl);
+          if (sigHdl)
+            return sigHdl;
+        }
+    }
+  }
+  /* if not found in the design hierarchy, search for the signal
+      the instantiated packages
+  */
+  itr = vhpi_iterator(vhpiPackInsts, NULL);
+  if (itr)
+    while (hdl = vhpi_scan(itr)) {
+      sigHdl = vhpi_handle_by_name(sigName, hdl);
+      if (sigHdl)
+        return sigHdl;
+    }
+  return NULL;
+}
+### 23.23 vhpi_is_printable
+
+Determines whether a given character is a graphic character.
+Synopsis:
+int vhpi_is_printable( char ch )
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+484
+Copyright © 2019 IEEE. All rights reserved.
+Description:
+The function tests whether the character code that is the value of the ch argument represents a graphic
+character (see 15.2).
+Return value:
+One (1) if the character is a graphic character, or 0 otherwise.
+### 23.24 vhpi_iterator
+
+Creates an iterator for a one-to-many association.
+Synopsis:
+vhpiHandleT vhpi_iterator (vhpiOneToManyT type,
+                           vhpiHandleT referenceHandle);
+Description:
+The type argument is an enumeration value that corresponds to a one-to-many association role. The
+referenceHandle argument is a handle to a reference object, that is, an object of the class that is the
+reference class of the one-to-many association.
+If the one-to-many association has one or more target objects, the function creates a new object of class
+iterator, initializes the iterator set of the object to be the set of target objects in the one-to-many
+association, initializes the iteration position of the object to refer to the first element in the iterator set, and
+returns a handle that refers to the object of class iterator. Otherwise, the function returns NULL.
+If the one-to-many association is ordered, the elements in the iterator set are ordered in the same order as the
+target objects of the one-to-many association to which they refer. Otherwise, the order of elements in the
+iterator set is not specified by this standard.
+Return value:
+A handle to the object of class iterator, if such an object is created, or NULL otherwise.
+See also:
+vhpi_scan.
+NOTE—Since each call to the vhpi_iterator function creates a new object of class iterator, handles returned
+by separate calls to the function are distinct, and comparison of such handles using the vhpi_compare_handles
+function always yields vhpiFalse.
+Example:
+In the following VHPI program, the vhpi_iterator function is used to create an iterator for all signals
+in a scope.
+void find_signals(vhpiHandleT scopeHdl) {
+  vhpiHandleT sigHdl,itrHdl;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+485
+Copyright © 2019 IEEE. All rights reserved.
+  /* find all signals in the scope and print their names */
+  itrHdl = vhpi_iterator(vhpiSigDecl, scopeHdl);
+  if (!itrHdl) return;
+  while (sigHdl = vhpi_scan(itrHdl)) {
+    vhpi_printf("Found signal %s\n", vhpi_get_str(vhpiNameP, sigHdl));
+    vhpi_release_handle(sigHdl);
+  }
+}
+### 23.25 vhpi_printf
+
+Writes a message to one or more tool output files.
+Synopsis:
+int vhpi_printf (const char *format, ...);
+Description:
+The format argument is a pointer to a format string that may contain conversion codes as defined for the C
+printf function in ISO/IEC 9899:2018. The format string and subsequent arguments to the
+vhpi_printf function are interpreted in the same way as specified in ISO/IEC 9899:2018 for the C
+printf function to form a formatted character string that is written to one or more tool output files. The
+file or files to which the string is written is determined in an implementation-defined manner.
+Return value:
+The number of characters written to the file, or –1 if an error occurred.
+See also:
+vhpi_is_printable.
+NOTE—The file or files to which vhpi_printf writes may include a standard output stream or a tool log file.
+Example:
+In the following VHPI program, the vhpi_printf function is used to print a character string with
+non-graphic characters represented using textual representations of the corresponding enumeration literal of
+the VHDL standard CHARACTER type.
+int PrintMyNastyVHDLString( char* VHDLString, int Length ) {
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+486
+Copyright © 2019 IEEE. All rights reserved.
+  int i;
+  unsigned char ch;
+  int needcomma=0;
+  for (i=0; i<Length; i++) {
+    ch = (unsigned char)VHDLString[i];
+    if (vhpi_is_printable(ch)) {
+      vhpi_printf("%c", ch );
+      needcomma=1;
+    } else {
+      if (needcomma)
+        vhpi_printf(",");
+      vhpi_printf("%s", VHPI_GET_PRINTABLE_STRINGCODE(ch));
+      if (i!=(Length-1))
+        vhpi_printf(",");
+      needcomma=0;
+    }
+  }
+  return 0;
+}
+A call to the function PrintMyNastyVHDLString with the string yielded by the following VHDL
+expression:
+"HELLO" & NUL & C128 & DEL
+would cause the following character string to be written to the file:
+HELLO,NUL,C128,DEL
+### 23.26 vhpi_protected_call
+
+Calls a function to operate on a shared variable of a protected type.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+487
+Copyright © 2019 IEEE. All rights reserved.
+Synopsis:
+int vhpi_protected_call (vhpiHandleT varHdl,
+                         vhpiUserFctT userFct, void *userData);
+Description:
+The varHdl argument is a handle to an object of class varDecl for which the properties IsShared and
+IsProtectedType both have the value vhpiTrue. The userFct argument is a pointer to a function
+to be called with exclusive access to the object referred to by varHdl. The userData argument is a
+pointer to be passed to the function pointed to by the userFct argument.
+The vhpi_protected_call function blocks (suspends execution while retaining all state), if necessary,
+until exclusive access to the object referred to by varHdl is secured. The vhpi_protected_call
+function then calls the function pointed to by userFct. The first argument passed to the function is the
+value of the varHdl argument, and the second argument passed to the function is the value of the user-
+Data argument. Upon return of the function, exclusive access to the object referred to by varHdl is
+rescinded.
+The function pointed to by the userFct argument is assumed to have the prototype
+int userFct (vhpiHandleT varHdl, void *userData);
+Return value:
+The value returned by the function pointed to by the userFct argument.
+Errors:
+A VHPI program that performs a read or write access to a shared variable of a protected type other than from
+within a function invoked by a call to the vhpi_protected_call function with the first argument being
+a handle to the variable is erroneous.
+NOTE 1—The effects of acquiring and rescinding exclusive access to a variable of protected type using the
+vhpi_protected_call function are equivalent to the effects of acquiring and rescinding exclusive access using
+calls to protected-type methods within a VHDL model (see 4.3 and 14.6).
+NOTE 2—The value of the userData argument may be NULL.
+Example:
+In the following VHPI program, the vhpi_protected_call function is used to acquire exclusive
+access to a variable named Foo, which has a private variable named result. A pointer to the function
+Myfunc is passed to the vhpi_protected_call function. The function Myfunc reads the value of the
+result variable, invokes a function to perform an operation on the value, and writes a new value to the
+variable.
+#define FAIL -1;
+typedef struct { int Value;
+
+int Size;
+
+int Op;} MyData;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+488
+Copyright © 2019 IEEE. All rights reserved.
+/* user function which is called on the protected variable handle */
+int Myfunc( vhpiHandleT protectedVarDeclHdl, void* ClientData ) {
+  int status=0;
+  vhpiHandleT resultH;
+  MyData* Data=(MyData*)ClientData;
+  /* result is a private variable declaration for the protected type */
+  resultH = vhpi_handle_by_name("result", protectedVarDeclHdl);
+  if (!resultH)
+    return(FAIL);
+  /* access the current value of result */
+  status = vhpi_get_value( resultH, Data->Value );
+  if (status) {
+    vhpi_printf("error  reading protected variable\n");
+    return (status);
+  }
+  switch (Data->Op) {
+  case op1:
+    op1CB(Data->Value);
+    break;
+  case ...
+  default:
+    Bombout();
+  }
+  /* set result to a new value */
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+489
+Copyright © 2019 IEEE. All rights reserved.
+  status = vhpi_put_value( resultH, Data->Value, vhpiDeposit );
+  /* do some more error checking */
+  if (status)
+    vhpi_printf("error  writing to protected variable\n");
+  return status;
+}
+int op1CB( int value ) {
+  ...
+}
+int main (int argc, char *argv[]) {
+  /* get a handle to the protected variable declaration named "Foo" */
+  vhpiHandleT protectedVarDeclHdl
+    = vhpi_handle_by_name("Foo", vpi_handle(vhpiRootInst, NULL));
+  MyData Data;
+  int status = 0;
+  Data.Op = op1;
+  Data.Size = 100;
+  bzero(Data.Value, Data.Size );
+  if (protectedVarDeclHdl)
+    status = vhpi_protected_call(protectedVarDeclHdl,Myfunc,Data);
+  if (status)
+    vhpi_printf("Unable to perform operation op1 "
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+490
+Copyright © 2019 IEEE. All rights reserved.
+                "with protected variable Foo\n");
+  return(status);
+}
+### 23.27 vhpi_put_data
+
+Saves data for restart.
+Synopsis:
+size_t vhpi_put_data (int32_t id,
+                      void * dataLoc, size_t numBytes);
+Description:
+The id argument is an identification number for a saved data set. The dataLoc argument is the address
+from which data is read to be written to the saved data set. The numBytes argument is a positive number,
+being the number of bytes of data to write.
+The function reads a number of bytes, given by numBytes, from the address pointed to by dataLoc and
+writes the data to the saved data set identified by id.
+The first call to vhpi_put_data with a given value for id during a given occurrence of the save phase of
+tool execution writes bytes to the saved data set starting at the first location of the saved data set. Subsequent
+calls to vhpi_put_data with the same id value during the same occurrence of the save phase write bytes
+starting at the location immediately after the last location written by the immediately preceding call with the
+given id value.
+A tool shall allow VHPI programs to call vhpi_put_data an unbounded number of times with a given
+identification number and with an unbounded number of different identification numbers, subject to
+resource constraints of the host system. The order in which sequences of calls to vhpi_put_data with
+different identification numbers are interleaved is not significant.
+Return value:
+The number of bytes actually written, or 0 if the write failed.
+Errors:
+It is an error if vhpi_put_data is called other than from a vhpiCbStartOfSave or
+vhpiCbEndOfSave callback.
+It is an error if the id value is not valid for the occurrence of the save phase of tool execution during which
+the vhpi_put_data function is called.
+See also:
+vhpi_get_data.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+491
+Copyright © 2019 IEEE. All rights reserved.
+NOTE—A VHPI program can acquire an identification number with the function call vhpi_get(vhpiIdP,
+NULL). Each call of this form returns a unique non-zero identification number.
+Example:
+In the following VHPI program, the vhpi_put_data function is used first to write the number of linked
+list elements in a saved data set and second to write that number of linked list elements. The VHPI program
+function
+that
+calls
+vhpi_put_data
+is
+a
+vhpiCbEndOfSave
+callback.
+It
+registers
+a
+vhpiCbStartOfRestart callback to retrieve the data upon restart (see example in 23.12).
+/* type definitions for private data structures to save, used by the
+   foreign models or applications */
+struct myStruct{
+  struct myStruct *next;
+  int d1;
+  int d2;
+}
+void consumer_save(vhpiCbDataT *cbDatap) {
+  char *data;
+  vhpiCbDataT cbData; /* a cbData structure */
+  int cnt = 0;
+  struct myStruct *wrk;
+  vhpiHandleT cbHdl; /* a callback handle */
+  int id =0;
+  int savedBytesCount = 0;
+  /* get the number of structures */
+  wrk = firstWrk;
+  while (wrk) {
+    cnt++;
+    wrk = wrk->next;
+  }
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+492
+Copyright © 2019 IEEE. All rights reserved.
+  /* request an id */
+  id = vhpi_get(vhpiIdP, NULL);
+  /* save the number of data structures */
+  savedBytesCount = vhpi_put_data(id, (char*)&cnt, sizeof(int));
+  /* reinitialize wrk pointer to point to the first structure */
+  wrk = firstWrk;
+  /* save the different data structures, the restart routine will have
+     to fix the pointers */
+  while (wrk) {
+    savedBytesCount += vhpi_put_data(id, (char *)wrk,
+                                     sizeof(struct myStruct));
+    wrk = wrk->next;
+  }
+  /* check if everythg has been saved */
+  assert(savedBytesCount == sizeof(t)
+                            + cnt * (sizeof(struct myStruct)));
+  /* now register the callback for restart and pass the id to retrieve
+     the data, the user_data member of the callback data structure is
+     one easy way to pass the id to the restart operation */
+  cbData.user_data = (void *)id;
+  cbData.reason = vhpiCbStartOfRestart;
+  cbData.cb_rtn = consumer_restart;
+  vhpi_register_cb(&cbData, vhpiNoReturn);
+} /* end of consumer_save */
+### 23.28 vhpi_put_value
+
+Updates the value of an object or provides the return value of a foreign function call.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+493
+Copyright © 2019 IEEE. All rights reserved.
+Synopsis:
+int vhpi_put_value (vhpiHandleT object,
+                    vhpiValueT *value_p, vhpiPutValueModeT mode);
+Description:
+The object argument is a handle to an object of class objDecl, name, or driver, or a handle to an
+object of class funcCall for which the associated subpBody object has the value vhpiTrue for the
+IsForeign property. The value_p argument is a pointer to a value structure, if required, specifying the
+value to be used to update the object or the return value of the foreign function call. The mode argument
+specifies how the update of the object is to be performed. The function updates the object value according to
+the rules of 22.5.
+Return value:
+## 0 if the operation completes without error, or a non-zero value otherwise.
+
+Errors:
+It is an error if the vhpi_put_value function is passed a handle that refers to a VHDL object for which
+updating is not permitted (see 6.4.2.2, 6.4.2.5, and 6.5.2). In particular, it is an error if the
+vhpi_put_value function is passed a handle to an object that has the Access property and the value of
+that property does not have the vhpiWrite flag set.
+It is an error if the vhpi_put_value function is called with an update mode of
+vhpiForcePropagate or vhpiDepositPropagate to update a member of a resolved composite
+signal.
+It is an error if the vhpi_put_value function is called during substep 6) of step h) of the simulation cycle
+to cause activity on a driver or a signal (see 14.7.5.3 and 21.3.6.8).
+See also:
+vhpi_get_value, vhpi_schedule_transaction.
+NOTE—A VHPI program does not use a format for which not all values of the object’s type can be represented (see
+22.2), even if the value with which the object is to be updated can be represented using that format. For example, it
+would be an error to update an object of a physical type whose position numbers exceeded the bounds of 32-bit
+representation using the vhpiSmallPhysVal format.
+### 23.29 vhpi_register_cb
+
+Registers a callback.
+Synopsis:
+vhpiHandleT vhpi_register_cb (vhpiCbDataT *cb_data_p, int32_t flags);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+494
+Copyright © 2019 IEEE. All rights reserved.
+Description:
+The cb_data_p argument is a pointer to a callback data structure. The flags argument is a value that
+specifies how the callback is to be registered. The function uses the information in the callback data
+structure to register a callback function according to the rules of Clause 21.
+Annex B defines two callback flags, vhpiReturnCb and vhpiDisableCb. A call to the function is said
+to set a callback flag if the value of the flags argument has a 1 bit at the bit position corresponding to the
+## 1 bit in the value of the callback flag; otherwise the call to the function is said to clear the callback flag.
+
+If a call to the function sets the vhpiReturnCb flag, the function returns a handle to an object of class
+callback that represents the registered callback. If a call to the function clears the vhpiReturnCb flag,
+the function returns NULL.
+If a call to the function sets the vhpiDisableCb flag, the function sets the registered callback to the
+disabled state. If a call to the function clears the vhpiDisableCb flag, the function sets the registered
+callback to the enabled state.
+Upon completion of the vhpi_register_cb function, the tool does not retain references to the storage
+pointed to by the cb_data_p argument or to storage pointed to by pointers within the callback data
+structure. Furthermore, if the obj member of the callback data structure contains a handle, the VHPI
+program may release the handle after the vhpi_register_cb function returns without affecting
+registration of the callback.
+Return value:
+A handle that refers to the registered callback, or NULL.
+Errors:
+If a VHPI program attempts to register a callback with a callback reason that is not supported by the VHPI
+tool, the vhpi_register_cb function raises an error indicating that the callback reason is not
+implemented.
+See also:
+vhpi_get_cb_info, vhpi_remove_cb, vhpi_enable_cb, vhpi_disable_cb.
+NOTE—A VHPI program that registers a callback with the vhpiDisableCb flag set may find it useful also to set the
+vhpiReturnCb flag and to save the returned handle. The program can subsequently use the handle to enable the
+callback without having to navigate associations to acquire a handle to the callback.
+Example:
+In the following VHPI program, the vhpi_register_cb function is used to register a value change
+callback for each signal within a component instance.
+/* the callback function */
+void vcl_trigger(const vhpiCbDataT *cbDatap) {
+  char *sigName;
+  int toggleCount = (int)(cbDatap->user_data);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+495
+Copyright © 2019 IEEE. All rights reserved.
+  cbDatap->user_data = (char *)(++toggleCount);
+  sigName= vhpi_get_str(vhpiFullNameP, cbDatap->obj);
+  vhpi_printf("Signal %s changed value %d, at time %d\n",
+              sigName, cbDatap->value.int, cbDatap->time.low);
+  return;
+}
+/* this is the name of the function which registers signal
+   value change callbacks to monitor all signals in an instance*/
+static void monitorSignals(vhpiHandleT instHdl) {
+  static vhpiCbDataT cbData;
+  vhpiValueT value;
+  vhpiTimeT time;
+  int flags;
+  value.format = vhpiIntVal;
+  cbData.reason = vhpiCbValueChange;
+  cbData.cb_rtn = vcl_trigger;
+  cbData.value = &value;
+  cbData.time = &time;
+  cbData.user_data = 0;
+  flags = 0; /* do not return a callback handle and do not disable
+                the callback at registration */
+  /* register the callback function */
+  sigIt = vhpi_iterator(vhpiSigDecls, instHdl);
+  if(!sigIt) return;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+496
+Copyright © 2019 IEEE. All rights reserved.
+  while(sigHdl = vhpi_scan(sigIt)) {
+    cbData.obj = sigHdl;
+    vhpi_register_cb(&cbData, flags);
+  }
+}
+### 23.30 vhpi_register_foreignf
+
+Registers a foreign model or application.
+Synopsis:
+vhpiHandleT vhpi_register_foreignf (vhpiForeignDataT *foreignDatap);
+Description:
+The foreignDatap argument is a pointer to a foreign data structure. The function registers a foreign
+model or application according to the rules of 20.2 using the information in the foreign data structure.
+The value of the kind member shall be the value of an enumeration constant of type
+vhpiForeignKindT defined in Annex B and identifies whether a foreign architecture, function,
+procedure, or application is registered. For registration of a foreign architecture, the value of the elabf
+member shall be a pointer to the elaboration function, if required, or NULL otherwise; and the value of the
+execf member shall be a pointer to the execution function. For registration of a foreign procedure or
+function, the value of the elabf member shall be NULL and the value of the execf member shall be a
+pointer to the execution function.
+The value of the libraryName member shall be a pointer to a string whose value is the object library
+name. For registration of a foreign model or application, the value of the modelName member shall be a
+pointer to a string whose value is the model name or application name, respectively.
+Return value:
+A handle that refers to an object of class foreignf that represents the foreign model or application, if the
+operation completes without error, or NULL otherwise.
+Errors:
+It is an error of the vhpi_register_foreignf function is called other than during the registration
+phase of tool execution.
+It is an error if the value of the kind member of the foreign data structure is vhpiLibF.
+See also:
+vhpi_get_foreignf_info, vhpi_iterator(vhpiForeignfs, NULL).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+497
+Copyright © 2019 IEEE. All rights reserved.
+Example:
+In the following VHPI program, the vhpi_register_foreignf function is used to register
+dynamically linked elaboration and execution functions for a foreign model.
+void dynlink(char * foreignName, char * libName) {
+  /* foreignName is the name of the foreign model to link  */
+  /* libName is the logical name of the C dynamic library where the
+     model resides */
+  static vhpiForeignDataT archData = {vhpiArchF};
+  char dynLibName[MAX_STR_LENGTH];
+  char platform[6];
+  char extension[3];
+  char fname[MAX_STR_LENGTH];
+  char elabfname[MAX_STR_LENGTH];
+  char execfname[MAX_STR_LENGTH];
+  sprintf(platform, getenv("SYSTYPE"));
+  if (!strcmp(platform, "SUNOS"))
+    strcpy(extension, "so");
+  else if (!strcmp(platform, "HP-UX"))
+    strcpy(extension, "sl");
+  sprintf(dynLibName, "%s.%s", libName, extension);
+  sprintf(fname, "%s", foreignName);
+  sprintf(elabfname, "elab_%s", foreignName);
+  sprintf(execfname, "sim_%s", foreignName);
+  archData->libraryName = libname;
+  archData->modelName = fName;
+  /* find the function pointer addresses */
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+498
+Copyright © 2019 IEEE. All rights reserved.
+  archData->elabf = (void(*)()) dynlookup(dynLibName, elabfName);
+  archData->execf = (void(*)()) dynlookup(dynLibName, execfName);
+  vhpi_register_foreignf(&archData);
+}
+In the following VHPI program, the vhpi_register_foreignf function is used to register each
+foreign model contained in a C library.
+extern void register_my_C_models();
+       /* this is the name of the bootstrap
+          function that shall be the ONLY
+          visible symbol of the C library.
+       */
+void register_my_C_models() {
+  static vhpiForeignDataT foreignDataArray[] = {
+    {vhpiArchF, "lib1", "C_AND_gate", "elab_and", "sim_and"},
+    {vhpiFuncF, "lib1", "addbits", 0, "ADD"},
+    {vhpiProcF, "lib1", "verify", 0, "verify"},
+    0
+  };
+  /* start by the first entry in the array of
+     the foreign data structures */
+  vhpiForeignDatap foreignDatap = &(foreignDataArray[0]);
+  /* iterate and register every entry in the table */
+  while (*foreignDatap)
+    vhpi_register_foreignf(foreignDatap++);
+}
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+499
+Copyright © 2019 IEEE. All rights reserved.
+### 23.31 vhpi_release_handle
+
+Releases a handle.
+Synopsis:
+int vhpi_release_handle (vhpiHandleT object);
+Description:
+The object argument is a handle that refers to an object. The function releases the handle (see 17.4).
+Return value:
+## 0 if the operation completes without error, or 1 otherwise.
+
+Example:
+In the following VHPI program, the vhpi_release_handle function is used to release each handle,
+returned by the vhpi_scan function applied to an iterator, up to but excluding the first handle that refers to
+an object of class blockStmt.
+vhpiHandleT rootHdl, itrHdl;
+rootHdl = vhpi_handle(vhpiRootInst, null);
+itrHdl = vhpi_iterator(vhpiInternalRegions, rootHdl);
+if (itrHdl) {
+  while (instHdl = vhpi_scan(itrHdl)) {
+    if (vhpi_get(vhpiKindP, instHdl) == vhpiBlockStmtK)
+      break;
+    /* free this instance handle */
+    vhpi_release_handle(instHdl);
+  }
+}
+### 23.32 vhpi_remove_cb
+
+Removes a previously registered callback.
+Synopsis:
+int vhpi_remove_cb (vhpiHandleT cb_obj);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+500
+Copyright © 2019 IEEE. All rights reserved.
+Description:
+The cb_obj argument is a handle to a registered callback. The function removes the callback. Upon return,
+the handle is invalid.
+Return value:
+## 0 if the operation completes without error, or 1 otherwise.
+
+See also:
+vhpi_register_cb, vhpi_get_cb_info, vhpi_enable_cb, vhpi_disable_cb.
+### 23.33 vhpi_scan
+
+Gets a handle to an object in an iterator and advances the iterator.
+Synopsis:
+vhpiHandleT vhpi_scan (vhpiHandleT iterator);
+Description:
+The iterator argument is a handle that refers to an iterator object of class iterator. If the iteration
+position of the iterator object refers to no element of the iterator set of the iterator object, the function
+releases the handle that is the value of the iterator argument and returns NULL. Otherwise, the function
+returns a handle to that element referred to by the iterator position of the iterator object and updates the
+iterator position to refer to the subsequent element in the iterator set, if any, or to no object otherwise.
+Return value:
+A handle to an object of the iterator set, or NULL.
+See also:
+vhpi_iterator.
+NOTE—If a VHPI program no longer requires an iterator that is not exhausted, the program should release the handle
+that refers to the iterator so that the tool may reclaim memory resources allocated for the iterator.
+Example:
+In the following VHPI program, the vhpi_scan function is used to acquire handles to successive signals
+within a given scope.
+vhpiHandleT find_signals(vhpiHandleT scopeHdl) {
+  vhpiHandleT sigHdl,itrHdl;
+  int found = 0;
+  itrHdl = vhpi_iterator(vhpiSigDecl, scopeHdl);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+501
+Copyright © 2019 IEEE. All rights reserved.
+  if (!itrHdl) return;
+  while (sigHdl = vhpi_scan(itrHdl)) {
+    vhpi_printf("Found signal %s\n", vhpi_get_str(vhpiNameP, sigHdl));
+    /* done with handle */;
+    vhpi_release_handle(sigHdl);
+  }
+}
+### 23.34 vhpi_schedule_transaction
+
+Schedules a transaction on a driver or transactions on a collection of drivers.
+Synopsis:
+int vhpi_schedule_transaction (vhpiHandleT  drivHdl,
+                               vhpiValueT  *value_p,
+                               uint32_t    numValues,
+                               vhpiTimeT   *delayp,
+                               vhpiDelayModeT delayMode,
+                               vhpiTimeT    *pulseRejp);
+Description:
+The drivHdl argument is a handle that refers to an object of class driver or driverCollection.
+The value_p argument is a pointer to a value structure or to an array of value structures, or NULL. The
+numValues argument is the number of value structures. The function schedules a transaction or transac-
+tions on the driver or drivers referred to by the drivHDL argument using the value or values specified by
+the value_p and numValues arguments, according to the rules of 22.6.
+The delayp argument is a pointer to a time structure that specifies the relative delay. The time component
+of the transaction or transactions scheduled by the function is the sum of the current simulation time and the
+relative delay. If the value is less than the resolution limit of the tool, the transaction or transactions are
+scheduled with zero delay.
+The delayMode argument is an enumeration constant that specifies the delay mechanism. The value of the
+delayMode argument shall be one of vhpiInertial, in which case the delay is construed to be inertial
+delay, or vhpiTransport, in which case the delay is construed to be transport delay (see 10.5.2.1).
+The pulseRejp argument is a pointer to a time structure that specifies the pulse rejection limit or NULL.
+If the delayMode argument is vhpiInertial and the pulseRejp argument is not NULL, the value of
+the time structure pointed to by the pulseRejp argument is the pulse rejection limit. The value shall not be
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+502
+Copyright © 2019 IEEE. All rights reserved.
+greater than the delay. If the delayMode is vhpiInertial and the pulseRejp argument is NULL, the
+pulse rejection limit is equal to the delay. If the delayMode argument is vhpiTransport, the
+pulseRejp argument is ignored by the tool.
+Return value:
+## 0 if the operation completes without error, or a non-zero value otherwise.
+
+Errors:
+It is an error if the vhpi_schedule_transaction function is called other than during step f) of the
+simulation cycle or to schedule a transaction with non-zero delay during substeps 1) through 4) of step h) of
+the simulation cycle (see 14.7.5.3).
+It is an error if the vhpi_schedule_transaction function is passed a handle to an object of class
+driver for which the Access property does not have the vhpiWrite flag set. Similarly, it is an error if
+the vhpi_schedule_transaction function is passed a handle to an object of class
+driverCollection and there is a member of the collection represented by the object for which the
+Access property does not have the vhpiWrite flag set.
+See also:
+vhpi_put_value, vhpi_get_value.
+NOTE 1—An object of class driver is associated with a basic signal, which cannot be a composite non-resolved signal.
+To schedule a transaction for a composite non-resolved signal, a VHPI program may either schedule transactions
+individually for the driver of each of the subelements or may schedule a transaction on a collection comprising the
+drivers of the subelements.
+NOTE 2—A VHPI program will not use a format for which not all values of the type of the driver’s signal can be
+represented (see 22.2), even if the value of the transaction can be represented using that format. For example, it would be
+an error to schedule a transaction on a driver for a signal of an integer type whose position numbers exceeded the bounds
+of 32-bit representation using the vhpiIntVal format.
+Example:
+In the following recursive VHPI program, the vhpi_schedule_transaction function is used to
+schedule transactions with the value '0' on each driver for each basic-signal subelement of type BIT of a
+signal. Handles to individual driver elements are acquired using iterators.
+int schedule_transaction_value(vhpiHandleT sigHdl) {
+  vhpiHandleT baseTypeHdl, driverIt, driverHdl;
+  char *name;
+  vhpiValueS value;
+  vhpiTimeS delay;
+  delay.low = 1000;/* delay is 1 ns */
+  delay.high = 0;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+503
+Copyright © 2019 IEEE. All rights reserved.
+  baseTypeHdl = vhpi_handle(vhpiBaseType, sigHdl);
+  /* check the signal type */
+  switch (vhpi_get(vhpiKindP, baseTypeHdl)) {
+  case vhpiRecordTypeDeclK :
+    {
+      vhpiHandleT itsel, selh;
+      if (!vhpi_get(vhpiIsResolved, sigHdl)) {
+        /* signal not resolved at the composite level */
+        itsel = vhpi_iterator(vhpiSelectedNames, sigHdl);
+        while (selh = vhpi_scan(itsel))
+          schedule_transaction_value(selh);
+      } else {
+        vhpi_printf("unimplemented\n");
+        return -1;
+      }
+    }
+    break;
+  case vhpiArrayTypeDeclK:
+    { /* get the element subtype */
+      vhpiHandleT eltSubtypeHdl, bitIt, bitHdl;
+      vhpiHandleT colHdl = NULL;
+      int countdrivs = 0;
+      if (vhpi_get(vhpiIsResolved, sigHdl)) {
+        vhpi_printf("unimplemented\n");
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+504
+Copyright © 2019 IEEE. All rights reserved.
+        return -1;
+      }
+      /* signal not resolved at the composite level */
+      elemSubtypeHdl = vhpi_handle(vhpiElemType, baseTypeDecl);
+      baseTypeHdl = vhpiHandle(vhpiBaseType, elemSubtypeHdl);
+      name = vhpi_get_str(vhpiNameP, baseTypeHdl);
+      if (!strncmp(name, "BIT")) {
+        bitIt = vhpi_iterator(vhpiIndexedNames, sigHdl);
+        while (bitHdl = vhpi_scan(bitIt)) {
+          assert (vhpi_get(vhpiIsBasicP, bitHdl) == vhpiTrue);
+          driverIt = vhpi_iterator(vhpiDrivers, bitHdl);
+          while (driverHdl = vhpi_scan(driverIt)) {
+            countdrivs++;
+            colHdl = vhpi_create(vhpiDriverCollectionK,
+                                 colHdl, driverHdl);
+          }
+        }
+        value.format = vhpiLogicVecVal;
+        value.numElems = countDrivs;
+        while (countdrivs) {
+          value.value.logics++ = vhpiBit0;
+          countdrivs--;
+        }
+        vhpi_schedule_transaction(colHdl, &value, 1,
+                                  &delay, vhpiInertial, 0);
+      } else {
+        vhpi_printf("unimplemented\n");
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+505
+Copyright © 2019 IEEE. All rights reserved.
+        return -1;
+      }
+    }
+    break;
+  case vhpiEnumTypeDeclK:
+    {
+      name = vhpi_get_str(vhpameP, baseTypeHdl);
+      if (!strncmp(name, "BIT")) {
+        value.format = vhpiLogicVal;
+        value.logic = vhpiBit0;
+        assert (vhpi_get(vhpiIsBasicP, sigHdl) == vhpiTrue);
+        driverIt = vhpi_iterator(vhpiDrivers, sigHdl);
+        while (driverHdl = vhpi_scan(driverIt))
+          countdrivs++;
+        assert (countDrivs == 1);
+        vhpi_schedule_transaction(driverHdl, &value, 1,
+                                  &delay, vhpiInertial, 0);
+      } else {
+        vhpi_printf("unimplemented\n");
+        return -1;
+      }
+    }
+    break;
+  default:
+    vhpi_printf("unimplemented\n");
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+506
+Copyright © 2019 IEEE. All rights reserved.
+    return (-1);
+    break;
+  }
+}
+The VHPI program could be used to schedule transactions on subelements of a VHDL signal declared as
+follows:
+type R is record
+
+B: BIT;
+
+BARR: BIT_VECTOR (0 to 7);
+end record;
+signal S: R;
+### 23.35 vhpi_vprintf
+
+Writes a message to one or more tool output files.
+Synopsis:
+int vhpi_vprintf (const char *format, va_list args);
+Description:
+The format argument is a pointer to a format string that may contain conversion codes as defined for the C
+vprintf function in ISO/IEC 9899:2018. The format string and the va_list argument to the
+vhpi_vprintf function are interpreted in the same way as specified in ISO/IEC 9899:2018 for the C
+vprintf function to form a formatted character string that is written to one or more tool output files. The
+file or files to which the string is written is determined in an implementation-defined manner.
+Return value:
+The number of characters written to the file, or –1 if an error occurred.
+See also:
+vhpi_is_printable.
+NOTE—The file or files to which vhpi_vprintf writes may include a standard output stream or a tool log file.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

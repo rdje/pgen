@@ -1,0 +1,942 @@
+---
+title: "Section 11: IEEE Standard for VHDL Language Reference Manual"
+document: "VHDL Language Reference Manual"
+standard: "IEEE 1076-2019"
+domain: "VHDL"
+section: "11"
+source_txt: "section-11-concurrent-statements.txt"
+source_pdf: "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf"
+---
+
+# Section 11: IEEE Standard for VHDL Language Reference Manual
+
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+199
+Copyright © 2019 IEEE. All rights reserved.
+11. Concurrent statements
+### 11.1 General
+
+The various forms of concurrent statements are described in this clause. Concurrent statements are used to
+define interconnected blocks and processes that jointly describe the overall behavior or structure of a design.
+Concurrent statements execute asynchronously with respect to each other.
+```ebnf
+concurrent_statement ::=
+```
+
+block_statement
+|
+process_statement
+|
+concurrent_procedure_call_statement
+|
+concurrent_assertion_statement
+|
+concurrent_signal_assignment_statement
+|
+component_instantiation_statement
+|
+generate_statement
+|
+PSL_Directive
+The primary concurrent statement is the block statement, which groups together other concurrent statements,
+and the process statement, which represents a single independent sequential process. Additional concurrent
+statements provide convenient syntax for representing simple, commonly occurring forms of processes, as
+well as for representing structural decomposition and regular descriptions.
+Within a given simulation cycle, an implementation may execute concurrent statements in parallel or in
+some order. The language does not define the order, if any, in which such statements will be executed. A
+description that depends upon a particular order of execution of concurrent statements is erroneous.
+All concurrent statements may be labeled. Similarly, generate and case generate statements may optionally
+contain alternative labels. Such labels are implicitly declared at the beginning of the declarative part of the
+innermost enclosing entity declaration, architecture body, block statement, or generate statement.
+### 11.2 Block statement
+
+A block statement defines an internal block representing a portion of a design. Blocks may be hierarchically
+nested to support design decomposition.
+```ebnf
+block_statement ::=
+```
+
+block_label :
+block [ ( guard_condition ) ] [ is ]
+block_header
+block_declarative_part
+begin
+block_statement_part
+end block [ block_label ] ;
+```ebnf
+block_header ::=
+      [ generic_clause
+      [ generic_map_aspect ; ] ]
+```
+
+[ port_clause
+[ port_map_aspect ; ] ]
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+200
+Copyright © 2019 IEEE. All rights reserved.
+```ebnf
+block_declarative_part ::=
+```
+
+{ block_declarative_item }
+```ebnf
+block_statement_part ::=
+```
+
+{ concurrent_statement }
+If a guard condition appears after the reserved word block, then a signal with the simple name GUARD of
+predefined type BOOLEAN is implicitly declared at the beginning of the declarative part of the block, and
+the guard condition defines the value of that signal at any given time (see 14.7.4). The type of the guard con-
+dition shall be type BOOLEAN. Signal GUARD may be used to control the operation of certain statements
+within the block (see 11.7).
+The implicit signal GUARD shall not have a source.
+If a block header appears in a block statement, it explicitly identifies certain values or signals that are to be
+imported from the enclosing environment into the block and associated with formal generics or ports. The
+generic and port clauses define the formal generics and formal ports of the block (see 6.5.6.2 and 6.5.6.3);
+the generic map and port map aspects define the association of actuals with those formals (see 6.5.7.2 and
+6.5.7.3). Such actuals are evaluated in the context of the enclosing declarative region.
+If a label appears at the end of a block statement, it shall repeat the block label.
+NOTE 1 — The value of signal GUARD is always defined within the scope of a given block, and it does not implicitly
+extend to design entities bound to components instantiated within the given block. However, the signal GUARD may be
+explicitly passed as an actual signal in a component instantiation in order to extend its value to lower-level components.
+NOTE 2—An actual appearing in a port association list of a given block can never denote a formal port of the same
+block.
+### 11.3 Process statement
+
+A process statement defines an independent sequential process representing the behavior of some portion of
+the design.
+```ebnf
+process_statement ::=
+```
+
+[ process_label : ]
+
+[ postponed ] process [ ( process_sensitivity_list ) ] [ is ]
+process_declarative_part
+begin
+process_statement_part
+end [ postponed ] process [ process_label ] ;
+```ebnf
+process_sensitivity_list ::= all | sensitivity_list
+process_declarative_part ::=
+```
+
+{ process_declarative_item }
+```ebnf
+process_declarative_item ::=
+```
+
+subprogram_declaration
+|
+subprogram_body
+|
+subprogram_instantiation_declaration
+|
+package_declaration
+|
+package_body
+|
+package instantiation_declaration
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+201
+Copyright © 2019 IEEE. All rights reserved.
+|
+type_declaration
+|
+subtype_declaration
+|
+constant_declaration
+|
+variable_declaration
+|
+file_declaration
+|
+alias_declaration
+|
+attribute_declaration
+|
+attribute_specification
+|
+use_clause
+|
+group_template_declaration
+|
+group_declaration
+```ebnf
+process_statement_part ::=
+```
+
+{ sequential_statement }
+If the reserved word postponed precedes the initial reserved word process, the process statement defines a
+postponed process; otherwise, the process statement defines a nonpostponed process.
+If a process sensitivity list appears following the reserved word process, then the process statement is
+assumed to contain an implicit wait statement as the last statement of the process statement part; this implicit
+wait statement is of the form:
+wait on sensitivity_list ;
+where the sensitivity list is determined in one of two ways. If the process sensitivity list is specified as a
+sensitivity list, then the sensitivity list of the wait statement is that following the reserved word process. If
+the process sensitivity list is specified using the reserved word all, then the sensitivity list of the wait
+statement is constructed by taking the union of the sets constructed from each of the statements in the
+process by applying the following rules:
+—
+For each assertion, report, next, exit, or return statement, apply the rule of 10.2 to each expression in
+the statement, and construct the union of the resulting sets.
+—
+For each assignment statement, apply the rule of 10.2 to each expression occurring in the
+assignment, including any expressions occurring in the index names or slice names in the target, and
+construct the union of the resulting sets.
+—
+For each if statement, apply the rule of 10.2 to each condition and apply this rule recursively to each
+sequence of statements within the if statement, and construct the union of the resulting sets.
+—
+For each case statement, apply the rule of 10.2 to the expression and apply this rule recursively to
+each sequence of statements within the case statement, and construct the union of the resulting sets.
+—
+For each loop statement, apply the rule of 10.2 to each expression in the iteration scheme, if present,
+and apply this rule recursively to the sequence of statements within the loop statement, and construct
+the union of the resulting sets.
+—
+For each procedure call statement, apply the rule of 10.2 to each actual designator (other than open)
+associated with each formal parameter of mode in or inout, and construct the union of the resulting
+sets.
+Moreover, for each subprogram for which the process is a parent (see 4.3), the sensitivity list includes
+members of the set constructed by applying the preceding rule to the statements of the subprogram, but
+excluding the members that denote formal signal parameters or members of formal signal parameters of the
+subprogram or any of its parents.
+It is an error if a process statement with the reserved word all as its process sensitivity list is the parent of a
+subprogram declared in a design unit other than that containing the process statement, and the subprogram
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+202
+Copyright © 2019 IEEE. All rights reserved.
+reads an explicitly declared signal that is not a formal signal parameter or member of a formal signal
+parameter of the subprogram or of any of its parents. Similarly, it is an error if such a subprogram reads an
+implicit signal whose explicit ancestor is not a formal signal parameter or member of a formal parameter of
+the subprogram or of any of its parents.
+It is an error if any name that does not denote a static signal name (see 8.1) for which reading is permitted
+appears in the sensitivity list of a process statement.
+If a process sensitivity list appears following the reserved word process in a process statement, then the
+process statement shall not contain an explicit wait statement. Similarly, if such a process statement is a
+parent of a procedure, then it is an error if that procedure contains a wait statement.
+If the reserved word postponed appears at the end of a process statement, the process shall be a postponed
+process. If a label appears at the end of a process statement, the label shall repeat the process label.
+It is an error if variable declaration in a process declarative part declares a shared variable.
+The execution of a process statement consists of the repetitive execution of its sequence of statements. After
+the last statement in the sequence of statements of a process statement is executed, execution will
+immediately continue with the first statement in the sequence of statements.
+A process statement is said to be a passive process if neither the process itself, nor any procedure of which
+the process is a parent, contains a signal assignment statement. It is an error if a process or a concurrent
+statement, other than a passive process or a concurrent statement equivalent to such a process, appears in the
+entity statement part of an entity declaration.
+NOTE 1—The rules in 11.3 imply that a process that has an explicit sensitivity list always has exactly one (implicit) wait
+statement in it, and that wait statement appears at the end of the sequence of statements in the process statement part.
+Thus, a process with a sensitivity list always waits at the end of its statement part; any event on a signal named in the
+sensitivity list will cause such a process to execute from the beginning of its statement part down to the end, where it will
+wait again. Such a process executes once through at the beginning of simulation, suspending for the first time when it
+executes the implicit wait statement.
+NOTE 2—The time at which a process executes after being resumed by a wait statement (see 10.2) differs depending on
+whether the process is postponed or nonpostponed. When a nonpostponed process is resumed, it executes in the current
+simulation cycle (see 14.7.5). When a postponed process is resumed, it does not execute until a simulation cycle occurs
+in which the next simulation cycle is not a delta cycle. In this way, a postponed process accesses the values of signals
+that are the “final” values at the current simulated time.
+NOTE 3—The conditions that cause a process to resume execution may no longer hold at the time the process resumes
+execution if the process is a postponed process.
+NOTE 4— In general, it is not possible to determine at analysis time whether a process with the reserved word all as its
+process sensitivity list is the parent of a subprogram declared in a separate design unit and whether the rules for such a
+subprogram are met.
+### 11.4 Concurrent procedure call statements
+
+A concurrent procedure call statement represents a process containing the corresponding sequential
+procedure call statement.
+```ebnf
+concurrent_procedure_call_statement ::=
+```
+
+[ label : ] [ postponed ] procedure_call ;
+For any concurrent procedure call statement, there is an equivalent process statement. The equivalent
+process statement is a postponed process if and only if the concurrent procedure call statement includes the
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+203
+Copyright © 2019 IEEE. All rights reserved.
+reserved word postponed. The equivalent process statement has a label if and only if the concurrent
+procedure call statement has a label; if the equivalent process statement has a label, it is the same as that of
+the concurrent procedure call statement. The equivalent process statement also has no sensitivity list, an
+empty declarative part, and a statement part that consists of a procedure call statement followed by a wait
+statement.
+The procedure call statement consists of the same procedure name, generic map aspect, and parameter map
+aspect that appear in the concurrent procedure call statement.
+If there exists a name that denotes a signal in the actual part of any association element in the concurrent
+procedure call statement, and that actual is associated with a formal parameter of mode in or inout, then the
+equivalent process statement includes a final wait statement with a sensitivity clause that is constructed by
+taking the union of the sets constructed by applying the rule of 10.2 to each actual part associated with a
+formal parameter.
+Execution of a concurrent procedure call statement is equivalent to execution of the equivalent process
+statement.
+Example:
+CheckTiming (tPLH, tPHL, Clk, D, Q);--  A concurrent procedure call
+--  statement.
+process
+--  The equivalent process.
+begin
+CheckTiming (tPLH, tPHL, Clk, D, Q);
+wait on Clk, D, Q;
+end process;
+NOTE 1—Concurrent procedure call statements make it possible to declare procedures representing commonly used
+processes and to create such processes easily by merely calling the procedure as a concurrent statement. The wait
+statement at the end of the statement part of the equivalent process statement allows a procedure to be called without
+having it loop interminably, even if the procedure is not necessarily intended for use as a process (i.e., it contains no wait
+statement). Such a procedure may persist over time (and thus the values of its variables retain state over time) if its
+outermost statement is a loop statement and the loop contains a wait statement. Similarly, such a procedure will execute
+only once, at the beginning of simulation, if its last statement is a wait statement that has no sensitivity clause, condition
+clause, or timeout clause.
+NOTE 2—The value of an implicitly declared signal GUARD has no effect on evaluation of a concurrent procedure call
+unless it is explicitly referenced in one of the actual parts of the parameter map aspect of the concurrent procedure call
+statement.
+### 11.5 Concurrent assertion statements
+
+A concurrent assertion statement represents a passive process statement containing the specified assertion
+statement.
+```ebnf
+concurrent_assertion_statement ::=
+```
+
+[ label : ] [ postponed ] assertion ;
+For any concurrent assertion statement, there is an equivalent process statement. The equivalent process
+statement is a postponed process if and only if the concurrent assertion statement includes the reserved word
+postponed. The equivalent process statement has a label if and only if the concurrent assertion statement has
+a label; if the equivalent process statement has a label, it is the same as that of the concurrent assertion
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+204
+Copyright © 2019 IEEE. All rights reserved.
+statement. The equivalent process statement also has no sensitivity list, an empty declarative part, and a
+statement part that consists of an assertion statement followed by a wait statement.
+The assertion statement consists of the same condition, report clause, and severity clause that appear in the
+concurrent assertion statement.
+If there exists a name that denotes a signal in the Boolean expression that defines the condition of the
+assertion, then the equivalent process statement includes a final wait statement with a sensitivity clause that
+is constructed by applying the rule of Clause 10.2 to that expression; otherwise, the equivalent process
+statement contains a final wait statement that has no explicit sensitivity clause, condition clause, or timeout
+clause.
+Execution of a concurrent assertion statement is equivalent to execution of the equivalent process statement.
+If a concurrent statement is ambiguous and can be interpreted either as a concurrent assertion statement or as
+a PSL assertion directive, then it is interpreted as a concurrent assertion statement.
+NOTE 1—Since a concurrent assertion statement represents a passive process statement, such a process has no outputs.
+Therefore, the execution of a concurrent assertion statement will never cause an event to occur. However, if the assertion
+is false, then the specified error message will be sent to the simulation report.
+NOTE 2—The value of an implicitly declared signal GUARD has no effect on evaluation of the assertion unless it is
+explicitly referenced in one of the expressions of that assertion.
+NOTE 3—A concurrent assertion statement whose condition is defined by a static expression is equivalent to a process
+statement that ends in a wait statement that has no sensitivity clause; such a process will execute once through at the
+beginning of simulation and then wait indefinitely.
+NOTE 4—A concurrent statement consisting of the reserved word assert followed by a condition, optionally followed
+by the reserved word report and a string expression, is ambiguous. It can be interpreted as a concurrent assertion
+statement with no severity clause or as a PSL assert directive with a property consisting of a Boolean expression,
+specifying a condition that will hold at time zero. The statement is interpreted as a concurrent assertion statement,
+specifying a condition that will hold at all times.
+### 11.6 Concurrent signal assignment statements
+
+A concurrent signal assignment statement represents an equivalent process statement that assigns values to
+signals.
+```ebnf
+concurrent_signal_assignment_statement ::=
+```
+
+[ label : ] [ postponed ] concurrent_simple_signal_assignment
+|
+[ label : ] [ postponed ] concurrent_conditional_signal_assignment
+|
+[ label : ] [ postponed ] concurrent_selected_signal_assignment
+```ebnf
+concurrent_simple_signal_assignment ::=
+```
+
+target <= [ guarded ] [ delay_mechanism ] waveform ;
+```ebnf
+concurrent_conditional_signal_assignment ::=
+```
+
+target  <=  [ guarded ] [ delay_mechanism ] conditional_waveforms ;
+```ebnf
+concurrent_selected_signal_assignment ::=
+```
+
+with expression select [ ? ]
+target <= [ guarded ] [ delay_mechanism ] selected_waveforms ;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+205
+Copyright © 2019 IEEE. All rights reserved.
+There are three forms of the concurrent signal assignment statement. For each form, the characteristics that
+distinguish it are discussed in the following paragraphs.
+Each form may include the reserved word guarded, which specifies that the signal assignment statement is
+executed when a signal GUARD changes from FALSE to TRUE, or when that signal has been TRUE and an
+event occurs on one of the signal assignment statement’s inputs. (The signal GUARD shall be either one of
+the implicitly declared GUARD signals associated with block statements that have guard conditions, or it
+shall be an explicitly declared signal of type BOOLEAN that is visible at the point of the concurrent signal
+assignment statement.)
+If the target of a concurrent signal assignment is a name that denotes a guarded signal (see 6.4.2.3), or if it is
+in the form of an aggregate and the expression in each element association of the aggregate is a static signal
+name denoting a guarded signal, then the target is said to be a guarded target. If the target of a concurrent
+signal assignment is a name that denotes a signal that is not a guarded signal, or if it is in the form of an
+aggregate and the expression in each element association of the aggregate is a static signal name denoting a
+signal that is not a guarded signal, then the target is said to be an unguarded target. It is an error if the target
+of a concurrent signal assignment is neither a guarded target nor an unguarded target.
+For any concurrent signal assignment statement, there is an equivalent process statement with the same
+meaning. The process statement equivalent to a concurrent signal assignment statement whose target is a
+signal name is constructed as follows:
+a)
+If a label appears on the concurrent signal assignment statement, then the same label appears on the
+process statement.
+b)
+The equivalent process statement is a postponed process if and only if the concurrent signal
+assignment statement includes the reserved word postponed.
+c)
+The statement part of the equivalent process statement consists of a statement transform [described
+in item e)].
+d)
+If the reserved word guarded appears in the concurrent signal assignment statement, then the
+concurrent signal assignment is called a guarded assignment. If the concurrent signal assignment
+statement is a guarded assignment, and if the target of the concurrent signal assignment is a guarded
+target, then the statement transform is as follows:
+if GUARD then
+   signal_transform
+else
+   disconnection_statements
+end if;
+Otherwise, if the concurrent signal assignment statement is a guarded assignment, but if the target of
+the concurrent signal assignment is not a guarded target, then the statement transform is as follows:
+if GUARD then
+   signal_transform
+end if;
+Finally, if the concurrent signal assignment statement is not a guarded assignment, and if the target
+of the concurrent signal assignment is not a guarded target, then the statement transform is as
+follows:
+signal_transform
+It is an error if a concurrent signal assignment is not a guarded assignment and the target of the
+concurrent signal assignment is a guarded target.
+A signal transform is a sequential signal assignment statement that has no label and that contains a
+simple, conditional, or selected signal assignment that is the same as the concurrent simple,
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+206
+Copyright © 2019 IEEE. All rights reserved.
+conditional, or selected signal assignment statement, as appropriate, without the reserved word
+guarded.
+e)
+If the concurrent signal assignment statement is a guarded assignment, or if any expression (other
+than a time expression) within the concurrent signal assignment statement references a signal, then
+the process statement contains a final wait statement with an explicit sensitivity clause. The
+sensitivity clause is constructed by taking the union of the sets constructed by applying the rule of
+### 10.2 to each of the aforementioned expressions. Furthermore, if the concurrent signal assignment
+
+statement is a guarded assignment, then the sensitivity clause also contains the simple name
+GUARD. (The signals identified by these names are called the inputs of the signal assignment
+statement.) Otherwise, the process statement contains a final wait statement that has no explicit
+sensitivity clause, condition clause, or timeout clause.
+Under certain conditions (see item d in the preceding list) the equivalent process statement may contain a
+sequence of disconnection statements. A disconnection statement is a sequential signal assignment statement
+that assigns a null transaction to its target. If a sequence of disconnection statements is present in the
+equivalent process statement, the sequence consists of one sequential signal assignment for each scalar
+subelement of the target of the concurrent signal assignment statement. For each such sequential signal
+assignment, the target of the assignment is the corresponding scalar subelement of the target of the
+concurrent signal assignment, and the waveform of the assignment is a null waveform element whose time
+expression is given by the applicable disconnection specification (see 7.4).
+If the target of a concurrent signal assignment statement is in the form of an aggregate, then the same
+transformation applies. Such a target shall contain only locally static signal names; moreover, it is an error if
+any signal is identified by more than one signal name.
+It is an error if a null waveform element appears in a waveform of a concurrent signal assignment statement.
+Execution of a concurrent signal assignment statement is equivalent to execution of the equivalent process
+statement.
+NOTE 1—A concurrent signal assignment statement whose waveforms and target contain only static expressions is
+equivalent to a process statement whose final wait statement has no explicit sensitivity clause, so it will execute once
+through at the beginning of simulation and then suspend permanently.
+NOTE 2—A concurrent signal assignment statement whose waveforms are all the reserved word unaffected has no
+drivers for the target, since every waveform in the concurrent signal assignment statement is transformed to the
+statement
+null;
+in the equivalent process statement (see 10.5.2.1).
+### 11.7 Component instantiation statements
+
+#### 11.7.1 General
+
+A component instantiation statement defines a subcomponent of the design entity in which it appears,
+associates signals or values with the signal ports and shared variables with the variable ports of that
+subcomponent, and associates values with generics of that subcomponent. This subcomponent is one
+instance of a class of components defined by a corresponding component declaration, design entity, or
+configuration declaration.
+```ebnf
+component_instantiation_statement ::=
+```
+
+instantiation_label :
+instantiated_unit
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+207
+Copyright © 2019 IEEE. All rights reserved.
+[ generic_map_aspect ]
+[ port_map_aspect ] ;
+```ebnf
+instantiated_unit ::=
+```
+
+[ component ] component_name
+|
+entity entity_name [ ( architecture_identifier ) ]
+|
+configuration configuration_name
+The component name, if present, shall be the name of a component declared in a component declaration.
+The entity name, if present, shall be the name of a previously analyzed entity declaration; if an architecture
+identifier appears in the instantiated unit, then that identifier shall be the same as the simple name of an
+architecture body associated with the entity declaration denoted by the corresponding entity name. The
+architecture identifier defines a simple name that is used during the elaboration of a design hierarchy to
+select the appropriate architecture body. The configuration name, if present, shall be the name of a
+previously analyzed configuration declaration. The generic map aspect, if present, optionally associates a
+single actual with each local generic (or member thereof) in the corresponding component declaration or
+entity declaration. Each local generic (or member thereof) shall be associated at most once. Similarly, the
+port map aspect, if present, optionally associates a single actual with each local port (or member thereof) in
+the corresponding component declaration or entity declaration. Each local port (or member thereof) shall be
+associated at most once. The generic map and port map aspects are described in 6.5.7.2 and 6.5.7.3.
+If an instantiated unit containing the reserved word entity does not contain an explicitly specified
+architecture identifier, then the architecture identifier is implicitly specified according to the rules given in
+7.3.3. The architecture identifier defines a simple name that is used during the elaboration of a design
+hierarchy to select the appropriate architecture body.
+A component instantiation statement and a corresponding configuration specification, if any, taken together,
+imply that the block hierarchy within the design entity containing the component instantiation is to be
+extended with a unique copy of the block defined by another design entity. The generic map and port map
+aspects in the component instantiation statement and in the binding indication of the configuration
+specification identify the connections that are to be made in order to accomplish the extension.
+NOTE 1—A configuration specification can be used to bind a particular instance of a component to a design entity and
+to associate the local generics and local ports of the component with the formal generics and formal ports of that design
+entity. A configuration specification can apply to a component instantiation statement only if the name in the instantiated
+unit of the component instantiation statement denotes a component declaration (see 7.3).
+NOTE 2—The component instantiation statement may be used to imply a structural organization for a hardware design.
+By using component declarations, signals, and component instantiation statements, a given (internal or external) block
+may be described in terms of subcomponents that are interconnected by signals.
+NOTE 3—Component instantiation provides a way of structuring the logical decomposition of a design. The precise
+structural or behavioral characteristics of a given subcomponent may be described later, provided that the instantiated
+unit is a component declaration. Component instantiation also provides a mechanism for reusing existing designs in a
+design library. A configuration specification can bind a given component instance to an existing design entity, even if
+the generics and ports of the entity declaration do not precisely match those of the component (provided that the
+instantiated unit is a component declaration); if the generics or ports of the entity declaration do not match those of the
+component, the configuration specification will contain a generic map or port map, as appropriate, to map the generics
+and ports of the entity declaration to those of the component.
+#### 11.7.2 Instantiation of a component
+
+A component instantiation statement whose instantiated unit contains a name denoting a component is
+equivalent to a pair of nested block statements that couple the block hierarchy in the containing design unit
+to a unique copy of the block hierarchy contained in another design unit (i.e., the subcomponent). The outer
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+208
+Copyright © 2019 IEEE. All rights reserved.
+block represents the component declaration; the inner block represents the design entity to which the
+component is bound. Each is defined by a block statement.
+The header of the block statement corresponding to the component declaration consists of the generic and
+port clauses (if present) that appear in the component declaration, followed by the generic map and port map
+aspects (if present) that appear in the corresponding component instantiation statement. The meaning of any
+identifier appearing in the header of this block statement is that associated with the corresponding
+occurrence of the identifier in the generic clause, port clause, generic map aspect, or port map aspect. The
+statement part of the block statement corresponding to the component declaration consists of a nested block
+statement corresponding to the design entity.
+The header of the block statement corresponding to the design entity consists of the generic and port clauses
+(if present) that appear in the entity declaration that defines the interface to the design entity, followed by the
+generic map and port map aspects (if present) that appear in the binding indication that binds the component
+instance to that design entity. The declarative part of the block statement corresponding to the design entity
+consists of the declarative items from the entity declarative part, followed by the declarative items from the
+declarative part of the corresponding architecture body. The statement part of the block statement
+corresponding to the design entity consists of the concurrent statements from the entity statement part,
+followed by the concurrent statements from the statement part of the corresponding architecture body. The
+meaning of any identifier appearing anywhere in this block statement is that associated with the
+corresponding occurrence of the identifier in the entity declaration or architecture body.
+For example, consider the following component declaration, instantiation, and corresponding configuration
+specification:
+component
+   COMP port (A,B: inout BIT);
+end component;
+for C: COMP use
+   entity X(Y)
+      port map (P1 => A, P2 => B);
+   ·
+   ·
+   ·
+C: COMP port map (A => S1, B => S2);
+Given the following entity declaration and architecture declaration:
+entity X is
+   port (P1, P2: inout BIT);
+   constant Delay: TIME := 1 ms;
+begin
+   CheckTiming (P1, P2, 2*Delay);
+end X ;
+architecture Y of X is
+   signal P3: BIT;
+begin
+   P3 <= P1 after Delay;
+   P2 <= P3 after Delay;
+   B: block
+      ·
+      ·
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+209
+Copyright © 2019 IEEE. All rights reserved.
+      ·
+   begin
+      ·
+      ·
+      ·
+   end block;
+end Y;
+then the following block statements implement the coupling between the block hierarchy in which
+component instantiation statement C appears and the block hierarchy contained in design entity X(Y):
+C: block                             --  Component block.
+   port (A,B: inout BIT);            --  Local ports.
+   port map (A => S1, B => S2);      --  Actual/local binding.
+begin
+   X: block                          --  Design entity block.
+      port (P1, P2 : inout BIT);     --  Formal ports.
+      port map (P1 => A, P2 => B);   --  Local/formal binding.
+      constant Delay: TIME := 1 ms;  --  Entity declarative item.
+      signal P3: BIT;                --  Architecture declarative item.
+   begin
+      CheckTiming (P1, P2, 2*Delay); --  Entity statement.
+      P3 <= P1 after Delay;          --  Architecture statements.
+      P2 <= P3 after Delay;
+      B: block                       -- Internal block hierarchy.
+         ·
+         ·
+         ·
+      begin
+         ·
+         ·
+         ·
+      end block;
+   end block X ;
+end block C;
+The block hierarchy extensions implied by component instantiation statements that are bound to design
+entities are accomplished during the elaboration of a design hierarchy (see Clause 14).
+#### 11.7.3 Instantiation of a design entity
+
+A component instantiation statement whose instantiated unit denotes either a design entity or a configuration
+declaration is equivalent to a pair of nested block statements that couple the block hierarchy in the
+containing design unit to a unique copy of the block hierarchy contained in another design unit (i.e., the
+subcomponent). The outer block represents the component instantiation statement; the inner block
+represents the design entity to which the instance is bound. Each is defined by a block statement.
+The header of the block statement corresponding to the component instantiation statement is empty, as is the
+declarative part of this block statement. The statement part of the block statement corresponding to the
+component declaration consists of a nested block statement corresponding to the design entity.
+The header of the block statement corresponding to the design entity consists of the generic and port clauses
+(if present) that appear in the entity declaration that defines the interface to the design entity, followed by the
+generic map and port map aspects (if present) that appear in the component instantiation statement that binds
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+210
+Copyright © 2019 IEEE. All rights reserved.
+the component instance to a copy of that design entity. The declarative part of the block statement
+corresponding to the design entity consists of the declarative items from the entity declarative part, followed
+by the declarative items from the declarative part of the corresponding architecture body. The statement part
+of the block statement corresponding to the design entity consists of the concurrent statements from the
+entity statement part, followed by the concurrent statements from the statement part of the corresponding
+architecture body. The meaning of any identifier appearing anywhere in this block statement is that
+associated with the corresponding occurrence of the identifier in the entity declaration or architecture body.
+For example, consider the following design entity:
+entity X is
+   port (P1, P2: inout BIT);
+   constant Delay: DELAY_LENGTH := 1 ms;
+   use WORK.TimingChecks.all;
+begin
+   CheckTiming (P1, P2, 2*Delay);
+end entity X;
+architecture Y of X is
+   signal P3: BIT;
+begin
+   P3 <= P1 after Delay;
+   P2 <= P3 after Delay;
+   B: block
+      ·
+      ·
+      ·
+   begin
+      ·
+      ·
+      ·
+   end block B;
+end architecture Y;
+This design entity is instantiated by the following component instantiation statement:
+C: entity WORK.X (Y) port map (P1 => S1, P2 => S2);
+The following block statements implement the coupling between the block hierarchy in which component
+instantiation statement C appears and the block hierarchy contained in design entity X(Y):
+C: block                             --  instance block.
+begin
+   X: block                          --  Design entity block.
+      port (P1, P2: inout BIT); --  Entity declaration ports.
+      port map (P1 => S1, P2 => S2); --  instantiation statement
+                                     --  port map.
+      constant Delay: DELAY_LENGTH   --  Entity declarative items.
+                      := 1 ms;
+      use WORK.TimingChecks.all;
+      signal P3: BIT;
+--  Architecture declarative item.
+   begin
+      CheckTiming (P1, P2, 2*Delay); --  Entity statement.
+      P3 <= P1 after Delay;          --  Architecture statements.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+211
+Copyright © 2019 IEEE. All rights reserved.
+      P2 <= P3 after Delay;
+      B: block
+         ·
+         ·
+         ·
+      begin
+         ·
+         ·
+         ·
+      end block B;
+   end block X;
+end block C;
+Moreover, consider the following design entity, which is followed by an associated configuration
+declaration and component instantiation:
+entity X is
+   port (P1, P2: inout BIT);
+   constant Delay: DELAY_LENGTH := 1 ms;
+   use WORK.TimingChecks.all;
+begin
+   CheckTiming (P1, P2, 2*Delay);
+end entity X;
+architecture Y of X is
+   signal P3: BIT;
+begin
+   P3 <= P1 after Delay;
+   P2 <= P3 after Delay;
+   B: block
+      ·
+      ·
+      ·
+   begin
+      ·
+      ·
+      ·
+   end block B;
+end architecture Y;
+The configuration declaration is
+configuration Alpha of X is
+   for Y
+      ·
+      ·
+      ·
+   end for;
+end configuration Alpha;
+The component instantiation is
+C: configuration WORK.Alpha port map (P1 => S1, P2 => S2);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+212
+Copyright © 2019 IEEE. All rights reserved.
+The following block statements implement the coupling between the block hierarchy in which component
+instantiation statement C appears and the block hierarchy contained in design entity X(Y):
+C: block                             --  instance block.
+begin
+   X: block                          --  Design entity block.
+      port (P1, P2: inout BIT);      --  Entity declaration ports.
+      port map (P1 => S1, P2 => S2); --  instantiation statement
+                                     --  port map.
+      constant Delay: DELAY_LENGTH   --  Entity declarative items.
+                      := 1 ms;
+      use WORK.TimingChecks.all;
+      signal P3: BIT;                --  Architecture declarative item.
+   begin
+      CheckTiming (P1, P2, 2*Delay); --  Entity statement.
+      P3 <= P1 after Delay;          --  Architecture statements.
+      P2 <= P3 after Delay;
+      B: block
+         ·
+         ·
+         ·
+      begin
+         ·
+         ·
+         ·
+      end block B;
+   end block X;
+end block C;
+The block hierarchy extensions implied by component instantiation statements that are bound to design
+entities occur during the elaboration of a design hierarchy (see Clause 14).
+### 11.8 Generate statements
+
+A generate statement provides a mechanism for iterative or conditional elaboration of a portion of a
+description.
+```ebnf
+generate_statement ::=
+```
+
+for_generate_statement
+|
+if_generate_statement
+|
+case_generate_statement
+```ebnf
+for_generate_statement ::=
+```
+
+generate_label :
+
+for generate_parameter_specification generate
+generate_statement_body
+end generate [ generate_label ] ;
+```ebnf
+if_generate_statement ::=
+```
+
+generate_label :
+if [ alternative_label : ] condition generate
+generate_statement_body
+{ elsif [ alternative_label : ] condition generate
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+213
+Copyright © 2019 IEEE. All rights reserved.
+generate_statement_body }
+[ else [ alternative_label : ] generate
+generate_statement_body ]
+end generate [ generate_label ] ;
+```ebnf
+case_generate_statement ::=
+```
+
+generate_label :
+case expression generate
+case_generate_alternative
+{ case_generate_alternative }
+end generate [ generate_label ] ;
+```ebnf
+case_generate_alternative ::=
+```
+
+when [ alternative_label : ] choices =>
+generate_statement_body
+```ebnf
+generate_statement_body ::=
+```
+
+[ block_declarative_part
+begin ]
+{  concurrent_statement }
+[ end [ alternative_label ] ; ]
+```ebnf
+label ::=  identifier
+```
+
+If a label appears at the end of a generate statement, it shall repeat the generate label. The alternative labels,
+if any, within an if generate statement or a case generate statement shall all be distinct. An alternative label
+shall not appear at the end of the generate statement body in a for generate statement. If a label appears at the
+end of a generate statement body in an if generate statement, then the immediately enclosing if, elsif, or else
+part of the if generate statement shall include an alternative label, and the label at the end of the generate
+statement body shall repeat the alternative label. Similarly, if a label appears at the end of a generate
+statement body in a case generate statement, then the immediately enclosing case generate alternative of the
+case generate statement shall include an alternative label, and the label at the end of the generate statement
+body shall repeat the alternative label.
+For a for generate statement, the generate parameter specification is the declaration of the generate
+parameter with the given identifier. The generate parameter is a constant object whose type is the base type
+of the discrete range of the generate parameter specification.
+The discrete range in the generate parameter specification of a for generate statement shall be a static
+discrete range; similarly, each condition in an if generate statement shall be a static expression.
+For a case generate statement, the expression shall be globally static, and shall be of a discrete type, or of a
+one-dimensional array type whose element base type is a character type. This type shall be determined by
+applying the rules of 12.5 to the expression considered as a complete context, using the fact that the
+expression shall be of a discrete type or a one-dimensional character array type. Each choice in a case
+generate alternative shall be of the same type as the expression; the list of choices specifies for which values
+of the expression the alternative is chosen.
+If the expression is the name of an object whose subtype is globally static, whether a scalar type or an array
+type, then each value of the subtype shall be represented once and only once in the set of choices of the case
+generate statement, and no other value is allowed; this rule is likewise applied if the expression is a qualified
+expression or type conversion whose type mark denotes a globally static subtype, or if the expression is a
+call to a function whose return type mark denotes a globally static subtype, or if the expression is an
+expression described in this paragraph and enclosed in parentheses.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+214
+Copyright © 2019 IEEE. All rights reserved.
+If the expression is of a one-dimensional character array type and is not described by the preceding
+paragraph, then the values of all of the choices, except the others choice, if present, shall be of the same
+length. Moreover, each value of the (base) type of the expression shall be represented once and only once in
+the set of choices, and no other value is allowed. It is an error if the value of the expression is not of the same
+length as the values of the choices. If there is only one choice and that choice is others, then the value of the
+expression may be of any length.
+For other forms of expression, each value of the (base) type of the expression shall be represented once and
+only once in the set of choices, and no other value is allowed.
+The simple expression and discrete ranges given as choices in a case generate statement shall be globally
+static. A choice defined by a discrete range stands for all values in the corresponding range. The choice
+others is only allowed for the last alternative and as its only choice; it stands for all values (possibly none)
+not given in the choices of previous alternatives. An element simple name (see 9.3.3.1) is not allowed as a
+choice of a case generate alternative.
+The elaboration of a generate statement is described in 14.5.3.
+Example:
+Gen: block
+begin
+   L1: CELL port map (Top, Bottom, A(0), B(0));
+   L2: for I in 1 to 3 generate
+      L3: for J in 1 to 3 generate
+         L4: if I+J>4 generate
+            L5: CELL port map (A(I-1),B(J-1),A(I),B(J));
+         end generate;
+      end generate;
+   end generate;
+   L6: for I in 1 to 3 generate
+      L7: for J in 1 to 3 generate
+         L8: if I+J<4 generate
+            L9: CELL port map (A(I+1),B(J+1),A(I),B(J));
+         end generate;
+      end generate;
+   end generate;
+end block Gen;
+Gen2: block
+begin
+   L1: case verify_mode generate
+      when V_rtl: all_rtl | cpu_rtl =>
+         CPU1: entity work.cpu(rtl) port map ( ... );
+      when V_bfm: others =>
+            signal bfm_sig : BIT;
+         begin
+            CPU1: entity work.cpu(bfm) port map ( ... );
+         end V_bfm;
+   end generate L1;
+   L2: if A1: max_latency < 10 generate
+         signal s1 : BIT;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+215
+Copyright © 2019 IEEE. All rights reserved.
+      begin
+         multiplier1: parallel_multiplier port map ( ... );
+      end A1;
+   else A2: generate
+         signal s1 : STD_LOGIC;
+      begin
+         multiplier1: sequential_multiplier port map ( ... );
+      end A2;
+   end generate L2;
+end block Gen2;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

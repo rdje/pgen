@@ -1,0 +1,341 @@
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+139
+Copyright © 2018 IEEE. All rights reserved.
+7. Aggregate data types
+7.1 General 
+This clause describes the following: 
+—
+Structure definitions and usage
+—
+Union definitions and usage
+—
+Packed arrays, unpacked arrays, dynamic arrays, associative arrays, and queues
+—
+Array query and manipulation methods
+7.2 Structures 
+A structure represents a collection of data types that can be referenced as a whole, or the individual data
+types that make up the structure can be referenced by name. By default, structures are unpacked, meaning
+that there is an implementation-dependent packing of the data types. Unpacked structures can contain any
+data type. 
+Structure declarations follow the C syntax, but without the optional structure tags before the “{”. The syntax
+for structure declarations is shown in Syntax 7-1. 
+data_type ::= 
+// from A.2.2.1
+... 
+| struct_union [ packed [ signing ] ] { struct_union_member { struct_union_member } } 
+{ packed_dimension }13  
+struct_union_member16 ::= 
+{ attribute_instance } [random_qualifier] data_type_or_void list_of_variable_decl_assignments ; 
+data_type_or_void ::= data_type | void 
+struct_union ::= struct | union [ tagged ] 
+13) When a packed dimension is used with the struct or union keyword, the packed keyword shall also be used. 
+16) It shall be legal to declare a void struct_union_member only within tagged unions. It shall be legal to declare a
+random_qualifier only within unpacked structures.
+Syntax 7-1—Structure declaration syntax (excerpt from Annex A)
+Examples of declaring structures are as follows: 
+struct { bit [7:0] opcode; bit [23:0] addr; }IR;
+// anonymous structure 
+// defines variable IR
+IR.opcode = 1;
+// set field in IR. 
+typedef struct { 
+bit [7:0] opcode; 
+bit [23:0] addr; 
+} instruction; // named structure type
+instruction IR; // define variable
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+140
+Copyright © 2018 IEEE. All rights reserved.
+7.2.1 Packed structures 
+A packed structure is a mechanism for subdividing a vector into subfields, which can be conveniently
+accessed as members. Consequently, a packed structure consists of bit fields, which are packed together in
+memory without gaps. An unpacked structure has an implementation-dependent packing, normally
+matching the C compiler. A packed structure differs from an unpacked structure in that, when a packed
+structure appears as a primary, it shall be treated as a single vector.
+A packed structure can also be used as a whole with arithmetic and logical operators, and its behavior is
+determined by its signedness, with unsigned being the default. The first member specified is the most
+significant and subsequent members follow in decreasing significance.
+struct packed signed { 
+int a; 
+shortint b; 
+byte c; 
+bit [7:0] d;
+} pack1; // signed, 2-state 
+struct packed unsigned {
+time a; 
+integer b; 
+logic [31:0] c;
+} pack2; // unsigned, 4-state 
+The signing of unpacked structures is not allowed. The following declaration would be considered illegal:
+typedef struct signed {
+int f1 ;
+logic f2 ;
+} sIllegalSignedUnpackedStructType;
+// illegal declaration 
+If all data types within a packed structure are 2-state, the structure as a whole is treated as a 2-state vector. 
+If any data type within a packed structure is 4-state, the structure as a whole is treated as a 4-state vector. If
+there are also 2-state members in the structure, there is an implicit conversion from 4-state to 2-state when
+reading those members and from 2-state to 4-state when writing them. 
+One or more bits of a packed structure can be selected as if it were a packed array with the range [n-1:0]: 
+pack1 [15:8] // c
+Only packed data types and the integer data types summarized in Table 6-8 (see 6.11) shall be legal in
+packed structures. 
+A packed structure can be used with a typedef. 
+typedef struct packed { // default unsigned 
+bit [3:0] GFC; 
+bit [7:0] VPI; 
+bit [11:0] VCI; 
+bit CLP; 
+bit [3:0] PT ; 
+bit [7:0] HEC; 
+bit [47:0] [7:0] Payload; 
+bit [2:0] filler; 
+} s_atmcell; 
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+141
+Copyright © 2018 IEEE. All rights reserved.
+7.2.2 Assigning to structures 
+A structure can be assigned as a whole and passed to or from a subroutine as a whole. 
+Members of a structure data type can be assigned individual default member values by using an initial
+assignment with the declaration of each member. The assigned expression shall be a constant expression.
+An example of initializing members of a structure type is as follows:
+typedef struct {
+int addr = 1 + constant;
+int crc;
+byte data [4] = '{4{1}}; 
+} packet1;
+The structure can then be instantiated.
+packet1 p1;
+// initialization defined by the typedef.
+// p1.crc will use the default value for an int
+If an explicit initial value expression is used with the declaration of a variable, the initial assignment
+expression within the structure data type shall be ignored. Subclause 5.10 discusses assigning initial values
+to a structure. For example:
+packet1 pi = '{1,2,'{2,3,4,5}}; //suppresses the typedef initialization
+Members of unpacked structures containing a union as well as members of packed structures shall not be
+assigned individual default member values.
+The initial assignment expression within a data type shall be ignored when using a data type to declare a net
+that does not have a user-defined nettype (see 6.7.1).
+7.3 Unions 
+A union is a data type that represents a single piece of storage that can be accessed using one of the named
+member data types. Only one of the data types in the union can be used at a time. By default, a union is
+unpacked, meaning there is no required representation for how members of the union are stored. Dynamic
+types and chandle types can only be used in tagged unions. 
+The syntax for union declarations is shown in Syntax 7-2. 
+data_type ::= 
+// from A.2.2.1
+... 
+| struct_union [ packed [ signing ] ] { struct_union_member { struct_union_member } } 
+{ packed_dimension }13  
+struct_union_member16 ::= 
+{ attribute_instance } [random_qualifier] data_type_or_void list_of_variable_decl_assignments ; 
+data_type_or_void ::= data_type | void 
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+142
+Copyright © 2018 IEEE. All rights reserved.
+struct_union ::= struct | union [ tagged ] 
+13) When a packed dimension is used with the struct or union keyword, the packed keyword shall also be used. 
+16) It shall be legal to declare a void struct_union_member only within tagged unions. It shall be legal to declare a
+random_qualifier only within unpacked structures.
+Syntax 7-2—Union declaration syntax (excerpt from Annex A)
+Examples: 
+typedef union { int i; shortreal f; } num;
+// named union type
+num n; 
+n.f = 0.0; // set n in floating point format
+typedef struct { 
+bit isfloat; 
+union { int i; shortreal f; } n;
+// anonymous union type 
+} tagged_st;
+// named structure 
+If no initial value is specified in the declaration of a variable of an unpacked union type, then the variable
+shall be initialized to the default initial value for variables of the type of the first member in declaration order
+of the union type. 
+One special provision exists in order to simplify the use of unpacked unions: if an unpacked union contains
+several unpacked structures that share a common initial sequence and if the unpacked union object currently
+contains one of these structures, it is permitted to inspect the common initial part of any of them anywhere
+that a declaration of the complete type of the union is visible. Two structures share a common initial
+sequence if corresponding members have equivalent types for a sequence of one or more initial members. 
+7.3.1 Packed unions
+Packed unions shall only contain members that are of integral data types. The members of a packed,
+untagged union shall all be the same size (in contrast to an unpacked union or a packed, tagged union, where
+the members can be different sizes). Thus, a union member that was written as another member can be read
+back. A packed union differs from an unpacked union in that when a packed union appears as a primary, it
+shall be treated as a single vector.
+A packed union can also be used as a whole with arithmetic and logical operators, and its behavior is
+determined by its signedness, with unsigned being the default. One or more bits of a packed union can be
+selected as if it were a packed array with the range [n-1:0]. 
+Only packed data types and the integer data types summarized in Table 6-8 (see 6.11) shall be legal in
+packed unions. 
+If a packed union contains a 2-state member and a 4-state member, the entire union is 4-state. There is an
+implicit conversion from 4-state to 2-state when reading and from 2-state to 4-state when writing the 2-state
+member.
+For example, a union can be accessible with different access widths: 
+typedef union packed { // default unsigned 
+s_atmcell acell; 
+bit [423:0] bit_slice; 
+bit [52:0][7:0] byte_slice; 
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+143
+Copyright © 2018 IEEE. All rights reserved.
+} u_atmcell; 
+u_atmcell u1;
+byte b; bit [3:0] nib;
+b = u1.bit_slice[415:408]; // same as b = u1.byte_slice[51];
+nib = u1.bit_slice [423:420]; // same as nib = u1.acell.GFC; 
+With packed unions, writing one member and reading another is independent of the byte ordering of the
+machine, unlike an unpacked union of unpacked structures, which are C-compatible and have members in
+ascending address order. 
+7.3.2 Tagged unions
+The qualifier tagged in a union declares it as a tagged union, which is a type-checked union. An ordinary
+(untagged) union can be updated using a value of one member type and read as a value of another member
+type, which is a potential type loophole. A tagged union stores both the member value and a tag, i.e.,
+additional bits representing the current member name. The tag and value can only be updated together
+consistently using a statically type-checked tagged union expression (see 11.9). The member value can only
+be read with a type that is consistent with the current tag value (i.e., member name). Thus, it is impossible to
+store a value of one type and (mis)interpret the bits as another type.
+Dynamic types and chandle types shall not be used in untagged unions, but may be used in tagged unions. 
+Members of tagged unions can be referenced as tagged expressions. See 11.9. 
+In addition to type safety, the use of member names as tags also makes code simpler and smaller than code
+that has to track unions with explicit tags. Tagged unions can also be used with pattern matching (see 12.6),
+which improves readability even further.
+In tagged unions, members can be declared with type void, when all the information is in the tag itself, as in
+the following example of an integer together with a valid bit:
+typedef union tagged {
+void Invalid;
+int Valid;
+} VInt;
+A value of VInt type is either Invalid (and contains nothing) or Valid (and contains an int). Subclause
+11.9 describes how to construct values of this type and also describes how it is impossible to read an integer
+out of a VInt value that currently has the Invalid tag.
+For example:
+typedef union tagged {
+struct {
+bit [4:0] reg1, reg2, regd;
+} Add;
+union tagged {
+bit [9:0] JmpU;
+struct {
+bit [1:0] cc; 
+bit [9:0] addr;
+} JmpC;
+} Jmp;
+} Instr;
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+144
+Copyright © 2018 IEEE. All rights reserved.
+A value of Instr type is either an Add instruction, in which case it contains three 5-bit register fields, or it is
+a Jmp instruction. In the latter case, it is either an unconditional jump, in which case it contains a 10-bit
+destination address, or it is a conditional jump, in which case it contains a 2-bit condition-code register field
+and a 10-bit destination address. Subclause 11.9 describes how to construct values of Instr type and
+describes how, in order to read the cc field, for example, the instruction must have opcode Jmp and
+sub-opcode JmpC.
+When the packed qualifier is used on a tagged union, all the members shall have packed types, but they do
+not have to be of the same size. The (standard) representation for a packed tagged union is the following:
+—
+The size is always equal to the number of bits needed to represent the tag plus the maximum of the
+sizes of the members.
+—
+The size of the tag is the minimum number of bits needed to code for all the member names (e.g.,
+five to eight members would need 3 tag bits).
+—
+The tag bits are always left-justified (i.e., towards the MSBs).
+—
+For each member, the member bits are always right-justified [i.e., towards the least significant bits
+(LSBs)].
+—
+The bits between the tag bits and the member bits are undefined. In the extreme case of a void
+member, only the tag is significant and all the remaining bits are undefined.
+The representation scheme is applied recursively to any nested tagged unions.
+For example, if the VInt type definition had the packed qualifier, Invalid and Valid values will have the
+layouts shown in Figure 7-1, respectively. 
+Figure 7-1—VInt type with packed qualifier
+For example, if the Instr type had the packed qualifier, its values will have the layouts shown in
+Figure 7-2
+32
+1
+0
+x x x x x x x ... ... ... x x x x x x x x x
+32
+1
+1
+... an int value ...
+tag is 0 for Invalid, 1 for Valid
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+145
+Copyright © 2018 IEEE. All rights reserved.
+. 
+Figure 7-2—Instr type with packed qualifier
+7.4 Packed and unpacked arrays 
+SystemVerilog supports both packed arrays and unpacked arrays of data. The term packed array is used to
+refer to the dimensions declared before the data identifier name. The term unpacked array is used to refer to
+the dimensions declared after the data identifier name. 
+bit [7:0] c1;
+// packed array of scalar bit types
+real u [7:0];
+// unpacked array of real types
+A one-dimensional packed array is often referred to as a vector (see 6.9). Multidimensional packed arrays
+are also allowed. 
+Unpacked arrays may be fixed-size arrays (see 7.4.2), dynamic arrays (see 7.5), associative arrays (see 7.8),
+or queues (see 7.10). Unpacked arrays are formed from any data type, including other packed or unpacked
+arrays (see 7.4.5). 
+7.4.1 Packed arrays
+A packed array is a mechanism for subdividing a vector into subfields, which can be conveniently accessed
+as array elements. Consequently, a packed array is guaranteed to be represented as a contiguous set of bits.
+An unpacked array may or may not be so represented. A packed array differs from an unpacked array in that,
+when a packed array appears as a primary, it is treated as a single vector.
+If a packed array is declared as signed, then the array viewed as a single vector shall be signed. The
+individual elements of the array are unsigned unless they are of a named type declared as signed. A
+part-select of a packed array shall be unsigned.
+Packed arrays allow arbitrary length integer types; therefore, a 48-bit integer can be made up of 48 bits.
+These integers can then be used for 48-bit arithmetic. The maximum size of a packed array can be limited,
+but shall be at least 65 536 (216) bits.
+Packed arrays can be made of only the single bit data types (bit, logic, reg), enumerated types, and
+recursively other packed arrays and packed structures. 
+1
+1
+1
+0
+10
+Add Instructions
+5
+1
+0
+reg1
+5
+5
+reg2
+regd
+2
+2
+xx
+xx
+Jmp/JmpU Instructions
+1
+1
+1
+1
+10
+addr
+2
+2
+xx
+cc
+Jmp/JmpC Instructions
+Outer tag is 0 for Add, 1 for Jmp
+Inner tag is 0 for JmpU, 1 for JmpC
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

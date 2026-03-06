@@ -1,0 +1,52 @@
+---
+title: "Section 1: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language"
+document: "SystemVerilog Language Reference Manual"
+standard: "IEEE 1800-2017"
+domain: "SystemVerilog"
+section: "1"
+source_txt: "section-1-overview.txt"
+source_pdf: "/Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2017.pdf"
+---
+
+# Section 1: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+38
+Copyright © 2018 IEEE. All rights reserved.
+IEEE Standard for SystemVerilog—
+Unified Hardware Design,
+Specification, and Verification
+Language
+1. Overview
+### 1.1 Scope
+
+This standard provides the definition of the language syntax and semantics for the IEEE 1800™
+SystemVerilog language, which is a unified hardware design, specification, and verification language. The
+standard includes support for behavioral, register transfer level (RTL), and gate-level hardware descriptions;
+testbench, coverage, assertion, object-oriented, and constrained random constructs; and also provides
+application programming interfaces (APIs) to foreign programming languages.
+### 1.2 Purpose
+
+This standard develops the IEEE 1800 SystemVerilog language in order to meet the increasing usage of the
+language in specification, design, and verification of hardware. This revision corrects errors and clarifies
+aspects of the language definition in IEEE Std 1800-2012.1 This revision also provides enhanced features
+that ease design, improve verification, and enhance cross-language interactions.
+### 1.3 Content summary
+
+This standard serves as a complete specification of the SystemVerilog language. This standard contains the
+following:
+—
+The formal syntax and semantics of all SystemVerilog constructs
+—
+Simulation system tasks and system functions, such as text output display commands
+—
+Compiler directives, such as text substitution macros and simulation time scaling
+—
+The Programming Language Interface (PLI) mechanism
+—
+The formal syntax and semantics of the SystemVerilog Verification Procedural Interface (VPI)
+—
+An Application Programming Interface (API) for coverage access not included in VPI
+1Information on references can be found in Clause 2.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

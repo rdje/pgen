@@ -1,0 +1,860 @@
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1277
+Copyright © 2018 IEEE. All rights reserved.
+#define vpiNegIndexed              2  /* -: */
+#define vpiIsMemory              73 /* TRUE for a one-dimensional reg array */
+#define vpiIsProtected
+74 /* TRUE for protected design information */
+/*************** vpi_control() constants (added with 1364-2001) ***************/
+#define vpiStop                  66  /* execute simulator's $stop */
+#define vpiFinish                67  /* execute simulator's $finish */
+#define vpiReset                 68  /* execute simulator's $reset */
+#define vpiSetInteractiveScope   69  /* set simulator's interactive scope */
+/**************************** I/O related defines *****************************/
+#define VPI_MCD_STDOUT  0x00000001
+/*************************** STRUCTURE DEFINITIONS ****************************/
+/******************************* time structure *******************************/
+typedef struct t_vpi_time
+{
+  PLI_INT32  type;               /* [vpiScaledRealTime, vpiSimTime,
+                                     vpiSuppressTime] */
+  PLI_UINT32 high, low;          /* for vpiSimTime */
+  double     real;               /* for vpiScaledRealTime */
+} s_vpi_time, *p_vpi_time;
+/* time types */
+#define vpiScaledRealTime 1
+#define vpiSimTime        2
+#define vpiSuppressTime   3
+/****************************** delay structures ******************************/
+typedef struct t_vpi_delay
+{
+  struct t_vpi_time *da;         /* pointer to application-allocated 
+                                    array of delay values */
+  PLI_INT32 no_of_delays;        /* number of delays */
+  PLI_INT32 time_type;           /* [vpiScaledRealTime, vpiSimTime,
+                                     vpiSuppressTime] */
+  PLI_INT32 mtm_flag;            /* true for mtm values */
+  PLI_INT32 append_flag;         /* true for append */
+  PLI_INT32 pulsere_flag;        /* true for pulsere values */
+} s_vpi_delay, *p_vpi_delay;
+/***************************** value structures *******************************/
+/* vector value */
+#ifndef VPI_VECVAL  /* added in 1364-2005 */
+#define VPI_VECVAL
+typedef struct t_vpi_vecval
+{
+  /* following fields are repeated enough times to contain vector */
+PLI_UINT32 aval, bval;          /* bit encoding: ab: 00=0, 10=1, 11=X, 01=Z */
+} s_vpi_vecval, *p_vpi_vecval;
+#endif
+/* strength (scalar) value */
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1278
+Copyright © 2018 IEEE. All rights reserved.
+typedef struct t_vpi_strengthval
+{
+  PLI_INT32 logic;               /* vpi[0,1,X,Z] */
+  PLI_INT32 s0, s1;              /* refer to strength coding below */
+} s_vpi_strengthval, *p_vpi_strengthval;
+/* strength values */
+#define vpiSupplyDrive     0x80
+#define vpiStrongDrive     0x40
+#define vpiPullDrive       0x20
+#define vpiWeakDrive       0x08
+#define vpiLargeCharge     0x10
+#define vpiMediumCharge    0x04
+#define vpiSmallCharge     0x02
+#define vpiHiZ             0x01
+/* generic value */
+typedef struct t_vpi_value
+{
+  PLI_INT32 format; /* vpi[[Bin,Oct,Dec,Hex]Str,Scalar,Int,Real,String,
+                           Vector,Strength,Suppress,Time,ObjType]Val */
+  union
+    {
+      PLI_BYTE8                *str;       /* string value */
+      PLI_INT32                 scalar;    /* vpi[0,1,X,Z] */
+      PLI_INT32                 integer;   /* integer value */
+      double                    real;      /* real value */
+      struct t_vpi_time        *time;      /* time value */
+      struct t_vpi_vecval      *vector;    /* vector value */
+      struct t_vpi_strengthval *strength;  /* strength value */
+      PLI_BYTE8                *misc;      /* ...other */
+    } value;
+} s_vpi_value, *p_vpi_value;
+typedef struct t_vpi_arrayvalue 
+{
+PLI_UINT32 format;
+/* vpi[Int,Real,Time,ShortInt,LongInt,ShortReal,
+RawTwoState,RawFourState]Val */
+PLI_UINT32 flags; /* array bit flags- vpiUserAllocFlag */
+union
+{
+PLI_INT32 *integers;
+/* integer values */
+PLI_INT16 *shortints;
+/* short integer values */
+PLI_INT64 *longints;
+/* long integer values */
+PLI_BYTE8 *rawvals;
+/* 2/4-state vector elements */
+struct t_vpi_vecval *vectors;
+/* 4-state vector elements */
+struct t_vpi_time *times;
+/* time values */
+double *reals;
+/* real values */
+float *shortreals;
+/* short real values */
+} value;
+} s_vpi_arrayvalue, *p_vpi_arrayvalue;
+/* value formats */
+#define vpiBinStrVal          1
+#define vpiOctStrVal          2
+#define vpiDecStrVal          3
+#define vpiHexStrVal          4
+#define vpiScalarVal          5
+#define vpiIntVal             6
+#define vpiRealVal            7
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1279
+Copyright © 2018 IEEE. All rights reserved.
+#define vpiStringVal          8
+#define vpiVectorVal          9
+#define vpiStrengthVal       10
+#define vpiTimeVal           11
+#define vpiObjTypeVal        12
+#define vpiSuppressVal       13
+#define vpiShortIntVal
+14
+#define vpiLongIntVal
+15
+#define vpiShortRealVal
+16
+#define vpiRawTwoStateVal
+17
+#define vpiRawFourStateVal
+18
+/* delay modes */
+#define vpiNoDelay            1
+#define vpiInertialDelay      2
+#define vpiTransportDelay     3
+#define vpiPureTransportDelay 4
+/* force and release flags */
+#define vpiForceFlag          5
+#define vpiReleaseFlag        6
+/* scheduled event cancel flag */
+#define vpiCancelEvent        7
+/* bit mask for the flags argument to vpi_put_value() */
+#define vpiReturnEvent        0x1000
+/* bit flags for vpi_get_value_array flags field */
+#define vpiUserAllocFlag
+0x2000
+/* bit flags for vpi_put_value_array flags field */
+#define vpiOneValue
+0x4000
+#define vpiPropagateOff
+0x8000
+/* scalar values */
+#define vpi0                  0
+#define vpi1                  1
+#define vpiZ                  2
+#define vpiX                  3
+#define vpiH                  4
+#define vpiL                  5
+#define vpiDontCare           6
+/*
+#define vpiNoChange           7   Defined under vpiTchkType, but
+                                  can be used here.
+*/
+/*********************** system task/function structure ***********************/
+typedef struct t_vpi_systf_data
+{
+  PLI_INT32 type;                       /* vpiSysTask, vpiSysFunc */
+  PLI_INT32 sysfunctype;                  /* vpiSysTask, vpi[Int,Real,Time,Sized,
+                                                           SizedSigned]Func */
+  PLI_BYTE8 *tfname;                    /* first character must be '$' */
+  PLI_INT32 (*calltf)(PLI_BYTE8 *);
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1280
+Copyright © 2018 IEEE. All rights reserved.
+  PLI_INT32 (*compiletf)(PLI_BYTE8 *);
+  PLI_INT32 (*sizetf)(PLI_BYTE8 *);     /* for sized function callbacks only */
+  PLI_BYTE8 *user_data;
+} s_vpi_systf_data, *p_vpi_systf_data;
+#define vpiSysTask            1
+#define vpiSysFunc            2
+/* the subtypes are defined under the vpiFuncType property */
+/**************** SystemVerilog execution information structure ***************/
+typedef struct t_vpi_vlog_info
+{
+  PLI_INT32 argc;
+  PLI_BYTE8 **argv;
+  PLI_BYTE8 *product;
+  PLI_BYTE8 *version;
+} s_vpi_vlog_info, *p_vpi_vlog_info;
+/*********************** PLI error information structure **********************/
+typedef struct t_vpi_error_info
+{
+  PLI_INT32 state;           /* vpi[Compile,PLI,Run] */
+  PLI_INT32 level;           /* vpi[Notice,Warning,Error,System,Internal] */
+  PLI_BYTE8 *message;
+  PLI_BYTE8 *product;
+  PLI_BYTE8 *code;
+  PLI_BYTE8 *file;
+  PLI_INT32 line;
+} s_vpi_error_info, *p_vpi_error_info;
+/* state when error occurred */
+#define vpiCompile              1
+#define vpiPLI                  2
+#define vpiRun                  3
+/* error severity levels */
+#define vpiNotice               1
+#define vpiWarning              2
+#define vpiError                3
+#define vpiSystem               4
+#define vpiInternal             5
+/**************************** callback structures *****************************/
+/* normal callback structure */
+typedef struct t_cb_data
+{
+  PLI_INT32    reason;                        /* callback reason */
+  PLI_INT32    (*cb_rtn)(struct t_cb_data *); /* call routine */
+  vpiHandle    obj;                           /* trigger object */
+  p_vpi_time   time;                          /* callback time */
+  p_vpi_value  value;                         /* trigger object value */
+  PLI_INT32    index;                         /* index of the memory word or
+                                                 var select that changed */
+  PLI_BYTE8   *user_data;
+} s_cb_data, *p_cb_data;
+/****************************** CALLBACK REASONS ******************************/
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1281
+Copyright © 2018 IEEE. All rights reserved.
+/***************************** Simulation related *****************************/
+#define cbValueChange             1
+#define cbStmt                    2
+#define cbForce                   3
+#define cbRelease                 4
+/******************************** Time related ********************************/
+#define cbAtStartOfSimTime        5
+#define cbReadWriteSynch          6
+#define cbReadOnlySynch           7
+#define cbNextSimTime             8
+#define cbAfterDelay              9
+/******************************* Action related *******************************/
+#define cbEndOfCompile           10
+#define cbStartOfSimulation      11
+#define cbEndOfSimulation        12
+#define cbError                  13
+#define cbTchkViolation          14
+#define cbStartOfSave            15
+#define cbEndOfSave              16
+#define cbStartOfRestart         17
+#define cbEndOfRestart           18
+#define cbStartOfReset           19
+#define cbEndOfReset             20
+#define cbEnterInteractive       21
+#define cbExitInteractive        22
+#define cbInteractiveScopeChange 23
+#define cbUnresolvedSystf        24
+/**************************** Added with 1364-2001 ****************************/
+#define cbAssign                 25
+#define cbDeassign               26
+#define cbDisable                27
+#define cbPLIError               28
+#define cbSignal                 29
+/**************************** Added with 1364-2005 ****************************/
+#define cbNBASynch 
+30
+#define cbAtEndOfSimTime 
+31
+/**************************** FUNCTION DECLARATIONS ***************************/
+/* Include compatibility mode macro definitions. */ 
+#include "vpi_compatibility.h" 
+/* callback related */
+XXTERN vpiHandle  vpi_register_cb     PROTO_PARAMS((p_cb_data cb_data_p));
+XXTERN PLI_INT32  vpi_remove_cb       PROTO_PARAMS((vpiHandle cb_obj));
+XXTERN void       vpi_get_cb_info     PROTO_PARAMS((vpiHandle object,
+                                                    p_cb_data cb_data_p));
+XXTERN vpiHandle  vpi_register_systf  PROTO_PARAMS((p_vpi_systf_data
+                                                      systf_data_p));
+XXTERN void       vpi_get_systf_info  PROTO_PARAMS((vpiHandle object,
+                                                    p_vpi_systf_data
+                                                      systf_data_p));
+/* for obtaining handles */
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1282
+Copyright © 2018 IEEE. All rights reserved.
+XXTERN vpiHandle  vpi_handle_by_name  PROTO_PARAMS((PLI_BYTE8 *name,
+                                                    vpiHandle scope));
+XXTERN vpiHandle  vpi_handle_by_index PROTO_PARAMS((vpiHandle object,
+                                                    PLI_INT32 indx));
+/* for traversing relationships */
+XXTERN vpiHandle  vpi_handle          PROTO_PARAMS((PLI_INT32 type,
+                                                    vpiHandle refHandle));
+XXTERN vpiHandle  vpi_handle_multi    PROTO_PARAMS((PLI_INT32 type,
+                                                    vpiHandle refHandle1,
+                                                    vpiHandle refHandle2,
+                                                    ... ));
+XXTERN vpiHandle  vpi_iterate         PROTO_PARAMS((PLI_INT32 type,
+                                                    vpiHandle refHandle));
+XXTERN vpiHandle  vpi_scan            PROTO_PARAMS((vpiHandle iterator));
+/* for processing properties */
+XXTERN PLI_INT32  vpi_get             PROTO_PARAMS((PLI_INT32 property,
+                                                    vpiHandle object));
+XXTERN PLI_INT64
+vpi_get64
+PROTO_PARAMS((PLI_INT32 property,
+                                                    vpiHandle object));
+XXTERN PLI_BYTE8 *vpi_get_str         PROTO_PARAMS((PLI_INT32 property,
+                                                    vpiHandle object));
+/* delay processing */
+XXTERN void       vpi_get_delays      PROTO_PARAMS((vpiHandle object,
+                                                    p_vpi_delay delay_p));
+XXTERN void       vpi_put_delays      PROTO_PARAMS((vpiHandle object,
+                                                    p_vpi_delay delay_p));
+/* value processing */
+XXTERN void       vpi_get_value       PROTO_PARAMS((vpiHandle expr,
+                                                    p_vpi_value value_p));
+XXTERN vpiHandle  vpi_put_value       PROTO_PARAMS((vpiHandle object,
+                                                    p_vpi_value value_p,
+                                                    p_vpi_time time_p,
+                                                    PLI_INT32 flags));
+XXTERN void 
+vpi_get_value_array PROTO_PARAMS((vpiHandle object,
+p_vpi_arrayvalue arrayvalue_p,
+PLI_INT32 *index_p,
+PLI_UINT32 num));
+XXTERN void 
+vpi_put_value_array PROTO_PARAMS((vpiHandle object,
+p_vpi_arrayvalue arrayvalue_p,
+PLI_INT32 *index_p,
+PLI_UINT32 num));
+/* time processing */
+XXTERN void       vpi_get_time        PROTO_PARAMS((vpiHandle object,
+                                                    p_vpi_time time_p));
+/* I/O routines */
+XXTERN PLI_UINT32 vpi_mcd_open        PROTO_PARAMS((PLI_BYTE8 *fileName));
+XXTERN PLI_UINT32 vpi_mcd_close       PROTO_PARAMS((PLI_UINT32 mcd));
+XXTERN PLI_BYTE8 *vpi_mcd_name        PROTO_PARAMS((PLI_UINT32 cd));
+XXTERN PLI_INT32  vpi_mcd_printf      PROTO_PARAMS((PLI_UINT32 mcd,
+                                                    PLI_BYTE8 *format,
+                                                    ...));
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1283
+Copyright © 2018 IEEE. All rights reserved.
+XXTERN PLI_INT32  vpi_printf          PROTO_PARAMS((PLI_BYTE8 *format,
+                                                    ...));
+/* utility routines */
+XXTERN PLI_INT32  vpi_compare_objects PROTO_PARAMS((vpiHandle object1,
+                                                    vpiHandle object2));
+XXTERN PLI_INT32  vpi_chk_error       PROTO_PARAMS((p_vpi_error_info
+                                                      error_info_p));
+/* vpi_free_object() was deprecated in 1800-2009 */
+XXTERN PLI_INT32  vpi_free_object     PROTO_PARAMS((vpiHandle object));
+XXTERN PLI_INT32
+vpi_release_handle
+PROTO_PARAMS((vpiHandle object));
+XXTERN PLI_INT32  vpi_get_vlog_info   PROTO_PARAMS((p_vpi_vlog_info
+                                                      vlog_info_p));
+/* routines added with 1364-2001 */
+XXTERN PLI_INT32  vpi_get_data        PROTO_PARAMS((PLI_INT32 id,
+                                                    PLI_BYTE8 *dataLoc,
+                                                    PLI_INT32 numOfBytes));
+XXTERN PLI_INT32  vpi_put_data        PROTO_PARAMS((PLI_INT32 id,
+                                                    PLI_BYTE8 *dataLoc,
+                                                    PLI_INT32 numOfBytes));
+XXTERN void      *vpi_get_userdata    PROTO_PARAMS((vpiHandle obj));
+XXTERN PLI_INT32  vpi_put_userdata    PROTO_PARAMS((vpiHandle obj,
+                                                    void *userdata));
+XXTERN PLI_INT32  vpi_vprintf         PROTO_PARAMS((PLI_BYTE8 *format,
+                                                    va_list ap));
+XXTERN PLI_INT32  vpi_mcd_vprintf     PROTO_PARAMS((PLI_UINT32 mcd,
+                                                    PLI_BYTE8 *format,
+                                                    va_list ap));
+XXTERN PLI_INT32  vpi_flush           PROTO_PARAMS((void));
+XXTERN PLI_INT32  vpi_mcd_flush       PROTO_PARAMS((PLI_UINT32 mcd));
+XXTERN PLI_INT32  vpi_control         PROTO_PARAMS((PLI_INT32 operation,
+                                                    ...));
+XXTERN vpiHandle  vpi_handle_by_multi_index PROTO_PARAMS((vpiHandle obj,
+                                                    PLI_INT32 num_index,
+                                                    PLI_INT32 *index_array));
+/****************************** GLOBAL VARIABLES ******************************/
+PLI_VEXTERN PLI_DLLESPEC void (*vlog_startup_routines[])( void );
+  /* array of function pointers, last pointer should be null */
+#undef PLI_EXTERN
+#undef PLI_VEXTERN
+#ifdef VPI_USER_DEFINED_DLLISPEC
+#undef VPI_USER_DEFINED_DLLISPEC
+#undef PLI_DLLISPEC
+#endif
+#ifdef VPI_USER_DEFINED_DLLESPEC
+#undef VPI_USER_DEFINED_DLLESPEC
+#undef PLI_DLLESPEC
+#endif
+#ifdef PLI_PROTOTYPES
+#undef PLI_PROTOTYPES
+#undef PROTO_PARAMS
+#undef XXTERN
+#undef EETERN
+#endif
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1284
+Copyright © 2018 IEEE. All rights reserved.
+#ifdef  __cplusplus
+}
+#endif
+#endif /* VPI_USER_H */
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1285
+Copyright © 2018 IEEE. All rights reserved.
+Annex L 
+(normative) 
+vpi_compatibility.h 
+L.1 General 
+This include file contains special macro definitions required to support VPI compatibility mode
+functionality (see 36.12, especially 36.12.2.1). It is automatically included by vpi_user.h (see Annex K), and
+therefore should not be included directly from user application code.
+L.2 Source code
+/*******************************************************************************
+* vpi_compatibility.h
+*
+* IEEE 1800-2017 SystemVerilog Verification Procedural Interface (VPI) 
+*
+* NOTE: THIS FILE IS INCLUDED BY vpi_user.h. DO NOT INCLUDE THIS FILE FROM
+* USER APPLICATION CODE.
+*
+* This file contains the macro definitions used by the SystemVerilog PLI
+* to implement backwards compatibility mode functionality.
+*
+******************************************************************************/
+#ifdef VPI_COMPATIBILITY_H
+#error "The vpi_compatibility.h file can only be included by vpi_user.h 
+directly."
+#endif
+#define VPI_COMPATIBILITY_H
+/* Compatibility-mode variants of functions */
+#if VPI_COMPATIBILITY_VERSION_1800v2017
+#define VPI_COMPATIBILITY_VERSION_1800v2012
+#endif
+#if VPI_COMPATIBILITY_VERSION_1364v1995
+#if VPI_COMPATIBILITY_VERSION_1364v2001 || VPI_COMPATIBILITY_VERSION_1364v2005
+|| VPI_COMPATIBILITY_VERSION_1800v2005 || VPI_COMPATIBILITY_VERSION_1800v2009
+|| VPI_COMPATIBILITY_VERSION_1800v2012 
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1364v1995
+#define vpi_control vpi_control_1364v1995
+#define vpi_get vpi_get_1364v1995
+#define vpi_get_str vpi_get_str_1364v1995
+#define vpi_get_value vpi_get_value_1364v1995
+#define vpi_handle vpi_handle_1364v1995
+#define vpi_handle_by_index vpi_handle_by_index_1364v1995
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1364v1995
+#define vpi_handle_by_name vpi_handle_by_name_1364v1995
+#define vpi_handle_multi vpi_handle_multi_1364v1995
+#define vpi_iterate vpi_iterate_1364v1995
+#define vpi_put_value vpi_put_value_1364v1995
+#define vpi_register_cb vpi_register_cb_1364v1995
+#define vpi_scan vpi_scan_1364v1995
+#elif VPI_COMPATIBILITY_VERSION_1364v2001
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2005
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1286
+Copyright © 2018 IEEE. All rights reserved.
+|| VPI_COMPATIBILITY_VERSION_1800v2005 || VPI_COMPATIBILITY_VERSION_1800v2009
+|| VPI_COMPATIBILITY_VERSION_1800v2012 
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1364v2001
+#define vpi_control vpi_control_1364v2001
+#define vpi_get vpi_get_1364v2001
+#define vpi_get_str vpi_get_str_1364v2001
+#define vpi_get_value vpi_get_value_1364v2001
+#define vpi_handle vpi_handle_1364v2001
+#define vpi_handle_by_index vpi_handle_by_index_1364v2001
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1364v2001
+#define vpi_handle_by_name vpi_handle_by_name_1364v2001
+#define vpi_handle_multi vpi_handle_multi_1364v2001
+#define vpi_iterate vpi_iterate_1364v2001
+#define vpi_put_value vpi_put_value_1364v2001
+#define vpi_register_cb vpi_register_cb_1364v2001
+#define vpi_scan vpi_scan_1364v2001
+#elif VPI_COMPATIBILITY_VERSION_1364v2005
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2001
+|| VPI_COMPATIBILITY_VERSION_1800v2005 || VPI_COMPATIBILITY_VERSION_1800v2009
+|| VPI_COMPATIBILITY_VERSION_1800v2012 
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1364v2005
+#define vpi_control vpi_control_1364v2005
+#define vpi_get vpi_get_1364v2005
+#define vpi_get_str vpi_get_str_1364v2005
+#define vpi_get_value vpi_get_value_1364v2005
+#define vpi_handle vpi_handle_1364v2005
+#define vpi_handle_by_index vpi_handle_by_index_1364v2005
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1364v2005
+#define vpi_handle_by_name vpi_handle_by_name_1364v2005
+#define vpi_handle_multi vpi_handle_multi_1364v2005
+#define vpi_iterate vpi_iterate_1364v2005
+#define vpi_put_value vpi_put_value_1364v2005
+#define vpi_register_cb vpi_register_cb_1364v2005
+#define vpi_scan vpi_scan_1364v2005
+#elif VPI_COMPATIBILITY_VERSION_1800v2005
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2001
+|| VPI_COMPATIBILITY_VERSION_1364v2005 || VPI_COMPATIBILITY_VERSION_1800v2009
+|| VPI_COMPATIBILITY_VERSION_1800v2012 
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1800v2005
+#define vpi_control vpi_control_1800v2005
+#define vpi_get vpi_get_1800v2005
+#define vpi_get_str vpi_get_str_1800v2005
+#define vpi_get_value vpi_get_value_1800v2005
+#define vpi_handle vpi_handle_1800v2005
+#define vpi_handle_by_index vpi_handle_by_index_1800v2005
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1800v2005
+#define vpi_handle_by_name vpi_handle_by_name_1800v2005
+#define vpi_handle_multi vpi_handle_multi_1800v2005
+#define vpi_iterate vpi_iterate_1800v2005
+#define vpi_put_value vpi_put_value_1800v2005
+#define vpi_register_cb vpi_register_cb_1800v2005
+#define vpi_scan vpi_scan_1800v2005
+#elif VPI_COMPATIBILITY_VERSION_1800v2009 
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2001
+|| VPI_COMPATIBILITY_VERSION_1364v2005 || VPI_COMPATIBILITY_VERSION_1800v2005
+|| VPI_COMPATIBILITY_VERSION_1800v2012 
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1287
+Copyright © 2018 IEEE. All rights reserved.
+#define vpi_compare_objects vpi_compare_objects_1800v2009 
+#define vpi_control vpi_control_1800v2009 
+#define vpi_get vpi_get_1800v2009 
+#define vpi_get_str vpi_get_str_1800v2009 
+#define vpi_get_value vpi_get_value_1800v2009 
+#define vpi_handle vpi_handle_1800v2009 
+#define vpi_handle_by_index vpi_handle_by_index_1800v2009 
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1800v2009 
+#define vpi_handle_by_name vpi_handle_by_name_1800v2009 
+#define vpi_handle_multi vpi_handle_multi_1800v2009 
+#define vpi_iterate vpi_iterate_1800v2009 
+#define vpi_put_value vpi_put_value_1800v2009 
+#define vpi_register_cb vpi_register_cb_1800v2009 
+#define vpi_scan vpi_scan_1800v2009 
+#elif VPI_COMPATIBILITY_VERSION_1800v2012
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2001
+|| VPI_COMPATIBILITY_VERSION_1364v2005 || VPI_COMPATIBILITY_VERSION_1800v2005
+|| VPI_COMPATIBILITY_VERSION_1800v2009
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1800v2012
+#define vpi_control vpi_control_1800v2012
+#define vpi_get vpi_get_1800v2012
+#define vpi_get_str vpi_get_str_1800v2012
+#define vpi_get_value vpi_get_value_1800v2012
+#define vpi_handle vpi_handle_1800v2012
+#define vpi_handle_by_index vpi_handle_by_index_1800v2012
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1800v2012
+#define vpi_handle_by_name vpi_handle_by_name_1800v2012
+#define vpi_handle_multi vpi_handle_multi_1800v2012
+#define vpi_iterate vpi_iterate_1800v2012
+#define vpi_put_value vpi_put_value_1800v2012
+#define vpi_register_cb vpi_register_cb_1800v2012
+#define vpi_scan vpi_scan_1800v2012
+#endif
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1288
+Copyright © 2018 IEEE. All rights reserved.
+Annex M 
+(normative) 
+sv_vpi_user.h
+M.1 General 
+This annex shows the contents of the sv_vpi_user.h include file. This is a normative include file that
+shall be provided by all SystemVerilog simulators. 
+M.2 Source code
+/***************************************************************************
+* sv_vpi_user.h
+*
+* SystemVerilog VPI extensions.
+*
+* This file contains the constant definitions, structure definitions, and
+* routine declarations used by the SystemVerilog Verification Procedural 
+* Interface (VPI) access routines.
+*
+**************************************************************************/
+/***************************************************************************
+* NOTE:
+* The constant values 600 through 999 are reserved for use in this file.
+* - the range 600-749 is reserved for SV VPI model extensions
+* - the range 750-779 is reserved for the Coverage VPI
+* - the range 800-899 is reserved for future use 
+* Overlaps in the numerical ranges are permitted for different categories
+* of identifiers; e.g.
+*
+- object types
+*
+- properties
+*
+- callbacks
+**************************************************************************/
+#ifndef SV_VPI_USER_H
+#define SV_VPI_USER_H
+#include "vpi_user.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+/****************************** OBJECT TYPES ******************************/
+#define vpiPackage                600
+#define vpiInterface              601
+#define vpiProgram                602
+#define vpiInterfaceArray         603
+#define vpiProgramArray           604
+#define vpiTypespec               605
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1289
+Copyright © 2018 IEEE. All rights reserved.
+#define vpiModport                606
+#define vpiInterfaceTfDecl        607
+#define vpiRefObj                 608
+#define vpiTypeParameter
+609 
+/* variables */
+#define vpiVarBit                 vpiRegBit
+#define vpiLongIntVar             610
+#define vpiShortIntVar            611
+#define vpiIntVar                 612
+#define vpiShortRealVar           613
+#define vpiByteVar                614
+#define vpiClassVar               615
+#define vpiStringVar              616
+#define vpiEnumVar                617
+#define vpiStructVar              618
+#define vpiUnionVar               619
+#define vpiBitVar                 620
+#define vpiLogicVar               vpiReg 
+#define vpiArrayVar               vpiRegArray
+#define vpiClassObj
+621 
+#define vpiChandleVar
+622 
+#define vpiPackedArrayVar
+623 
+#define vpiVirtualInterfaceVar
+728 
+/* typespecs */
+#define vpiLongIntTypespec        625
+#define vpiShortRealTypespec      626
+#define vpiByteTypespec           627
+#define vpiShortIntTypespec       628
+#define vpiIntTypespec            629
+#define vpiClassTypespec          630
+#define vpiStringTypespec         631
+#define vpiChandleTypespec
+632 
+#define vpiEnumTypespec           633
+#define vpiEnumConst              634
+#define vpiIntegerTypespec        635
+#define vpiTimeTypespec           636
+#define vpiRealTypespec           637
+#define vpiStructTypespec         638
+#define vpiUnionTypespec          639
+#define vpiBitTypespec            640
+#define vpiLogicTypespec          641
+#define vpiArrayTypespec          642
+#define vpiVoidTypespec           643
+#define vpiTypespecMember         644
+#define vpiPackedArrayTypespec
+692 
+#define vpiSequenceTypespec
+696
+#define vpiPropertyTypespec
+697
+#define vpiEventTypespec
+698
+#define vpiInterfaceTypespec      906
+#define vpiClockingBlock          650
+#define vpiClockingIODecl         651
+#define vpiClassDefn              652
+#define vpiConstraint             653
+#define vpiConstraintOrdering     654
+#define vpiDistItem               645
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1290
+Copyright © 2018 IEEE. All rights reserved.
+#define vpiAliasStmt              646
+#define vpiThread                 647
+#define vpiMethodFuncCall         648
+#define vpiMethodTaskCall         649
+/* concurrent assertions */
+#define vpiAssert 
+686 
+#define vpiAssume 
+687 
+#define vpiCover 
+688 
+#define vpiRestrict 
+901 
+#define vpiDisableCondition 
+689 
+#define vpiClockingEvent 
+690 
+/* property decl, spec */
+#define vpiPropertyDecl           655
+#define vpiPropertySpec           656
+#define vpiPropertyExpr           657
+#define vpiMulticlockSequenceExpr 658
+#define vpiClockedSeq             659
+#define vpiClockedProp
+902
+#define vpiPropertyInst           660
+#define vpiSequenceDecl           661
+#define vpiCaseProperty
+662
+/* property case */
+#define vpiCasePropertyItem
+905
+/* property case item */
+#define vpiSequenceInst           664
+#define vpiImmediateAssert        665
+#define vpiImmediateAssume
+694 
+#define vpiImmediateCover
+695 
+#define vpiReturn                 666
+/* pattern */
+#define vpiAnyPattern             667
+#define vpiTaggedPattern          668
+#define vpiStructPattern          669
+/* do .. while */
+#define vpiDoWhile                670
+/* waits */
+#define vpiOrderedWait            671
+#define vpiWaitFork               672
+/* disables */
+#define vpiDisableFork            673
+#define vpiExpectStmt             674
+#define vpiForeachStmt            675
+#define vpiReturnStmt
+691
+#define vpiFinal                  676
+#define vpiExtends
+677 
+#define vpiDistribution           678
+#define vpiSeqFormalDecl
+679
+#define vpiPropFormalDecl
+699
+#define vpiArrayNet               vpiNetArray
+#define vpiEnumNet                680
+#define vpiIntegerNet             681
+#define vpiLogicNet               vpiNet
+#define vpiTimeNet                682
+#define vpiStructNet              683
+#define vpiBreak
+684 
+#define vpiContinue
+685
+#define vpiPackedArrayNet
+693
+#define vpiConstraintExpr
+747
+#define vpiElseConst
+748
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1291
+Copyright © 2018 IEEE. All rights reserved.
+#define vpiImplication
+749
+#define vpiConstrIf
+738
+#define vpiConstrIfElse
+739
+#define vpiConstrForEach
+736 
+#define vpiSoftDisable
+733 
+#define vpiLetDecl
+903 
+#define vpiLetExpr
+904 
+/******************************** METHODS *********************************/
+/************* methods used to traverse 1 to 1 relationships **************/
+#define vpiActual                 700
+#define vpiTypedefAlias           701
+#define vpiIndexTypespec          702
+#define vpiBaseTypespec           703
+#define vpiElemTypespec           704
+#define vpiInputSkew
+706 
+#define vpiOutputSkew
+707
+#define vpiGlobalClocking
+708 
+#define vpiDefaultClocking
+709 
+#define vpiDefaultDisableIff
+710 
+#define vpiOrigin                 713
+#define vpiPrefix                 714
+#define vpiWith                   715
+#define vpiProperty               718
+#define vpiValueRange             720
+#define vpiPattern                721
+#define vpiWeight                 722
+#define vpiConstraintItem
+746
+/************ methods used to traverse 1 to many relationships ************/
+#define vpiTypedef                725
+#define vpiImport                 726
+#define vpiDerivedClasses         727
+#define vpiInterfaceDecl
+vpiVirtualInterfaceVar /* interface decl deprecated */
+#define vpiMethods                730
+#define vpiSolveBefore            731
+#define vpiSolveAfter             732
+#define vpiWaitingProcesses       734
+#define vpiMessages               735
+#define vpiLoopVars               737
+#define vpiConcurrentAssertions   740
+#define vpiMatchItem              741
+#define vpiMember
+742
+#define vpiElement
+743
+/************* methods used to traverse 1 to many relationships ***************/ 
+#define vpiAssertion
+744
+/*********** methods used to traverse both 1-1 and 1-many relations ***********/ 
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

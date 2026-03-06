@@ -1,0 +1,708 @@
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+425
+Copyright © 2019 IEEE. All rights reserved.
+21. VHPI callbacks
+21.1 General
+A callback is a mechanism for a VHPI program to gain control during tool execution. A VHPI program
+registers a callback, providing to the tool a reference to a callback function and a callback reason, that is, a
+specification of an event or events that may trigger execution of the callback function by the tool. For some
+callbacks, the trigger event is associated with one or more objects in the information model; such an object is
+called a trigger object of the callback. A foreign model typically registers callbacks during execution of its
+elaboration or initialization functions, and a foreign application typically registers callbacks during
+execution of its registration function. A callback function may register subsequent callbacks. As part of
+registration of a callback, a VHPI program may provide data to be supplied to the callback function when it
+is invoked.
+Depending on the callback reason, a callback is either a one-time callback, meaning that the callback
+function is triggered at most once, or a repetitive callback, meaning that the callback function may be
+triggered multiple times. A callback is in one of three states:
+—
+enabled, meaning that the callback function will be called if the trigger event occurs,
+—
+disabled, meaning that the callback function will not be called if the trigger event occurs, or
+—
+mature, meaning that the callback is a one-time callback whose trigger event has occurred.
+If the trigger event of an enabled callback occurs, the callback state is changed to mature if the callback is a
+one-time callback or remains enabled if the callback is a repetitive callback. In either case, the callback func-
+tion is then triggered. A VHPI program may register a callback in the enabled state and may disable an
+enabled callback.
+If the trigger event of a disabled callback occurs, the callback state is changed to mature if the callback is a
+one-time callback or remains disabled if the callback is a repetitive callback. In either case, the callback
+function is not triggered. A VHPI program may register a callback in the disabled state and may enable a
+disabled callback. Disabling a callback does not affect the specification of the trigger event of the callback.
+A mature callback is not triggered by occurrence of its trigger event subsequent to the occurrence that
+caused the callback to become mature. Furthermore, the state of a mature callback cannot be changed. A
+repetitive callback never becomes mature.
+NOTE—Disabling a callback simply determines whether or not the callback will be triggered when its trigger event
+occurs. For example, disabling a callback that is registered to trigger after a given delay and subsequently enabling
+before expiry of the delay does not postpone the time at which the trigger event occurs.
+21.2 Callback functions
+21.2.1 General
+A callback is represented in the VHPI information model by an object of class callback. A VHPI
+program can obtain a handle to a callback object by navigating the information model. The VHPI provides
+functions to register, remove, enable, and disable callbacks and to access information about callbacks.
+21.2.2 Registering callbacks
+A VHPI program may register a callback using the vhpi_register_cb function (see 23.29). Prior to
+calling the function, the VHPI program shall allocate memory for a callback data structure of type
+vhpiCbDataT (see Annex B) and write to it values that specify the callback. After the
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+426
+Copyright © 2019 IEEE. All rights reserved.
+vhpi_register_cb function returns, the tool does not retain any references to the callback data
+structure or to storage pointed to by members of the callback data structure.
+The reason member of a callback data structure specifies the callback reason (see 21.3). The cb_rtn
+member shall be a pointer to the callback function. The VHPI program may write a value to the
+user_data member to be passed to the callback function when it is triggered. The value may be of any
+type, provided it can be cast to a type that is compatible with the type of the user_data member. The
+value is not used by the tool other than being stored so that it can be passed to the callback function. Each of
+the remaining members either specifies further information, if required for the given callback reason, or is
+ignored.
+NOTE—Since the tool retains no references to the callback data structure provided by a VHPI program to register a
+callback, the VHPI program may reuse the same data structure to register further callbacks.
+21.2.3 Enabling and disabling callbacks
+A VHPI program may enable a callback using the vhpi_enable_cb function (see 23.8) and may disable
+a callback using the vhpi_disable_cb function (see 23.7).
+21.2.4 Removing callbacks
+A VHPI program may remove a callback using the vhpi_remove_cb function (see 23.32). Once
+removed, the callback is no longer registered, and occurrence of the callback reason for which the callback
+was registered does not trigger the callback function. The object representing the callback is removed from
+the information model. Any handle that refers to the object representing the removed callback is made
+invalid.
+NOTE—Releasing a handle that refers to a callback object neither removes the callback nor changes its state. A handle
+to the callback can subsequently be acquired by navigating the information model.
+21.2.5 Callback information
+A VHPI program may obtain information about a registered callback using the vhpi_get_cb_info
+function (see 23.11).
+21.2.6 Execution of callbacks
+A callback function shall have a single argument that is a constant pointer to a callback data structure and
+shall have a void* return type. When the tool triggers a callback, the tool passes a callback data structure in
+which
+—
+The value of the reason member is the enumeration constant that identifies the callback reason for
+which the callback was triggered (see 21.3).
+—
+The value of the cb_rtn member is a pointer to the callback function.
+—
+The value of the user_data member is the value that was provided in the user_data member
+of the callback data structure specified during registration of the callback.
+The values of the remaining members depend on the callback reason (see 21.3). The callback data structure
+passed to a callback function, any time and value structures pointed to by members of the callback data
+structure, and any buffers for values pointed to by members of the value structure are allocated by the tool.
+A callback function that modifies the callback data structure passed to it by the tool is erroneous. If the tool
+provides a handle to an object in the obj member of a callback data structure passed to a callback function,
+the tool may release the handle upon return of the callback function to the tool. A callback function that
+releases such a handle is erroneous.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+427
+Copyright © 2019 IEEE. All rights reserved.
+NOTE—Any actions performed by a callback function are subject to rules specified for the step of the simulation cycle
+in which the callback function is invoked (see 14.7.5) and rules specified for the callback reason for which the callback
+was triggered (see 21.3).
+21.3 Callback reasons
+21.3.1 General
+This subclause (21.3) describes the callback reasons. Callback reasons are identified by enumeration
+constants, defined in the VHPI include file, whose names start with the characters vhpiCb. In this standard,
+the term callback qualified with an enumeration constant identifying a callback reason refers to a callback
+that is registered with the reason identified by the enumeration constant. This subclause specifies the values
+required, if any, in the obj, time, and value members of the callback data structure provided by a VHPI
+program upon registration of a callback for each reason.
+If a VHPI program provides a pointer to a time structure in the time member of a callback data structure,
+the VHPI program shall allocate the memory for the time structure.
+Similarly, if a VHPI program provides a pointer to a value structure in the value member of a callback data
+structure, the VHPI program shall allocate the memory for the value structure. The value structure shall have
+the format member set to a value of type vhpiFormatT specifying the format of a value to be provided
+to the callback function.
+21.3.2 Object callbacks
+21.3.2.1 General
+An object callback is a callback whose trigger event relates to the value of a variable or a signal, represented
+by a trigger object. An object callback is a repetitive callback.
+In the case of the trigger event of an object callback occurring on a trigger object representing a variable:
+—
+If the variable is of a composite type, the trigger event also occurs on each subelement of the trigger
+object variable.
+—
+If the variable is a subelement or slice of a composite variable, the trigger event also occurs on each
+composite variable containing the trigger object variable.
+—
+If the variable is a slice of a composite variable, the trigger event also occurs on each overlapping
+slice of the trigger object variable.
+If the VHPI program registering an object callback provides in the time member of the callback data
+structure a value other than NULL, the tool, upon triggering the callback function, provides in the time
+member of the callback structure passed to the callback function a pointer to a time structure representing
+the time at which the trigger event occurred. The tool does not dereference the value provided by the VHPI
+program in the time member of the callback data structure. If the VHPI program provides the value NULL
+in the time member of the callback data structure, the value of the time member of the callback structure
+passed to the callback function is NULL.
+If the VHPI program registering an object callback provides in the value member of the callback data
+structure a value other than NULL, the value shall be a pointer to a value structure. In that case, the tool,
+upon triggering the callback function, provides in the value member of the callback structure passed to the
+callback function a pointer to a value structure representing the value of the trigger object resulting from the
+trigger event. The value is represented in the format (see 22.4) specified by the format member of the
+value structure provided by the VHPI program. The tool ignores other members of the value structure
+provided by the VHPI program. If the VHPI program provides the value NULL in the value member of the
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+428
+Copyright © 2019 IEEE. All rights reserved.
+callback data structure, the value of the value member of the callback structure passed to the callback
+function is NULL.
+NOTE—Since the tool ignores members of the value structure other than the format member, the VHPI program need
+not allocate memory to be pointed to by the value member of the value structure.
+21.3.2.2 vhpiCbValueChange
+A VHPI program that registers a vhpiCbValueChange callback shall provide in the obj member of the
+callback data structure a handle that refers to a trigger object. When the callback is executed, the value of the
+obj member of the callback data structure passed to the callback function is a handle that refers to the
+trigger object.
+The trigger event for a vhpiCbValueChange callback is one of:
+—
+A change of value of a variable represented by a trigger object of class variable as a result of
+execution of a variable assignment statement (see 10.6), update of an actual parameter associated
+with a formal variable parameter of mode out or inout, or a call by a VHPI program to the
+vhpi_put_value function to update the variable.
+—
+An event on a signal represented by a trigger object of class signal as a result of signal update (see
+14.7), unless the signal is a port of mode out.
+—
+A change of driving value of a port of mode out represented by an object of class outPort as a
+result of a source of the port being active.
+—
+A change of driving value of a driver represented by a trigger object of class driver as a result of
+the driver being active (see 14.7).
+—
+An implementation-defined trigger event, other than a trigger event previously listed, that causes the
+value of the trigger object to change.
+NOTE 1—A change in value of a signal or a port caused by a call to the vhpi_put_value function with mode value
+vhpiDeposit or vhpiForce is not a trigger event for a vhpiCbValueChange callback.
+NOTE 2—A VHPI program cannot register a vhpiCbValueChange for an alias of an object.
+NOTE 3—An implementation-defined trigger event for a vhpiCbValueChange callback may be an event such as a
+change caused by a user-interface command.
+NOTE 4—An event on a signal may result from assignment to the signal by a VHDL description or from a call by a
+VHPI program to the vhpi_put_value function with mode value vhpiDepositPropagate or
+vhpiForcePropagate to update the signal. Similarly, a change of driving value of a port of mode out may result
+from assignment to a source by a VHDL description or of a call by a VHPI program to the vhpi_put_value function
+with mode value vhpiDepositPropagate or vhpiForcePropagate to update the port; and a change of
+driving value of a driver may result from assignment to the driven signal by a VHDL description or from a call by a
+VHPI program to the vhpi_put_value function to update the driver. In each case, the change of value is a single
+trigger event for the vhpiCbValueChange callback.
+21.3.2.3 vhpiCbForce
+A VHPI program that registers a vhpiCbForce callback shall provide in the obj member of the callback
+data structure either a handle that refers to a trigger object or NULL. If the VHPI program provides a handle
+that refers to a trigger object, the vhpiCbForce callback is associated with that trigger object. If the VHPI
+program provides NULL, the vhpiCbForce callback is associated with all objects for which forcing is per-
+mitted as trigger objects. In either case, when the callback is executed, the value of the obj member of the
+callback data structure passed to the callback function is a handle that refers to the trigger object upon which
+the trigger event occurred.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+429
+Copyright © 2019 IEEE. All rights reserved.
+The trigger event for a vhpiCbForce callback is one of:
+—
+Execution, without error, of the vhpi_put_value function with a mode value of vhpiForce or
+vhpiForcePropagate to update the value of the trigger object of the callback.
+—
+Execution of a simple force assignment, conditional force assignment or selected force assignment
+(see 10.5) in which the target or a subelement of the target is represented by the trigger object of the
+callback.
+—
+Execution, without error, of an implementation-defined force directive, issued from an interactive
+user or a command source, applied to the trigger object of the callback.
+21.3.2.4 vhpiCbRelease
+A VHPI program that registers a vhpiCbRelease callback shall provide in the obj member of the
+callback data structure either a handle that refers to a trigger object, or NULL. If the VHPI program provides
+a handle that refers to a trigger object, the vhpiCbRelease callback is associated with that trigger object.
+If the VHPI program provides NULL, the vhpiCbRelease callback is associated with all objects for
+which forcing is permitted as trigger objects. In either case, when the callback is executed, the value of the
+obj member of the callback data structure passed to the callback function is a handle that refers to the
+trigger object upon which the trigger event occurred.
+The trigger event for a vhpiCbRelease callback is one of:
+—
+Execution, without error, of the vhpi_put_value function with a mode value of
+vhpiRelease to release forcing of the trigger object of the callback.
+—
+Execution of a simple release assignment (see 10.5.2) in which the target or a subelement of the
+target is represented by the trigger object of the callback.
+—
+Execution, without error, of an implementation-defined release directive, issued from an interactive
+user or a command source, applied to the trigger object of the callback.
+21.3.2.5 vhpiCbTransaction
+A VHPI program that registers a vhpiCbTransaction callback shall provide in the obj member of the
+callback data structure a handle that refers to a trigger object of class driver or signal. When the call-
+back is executed, the value of the obj member of the callback data structure passed to the callback function
+is a handle that refers to the trigger object.
+The trigger event for a vhpiCbTransaction callback is the trigger object becoming active (see
+14.7.3.1).
+21.3.3 Foreign model callbacks
+21.3.3.1 General
+A foreign model callback is a callback that allows a foreign model to achieve an effect similar to that of a
+wait statement.
+21.3.3.2 vhpiCbTimeOut and vhpiCbRepTimeOut
+The vhpiCbTimeOut callback is a one-time callback, whereas the vhpiCbRepTimeOut callback is a
+repetitive callback.
+A VHPI program that registers a vhpiCbTimeOut or a vhpiCbRepTimeOut callback shall provide in
+the time member of the callback data structure a pointer to a time structure that specifies a timeout interval.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+430
+Copyright © 2019 IEEE. All rights reserved.
+The trigger event for these callbacks is the expiry of the timeout interval after the callback was registered. In
+the case of the vhpiCbRepTimeOut callback, further trigger events occur upon expiry of successive
+intervals equal to the timeout interval, for as long as the simulation is not complete. Execution of
+vhpiCbTimeOut and vhpiCbRepTimeOut callbacks is described in 14.7.5.3.
+The values of the obj and value members of the callback data structure for a vhpiCbTimeOut or
+vhpiCbRepTimeOut callback are ignored by the tool.
+NOTE 1—A foreign model that registers a vhpiCbTimeOut callback is similar in effect to a nonpostponed process
+that executes a wait statement with a timeout clause. A foreign model can achieve an effect similar to a postponed
+process executing a wait statement with a timeout clause by registering a vhpiCbTimeOut callback that, in turn,
+registers a vhpiCbStartOfPostponed callback.
+NOTE 2—A vhpiCbTimeOut or a vhpiCbRepTimeOut callback cannot be registered or enabled by a
+vhpiCbEndOfTimeStep or vhpiCbRepEndOfTimeStep callback function (see 21.3.6.8).
+21.3.3.3 vhpiCbSensitivity
+The vhpiCbSensitivity callback is a repetitive callback.
+A VHPI program that registers a vhpiCbSensitivity callback shall provide in the obj member of the
+callback data structure handle that refers to either an object of class signal or an object of class
+anyCollection representing a collection of objects of class signal. In the former case, the trigger
+event for the callback is an event on the signal represented by the object of class signal. In the latter case,
+the set of signals represented by the objects of class signal is referred to as the sensitivity set of the
+callback, and the trigger event for the callback is an event on any of the signals in the sensitivity set of the
+callback.
+If the VHPI program registering the callback provides in the time member of the callback data structure a
+value other than NULL, the tool, upon triggering the callback function, provides in the time member of the
+callback structure passed to the callback function a pointer to a time structure representing the time at which
+the trigger event occurred. The tool does not dereference the value provided by the VHPI program in the
+time member of the callback data structure. If the VHPI program provides the value NULL in the time
+member of the callback data structure, the value of the time member of the callback structure passed to the
+callback function is NULL.
+If the VHPI program registering the callback provides in the value member of the callback data structure a
+value other than NULL, one of the following occurs:
+—
+If the VHPI program provides in the obj member of the callback data structure a handle that refers
+to an object of class signal, the tool ignores the value of the value member of the callback data
+structure.
+—
+Otherwise, the tool, upon triggering the callback function, provides in the value member of the
+callback structure passed to the callback function a pointer to sensitivity-set bitmap, that is, a value
+structure indicating on which signals in the sensitivity set of the callback an event occurred. The
+value structure represents a one-dimensional array of integers using the format vhpiIntVecVal.
+The number of elements in the array is given by the expression 
+, where s denotes the
+sensitivity set. The bits of the elements correspond in an implementation-defined manner to the
+members of the sensitivity set. A bit corresponding to a given signal in the sensitivity set is 1 if there
+is an event on the given signal, or 0 otherwise. A VHPI program may use the sensitivity-set bitmap
+macros (see B.2) to determine whether the bit corresponding to a signal is 1 or 0.
+The tool does not dereference the value provided by the VHPI program in the value member of the
+callback data structure. 
+s
+32
+⁄
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+431
+Copyright © 2019 IEEE. All rights reserved.
+If the VHPI program provides the value NULL in the value member of the callback data structure, the
+value of the value member of the callback structure passed to the callback function is NULL.
+NOTE—A foreign model that registers a vhpiCbSensitivity callback is similar in effect to a nonpostponed
+process that executes a wait statement that is sensitive to the signals. A foreign model can achieve an effect similar to a
+postponed process executing a wait statement that is sensitive to signals by registering a vhpiCbSensitivity
+callback that, in turn, registers a vhpiCbStartOfPostponed callback. The values of the signals during execution of
+the latter callback may be different from the values that caused the former callback to trigger.
+21.3.4 Statement callbacks
+21.3.4.1 General
+A statement callback is a callback whose trigger event relates to execution of one or more statements of
+suspension or resumption of a process. A statement callback is a repetitive callback.
+The values of the time and value members of the callback data structure for a statement callback are
+ignored by the tool.
+21.3.4.2 vhpiCbStmt
+A VHPI program that registers a vhpiCbStmt callback shall provide in the obj member of the callback
+data structure a handle that refers to a trigger object of class seqStmt, branch, or eqProcessStmt in
+the design hierarchy information model.
+The trigger event for a vhpiCbStmt callback is determined as follows:
+—
+If the trigger object is of class seqStmt other than an object of class loopStmt, the trigger event
+occurs immediately before execution of the statement represented by the trigger object.
+—
+If the trigger object is of class loopStmt, the trigger event occurs immediately before execution of
+the loop statement represented by the trigger object. Subsequent trigger events occur in each
+iteration, if any, of the loop statement after the first iteration. In the case of a loop statement without
+an iteration scheme, subsequent trigger events occur immediately before execution of the sequence
+of statements enclosed in the loop statement. In the case of a loop statement with a while iteration
+scheme, subsequent trigger events occur immediately before evaluation of the condition in the
+iteration scheme. In the case of a loop statement with a for iteration scheme, subsequent trigger
+events occur immediately before assignment of a value to the loop parameter.
+—
+If the trigger object is of class branch and is associated with an object of class ifStmt, the trigger
+event occurs immediately before evaluation of the condition represented by the trigger object.
+—
+If the trigger object is of class branch and is associated with an object of class caseStmt, the
+trigger event occurs immediately before execution of the sequence of statements in the case
+statement alternative represented by the trigger object.
+—
+If the trigger object is of class processStmt, the trigger event occurs immediately before
+execution of the first statement in the statement part of the process statement represented by the
+trigger object.
+—
+If the trigger object is of class concProcCallStmt, the trigger event occurs immediately before
+execution of the first statement in the statement part of the subprogram body called by the concurrent
+procedure call statement represented by the trigger object.
+—
+If the trigger object is of class eqProcessStmt and not of class processStmt or
+concProcCallStmt, the trigger event occurs at the same time as a trigger event would occur
+immediately before execution of the first statement in the equivalent process statement of the
+statement represented by the trigger object, were the equivalent process statement executed instead
+of the statement represented by the trigger object.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+432
+Copyright © 2019 IEEE. All rights reserved.
+If the trigger object is of class processStmt or concProcCallStmt, when the callback is executed,
+the value of the obj member of the callback data structure passed to the callback function is a handle that
+refers to an object representing the first statement in the statement part of the called subprogram body or pro-
+cess statement, respectively. Otherwise, the value of the obj member of the callback data structure passed
+to the callback function is a handle that refers to the trigger object.
+A tool may perform optimizations that render an object representing a statement inaccessible. It is an error if
+the handle in the obj member of the registration callback data structure refers to such an object. A tool may
+perform optimizations that alter the order of execution of statements in a statement part. A VHPI program
+that depends on the order of execution of vhpiStmt callbacks associated with statements whose execution
+order is so altered is erroneous.
+21.3.4.3 vhpiCbResume
+A VHPI program that registers a vhpiCbResume callback shall provide in the obj member of the call-
+back data structure a handle that refers to a trigger object of class eqProcessStmt in the design hierarchy
+information model. A vhpiCbResume callback is triggered as described in 14.7.5.3.
+If the process represented by the trigger object was suspended as a result of executing an explicit wait
+statement, or the process represented by the trigger object is a process statement in which a sensitivity list
+appears after the reserved word process, when the callback is executed, the value of the obj member of the
+callback data structure passed to the callback function is a handle that refers to an object representing the
+sequential statement to be executed upon resumption of the process. Otherwise, the value of the obj
+member of the callback data structure passed to the callback function is a handle that refers to the trigger
+object.
+An implementation may optimize execution of a wait statement in such a way as to obviate some or all
+resumptions and repeated suspensions of a process provided that, when an event occurs on any signal in the
+sensitivity set and that event would result in the condition evaluating to TRUE, the process does resume. A
+VHPI program that depends on triggering of vhpiCbResume callbacks for resumptions so obviated is
+erroneous.
+21.3.4.4 vhpiCbSuspend
+A VHPI program that registers a vhpiCbSuspend callback shall provide in the obj member of the
+callback data structure a handle that refers to a trigger object of class eqProcessStmt in the design
+hierarchy information model. A vhpiCbSuspend callback is triggered as described in 14.7.5.2 and
+14.7.5.3.
+If the process represented by the trigger object is suspended as a result of executing an explicit wait
+statement, when the callback is executed, the value of the obj member of the callback data structure passed
+to the callback function is a handle that refers to an object representing the wait statement. Otherwise, the
+value of the obj member of the callback data structure passed to the callback function is a handle that refers
+to the trigger object.
+An implementation may optimize execution of a wait statement in such a way as to obviate some or all
+resumptions and repeated suspensions of a process provided that, when an event occurs on any signal in the
+sensitivity set and that event would result in the condition evaluating to TRUE, the process does resume. A
+VHPI program that depends on triggering of vhpiCbSuspend callbacks for repeated suspensions so
+obviated is erroneous.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+433
+Copyright © 2019 IEEE. All rights reserved.
+21.3.4.5 vhpiCbStartOfSubpCall
+A VHPI program that registers a vhpiCbStartOfSubpCall callback shall provide in the obj member
+of the callback data structure a handle that refers to a trigger object of class subpCall in the design
+hierarchy information model, or to a trigger object of class subpDecl in the library information model.
+The trigger event of a vhpiStartOfSubpCall callback occurs immediately after elaboration of the
+interface list of the called subprogram and association of actual parameters with the formal parameters (see
+14.6). If the trigger object is of class subpDecl, the trigger event occurs for any call to the subprogram
+represented by the trigger object.
+When the callback is executed, if the trigger object is of class subpCall, the value of the obj member of
+the callback data structure passed to the callback function is a handle that refers to the trigger object.
+Otherwise, the value of the obj member is a handle to an object of class subpCall that represents the call
+to the subprogram represented by the trigger object.
+NOTE—A VHPI program may obtain a handle to a subprogram call by iterating on the sequential statements of a
+region, such as a process or a dynamically elaborated instance of a subprogram.
+21.3.4.6 vhpiCbEndOfSubpCall
+A VHPI program that registers a vhpiCbEndOfSubpCall callback shall provide in the obj member of
+the callback data structure a handle that refers to a trigger object of class subpCall in the design hierarchy
+information model. The trigger event of a vhpiEndOfSubpCall callback occurs immediately after
+completion of execution of the statements of the called subprogram. In the case of the called subprogram
+being a function, the trigger event occurs before the result of the function is used as the value of the function
+call. In the case of the called subprogram being a procedure, the trigger event occurs before any formal
+variable parameters of mode out or inout passed by copy are copied back into the associated actual
+parameters.
+When the callback is executed, the value of the obj member of the callback data structure passed to the
+callback function is a handle that refers to the trigger object.
+NOTE 1—A VHPI program may obtain a handle to a subprogram call by iterating on the sequential statements of a
+region, such as a process or a dynamically elaborated instance of a subprogram.
+NOTE 2—A VHPI program may, in a vhpiCbEndOfSubpCall callback, use the vhpi_put_value function to
+update the result of a function or the values of formal variable parameters of mode out or inout.
+21.3.5 Time callbacks
+21.3.5.1 General
+A time callback is a callback whose trigger event relates to progress of simulation time.
+The values of the obj and value members of the callback data structure for a time callback are ignored by
+the tool.
+21.3.5.2 vhpiCbAfterDelay and vhpiCbRepAfterDelay
+The vhpiCbAfterDelay callback is a one-time callback, whereas the vhpiCbRepAfterDelay
+callback is a repetitive callback.
+A VHPI program that registers a vhpiCbAfterDelay or a vhpiCbRepAfterDelay callback shall
+provide in the time member of the callback data structure a pointer to a time structure that specifies a
+timeout interval. The trigger event for these callbacks is the expiry of the timeout interval after the callback
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+434
+Copyright © 2019 IEEE. All rights reserved.
+was registered. In the case of the vhpiCbRepAfterDelay callback, further trigger events occur upon
+expiry of successive intervals equal to the timeout interval, for as long as the simulation is not complete.
+Execution of vhpiCbAfterDelay and vhpiCbRepAfterDelay callbacks is described in 14.7.5.3.
+NOTE—A vhpiCbAfterDelay or a vhpiCbRepAfterDelay callback cannot be registered or enabled by a
+vhpiCbEndOfTimeStep or vhpiCbRepEndOfTimeStep callback function (see 21.3.6.8).
+21.3.6 Simulation phase callbacks
+21.3.6.1 General
+A simulation phase callback is a callback whose trigger event relates to steps of the simulation cycle (see
+14.7.5.3). Simulation phase callbacks identified by enumeration constants whose names include the letters
+“Rep” are repetitive callbacks; the remaining simulation phase callbacks are one-time callbacks.
+The values of the obj, time, and value members of the callback data structure for a simulation phase
+callback are ignored by the tool.
+21.3.6.2 vhpiCbNextTimeStep and vhpiCbRepNextTimeStep
+The trigger event for a vhpiCbNextTimeStep or vhpiCbRepNextTimeStep callback is occurrence
+of substep 1) of step b) of a simulation cycle that is not a delta cycle (see 14.7.5.3).
+21.3.6.3 vhpiCbStartOfNextCycle and vhpiCbRepStartOfNextCycle
+The trigger event for a vhpiCbStartOfNextCycle or vhpiCbRepStartOfNextCycle callback is
+occurrence of step b) of the initialization phase (see 14.7.5.2) or occurrence of substep 2) of step b) of a
+simulation cycle (see 14.7.5.3).
+21.3.6.4 vhpiCbStartOfProcesses and vhpiCbRepStartOfProcesses
+The trigger event for a vhpiCbStartOfProcesses or vhpiCbRepStartOfProcesses callback is
+occurrence of step e) of the initialization phase (see 14.7.5.2) or occurrence of substep 1) of step f) of a
+simulation cycle (see 14.7.5.3).
+21.3.6.5 vhpiCbEndOfProcesses and vhpiCbRepEndOfProcesses
+The trigger event for a vhpiCbEndOfProcesses or vhpiCbRepEndOfProcesses callback is
+occurrence of step h) of the initialization phase (see 14.7.5.2) or occurrence of substep 4) of step f) of a
+simulation cycle (see 14.7.5.3).
+21.3.6.6 vhpiCbLastKnownDeltaCycle and vhpiCbRepLastKnownDeltaCycle
+The trigger event for a vhpiCbLastKnownDeltaCycle or vhpiCbLastKnownDeltaCycle
+callback is occurrence of substep 1) of step h) of a simulation cycle (see 14.7.5.3).
+21.3.6.7 vhpiCbStartOfPostponed and vhpiCbRepStartOfPostponed
+The trigger event for a vhpiCbStartOfPostponed or vhpiCbRepStartOfPostponed callback is
+occurrence of step i) of the initialization phase (see 14.7.5.2) or occurrence of substep 3) of step h) of a
+simulation cycle (see 14.7.5.3).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+435
+Copyright © 2019 IEEE. All rights reserved.
+21.3.6.8 vhpiCbEndOfTimeStep and vhpiCbRepEndOfTimeStep
+The trigger event for a vhpiCbEndOfTimeStep or vhpiCbRepEndOfTimeStep callback is
+occurrence of substep 6) of step h) of a simulation cycle (see 14.7.5.3).
+It is an error if a vhpiCbEndOfTimeStep or vhpiCbRepEndOfTimeStep callback causes activity
+on a driver or a signal (see 14.7.3.1) or registers or enables a vhpiCbAfterDelay,
+vhpiCbRepAfterDelay, vhpiCbTimeout, or vhpiCbRepTimeOut callback.
+NOTE—The restrictions on scheduling activity and registering future callbacks prevent a vhpiCbEndOfTimeStep
+or vhpiCbRepEndOfTimeStep callback from affecting the time of the next simulation cycle (see 14.7.5.1). A
+callback can cause activity using the vhpi_schedule_transaction function or the vhpi_put_value function
+with a mode value of vhpiDepositPropagate or vhpiForcePropagate. A vhpiCbEndOfTimeStep or
+vhpiCbRepEndOfTimeStep callback cannot legally use those functions for that purpose.
+21.3.7 Action callbacks
+21.3.7.1 General
+An action callback is a callback whose trigger event relates to occurrence of phases of tool execution and
+other 
+aspects 
+of 
+tool 
+execution. 
+The 
+vhpiCbQuiescence, 
+vhpiEnterInteractive,
+vhpiExitInteractive, and vhpiSigInterrupt callbacks are repetitive callbacks; the remaining
+action callbacks are one-time callbacks.
+The values of the obj, time, and value members of the callback data structure for an action callback are
+ignored by the tool.
+NOTE—A VHPI program may register an action callback whose trigger event cannot subsequently occur. For example,
+the VHPI program may register an action callback whose trigger event is occurrence of a given phase of tool execution
+after all occurrences of the phase have completed. Registration of such a callback is not an error.
+21.3.7.2 vhpiCbStartOfTool and vhpiCbEndOfTool
+The trigger event of a vhpiCbStartOfTool callback occurs immediately prior to completion of the
+vhpiRegistrationPhase phase of tool execution (see 20.2). The trigger event of a
+vhpiCbEndOfTool callback occurs during the vhpiTerminationPhase phase of tool execution (see
+20.10).
+21.3.7.3 vhpiCbStartOfAnalysis and vhpiCbEndOfAnalysis
+The trigger event of a vhpiCbStartOfAnalysis callback occurs upon commencement of the
+vhpiAnalysisPhase phase of tool execution, and the trigger event of a vhpiCbEndOfAnalysis
+callback occurs immediately prior to completion of the vhpiAnalysisPhase phase of tool execution
+(see 20.3).
+If a tool supports the vhpiAnalysisPhase phase of tool execution, it shall support the
+vhpiCbStartOfAnalysis and vhpiCbEndOfAnalysis callbacks.
+21.3.7.4 vhpiCbStartOfElaboration and vhpiCbEndOfElaboration
+The trigger event of a vhpiCbStartOfElaboration callback occurs upon commencement of the
+vhpiElaborationPhase 
+phase 
+of 
+tool 
+execution, 
+and 
+the 
+trigger 
+event 
+of 
+a
+vhpiCbEndOfElaboration 
+callback 
+occurs 
+immediately 
+prior 
+to 
+completion 
+of 
+the
+vhpiElaborationPhase phase of tool execution (see 20.4).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+436
+Copyright © 2019 IEEE. All rights reserved.
+If a tool supports the vhpiElaborationPhase phase of tool execution, it shall support the
+vhpiCbStartOfElaboration and vhpiCbEndOfElaboration callbacks.
+21.3.7.5 vhpiCbStartOfInitialization and vhpiCbEndOfInitialization
+The trigger event of a vhpiCbStartOfInitialization callback occurs upon commencement of the
+vhpiInitializationPhase 
+phase 
+of 
+tool 
+execution, 
+and 
+the 
+trigger 
+event 
+of 
+a
+vhpiCbEndOfInitialization callback occurs immediately prior to completion of the
+vhpiInitializationPhase phase of tool execution (see 14.7.5.2 and 20.5).
+If a tool supports the vhpiInitializationPhase phase of tool execution, it shall support the
+vhpiCbStartOfInitialization and vhpiCbEndOfInitialization callbacks.
+21.3.7.6 vhpiCbStartOfSimulation and vhpiCbEndOfSimulation
+The trigger event of a vhpiCbStartOfSimulation callback occurs upon commencement of the
+vhpiSimulationPhase 
+phase 
+of 
+tool 
+execution, 
+and 
+the 
+trigger 
+event 
+of 
+a
+vhpiCbEndOfSimulation 
+callback 
+occurs 
+immediately 
+prior 
+to 
+completion 
+of 
+the
+vhpiSimulationPhase phase of tool execution (see 14.7.5.3 and 20.6).
+It is an error if a vhpiCbEndOfSimulation callback calls the vhpi_put_value function or the
+vhpi_schedule_transaction function either to update the projected output waveform of a driver or
+to update the value of an object.
+If a tool supports the vhpiSimulationPhase phase of tool execution, it shall support the
+vhpiCbStartOfSimulation and vhpiCbEndOfSimulation callbacks.
+NOTE—A vhpiCbEndOfSimulation callback may access the library and design hierarchy information models
+and may read the values of objects using the vhpi_get_value function. Furthermore, it may request a control action
+using vhpi_control, for example, to reset, restart, or terminate simulation.
+21.3.7.7 vhpiCbQuiescense
+The trigger event of a vhpiCbQuiescense callback occurs during substep 7) of step 1) of a simulation
+cycle as described in 14.7.5.3.
+NOTE—A vhpiCbQuiescense callback may cause further simulation cycles by updating the projected output
+waveform of a driver either by calling the vhpi_schedule_transaction function or by calling the
+vhpi_put_value transaction with a mode value of vhpiDepositPropagate or vhpiForcePropagate.
+21.3.7.8 vhpiCbEnterInteractive
+The trigger event of a vhpiCbEnterInteractive callback occurs immediately prior to a tool entering
+a mode of operation in which it accepts directives from an interactive command source. The circumstances
+under which a tool enters such a mode and the operation of the tool in that mode are
+implementation-defined.
+21.3.7.9 vhpiCbExitInteractive
+The trigger event of a vhpiCbExitInteractive callback occurs immediately upon a tool leaving a
+mode of operation in which it accepts directives from an interactive command source and resuming tool
+execution as described in Clause 20. The circumstances under which a tool leaves such a mode are
+implementation-defined.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+437
+Copyright © 2019 IEEE. All rights reserved.
+21.3.7.10 vhpiCbSigInterrupt
+The trigger event of a vhpiCbSigInterrupt callback occurs in response to an implementation-defined
+interrupt event.
+NOTE—The interrupt event may be an event that occurs asynchronously with respect to tool execution or an exception
+event.
+21.3.8 Save, restart, and reset callbacks
+21.3.8.1 General
+The trigger events of callbacks described in this subclause (21.3.8) relate to occurrence of the save, restart,
+and reset phases of tool execution.
+The vhpiCbStartOfRestart and vhpiCbEndOfRestart callbacks are one-time callbacks; the
+remainder are repetitive callbacks.
+The values of the obj, time, and value members of the callback data structure for a save, restart, or reset
+callback are ignored by the tool.
+21.3.8.2 vhpiCbStartOfSave and vhpiCbEndOfSave
+The trigger event of a vhpiCbStartOfSave or vhpiCbEndOfSave callback occurs during the
+vhpiSavePhase phase of tool execution (see 20.7).
+If a tool supports the vhpiSavePhase phase of tool execution, it shall support the
+vhpiCbStartOfSave and vhpiCbEndOfSave callbacks.
+NOTE 1—A vhpiCbStartOfSave or vhpiCbEndOfSave callback that registers a vhpiCbStartOfRestart
+or vhpiCbEndOfRestart callback should not use the user_data member of the callback data structure to convey
+a pointer to saved data, since the data may be restored to a different location when the simulation is restarted. Instead, the
+callback should use the user_data member to convey an identification number for data saved using the
+vhpi_put_data and vhpi_get_data functions.
+NOTE 2—A VHPI program whose vhpiCbStartOfSave callback modifies data in preparation for saving (for
+example, by converting pointers to relocatable addresses) may register a vhpiCbEndOfSave callback to reverse the
+modification to allow continued simulation.
+NOTE 3—The order in which vhpiCbStartOfSave and vhpiCbEndOfSave callbacks are executed is not
+required to be the same as the order in which the callbacks were registered, except that all enabled
+vhpiCbStartOfSave callbacks are executed before any vhpiCbEndOfSave callbacks.
+NOTE 4—No callbacks are triggered between completion of all enabled vhpiCbStartOfSave callbacks and
+triggering of any vhpiCbEndOfSave callbacks.
+NOTE 5—During execution of a vhpiCbStartOfSave or vhpiCbEndOfSave callback, the current simulation
+time returned by the vhpi_get_time function is either 0 ns, if the save was requested during the initialization phase,
+or the time of the current simulation cycle, if the save was requested during a simulation cycle.
+21.3.8.3 vhpiCbStartOfRestart and vhpiCbEndOfRestart
+The trigger event of a vhpiCbStartOfRestart or vhpiCbEndOfRestart callback occurs during 
+the vhpiRestartPhase phase of tool execution (see 20.8).
+It is an error if a vhpiCbStartOfRestart callback is registered other than during the
+vhpiSavePhase of tool execution.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+438
+Copyright © 2019 IEEE. All rights reserved.
+If a tool supports the vhpiRestartPhase phase of tool execution, it shall support the
+vhpiCbStartOfRestart and vhpiCbEndOfRestart callbacks.
+NOTE 1—A VHPI program whose vhpiCbStartOfRestart callback restores data using the vhpi_get_data
+function may register a vhpiCbEndOfRestart callback to reinstate callbacks required for continued simulation of
+the restored model.
+NOTE 2—No callbacks are triggered between completion of all enabled vhpiCbStartOfRestart callbacks and
+triggering of any vhpiCbEndOfRestart callbacks.
+NOTE 3—During execution of a vhpiCbStartOfRestart callback, the current simulation time returned by the
+vhpi_get_time function is either 0 ns, if the restart was requested during the initialization phase, or the time of the
+current simulation cycle, if the restart was requested during a simulation cycle. During execution of a
+vhpiCbEndOfRestart callback, the current simulation time returned by the vhpi_get_time function is either
+0 ns, if the save of the model restarted was requested during the initialization phase of execution of the restarted model,
+or the time of the simulation cycle during which the save of the restarted model was requested, if the save was requested
+during a simulation cycle.
+21.3.8.4 vhpiCbStartOfReset and vhpiCbEndOfReset
+The trigger event of a vhpiCbStartOfReset or vhpiCbEndOfReset callback occurs during the
+vhpiResetPhase phase of tool execution (see 20.9).
+If a tool supports the vhpiResetPhase phase of tool execution, it shall support the
+vhpiCbStartOfReset and vhpiCbEndOfReset callbacks.
+NOTE 1—A VHPI program whose vhpiCbStartOfReset callback resets the state of private data may register a
+vhpiCbEndOfReset callback to reinstate callbacks or register new callbacks required for repeated simulation of the
+model.
+NOTE 2—No callbacks are triggered between completion of all enabled vhpiCbStartOfReset callbacks and
+triggering of any vhpiCbEndOfReset callbacks.
+NOTE 3—During execution of a vhpiCbStartOfReset callback, the current simulation time returned by the
+vhpi_get_time function is either 0 ns, if the reset was requested during the initialization phase, or the time of the
+current simulation cycle, if the reset was requested during a simulation cycle. During execution of a
+vhpiCbEndOfReset callback, the current simulation time returned by the vhpi_get_time function is 0 ns.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

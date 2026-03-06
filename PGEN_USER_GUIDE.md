@@ -3215,11 +3215,17 @@ AST dump integration behavior:
 Sources:
 - `grammars/*.ebnf`
 
-LRM conversion workspaces (local, generated artifacts ignored by default):
-- `docs/systemverilog/`
-  - `txt/`, `md/`, grammar extraction artifacts from IEEE 1800-2023 conversion
-- `docs/vhdl/`
-  - `txt/`, `md/`, grammar extraction artifacts from IEEE 1076-2019 conversion
+LRM conversion workspaces (tracked versioned outputs):
+- `docs/systemverilog/2017/`
+  - `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
+- `docs/systemverilog/2023/`
+  - `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
+- `docs/vhdl/2019/`
+  - `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
+
+Canonical extracted EBNF snapshots:
+- `grammars/systemverilog_2017_lrm_extracted.ebnf`
+- `grammars/systemverilog_2023_lrm_extracted.ebnf`
 
 LRM conversion tooling (adapted scripts under `tools/`):
 - `tools/split_sections.py`
@@ -3233,17 +3239,30 @@ LRM conversion tooling (adapted scripts under `tools/`):
 LRM conversion quick commands:
 ```bash
 python3 tools/ieee_lrm_converter.py \
-  --pdf /Users/richarddje/Documents/github/1800-2023.pdf \
-  --out-root docs/systemverilog \
+  --pdf /Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2017.pdf \
+  --out-root docs/systemverilog/2017 \
+  --document "SystemVerilog Language Reference Manual" \
+  --standard "IEEE 1800-2017" \
+  --domain "SystemVerilog" \
+  --clause-depth 1 \
+  --toc-max-level 6 \
+  --include-annex \
+  --extract-grammar
+
+python3 tools/ieee_lrm_converter.py \
+  --pdf /Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2023.pdf \
+  --out-root docs/systemverilog/2023 \
   --document "SystemVerilog Language Reference Manual" \
   --standard "IEEE 1800-2023" \
   --domain "SystemVerilog" \
   --clause-depth 1 \
+  --toc-max-level 6 \
+  --include-annex \
   --extract-grammar
 
 python3 tools/ieee_lrm_converter.py \
-  --pdf /Users/richarddje/Documents/github/ieee-1076-2019.pdf \
-  --out-root docs/vhdl \
+  --pdf /Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf \
+  --out-root docs/vhdl/2019 \
   --document "VHDL Language Reference Manual" \
   --standard "IEEE 1076-2019" \
   --domain "VHDL" \

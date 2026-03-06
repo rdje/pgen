@@ -1,0 +1,450 @@
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+138
+Copyright © 2019 IEEE. All rights reserved.
+8. Names
+8.1 General
+Names can denote declared entities, whether declared explicitly or implicitly. Names can also denote the
+following:
+—
+Objects denoted by access values
+—
+Methods (see 5.6.2) of protected types
+—
+Subelements of composite objects
+—
+Subelements of composite values
+—
+Slices of composite objects
+—
+Slices of composite values
+—
+Attributes of any named entity
+name ::=
+        simple_name
+    |   operator_symbol
+    |   character_literal
+    |   selected_name
+    |   indexed_name
+    |   slice_name
+    |   attribute_name
+    |   external_name
+prefix ::=
+        name
+    |   function_call
+Certain forms of name (indexed and selected names, slice names, and attribute names) include a prefix that
+is a name or a function call. If the prefix of a name is a function call, then the name denotes an element, a
+slice, or an attribute, either of the result of the function call, or (if the result is an access value) of the object
+designated by the result. Function calls are defined in 9.3.4.
+A prefix is said to be appropriate for a type in either of the following cases:
+—
+The type of the prefix is the type considered.
+—
+The type of the prefix is an access type whose designated type is the type considered.
+The evaluation of a name determines the named entity denoted by the name. The evaluation of a name that
+has a prefix includes the evaluation of the prefix, that is, of the corresponding name or function call. If the
+type of the prefix is an access type, the evaluation of the prefix includes the determination of the object
+designated by the corresponding access value. In such a case, it is an error if the value of the prefix is a null
+access value. It is an error if, after all type analysis (including overload resolution), the name is ambiguous.
+A name is said to be a static name if and only if one of the following conditions holds:
+—
+The name is a simple name or selected name (including those that are expanded names) that does not
+denote a function call, an object or value of an access type, or an object of a protected type and (in
+the case of a selected name) whose prefix is a static name.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+139
+Copyright © 2019 IEEE. All rights reserved.
+—
+The name is an indexed name whose prefix is a static name, and every expression that appears as part
+of the name is a static expression.
+—
+The name is a slice name whose prefix is a static name and whose discrete range is a static discrete
+range.
+—
+The name is an attribute name whose prefix is a static signal name and whose suffix is one of the
+predefined attributes 'DELAYED, 'STABLE, 'QUIET, or 'TRANSACTION.
+—
+The name is an external name.
+Furthermore, a name is said to be a locally static name if and only if one of the following conditions hold:
+—
+The name is a simple name or selected name (including those that are expanded names) that is not an
+alias and that does not denote a function call, an object or value of an access type, or an object of a
+protected type and (in the case of a selected name) whose prefix is a locally static name.
+—
+The name is a simple name or selected name (including those that are expanded names) that is an
+alias, and that the aliased name given in the corresponding alias declaration (see 6.6) is a locally
+static name, and (in the case of a selected name) whose prefix is a locally static name.
+—
+The name is an indexed name whose prefix is a locally static name, and every expression that
+appears as part of the name is a locally static expression.
+—
+The name is a slice name whose prefix is a locally static name and whose discrete range is a locally
+static discrete range.
+A static signal name is a static name that denotes a signal. The longest static prefix of a signal name is the
+name itself, if the name is a static signal name; otherwise, it is the longest prefix of the name that is a static
+signal name. Similarly, a static variable name is a static name that denotes a variable, and the longest static
+prefix of a variable name is the name itself, if the name is a static variable name; otherwise, it is the longest
+prefix of the name that is a static variable name.
+Examples:
+S(C,2)        --A static name: C is a static constant.
+R(J to 16)    --A nonstatic name: J is a signal.
+              --R is the longest static prefix of R(J to 16).
+T(n)          --A static name; n is a generic constant.
+T(2)          --A locally static name.
+8.2 Simple names
+A simple name for a named entity is either the identifier associated with the entity by its declaration or
+another identifier associated with the entity by an alias declaration.   In particular, the simple name for an
+entity declaration, a configuration, a package, a procedure, or a function is the identifier that appears in the
+corresponding entity declaration, configuration declaration, package declaration, procedure declaration or
+function declaration, respectively. The simple name of an architecture is that defined by the identifier of the
+architecture body.
+simple_name ::= identifier
+The evaluation of a simple name has no other effect than to determine the named entity denoted by the
+name.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+140
+Copyright © 2019 IEEE. All rights reserved.
+8.3 Selected names
+A selected name is used to denote a named entity whose declaration appears either within the declaration of
+another named entity or within a design library.
+selected_name ::=  prefix . suffix
+suffix ::=
+          simple_name
+      |   character_literal
+      |   operator_symbol
+      |  all
+A selected name can denote an element of a record, an object designated by an access value, or a named
+entity whose declaration is contained within another named entity, particularly within a library, a package,
+or a protected type. Furthermore, a selected name can denote all named entities whose declarations are
+contained within a library or a package.
+For a selected name that is used to denote a record element, the suffix shall be a simple name denoting an
+element of a record object or value. The prefix shall be appropriate for the type of this object or value.
+For a selected name that is used to denote the object designated by an access value, the suffix shall be the
+reserved word all. The prefix shall belong to an access type.
+The remaining forms of selected names are called expanded names. The prefix of an expanded name shall
+not be a function call.
+An expanded name denotes a primary unit contained in a design library if the prefix denotes the library and
+the suffix is the simple name of a primary unit whose declaration is contained in that library. An expanded
+name denotes all primary units contained in a library if the prefix denotes the library and the suffix is the
+reserved word all. An expanded name is not allowed for a secondary unit, whether denoting a package body
+or an architecture body. 
+An expanded name denotes a named entity declared in a package if the prefix denotes the package and the
+suffix is the simple name, character literal, or operator symbol of a named entity whose declaration occurs
+immediately within that package. An expanded name denotes all named entities declared in a package if the
+prefix denotes the package and the suffix is the reserved word all.
+An expanded name denotes a named entity declared immediately within a named construct if the prefix
+denotes a construct that is an entity declaration, an architecture body, a subprogram declaration, a
+subprogram body, a block statement, a process statement, a generate statement, a loop statement, or a
+protected type definition, and the suffix is the simple name, character literal, or operator symbol of a named
+entity whose declaration occurs immediately within that construct. This form of expanded name is only
+allowed within the construct itself, or if the prefix denotes an entity declaration and the expanded name
+occurs within an architecture body corresponding to the entity declaration.
+An expanded name denotes a named entity declared immediately within an architecture body if the prefix
+denotes the entity declaration corresponding to the architecture body and the suffix is the simple name,
+character literal, or operator symbol of a named entity whose declaration occurs immediately within the
+architecture body. This form of expanded name is only allowed within the architecture body.
+An expanded name denotes a named entity declared immediately within an elaborated protected type if the
+prefix denotes an object of the protected type and the suffix is a simple name of a method or an alias whose
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+141
+Copyright © 2019 IEEE. All rights reserved.
+declaration appears immediately within the protected type declaration. If the object is of a composite type
+with a subelement of a protected type, the prefix shall denote such a subelement.
+If, according to the visibility rules, there is at least one possible interpretation of the prefix of a selected
+name as the name of an enclosing entity declaration, architecture, subprogram, block statement, process
+statement, generate statement, loop statement, or protected type, or if there is at least one possible
+interpretation of the prefix of a selected name as the name of an object of a protected type, then the only
+interpretations considered are those of the immediately preceding three paragraphs. In this case, the selected
+name is always interpreted as an expanded name. In particular, no interpretations of the prefix as a function
+call are considered.
+Examples:
+-- Given the following declarations:
+type INSTR_TYPE is
+   record
+      OPCODE: OPCODE_TYPE;
+   end record;
+signal INSTRUCTION: INSTR_TYPE;
+-- The name "INSTRUCTION.OPCODE" is the name of a record element.
+-- Given the following declarations:
+type INSTR_PTR is access INSTR_TYPE;
+variable PTR: INSTR_PTR;
+-- The name "PTR.all" is the name of the object designated by PTR.
+-- Given the following library clause:
+library TTL, CMOS;
+-- The name "TTL.SN74LS221" is the name of a design unit contained 
+-- a library and the name "CMOS.all" denotes all design units 
+-- contained in a library.
+-- Given the following declaration and use clause:
+library MKS;
+use MKS.MEASUREMENTS, STD.STANDARD;
+-- The name "MEASUREMENTS.VOLTAGE" denotes a named entity declared in
+-- a package and the name "STANDARD.all" denotes all named entities
+-- declared in a package.
+-- Given the following process label and declarative part:
+P: process
+   variable DATA: INTEGER;
+begin
+   -- Within process P, the name "P.DATA" denotes a named entity
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+142
+Copyright © 2019 IEEE. All rights reserved.
+   -- declared with process P.
+end process;
+counter.increment(5); -- See Clause 6.4.2.4 for the definition
+counter.decrement(i); 
+-- of "counter."
+if counter.value = 0 then ... end if;
+result.add(sv1, sv2);-- See Clause 6.4.2.4 for the definition
+-- of "result."
+bit_stack.add_bit(1, '1');    -- See Clause 6.4.2.4 for the 
+definition bit_stack.add_bit(2, '1'); -- of "bit_stack."
+bit_stack.add_bit(3, '0');
+NOTE 1—The object denoted by an access value is accessed differently depending on whether the entire object or a
+subelement of the object is desired. If the entire object is desired, a selected name whose prefix denotes the access value
+and whose suffix is the reserved word all is used. In this case, the access value is not automatically dereferenced, since it
+is necessary to distinguish an access value from the object denoted by an access value. If a subelement of the object is
+desired, a selected name whose prefix denotes the access value is again used; however, the suffix in this case denotes the
+subelement. In this case, the access value is automatically dereferenced.
+These two cases are shown in the following example:
+type rec;
+type recptr is access rec;
+type rec is
+   record
+value  : INTEGER;
+\next\ : recptr;
+   end record;
+variable list1, list2: recptr;
+variable recobj: rec;
+list2 := list1; 
+-- Access values are copied;
+-- list1 and list2 now denote the same object.
+list2 := list1.\next\; 
+-- list2 denotes the same object as list1.\next\.
+-- list1.\next\ is the same as list1.all.\next\.
+-- An implicit dereference of the access value occurs before the
+-- "\next\" element is selected.
+recobj := list2.all;  
+-- An explicit dereference is needed here.
+NOTE 2—Overload resolution is used to disambiguate selected names. See rules a) and c) of 12.5.
+NOTE 3—If, according to the rules of this subclause and of 12.5, there is not exactly one interpretation of a selected
+name that satisfies these rules, then the selected name is ambiguous.
+8.4 Indexed names
+An indexed name denotes an element of an array.
+indexed_name ::=  prefix ( expression { , expression } )
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+143
+Copyright © 2019 IEEE. All rights reserved.
+The prefix of an indexed name shall be appropriate for an array type. The expressions specify the index
+values for the element; there shall be one such expression for each index position of the array, and each
+expression shall be of the type of the corresponding index. For the evaluation of an indexed name, the prefix
+and the expressions are evaluated. It is an error if an index value does not belong to the range of the
+corresponding index range of the array.
+Examples:
+REGISTER_ARRAY(5)          -- An element of a one-dimensional array
+MEMORY_CELL(1024,7)        -- An element of a two-dimensional array
+NOTE—If a name (including one used as a prefix) has an interpretation both as an indexed name and as a function call,
+then the innermost complete context is used to disambiguate the name. If, after applying this rule, there is not exactly
+one interpretation of the name, then the name is ambiguous. See 12.5.
+8.5 Slice names
+A slice name denotes a one-dimensional array composed of a sequence of consecutive elements of another
+one-dimensional array. A slice of a signal is a signal; a slice of a variable is a variable; a slice of a constant is
+a constant; a slice of a value is a value.
+slice_name ::=  prefix ( discrete_range )
+The prefix of a slice shall be appropriate for a one-dimensional array object. The base type of this array type
+is the type of the slice.
+The bounds of the discrete range define those of the slice and shall be of the type of the index of the array.
+The slice is a null slice if the discrete range is a null range. It is an error if the direction of the discrete range
+is not the same as that of the index range of the array denoted by the prefix of the slice name.
+For the evaluation of a name that is a slice, the prefix and the discrete range are evaluated. It is an error if
+either of the bounds of the discrete range does not belong to the index range of the prefixing array, unless the
+slice is a null slice. (The bounds of a null slice need not belong to the subtype of the index.)
+Examples:
+signal   R15:  BIT_VECTOR (0 to 31);
+constant DATA: BIT_VECTOR (31 downto 0);
+R15(0 to 7)            -- A slice with an ascending range.
+DATA(24 downto 1)      -- A slice with a descending range.
+DATA(1 downto 24)      -- A null slice.
+DATA(24 to 25)         -- An error.
+NOTE—If A is a one-dimensional array of objects, the name A(N to N) or A(N downto N) is a slice that contains one
+element; its type is the base type of A. On the other hand, A(N) is an element of the array A and has the corresponding
+element type.
+8.6 Attribute names
+An attribute name denotes a value, function, type, range, signal, or constant associated with a named entity.
+attribute_name ::=
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+144
+Copyright © 2019 IEEE. All rights reserved.
+    prefix [ signature ] ' attribute_designator [ ( expression ) ]
+attribute_designator ::=  attribute_simple_name
+The applicable attribute designators depend on the prefix plus the signature, if any. The meaning of the
+prefix of an attribute shall be determinable independently of the attribute designator and independently of
+the fact that it is the prefix of an attribute.
+It is an error if a signature follows the prefix and the prefix does not denote a subprogram or enumeration
+literal, or an alias thereof. In this case, the signature is required to match (see 4.5.3) the parameter and result
+type profile of exactly one visible subprogram or enumeration literal, as is appropriate to the prefix.
+If the attribute designator denotes a predefined attribute, the expression either shall or may appear,
+depending upon the definition of that attribute (see Clause 16); otherwise, it shall not be present. For an
+attribute that denotes a function, an expression does not appear as part of the attribute name; a parenthesized
+expression following the attribute designator is interpreted as part of a function call (see 9.3.4).
+If the prefix of an attribute name denotes an alias, then the attribute name denotes an attribute of the aliased
+name and not the alias itself, except when the attribute designator denotes any of the predefined attributes
+'SIMPLE_NAME, 'PATH_NAME, or 'INSTANCE_NAME. If the prefix of an attribute name denotes an
+alias and the attribute designator denotes any of the predefined attributes SIMPLE_NAME, 'PATH_NAME,
+or 'INSTANCE_NAME, then the attribute name denotes the attribute of the alias and not of the aliased
+name.
+If the attribute designator denotes a user-defined attribute, the prefix cannot denote a subelement or a slice of
+an object.
+NOTE—An attribute name that denotes a predefined attribute that is a function may be associated as the actual for a
+formal generic subprogram.
+Examples:
+REG'LEFT(1) 
+-- The leftmost index bound of array REG
+INPUT_P'PATH_NAME   -- The hierarchical path name of
+ 
+-- the port INPUT_P
+CLK'DELAYED(5 ns)     -- The signal CLK delayed by 5 ns
+8.7 External names
+An external name denotes an object declared in the design hierarchy containing the external name.
+external_name ::=
+        external_constant_name
+    |   external_signal_name
+    |   external_variable_name
+external_constant_name ::=
+    << constant external_pathname : interface_type_indication >>
+external_signal_name ::=
+    << signal external_pathname : interface_type_indication >>
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+145
+Copyright © 2019 IEEE. All rights reserved.
+external_variable_name ::=
+    << variable external_pathname : interface_type_indication >>
+external_pathname ::= 
+        package_pathname
+    |   absolute_pathname
+    |   relative_pathname
+package_pathname ::=
+    @ library_logical_name . package_simple_name . { package_simple_name . } object_simple_name
+absolute_pathname ::= . partial_pathname
+relative_pathname ::= { ^ . } partial_pathname
+partial_pathname ::= { pathname_element . } object_simple_name
+pathname_element ::=
+        entity_simple_name
+    |   component_instantiation_label
+    |   block_label
+    |   generate_statement_label [ ( static_expression ) ]
+    |    package_simple_name
+The object denoted by an external name is the object whose simple name is the object simple name of the
+external pathname and that is declared in the elaborated declarative region identified by the external
+pathname, as follows:
+a)
+First, a declarative region is initially identified:
+1)
+For an absolute pathname, the root declarative region encompassing the design entity that
+forms the root of the design hierarchy is initially identified.
+2)
+For a package pathname, the library logical name shall be defined by a library clause, and the
+library declarative region associated with the design library denoted by the library logical name
+is initially identified.
+3)
+For a relative pathname, the innermost concurrent region is initially identified, where a
+concurrent region is defined recursively to be
+—
+A block declarative region (including an external block and any block equivalent to a
+generate statement), or
+—
+A package declarative region (including a generic-mapped package equivalent to a
+package instantiation) declared immediately within a concurrent region.
+Then, for each occurrence of a circumflex accent followed by a dot, the innermost concurrent
+region, other than a block declarative region of a block corresponding to a component
+instantiation statement, containing the previously identified declarative region replaces the
+previously identified declarative region as the identified declarative region. It is an error when
+evaluating the external name if, at any stage, there is no such containing declarative region, or
+if the containing declarative region is the declarative region of an uninstantiated package.
+b)
+Second, for each package simple name in a package pathname, or for each pathname element in an
+absolute or relative pathname, in order, the previously identified declarative region is replaced as the
+identified declarative region by one of the following:
+1)
+For a package simple name, the declarative region of the package denoted by the package
+simple name in the previously identified declarative region. If the package simple name
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+146
+Copyright © 2019 IEEE. All rights reserved.
+denotes a package instantiation, then the declarative region is that of the equivalent generic-
+mapped package.
+2)
+For an entity simple name, the declarative region of the external block of the design entity at
+the root of the design hierarchy. This form of pathname element shall only occur at a place
+where the previously identified declarative region is the root declarative region encompassing
+the design entity that forms the root of the design hierarchy.
+3)
+For a component instantiation label, the declarative region of the design entity bound to the
+component instance.
+4)
+For a block label, the declarative region of the block.
+5)
+For a generate statement label, the declarative region of the equivalent block corresponding to
+the generate statement. If the generate statement is a for generate statement, the pathname
+element shall include a static expression, the type of the expression shall be the same as the
+type of the generate parameter, and the value of the expression shall belong to the discrete
+range specified for the generate parameter. The type of the expression shall be determined by
+applying the rules of 12.5 to the expression considered as a complete context, using the rule
+that the type shall be discrete. If the type of the expression is universal_integer and the type of
+the generate parameter is an integer type, an implicit conversion of the expression to the type of
+the generate parameter is assumed.
+It is an error when evaluating the external name if, at any stage, a declarative region corresponding
+to a package name in a package pathname or to a pathname element in an absolute or relative
+pathname does not exist. It is an error when evaluating the external name if a package simple name
+in an external pathname denotes an uninstantiated package.
+It is an error when evaluating an external name if the identified declarative region does not contain a
+declaration of an object whose simple name is the object simple name of the external pathname. It is also an
+error when evaluating an external name if the object denoted by an external constant name is not a constant,
+or if the object denoted by an external signal name is not a signal, or if the object denoted by an external
+variable name is not a variable. Moreover, it is an error if the base type of the object denoted by an external
+name is not the same as the base type of the type mark in the subtype indication of the external name.
+If the subtype indication denotes a composite subtype, then the object denoted by the external name is
+viewed as if it were of the subtype specified by the subtype indication. For each index range, if any, in the
+subtype, if the subtype defines the index range, the object is viewed with that index range; otherwise, the
+object is viewed with the index range of the object. The view specified by the subtype shall include a
+matching element (see 9.2.3) for each element of the object denoted by the external name.
+If the subtype indication denotes a scalar subtype, then the object denoted by the external name is viewed as
+if it were of the subtype specified by the subtype indication; moreover, it is an error when evaluating the
+external name if this subtype does not have the same bounds and direction as the subtype of the object
+denoted by the external name.
+The evaluation of an external name has no other effect than to determine the named entity denoted by the
+name.
+NOTE 1—A generic constant may be denoted by an external constant name, a signal port may be denoted by an external
+signal name and a variable port may be denoted by an external variable name.
+NOTE 2—Since the object denoted by an external name cannot be declared within a process or subprogram, if the object
+is a variable, it will be a shared variable.
+NOTE 3—A declarative region corresponding to a package name or a pathname element does not exist if the name or
+label is not declared. It may also not exist in the case of a component instance that is unbound, or in the case of an if
+generate statement for which no block is generated.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+147
+Copyright © 2019 IEEE. All rights reserved.
+NOTE 4—It is not possible to use an external name to denote the local generics or local ports of a component
+instantiated in a component instantiation statement.
+NOTE 5—If a package has the same simple name as the entity at the root of the design entity, the external pathnames for
+an object in the package and an object in the design hierarchy, could, in some cases, comprise the same sequence of
+simple names. A package pathname starts with a different delimiter (@) from an absolute pathname (.) in order to avoid
+such an ambiguity.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

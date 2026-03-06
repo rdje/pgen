@@ -1,0 +1,50 @@
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+69
+Copyright © 2018 IEEE. All rights reserved.
+5. Lexical conventions
+5.1 General 
+This clause describes the following: 
+—
+Lexical tokens (white space, comments, operators)
+—
+Integer, real, string, array, structure, and time literals
+—
+Built-in method calls
+—
+Attributes
+5.2 Lexical tokens 
+SystemVerilog source text files shall be a stream of lexical tokens. A lexical token shall consist of one or
+more characters. The layout of tokens in a source file shall be free format; that is, spaces and newline
+characters shall not be syntactically significant other than being token separators, except for escaped
+identifiers (see 5.6.1). 
+The types of lexical tokens in the language are as follows:
+—
+White space 
+—
+Comment 
+—
+Operator
+—
+Number 
+—
+String literal 
+—
+Identifier 
+—
+Keyword 
+5.3 White space 
+White space shall contain the characters for spaces, tabs, newlines, and formfeeds. These characters shall be
+ignored except when they serve to separate other lexical tokens. However, blanks and tabs shall be
+considered significant characters in string literals (see 5.9).
+5.4 Comments 
+SystemVerilog has two forms to introduce comments. A one-line comment shall start with the two
+characters // and end with a newline character. A block comment shall start with /* and end with */. Block
+comments shall not be nested. The one-line comment token // shall not have any special meaning in a block
+comment.
+5.5 Operators 
+Operators are single-, double-, or triple-character sequences and are used in expressions. Clause 11
+discusses the use of operators in expressions.
+Unary operators shall appear to the left of their operand. Binary operators shall appear between their
+operands. A conditional operator shall have two operator characters that separate three operands.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

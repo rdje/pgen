@@ -1,0 +1,148 @@
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1292
+Copyright © 2018 IEEE. All rights reserved.
+#define vpiInstance               745
+/**************************************************************************/
+/************************ generic object properties ***********************/
+/**************************************************************************/
+#define vpiTop                    600
+#define vpiUnit                   602
+#define vpiJoinType
+603 
+#define vpiJoin
+0
+#define vpiJoinNone
+1
+#define vpiJoinAny
+2
+#define vpiAccessType             604
+#define vpiForkJoinAcc         1
+#define vpiExternAcc           2
+#define vpiDPIExportAcc        3
+#define vpiDPIImportAcc        4
+#define vpiArrayType              606
+#define vpiStaticArray         1
+#define vpiDynamicArray        2
+#define vpiAssocArray          3
+#define vpiQueueArray          4
+#define vpiArrayMember            607
+#define vpiIsRandomized           608
+#define vpiLocalVarDecls
+609 
+#define vpiOpStrong
+656 /* strength of temporal operator */ 
+#define vpiRandType               610
+#define vpiNotRand             1
+#define vpiRand                2
+#define vpiRandC               3
+#define vpiPortType
+611 
+#define vpiInterfacePort
+1
+#define vpiModportPort
+2
+/* vpiPort is also a port type. It is defined in vpi_user.h */
+#define vpiConstantVariable       612
+#define vpiStructUnionMember
+615 
+#define vpiVisibility             620
+#define vpiPublicVis           1
+#define vpiProtectedVis        2
+#define vpiLocalVis            3
+/* Return values for vpiConstType property */ 
+#define vpiOneStepConst
+9
+#define vpiUnboundedConst
+10 
+#define vpiNullConst
+11
+#define vpiAlwaysType             624
+#define vpiAlwaysComb
+2 
+#define vpiAlwaysFF
+3 
+#define vpiAlwaysLatch
+4 
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1293
+Copyright © 2018 IEEE. All rights reserved.
+#define vpiDistType               625
+#define vpiEqualDist           1 /* constraint equal distribution */
+#define vpiDivDist             2 /* constraint divided distribution */
+#define vpiPacked                 630
+#define vpiTagged                 632
+#define vpiRef
+6 /* Return value for vpiDirection property */ 
+#define vpiVirtual                635
+#define vpiHasActual
+636 
+#define vpiIsConstraintEnabled    638
+#define vpiSoft
+639 
+#define vpiClassType              640
+#define vpiMailboxClass        1
+#define vpiSemaphoreClass      2
+#define vpiUserDefinedClass
+3 
+#define vpiProcessClass
+4 
+#define vpiMethod                 645
+#define vpiIsClockInferred        649
+#define vpiIsDeferred
+657 
+#define vpiIsFinal
+670 
+#define vpiIsCoverSequence
+659 
+#define vpiQualifier              650
+#define vpiNoQualifier         0
+#define vpiUniqueQualifier     1
+#define vpiPriorityQualifier   2
+#define vpiTaggedQualifier     4
+#define vpiRandQualifier       8
+#define vpiInsideQualifier
+16 
+#define vpiInputEdge
+651 /* returns vpiNoEdge, vpiPosedge,
+vpiNegedge */ 
+#define vpiOutputEdge
+652 /* returns vpiNoEdge, vpiPosedge,
+vpiNegedge */ 
+#define vpiGeneric
+653 
+/* Compatibility-mode property and values (object argument == NULL) */ 
+#define vpiCompatibilityMode
+654
+#define vpiMode1364v1995
+1
+#define vpiMode1364v2001
+2
+#define vpiMode1364v2005
+3
+#define vpiMode1800v2005
+4
+#define vpiMode1800v2009
+5
+#define vpiPackedArrayMember
+655
+#define vpiStartLine
+661
+#define vpiColumn
+662
+#define vpiEndLine
+663
+#define vpiEndColumn
+664
+/* memory allocation scheme for transient objects */ 
+#define vpiAllocScheme
+658 
+#define vpiAutomaticScheme
+1
+#define vpiDynamicScheme
+2
+#define vpiOtherScheme
+3
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

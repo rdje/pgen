@@ -1,0 +1,180 @@
+---
+title: "Section Annex.L: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language"
+document: "SystemVerilog Language Reference Manual"
+standard: "IEEE 1800-2023"
+domain: "SystemVerilog"
+section: "Annex.L"
+source_txt: "section-Annex_L-normative-vpi-compatibility-h.txt"
+source_pdf: "/Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2023.pdf"
+---
+
+# Section Annex.L: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+
+IEEE Std 1800-2023
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1323
+Copyright © 2024 IEEE. All rights reserved.
+Annex L
+(normative)
+vpi_compatibility.h
+L.1 General
+This include file contains special macro definitions required to support VPI compatibility mode
+functionality (see 36.12, especially 36.12.2.1). It is automatically included by vpi_user.h (see Annex K), and
+therefore should not be included directly from user application code.
+L.2 Source code
+/*******************************************************************************
+* vpi_compatibility.h
+*
+* IEEE Std 1800-2023 SystemVerilog Verification Procedural Interface (VPI)
+*
+* NOTE: THIS FILE IS INCLUDED BY vpi_user.h. DO NOT INCLUDE THIS FILE FROM
+* USER APPLICATION CODE.
+*
+* This file contains the macro definitions used by the SystemVerilog PLI
+* to implement backwards compatibility mode functionality.
+*
+******************************************************************************/
+#ifdef VPI_COMPATIBILITY_H
+#error "The vpi_compatibility.h file can only be included by vpi_user.h
+directly."
+#endif
+#define VPI_COMPATIBILITY_H
+/* Compatibility-mode variants of functions */
+#if VPI_COMPATIBILITY_VERSION_1800v2023
+  #define VPI_COMPATIBILITY_VERSION_1800v2012
+#endif
+#if VPI_COMPATIBILITY_VERSION_1800v2017
+#define VPI_COMPATIBILITY_VERSION_1800v2012
+#endif
+#if VPI_COMPATIBILITY_VERSION_1364v1995
+#if VPI_COMPATIBILITY_VERSION_1364v2001 || VPI_COMPATIBILITY_VERSION_1364v2005
+|| VPI_COMPATIBILITY_VERSION_1800v2005 || VPI_COMPATIBILITY_VERSION_1800v2009
+|| VPI_COMPATIBILITY_VERSION_1800v2012
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1364v1995
+#define vpi_control vpi_control_1364v1995
+#define vpi_get vpi_get_1364v1995
+#define vpi_get_str vpi_get_str_1364v1995
+#define vpi_get_value vpi_get_value_1364v1995
+#define vpi_handle vpi_handle_1364v1995
+#define vpi_handle_by_index vpi_handle_by_index_1364v1995
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1364v1995
+#define vpi_handle_by_name vpi_handle_by_name_1364v1995
+#define vpi_handle_multi vpi_handle_multi_1364v1995
+#define vpi_iterate vpi_iterate_1364v1995
+#define vpi_put_value vpi_put_value_1364v1995
+#define vpi_register_cb vpi_register_cb_1364v1995
+Authorized licensed use limited to: Richard DJE. Downloaded on February 27,2026 at 08:44:11 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2023
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1324
+Copyright © 2024 IEEE. All rights reserved.
+#define vpi_scan vpi_scan_1364v1995
+#elif VPI_COMPATIBILITY_VERSION_1364v2001
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2005
+|| VPI_COMPATIBILITY_VERSION_1800v2005 || VPI_COMPATIBILITY_VERSION_1800v2009
+|| VPI_COMPATIBILITY_VERSION_1800v2012
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1364v2001
+#define vpi_control vpi_control_1364v2001
+#define vpi_get vpi_get_1364v2001
+#define vpi_get_str vpi_get_str_1364v2001
+#define vpi_get_value vpi_get_value_1364v2001
+#define vpi_handle vpi_handle_1364v2001
+#define vpi_handle_by_index vpi_handle_by_index_1364v2001
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1364v2001
+#define vpi_handle_by_name vpi_handle_by_name_1364v2001
+#define vpi_handle_multi vpi_handle_multi_1364v2001
+#define vpi_iterate vpi_iterate_1364v2001
+#define vpi_put_value vpi_put_value_1364v2001
+#define vpi_register_cb vpi_register_cb_1364v2001
+#define vpi_scan vpi_scan_1364v2001
+#elif VPI_COMPATIBILITY_VERSION_1364v2005
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2001
+|| VPI_COMPATIBILITY_VERSION_1800v2005 || VPI_COMPATIBILITY_VERSION_1800v2009
+|| VPI_COMPATIBILITY_VERSION_1800v2012
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1364v2005
+#define vpi_control vpi_control_1364v2005
+#define vpi_get vpi_get_1364v2005
+#define vpi_get_str vpi_get_str_1364v2005
+#define vpi_get_value vpi_get_value_1364v2005
+#define vpi_handle vpi_handle_1364v2005
+#define vpi_handle_by_index vpi_handle_by_index_1364v2005
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1364v2005
+#define vpi_handle_by_name vpi_handle_by_name_1364v2005
+#define vpi_handle_multi vpi_handle_multi_1364v2005
+#define vpi_iterate vpi_iterate_1364v2005
+#define vpi_put_value vpi_put_value_1364v2005
+#define vpi_register_cb vpi_register_cb_1364v2005
+#define vpi_scan vpi_scan_1364v2005
+#elif VPI_COMPATIBILITY_VERSION_1800v2005
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2001
+|| VPI_COMPATIBILITY_VERSION_1364v2005 || VPI_COMPATIBILITY_VERSION_1800v2009
+|| VPI_COMPATIBILITY_VERSION_1800v2012
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1800v2005
+#define vpi_control vpi_control_1800v2005
+#define vpi_get vpi_get_1800v2005
+#define vpi_get_str vpi_get_str_1800v2005
+#define vpi_get_value vpi_get_value_1800v2005
+#define vpi_handle vpi_handle_1800v2005
+#define vpi_handle_by_index vpi_handle_by_index_1800v2005
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1800v2005
+#define vpi_handle_by_name vpi_handle_by_name_1800v2005
+#define vpi_handle_multi vpi_handle_multi_1800v2005
+#define vpi_iterate vpi_iterate_1800v2005
+#define vpi_put_value vpi_put_value_1800v2005
+#define vpi_register_cb vpi_register_cb_1800v2005
+#define vpi_scan vpi_scan_1800v2005
+#elif VPI_COMPATIBILITY_VERSION_1800v2009
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2001
+|| VPI_COMPATIBILITY_VERSION_1364v2005 || VPI_COMPATIBILITY_VERSION_1800v2005
+Authorized licensed use limited to: Richard DJE. Downloaded on February 27,2026 at 08:44:11 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2023
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1325
+Copyright © 2024 IEEE. All rights reserved.
+|| VPI_COMPATIBILITY_VERSION_1800v2012
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1800v2009
+#define vpi_control vpi_control_1800v2009
+#define vpi_get vpi_get_1800v2009
+#define vpi_get_str vpi_get_str_1800v2009
+#define vpi_get_value vpi_get_value_1800v2009
+#define vpi_handle vpi_handle_1800v2009
+#define vpi_handle_by_index vpi_handle_by_index_1800v2009
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1800v2009
+#define vpi_handle_by_name vpi_handle_by_name_1800v2009
+#define vpi_handle_multi vpi_handle_multi_1800v2009
+#define vpi_iterate vpi_iterate_1800v2009
+#define vpi_put_value vpi_put_value_1800v2009
+#define vpi_register_cb vpi_register_cb_1800v2009
+#define vpi_scan vpi_scan_1800v2009
+#elif VPI_COMPATIBILITY_VERSION_1800v2012
+#if VPI_COMPATIBILITY_VERSION_1364v1995 || VPI_COMPATIBILITY_VERSION_1364v2001
+|| VPI_COMPATIBILITY_VERSION_1364v2005 || VPI_COMPATIBILITY_VERSION_1800v2005
+|| VPI_COMPATIBILITY_VERSION_1800v2009
+#error "Only one VPI_COMPATIBILITY_VERSION symbol definition is allowed."
+#endif
+#define vpi_compare_objects vpi_compare_objects_1800v2012
+#define vpi_control vpi_control_1800v2012
+#define vpi_get vpi_get_1800v2012
+#define vpi_get_str vpi_get_str_1800v2012
+#define vpi_get_value vpi_get_value_1800v2012
+#define vpi_handle vpi_handle_1800v2012
+#define vpi_handle_by_index vpi_handle_by_index_1800v2012
+#define vpi_handle_by_multi_index vpi_handle_by_multi_index_1800v2012
+#define vpi_handle_by_name vpi_handle_by_name_1800v2012
+#define vpi_handle_multi vpi_handle_multi_1800v2012
+#define vpi_iterate vpi_iterate_1800v2012
+#define vpi_put_value vpi_put_value_1800v2012
+#define vpi_register_cb vpi_register_cb_1800v2012
+#define vpi_scan vpi_scan_1800v2012
+#endif
+Authorized licensed use limited to: Richard DJE. Downloaded on February 27,2026 at 08:44:11 UTC from IEEE Xplore.  Restrictions apply.

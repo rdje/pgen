@@ -1,0 +1,5322 @@
+---
+title: "Section 16: IEEE Standard for VHDL Language Reference Manual"
+document: "VHDL Language Reference Manual"
+standard: "IEEE 1076-2019"
+domain: "VHDL"
+section: "16"
+source_txt: "section-16-predefined-language-environment.txt"
+source_pdf: "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf"
+---
+
+# Section 16: IEEE Standard for VHDL Language Reference Manual
+
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+269
+Copyright © 2019 IEEE. All rights reserved.
+16. Predefined language environment
+### 16.1 General
+
+This clause describes the predefined attributes of VHDL and the packages that all VHDL implementations
+shall provide.
+NOTE—All of the packages referenced in this clause are part of the IEEE 1076 Open Source Repository.
+### 16.2 Predefined attributes
+
+#### 16.2.1 General
+
+Predefined attributes denote values, functions, types, subtypes, mode views, signals, and ranges associated
+with various kinds of named entities. These attributes are described as follows. For each attribute, the
+following information is provided:
+—
+The kind of attribute: value, type, subtype, mode view, range, function, or signal
+—
+The prefixes for which the attribute is defined
+—
+A description of the parameter or argument, if one exists
+—
+The result of evaluating the attribute, and the result type (if applicable)
+—
+Any further restrictions or comments that apply
+—
+For those predefined attributes that denote functions, the functions do not have named formal
+parameters; therefore, named association (see 6.5.7.1) cannot be used when invoking a function
+denoted by a predefined attribute.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+270
+Copyright © 2019 IEEE. All rights reserved.
+#### 16.2.2 Predefined attributes of types and objects
+
+P'BASE
+Kind:
+Type.
+Prefix:
+Any prefix P that is appropriate for an object with type or subtype T,
+or an alias thereof, or that denotes any type or subtype T.
+Result:
+The base type of T.
+Restrictions: This attribute is allowed only as the prefix of the name of another
+attribute; for example, P'BASE'LEFT.
+P'LEFT
+Kind:
+Value.
+Prefix:
+Any prefix P that is appropriate for an object with a scalar type or
+subtype T, or an alias thereof, or that denotes any scalar type or
+subtype T.
+Result type:
+Same type as T.
+Result:
+The left bound of T.
+P'RIGHT
+Kind:
+Value.
+Prefix:
+Any prefix P that is appropriate for an object with a scalar type or
+subtype T, or an alias thereof, or that denotes any scalar type or
+subtype T.
+Result type:
+Same type as T.
+Result:
+The right bound of T.
+P'HIGH
+Kind:
+Value.
+Prefix:
+Any prefix P that is appropriate for an object with a scalar type or
+subtype T, or an alias thereof, or that denotes any scalar type or
+subtype T.
+Result type:
+Same type as T.
+Result:
+The upper bound of T.
+P'LOW
+Kind:
+Value.
+Prefix:
+Any prefix P that is appropriate for an object with a scalar type or
+subtype T, or an alias thereof, or that denotes any scalar type or
+subtype T.
+Result type:
+Same type as T.
+Result:
+The lower bound of T.
+P'ASCENDING
+Kind:
+Value.
+Prefix:
+Any prefix P that is appropriate for an object with a scalar type or
+subtype T, or an alias thereof, or that denotes any scalar type or
+subtype T.
+Result type:
+Type BOOLEAN
+Result:
+It is TRUE if T is defined with an ascending range; FALSE
+otherwise.
+P'LENGTH
+Kind:
+Pure function.
+Prefix:
+Any prefix P that is appropriate for an object with a discrete or
+physical type or subtype T, or an alias thereof, or that denotes
+any discrete or physical type or subtype T.
+Result type:
+universal_integer.
+Result:
+T’LENGTH =
+    maximum(0, T’POS(T’HIGH) – T’POS(T’LOW) + 1)
+P'RANGE
+Kind:
+Range.
+Prefix:
+Any prefix P that is appropriate for an object with scalar type or
+subtype T, or an alias thereof, or that denotes any scalar type or
+subtype T.
+Result type:
+The type of T.
+Result:
+The range T'LEFT to T'RIGHT if the range of T is ascending, or
+the range T'LEFT downto T'RIGHT if the range of T is descending.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+271
+Copyright © 2019 IEEE. All rights reserved.
+P'REVERSE_RANGE
+Kind:
+Range.
+Prefix:
+Any prefix P that is appropriate for an object with scalar type or
+subtype T, or an alias thereof, or that denotes any scalar type or
+subtype T
+Result type:
+The type of T
+Result:
+The range T'RIGHT downto T'LEFT if the range of T is ascending,
+or
+the range T'RIGHT to T'LEFT if the range of T is descending.
+O'SUBTYPE
+Kind:
+Subtype.
+Prefix:
+Any prefix O that is appropriate for an object, or an alias thereof.
+Result:
+The fully constrained subtype that is the subtype of O, together with
+constraints defining any index ranges that are determined by
+application of the rules of 5.3.2.2. (If O is an alias for an object, then
+the result is determined by the declaration of O, not that of the
+object.).
+O'IMAGE
+Kind:
+Pure function.
+Prefix:
+Any prefix O that is appropriate for an object with scalar type or
+subtype T, or an alias thereof.
+Shorthand for:O'SUBTYPE'IMAGE(O)
+O'POS
+Kind:
+Pure function.
+Prefix:
+Any prefix O that is appropriate for an object with discrete type or
+physical type or subtype, or an alias thereof.
+Shorthand for:O'SUBTYPE'POS(O)
+O'SUCC
+Kind:
+Pure function.
+Prefix:
+Any prefix O that is appropriate for an object with discrete or
+physical type or subtype T or an alias thereof.
+Shorthand for:O'SUBTYPE'SUCC(O)
+O'PRED
+Kind:
+Pure function.
+Prefix:
+Any prefix O that is appropriate for an object with discrete or
+physical type or subtype T, or an alias thereof.
+Shorthand for:O'SUBTYPE'PRED(O)
+O'LEFTOF
+Kind:
+Pure function.
+Prefix:
+Any prefix O that is appropriate for an object with discrete or
+physical type or subtype T, or an alias thereof.
+Shorthand for:O'SUBTYPE'LEFTOF(O)
+O'RIGHTOF
+Kind:
+Pure function.
+Prefix:
+Any prefix O that is appropriate for an object with discrete or
+physical type or subtype, or an alias thereof.
+Shorthand for:O'SUBTYPE'RIGHTOF(O)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+272
+Copyright © 2019 IEEE. All rights reserved.
+T'IMAGE(X)
+Kind:
+Pure function.
+Prefix:
+Any scalar type or subtype or representable composite type or
+subtype T.
+Parameter:
+An expression whose type is the base type of T.
+Result type:
+Type STRING.
+Result:
+The string representation of the parameter value as defined in 5.7,
+but with the following differences. If T is an enumeration type or
+subtype and the parameter value is either an extended identifier or a
+character literal, the result is expressed with both a leading and
+trailing reverse solidus (backslash) (in the case of an extended
+identifier) or apostrophe (in the case of a character literal); in the
+case of an extended identifier that has a backslash, the backslash is
+doubled in the string representation. If T is an enumeration type or
+subtype and the parameter value is a basic identifier, then the result
+is expressed in lowercase characters. If T is a numeric type or
+subtype, the result is expressed as the decimal representation of the
+parameter value without underlines or leading or trailing zeros
+(except as necessary to form the image of a legal literal with the
+proper value); moreover, an exponent may (but is not required to) be
+present and the language does not define under what conditions it is
+or is not present. If the exponent is present, the “e” is expressed as a
+lowercase character. If T is a physical type or subtype, the result is
+expressed in terms of the primary unit of T unless the base type of T
+is TIME, in which case the result is expressed in terms of the
+resolution limit (see 5.2.4.2); in either case, if the unit is a basic
+identifier, the image of the unit is expressed in lowercase characters.
+If T is a floating-point type or subtype, the number of digits to the
+right of the decimal point corresponds to the standard form
+generated when the DIGITS parameter to TEXTIO.WRITE for type
+REAL is set to 0 (see 16.4). If T is a one-dimensional array type or
+subtype whose element type is an enumeration type that contains
+only character literals, the result consists of the string representation
+of the given value with leading and trailing double quotes. Any
+double quotes in the string representation are doubled. If T is any
+other representable composite type or subtype (see 5.7), the result is
+the concatenation of a left parenthesis, the images of the elements of
+T separated by commas, and a right parenthesis. The image of an
+element Y of X is the result of calling Y'SUBTYPE'IMAGE(Y). If T
+is a one-dimensional array type or subtype whose elements are a
+mixture of character literals and identifiers and all of the elements of
+X are character literals, the result may follow the rule for character
+literal-only types, or it may follow the general rule for composites.
+The language does not define under what conditions which
+representation is used in this case.
+Restrictions: It is an error if the parameter value does not belong to the subtype
+implied by the prefix. It is an error if the prefix is a composite type
+that is not representable according to 5.7. Implementations may
+limit generated string length.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+273
+Copyright © 2019 IEEE. All rights reserved.
+T'VALUE(X)
+Kind:
+Pure function.
+Prefix:
+Any scalar type or subtype or representable composite type or
+subtype T.
+Parameter:
+An expression of type STRING.
+Result type:
+The base type of T.
+Result:
+The value of T whose string representation (as defined in 5.7) is
+given by the parameter. Leading and trailing whitespace is allowed
+and ignored. If T is a numeric type or subtype, the parameter shall be
+expressed either as a decimal literal or as a based literal, with the
+addition of an optional leading sign. If the sign is present,
+whitespace shall not occur between the sign and the remainder of the
+value. If T is a physical type or subtype, the parameter shall be
+expressed using a string representation of any of the unit names of T,
+with or without a leading abstract literal. The parameter shall have
+whitespace between any abstract literal and the unit name. For the
+representation of a composite type, extra spaces are allowed and
+ignored around the enclosing parentheses and around the commas
+delimiting the element representations.
+Restrictions: It is an error if the parameter is not a valid string representation of a
+literal of type T or if the result does not belong to the subtype
+implied by T.
+T'POS(X)
+Kind:
+Pure function.
+Prefix:
+Any discrete or physical type or subtype T.
+Parameter:
+An expression whose type is the base type of T.
+Result type:
+universal_integer.
+Result:
+The position number of the value of the parameter.
+Restrictions: It is an error if the value of the parameter does not belong to the
+subtype implied by the prefix.
+T'VAL(X)
+Kind:
+Pure function.
+Prefix:
+Any discrete or physical type or subtype T.
+Parameter:
+An expression of any integer type.
+Result type:
+The base type of T.
+Result:
+The value whose position number is the universal_integer value
+corresponding to X.
+Restrictions: It is an error if the result does not belong to the range T'LOW to
+T'HIGH.
+T'SUCC(X)
+Kind:
+Pure function.
+Prefix:
+Any discrete or physical type or subtype T.
+Parameter:
+An expression whose type is the base type of T.
+Result type:
+The base type of T.
+Result:
+The value whose position number is one greater than that of the
+parameter.
+Restrictions: An error occurs if X equals T'HIGH or if X does not belong to the
+range T'LOW to T'HIGH.
+T'PRED(X)
+Kind:
+Pure function.
+Prefix:
+Any discrete or physical type or subtype T.
+Parameter:
+An expression whose type is the base type of T.
+Result type:
+The base type of T.
+Result:
+The value whose position number is one less than that of the
+parameter.
+Restrictions: An error occurs if X equals T'LOW or if X does not belong to the
+range T'LOW to T'HIGH.
+T'LEFTOF(X)
+Kind:
+Pure function.
+Prefix:
+Any discrete or physical type or subtype T.
+Parameter:
+An expression whose type is the base type of T.
+Result type:
+The base type of T.
+Result:
+The value that is to the left of the parameter in the range of T.
+Restrictions: An error occurs if X equals T'LEFT or if X does not belong to the
+range T'LOW to T'HIGH.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+274
+Copyright © 2019 IEEE. All rights reserved.
+NOTE 1—The relationship between the values of the LEFT, RIGHT, LOW, and HIGH attributes is expressed as
+follows:
+NOTE 2—For all values V of any representable type T except a real type or a composite containing a real type, the
+following relation holds:
+    V = T'Value(T'Image(V))
+NOTE 3—Calling STRING'IMAGE("two") will return one of two possible results: either the length-5 string "two" (the
+quotes are part of the result) following the special-case rule, or ('t', 'w',' o') following the general rule for aggregates.
+T'RIGHTOF(X)
+Kind:
+Pure function.
+Prefix:
+Any discrete or physical type or subtype T.
+Parameter:
+An expression whose type is the base type of T.
+Result type:
+The base type of T.
+Result:
+The value that is to the right of the parameter in the range of T.
+Restrictions: An error occurs if X equals T'RIGHT or if X does not belong to the
+range T'LOW to T'HIGH.
+P'DESIGNATED_SUBTYPE
+Kind:
+Subtype.
+Prefix:
+Any prefix P that is appropriate for an object with an access type
+T, or an alias thereof, or that denotes any access type T.
+Result type:
+The subtype denoted by the access type.
+P'DESIGNATED_SUBTYPE
+Kind:
+Subtype.
+Prefix:
+Any prefix P that is appropriate for an object with a file type
+T, or an alias thereof, or that denotes any file type T.
+Result type:
+The value subtype designated by the file type.
+T'REFLECT
+Kind:
+Impure function.
+Prefix:
+Any type or subtype T.
+Result:
+An access value to a value of type SUBTYPE_MIRROR_PT
+mirroring T.
+Result type:
+STD.REFLECTION.SUBTYPE_MIRROR.
+O'REFLECT
+Kind:
+Impure function.
+Prefix:
+Any object of type or subtype T.
+Result:
+An access value to a value of type VALUE_MIRROR_PT mirroring
+O.
+Result type:
+STD.REFLECTION.VALUE_MIRROR.
+Ascending range
+Descending range
+P'LEFT
+=
+P'LOW
+P'HIGH
+P'RIGHT
+=
+P'HIGH
+P'LOW
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+275
+Copyright © 2019 IEEE. All rights reserved.
+#### 16.2.3 Predefined attributes of arrays
+
+A'LEFT [(N)]
+Kind:
+Function.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype whose index ranges are
+defined by a constraint.
+Parameter:
+A locally static expression of type universal_integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted, it defaults to 1.
+Result type:
+Type of the left bound of the Nth index range of A.
+Result:
+Left bound of the Nth index range of A. (If A is an alias for an array
+object, then the result is the left bound of the Nth index range from
+the declaration of A, not that of the object.)
+A'RIGHT [(N)]
+Kind:
+Function.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype whose index ranges are
+defined by a constraint.
+Parameter:
+A locally static expression of type universal_integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted, it defaults to 1.
+Result type:
+Type of the Nth index range of A.
+Result:
+Right bound of the Nth index range of A. (If A is an alias for an array
+object, then the result is the right bound of the Nth index range from
+the declaration of A, not that of the object.)
+A'HIGH [(N)]
+Kind:
+Function.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype whose index ranges are
+defined by a constraint.
+Parameter:
+A locally static expression of type universal_integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted, it defaults to 1.
+Result type:
+Type of the Nth index range of A.
+Result:
+Upper bound of the Nth index range of A. (If A is an alias for an array
+object, then the result is the upper bound of the Nth index range from
+the declaration of A, not that of the object.)
+A'LOW [(N)]
+Kind:
+Function.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype whose index ranges are
+defined by a constraint.
+Parameter:
+A locally static expression of type universal_integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted, it defaults to 1.
+Result type:
+Type of the Nth index range of A.
+Result:
+Lower bound of the Nth index range of A. (If A is an alias for an
+array object, then the result is the lower bound of the Nth index range
+from the declaration of A, not that of the object.)
+A'RANGE [(N)]
+Kind:
+Range.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype whose index ranges are
+defined by a constraint.
+Parameter:
+A locally static expression of type universal_integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted, it defaults to 1.
+Result type:
+The type of the Nth index range of A.
+Result:
+The range A'LEFT(N) to A'RIGHT(N) if the Nth index range of A is
+ascending, or the range A'LEFT(N) downto A'RIGHT(N) if the Nth
+index range of A is descending. (If A is an alias for an array object,
+then the result is determined by the Nth index range from the
+declaration of A, not that of the object.)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+276
+Copyright © 2019 IEEE. All rights reserved.
+A'REVERSE_RANGE [(N)]
+Kind:
+Range.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype whose index ranges are
+defined by a constraint.
+Parameter:
+A locally static expression of type universal_integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted, it defaults to 1.
+Result type:
+The type of the Nth index range of A.
+Result:
+The range A'RIGHT(N) downto A'LEFT(N) if the Nth index range
+of A is ascending, or the range A'RIGHT(N) to A'LEFT(N) if the Nth
+index range of A is descending. (If A is an alias for an array object,
+then the result is determined by the Nth index range from the
+declaration of A, not that of the object.)
+A'LENGTH [(N)]
+Kind:
+Function.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype whose index ranges are
+defined by a constraint.
+Parameter:
+A locally static expression of type universal_integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted, it defaults to 1.
+Result type:
+universal_integer.
+Result:
+Number of values in the Nth index range; i.e., if the Nth index range
+of A is a null range, then the result is 0. Otherwise, the result is the
+value of T'POS(A'HIGH(N)) – T'POS(A'LOW(N)) + 1, where T is
+the subtype of the Nth index of A.
+A'ASCENDING [(N)]
+Kind:
+Function.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype whose index ranges are
+defined by a constraint.
+Parameter:
+A locally static expression of type universal integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted, it defaults to 1.
+Result type:
+Type BOOLEAN.
+Result:
+TRUE if the Nth index range of A is defined with an ascending range;
+FALSE otherwise.
+A'INDEX[(N)]
+Kind:
+Subtype.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype.
+Parameter:
+A locally static expression of type universal_integer, the value of
+which shall be greater than zero and shall not exceed the
+dimensionality of A. If omitted it defaults to 1
+Result:
+The subtype of the Nth index range of A. (If A is an alias for an array
+object, then the result is determined by the declaration of A, not that
+of the object.
+A'ELEMENT
+Kind:
+Subtype.
+Prefix:
+Any prefix A that is appropriate for an array object, or an alias
+thereof, or that denotes an array subtype.
+Result:
+If A is an array subtype, the result is the element subtype of A. If A is
+an array object, the result is the fully constrained element subtype that
+is the element subtype of A, together with constraints defining any
+index ranges that are determined by application of the rules of 5.3.2.2.
+(If A is an alias for an array object, then the result is determined by
+the declaration of A, not that of the object.)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+277
+Copyright © 2019 IEEE. All rights reserved.
+#### 16.2.4 Predefined attributes of signals
+
+S'DELAYED [(T)]
+Kind:
+Signal.
+Prefix:
+Any signal denoted by the static signal name S.
+Parameter:
+A static expression of type TIME that evaluates to a nonnegative value.
+If omitted, it defaults to 0 ns.
+Result type:
+The base type of S.
+Result:
+A signal equivalent to signal S delayed T units of time.
+Let R be of the same subtype as S, let T >= 0 ns, and let P be a process statement of the
+form
+P: process (S)
+begin
+R <= transport S after T;
+end process;
+Assuming that the initial value of R is the same as the initial value of S, then the
+attribute 'DELAYED is defined such that S'DELAYED(T) = R for any T.
+S'STABLE [(T)]
+Kind:
+Signal.
+Prefix:
+Any signal denoted by the static signal name S.
+Parameter:
+A static expression of type TIME that evaluates to a nonnegative value.
+If omitted, it defaults to 0 ns.
+Result type:
+Type BOOLEAN.
+Result:
+A signal that has the value TRUE when an event has not occurred on
+signal S for T units of time, and the value FALSE otherwise (see
+14.7.3.4).
+S'QUIET [(T)]
+Kind:
+Signal.
+Prefix:
+Any signal denoted by the static signal name S.
+Parameter:
+A static expression of type TIME that evaluates to a nonnegative value.
+If omitted, it defaults to 0 ns.
+Result type:
+Type BOOLEAN.
+Result:
+A signal that has the value TRUE when the signal has been quiet for T
+units of time, and the value FALSE otherwise (see 14.7.3.1).
+S'TRANSACTION
+Kind:
+Signal.
+Prefix:
+Any signal denoted by the static signal name S.
+Result type:
+Type BIT.
+Result:
+A signal whose value toggles to the verse of its previous value in each
+simulation cycle in which signal S becomes active.
+Restrictions: A description is erroneous if it depends on the initial value of
+S'TRANSACTION.
+S'EVENT
+Kind:
+Function.
+Prefix:
+Any signal denoted by the static signal name S.
+Result type:
+Type BOOLEAN.
+Result:
+A value that indicates whether an event has just occurred on signal S.
+Specifically:
+For a scalar signal S, S'EVENT returns the value TRUE if an event has occurred on S
+during the current simulation cycle; otherwise, it returns the value FALSE.
+For a composite signal S, S'EVENT returns TRUE if an event has occurred on any
+scalar subelement of S during the current simulation cycle; otherwise, it returns
+FALSE.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+278
+Copyright © 2019 IEEE. All rights reserved.
+S'ACTIVE
+Kind:
+Function.
+Prefix:
+Any signal denoted by the static signal name S.
+Result type:
+Type BOOLEAN.
+Result:
+A value that indicates whether signal S is active. Specifically:
+For a scalar signal S, S'ACTIVE returns the value TRUE if signal S is active during the
+current simulation cycle; otherwise, it returns the value FALSE.
+For a composite signal S, S'ACTIVE returns TRUE if any scalar in subelement of S is
+active during the current simulation cycle; otherwise, it returns FALSE.
+S'LAST_EVENT
+Kind:
+Function.
+Prefix:
+Any signal denoted by the static signal name S.
+Result type:
+Type TIME.
+Result:
+The amount of time that has elapsed since the last event occurred on
+signal S. Specifically:
+For a signal S, S'LAST_EVENT returns the smallest value T of type TIME such that
+S'EVENT = TRUE during any simulation cycle at time NOW – T, if such a value
+exists; otherwise, it returns TIME'HIGH.
+S'LAST_ACTIVE
+Kind:
+Function.
+Prefix:
+Any signal denoted by the static signal name S.
+Result type:
+Type TIME.
+Result:
+The amount of time that has elapsed since the last time at which signal S
+was active. Specifically:
+For a signal S, S'LAST_ACTIVE returns the smallest value T of type TIME such that
+S'ACTIVE = TRUE during any simulation cycle at time NOW – T, if such value exists;
+otherwise, it returns TIME'HIGH.
+S'LAST_VALUE
+Kind:
+Function.
+Prefix:
+Any signal denoted by the static signal name S.
+Result type:
+The base type of S.
+Result:
+For a signal S, if an event has occurred on S in any simulation cycle,
+S'LAST_VALUE returns the value of S prior to the update of S in the
+last simulation cycle in which an event occurred; otherwise,
+S'LAST_VALUE returns the current value of S.
+S'DRIVING
+Kind:
+Function.
+Prefix:
+Any signal denoted by the static signal name S.
+Result type:
+Type BOOLEAN.
+Result:
+If the prefix denotes a scalar signal, the result is FALSE if the current
+value of the driver for S in the current process is determined by the null
+transaction; TRUE otherwise. If the prefix denotes a composite signal,
+the result is TRUE if and only if R'DRIVING is TRUE for every scalar
+in R of S; FALSE otherwise. If the prefix denotes a null slice of a signal,
+the result is TRUE.
+Restrictions: This attribute is available only from within a process, a concurrent
+statement with an equivalent process, or a subprogram. If the prefix
+denotes a signal port, it is an error if the port does not have a mode of
+inout, out, or buffer. It is also an error if the attribute name appears in a
+subprogram body that is not a declarative item contained within a
+process statement and the prefix is not a formal parameter of the given
+subprogram or of a parent of that subprogram. Finally, it is an error if the
+prefix denotes a subprogram formal parameter whose mode is not inout
+or out.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+279
+Copyright © 2019 IEEE. All rights reserved.
+NOTE 1—Since the attributes S'EVENT, S'ACTIVE, S'LAST_EVENT, S'LAST_ACTIVE, and S'LAST_VALUE are
+functions, not signals, they cannot cause the execution of a process, even though the value returned by such a function
+may change dynamically. It is thus recommended that the equivalent signal-valued attributes S'STABLE and S'QUIET,
+or expressions involving those attributes, be used in concurrent contexts such as guard conditions or concurrent signal
+assignments. Similarly, function STANDARD.NOW should not be used in concurrent contexts.
+NOTE 2—S'DELAYED(0 ns) is not equal to S during any simulation cycle where S'EVENT is true.
+NOTE 3—S'STABLE(0 ns) = (S'DELAYED(0 ns) = S), and S'STABLE(0 ns) is FALSE only during a simulation cycle
+in which S has had a transaction.
+NOTE 4—For a given simulation cycle, S'QUIET(0 ns) is TRUE if and only if S is quiet for that simulation cycle.
+NOTE 5—If S'STABLE(T) is FALSE, then, by definition, for some t where 0 ns < t < T, S'DELAYED(t) /= S.
+NOTE 6—If Ts is the smallest value such that S'STABLE (Ts) is FALSE, then for all t where 0 ns < t < Ts,
+S'DELAYED(t) = S.
+NOTE 7—S'EVENT should not be used within a postponed process (or a concurrent statement that has an equivalent
+postponed process) to determine if the prefix signal S caused the process to resume. However, S'LAST_EVENT = 0 ns
+can be used for this purpose.
+NOTE 8—For a composite signal S, if an event on S as a whole is caused by an event on a subelement of S, the value of
+S'LAST_VALUE is the whole value of S before the update of the subelement. That value includes subelement values
+that may not have changed.
+#### 16.2.5 Predefined attributes of named entities
+
+S'DRIVING_VALUE
+Kind:
+Function.
+Prefix:
+Any signal denoted by the static signal name S.
+Result type:
+The base type of S.
+Result:
+If S is a scalar signal, the result is the current value of the driver for S in
+the current process. If S is a composite signal, the result is the aggregate
+of the values of R'DRIVING_VALUE for each element R of S. If S is a
+null slice, the result is a null slice.
+Restrictions: This attribute is available only from within a process, a concurrent
+statement with an equivalent process, or a subprogram. If the prefix
+denotes a signal port, it is an error if the port does not have a mode of
+out, inout, or buffer. It is also an error if the attribute name appears in a
+subprogram body that is not a declarative item contained within a
+process statement and the prefix is not a formal parameter of the given
+subprogram or of a parent of that subprogram. Finally, it is an error if the
+prefix denotes a subprogram formal parameter whose mode is not out or
+inout, or if S'DRIVING is FALSE at the time of the evaluation of
+S'DRIVING_VALUE.
+E'SIMPLE_NAME
+Kind:
+Value.
+Prefix:
+Any named entity as defined in 7.2.
+Result type:
+Type STRING.
+Result:
+The simple name, character literal, or operator symbol of the named
+entity, without leading or trailing whitespace or quotation marks but
+with apostrophes (in the case of a character literal) and both a leading
+and trailing reverse solidus (backslash) (in the case of an extended
+identifier). In the case of a simple name or operator symbol, the
+characters are converted to their lowercase equivalents. In the case of an
+extended identifier, the case of the identifier is preserved, and any
+reverse solidus characters appearing as part of the identifier are
+represented with two consecutive reverse solidus characters.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+280
+Copyright © 2019 IEEE. All rights reserved.
+E'INSTANCE_NAME
+Kind:
+Value.
+Prefix:
+Any named entity other than the local ports and generics of a component
+declaration.
+Result type:
+Type STRING.
+Result:
+A string describing the hierarchical path starting at the root of the design
+hierarchy and descending to the named entity, including the names of
+instantiated design entities.
+The result string has the following syntax:
+```ebnf
+instance_name ::= package_based_path | full_instance_based_path
+package_based_path ::=
+```
+
+leader library_logical_name leader
+{ package_path_instance_element leader }
+[ local_item_name ]
+```ebnf
+package_path_instance_element ::=
+```
+
+subprogram_designator signature
+|
+variable_simple_name
+|
+package_simple_name
+```ebnf
+full_instance_based_path ::=
+```
+
+leader full_path_to_instance [ local_item_name ]
+```ebnf
+full_path_to_instance ::= { full_path_instance_element leader }
+full_path_instance_element ::=
+```
+
+[ component_instantiation_label @ ]
+entity_simple_name ( architecture_simple_name )
+|
+block_label
+|
+generate_label
+|
+process_label
+|
+sequential_block_label
+|
+loop_label
+|
+subprogram_designator signature
+|
+variable_simple_name
+|
+package_simple_name
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+281
+Copyright © 2019 IEEE. All rights reserved.
+```ebnf
+local_item_name ::=
+```
+
+simple_name
+|
+character_literal
+|
+operator_symbol
+```ebnf
+sequential_block_label ::= [ sequential_block_label ]
+generate_label ::=  generate_label [ ( literal ) ]
+process_label ::=  [ process_label ]
+loop_label ::=  [ loop_label ]
+leader ::=  :
+```
+
+Package-based paths identify items declared within package library units.
+Full-instance-based paths identify items within an elaborated design hierarchy.
+A library logical name denotes a library (see 13.2). Since it is possible for multiple
+logical names to denote the same library, it is possible that the library logical name not
+be unique.
+The local item name in E'INSTANCE_NAME equals E'SIMPLE_NAME, unless E
+denotes a library, package, subprogram, label, or variable of a protected type. In this
+latter case, the package-based path or full-instance-based path, as appropriate, will not
+contain a local item name.
+There is one package path instance element for each subprogram body, shared variable
+of a protected type, or nested package in the package library unit between the package
+declaration or package body of the package library unit and the named entity denoted
+by the prefix. Similarly, there is one full path instance element for each component
+instantiation, block statement, generate statement, process statement, loop statement,
+subprogram body, variable of a protected type, or package in the design hierarchy
+between the root design entity and the named entity denoted by the prefix.
+For a named entity within a protected type, the instance name shall include the
+package-based or full instance-based path to the variable of the protected type.
+In a full path instance element, the architecture simple name shall denote an
+architecture associated with the entity declaration designated by the entity simple
+name; furthermore, the component instantiation label (and the commercial at character
+following it) are required unless the entity simple name and the architecture simple
+name together denote the root design entity.
+The literal in a generate label is required if the label denotes a for generate statement;
+the literal shall denote one of the values of the generate parameter.
+A process statement with no label is denoted by an empty process label. Similarly, a
+loop statement with no label is denoted by an empty loop label. A sequential block
+statement with no label is denoted by an empty sequential block label.
+The signature occurring after a subprogram designator in the result of the
+'INSTANCE_NAME or 'PATH_NAME attribute shall match the parameter and result
+type profile of the subprogram. Each type mark in the signature is the type mark of the
+subtype indication of the corresponding formal parameter, or the return type mark, as
+appropriate, in the subprogram declaration.
+All characters in basic identifiers appearing in the result are converted to their
+lowercase equivalents. Both a leading and trailing reverse solidus surround an
+extended identifier appearing in the result; any reverse solidus characters appearing as
+part of the identifier are represented with two consecutive reverse solidus characters.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+282
+Copyright © 2019 IEEE. All rights reserved.
+Examples:
+library Lib;   --  All design units are in this library:
+package P is   --  P'PATH_NAME = ":lib:p:"
+               --  P'INSTANCE_NAME = ":lib:p:"
+   procedure Proc (F: inout INTEGER);
+      --  Proc'PATH_NAME = ":lib:p:proc [integer]:"
+      --  Proc'INSTANCE_NAME = ":lib:p:proc [integer]:"
+   constant C: INTEGER := 42;   --  C'PATH_NAME = ":lib:p:c"
+   type IncPt1 is protected
+      procedure increment;
+      impure function get return INTEGER;
+E'PATH_NAME
+Kind:
+Value.
+Prefix:
+Any named entity other than the local ports and generics of a component
+declaration.
+Result type:
+Type STRING.
+Result:
+A string describing the hierarchical path starting at the root of the design
+hierarchy and descending to the named entity, excluding the name of
+instantiated design entities. Specifically:
+The result string has the following syntax:
+```ebnf
+path_name ::=  package_based_path | instance_based_path
+instance_based_path ::=
+```
+
+leader path_to_instance [ local_item_name ]
+```ebnf
+path_to_instance ::=  { path_instance_element leader }
+path_instance_element  ::=
+```
+
+component_instantiation_label
+|
+entity_simple_name
+|
+block_label
+|
+generate_label
+|
+process_label
+|
+sequential_block_label
+|
+loop_label
+|
+subprogram_designator signature
+|
+variable_simple_name
+|
+package_simple_name
+Package-based paths identify items declared within package library units.
+Instance-based paths identify items within an elaborated design hierarchy.
+The local item name in E'PATH_NAME equals E'SIMPLE_NAME, unless E denotes a
+library, package, subprogram, label, or variable of a protected type. In this latter case,
+the package-based path or instance-based path, as appropriate, will not contain a local
+item name.
+There is one package path instance element for each subprogram body or shared
+variable of a protected type or nested package in the package library unit between the
+package declaration or package body of the package library unit and the named entity
+denoted by the prefix. Similarly, there is one path instance element for each component
+instantiation, block statement, generate statement, process statement, loop statement,
+subprogram body, variable of a protected type, or package in the design hierarchy
+between the root design entity and the named entity denoted by the prefix.
+For a named entity within a protected type, the path name shall include the
+package-based or instance-based path to the variable of the protected type.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+283
+Copyright © 2019 IEEE. All rights reserved.
+   end protected IncPt1;
+end package P;                  --  C'INSTANCE_NAME = ":lib:p:c"
+package body P is
+   procedure Proc (F: inout INTEGER) is
+      variable x: INTEGER;--  x'PATH_NAME = ":lib:p:proc [integer]:x"
+   begin --  x'INSTANCE_NAME = ":lib:p:proc [integer]:x"
+      ·
+      ·
+      ·
+   end Procedure Proc;
+   type IncPt1 is protected body
+        variable IncCounter : INTEGER := 0;
+            -- For shared variable ArchInc
+            --   IncCounter'PATH_NAME = "e:ArchInc:IncCounter"
+            --   IncCounter'INSTANCE_NAME = "e(a):ArchInc:IncCounter"
+            -- For variable ProcInc
+            --   IncCounter'PATH_NAME = "e:p1:ProcInc:IncCounter"
+            --   IncCounter'INSTANCE_NAME = "e(a):p1:ProcInc:IncCounter"
+        procedure Increment is
+        begin
+            -- For shared variable ArchInc
+            --   Increment'PATH_NAME = "e:ArchInc:Increment"
+            --   Increment'INSTANCE_NAME = "e(a):ArchInc:Increment"
+            -- For variable ProcInc
+            --   Increment'PATH_NAME = "e:p1:ProcInc:Increment"
+            --   Increment'INSTANCE_NAME = "e(a):p1:ProcInc:Increment"
+            IncCounter := IncCounter + 1;
+        end procedure Increment;
+        impure function get return INTEGER is
+        begin
+            -- For shared variable ArchInc
+            --   get'PATH_NAME = "e:ArchInc:get"
+            --   get'INSTANCE_NAME = "e(a):ArchInc:get"
+            -- For variable ProcInc
+            --   get'PATH_NAME = "e:p1:ProcInc:get"
+            --   get'INSTANCE_NAME = "e(a):p1:ProcInc:get"
+            return IncCounter;
+        end function get;
+    end protected IncPt1;
+end package body P;
+library Lib;
+use Lib.P.all;             --  Assume that E is  Lib and
+entity E is                --  E is the top-level design entity:
+                           --  E'PATH_NAME = ":e:"
+                           --  E'INSTANCE_NAME = ":e(a):"
+   generic (G: INTEGER);   --  G'PATH_NAME = ":e:g"
+                           --  G'INSTANCE_NAME = ":e(a):g"
+   port (P: in INTEGER);   --  P'PATH_NAME = ":e:p"
+end entity E;              --  P'INSTANCE_NAME = ":e(a):p"
+architecture A of E is
+   signal S: BIT_VECTOR (1 to G);   --  S'PATH_NAME = ":e:s"
+                                    --  S'INSTANCE_NAME = ":e(a):s"
+   procedure Proc1 (signal sp1: NATURAL; C: out INTEGER) is
+      --  Proc1'PATH_NAME = ":e:proc1[natural,integer]:"
+      --  Proc1'INSTANCE_NAME = ":e(a):proc1[natural,integer]:"
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+284
+Copyright © 2019 IEEE. All rights reserved.
+      --  C'PATH_NAME = ":e:proc1[natural,integer]:c"
+      --  C'INSTANCE_NAME = ":e(a):proc1[natural,integer]:c"
+      variable max: DELAY_LENGTH;
+         --  max'PATH_NAME = ":e:proc1[natural,integer]:max"
+         --  max'INSTANCE_NAME = ":e(a):proc1[natural,integer]:max"
+   begin
+      max := sp1 * ns;
+      wait on sp1 for max;
+      c := sp1;
+   end procedure Proc1;
+   shared variable ArchInc : IncPt1;  -- ArchInc'PATH_NAME = ":e:ArchInc"
+--
+ArchInc'INSTANCE_NAME = ":e(a):ArchInc"
+begin
+   p1: process
+      variable T: INTEGER := 12;   --  T'PATH_NAME =  :e:p1:t"
+                                   --  T'INSTANCE_NAME = ":e(a):p1:t"
+      variable ProcInc : IncPt1;   -- ProcInc'PATH_NAME = ":e:p1:ProcInc"
+-- Pro-
+cInc'INSTANCE_NAME = ":e(a):p1:ProcInc"
+   begin
+      ·...
+   end process p1;
+   process
+      variable T: INTEGER := 12;   --  T'PATH_NAME = ":e::t"
+   begin                           --  T'INSTANCE_NAME = ":e(a)::t"
+      ·
+      ·
+      ·
+   end process;
+end architecture;
+entity Bottom is
+   generic (GBottom: INTEGER);
+   port (PBottom: INTEGER);
+end entity Bottom;
+architecture BottomArch of Bottom is
+   signal SBottom: INTEGER;
+begin
+   ProcessBottom: process
+      variable V: INTEGER;
+   begin
+      if GBottom = 4 then
+         assert V'Simple_Name = "v"
+                and V'Path_Name = ":top:b1:b2:g1(4):b3:l1:processbottom:v"
+                and V'instance_Name =
+      ":top(top):b1:b2:g1(4):b3:l1@bottom(bottomarch):processbottom:v";
+         assert GBottom'Simple_Name = "gbottom"
+                and GBottom'Path_Name = ":top:b1:b2:g1(4):b3:l1:gbottom"
+                and GBottom'Instance_Name =
+                ":top(top):b1:b2:g1(4):b3:l1@bottom(bottomarch):gbottom";
+      elsif GBottom = -1 then
+         assert V'Simple_Name = "v"
+                and V'Path_Name = ":top:l2:processbottom:v"
+                and V'Instance_Name =
+                ":top(top):l2@bottom(bottomarch):processbottom:v";
+         assert GBottom'Simple_Name = "gbottom"
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+285
+Copyright © 2019 IEEE. All rights reserved.
+                and GBottom'Path_Name = ":top:l2:gbottom"
+                and GBottom'Instance_Name =
+                ":top(top):l2@bottom(bottomarch):gbottom";
+      end if;
+      wait;
+   end process ProcessBottom;
+end architecture BottomArch;
+entity Top is end Top;
+architecture Top of Top is
+   component BComp is
+      generic (GComp: INTEGER);
+      port (PComp: INTEGER);
+   end component BComp;
+   signal S: INTEGER;
+begin
+   B1: block
+      signal S: INTEGER;
+   begin
+      B2: block
+         signal S: INTEGER;
+      begin
+         G1: for I in 1 to 10 generate
+            B3: block
+               signal S: INTEGER;
+               for L1: BComp use entity Work.Bottom(BottomArch)
+                  generic map (GBottom => GComp)
+                  port map (PBottom => PComp);
+            begin
+               L1: BComp generic map (I) port map (S);
+               P1: process
+                  variable V: INTEGER;
+               begin
+                  if I = 7 then
+                     assert V'Simple_Name = "v"
+                            and V'Path_Name = ":top:b1:b2:g1(7):b3:p1:v"
+                            and V'Instance_Name =
+                                ":top(top):b1:b2:g1(7):b3:p1:v";
+                     assert P1'Simple_Name = "p1"
+                            and P1'Path_Name = ":top:b1:b2:g1(7):b3:p1:"
+                            and P1'Instance_Name =
+                                ":top(top):b1:b2:g1(7):b3:p1:";
+                     assert S'Simple_Name = "s"
+                            and S'Path_Name = ":top:b1:b2:g1(7):b3:s"
+                            and S'Instance_Name =
+                                ":top(top):b1:b2:g1(7):b3:s";
+                     assert B1.S'Simple_Name = "s"
+                            and B1.S'Path_Name = ":top:b1:s"
+                            and B1.S'Instance_Name = ":top(top):b1:s";
+                  end if;
+                  wait;
+               end process P1;
+            end block B3;
+         end generate;
+      end block B2;
+   end block B1;
+   L2: BComp generic map (-1) port map (S);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+286
+Copyright © 2019 IEEE. All rights reserved.
+end architecture Top;
+configuration TopConf of Top is
+   for Top
+      for L2: BComp use
+         entity Work.Bottom(BottomArch)
+            generic map (GBottom => GComp)
+            port map (PBottom => PComp);
+      end for;
+   end for;
+end configuration TopConf;
+NOTE 1—The values of E'PATH_NAME and E'INSTANCE_NAME are not unique. Specifically, named entities in two
+different, unlabeled processes may have the same path names or instance names. Overloaded subprograms, and named
+entities within them, may also have the same path names or instance names.
+NOTE 2—If the prefix to the attributes 'SIMPLE_NAME, 'PATH_NAME, or 'INSTANCE_NAME denotes an alias, the
+result is respectively the simple name, path name or instance name of the alias (see 8.7).
+#### 16.2.6 Predefined attributes of ranges
+
+#### 16.2.7 Predefined attributes of PSL Objects
+
+The static name of a PSL directive (assert, cover, ...) is the statement label of the corresponding directive.
+NOTE— If a PSL directive does not have a statement label, it does not have a static name.
+R'RECORD
+Kind:
+Type.
+Prefix:
+Any prefix R that is an attribute name and denotes a range.
+Result:
+The implicitly declared record type of the corresponding range record
+for the type of range R.
+R'VALUE
+Kind:
+Value.
+Prefix:
+Any prefix R that is an attribute name and denotes a range.
+Result type:
+R'RECORD.
+Result:
+A range record instance of type R'RECORD, where each record element
+is initialized by the corresponding bounds of R and the element
+RANGE_DIRECTION set to ASCENDING, if R is an ascending range,
+otherwise to descending.
+P'SIGNAL
+Kind:
+Signal.
+Prefix:
+Any defined PSL directive (assert, cover, assume, restrict) denoted by
+the static name P.
+Result type:
+Type BOOLEAN.
+Result:
+A Boolean value indicating the current completion status of a PSL
+directive (assert, cover, assume, restrict). A PSL assert, assume, or
+restrict value of FALSE indicates that it has failed during a given cycle.
+A PSL cover value of TRUE indicates that is was satisfied during a
+given cycle. Fairness directives are not supported.
+P'EVENT
+Kind:
+Function.
+Prefix:
+Any defined sequence, property, assert, cover denoted by the static name
+P.
+Result type:
+Type BOOLEAN.
+Result:
+ A value TRUE during each simulation cycle in which sequence,
+property, assert, cover completes.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+287
+Copyright © 2019 IEEE. All rights reserved.
+#### 16.2.8 Predefined attributes of named mode views
+
+Example:
+-- A FIFO like streaming interface:
+type StreamingIf is record
+  Valid  : Std_uLogic;
+  Data   : Std_uLogic_Vector(7 downto 0);
+  Ack    : Std_uLogic;
+end record StreamingIf;
+view MasterView of StreamingIf is
+   Valid : out;
+   Data  : out;
+   Ack   : in;
+end view MasterView;
+alias SlaveView is MasterView'CONVERSE;
+-- Equivalent mode view declaration
+-- view SlaveView of MasterView is
+--    Valid : in;
+--    Data  : in;
+--    Ack   : out;
+-- end view SlaveView;
+-- A stream processing element
+entity SPE is
+  port (
+    Clock  :in Std_uLogic;
+    Reset  :in Std_uLogic;
+    Input : view SlaveView;   -- input from previous SPE
+    Output : view MasterView   -- output to next SPE
+  );
+end entity;
+### 16.3 Package STANDARD
+
+Package STANDARD predefines a number of types, subtypes, and functions. An implicit context clause
+naming this package is assumed to exist at the beginning of each design unit. Package STANDARD shall
+not be modified by the user.
+M'CONVERSE
+Kind:
+Mode view.
+Prefix:
+Any named mode view M of composite type T, or an alias thereof.
+Result:
+A mode view of composite type T with each element mode EM declared
+as the converse as that of mode view M.
+—   If EM is of mode in, the converse mode is out.
+—   If EM is of mode out, the converse mode is in.
+—   If EM is of mode inout, the converse mode is inout.
+—   If EM is of mode buffer, the converse mode is in.
+—   If EM is a mode view, the converse mode is EM'CONVERSE.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+288
+Copyright © 2019 IEEE. All rights reserved.
+The operations that are predefined for the types declared for package STANDARD are given in comments
+since they are implicitly declared. Italics are used for pseudo-names of anonymous types (such as
+universal_integer), formal parameters, and undefined information (such as implementation_defined).
+package STANDARD is
+--  Predefined enumeration types:
+type RANGE_DIRECTION is (
+ASCENDING,       -- The range is ascending.
+DESCENDING       -- the range is descending.
+);
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: RANGE_DIRECTION)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: RANGE_DIRECTION)
+--
+return BOOLEAN;
+-- function "<" (anonymous, anonymous: RANGE_DIRECTION)
+--
+return BOOLEAN;
+-- function "<=" (anonymous, anonymous: RANGE_DIRECTION)
+--
+return BOOLEAN;
+-- function ">" (anonymous, anonymous: RANGE_DIRECTION)
+--
+return BOOLEAN;
+-- function ">=" (anonymous, anonymous: RANGE_DIRECTION)
+--
+return BOOLEAN;
+-- function MINIMUM (L, R: RANGE_DIRECTION)
+--
+return RANGE_DIRECTION;
+-- function MAXIMUM (L, R: RANGE_DIRECTION)
+--
+return RANGE_DIRECTION;
+-- Implicit defined range record for RANGE_DIRECTION'RANGE_RECORD:
+-- type RANGE_DIRECTION_range_record is record
+--   Left      : RANGE_DIRECTION;
+--   Right     : RANGE_DIRECTION;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type BOOLEAN is (FALSE, TRUE);
+--  The predefined operations for this type are as follows:
+--  function "and"  (anonymous, anonymous: BOOLEAN)
+--
+return BOOLEAN;
+--  function "or"   (anonymous, anonymous: BOOLEAN)
+--
+return BOOLEAN;
+--  function "nand" (anonymous, anonymous: BOOLEAN)
+--
+return BOOLEAN;
+--  function "nor"  (anonymous, anonymous: BOOLEAN)
+--
+return BOOLEAN;
+--  function "xor"  (anonymous, anonymous: BOOLEAN)
+--
+return BOOLEAN;
+--  function "xnor" (anonymous, anonymous: BOOLEAN)
+--
+return BOOLEAN;
+--  function "not"  (anonymous: BOOLEAN) return BOOLEAN;
+--  function "="    (anonymous, anonymous: BOOLEAN) return BOOLEAN;
+--  function "/="   (anonymous, anonymous: BOOLEAN) return BOOLEAN;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+289
+Copyright © 2019 IEEE. All rights reserved.
+--  function "<"    (anonymous, anonymous: BOOLEAN) return BOOLEAN;
+--  function "<="   (anonymous, anonymous: BOOLEAN) return BOOLEAN;
+--  function ">"    (anonymous, anonymous: BOOLEAN) return BOOLEAN;
+--  function ">="   (anonymous, anonymous: BOOLEAN) return BOOLEAN;
+--  function MINIMUM (L, R: BOOLEAN) return BOOLEAN;
+--  function MAXIMUM (L, R: BOOLEAN) return BOOLEAN;
+--  function RISING_EDGE  (signal S: BOOLEAN) return BOOLEAN;
+--  function FALLING_EDGE (signal S: BOOLEAN) return BOOLEAN;
+-- Implicit defined range record for BOOLEAN'RANGE_RECORD:
+-- type BOOLEAN_range_record is record
+--   Left      : BOOLEAN;
+--   Right     : BOOLEAN;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type BIT is ('0', '1');
+--  The predefined operations for this type are as follows:
+--  function "and"  (anonymous, anonymous: BIT) return BIT;
+--  function "or"   (anonymous, anonymous: BIT) return BIT;
+--  function "nand" (anonymous, anonymous: BIT) return BIT;
+--  function "nor"  (anonymous, anonymous: BIT) return BIT;
+-- function "xor"  (anonymous, anonymous: BIT) return BIT;
+--  function "xnor" (anonymous, anonymous: BIT) return BIT;
+--  function "not"  (anonymous: BIT) return BIT;
+--  function "="    (anonymous, anonymous: BIT) return BOOLEAN;
+--  function "/="   (anonymous, anonymous: BIT) return BOOLEAN;
+--  function "<"    (anonymous, anonymous: BIT) return BOOLEAN;
+--  function "<="   (anonymous, anonymous: BIT) return BOOLEAN;
+--  function ">"    (anonymous, anonymous: BIT) return BOOLEAN;
+--  function ">="   (anonymous, anonymous: BIT) return BOOLEAN;
+--  function "?="   (anonymous, anonymous: BIT) return BIT;
+--  function "?/="  (anonymous, anonymous: BIT) return BIT;
+--  function "?<"   (anonymous, anonymous: BIT) return BIT;
+--  function "?<="  (anonymous, anonymous: BIT) return BIT;
+--  function "?>"   (anonymous, anonymous: BIT) return BIT;
+--  function "?>="  (anonymous, anonymous: BIT) return BIT;
+--  function MINIMUM (L, R: BIT) return BIT;
+--  function MAXIMUM (L, R: BIT) return BIT;
+--  function "??"   (anonymous: BIT) return BOOLEAN;
+--  function RISING_EDGE  (signal S: BIT) return BOOLEAN;
+--  function FALLING_EDGE (signal S: BIT) return BOOLEAN;
+-- Implicit defined range record for BIT'RANGE_RECORD:
+-- type BIT_range_record is record
+--   Left      : BIT;
+--   Right     : BIT;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+290
+Copyright © 2019 IEEE. All rights reserved.
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type CHARACTER is (
+      NUL,    SOH,    STX,    ETX,    EOT,    ENQ,    ACK,    BEL,
+      BS,     HT,     LF,     VT,     FF,     CR,     SO,     SI,
+      DLE,    DC1,    DC2,    DC3,    DC4,    NAK,    SYN,    ETB,
+      CAN,    EM,     SUB,    ESC,    FSP,    GSP,    RSP,    USP,
+      ' ',    '!',    '"',    '#',    '$',    '%',    '&',    ''',
+      '(',    ')',    '*',    '+',    ',',    '-',    '.',    '/',
+      '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7',
+      '8',    '9',    ':',    ';',    '<',    '=',    '>',    '?',
+      '@',    'A',    'B',    'C',    'D',    'E',    'F',    'G',
+      'H',    'I',    'J',    'K',    'L',    'M',    'N',    'O',
+      'P',    'Q',    'R',    'S',    'T',    'U',    'V',    'W',
+      'X',    'Y',    'Z',    '[',    '\',    ']',    '^',    '_',
+      '`',    'a',    'b',    'c',    'd',    'e',    'f',    'g',
+      'h',    'i',    'j',    'k',    'l',    'm',    'n',    'o',
+      'p',    'q',    'r',    's',    't',    'u',    'v',    'w',
+      'x',    'y',    'z',    '{',    '|',    '}',    '~',    DEL,
+      C128,   C129,   C130,   C131,   C132,   C133,   C134,   C135,
+      C136,   C137,   C138,   C139,   C140,   C141,   C142,   C143,
+      C144,   C145,   C146,   C147,   C148,   C149,   C150,   C151,
+      C152,   C153,   C154,   C155,   C156,   C157,   C158,   C159,
+      ' ',13    '¡',    '¢',    '£',    '¤',    '¥',    '¦',    '§',
+      '¨',    '©',    'ª',    '«',    '¬',    '-',14    '®',    '¯',
+      '°',    '±',    '²',    '³',    '´',    'µ',    '¶',    '·',
+      '¸',    '¹',    'º',    '»',    '¼',    '½',    '¾',    '¿',
+      'À',    'Á',    'Â',    'Ã',    'Ä',    'Å',    'Æ',    'Ç',
+      'È',    'É',    'Ê',    'Ë',    'Ì',    'Í',    'Î',    'Ï',
+      'Ð',    'Ñ',    'Ò',    'Ó',    'Ô',    'Õ',    'Ö',    '×',
+      'Ø',    'Ù',    'Ú',    'Û',    'Ü',    'Ý',    'Þ',    'ß',
+      'à',    'á',    'â',    'ã',    'ä',    'å',    'æ',    'ç',
+      'è',    'é',    'ê',    'ë',    'ì',    'í',    'î',    'ï',
+      'ð',    'ñ',    'ò',    'ó',    'ô',    'õ',    'ö',    '÷',
+      'ø',    'ù',    'ú',    'û',    'ü',    'ý',    'þ',    'ÿ');
+   --  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: CHARACTER)
+--                                       return BOOLEAN;
+--  function "/=" (anonymous, anonymous: CHARACTER)
+--                                       return BOOLEAN;
+--  function "<"  (anonymous, anonymous: CHARACTER)
+13The nonbreaking space character.
+14The soft hyphen character.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+291
+Copyright © 2019 IEEE. All rights reserved.
+--                                       return BOOLEAN;
+--  function "<=" (anonymous, anonymous: CHARACTER)
+--                                       return BOOLEAN;
+--  function ">"  (anonymous, anonymous: CHARACTER)
+--                                       return BOOLEAN;
+--  function ">=" (anonymous, anonymous: CHARACTER)
+--                                       return BOOLEAN;
+--  function MINIMUM (L, R: CHARACTER) return CHARACTER;
+--  function MAXIMUM (L, R: CHARACTER) return CHARACTER;
+-- Implicit defined range record for CHARACTER'RANGE_RECORD:
+-- type CHARACTER_range_record is record
+--   Left      : CHARACTER;
+--   Right     : CHARACTER;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type SEVERITY_LEVEL is (NOTE, WARNING, ERROR, FAILURE);
+--  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: SEVERITY_LEVEL)
+--                                       return BOOLEAN;
+--  function "/=" (anonymous, anonymous: SEVERITY_LEVEL)
+--                                       return BOOLEAN;
+--  function "<"  (anonymous, anonymous: SEVERITY_LEVEL)
+--                                       return BOOLEAN;
+--  function "<=" (anonymous, anonymous: SEVERITY_LEVEL)
+--                                       return BOOLEAN;
+--  function ">"  (anonymous, anonymous: SEVERITY_LEVEL)
+--                                       return BOOLEAN;
+--  function ">=" (anonymous, anonymous: SEVERITY_LEVEL)
+--                                       return BOOLEAN;
+--  function MINIMUM (L, R: SEVERITY_LEVEL) return SEVERITY_LEVEL;
+--  function MAXIMUM (L, R: SEVERITY_LEVEL) return SEVERITY_LEVEL;
+-- Implicit defined range record for SEVERITY_LEVEL'RANGE_RECORD:
+-- type SEVERITY_LEVEL_range_record is record
+--   Left      : SEVERITY_LEVEL;
+--   Right     : SEVERITY_LEVEL;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+--  type universal_integer is range implementation_defined;
+--  The Predefined operations for this type are as follows:
+--  function "="   (anonymous, anonymous: universal_integer)
+--                                       return BOOLEAN;
+--  function "/="  (anonymous, anonymous: universal_integer)
+--                                       return BOOLEAN;
+--  function "<"   (anonymous, anonymous: universal_integer)
+--                                       return BOOLEAN;
+--  function "<="  (anonymous, anonymous: universal_integer)
+--                                       return BOOLEAN;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+292
+Copyright © 2019 IEEE. All rights reserved.
+--  function ">"   (anonymous, anonymous: universal_integer)
+--                                       return BOOLEAN;
+--  function ">="  (anonymous, anonymous: universal_integer)
+--                                       return BOOLEAN;
+--  function "+"   (anonymous: universal_integer)
+--                                       return universal_integer;
+--  function "-"   (anonymous: universal_integer)
+--                                       return universal_integer;
+--  function "abs" (anonymous: universal_integer)
+--                                       return universal_integer;
+--  function "+"   (anonymous, anonymous: universal_integer)
+--                                       return universal_integer;
+--  function "-"   (anonymous, anonymous: universal_integer)
+--                                       return universal_integer;
+--  function "*"   (anonymous, anonymous: universal_integer)
+--                                       return universal_integer;
+--  function "/"   (anonymous, anonymous: universal_integer)
+--                                       return universal_integer;
+--  function "mod" (anonymous, anonymous: universal_integer)
+--                                       return universal_integer;
+--  function "rem" (anonymous, anonymous: universal_integer)
+--                                       return universal_integer;
+--  function MINIMUM (L, R: universal_integer)
+--                                       return universal_integer;
+--  function MAXIMUM (L, R: universal_integer)
+--                                       return universal_integer;
+-- Implicit defined range record for universal_integer'RANGE_RECORD:
+-- type universal_integer_range_record is record
+--   Left      : universal_integer;
+--   Right     : universal_integer;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+--  type universal_real  is range implementation_defined;
+--  The Predefined operations for this type are as follows:
+--  function "="   (anonymous, anonymous: universal_real)
+--                                        return BOOLEAN;
+--  function "/="  (anonymous, anonymous: universal_real)
+--                                        return BOOLEAN;
+--  function "<"   (anonymous, anonymous: universal_real)
+--                                        return BOOLEAN;
+--  function "<="  (anonymous, anonymous: universal_real)
+--                                        return BOOLEAN;
+--  function ">"   (anonymous, anonymous: universal_real)
+--                                        return BOOLEAN;
+--  function ">="  (anonymous, anonymous: universal_real)
+--                                        return BOOLEAN;
+--  function "+"   (anonymous: universal_real)
+--                                        return universal_real;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+293
+Copyright © 2019 IEEE. All rights reserved.
+--  function "-"   (anonymous: universal_real)
+--                                        return universal_real;
+--  function "abs" (anonymous: universal_real)
+--                                        return universal_real;
+--  function "+"   (anonymous, anonymous: universal_real)
+--                                        return universal_real;
+--  function "-"   (anonymous, anonymous: universal_real)
+--                                        return universal_real;
+--  function "*"   (anonymous, anonymous: universal_real)
+--                                        return universal_real;
+--  function "/"   (anonymous, anonymous: universal_real)
+--                                        return universal_real;
+--  function "*"   (anonymous: universal_real;
+--                  anonymous: universal_integer)
+--                                        return universal_real;
+--  function "*"   (anonymous: universal_integer;
+--                  anonymous: universal_real)
+--                                        return universal_real;
+--  function "/"   (anonymous: universal_real;
+--                  anonymous: universal_integer)
+--                                        return universal_real;
+--  function MINIMUM (L, R: universal_real) return universal_real;
+--  function MAXIMUM (L, R: universal_real) return universal_real;
+-- Implicit defined range record for universal_real'RANGE_RECORD:
+-- type universal_real_range_record is record
+--   Left      : universal_real;
+--   Right     : universal_real;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+--  Predefined numeric types:
+type INTEGER is range implementation_defined;
+   --  The predefined operations for this type are as follows:
+--  function "**"  (anonymous: universal_integer;
+--                  anonymous: INTEGER) return universal_integer;
+--  function "**"  (anonymous: universal_real;
+--                  anonymous: INTEGER) return universal_real;
+--  function "="   (anonymous, anonymous: INTEGER) return BOOLEAN;
+--  function "/="  (anonymous, anonymous: INTEGER) return BOOLEAN;
+--  function "<"   (anonymous, anonymous: INTEGER) return BOOLEAN;
+--  function "<="  (anonymous, anonymous: INTEGER) return BOOLEAN;
+--  function ">"   (anonymous, anonymous: INTEGER) return BOOLEAN;
+--  function ">="  (anonymous, anonymous: INTEGER) return BOOLEAN;
+--  function "+"   (anonymous: INTEGER) return INTEGER;
+--  function "-"   (anonymous: INTEGER) return INTEGER;
+--  function "abs" (anonymous: INTEGER) return INTEGER;
+--  function "+"   (anonymous, anonymous: INTEGER) return INTEGER;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+294
+Copyright © 2019 IEEE. All rights reserved.
+--  function "-"   (anonymous, anonymous: INTEGER) return INTEGER;
+--  function "*"   (anonymous, anonymous: INTEGER) return INTEGER;
+--  function "/"   (anonymous, anonymous: INTEGER) return INTEGER;
+--  function "mod" (anonymous, anonymous: INTEGER) return INTEGER;
+--  function "rem" (anonymous, anonymous: INTEGER) return INTEGER;
+--  function "**"  (anonymous: INTEGER; anonymous: INTEGER)
+--                                        return INTEGER;
+--  function MINIMUM (L, R: INTEGER) return INTEGER;
+--  function MAXIMUM (L, R: INTEGER) return INTEGER;
+-- Implicit defined range record for INTEGER'RANGE_RECORD:
+-- type INTEGER_range_record is record
+--   Left      : INTEGER;
+--   Right     : INTEGER;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type REAL is range implementation_defined;
+--  The predefined operations for this type are as follows:
+--  function "="   (anonymous, anonymous: REAL) return BOOLEAN;
+--  function "/="  (anonymous, anonymous: REAL) return BOOLEAN;
+--  function "<"   (anonymous, anonymous: REAL) return BOOLEAN;
+--  function "<="  (anonymous, anonymous: REAL) return BOOLEAN;
+--  function ">"   (anonymous, anonymous: REAL) return BOOLEAN;
+--  function ">="  (anonymous, anonymous: REAL) return BOOLEAN;
+--  function "+"   (anonymous: REAL) return REAL;
+--  function "-"   (anonymous: REAL) return REAL;
+--  function "abs" (anonymous: REAL) return REAL;
+--  function "+"   (anonymous, anonymous: REAL) return REAL;
+--  function "-"   (anonymous, anonymous: REAL) return REAL;
+--  function "*"   (anonymous, anonymous: REAL) return REAL;
+--  function "/"   (anonymous, anonymous: REAL) return REAL;
+--  function "**"  (anonymous: REAL; anonymous: INTEGER) return REAL;
+--  function MINIMUM (L, R: REAL) return REAL;
+--  function MAXIMUM (L, R: REAL) return REAL;
+-- Implicit defined range record for REAL'RANGE_RECORD:
+-- type REAL_range_record is record
+--   Left      : REAL;
+--   Right     : REAL;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+
+--  Predefined type TIME:
+type TIME is range implementation_defined
+units
+fs;
+--  femtosecond
+ps   =  1000 fs;
+--  picosecond
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+295
+Copyright © 2019 IEEE. All rights reserved.
+ns   =  1000 ps;
+--  nanosecond
+us   =  1000 ns;
+--  microsecond
+ms   =  1000 us;
+--  millisecond
+sec  =  1000 ms;
+--  second
+min
+=  60 sec;
+--  minute
+hr   =  60 min;
+--  hour
+end units;
+--  The predefined operations for this type are as follows:
+--  function "="   (anonymous, anonymous: TIME) return BOOLEAN;
+--  function "/="  (anonymous, anonymous: TIME) return BOOLEAN;
+--  function "<"   (anonymous, anonymous: TIME) return BOOLEAN;
+--  function "<="  (anonymous, anonymous: TIME) return BOOLEAN;
+--  function ">"   (anonymous, anonymous: TIME) return BOOLEAN;
+--  function ">="  (anonymous, anonymous: TIME) return BOOLEAN;
+--  function "+"   (anonymous: TIME) return TIME;
+--  function "-    (anonymous: TIME) return TIME;
+--  function "abs" (anonymous: TIME) return TIME;
+--  function "+"   (anonymous, anonymous: TIME) return TIME;
+--  function "-"   (anonymous, anonymous: TIME) return TIME;
+--  function "*"   (anonymous: TIME;    anonymous: INTEGER)
+--                                        return TIME;
+--  function "*"   (anonymous: TIME;    anonymous: REAL)
+--                                        return TIME;
+--  function "*"   (anonymous: INTEGER; anonymous: TIME)
+--                                        return TIME;
+--  function "*"   (anonymous: REAL;    anonymous: TIME)
+--                                        return TIME;
+--  function "/"   (anonymous: TIME;    anonymous: INTEGER)
+--                                        return TIME;
+--  function "/"   (anonymous: TIME;    anonymous: REAL)
+--                                        return TIME;
+--  function "/"   (anonymous, anonymous: TIME)
+--                                        return universal_integer;
+--  function "mod" (anonymous, anonymous: TIME) return TIME;
+--  function "rem" (anonymous, anonymous: TIME) return TIME;
+--  function MINIMUM (L, R: TIME) return TIME;
+--  function MAXIMUM (L, R: TIME) return TIME;
+-- Implicit defined range record for TIME'RANGE_RECORD:
+-- type TIME_range_record is record
+--   Left      : TIME;
+--   Right     : TIME;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+subtype DELAY_LENGTH is TIME range 0 fs to TIME'HIGH;
+--  A function that returns the current simulation time, Tc,
+--  (see Clause 14.7.5.1):
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+296
+Copyright © 2019 IEEE. All rights reserved.
+impure function NOW return DELAY_LENGTH;
+--  Predefined numeric subtypes:
+subtype NATURAL is INTEGER range 0 to INTEGER'HIGH;
+subtype POSITIVE is INTEGER range 1 to INTEGER'HIGH;
+-- Predefined array types:
+type STRING is array (POSITIVE range <>) of CHARACTER;
+--  The Predefined operations for these types are as follows:
+--  function "="  (anonymous, anonymous: STRING) return BOOLEAN;
+--  function "/=" (anonymous, anonymous: STRING) return BOOLEAN;
+--  function "<"  (anonymous, anonymous: STRING) return BOOLEAN;
+--  function "<=" (anonymous, anonymous: STRING) return BOOLEAN;
+--  function ">"  (anonymous, anonymous: STRING) return BOOLEAN;
+--  function ">=" (anonymous, anonymous: STRING) return BOOLEAN;
+--  function "&"  (anonymous: STRING;    anonymous: STRING)
+--                                       return STRING;
+--  function "&"  (anonymous: STRING;    anonymous: CHARACTER)
+--                                       return STRING;
+--  function "&"  (anonymous: CHARACTER; anonymous: STRING)
+--                                       return STRING;
+--  function "&"  (anonymous: CHARACTER; anonymous: CHARACTER)
+--                                       return STRING;
+--  function MINIMUM (L, R: STRING) return STRING;
+--  function MAXIMUM (L, R: STRING) return STRING;
+--  function MINIMUM (L: STRING) return CHARACTER;
+--  function MAXIMUM (L: STRING) return CHARACTER;
+type BOOLEAN_VECTOR is array (NATURAL range <>) of BOOLEAN;
+--  The predefined operations for this type are as follows:
+--  function "and"  (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "or"   (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "nand" (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "nor"  (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "xor"  (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "xnor" (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "not"  (anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "and"  (anonymous: BOOLEAN_VECTOR; anonymous: BOOLEAN)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+297
+Copyright © 2019 IEEE. All rights reserved.
+--                                       return BOOLEAN_VECTOR;
+--  function "and"  (anonymous: BOOLEAN; anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "or"   (anonymous: BOOLEAN_VECTOR; anonymous: BOOLEAN)
+--                                       return BOOLEAN_VECTOR;
+--  function "or"   (anonymous: BOOLEAN; anonymous : BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "nand" (anonymous: BOOLEAN_VECTOR; anonymous: BOOLEAN)
+--                                       return BOOLEAN_VECTOR;
+--  function "nand" (anonymous: BOOLEAN; anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "nor"  (anonymous: BOOLEAN_VECTOR; anonymous: BOOLEAN)
+--                                       return BOOLEAN_VECTOR;
+--  function "nor"  (anonymous: BOOLEAN; anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "xor"  (anonymous: BOOLEAN_VECTOR; anonymous: BOOLEAN)
+--                                       return BOOLEAN_VECTOR;
+--  function "xor"  (anonymous: BOOLEAN; anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "xnor" (anonymous: BOOLEAN_VECTOR; anonymous: BOOLEAN)
+--                                       return BOOLEAN_VECTOR;
+--  function "xnor" (anonymous: BOOLEAN; anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "and"  (anonymous: BOOLEAN_VECTOR) return BOOLEAN;
+--  function "or"   (anonymous: BOOLEAN_VECTOR) return BOOLEAN;
+--  function "nand" (anonymous: BOOLEAN_VECTOR) return BOOLEAN;
+--  function "nor"  (anonymous: BOOLEAN_VECTOR) return BOOLEAN;
+--  function "xor"  (anonymous: BOOLEAN_VECTOR) return BOOLEAN;
+--  function "xnor" (anonymous: BOOLEAN_VECTOR) return BOOLEAN;
+--  function "sll"  (anonymous: BOOLEAN_VECTOR; anonymous: INTEGER)
+--                                       return BOOLEAN_VECTOR;
+--  function "srl"  (anonymous: BOOLEAN_VECTOR; anonymous: INTEGER)
+--                                       return BOOLEAN_VECTOR;
+--  function "sla"  (anonymous: BOOLEAN_VECTOR; anonymous: INTEGER)
+--                                       return BOOLEAN_VECTOR;
+--  function "sra"  (anonymous: BOOLEAN_VECTOR; anonymous: INTEGER)
+--                                       return BOOLEAN_VECTOR;
+--  function "rol"  (anonymous: BOOLEAN_VECTOR; anonymous: INTEGER)
+--                                       return BOOLEAN_VECTOR;
+--  function "ror"  (anonymous: BOOLEAN_VECTOR; anonymous: INTEGER)
+--                                       return BOOLEAN_VECTOR;
+--  function "="    (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN;
+--  function "/="   (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN;
+--  function "<"    (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN;
+--  function "<="   (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN;
+--  function ">"    (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+298
+Copyright © 2019 IEEE. All rights reserved.
+--  function ">="   (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN;
+--  function "?="   (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN;
+--  function "?/="  (anonymous, anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN;
+--  function "&"    (anonymous: BOOLEAN_VECTOR;
+--                   anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "&"    (anonymous: BOOLEAN_VECTOR; anonymous: BOOLEAN)
+--                                       return BOOLEAN_VECTOR;
+--  function "&"    (anonymous: BOOLEAN; anonymous: BOOLEAN_VECTOR)
+--                                       return BOOLEAN_VECTOR;
+--  function "&"    (anonymous: BOOLEAN; anonymous: BOOLEAN)
+--                                       return BOOLEAN_VECTOR;
+--  function MINIMUM (L, R: BOOLEAN_VECTOR) return BOOLEAN_VECTOR;
+--  function MAXIMUM (L, R: BOOLEAN_VECTOR) return BOOLEAN_VECTOR;
+--  function MINIMUM (L: BOOLEAN_VECTOR) return BOOLEAN;
+--  function MAXIMUM (L: BOOLEAN_VECTOR) return BOOLEAN;
+type BIT_VECTOR is array (NATURAL range <>) of BIT;
+--  The predefined operations for this type are as follows:
+--  function "and"  (anonymous, anonymous: BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "or"   (anonymous, anonymous: BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "nand" (anonymous, anonymous: BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "nor"  (anonymous, anonymous: BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "xor"  (anonymous, anonymous: BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "xnor" (anonymous, anonymous: BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "not"  (anonymous: BIT_VECTOR) return BIT_VECTOR;
+--  function "and"  (anonymous: BIT_VECTOR; anonymous : BIT)
+--                                        return BIT_VECTOR;
+--  function "and"  (anonymous: BIT; anonymous : BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "or"   (anonymous: BIT_VECTOR; anonymous : BIT)
+--                                        return BIT_VECTOR;
+--  function "or"   (anonymous: BIT; anonymous : BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "nand" (anonymous: BIT_VECTOR; anonymous : BIT)
+--                                        return BIT_VECTOR;
+--  function "nand" (anonymous: BIT; anonymous : BIT_VECTOR)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+299
+Copyright © 2019 IEEE. All rights reserved.
+--                                        return BIT_VECTOR;
+--  function "nor"  (anonymous: BIT_VECTOR; anonymous : BIT)
+--                                        return BIT_VECTOR;
+--  function "nor"  (anonymous: BIT; anonymous : BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "xor"  (anonymous: BIT_VECTOR; anonymous : BIT)
+--                                        return BIT_VECTOR;
+--  function "xor"  (anonymous: BIT; anonymous : BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "xnor" (anonymous: BIT_VECTOR; anonymous : BIT)
+--                                        return BIT_VECTOR;
+--  function "xnor" (anonymous: BIT; anonymous : BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "and"  (anonymous: BIT_VECTOR) return BIT;
+--  function "or"   (anonymous: BIT_VECTOR) return BIT;
+--  function "nand" (anonymous: BIT_VECTOR) return BIT;
+--  function "nor"  (anonymous: BIT_VECTOR) return BIT;
+--  function "xor"  (anonymous: BIT_VECTOR) return BIT;
+--  function "xnor" (anonymous: BIT_VECTOR) return BIT;
+--  function "sll"  (anonymous: BIT_VECTOR; anonymous: INTEGER)
+--                                        return BIT_VECTOR;
+--  function "srl"  (anonymous: BIT_VECTOR; anonymous: INTEGER)
+--                                        return BIT_VECTOR;
+--  function "sla"  (anonymous: BIT_VECTOR; anonymous: INTEGER)
+--                                        return BIT_VECTOR;
+--  function "sra"  (anonymous: BIT_VECTOR; anonymous: INTEGER)
+--                                        return BIT_VECTOR;
+--  function "rol"  (anonymous: BIT_VECTOR; anonymous: INTEGER)
+--                                        return BIT_VECTOR;
+--  function "ror"  (anonymous: BIT_VECTOR; anonymous: INTEGER)
+--                                        return BIT_VECTOR;
+--  function "="    (anonymous, anonymous: BIT_VECTOR)
+--                                        return BOOLEAN;
+--  function "/="   (anonymous, anonymous: BIT_VECTOR)
+--                                        return BOOLEAN;
+--  function "<"    (anonymous, anonymous: BIT_VECTOR)
+--                                        return BOOLEAN;
+--  function "<="   (anonymous, anonymous: BIT_VECTOR)
+--                                        return BOOLEAN;
+--  function ">"    (anonymous, anonymous: BIT_VECTOR)
+--                                        return BOOLEAN;
+--  function ">="   (anonymous, anonymous: BIT_VECTOR)
+--                                        return BOOLEAN;
+--  function "?="   (anonymous, anonymous: BIT_VECTOR) return BIT;
+--  function "?/="  (anonymous, anonymous: BIT_VECTOR) return BIT;
+--  function "&"    (anonymous: BIT_VECTOR; anonymous: BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "&"    (anonymous: BIT_VECTOR; anonymous: BIT)
+--                                        return BIT_VECTOR;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+300
+Copyright © 2019 IEEE. All rights reserved.
+--  function "&"    (anonymous: BIT; anonymous: BIT_VECTOR)
+--                                        return BIT_VECTOR;
+--  function "&"    (anonymous: BIT; anonymous: BIT)
+--                                        return BIT_VECTOR;
+--  function MINIMUM (L, R: BIT_VECTOR) return BIT_VECTOR;
+--  function MAXIMUM (L, R: BIT_VECTOR) return BIT_VECTOR;
+--  function MINIMUM (L: BIT_VECTOR) return BIT;
+--  function MAXIMUM (L: BIT_VECTOR) return BIT;
+--  function TO_STRING (VALUE: BIT_VECTOR) return STRING;
+--  alias    TO_BSTRING       is TO_STRING
+--                               [BIT_VECTOR return STRING];
+--  alias    TO_BINARY_STRING is TO_STRING
+--                               [BIT_VECTOR return STRING];
+--  function TO_OSTRING (VALUE: BIT_VECTOR) return STRING;
+--  alias    TO_OCTAL_STRING  is TO_OSTRING
+--                               [BIT_VECTOR return STRING];
+--  function TO_HSTRING (VALUE: BIT_VECTOR) return STRING;
+--  alias    TO_HEX_STRING    is TO_HSTRING
+--                               [BIT_VECTOR return STRING];
+type INTEGER_VECTOR is array (NATURAL range <>) of INTEGER;
+--  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: INTEGER_VECTOR)
+--                                        return BOOLEAN;
+--  function "/=" (anonymous, anonymous: INTEGER_VECTOR)
+--                                        return BOOLEAN;
+--  function "<"  (anonymous, anonymous: INTEGER_VECTOR)
+--                                        return BOOLEAN;
+--  function "<=" (anonymous, anonymous: INTEGER_VECTOR)
+--                                        return BOOLEAN;
+--  function ">"  (anonymous, anonymous: INTEGER_VECTOR)
+--                                        return BOOLEAN;
+--  function ">=" (anonymous, anonymous: INTEGER_VECTOR)
+--                                        return BOOLEAN;
+--  function "&"  (anonymous: INTEGER_VECTOR;
+--                 anonymous: INTEGER_VECTOR) return INTEGER_VECTOR;
+--  function "&"  (anonymous: INTEGER_VECTOR;
+--                 anonymous: INTEGER)        return INTEGER_VECTOR;
+--  function "&"  (anonymous: INTEGER;
+--                 anonymous: INTEGER_VECTOR) return INTEGER_VECTOR;
+--  function "&"  (anonymous: INTEGER;
+--                 anonymous: INTEGER)        return INTEGER_VECTOR;
+--  function MINIMUM (L, R: INTEGER_VECTOR) return INTEGER_VECTOR;
+--  function MAXIMUM (L, R: INTEGER_VECTOR) return INTEGER_VECTOR;
+--  function MINIMUM (L: INTEGER_VECTOR) return INTEGER;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+301
+Copyright © 2019 IEEE. All rights reserved.
+--  function MAXIMUM (L: INTEGER_VECTOR) return INTEGER;
+type REAL_VECTOR is array (NATURAL range <>) of REAL;
+--  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: REAL_VECTOR)
+--
+return BOOLEAN;
+--  function "/=" (anonymous, anonymous: REAL_VECTOR)
+--
+return BOOLEAN;
+--  function "&"  (anonymous: REAL_VECTOR; anonymous: REAL_VECTOR)
+--                                        return REAL_VECTOR;
+--  function "&"  (anonymous: REAL_VECTOR; anonymous: REAL)
+--                                        return REAL_VECTOR;
+--  function "&"  (anonymous: REAL; anonymous: REAL_VECTOR)
+--                                        return REAL_VECTOR;
+--  function "&"  (anonymous: REAL; anonymous: REAL)
+--                                        return REAL_VECTOR;
+--  function MINIMUM (L: REAL_VECTOR) return REAL;
+--  function MAXIMUM (L: REAL_VECTOR) return REAL;
+type TIME_VECTOR is array (NATURAL range <>) of TIME;
+--  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: TIME_VECTOR)
+--
+return BOOLEAN;
+--  function "/=" (anonymous, anonymous: TIME_VECTOR)
+--
+return BOOLEAN;
+--  function "&"  (anonymous: TIME_VECTOR; anonymous: TIME_VECTOR)
+--                                        return TIME_VECTOR;
+--  function "&"  (anonymous: TIME_VECTOR; anonymous: TIME)
+--                                        return TIME_VECTOR;
+--  function "&"  (anonymous: TIME; anonymous: TIME_VECTOR)
+--                                        return TIME_VECTOR;
+--  function "&"  (anonymous: TIME; anonymous: TIME)
+--                                        return TIME_VECTOR;
+--  function MINIMUM (L: TIME_VECTOR) return TIME;
+--  function MAXIMUM (L: TIME_VECTOR) return TIME;
+--  The predefined types for opening files:
+type FILE_OPEN_KIND is (
+-- Resulting access mode is read-only.
+READ_MODE,
+-- Resulting access mode is write-only.
+WRITE_MODE,
+-- Resulting access mode is write-only, information is
+-- appended to the end of an existing file.
+APPEND_MODE,
+-- Resulting access mode is read/write.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+302
+Copyright © 2019 IEEE. All rights reserved.
+READ_WRITE_MODE);
+--  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: FILE_OPEN_KIND)
+--                                        return BOOLEAN;
+--  function "/=" (anonymous, anonymous: FILE_OPEN_KIND)
+--                                        return BOOLEAN;
+--  function "<"  (anonymous, anonymous: FILE_OPEN_KIND)
+--                                        return BOOLEAN;
+--  function "<=" (anonymous, anonymous: FILE_OPEN_KIND)
+--                                        return BOOLEAN;
+--  function ">"  (anonymous, anonymous: FILE_OPEN_KIND)
+--                                        return BOOLEAN;
+--  function ">=" (anonymous, anonymous: FILE_OPEN_KIND)
+--                                        return BOOLEAN;
+--  function MINIMUM (L, R: FILE_OPEN_KIND) return FILE_OPEN_KIND;
+--  function MAXIMUM (L, R: FILE_OPEN_KIND) return FILE_OPEN_KIND;
+-- Implicit defined range record for FILE_OPEN_KIND'RANGE_RECORD:
+-- type FILE_OPEN_KIND_range_record is record
+--   Left      : FILE_OPEN_KIND;
+--   Right     : FILE_OPEN_KIND;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type FILE_OPEN_STATUS is (
+--  File open was successful.
+OPEN_OK,
+--  File object was already open.
+STATUS_ERROR,
+--  External file not found or not accessible.
+NAME_ERROR,
+--  Could not open file with requested access mode.
+MODE_ERROR);
+--  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: FILE_OPEN_STATUS)
+--                                        return BOOLEAN;
+--  function "/=" (anonymous, anonymous: FILE_OPEN_STATUS)
+--                                        return BOOLEAN;
+--  function "<"  (anonymous, anonymous: FILE_OPEN_STATUS)
+--                                        return BOOLEAN;
+--  function "<=" (anonymous, anonymous: FILE_OPEN_STATUS)
+--                                        return BOOLEAN;
+--  function ">"  (anonymous, anonymous: FILE_OPEN_STATUS)
+--                                        return BOOLEAN;
+--  function ">=" (anonymous, anonymous: FILE_OPEN_STATUS)
+--                                        return BOOLEAN;
+--  function MINIMUM (L, R: FILE_OPEN_STATUS)
+--
+return FILE_OPEN_STATUS;
+--  function MAXIMUM (L, R: FILE_OPEN_STATUS)
+--
+return FILE_OPEN_STATUS;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+303
+Copyright © 2019 IEEE. All rights reserved.
+-- Implicit defined range record for FILE_OPEN_STATUS'RANGE_RECORD:
+-- type FILE_OPEN_STATUS_range_record is record
+--   Left      : FILE_OPEN_STATUS;
+--   Right     : FILE_OPEN_STATUS;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type FILE_OPEN_STATE is (
+STATE_OPEN,   -- File object is open.
+STATE_CLOSED  -- File object is closed.
+);
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: FILE_OPEN_STATE)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: FILE_OPEN_STATE)
+--
+return BOOLEAN;
+-- function "<" (anonymous, anonymous: FILE_OPEN_STATE)
+--
+return BOOLEAN;
+-- function "<=" (anonymous, anonymous: FILE_OPEN_STATE)
+--
+return BOOLEAN;
+-- function ">" (anonymous, anonymous: FILE_OPEN_STATE)
+--
+return BOOLEAN;
+-- function ">=" (anonymous, anonymous: FILE_OPEN_STATE)
+--
+return BOOLEAN;
+-- function MINIMUM (L, R: FILE_OPEN_STATE)
+--
+return FILE_OPEN_STATE;
+-- function MAXIMUM (L, R: FILE_OPEN_STATE)
+--
+return FILE_OPEN_STATE;
+-- Implicit defined range record for FILE_OPEN_STATE'RANGE_RECORD:
+-- type FILE_OPEN_STATE_range_record is record
+--   Left      : FILE_OPEN_STATE;
+--   Right     : FILE_OPEN_STATE;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type FILE_ORIGIN_KIND is (
+FILE_ORIGIN_BEGIN,   -- File open was successful.
+FILE_ORIGIN_CURRENT, -- File object was already open.
+FILE_ORIGIN_END      -- External file not found
+);
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: FILE_ORIGIN_KIND)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: FILE_ORIGIN_KIND)
+--
+return BOOLEAN;
+-- function "<" (anonymous, anonymous: FILE_ORIGIN_KIND)
+--
+return BOOLEAN;
+-- function "<=" (anonymous, anonymous: FILE_ORIGIN_KIND)
+--
+return BOOLEAN;
+-- function ">" (anonymous, anonymous: FILE_ORIGIN_KIND)
+--
+return BOOLEAN;
+-- function ">=" (anonymous, anonymous: FILE_ORIGIN_KIND)
+--
+return BOOLEAN;
+-- function MINIMUM (L, R: FILE_ORIGIN_KIND)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+304
+Copyright © 2019 IEEE. All rights reserved.
+--
+return FILE_ORIGIN_KIND;
+-- function MAXIMUM (L, R: FILE_ORIGIN_KIND)
+--
+return FILE_ORIGIN_KIND;
+-- Implicit defined range record for FILE_ORIGIN_KIND'RANGE_RECORD:
+-- type FILE_ORIGIN_KIND_range_record is record
+--   Left      : FILE_ORIGIN_KIND;
+--   Right     : FILE_ORIGIN_KIND;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+--  The 'FOREIGN attribute:
+attribute FOREIGN: STRING;
+
+--  predefined TO_STRING operations on scalar types
+--  function TO_STRING (VALUE: BOOLEAN)           return STRING;
+--  function TO_STRING (VALUE: BIT)               return STRING;
+--  function TO_STRING (VALUE: CHARACTER)         return STRING;
+--  function TO_STRING (VALUE: SEVERITY_LEVEL)    return STRING;
+--  function TO_STRING (VALUE: universal_integer)
+--
+return STRING;
+--  function TO_STRING (VALUE: universal_real)
+--
+return STRING;
+--  function TO_STRING (VALUE: INTEGER)           return STRING;
+--  function TO_STRING (VALUE: REAL)              return STRING;
+--  function TO_STRING (VALUE: TIME)              return STRING;
+--  function TO_STRING (VALUE: STRING)            return STRING;
+--  function TO_STRING (VALUE: BOOLEAN_VECTOR)    return STRING;
+--  function TO_STRING (VALUE: INTEGER_VECTOR)    return STRING;
+--  function TO_STRING (VALUE: REAL_VECTOR)       return STRING;
+--  function TO_STRING (VALUE: TIME_VECTOR)       return STRING;
+--  function TO_STRING (VALUE: FILE_OPEN_KIND)    return STRING;
+--  function TO_STRING (VALUE: FILE_OPEN_STATUS)
+--
+return STRING;
+--  predefined overloaded TO_STRING operations
+--  function TO_STRING (VALUE: REAL; DIGITS: NATURAL)
+--
+return STRING;
+--  function TO_STRING (VALUE: REAL; FORMAT: STRING)
+--
+return STRING;
+--  function TO_STRING (VALUE: TIME; UNIT: TIME)  return STRING;
+end package STANDARD;
+The 'FOREIGN attribute shall be associated only with architectures (see 3.3) or with subprograms. In the
+latter case, the attribute specification shall appear in the declarative part in which the subprogram is declared
+(see 4.2).
+NOTE 1—The ASCII mnemonics for file separator (FS), group separator (GS), record separator (RS), and unit separator
+(US) are represented by FSP, GSP, RSP, and USP, respectively, in type CHARACTER in order to avoid conflict with
+the units of type TIME.
+NOTE 2—The declarative parts and statement parts of design entities whose corresponding architectures are decorated
+with the 'FOREIGN attribute and subprograms that are likewise decorated are subject to special elaboration rules. See
+#### 14.4.1 and 14.5.1.
+
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+305
+Copyright © 2019 IEEE. All rights reserved.
+### 16.4 Package TEXTIO
+
+Package TEXTIO contains declarations of types and subprograms that support formatted I/O operations on
+text files.
+package TEXTIO is
+--  Type definitions for text I/O:
+--  A LINE is a pointer to a STRING value.
+type LINE is access STRING;
+--  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: LINE) return BOOLEAN;
+--  function "/=" (anonymous, anonymous: LINE) return BOOLEAN;
+--  procedure DEALLOCATE (P: inout LINE);
+type LINE_VECTOR is array (NATURAL range <>) of LINE;
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: LINE_VECTOR) return BOOLEAN;
+-- function "/=" (anonymous, anonymous: LINE_VECTOR) return BOOLEAN;
+-- function "&" (anonymous: LINE_VECTOR; anonymous: LINE_VECTOR)
+--
+return LINE_VECTOR;
+-- function "&" (anonymous: LINE_VECTOR; anonymous: LINE)
+--
+return LINE_VECTOR;
+-- function "&" (anonymous: LINE; anonymous: LINE_VECTOR)
+--
+return LINE_VECTOR;
+-- function "&" (anonymous: LINE; anonymous: LINE)
+--
+return LINE_VECTOR;
+--  A file of variable-length ASCII records.
+type TEXT is file of STRING;
+--  The predefined operations for this type are as follows:
+--  procedure FILE_OPEN  (file F: TEXT; External_Name: in  STRING;
+--                        Open_Kind: in FILE_OPEN_KIND := READ_MODE);
+--  procedure FILE_OPEN  (Status: out FILE_OPEN_STATUS; file F: TEXT;
+--                        External_Name: in STRING;
+--                        Open_Kind: in FILE_OPEN_KIND := READ_MODE);
+--
+impure function FILE_OPEN (file F: TEXT;
+--
+External_Name: in STRING;
+--
+Open_Kind: in FILE_OPEN_KIND := READ_MODE
+--
+) return FILE_OPEN_STATUS;
+--  procedure FILE_CLOSE (file F: TEXT);
+--
+procedure FILE_REWIND(file F: TEXT);
+--
+procedure FILE_SEEK(file F: TEXT; Offset: INTEGER;
+--
+Origin: FILE_ORIGIN_KIND := FILE_ORIGIN_BEGIN);
+--
+procedure FILE_TRUNCATE(file F: TEXT; Size: INTEGER;
+--
+Origin: FILE_ORIGIN_KIND := FILE_ORIGIN_BEGIN);
+--
+function FILE_STATE(file F: TEXT) return FILE_OPEN_STATE;
+--
+function FILE_MODE(file F: TEXT) return FILE_OPEN_KIND;
+--
+function FILE_POSITION(file F: TEXT;
+--
+Origin: FILE_ORIGIN_KIND := FILE_ORIGIN_BEGIN)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+306
+Copyright © 2019 IEEE. All rights reserved.
+--
+return INTEGER;
+--
+function FILE_SIZE(file F: TEXT) return INTEGER;
+--
+function FILE_CANSEEK(file F: TEXT) return BOOLEAN;
+--  procedure READ       (file F: TEXT; VALUE: out STRING);
+--  procedure WRITE      (file F: TEXT; VALUE: in STRING);
+--  procedure FLUSH      (file F: TEXT);
+--  function  ENDFILE    (file F: TEXT) return BOOLEAN;
+--  For justifying output data with fields.
+type SIDE is (RIGHT, LEFT);
+--  The predefined operations for this type are as follows:
+--  function "="  (anonymous, anonymous: SIDE) return BOOLEAN;
+--  function "/=" (anonymous, anonymous: SIDE) return BOOLEAN;
+--  function "<"  (anonymous, anonymous: SIDE) return BOOLEAN;
+--  function "<=" (anonymous, anonymous: SIDE) return BOOLEAN;
+--  function ">"  (anonymous, anonymous: SIDE) return BOOLEAN;
+--  function ">=" (anonymous, anonymous: SIDE) return BOOLEAN;
+--  function MINIMUM (L, R: SIDE) return SIDE;
+--  function MAXIMUM (L, R: SIDE) return SIDE;
+--  function TO_STRING (VALUE: SIDE) return STRING;
+-- Implicit defined range record for SIDE'RANGE_RECORD:
+-- type SIDE_range_record is record
+--   Left      : SIDE;
+--   Right     : SIDE;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+--  For specifying widths of output fields.
+subtype WIDTH is NATURAL;
+function JUSTIFY (VALUE: STRING;
+JUSTIFIED: SIDE := RIGHT;
+FIELD: WIDTH := 0 ) return STRING;
+--  Standard text files:
+file INPUT:  TEXT open READ_MODE  is "STD_INPUT";
+file OUTPUT: TEXT open WRITE_MODE is "STD_OUTPUT";
+--  input routines for standard types:
+procedure READLINE (file F: TEXT; L: inout LINE);
+procedure READ (L: inout LINE; VALUE: out BIT;
+GOOD:  out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out BIT);
+procedure READ (L: inout LINE; VALUE: out BIT_VECTOR;
+GOOD:  out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out BIT_VECTOR);
+procedure READ (L: inout LINE; VALUE: out BOOLEAN;
+GOOD:  out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out CHARACTER;
+GOOD:  out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out CHARACTER);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+307
+Copyright © 2019 IEEE. All rights reserved.
+procedure READ (L: inout LINE; VALUE: out INTEGER;
+                                  GOOD:  out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out INTEGER);
+procedure READ (L: inout LINE; VALUE: out REAL;
+                                  GOOD:  out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out REAL);
+procedure READ (L: inout LINE; VALUE: out STRING;
+                                  GOOD:  out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out STRING);
+procedure READ (L: inout LINE; VALUE: out TIME;
+                                  GOOD:  out BOOLEAN);
+procedure READ (L: inout LINE; VALUE: out TIME);
+procedure SREAD (L: inout LINE; VALUE:  out STRING;
+                                   STRLEN: out NATURAL);
+alias STRING_READ is SREAD [LINE, STRING, NATURAL];
+alias BREAD is READ [LINE, BIT_VECTOR, BOOLEAN];
+alias BREAD is READ [LINE, BIT_VECTOR];
+alias BINARY_READ is READ [LINE, BIT_VECTOR, BOOLEAN];
+alias BINARY_READ is READ [LINE, BIT_VECTOR];
+procedure OREAD (L: inout LINE; VALUE: out BIT_VECTOR;
+                                   GOOD:  out BOOLEAN);
+procedure OREAD (L: inout LINE; VALUE: out BIT_VECTOR);
+alias OCTAL_READ is OREAD [LINE, BIT_VECTOR, BOOLEAN];
+alias OCTAL_READ is OREAD [LINE, BIT_VECTOR];
+procedure HREAD (L: inout LINE; VALUE: out BIT_VECTOR;
+                                   GOOD:  out BOOLEAN);
+procedure HREAD (L: inout LINE; VALUE: out BIT_VECTOR);
+alias HEX_READ is HREAD [LINE, BIT_VECTOR, BOOLEAN];
+alias HEX_READ is HREAD [LINE, BIT_VECTOR];
+--  Output routines for standard types:
+procedure WRITELINE (file F: TEXT; L: inout LINE);
+procedure TEE   (file F: TEXT; L: inout LINE);
+procedure WRITE (L: inout LINE; VALUE: in BIT;
+
+JUSTIFIED: in SIDE:= RIGHT; FIELD: in WIDTH := 0);
+procedure WRITE (L: inout LINE; VALUE: in BIT_VECTOR;
+JUSTIFIED: in SIDE:= RIGHT; FIELD: in WIDTH := 0);
+procedure WRITE (L: inout LINE; VALUE: in BOOLEAN;
+JUSTIFIED: in SIDE:= RIGHT; FIELD: in WIDTH := 0);
+procedure WRITE (L: inout LINE; VALUE: in CHARACTER;
+JUSTIFIED: in SIDE:= RIGHT; FIELD: in WIDTH := 0);
+procedure WRITE (L: inout LINE; VALUE: in INTEGER;
+JUSTIFIED: in SIDE:= RIGHT; FIELD: in WIDTH := 0);
+procedure WRITE (L: inout LINE; VALUE: in REAL;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+308
+Copyright © 2019 IEEE. All rights reserved.
+                    JUSTIFIED: in SIDE:= RIGHT; FIELD: in WIDTH := 0;
+                    DIGITS: in NATURAL:= 0);
+procedure WRITE (L: inout LINE; VALUE: in REAL;
+FORMAT: in STRING);
+procedure WRITE (L: inout LINE; VALUE: in STRING;
+JUSTIFIED: in SIDE:= RIGHT; FIELD: in WIDTH := 0);
+procedure WRITE (L: inout LINE; VALUE: in TIME;
+JUSTIFIED: in SIDE:= RIGHT; FIELD: in WIDTH := 0;
+UNIT: in TIME:= ns);
+alias SWRITE       is WRITE [LINE, STRING, SIDE, WIDTH];
+alias STRING_WRITE is WRITE [LINE, STRING, SIDE, WIDTH];
+alias BWRITE       is WRITE [LINE, BIT_VECTOR, SIDE, WIDTH];
+alias BINARY_WRITE is WRITE [LINE, BIT_VECTOR, SIDE, WIDTH];
+procedure OWRITE (L: inout LINE; VALUE: in BIT_VECTOR;
+                     JUSTIFIED: in SIDE := RIGHT; FIELD: in WIDTH := 0);
+alias OCTAL_WRITE is OWRITE [LINE, BIT_VECTOR, SIDE, WIDTH];
+procedure HWRITE (L: inout LINE; VALUE: in BIT_VECTOR;
+JUSTIFIED: in SIDE := RIGHT; FIELD: in WIDTH := 0);
+alias HEX_WRITE is HWRITE [LINE, BIT_VECTOR, SIDE, WIDTH];
+end package TEXTIO;
+Procedures READLINE, WRITELINE, and TEE declared in package TEXTIO read and write entire lines of
+a file of type TEXT. Procedure READLINE causes the next line to be read from the file and returns as the
+value of parameter L an access value that designates an object representing that line. If parameter L contains
+a non-null access value at the start of the call, the procedure may deallocate the object designated by that
+value. The representation of the line does not contain the representation of the end of the line. It is an error if
+the file specified in a call to READLINE is not open or, if open, the file has an access mode other than read-
+only (see 5.5.2). Procedures WRITELINE and TEE each cause the current line designated by parameter L to
+be written to the file and returns with the value of parameter L designating an empty string. Procedure TEE
+additionally causes the current line to be written to the file OUTPUT. If parameter L contains a null access
+value at the start of the call, then an empty string is written to the file or files. If parameter L contains a non-
+null access value at the start of the call, the procedures may deallocate the object designated by that value. It
+is an error if the file specified in a call to WRITELINE or TEE is not open or, if open, the file has an access
+mode other than write-only.
+The language does not define the representation of the end of a line. An implementation shall allow all
+possible values of types CHARACTER and STRING to be written to a file. However, as an implementation
+is permitted to use certain values of types CHARACTER and STRING as line delimiters, it might not be
+possible to read these values from a TEXT file.
+A line feed (LF) format effector occurring as an element of a string written to a file of type TEXT, either
+using procedure WRITELINE or TEE, or using the WRITE operation implicitly defined for the type TEXT,
+is interpreted by the implementation as signifying the end of a line. The implementation shall transform the
+LF into the implementation-defined representation of the end of a line.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+309
+Copyright © 2019 IEEE. All rights reserved.
+The JUSTIFY operation formats a string value within a field that is at least as long as required to contain the
+value. Parameter FIELD specifies the desired field width. Since the actual field width will always be at least
+large enough to hold the string value, the default value 0 for the FIELD parameter has the effect of causing
+the string value to be contained in a field of exactly the right width (i.e., no additional leading or trailing
+spaces). Parameter JUSTIFIED specifies whether the string value is to be right- or left-justified within the
+field; the default is right-justified. If the FIELD parameter describes a field width larger than the number of
+characters in the string value, space characters are used to fill the remaining characters in the field.
+Each READ, SREAD, OREAD, and HREAD procedure declared in package TEXTIO extracts data from the
+beginning of the string value designated by parameter L and modifies the value so that it designates the
+remaining portion of the line on exit. Each procedure may modify the value of the object designated by the
+parameter L at the start of the call or may deallocate the object.
+The READ procedures defined for a given type other than CHARACTER and STRING begin by skipping
+leading whitespace characters. A whitespace character is defined as a space, a nonbreaking space, or a
+horizontal tabulation character (SP, NBSP, or HT). For all READ procedures, characters are then removed
+from L and composed into a string representation (see 5.7) of the value of the specified type. The READ
+procedure for type BIT_VECTOR also removes underline characters from L, provided the underline
+character does not precede the string representation of the value and does not immediately follow another
+underline character. The removed underline characters are not added to the string representation. For all
+READ procedures, character removal and string composition stops when the end of the line is encountered.
+Character removal and string composition also stops when a character is encountered that cannot be part of
+the value according to the rules for string representations, or, in the case of the READ procedure for
+BIT_VECTOR, is not an underline character that can be removed according to the preceding rule; this
+character is not removed from L and is not added to the string representation of the value. The READ
+procedures for types STRING and BIT_VECTOR also terminate acceptance when VALUE'LENGTH
+characters have been accepted (not counting underline characters in the case of the READ procedure for
+BIT_VECTOR). Again using the rules of 5.7, the accepted characters are then interpreted as a string
+representation of the specified type. The READ does not succeed if the sequence of characters composed
+into the string representation is not a valid string representation of a value of the specified type or, in the case
+of types STRING and BIT_VECTOR, if the sequence does not contain VALUE'LENGTH characters.
+The SREAD procedure begins by skipping leading whitespace characters. Characters are then removed and
+composed from left to right into a string provided as the VALUE parameter. Character removal and string
+composition stops when the end of the line is encountered. Character removal and string composition also
+stops when a whitespace character is encountered or VALUE'LENGTH characters have been accepted; the
+whitespace character is not removed from L and is not added to the string. The number of characters
+composed into the string is provided as the value of the STRLEN parameter. The values of elements of the
+string to the right of those composed by the SREAD procedure are not defined by this standard.
+The OREAD and HREAD procedures begin by skipping leading whitespace characters. Characters are then
+removed and composed into a sequence of octal (respectively, hexadecimal) digits. Each underline character
+is also removed from L, provided the underline character does not precede the sequence of octal
+(respectively, hexadecimal) digits and does not immediately follow another underline character. The
+removed underline characters are not added to the string representation. Character removal and composition
+stops when the end of the line is encountered. Character removal and string composition also stops when a
+character is encountered that is not an octal (respectively, hexadecimal) digit or an underline character that
+can be removed according to the preceding rule; this character is not removed from L and is not added to the
+string. Moreover, character removal and composition stops when the expected number of digits have been
+removed, where the expected number of digits is the smallest integer greater than or equal to
+VALUE'LENGTH divided by three (respectively, four). The OREAD or HREAD procedure does not
+succeed if less than the expected number of digits are removed. Otherwise, the sequence of octal
+(respectively, hexadecimal) digits is interpreted as an octal (respectively, hexadecimal) number and
+converted into a binary number of three (respectively, four) times VALUE'LENGTH bits. The rightmost
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+310
+Copyright © 2019 IEEE. All rights reserved.
+VALUE'LENGTH bits of the binary number are used to form the result for the VALUE parameter, with a '0'
+element corresponding to a 0 bit and a '1' element corresponding to a 1 bit. The OREAD or HREAD
+procedure does not succeed if any unused bits are 1.
+Each WRITE procedure similarly appends data to the end of the string value designated by parameter L. The
+format of the appended data is defined by the string representations defined in 5.7.
+The OWRITE and HWRITE procedures append the octal (respectively, hexadecimal) representation of the
+VALUE parameter to the end of the string value designated by parameter L. The octal (respectively,
+hexadecimal) representation is the value given by application of the TO_OSTRING (respectively,
+TO_HSTRING) operation to the VALUE parameter (see 5.3.2.4).
+For each WRITE, OWRITE, and HWRITE procedure, after data is appended to the string value designated
+by the parameter L, L designates the entire line. The procedure may modify the value of the object
+designated by the parameter L at the start of the call or may deallocate the object.
+The READ and WRITE procedures for the types BIT_VECTOR and STRING respectively read and write
+the element values in left-to-right order.
+For each predefined data type there are two READ procedures declared in package TEXTIO. The first has
+three parameters: L, the line to read from; VALUE, the value read from the line; and GOOD, a Boolean flag
+that indicates whether the read operation succeeded or not. For example, the operation READ (L, IntVal,
+OK) would return with OK set to FALSE, L unchanged, and tVal undefined if IntVal is a variable of type
+INTEGER and L designates the line “ABC.” The success indication returned via parameter GOOD allows a
+process to recover gracefully from unexpected discrepancies in input format. The second form of read
+operation has only the parameters L and VALUE. If the requested type cannot be read into VALUE from
+line L, then an error occurs. Thus, the operation READ (L, IntVal) would cause an error to occur if IntVal is
+of type INTEGER and L designates the line “ABC.” For the predefined type BIT_VECTOR, there are
+likewise two OREAD and two HREAD procedures, with similar parameters.
+For each predefined data type there is one or more WRITE procedure declared in package TEXTIO. Each of
+these has at least two parameters: L, the line to which to write, and VALUE, the value to be written. The
+additional parameters JUSTIFIED, FIELD, DIGITS, FORMAT, and UNIT control the formatting of output
+data. Each write operation appends data to a line formatted within a field that is at least as long as required to
+represent the data value. Parameters FIELD and JUSTIFIED specify the desired field width and
+justification, as for the JUSTIFY operation. For the predefined type BIT_VECTOR, there is likewise one
+OWRITE and one HWRITE procedure, with similar parameters.
+Parameter DIGITS specifies how many digits to the right of the decimal point are to be output when writing
+a real number; the default value 0 indicates that the number should be output in standard form, consisting of
+a normalized mantissa plus exponent (e.g., 1.079236e-23). If DIGITS is non-zero, then the real number is
+output as an integer part followed by '.' followed by the fractional part, using the specified number of digits
+(e.g., 3.14159).
+Parameter FORMAT specifies how values of type REAL are to be formatted. The formatting is determined
+in the same manner as for the TO_STRING operation for type REAL with the FORMAT parameter (see
+5.2.6).
+Parameter UNIT specifies how values of type TIME are to be formatted. The value of this parameter shall be
+equal to one of the units declared as part of the declaration of type TIME; the result is that the TIME value is
+formatted as an integer or real literal representing the number of multiples of this unit, followed by the name
+of the unit itself. The name of the unit is formatted using only lowercase characters. Thus the procedure call
+WRITE(Line, 5 ns, UNIT=>us) would result in the string value "0.005 us" being appended to the string
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+311
+Copyright © 2019 IEEE. All rights reserved.
+value designated by Line, whereas WRITE(Line, 5 ns) would result in the string value "5 ns" being
+appended (since the default UNIT value is ns).
+Function ENDFILE is defined for files of type TEXT by the implicit declaration of that function as part of
+the declaration of the file type.
+NOTE 1—For a variable L of type Line, attribute L'Length gives the current length of the line, whether that line is being
+read or written. For a line L that is being written, the value of L'Length gives the number of characters that have already
+been written to the line; this is equivalent to the column number of the last character of the line. For a line L that is being
+read, the value of L'Length gives the number of characters on that line remaining to be read. In particular, the expression
+L'Length = 0 is true precisely when the end of the current line has been reached.
+NOTE 2—Since the execution of a read or write operation may modify or deallocate the string object designated by
+input parameter L of type Line for that operation, a dangling reference may result if the value of a variable L of type Line
+is assigned to another access variable and then a read or write operation is performed on L.
+NOTE 3—A call to a WRITE procedure with a string literal for the VALUE parameter is ambiguous, as the string could
+be interpreted as a value of type STRING or type BIT_VECTOR. If the intention is to write a value of type STRING, the
+alias SWRITE can be called without ambiguity.
+### 16.5 Standard environment package
+
+#### 16.5.1 General
+
+Package ENV contains declarations that provide a VHDL interface to the host environment.
+#### 16.5.2 Package declaration
+
+use work.textio.all;
+package ENV is
+procedure STOP (STATUS: INTEGER);
+procedure STOP;
+procedure FINISH (STATUS: INTEGER);
+procedure FINISH;
+function RESOLUTION_LIMIT return DELAY_LENGTH;
+type DAYOFWEEK is (
+SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY,
+FRIDAY, SATURDAY
+);
+-- Implicit defined range record for DAYOFWEEK'RANGE_RECORD:
+-- type DAYOFWEEK_range_record is record
+--   Left      : DAYOFWEEK;
+--   Right     : DAYOFWEEK;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+-- Calendar date/time, broken into parts.
+-- Second accommodates both single and double leap-seconds.
+-- Dayofyear accommodates leap days.
+-- Month 0 is January, 1 is February, 11 is December.
+-- Year is absolute. AD, 1900 represents the year 1900.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+312
+Copyright © 2019 IEEE. All rights reserved.
+type TIME_RECORD is record
+microsecond : INTEGER range 0 to 999_999;
+second : INTEGER range 0 to 61;
+minute : INTEGER range 0 to 59;
+hour : INTEGER range 0 to 23;
+day : INTEGER range 1 to 31;
+month : INTEGER range 0 to 11;
+year : INTEGER range 1 to 4095;
+weekday : DAYOFWEEK;
+dayofyear : INTEGER range 0 to 365;
+end record TIME_RECORD;
+-- Current local time broken into parts.
+-- Minimum legal resolution is 1 second.
+impure function LOCALTIME return TIME_RECORD;
+-- Current UTC time broken into parts.
+-- Minimum legal resolution is 1 second.
+impure function GMTIME return TIME_RECORD;
+-- Number of seconds since midnight, Jan 1 1970, UTC.
+-- Minimum legal resolution is 1 second.
+impure function EPOCH return REAL;
+-- Time conversion functions from epoch time.
+function LOCALTIME(TIMER: REAL) return TIME_RECORD;
+function GMTIME(TIMER: REAL) return TIME_RECORD;
+-- Time conversion function from time in parts.
+-- EPOCH and GMTIME accept TREC in local time.
+-- LOCALTIME accepts TREC in UTC.
+function EPOCH(TREC: TIME_RECORD) return REAL;
+function LOCALTIME(TREC: TIME_RECORD) return TIME_RECORD;
+function GMTIME(TREC: TIME_RECORD) return TIME_RECORD;
+-- Time increment/decrement. DELTA argument is in seconds.
+-- Returned TIME_RECORD is in local time or UTC per the TREC
+-- parameter.
+function "+"(TREC: TIME_RECORD; DELTA: REAL) return TIME_RECORD;
+function "+"(DELTA: REAL; TREC: TIME_RECORD) return TIME_RECORD;
+function "-"(TREC: TIME_RECORD; DELTA: REAL) return TIME_RECORD;
+function "-"(DELTA: REAL; TREC: TIME_RECORD) return TIME_RECORD;
+-- Time difference in seconds. TR1, TR2 shall both be in local
+-- time, or both be in UTC.
+function "-"(TR1, TR2: TIME_RECORD) return REAL;
+-- Conversion between real seconds and VHDL TIME. SECONDS_TO_TIME
+-- will cause an error if the resulting REAL_VAL would be less than
+-- TIME'LOW or greater than TIME'HIGH.
+function TIME_TO_SECONDS(TIME_VAL:  TIME) return REAL;
+function SECONDS_TO_TIME(REAL_VAL:  REAL) return TIME;
+-- Convert TIME_RECORD to a string in ISO 8601 format.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+313
+Copyright © 2019 IEEE. All rights reserved.
+-- TO_STRING(x)    => "1973-09-16T01:03:52"
+-- TO_STRING(x, 6) => "1973-09-16T01:03:52.000001"
+function TO_STRING(TREC: TIME_RECORD;
+FRAC_DIGITS: INTEGER range 0 to 6 := 0)
+return STRING;
+impure function FILE_NAME return LINE;
+impure function FILE_NAME return STRING;
+impure function FILE_PATH return LINE;
+impure function FILE_PATH return STRING;
+impure function FILE_LINE return POSITIVE;
+impure function FILE_LINE return STRING;
+type DIRECTORY_ITEMS is access LINE_VECTOR;
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: DIRECTORY_ITEMS)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: DIRECTORY_ITEMS)
+--
+return BOOLEAN;
+-- procedure DEALLOCATE (P: out DIRECTORY_ITEMS);
+type DIRECTORY is record
+-- current directory name; resolved to its canonical form
+Name  : LINE;
+-- list of pointers to directory item names
+Items : DIRECTORY_ITEMS;
+end record;
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: DIRECTORY) return BOOLEAN;
+-- function "/=" (anonymous, anonymous: DIRECTORY) return BOOLEAN;
+type DIR_OPEN_STATUS is (
+STATUS_OK,
+STATUS_NOT_FOUND,
+STATUS_NO_DIRECTORY,
+STATUS_ACCESS_DENIED,
+STATUS_ERROR
+);
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: DIR_OPEN_STATUS)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: DIR_OPEN_STATUS)
+--
+return BOOLEAN;
+-- function "<" (anonymous, anonymous: DIR_OPEN_STATUS)
+--
+return BOOLEAN;
+-- function "<=" (anonymous, anonymous: DIR_OPEN_STATUS)
+--
+return BOOLEAN;
+-- function ">" (anonymous, anonymous: DIR_OPEN_STATUS)
+--
+return BOOLEAN;
+-- function ">="(anonymous, anonymous: DIR_OPEN_STATUS)
+--
+return BOOLEAN;
+-- function MINIMUM (L, R: DIR_OPEN_STATUS)
+--
+return DIR_OPEN_STATUS;
+-- function MAXIMUM (L, R: DIR_OPEN_STATUS)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+314
+Copyright © 2019 IEEE. All rights reserved.
+--
+return DIR_OPEN_STATUS;
+-- Implicit defined range record for DIR_OPEN_STATUS'RANGE_RECORD:
+-- type DIR_OPEN_STATUS_range_record is record
+--   Left      : DIR_OPEN_STATUS;
+--   Right     : DIR_OPEN_STATUS;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type DIR_CREATE_STATUS is (
+STATUS_OK,
+STATUS_ITEM_EXISTS,
+STATUS_ACCESS_DENIED,
+STATUS_ERROR
+);
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: DIR_CREATE_STATUS)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: DIR_CREATE_STATUS)
+--
+return BOOLEAN;
+-- function "<" (anonymous, anonymous: DIR_CREATE_STATUS)
+--
+return BOOLEAN;
+-- function "<=" (anonymous, anonymous: DIR_CREATE_STATUS)
+--
+return BOOLEAN;
+-- function ">" (anonymous, anonymous: DIR_CREATE_STATUS)
+--
+return BOOLEAN;
+-- function ">=" (anonymous, anonymous: DIR_CREATE_STATUS)
+--
+return BOOLEAN;
+-- function MINIMUM (L, R: DIR_CREATE_STATUS)
+--
+return DIR_CREATE_STATUS;
+-- function MAXIMUM (L, R: DIR_CREATE_STATUS)
+--
+return DIR_CREATE_STATUS;
+-- Implicit defined range record for DIR_CREATE_STATUS'RANGE_RECORD:
+-- type DIR_CREATE_STATUS_range_record is record
+--   Left      : DIR_CREATE_STATUS;
+--   Right     : DIR_CREATE_STATUS;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type DIR_DELETE_STATUS is (
+STATUS_OK,
+STATUS_NO_DIRECTORY,
+STATUS_NOT_EMPTY,
+STATUS_ACCESS_DENIED,
+STATUS_ERROR
+);
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: DIR_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: DIR_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function "<" (anonymous, anonymous: DIR_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function "<=" (anonymous, anonymous: DIR_DELETE_STATUS)
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+315
+Copyright © 2019 IEEE. All rights reserved.
+--
+return BOOLEAN;
+-- function ">" (anonymous, anonymous: DIR_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function ">=" (anonymous, anonymous: DIR_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function MINIMUM (L, R: DIR_DELETE_STATUS)
+--
+return DIR_DELETE_STATUS;
+-- function MAXIMUM (L, R: DIR_DELETE_STATUS)
+--
+return DIR_DELETE_STATUS;
+-- Implicit defined range record for DIR_DELETE_STATUS'RANGE_RECORD:
+-- type DIR_DELETE_STATUS_range_record is record
+--   Left      : DIR_DELETE_STATUS;
+--   Right     : DIR_DELETE_STATUS;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+type FILE_DELETE_STATUS is (
+STATUS_OK,
+STATUS_NO_FILE,
+STATUS_ACCESS_DENIED,
+STATUS_ERROR
+);
+-- The predefined operations for this type are as follows:
+-- function "=" (anonymous, anonymous: FILE_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: FILE_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function "<" (anonymous, anonymous: FILE_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function "<=" (anonymous, anonymous: FILE_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function ">" (anonymous, anonymous: FILE_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function ">=" (anonymous, anonymous: FILE_DELETE_STATUS)
+--
+return BOOLEAN;
+-- function MINIMUM (L, R: FILE_DELETE_STATUS)
+--
+return FILE_DELETE_STATUS;
+-- function MAXIMUM (L, R: FILE_DELETE_STATUS)
+--
+return FILE_DELETE_STATUS;
+-- Implicit defined range record for FILE_DELETE_STATUS'RANGE_RECORD:
+-- type FILE_DELETE_STATUS_range_record is record
+--   Left      : FILE_DELETE_STATUS;
+--   Right     : FILE_DELETE_STATUS;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+procedure DIR_OPEN(Dir : out DIRECTORY;
+Path :  STRING;
+Status : out DIR_OPEN_STATUS);
+impure function DIR_OPEN(Dir : DIRECTORY;
+   Path :STRING) return DIR_OPEN_STATUS;
+procedure DIR_CLOSE(Dir :  DIRECTORY);
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+316
+Copyright © 2019 IEEE. All rights reserved.
+-- used to deallocate internal values
+impure function DIR_ITEMEXISTS(Path :  STRING) return BOOLEAN;
+impure function DIR_ITEMISDIR(Path :  STRING) return BOOLEAN;
+impure function DIR_ITEMISFILE(Path :  STRING) return BOOLEAN;
+procedure DIR_WORKINGDIR(Path :  STRING;
+Status : out DIR_OPEN_STATUS);
+impure function DIR_WORKINGDIR(Path :  STRING)
+return DIR_OPEN_STATUS;
+impure function DIR_WORKINGDIR return STRING;
+procedure DIR_CREATEDIR(Path :  STRING;
+Status : out DIR_CREATE_STATUS);
+procedure DIR_CREATEDIR(Path :  STRING;
+Parents :  BOOLEAN;
+Status : out DIR_CREATE_STATUS);
+impure function DIR_CREATEDIR(Path :  STRING;
+Parents :  BOOLEAN := FALSE)
+return DIR_CREATE_STATUS;
+procedure DIR_DELETEDIR(Path :  STRING;
+Status : out DIR_DELETE_STATUS);
+procedure DIR_DELETEDIR(Path :  STRING;
+Recursive :  BOOLEAN;
+Status : out DIR_DELETE_STATUS);
+impure function DIR_DELETEDIR(Path :  STRING;
+Recursive :  BOOLEAN := FALSE)
+return DIR_DELETE_STATUS;
+procedure DIR_DELETEFILE(Path :  STRING;
+Status : out FILE_DELETE_STATUS);
+impure function DIR_DELETEFILE(Path :  STRING)
+return FILE_DELETE_STATUS;
+constant DIR_SEPARATOR : STRING;
+impure function GETENV(Name : STRING) return STRING;
+impure function GETENV(Name : STRING) return LINE;
+impure function VHDL_VERSION return STRING;
+function TOOL_TYPE return STRING;
+function TOOL_VENDOR return STRING;
+function TOOL_NAME return STRING;
+function TOOL_EDITION return STRING;
+function TOOL_VERSION return STRING;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+317
+Copyright © 2019 IEEE. All rights reserved.
+type CALL_PATH_ELEMENT is record
+name             : LINE;
+file_name        : LINE;
+file_path        : LINE;
+file_line        : POSITIVE;
+end record;
+-- function "="(anonymous, anonymous: CALL_PATH_ELEMENT)
+--
+return BOOLEAN;
+-- function "/="(anonymous, anonymous: CALL_PATH_ELEMENT)
+--
+return BOOLEAN;
+impure function TO_STRING (call_path : CALL_PATH_ELEMENT )
+return STRING;
+type CALL_PATH_VECTOR is array (natural range <>)
+ of CALL_PATH_ELEMENT;
+-- function "="  (anonymous, anonymous: CALL_PATH_VECTOR)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: CALL_PATH_VECTOR)
+--
+return BOOLEAN;
+impure function TO_STRING (call_path : CALL_PATH_VECTOR;
+Separator : STRING := "" & LF )
+return STRING;
+type CALL_PATH_VECTOR_PTR is access CALL_PATH_VECTOR;
+-- function "="  (anonymous, anonymous: CALL_PATH_VECTOR_PTR)
+--
+return BOOLEAN;
+-- function "/=" (anonymous, anonymous: CALL_PATH_VECTOR_PTR)
+--
+return BOOLEAN;
+-- procedure DEALLOCATE (P: out CALL_PATH_VECTOR_PTR);
+impure function TO_STRING (call_path : CALL_PATH_VECTOR_PTR;
+Separator : STRING := "" & LF )
+return STRING;
+impure function GET_CALL_PATH return CALL_PATH_VECTOR_PTR;
+
+-- PSL assert failed
+impure function PslAssertFailed return BOOLEAN ;
+
+-- PSL is covered
+impure function PslIsCovered return BOOLEAN ;
+-- PSL cover asserts
+procedure SetPslCoverAssert(Enable : BOOLEAN := TRUE);
+impure function GetPslCoverAssert return BOOLEAN;
+
+-- PSL is assert covered
+impure function PslIsAssertCovered return BOOLEAN;
+
+-- Clear PSL state (assert and cover)
+procedure ClearPslState;
+
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+318
+Copyright © 2019 IEEE. All rights reserved.
+-- VHDL assert failed
+impure function IsVhdlAssertFailed return BOOLEAN;
+impure function IsVhdlAssertFailed (Level : SEVERITY_LEVEL )
+return  BOOLEAN ;
+-- VHDL assert count
+impure function GetVhdlAssertCount return NATURAL ;
+impure function GetVhdlAssertCount (Level : SEVERITY_LEVEL )
+return NATURAL ;
+--  Clear VHDL assert errors
+procedure ClearVhdlAssert;
+-- Assert enable, disable/ignore asserts
+procedure SetVhdlAssertEnable(Enable : BOOLEAN := TRUE);
+procedure SetVhdlAssertEnable(Level : SEVERITY_LEVEL := NOTE;
+Enable : BOOLEAN := TRUE);
+impure function GetVhdlAssertEnable(Level : SEVERITY_LEVEL := NOTE)
+return BOOLEAN;
+--  Assert statement formatting
+procedure SetVhdlAssertFormat(Level : SEVERITY_LEVEL;
+format: STRING);
+procedure SetVhdlAssertFormat(Level : SEVERITY_LEVEL;
+format: STRING;
+
+Valid : out BOOLEAN);
+impure function GetVhdlAssertFormat(Level : SEVERITY_LEVEL)
+return STRING;
+
+--  VHDL read severity
+procedure SetVhdlReadSeverity(Level: SEVERITY_LEVEL := FAILURE);
+impure function GetVhdlReadSeverity return SEVERITY_LEVEL;
+end package ENV;
+#### 16.5.3 Simulator API
+
+Execution of the STOP procedures causes the same action by the host simulator as that caused by the
+vhpi_control function called with the argument vhpiStop (see 23.5). Execution of the FINISH
+procedures causes the same action by the host simulator as that caused by the vhpi_control function
+called with the argument vhpiFinish (see 23.5). Execution shall not return to the VHDL description after
+a call to the FINISH procedure. For the procedures with the STATUS parameter, the value of the STATUS
+parameter may be used in an implementation-defined manner by the host simulator. For the procedures with
+no parameter, the effect is the same as that caused by the vhpi_control function with no additional
+arguments beyond the vhpiStop or vhpiFinish argument.
+The function RESOLUTION_LIMIT returns the value of the resolution limit (see 5.2.4.2).
+NOTE 1—The value of the STATUS parameter of the STOP and FINISH procedures may, for example, be provided to
+a simulation control script for use in determining what external control actions to perform.
+NOTE 2—An implementation will provide the STOP and FINISH procedures in package ENV regardless of whether it
+implements the VHPI.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+319
+Copyright © 2019 IEEE. All rights reserved.
+NOTE 3—A description may include a comparison of the resolution limit with a literal of type TIME, but an error
+occurs if the literal includes a unit that is smaller than the resolution limit (see 5.2.4.2). For example, the expression
+“RESOLUTION_LIMIT <= ns” will cause an error if the resolution limit is greater than ns. The error can be avoided by
+using a literal with a suitably larger unit, for example, 1.0E–9 sec. Such a literal may be truncated to zero time units, but
+will not cause an error.
+#### 16.5.4 Date and time API
+
+The function EPOCH translates a TIME_RECORD representing local time to so-called epoch time, i.e., the
+number of seconds since midnight, Jan 1 1970 UTC, or when called without arguments returns the current
+time in the same form. The minimum resolution allowed is one second.
+The function LOCALTIME translates an epoch time to a TIME_RECORD representing a time in the local
+time zone, translates a TIME_RECORD representing a time in UTC to one in the local time zone, or when
+called without arguments returns a TIME_RECORD representing the current time in the local time zone.
+Local time zone is determined in a manner determined by the host system. The minimum resolution allowed
+is one second.
+The function GMTIME translates an epoch time to a TIME_RECORD representing a time in UTC,
+translates a TIME_RECORD representing a time in the local time zone to one in UTC, or when called
+without arguments returns a TIME_RECORD representing the current time in UTC. The minimum
+resolution allowed is one second.
+Objects of type TIME_RECORD support addition and subtraction of numbers of seconds as represented by
+REAL numbers, and the difference between two TIME_RECORDs can be taken as a number of seconds,
+represented as a REAL.
+The TO_STRING operation returns the string representation (see 5.7) of the value of its actual parameter of
+type TIME_RECORD. The resulting string shall specify the time in ISO 8601 format and shall consist of the
+concatenation of the following, in order:
+    The YEAR element expressed in 4 decimal digits
+    A '-' character
+    The MONTH element + 1 expressed in 2 decimal digits (01 through 12)
+    A '-' character
+    The DAY element expressed in 2 decimal digits
+    A 'T' character
+    The HOUR element expressed in 2 decimal digits
+    A ':' character
+    The MINUTE element expressed in 2 decimal digits
+    A ':' character
+    The SECOND element expressed in 2 decimal digits
+    The MICROSECOND element expressed in a manner defined by the DIGITS parameter.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+320
+Copyright © 2019 IEEE. All rights reserved.
+The DIGITS parameter specifies the number of digits that the MICROSECOND element will be truncated
+to. If the DIGITS parameter is zero (the default) then the MICROSECOND element will be absent in the
+resultant string. If DIGITS is 1–6, the MICROSECOND element will appear as a '.' character followed by
+DIGITS of the most significant decimal digits.
+The function TIME_TO_SECONDS translates objects of type TIME to a REAL approximation of the
+number of seconds. TIME_TO_SECONDS(1 sec) returns REAL'(1.0).
+The function SECONDS_TO_TIME translates a REAL number of seconds to an approximation in type
+TIME. SECONDS_TO_TIME(1.0) returns TIME'(1 sec). Both TIME_TO_SECONDS(SECONDS_TO_-
+TIME(x)) and SECONDS_TO_TIME(TIME_TO_SECONDS(x)) may yield an output that is not exactly
+equal to the input.
+NOTE—Simulators should return the current system time whenever the EPOCH, LOCALTIME, or GMTIME functions
+are called without argument. Synthesis tools should return the time of compilation, which may be treated as a constant.
+#### 16.5.5 Directory API
+
+All directory operations shall accept relative and absolute paths for parameter Path of type STRING, if Path
+is present as a parameter.
+The procedure DIR_OPEN, with parameters Dir, Path, and Status, returns a record of type DIRECTORY,
+which describes the directory and its directory items, for a given Path. The output parameter Status of type
+DIR_OPEN_STATUS returns the result of the operation. The status shall be STATUS_OK on success,
+STATUS_NOT_FOUND if the path does not exist, STATUS_NO_DIRECTORY if the path does not
+denote a directory, STATUS_ACCESS_DENIED if the privilege level is not sufficient and
+STATUS_ERROR for any other error condition raised by the implementation. The predefined record type
+DIRECTORY has two elements:
+—
+Name references a STRING object, which contains the fully resolved absolute path of the
+represented directory.
+—
+Items references an array of LINE objects (type DIRECTORY_ITEMS), which in turn reference
+STRING objects. Each string object contains the simple name of a directory item in the directory.
+ In case of no success, the returned record contains null values for each record element.
+The impure function DIR_OPEN implements the same behavior as the procedure DIR_OPEN, with
+parameters Dir, Path, and Status. The procedure’s output parameter Status of type DIR_OPEN_STATUS in
+the return value of the function.
+The impure function DIR_CLOSE, with parameter Dir, deallocates DIRECTORY objects allocated by
+DIR_OPEN.
+The impure function DIR_ITEMEXISTS, with parameter Path, returns TRUE if the given path exists.
+The impure function DIR_ITEMISDIR, with parameter Path, returns TRUE if the given path exists and is a
+directory.
+The impure function DIR_ITEMISFILE, with parameter Path, returns TRUE if the given path exists and is a
+file.
+The procedure DIR_WORKINGDIR, with parameters Path and Status, sets the working directory for all file
+operations using a relative path. The result of the operation is returned by the out parameter Status of type
+DIR_OPEN_STATUS. The status shall have the same value for the same conditions as for procedure
+DIR_OPEN.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+321
+Copyright © 2019 IEEE. All rights reserved.
+The impure function DIR_WORKINGDIR, with parameter Path, implements the same behavior as the
+procedure DIR_WORKINGDIR. The procedure’s output parameter Status of type DIR_OPEN_STATUS in
+the return value of the function.
+The impure function DIR_WORKINGDIR, without parameters, is an overload and returns the current
+working directory used for all file operations as a STRING. The working directory shall initially be the same
+as the tool's working directory.
+The procedure DIR_CREATEDIR, with parameters Path and Status, creates the directory specified by
+parameter Path. The result of the operation is returned by the out parameter Status of type
+DIR_CREATE_STATUS. The status shall be STATUS_OK on success, STATUS_ITEM_EXISTS if the
+path already exists, STATUS_ACCESS_DENIED if the privilege level is not sufficient and
+STATUS_ERROR for any other error condition raised by the implementation.
+The procedure DIR_CREATEDIR, with parameters Path, Parent, and Status, has almost the same behavior
+as the former procedure. In addition, if parameter Parents is set to TRUE, all missing intermediate
+directories are created as well, so Path can be created.
+The impure function DIR_CREATEDIR implements the same behavior as the procedure
+DIR_CREATEDIR, with parameters Path, Parent, and Status. The procedure’s output parameter Status of
+type DIR_CREATE_STATUS in the return value of the function.
+The procedure DIR_DELETEDIR, with parameters Path and Status, deletes an empty directory specified by
+parameter Path. The result of the operation is return by the out parameter Status of type
+DIR_DELETE_STATUS. The status shall be STATUS_OK on success, STATUS_NO_DIRECTORY if the
+Path
+is
+not
+a
+directory,
+STATUS_NOT_EMPTY
+if
+the
+directories
+is
+not
+empty,
+STATUS_ACCESS_DENIED if the privilege level is not sufficient, and STATUS_ERROR for any other
+error condition raised by the implementation.
+The procedure DIR_DELETEDIR, with parameters Path, Recursive, and Status, has almost the same
+behavior as the former procedure. In addition, if the parameter Recursive is set to TRUE, the directory
+content is deleted recursively.
+The impure function DIR_DELETEDIR implements the same behavior as the procedure
+DIR_DELETEDIR, with parameters Path, Recursive, and Status. The procedure’s output parameter Status
+of type DIR_DELETE_STATUS in the return value of the function.
+The function DIR_DELETEFILE, with parameters Path and Status, deletes the file specified by parameter
+Path. The result of the operation is returned by the out parameter Status of type FILE_DELETE_STATUS.
+The status shall be STATUS_OK on success, STATUS_NO_FILE if the Path is not a directory,
+STATUS_ACCESS_DENIED if the privilege level is not sufficient, and STATUS_ERROR for any other
+error condition raised by the implementation.
+The impure function DIR_DELETEFILE implements the same behavior as the procedure
+DIR_DELETEFILE, with parameters Path and Status. The procedure’s output parameter Status of type
+FILE_DELETE_STATUS in the return value of the function.
+The deferred constant DIR_SEPARATOR of type STRING contains the path separator symbol used by the
+host system.
+#### 16.5.6 Environment API
+
+The functions GETENV return the string value of the named environment variable either as type STRING or
+as the designated value of an access value. Conditional analysis identifiers (24.2) are part of the queried
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+322
+Copyright © 2019 IEEE. All rights reserved.
+environment and take precedence over possibly inherited environment variables of identical names. If the
+specified variable name is not defined at all in this environment, the return value will be the empty string
+("") or the access value null, respectively.
+The impure function VHDL_VERSION returns the value of the standard conditional analysis identifier used
+for the design unit from which it is called.
+The functions TOOL_TYPE, TOOL_VENDOR, TOOL_NAME, TOOL_EDITION, and TOOL_VERSION
+return the value of the corresponding standard conditional analysis identifiers of the same name.
+#### 16.5.7 Current file and line API
+
+The function FILE_NAME returns the file name of the current VHDL file as either type LINE or STRING.
+The FILE_NAME does not contain any path information.
+The function FILE_PATH returns the fully resolved absolute path of the current VHDL file as either type
+LINE or STRING. The FILE_PATH does not include the FILE_NAME. The FILE_PATH does not end
+with a directory separator.
+The function FILE_LINE returns the line number in the current file as type POSITIVE or STRING.
+The record type CALL_PATH_ELEMENT contains calling information for one element of the call stack.
+The name element contains either the name a subprogram or the name of the construct that called the
+subprogram. The file_name element contains the VHDL file name. The file_name does not contain any path
+information. The file_path element contains the fully resolved absolute path of the current VHDL file. The
+file_path shall not include the name. The file_path shall not end with a directory separator. The file_line
+element contains the line number in the current file.
+The overloaded function TO_STRING[CALL_PATH_ELEMENT return STRING] converts a
+CALL_PATH_ELEMENT to type STRING. This STRING is the result of concatenating the value
+designated by the file_path element, the value returned by DIR_SEPARATOR, the value designated by the
+file_name element, a colon, the result of calling TO_STRING on the file_line element, a colon, and finally
+the value designated by the name element.
+The type CALL_PATH_VECTOR is a one-dimensional array of the type CALL_PATH_ELEMENT. The
+left-most element of CALL_PATH_VECTOR is the CALL_PATH_ELEMENT for the current subprogram.
+The right-most element of CALL_PATH_VECTOR is the root of the call stack. The
+CALL_PATH_ELEMENT name element of each record, except the last one, contains the name of the
+subprogram. The CALL_PATH_ELEMENT name element of the last record (the root) is the architecture or
+process name that initiated the call sequence.
+The overloaded function TO_STRING[CALL_PATH_VECTOR, STRING return STRING] converts a
+CALL_PATH_VECTOR to type STRING. If the range of call_path is not a null range, to_STRING returns
+a STRING value which is the concatenation of the STRING value of each element value, In the order of left
+to right, separated by the parameter separator. The STRING value of an element value is determined by
+calling TO_STRING(Path(I)) where I is the Ith element of Path. If the range of the Path is a null range,
+TO_STRING returns "" (an empty STRING value).
+The
+type
+CALL_PATH_VECTOR_PTR
+is
+a
+access
+type
+whose
+designated
+type
+is
+CALL_PATH_VECTOR.
+The overloaded function TO_STRING[CALL_PATH_VECTOR_PTR, STRING return STRING] converts
+the value designated by a CALL_PATH_VECTOR_PTR to type STRING. If Path is not a null access value,
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+323
+Copyright © 2019 IEEE. All rights reserved.
+TO_STRING returns the value of TO_STRING(Path.all, path_separator). If Path is a null access value,
+TO_STRING returns "" (an empty STRING value).
+The function GET_CALL_PATH returns a value of CALL_PATH_VECTOR_PTR. If GET_CALL_PATH
+is called from a place other than a subprogram, the call path contains only the information for the construct
+that called GET_CALL_PATH. The value designated by the return value has an ascending index range and
+a left-most index that is 0.
+#### 16.5.8 PSL API
+
+The function PslAssertFailed returns TRUE if any PSL assert statement triggered during a simulation.
+Immediately after elaboration of a design, PslAssertFailed returns FALSE.
+The function PslIsCovered returns TRUE when all enabled PSL objects have reached their goal, otherwise it
+returns FALSE. Immediately after elaboration of a design, PslIsCovered returns FALSE.
+When the procedure SetPslCoverAssert sets Enable to TRUE, a simulator shall handle all PSL assert
+directives also as cover directives. When the PslCoverAssert Enable is FALSE, a simulator shall handle all
+PSL assert directives as only assert directives. The function GetPslCoverAssert returns the current value of
+the PslCoverAssert enable. Immediately after elaboration of a design, GetPslCoverAssert returns FALSE.
+The function PslIsAssertCovered returns TRUE if all asserts are covered and the PslCoverAssert Enable was
+set to TRUE during simulation of the design. Immediately after elaboration of a design, PslIsAssertCovered
+returns FALSE.
+The procedure ClearPslState clears all internal PSL state information to their after elaboration values.
+#### 16.5.9 Report and assert statement API
+
+An API to collect information on report and assert statements is provided. Information is collected per
+severity level (FAILURE, ERROR, WARNING, or NOTE) and can be enabled and disabled per severity
+level.
+The procedure SetVhdlAssertEnable enables asserts for the corresponding SEVERITY_LEVEL when the
+parameter enable is TRUE. A value of FALSE disables the corresponding severity level. Unless overridden
+by tool settings, after elaboration of a design, all severity levels are enabled. When called without a severity
+level parameter, SetVhdlAssertEnable applies the enable to all SEVERITY_LEVEL values.
+The function GetVhdlAssertEnable returns the enable state of the passed severity level.
+When called without any parameters, the function IsVhdlAssertFailed returns TRUE if any VHDL assert or
+report statement was triggered to report a severity level of either FAILURE, ERROR, or WARNING.
+IsVhdlAssertFailed includes the implied asserts due to read statements in std.textio. When called with a
+parameter of FAILURE, ERROR, or WARNING, the function IsVhdlAssertFailed returns TRUE when a
+VHDL assert or report statement with the corresponding severity level was triggered. At the start of
+elaboration of a design, IsVhdlAssertFailed returns FALSE.
+When called without any parameters, the function GetVhdlAssertCount returns the number of triggered
+VHDL assert or report statements, whose SEVERITY_LEVEL was either FAILURE, ERROR, or
+WARNING. GetVhdlAssertCount includes the implied asserts due to read statements in std.textio. When
+called with a parameter of FAILURE, ERROR, or WARNING, the function GetVhdlAssertCount returns
+the number of triggered VHDL assert or report statements with the corresponding severity level. At the start
+of elaboration of a design, GetVhdlAssertCount returns 0.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+324
+Copyright © 2019 IEEE. All rights reserved.
+The procedure ClearVhdlAssert clears any state of collected information of VHDL assert and report
+statements having been executed. After calling ClearVhdlAssert, IsVhdlAssertFailed will return FALSE and
+GetVhdlAssertFailed will return 0. This allows a VHDL testbench to clear alerts after reset or between tests.
+The procedure SetVhdlAssertFormat sets the format string for an assert or report statement with a given
+severity level. The format string may contain string replacements extending from a singular left curly
+bracket to the next right curly bracket. These brackets delimit the name of a format variable with an optional
+following colon and format specification string. The string replacement contains no whitespace except if the
+optional fill character is a whitespace character. If the format string does not meet the following syntax rules,
+then the operation has no effect, i.e., the previous format string is kept; in this case the procedure
+SetVhdlAssertFormat with 2 parameters reports a failure using the previous format string. The procedure
+SetVhdlAssertFormat with 3 parameters returns via the Boolean parameter Valid whether the format string
+was valid (TRUE) or not (FALSE).
+Syntax rules:
+```ebnf
+    string_replacement   ::= "{" variable [format_specification] "}"
+    format_specification ::= ":" [ [fill] align] [width] ["." precision]
+    variable             ::= "s" | "S" | "r" | "t" | "i"
+    fill                 ::= graphic_character
+    align                ::= "<" | ">" | "^"
+    precision            ::= "fs" | "ps" | "ns" | "us" | "ms" | "sec" | "m" | "hr"
+```
+
+Case-sensitive format variables:
+    "s" — Severity level converted to a string lower case.
+    "S" — Severity level converted to a string upper case.
+    "r" — Message string from report or assert statement.
+    "t" — Time converted to a string at which the report or assert statement was triggered.
+    "i" — The instance path from where assert/report was called.
+The format specification consists of an optional alignment character, an optional width (INTEGER number),
+and an optional precision. The alignment character can be preceded by an optional fill character. The
+precision can only be applied to the t variable. It is delimited by a dot and its value is the string
+representation of a unit of type TIME.
+Allowed values for align are:
+   "<" — Forces the field to be left-aligned with the available space. This is the default for variables s, S, r,
+and i.
+   ">" — Forces the field to be right-aligned with the available space. This is the default for variable t.
+    "^" — Forces the field to be centered with the available space.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+325
+Copyright © 2019 IEEE. All rights reserved.
+The default fill character is space. Doubled left curly brackets do not introduce string replacements but
+translate to single left curly brackets in the derived formatted output.
+The default assert and report format string is implementation defined. Not all of the formatting specifiers
+need to be used. Additional vendor specific formatting extensions are permitted. The LF character can be
+used to create multiple outputs.
+The function GetVhdlAssertFormat returns the format string of the specified severity level.
+The procedure SetVhdlReadSeverity sets the severity level for VHDL read statements. The function
+GetVhdlReadSeverity returns the severity level of VHDL read statements. The default value is
+ERROR.
+Example:
+The following call to SetVhdlAssertFormat specifies that assert/report print the output using a single line.
+    SetVhdlAssertFormat("** {S}: {r: <10} at {t.ns}    : {i}") ;
+    report "Yikes!" severity failure ;
+Creates the following output:
+    ** FAILURE: Yikes!     at 217600 ns    : /tb_top
+### 16.6 Standard mathematical packages
+
+The library denoted by the library logical name IEEE contains packages MATH_REAL and
+MATH_COMPLEX. The following conformance rules shall apply as they pertain to the use and
+implementation of these packages:
+a)
+The package declarations may be modified to include additional data required by tools, but
+modifications shall in no way change the external interfaces or simulation behavior of the
+description. It is permissible to add comments and/or attributes to the package declarations, but not
+to change or delete any original lines of the approved package declarations.
+b)
+The standard mathematical definition and conventional meaning of the mathematical functions that
+are part of the packages, together with the MATH_REAL and MATH_COMPLEX package
+declarations, represent the formal semantics of the implementation of the MATH_REAL and
+MATH_COMPLEX packages. An implementation is provided as a guideline in the IEEE 1076
+Open Source Repository. Implementors of these packages may choose to simply compile the
+package bodies provided in the files, or they may choose to implement the package bodies in the
+most efficient form available to them. Implementations should conform to the semantics and
+minimum precision required by this standard.
+c)
+The MATH_REAL package shall be built on top of the standard data type and precision
+requirements for floating-point operations defined in STD.STANDARD.
+d)
+The minimum precision required is that specified by this standard for floating-point types (see
+5.2.5.1). Because of this reason and the fact that the functions are implemented on digital computers
+with only finite precision, the functions and constants in this set of packages can, at best, only
+approximate the corresponding mathematically defined functions and constants. An implementation
+is allowed to provide a higher precision than the minimum required.
+e)
+For some functions, the implementation shall deliver “prescribed results” for certain special
+arguments, as defined in the comments for the functions in the function declaration. The purpose is
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+326
+Copyright © 2019 IEEE. All rights reserved.
+to strengthen the accuracy requirements at special argument values. Prescribed results take
+precedence over maximum relative error requirements.
+f)
+The semantics of the standard require that all the functions in the packages detect and report invalid
+parameters (out of valid domain) through an assert statement. The domain of valid values is
+indicated in the MATH_REAL and MATH_COMPLEX package declarations. The default value of
+the severity level shall be ERROR.
+g)
+The semantics of the standard do not require detection of overflow or underflow. Therefore,
+detection of underflow/overflow is optional and implementation dependent.
+h)
+If an implementation chooses to provide any extensions to the packages beyond the minimum
+requirements of this standard (e.g., precision, overflow handling), then it shall document its behavior
+accordingly.
+The declaration of each function includes the following information: description of the mathematical
+definition of the function; values to be returned by the function for special arguments; valid domain of
+values for the input arguments; error conditions; range of values into which the function maps the values in
+its domain; and notes on special accuracy situations, reachable values, usable domains, or algorithms to be
+used by an implementation.
+NOTE—The mathematical packages were originally specified in IEEE Std 1076.2-1996. The specifications in this
+standard supersede the original specifications.
+### 16.7 Standard multivalue logic package
+
+The library denoted by the library logical name IEEE contains packages STD_LOGIC_1164 and
+STD_LOGIC_TEXTIO.15 The following conformance rules shall apply as they pertain to the use and
+implementation of this package:
+a)
+The package declaration may be modified to include additional data required by tools, but
+modifications shall in no way change the external interfaces or simulation behavior of the
+description. It is permissible to add comments and/or attributes to the package declarations, but not
+to change or delete any original lines of the approved package declaration.
+b)
+The STD_LOGIC_1164 package body provided in the IEEE 1076 Open Source Repository
+represents the formal semantics of the implementation of the STD_LOGIC_1164 package
+declaration. Implementers of this package body may choose to simply compile the package body as
+it is, or they may choose to implement the package body in the most efficient form available to the
+user. Implementers shall not implement a semantic that differs from the formal semantic provided
+herein.
+c)
+The STD_LOGIC_TEXTIO package contains aliases to the subprograms implemented in
+std_logic_1164 and is provided as a replacement for non-standard implementations of that package
+provided by implementers of previous versions of this standard. The declarations that appeared in
+those non-standard implementations appear in the package STD_LOGIC_1164 of this standard.
+NOTE—The name of the STD_LOGIC_1164 package derives from the fact that the package was originally specified in
+IEEE Std 1164-1993. The specification in this standard supersedes the original specification.
+### 16.8 Standard synthesis packages
+
+NOTE—The specifications in this subclause were originally described in IEEE Std 1076.3-1997. The specifications in
+this standard supersede the original specifications.
+15The package STD_LOGIC_TEXTIO was modified and used with permission of Synopsys, c. © 1990, 1991, and 1992.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+327
+Copyright © 2019 IEEE. All rights reserved.
+#### 16.8.1 Overview
+
+##### 16.8.1.1 Scope
+
+This subclause defines standard practices for synthesizing binary digital electronic circuits from VHDL
+source code. It includes the following:
+a)
+The hardware interpretation of values belonging to the BIT and BOOLEAN types defined in
+package
+STD.STANDARD
+and
+to
+the
+STD_ULOGIC
+type
+defined
+in
+package
+IEEE.STD_LOGIC_1164.
+b)
+A function (STD_MATCH) that provides “don’t care” or “wild card” testing of values based on the
+STD_ULOGIC type.
+c)
+Standard functions for representing sensitivity to the edge of a signal.
+d)
+Packages that define one-dimensional array types for representing signed and unsigned arithmetic
+values, and that define arithmetic, shift, and type conversion operations on those types.
+The packages are designed for use with this standard. Modifications that may be made to the packages for
+use with previous editions are described in 16.8.5.3.
+##### 16.8.1.2 Terminology
+
+A synthesis tool is any tool that interprets VHDL source code as a description of an electronic circuit in
+accordance with the terms of this standard and derives an alternate description of that circuit. A synthesis
+tool is said to accept a VHDL construct if it allows that construct to be a legal input; it is said to interpret the
+construct (or to provide an interpretation of the construct) by producing something that represents the con-
+struct. A synthesis tool is not required to provide an interpretation for every construct that it accepts, but
+only for those for which an interpretation is specified by this standard.
+#### 16.8.2 Interpretation of the standard logic types
+
+##### 16.8.2.1 General
+
+This subclause (16.8.2) defines how a synthesis tool shall interpret values of the standard logic types defined
+in IEEE.STD_LOGIC_1164 and of the BIT and BOOLEAN types defined in STD.STANDARD.
+Simulation tools, however, shall continue to interpret these values according to the clauses of this standard
+in which the values are defined.
+##### 16.8.2.2 The STD_LOGIC_1164 values
+
+The logical values '1', 'H', '0', and 'L' of type STD_ULOGIC are interpreted as representing one of two logic
+levels, where each logic level represents one of two distinct voltage ranges in the circuit to be synthesized.
+The resolution function RESOLVED treats the values '0' and '1' as forcing values that override the weak
+values 'L' and 'H' when multiple sources drive the same signal.
+The values 'U', 'X', 'W', and '–' are metalogical values; they define the behavior of the model itself rather
+than the behavior of the hardware being synthesized. The value 'U' represents the value of an object before it
+is explicitly assigned a value during simulation; the values 'X' and 'W' represent forcing and weak values,
+respectively, for which the model is not able to distinguish between logic levels.
+The value '–' is also called the don’t care value. This standard treats it in the same way as the other
+metalogical values except when it is furnished as an actual parameter to the STD_MATCH functions in the
+IEEE.NUMERIC_STD package or as an operand to a predefined matching relational operator (see 9.2.3).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+328
+Copyright © 2019 IEEE. All rights reserved.
+The STD_MATCH functions and the predefined matching relational operators use '–' to implement a “match
+all” or “wild card” matching.
+The value 'Z' is called the high-impedance value, and represents the condition of a signal source when that
+source makes no effective contribution to the resolved value of the signal.
+##### 16.8.2.3 Static constant values
+
+Wherever a synthesis tool accepts a reference to a locally static or globally static named constant, it shall
+treat that constant as the equivalent of the associated static expression.
+##### 16.8.2.4 Interpretation of logic values
+
+###### 16.8.2.4.1 General
+
+This sublcause (16.8.2.4) describes the interpretations of logic values occurring as literals (or in literals)
+after a synthesis tool has replaced named constants by their corresponding values.
+###### 16.8.2.4.2 Interpretation of the forcing and weak values ('0', '1', 'L', 'H', FALSE, TRUE)
+
+A synthesis tool shall interpret the following values as representing a logic value 0:
+—
+The BIT value '0'
+—
+The BOOLEAN value FALSE
+—
+The STD_ULOGIC values '0' and 'L'
+It shall interpret the following values as representing a logic value 1:
+—
+The BIT value '1'
+—
+The BOOLEAN value TRUE
+—
+The STD_ULOGIC value '1' and 'H'
+This standard makes no restriction as to the interpretation of the relative strength of values.
+###### 16.8.2.4.3 Interpretation of the metalogical values ('U', 'W', 'X', '–')
+
+###### 16.8.2.4.3.1 Metalogical values in relational expressions
+
+If the VHDL source code includes an equality operator (=) for which one operand is a static metalogical
+value and for which the other operand is not a static value, a synthesis tool shall interpret the equality
+relation as equivalent to the BOOLEAN value FALSE. If one operand of an equality relation is a one-
+dimensional array, and one element of that one-dimensional array is a static metalogical value, a synthesis
+tool shall interpret the entire equality relation as equivalent to the BOOLEAN value FALSE.
+A synthesis tool shall interpret an inequality operator (/=) for which one operand is or contains a static
+metalogical value, and for which the other operand is not a static value, as equivalent to the BOOLEAN
+value TRUE.
+A synthesis tool shall treat an ordering operator (<, <=, >, or >=) for which at least one operand is or
+contains a static metalogical value as an error.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+329
+Copyright © 2019 IEEE. All rights reserved.
+###### 16.8.2.4.3.2 Metalogical values as a choice in a case statement
+
+If a metalogical value occurs as a choice, or as an element of a choice, in a case statement that is interpreted
+by a synthesis tool, the synthesis tool shall interpret the choice as one that can never occur. That is, the
+interpretation that is generated is not required to contain any constructs corresponding to the presence or
+absence of the sequence of statements associated with the choice.
+Whenever a synthesis tool interprets a case statement alternative that associates multiple choices with a
+single sequence of statements, it shall produce an interpretation consistent with associating the sequence of
+statements with each choice individually.
+Whenever a synthesis tool interprets a selected signal assignment statement, it shall interpret the selected
+signal assignment statement as if it were the case statement in the equivalent process as defined in 11.7.
+###### 16.8.2.4.3.3 Metalogical values in logical, arithmetic, and shift operations
+
+When a static metalogical value occurs as all of, or one element of, an operand to a logical, arithmetic, or
+shift operation, and when the other operand to the operation is not a static value, a synthesis tool shall treat
+the operation as an error. An arithmetic operation is one of the operators +, –, *, /, mod, rem, abs, and **.
+###### 16.8.2.4.3.4 Metalogical values in concatenate operations
+
+If a static metalogical value occurs as all of, or as one element of, an operand to the concatenate (&)
+operator, a synthesis tool shall treat it as if it had occurred as the corresponding element of the expression
+formed by the concatenate operation.
+###### 16.8.2.4.3.5 Metalogical values in type conversion and sign-extension functions
+
+If a static metalogical value occurs as all of, or as one element of, the operand of a type conversion or sign-
+extension function, a synthesis tool shall treat it as if it had occurred as the corresponding element of the
+expression formed by the function call.
+###### 16.8.2.4.3.6 Metalogical values used in assignment references
+
+A synthesis tool shall accept a static metalogical value used as all of, or as one element of, a value
+expression in an assignment statement, but is not required to provide any particular interpretation of that
+metalogical value.
+###### 16.8.2.4.4 Interpretation of the high-impedance value ('Z')
+
+If the static value 'Z' occurs as a value expression in a signal assignment statement, a synthesis tool shall
+interpret the assignment as implying the equivalent of a three-state buffer that is disabled when the condi-
+tions under which the assignment occurs is true. The output of the three-state buffer is the target of the
+assignment. The input of the three-state buffer is the logic network that represents the value of the target
+apart from any assignments to 'Z'.
+If the 'Z' occurs as one or more elements of a value expression in a signal assignment statement, a synthesis
+tool shall interpret each such occurrence as implying the equivalent of a three-state buffer in the manner
+defined by the preceding paragraph.
+This standard does not specify an interpretation when a static value 'Z' occurs as all of, or one bit of, a value
+expression in a variable assignment statement.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+330
+Copyright © 2019 IEEE. All rights reserved.
+Whenever a static high-impedance value occurs in any context other than a value expression in an
+assignment statement, a synthesis tool shall treat it as equivalent to a static metalogical value.
+NOTE—A signal assignment statement that assigns one or more bits of a signal to 'Z' unconditionally implies the
+equivalent of a three-state buffer that is always disabled. A synthesis tool may choose to ignore such assignments.
+#### 16.8.3 The STD_MATCH function and predefined matching relational operators
+
+The NUMERIC_STD package defines functions named STD_MATCH that, like the predefined matching
+relational operators, provides wild card matching for the don’t care value. Whenever the STD_MATCH
+function compares two actual parameters that are STD_ULOGIC values, it returns TRUE if and only if:
+—
+Both values are neither metalogical or high-impedance values and the values are the same, or
+—
+One value is '0' and the other is 'L', or
+—
+One value is '1' and the other is 'H', or
+—
+At least one of the values is the don’t care value ('–').
+Whenever the STD_MATCH function compares two actual parameters that are one-dimensional arrays
+whose elements belong to the STD_ULOGIC type or to one of its subtypes, it returns TRUE if and only if:
+a)
+The operands have the same length, and
+b)
+STD_MATCH applied to each pair of matching elements returns TRUE.
+When one of the actual parameters to the STD_MATCH function or a predefined matching equality operator
+is a static value and the other is not, a synthesis tool shall interpret the call to the STD_MATCH function or
+predefined matching equality operator as equivalent to an equality test on matching elements of the actual
+parameters, excepting those elements of the static value that are equal to '–'.
+When one of the operands of a predefined matching equality operator is a static value and the other is not, a
+synthesis tool shall interpret the call to the predefined matching inequality operator as equivalent to a call to
+the predefined matching inequality operator followed by application of the not operator to the result.
+NOTE—If any actual parameter passed to STD_MATCH is or contains a metalogical or high-impedance value other
+than '–', the function returns FALSE.
+#### 16.8.4 Signal edge detection
+
+Wherever a synthesis tool interprets a particular expression as the edge of a signal, it shall also interpret the
+function RISING_EDGE as representing a rising edge and the function FALLING_EDGE as representing a
+falling edge, where RISING_EDGE and FALLING_EDGE are the functions declared either by the package
+STD_LOGIC_1164 or by the package NUMERIC_BIT.
+#### 16.8.5 Packages for arithmetic using bit and standard logic values
+
+##### 16.8.5.1 General
+
+Four VHDL packages for arithmetic using bit and standard logic values are defined by this standard. The
+NUMERIC_BIT and NUMERIC_BIT_UNSIGNED packages are based on the VHDL type BIT, while the
+NUMERIC_STD and NUMERIC_STD_UNSIGNED packages are based on the type STD_ULOGIC.
+Simulations based on the subprograms of the NUMERIC_BIT and NUMERIC_BIT_UNSIGNED packages
+ordinarily require less execution time, because the subprograms do not have to deal with operands
+containing metalogical or high-impedance values. Use of the subprograms of the NUMERIC_STD and
+NUMERIC_STD_UNSIGNED packages allow simulation to detect the propagation or generation of
+metalogical values.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+331
+Copyright © 2019 IEEE. All rights reserved.
+The NUMERIC_BIT package defines a one-dimensional array type named SIGNED and a one-dimensional
+array type named UNSIGNED. The type UNSIGNED represents an unsigned binary integer with the most
+significant bit on the left, while the type SIGNED represents a two’s-complement binary integer with the
+most significant bit on the left. In particular, a one-element SIGNED one-dimensional array represents the
+integer values –1 and 0.
+The NUMERIC_STD package defines a one-dimensional array type named UNRESOLVED_SIGNED and
+a one-dimensional array type named UNRESOLVED_UNSIGNED, and aliases U_SIGNED and
+U_UNSIGNED for these two types, respectively. The package also defines a subtype named SIGNED of the
+base type UNRESOLVED_SIGNED and a subtype named UNSIGNED of the base type
+UNRESOLVED_UNSIGNED. Whereas the base types have unresolved elements, the subtypes associate
+the resolution function RESOLVED from the STD_LOGIC_1164 package with the elements.
+UNRESOLVED_UNSIGNED
+and
+UNSIGNED
+represent
+unsigned
+binary
+integers,
+and
+UNRESOLVED_SIGNED and SIGNED represent two’s-complement binary integers, in the same way as
+the types UNSIGNED and SIGNED, respectively, from the NUMERIC_BIT package.
+The NUMERIC_BIT_UNSIGNED package provides the same operations as those provided by the
+NUMERIC_BIT package on UNSIGNED operands, but operating on BIT_VECTOR operands interpreted
+as representing unsigned binary integers. Similarly, the NUMERIC_STD_UNSIGNED package provides
+the same operations as those provided by the NUMERIC_STD package on UNSIGNED operands, but
+operating on STD_ULOGIC_VECTOR operands interpreted as representing unsigned binary integers.
+The four packages are mutually incompatible, and only one shall be used in any given design unit. To
+facilitate changing from one package to the other, most of the subprograms declared in one package are also
+declared for corresponding parameters in the other. Exceptions are when:
+a)
+The NUMERIC_BIT package declares the functions RISING_EDGE and FALLING_EDGE; the
+corresponding functions for STD_ULOGIC are declared by the STD_LOGIC_1164 package.
+b)
+The NUMERIC_STD package declares the STD_MATCH functions, which give special treatment
+to the don’t care value, whereas the BIT-based types of the NUMERIC_BIT package have no don’t
+care values.
+c)
+The NUMERIC_STD package declares the TO_01, TO_X01, TO_X01Z, TO_UX01, and IS_X
+functions, which may be applied to SIGNED and UNSIGNED values, and which map the element
+values to the STD_ULOGIC values '0', '1', and metalogical and high-impedance values.
+If a null array is furnished as an actual parameter to any subprogram declared by the packages, a synthesis
+tool shall treat it as an error.
+All one-dimensional array return values that are not null array values are normalized so that the direction of
+the index range is downto and the right bound is 0. A one-dimensional array return value that is a null array
+has the index range 0 downto 1.
+All of the packages defined in this subclause (16.8) shall be analyzed into the library symbolically named
+IEEE.
+##### 16.8.5.2 Allowable modifications
+
+Vendors of tools conforming to this standard shall not modify the package declarations. However, a vendor
+may provide package bodies for any of the packages in which subprograms are rewritten for more efficient
+simulation or synthesis, provided that the behavior of the rewritten subprograms remains the same under
+simulation. The behavior of the original and rewritten subprograms are the same if, for any combination of
+input values, they return the same return values. The text of messages associated with assertions may differ
+in the rewritten subprogram.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+332
+Copyright © 2019 IEEE. All rights reserved.
+The package bodies for the NUMERIC_BIT and NUMERIC_STD packages declare a constant named
+NO_WARNING that has the value FALSE. A user may set NO_WARNING to TRUE and reanalyze the
+package body to suppress warning messages generated by calls to the functions in these packages. For this
+reason:
+—
+A tool vendor who rewrites the package body shall preserve the declaration of the NO_WARNING
+constant to allow a user to suppress warnings by editing and reanalyzing the package body.
+—
+A simulation tool vendor who provides a pre-analyzed version of the package body should also
+provide a mechanism for suppressing warning messages generated by the package functions.
+##### 16.8.5.3 Compatibility with previous editions of IEEE Std 1076
+
+The following functions from the packages are compatible with IEEE Std 1076-1993 and subsequent
+editions of this standard but not with a previous edition, IEEE Std 1076-1987:
+—
+binary "xnor"
+—
+"sll"
+—
+"srl"
+—
+"rol"
+—
+"ror"
+—
+"sla"
+—
+"sra"
+To use these functions with a VHDL-based system that has not yet been upgraded to be compatible with
+IEEE Std 1076-1993 and subsequent editions, a user or vendor may comment out the subprogram
+declarations and subprogram bodies.
+The following functions from the packages are compatible with this standard but not with previous editions:
+—
+unary "and"
+—
+unary "nand"
+—
+unary "or"
+—
+unary "nor"
+—
+unary "xor"
+—
+unary "xnor"
+To use these functions with a VHDL-based system that has not yet been upgraded to be compatible with this
+edition of this standard, a user or vendor may comment out the subprogram declarations and subprogram
+bodies.
+In addition, IEEE Std 1076-1993 and subsequent editions support a character set that includes the copyright
+symbol (©). However, IEEE Std 1076-1987 does not support this same character set. Therefore, in order to
+use the packages with a system that has not yet been upgraded to be compatible with IEEE Std 1076-1993
+and subsequent editions, a user or vendor may replace the copyright symbol within the sources of those
+packages by a left parenthesis, a lowercase “c,” and a right parenthesis.
+### 16.9 Standard synthesis context declarations
+
+The library denoted by the library logical name IEEE contains context declarations IEEE_BIT_CONTEXT
+and IEEE_STD_CONTEXT.
+context IEEE_BIT_CONTEXT is
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+333
+Copyright © 2019 IEEE. All rights reserved.
+   library IEEE;
+   use IEEE.NUMERIC_BIT.all;
+end context IEEE_BIT_CONTEXT;
+context IEEE_STD_CONTEXT is
+   library IEEE;
+   use IEEE.STD_LOGIC_1164.all;
+   use IEEE.NUMERIC_STD.all;
+end context IEEE_STD_CONTEXT;
+### 16.10 Fixed-point package
+
+The library denoted by the library logical name IEEE contains packages FIXED_FLOAT_TYPES,
+FIXED_GENERIC_PKG, and FIXED_PKG.16 The following conformance rules shall apply as they pertain
+to the use and implementation of these packages:
+a)
+The package declarations may be modified to include additional data required by tools, but
+modifications shall in no way change the external interfaces or simulation behavior of the
+description. It is permissible to add comments and/or attributes to the package declarations, but not
+to change or delete any original lines of the approved package declaration.
+b)
+The FIXED_GENERIC_PKG package body and the FIXED_PKG package instantiation declaration
+provided in the IEEE 1076 Open Source Repository represent the formal semantics of the
+implementation of the FIXED_GENERIC_PKG and FIXED_PKG packages. Implementers of these
+packages may choose to simply compile the package body and package instantiation declaration as
+it is, or they may choose to implement the packages in the most efficient form available to the user.
+Implementers shall not implement semantics that differ from the formal semantics provided herein.
+### 16.11 Floating-point package
+
+The library denoted by the library logical name IEEE contains packages FLOAT_GENERIC_PKG and
+FLOAT_PKG.17 The following conformance rules shall apply as they pertain to the use and implementation
+of these packages:
+a)
+The package declarations may be modified to include additional data required by tools, but
+modifications shall in no way change the external interfaces or simulation behavior of the
+description. It is permissible to add comments and/or attributes to the package declarations, but not
+to change or delete any original lines of the approved package declaration.
+b)
+The FLOAT_GENERIC_PKG package body and the FLOAT_PKG package instantiation
+declaration provided in the IEEE 1076 Open Source Repository represent the formal semantics of
+the implementation of the FLOAT_GENERIC_PKG and FLOAT_PKG packages. Implementers of
+these packages may choose to simply compile the package body and package instantiation
+declaration as it is, or they may choose to implement the packages in the most efficient form
+available to the user. Implementers shall not implement semantics that differ from the formal
+semantics provided herein.
+16The packages FIXED_GENERIC PKG, FIXED_PKG, and FIXED_FLOAT_TYPES were modified and used with permission from
+Eastman Kodak Company © 2006.
+17The packages FLOAT_GENERIC_PKG and FLOAT_PKG were modified and used with permission from Eastman Kodak Company
+© 2006.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+334
+Copyright © 2019 IEEE. All rights reserved.
+### 16.12 Reflection package
+
+#### 16.12.1 General
+
+Package REFLECTION contains protected type declarations and access types to these protected types for a
+reflection API.
+The reflection API provides access to type and value information of VHDL types and objects. The provided
+information is provided through protected type instances, which are called mirrors. It is said that such a
+protected type mirrors the internal data and meta data of a tool and provides them for the user. Mirrors allow
+a user to inspect objects and types in generic way.
+Each VHDL object has two corresponding mirrors: A value mirror and a subtype mirror. Each VHDL type
+or subtype has a corresponding subtype mirror. Mirror instances are created when the attribute 'REFLECT is
+evaluated.
+A value mirror contains a consistent copy of the mirrored object’s value. This means, if the object’s value
+changes, the stored value in the mirror instance does not change. The protected type of a value mirror
+provides the following:
+—
+Access to the copied object value through a method.
+—
+The same operation as provided by object attributes in the form of methods.
+—
+A method to access the corresponding subtype of the mirrored object.
+A subtype mirror represents the meta data accompanying a VHDL object or the meta data of a mirrored
+VHDL type or subtype. The protected type of a subtype mirror provides the following:
+—
+The same operations as provided by type or subtype attributes in the form of methods.
+This API provides 10 value mirrors, one for each value’s type class or subclass, as well as one common
+value mirror representing untyped values. Similarly, the API provides 10 subtype mirrors, one for each
+type’s class or subclass and one common subtype mirror representing an unspecific type. The handling of
+mirror instances is eased by providing access types for each mirror protected type.
+The following table shows all available mirror protected types and their relation:
+Type (sub)
+class
+Value mirror
+Corresponding subtype mirror
+Unclassified
+VALUE_MIRROR_PT
+SUBTYPE_MIRROR_PT
+Scalar
+
+Enumeration
+ENUMERATION_VALUE_MIRROR_PT
+ENUMERATION_SUBTYPE_MIRROR_PT
+Integer
+INTEGER_VALUE_MIRROR_PT
+INTEGER_SUBTYPE_MIRROR_PT
+Floating
+FLOATING_VALUE_MIRROR_PT
+FLOATING_SUBTYPE_MIRROR_PT
+Physical
+PHYSICAL_VALUE_MIRROR_PT
+PHYSICAL_SUBTYPE_MIRROR_PT
+Record
+RECORD_VALUE_MIRROR_PT
+RECORD_SUBTYPE_MIRROR_PT
+Array
+ARRAY_VALUE_MIRROR_PT
+ARRAY_SUBTYPE_MIRROR_PT
+Access
+ACCESS_VALUE_MIRROR_PT
+ACCESS_SUBTYPE_MIRROR_PT
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+335
+Copyright © 2019 IEEE. All rights reserved.
+#### 16.12.2 Package declaration
+
+package REFLECTION is
+type INDEX is range INTEGER'low to INTEGER'high;
+subtype NATURAL_INDEX is INDEX range 0 to INDEX'high;
+subtype POSITIVE_INDEX is INDEX range 1 to INDEX'high;
+subtype DIMENSION is INDEX range 1 to INDEX'high;
+type INDEX_VECTOR is array (DIMENSION range <>) of INDEX;
+-- complete type declarations
+type VALUE_MIRROR;
+type SUBTYPE_MIRROR;
+-- Enumeration subtype/value mirror
+type ENUMERATION_SUBTYPE_MIRROR;
+type ENUMERATION_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror
+return ENUMERATION_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+impure function pos return INTEGER;
+impure function image return STRING;
+end protected;
+type ENUMERATION_VALUE_MIRROR is access ENUMERATION_VALUE_MIRROR_PT;
+type ENUMERATION_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function enumeration_literal(literal_idx : NATURAL_INDEX)
+return ENUMERATION_VALUE_MIRROR;
+impure function enumeration_literal(literal_name : STRING)
+return ENUMERATION_VALUE_MIRROR;
+impure function simple_name return STRING;
+impure function left return ENUMERATION_VALUE_MIRROR;
+impure function right return ENUMERATION_VALUE_MIRROR;
+impure function low return ENUMERATION_VALUE_MIRROR;
+impure function high return ENUMERATION_VALUE_MIRROR;
+impure function length return POSITIVE_INDEX;
+impure function ascending return BOOLEAN;
+end protected;
+type ENUMERATION_SUBTYPE_MIRROR is access
+ENUMERATION_SUBTYPE_MIRROR_PT;
+File
+FILE_VALUE_MIRROR_PT
+FILE_SUBTYPE_MIRROR_PT
+Protected
+PROTECTED_VALUE_MIRROR_PT
+PROTECTED_SUBTYPE_MIRROR_PT
+Type (sub)
+class
+Value mirror
+Corresponding subtype mirror
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+336
+Copyright © 2019 IEEE. All rights reserved.
+-- integer subtype/value mirror
+type INTEGER_SUBTYPE_MIRROR;
+type INTEGER_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror return INTEGER_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+impure function value return INTEGER;
+impure function image return STRING;
+end protected;
+type INTEGER_VALUE_MIRROR is access INTEGER_VALUE_MIRROR_PT;
+type INTEGER_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function simple_name return STRING;
+impure function left return INTEGER_VALUE_MIRROR;
+impure function right return INTEGER_VALUE_MIRROR;
+impure function low return INTEGER_VALUE_MIRROR;
+impure function high return INTEGER_VALUE_MIRROR;
+impure function length return INDEX;
+impure function ascending return BOOLEAN;
+end protected;
+type INTEGER_SUBTYPE_MIRROR is access INTEGER_SUBTYPE_MIRROR_PT;
+-- Floating-point subtype/value mirror
+type FLOATING_SUBTYPE_MIRROR;
+type FLOATING_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror return FLOATING_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+impure function value return REAL;
+impure function image return STRING;
+end protected;
+type FLOATING_VALUE_MIRROR is access FLOATING_VALUE_MIRROR_PT;
+type FLOATING_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function simple_name return STRING;
+impure function left return FLOATING_VALUE_MIRROR;
+impure function right return FLOATING_VALUE_MIRROR;
+impure function low return FLOATING_VALUE_MIRROR;
+impure function high return FLOATING_VALUE_MIRROR;
+impure function ascending return BOOLEAN;
+end protected;
+type FLOATING_SUBTYPE_MIRROR is access FLOATING_SUBTYPE_MIRROR_PT;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+337
+Copyright © 2019 IEEE. All rights reserved.
+-- Physical subtype/value mirror
+type PHYSICAL_SUBTYPE_MIRROR;
+type PHYSICAL_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror return PHYSICAL_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+impure function unit_index return INDEX;
+impure function value return INTEGER;
+impure function image return STRING;
+end protected;
+type PHYSICAL_VALUE_MIRROR is access PHYSICAL_VALUE_MIRROR_PT;
+type PHYSICAL_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function units_length return INDEX;
+impure function unit_name (unit_idx: INDEX) return STRING;
+impure function unit_index(unit_name : STRING) return INDEX;
+impure function scale(unit_idx: INDEX) return NATURAL;
+impure function scale(unit_name: INDEX) return NATURAL;
+impure function simple_name return STRING;
+impure function left return PHYSICAL_VALUE_MIRROR;
+impure function right return PHYSICAL_VALUE_MIRROR;
+impure function low return PHYSICAL_VALUE_MIRROR;
+impure function high return PHYSICAL_VALUE_MIRROR;
+impure function length return INDEX;
+impure function ascending return BOOLEAN;
+end protected;
+type PHYSICAL_SUBTYPE_MIRROR is access PHYSICAL_SUBTYPE_MIRROR_PT;
+-- Record subtype/value mirror
+type RECORD_SUBTYPE_MIRROR;
+type RECORD_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror return RECORD_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+impure function get(element_idx : INDEX) return VALUE_MIRROR;
+impure function get(element_name : STRING) return VALUE_MIRROR;
+end protected;
+type RECORD_VALUE_MIRROR is access RECORD_VALUE_MIRROR_PT;
+type RECORD_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function length return INDEX;
+impure function element_name(element_idx : INDEX) return STRING;
+impure function element_index(element_name : STRING) return INDEX;
+impure function element_subtype(element_idx : INDEX)
+return SUBTYPE_MIRROR;
+impure function element_subtype(element_name : STRING)
+return SUBTYPE_MIRROR;
+impure function simple_name return STRING;
+end protected;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+338
+Copyright © 2019 IEEE. All rights reserved.
+type RECORD_SUBTYPE_MIRROR is access RECORD_SUBTYPE_MIRROR_PT;
+-- Array subtype/value mirror
+type ARRAY_SUBTYPE_MIRROR;
+type ARRAY_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror return ARRAY_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+impure function get(idx : INDEX) return VALUE_MIRROR;
+impure function get(idx1, idx2 : INDEX) return VALUE_MIRROR;
+impure function get(idx1, idx2, idx3 : INDEX) return VALUE_MIRROR;
+impure function get(idx : INDEX_VECTOR) return VALUE_MIRROR;
+end protected;
+type ARRAY_VALUE_MIRROR is access ARRAY_VALUE_MIRROR_PT;
+type ARRAY_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function dimensions return DIMENSION;
+impure function index_subtype(idx : DIMENSION := 1)
+return SUBTYPE_MIRROR;
+impure function element_subtype return SUBTYPE_MIRROR;
+impure function simple_name return STRING;
+impure function left(idx : DIMENSION := 1) return INDEX;
+impure function right(idx : DIMENSION := 1) return INDEX;
+impure function low(idx : DIMENSION := 1) return INDEX;
+impure function high(idx : DIMENSION := 1) return INDEX;
+impure function length(idx : DIMENSION := 1) return INDEX;
+impure function ascending(idx : DIMENSION := 1) return BOOLEAN;
+end protected;
+type ARRAY_SUBTYPE_MIRROR is access ARRAY_SUBTYPE_MIRROR_PT;
+-- Access subtype/value mirror
+type ACCESS_SUBTYPE_MIRROR;
+type ACCESS_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror return ACCESS_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+impure function get return VALUE_MIRROR;
+impure function is_null return BOOLEAN;
+end protected;
+type ACCESS_VALUE_MIRROR is access ACCESS_VALUE_MIRROR_PT;
+type ACCESS_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function simple_name return STRING;
+impure function designated_subtype return SUBTYPE_MIRROR;
+end protected;
+type ACCESS_SUBTYPE_MIRROR is access ACCESS_SUBTYPE_MIRROR_PT;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+339
+Copyright © 2019 IEEE. All rights reserved.
+-- File subtype/value mirror
+type FILE_SUBTYPE_MIRROR;
+type FILE_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror return FILE_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+impure function get_file_logical_name return STRING;
+impure function get_file_open_kind return FILE_OPEN_KIND;
+end protected;
+type FILE_VALUE_MIRROR is access FILE_VALUE_MIRROR_PT;
+type FILE_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function simple_name return STRING;
+impure function designated_subtype return SUBTYPE_MIRROR;
+end protected;
+type FILE_SUBTYPE_MIRROR is access FILE_SUBTYPE_MIRROR_PT;
+-- Protected subtype/value mirror
+type PROTECTED_SUBTYPE_MIRROR;
+type PROTECTED_VALUE_MIRROR_PT is protected
+impure function get_subtype_mirror
+return PROTECTED_SUBTYPE_MIRROR;
+impure function to_value_mirror return VALUE_MIRROR;
+end protected;
+type PROTECTED_VALUE_MIRROR is access PROTECTED_VALUE_MIRROR_PT;
+type PROTECTED_SUBTYPE_MIRROR_PT is protected
+impure function to_subtype_mirror return SUBTYPE_MIRROR;
+impure function simple_name return STRING;
+end protected;
+type PROTECTED_SUBTYPE_MIRROR is access PROTECTED_SUBTYPE_MIRROR_PT;
+-- Type classes and sub-classes
+type TYPE_CLASS is (
+CLASS_ENUMERATION,
+CLASS_INTEGER,
+CLASS_FLOATING,
+CLASS_PHYSICAL,
+CLASS_RECORD,
+CLASS_ARRAY,
+CLASS_ACCESS,
+CLASS_FILE,
+CLASS_PROTECTED
+);
+alias VALUE_CLASS is TYPE_CLASS;
+-- Implicit defined range record for TYPE_CLASS'RANGE_RECORD:
+-- type TYPE_CLASS_range_record is record
+--   Left      : TYPE_CLASS;
+--   Right     : TYPE_CLASS;
+--   Direction : RANGE_DIRECTION;
+-- end record;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+340
+Copyright © 2019 IEEE. All rights reserved.
+-- Subtype/value mirror
+type SUBTYPE_MIRROR_PT is protected
+impure function get_type_class return TYPE_CLASS;
+-- get the corresponding representation
+impure function to_enumeration return ENUMERATION_SUBTYPE_MIRROR;
+impure function to_integer return INTEGER_SUBTYPE_MIRROR;
+impure function to_floating return FLOATING_SUBTYPE_MIRROR;
+impure function to_physical return PHYSICAL_SUBTYPE_MIRROR;
+impure function to_record return RECORD_SUBTYPE_MIRROR;
+impure function to_array return ARRAY_SUBTYPE_MIRROR;
+impure function to_access return ACCESS_SUBTYPE_MIRROR;
+impure function to_file return FILE_SUBTYPE_MIRROR;
+impure function to_protected return PROTECTED_SUBTYPE_MIRROR;
+impure function simple_name return STRING;
+end protected;
+type SUBTYPE_MIRROR is access SUBTYPE_MIRROR_PT;
+type VALUE_MIRROR_PT is protected
+impure function get_value_class return VALUE_CLASS;
+impure function get_subtype_mirror return SUBTYPE_MIRROR;
+-- get the corresponding representation
+impure function to_enumeration return ENUMERATION_VALUE_MIRROR;
+impure function to_integer return INTEGER_VALUE_MIRROR;
+impure function to_floating return FLOATING_VALUE_MIRROR;
+impure function to_physical return PHYSICAL_VALUE_MIRROR;
+impure function to_record return RECORD_VALUE_MIRROR;
+impure function to_array return ARRAY_VALUE_MIRROR;
+impure function to_access return ACCESS_VALUE_MIRROR;
+impure function to_file return FILE_VALUE_MIRROR;
+impure function to_protected return PROTECTED_VALUE_MIRROR;
+end protected;
+type VALUE_MIRROR is access VALUE_MIRROR_PT;
+end package REFLECTION;
+-- Implementation specific
+-- -------------------------------------
+-- package body REFLECTION is
+-- end package body REFLECTION;
+#### 16.12.3 Package description
+
+##### 16.12.3.1 General
+
+These methods of the protected types are described as follows. For each method, the following information
+is provided:
+—
+Parameters, if any exist
+—
+Return type
+—
+Result of evaluating the method
+—
+Errors that can occur
+—
+Any further restrictions or comments that apply
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+341
+Copyright © 2019 IEEE. All rights reserved.
+##### 16.12.3.2 Common subtype and value mirrors
+
+The integer type INDEX represents an index value used by the reflection API. The subtypes
+NATURAL_INDEX represent a natural and POSITIVE_INDEX represent a positive index value. The
+subtype DIMENSION represents an array dimension. The array INDEX_VECTOR represents a list of dices
+as used to index multi dimensional arrays.
+The enumeration TYPE_CLASS contains one value per type class or subclass. The alias VALUE_CLASS
+denotes the same enumeration.
+The protected type SUBTYPE_MIRROR_PT mirrors an arbitrary subtype. It provides the following
+methods:
+get_type_class
+Return type:
+TYPE_CLASS
+Behavior:
+Returns a type class of the mirrored subtype.
+to_enumeration
+Return type:
+ENUMERATION_SUBTYPE_MIRROR
+Behavior:
+Returns an ENUMERATION_SUBTYPE_MIRROR_PT instance of
+the specified subtype mirror.
+Errors:
+It is an error if the specified subtype mirror is not an enumeration
+subtype mirror.
+to_integer
+Return type:
+INTEGER_SUBTYPE_MIRROR
+Behavior:
+Returns an INTEGER_SUBTYPE_MIRROR_PT instance of the
+specified subtype mirror.
+Errors:
+It is an error if the specified subtype mirror is not an integer subtype
+mirror.
+to_floating
+Return type:
+FLOATING_SUBTYPE_MIRROR
+Behavior:
+Returns a FLOATING_SUBTYPE_MIRROR_PT instance
+representing the designated subtype.
+Errors:
+It is an error if the specified subtype mirror is not a floating subtype
+mirror.
+to_physical
+Return type:
+PHYSICAL_SUBTYPE_MIRROR
+Behavior:
+Returns a PHYSICAL_SUBTYPE_MIRROR_PT instance
+representing the designated subtype.
+Errors:
+It is an error if the specified subtype mirror is not a floating subtype
+mirror.
+to_record
+Return type:
+RECORD_SUBTYPE_MIRROR
+Behavior:
+Returns a RECORD_SUBTYPE_MIRROR_PT instance representing
+the designated subtype.
+Errors:
+It is an error if the specified subtype mirror is not a record subtype
+mirror.
+to_array
+Return type:
+ARRAY_SUBTYPE_MIRROR
+Behavior:
+Returns a ARRAY_SUBTYPE_MIRROR_PT instance representing
+the designated subtype.
+Errors:
+It is an error if the specified subtype mirror is not an array subtype
+mirror.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+342
+Copyright © 2019 IEEE. All rights reserved.
+The protected type VALUE_MIRROR_PT mirrors an arbitrary value. It provides the following methods:
+to_access
+Return type:
+ACCESS_SUBTYPE_MIRROR
+Behavior:
+Returns a ACCESS_SUBTYPE_MIRROR_PT instance representing
+the designated subtype.
+Errors:
+It is an error if the specified subtype mirror is not an access subtype
+mirror.
+to_file
+Return type:
+FILE_SUBTYPE_MIRROR
+Behavior:
+Returns a FILE_SUBTYPE_MIRROR_PT instance representing the
+designated subtype.
+Errors:
+It is an error if the specified subtype mirror is not a file subtype mirror.
+to_protected
+Return type:
+PROTECTED_SUBTYPE_MIRROR
+Behavior:
+Returns a PROTECTED_SUBTYPE_MIRROR_PT instance
+representing the designated subtype.
+Errors:
+It is an error if the specified subtype mirror is not a protected subtype
+mirror.
+simple_name
+Return type:
+STRING
+Behavior:
+Returns the simple name of the corresponding subtype.
+get_value_class
+Return type:
+VALUE_CLASS
+Behavior:
+Returns a value class of the mirrored value.
+get_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns the simple name of the corresponding subtype.
+to_enumeration
+Return type:
+ENUMERATION_VALUE_MIRROR
+Behavior:
+Returns an ENUMERATION_VALUE_MIRROR_PT instance of the
+specified value mirror.
+Errors:
+It is an error if the specified value mirror is not an enumeration value
+mirror.
+to_integer
+Return type:
+INTEGER_VALUE_MIRROR
+Behavior:
+Returns an INTEGER_VALUE_MIRROR_PT instance of the
+specified value mirror.
+Errors:
+It is an error if the specified value mirror is not an integer value mirror.
+to_floating
+Return type:
+FLOATING_VALUE_MIRROR
+Behavior:
+Returns a FLOATING_VALUE_MIRROR_PT instance of the
+specified value mirror.
+Errors:
+It is an error if the specified value mirror is not a floating value mirror.
+to_physical
+Return type:
+PHYSICAL_VALUE_MIRROR
+Behavior:
+Returns a PHYSICAL_VALUE_MIRROR_PT instance of the
+specified value mirror.
+Errors:
+It is an error if the specified value mirror is not a physical value mirror.
+to_record
+Return type:
+RECORD_VALUE_MIRROR
+Behavior:
+Returns a RECORD_VALUE_MIRROR_PT instance of the specified
+value mirror
+Errors:
+It is an error if the specified value mirror is not a record value mirror.
+to_array
+Return type:
+ARRAY_VALUE_MIRROR
+Behavior:
+Returns an ARRAY_VALUE_MIRROR_PT instance of the specified
+value mirror.
+Errors:
+It is an error if the specified value mirror is not an array value mirror.
+to_access
+Return type:
+ACCESS_VALUE_MIRROR
+Behavior:
+Returns a ACCESS_VALUE_MIRROR_PT instance of the specified
+value mirror.
+Errors:
+It is an error if the specified value mirror is not an access value mirror.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+343
+Copyright © 2019 IEEE. All rights reserved.
+The access type SUBTYPE_MIRROR designates a SUBTYPE_MIRROR_PT. The access type
+VALUE_MIRROR designates a VALUE_MIRROR_PT.
+##### 16.12.3.3 Enumeration subtype and value mirrors
+
+The protected type ENUMERATION_SUBTYPE_MIRROR_PT mirrors an enumeration subtype. It
+provides the following methods:
+to_file
+Return type:
+FILE_VALUE_MIRROR
+Behavior:
+Returns a FILE_VALUE_MIRROR_PT instance of the specified value
+mirror.
+Errors:
+It is an error if the specified value mirror is not a file value mirror.
+to_protected
+Return type:
+PROTECTED_VALUE_MIRROR
+Behavior:
+Returns a PROTECTED_VALUE_MIRROR_PT instance of the
+specified value mirror.
+Errors:
+It is an error if the specified value mirror is not a protected value
+mirror.
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+enumeration_literal
+Parameters:
+literal_idx: NATURAL_INDEX
+Return type:
+ENUMERATION_VALUE_MIRROR
+Behavior:
+Returns an ENUMERATION_VALUE_MIRROR_PT instance
+representing the literal_idx-th enumeration literal.
+Errors:
+It is an error if the parameter literal_idx us not in the range denoted by
+ENUMERATION_SUBTYPE_MIRROR_PT.left to
+ENYNERATU_SUBTYPE_MIRROR_PT.right.
+enumeration_literal
+Parameters:
+literal_name: STRING
+Return type:
+ENUMERATION_VALUE_MIRROR
+Behavior:
+Returns a ENUMERATION_VALUE_MIRROR_PT instance whose
+string representation matches the parameter literal_name.
+Errors:
+It is an error if the parameter literal_name is does not denote an
+enumeration literal if the enumeration type mirrored by
+ENUMERATION_SUBTYPE_MIRROR_PT.
+simple_name
+Return type:
+STRING
+Behavior:
+Returns the simple name of the corresponding subtype.
+left
+Return type:
+ENUMERATION_VALUE_MIRROR
+Behavior:
+Returns an ENUMERATION_VALUE_MIRROR_PT instance
+representing the left bound of the subtype.
+right
+Return type:
+ENUMERATION_VALUE_MIRROR
+Behavior:
+Returns an ENUMERATION_VALUE_MIRROR_PT instance
+representing the right bound of the subtype.
+low
+Return type:
+ENUMERATION_VALUE_MIRROR
+Behavior:
+Returns an ENUMERATION_VALUE_MIRROR_PT instance
+representing the low bound of the subtype.
+high
+Return type:
+ENUMERATION_VALUE_MIRROR
+Behavior:
+Returns an ENUMERATION_VALUE_MIRROR_PT instance
+representing the high bound of the subtype.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+344
+Copyright © 2019 IEEE. All rights reserved.
+The protected type ENUMERATION_VALUE_MIRROR_PT mirrors an enumeration type value. It
+provides the following methods:
+The
+access
+type
+ENUMERATION_SUBTYPE_MIRROR
+designates
+an
+ENUMERATION_SUBTYPE_MIRROR_PT. The access type ENUMERATION_VALUE_MIRROR
+designates an ENUMERATION_VALUE_MIRROR_PT.
+##### 16.12.3.4 Integer subtype and value mirrors
+
+The protected type INTEGER_SUBTYPE_MIRROR_PT mirrors an integer subtype. It provides the
+following methods:
+length
+Return type:
+POSITIVE_INDEX
+Behavior:
+Returns the number of enumeration literals for the corresponding
+subtype.
+ascending
+Return type:
+BOOLEAN
+Behavior:
+Returns a TRUE if the corresponding subtype’s range is in ascending
+order; otherwise FALSE.
+get_subtype_mirror
+Return type:
+ENUMERATION_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+pos
+Return type:
+INTEGER
+Behavior:
+Returns the position number of the mirrored enumeration type name.
+image
+Return type:
+STRING
+Behavior:
+Returns the string representation of the mirrored enumeration type
+value.
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+simple_name
+Return type:
+STRING
+Behavior:
+Returns the simple name of the corresponding subtype.
+left
+Return type:
+INTEGER_VALUE_MIRROR
+Behavior:
+Returns an INTEGER_VALUE_MIRROR_PT instance representing
+the left bound of the subtype.
+right
+Return type:
+INTEGER_VALUE_MIRROR
+Behavior:
+Returns an INTEGER_VALUE_MIRROR_PT instance representing
+the right bound of the subtype.
+low
+Return type:
+INTEGER_VALUE_MIRROR
+Behavior:
+Returns an INTEGER_VALUE_MIRROR_PT instance representing
+the low bound of the subtype.
+high
+Return type:
+INTEGER_VALUE_MIRROR
+Behavior:
+Returns an INTEGER_VALUE_MIRROR_PT instance representing
+the high bound of the subtype.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+345
+Copyright © 2019 IEEE. All rights reserved.
+The protected type INTEGER_VALUE_MIRROR_PT mirrors an integer type value. It provides the
+following methods:
+The access type INTEGER_SUBTYPE_MIRROR designates an INTEGER_SUBTYPE_MIRROR_PT.
+The access type INTEGER_VALUE_MIRROR designates an INTEGER_VALUE_MIRROR_PT.
+##### 16.12.3.5 Floating subtype and value mirrors
+
+The protected type FLOATING_SUBTYPE_MIRROR_PT mirrors a floating subtype. It provides the
+following methods:
+length
+Return type:
+POSITIVE_INDEX
+Behavior:
+Returns the number of position numbers for the corresponding
+subtype.
+ascending
+Return type:
+BOOLEAN
+Behavior:
+Returns a TRUE if the corresponding subtype’s constraint range is in
+ascending order; otherwise FALSE.
+get_subtype_mirror
+Return type:
+INTEGER_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+value
+Return type:
+INTEGER
+Behavior:
+Returns the position number of the mirrored integer type name.
+image
+Return type:
+STRING
+Behavior:
+Returns the string representation of the mirrored integer type value.
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+simple_name
+Return type:
+STRING
+Behavior:
+Returns the simple name of the corresponding subtype.
+left
+Return type:
+FLOATING_VALUE_MIRROR
+Behavior:
+Returns a FLOATING_VALUE_MIRROR_PT representing the left
+bound of the corresponding subtype.
+right
+Return type:
+FLOATING_VALUE_MIRROR
+Behavior:
+Returns a FLOATING_VALUE_MIRROR_PT representing the right
+bound of the corresponding subtype.
+low
+Return type:
+FLOATING_VALUE_MIRROR
+Behavior:
+Returns a FLOATING_VALUE_MIRROR_PT representing the low
+bound of the corresponding subtype.
+high
+Return type:
+FLOATING_VALUE_MIRROR
+Behavior:
+Returns a FLOATING_VALUE_MIRROR_PT representing the low
+bound of the corresponding subtype.
+ascending
+Return type:
+BOOLEAN
+Behavior:
+Returns a TRUE if the corresponding subtype’s constraint range is in
+ascending order; otherwise FALSE.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+346
+Copyright © 2019 IEEE. All rights reserved.
+The protected type FLOATING_VALUE_MIRROR_PT mirrors a floating type value. It provides the
+following methods:
+The access type FLOATING_SUBTYPE_MIRROR designates an FLOATING_SUBTYPE_MIRROR_PT.
+The access type FLOATING_VALUE_MIRROR designates an FLOATING_VALUE_MIRROR_PT.
+##### 16.12.3.6 Physical subtype and value mirrors
+
+The protected type PHYSICAL_SUBTYPE_MIRROR_PT mirrors an enumeration subtype. It provides the
+following methods:
+The protected type PHYSICAL_VALUE_MIRROR_PT mirrors a physical type value.
+The index of a physical unit is determined by position of the corresponding unit declaration in the physical
+type definition. The index of the primary unit is zero, the index for each additional secondary unit is one
+more than that of the predecessor in the list.
+get_subtype_mirror
+Return type:
+FLOATING_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+value
+Return type:
+REAL
+Behavior:
+Returns the real value of the mirrored floating type value.
+image
+Return type:
+STRING
+Behavior:
+Returns the string representation of the mirrored floating type value.
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+simple_name
+Return type:
+STRING
+Behavior:
+Returns the simple name of the corresponding subtype.
+left
+Return type:
+PHYSICAL_VALUE_MIRROR
+Behavior:
+Returns a PHYSICAL_VALUE_MIRROR_PT instance representing
+the left bound of the corresponding subtype.
+right
+Return type:
+PHYSICAL_VALUE_MIRROR
+Behavior:
+Returns a PHYSICAL_VALUE_MIRROR_PT instance representing
+the right bound of the corresponding subtype.
+low
+Return type:
+PHYSICAL_VALUE_MIRROR
+Behavior:
+Returns a PHYSICAL_VALUE_MIRROR_PT instance representing
+the low bound of the corresponding subtype.
+high
+Return type:
+PHYSICAL_VALUE_MIRROR
+Behavior:
+Returns a PHYSICAL_VALUE_MIRROR_PT instance representing
+the low bound of the corresponding subtype.
+length
+Return type:
+POSITIVE_INDEX
+Behavior:
+Returns the number of position numbers for the corresponding
+subtype.
+ascending
+Return type:
+BOOLEAN
+Behavior:
+Returns a TRUE if the corresponding subtype’s range is in ascending
+order; otherwise FALSE.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+347
+Copyright © 2019 IEEE. All rights reserved.
+The PHYSICAL_VALUE_MIRROR_PT provides the following methods:
+The access type PHYSICAL_SUBTYPE_MIRROR designates an PHYSICAL_SUBTYPE_MIRROR_PT.
+The access type PHYSICAL_VALUE_MIRROR designates a PHYSICAL_VALUE_MIRROR_PT.
+##### 16.12.3.7 Record subtype and value mirrors
+
+The protected type RECORD_SUBTYPE_MIRROR_PT mirrors a record subtype.
+The index of a record element us determined by position of the corresponding element declaration in the
+record type declaration. The index of the first listed element declaration is zero; the value for each additional
+record element is one more than that of its predecessor in the list.
+The RECORD_SUBTYPE_MIRROR_PT provides the following methods:
+get_subtype_mirror
+Return type:
+PHYSICAL_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+unit_index
+Return type:
+INDEX
+Behavior:
+Returns the index of the secondary unit of the mirrored physical value.
+value
+Return type:
+INTEGER
+Behavior:
+Returns the position number of the mirrored physical type name.
+image
+Return type:
+STRING
+Behavior:
+Returns the string representation of the mirrored physical type value.
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+length
+Parameters:
+literal_idx: NATURAL_INDEX
+Return type:
+RECORD_VALUE_MIRROR
+Behavior:
+Returns an RECORD_VALUE_MIRROR_PT instance representing
+the literal_idx-th enumeration literal.
+element_name
+Parameters:
+element_name: STRING
+Return type:
+RECORD_VALUE_MIRROR
+Behavior:
+Returns the element name of the element_idx-th record element.
+Errors:
+It is an error if the parameter element_idx is not in the range denoted
+by 0 to RECORD_SUBTYPE_MIRROR_PT.length mus one.
+element_index
+Parameters:
+element_idx: NATURAL_INDEX
+Return type:
+RECORD_VALUE_MIRROR
+Behavior:
+Returns the index if the record element whose name matches
+element_name.
+Errors:
+It is an error if the parameter element_name does not denote a record
+element of the record type mirrored by RECORD_SUBTYPE_
+MIRROR_PT.
+element_subtype
+Parameters:
+element_idx: NATURAL_INDEX
+Return type:
+RECORD_VALUE_MIRROR
+Behavior:
+Returns an RECORD_VALUE_MIRROR_PT instance representing
+the element_idx-th enumeration literal.
+Errors:
+It is an error if the parameter element_idx is not in the range denoted
+by 0 to RECORD_SUBTYPE_MIRROR_PT.length mus one.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+348
+Copyright © 2019 IEEE. All rights reserved.
+The protected type RECORD_VALUE_MIRROR_PT mirrors a record type value. It provides the following
+methods:
+The access type RECORD_SUBTYPE_MIRROR designates an RECORD_SUBTYPE_MIRROR_PT. The
+access type RECORD_VALUE_MIRROR designates a RECORD_VALUE_MIRROR_PT.
+##### 16.12.3.8 Array subtype and value mirrors
+
+The protected type ARRAY_SUBTYPE_MIRROR_PT mirrors an array subtype. It provides the following
+methods:
+element_subtype
+Parameters:
+element_name: STRING
+Return type:
+RECORD_VALUE_MIRROR
+Behavior:
+Returns an RECORD_VALUE_MIRROR_PT instance representing
+the element subytpe.
+Errors:
+It is an error if the parameter element_idx is not in the range denoted
+by 0 to RECORD_SUBTYPE_MIRROR_PT.length mus one.
+simple_name
+Return type:
+STRING
+Behavior:
+Returns the simple name of the corresponding subtype.
+get_subtype_mirror
+Return type:
+RECORD_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+get
+Parameters:
+element_idx: INDEX
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns a value mirror for the element-idxth record element.
+Errors:
+It is an error if the parameter element_idx is not in the range denoted
+by 0 to RECORD_SUBTYPE_MIRROR_PT.length mus one.
+get
+Parameters:
+element_name: STRING
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns a value mirror for the record element whose name matches the
+parameter element_name.
+Errors:
+It is an error if the parameter element_idx is not in the range denoted
+by 0 to RECORD_SUBTYPE_MIRROR_PT.length mus one.
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+dimensions
+Return type:
+DIMENSION
+Behavior:
+Returns the simple name of the corresponding subtype.
+index_subtype
+Parameters:
+idx: INDEX := 1
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing the idx-th
+index range.
+Errors:
+It is an error if the parameter idx is not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left to
+ARRAY_SUBTYPE_MIRROR_PT.right.
+element_subtype
+Parameters:
+idx: INDEX := 1
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing the element
+subtype.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+349
+Copyright © 2019 IEEE. All rights reserved.
+The protected type ARRAY_VALUE_MIRROR_PT mirrors an array type value. It provides the following
+methods:
+simple_name
+Return type:
+STRING
+Behavior:
+Returns the simple name of the corresponding subtype.
+left
+Parameters:
+idx: INDEX := 1
+Return type:
+INDEX
+Behavior:
+Returns the left bound of the corresponding subtype’s idx-th index.
+Errors:
+It is an error if the parameter idx is not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left to
+ARRAY_SUBTYPE_MIRROR_PT.right.
+right
+Parameters:
+idx: INDEX := 1
+Return type:
+INDEX
+Behavior:
+Returns the right bound of the corresponding subtype’s idx-th index.
+Errors:
+It is an error if the parameter idx is not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left to
+ARRAY_SUBTYPE_MIRROR_PT.right.
+low
+Parameters:
+idx: INDEX := 1
+Return type:
+INDEX
+Behavior:
+Returns the low bound of the corresponding subtype’s idx-th index.
+Errors:
+It is an error if the parameter idx is not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left to
+ARRAY_SUBTYPE_MIRROR_PT.right.
+high
+Parameters:
+idx: INDEX := 1
+Return type:
+INDEX
+Behavior:
+Returns the low bound of the corresponding subtype’s idx-th index.
+Errors:
+It is an error if the parameter idx is not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left to
+ARRAY_SUBTYPE_MIRROR_PT.right.
+length
+Parameters:
+idx: INDEX := 1
+Return type:
+POSITIVE_INDEX
+Behavior:
+Returns the length of the corresponding subtype’s idx-th index.
+ascending
+Parameters:
+idx: INDEX := 1
+Return type:
+BOOLEAN
+Behavior:
+Returns a TRUE if the corresponding subtype’s idx-th index constraint
+is unascending order; otherwise FALSE.
+Errors:
+It is an error if the parameter idx is not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left to
+ARRAY_SUBTYPE_MIRROR_PT.right.
+get_subtype_mirror
+Return type:
+ARRAY_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+get
+Parameters:
+idx: INDEX := 1
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns a value mirror for the idx-th array element.
+Errors:
+It is an error if the parameter idx is not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left to
+ARRAY_SUBTYPE_MIRROR_PT.right.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+350
+Copyright © 2019 IEEE. All rights reserved.
+The access type ARRAY_SUBTYPE_MIRROR designates an ARRAY_SUBTYPE_MIRROR_PT. The
+access type ARRAY_VALUE_MIRROR designates an ARRAY_VALUE_MIRROR_PT.
+##### 16.12.3.9 Access subtype and value mirrors
+
+The protected type ACCESS_SUBTYPE_MIRROR_PT mirrors an access type subtype. It provides the
+following methods:
+The protected type ACCESS_VALUE_MIRROR_PT mirrors a file type instance. It provides the following
+methods:
+get
+Parameters:
+idx1, idx2: INDEX
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns a value mirror for the (idx1 or idx2) array element.
+Errors:
+It is an error if the parameters idx1 or idx2, specifying the indices of
+the first and second dimension, are not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left(n) to
+ARRAY_SUBTYPE_MIRROR_PT.right(n) where n is the dimension.
+get
+Parameters:
+idx1, idx2, idx3: INDEX
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns a value mirror for the (idx1, idx2, idx3)-th array element.
+Errors:
+It is an error if the parameters idx1, idx2 or idx3, specifying the indices
+of the first, second and third dimension, are not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left(n) to
+ARRAY_SUBTYPE_MIRROR_PT.right(n) where n is the dimension.
+get
+Parameters:
+idx: INDEX_VECTOR
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns a value mirror for the idx-th array element.
+Errors:
+It is an error if the indices given as an INDEX_VECTOR in the
+parameter idx are not in the range denoted by
+ARRAY_SUBTYPE_MIRROR_PT.left(n) to
+ARRAY_SUBTYPE_MIRROR_PT.right(n) where n is the dimension
+and corresponds to the index’s position idx.
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+simple_name
+Return type:
+STRING_MIRROR
+Behavior:
+Returns the simple name of the corresponding subtype.
+designated_subtype
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing the
+designated subtype.
+get_subtype_mirror
+Return type:
+ACCESS_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+get
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns a value mirror for the designated value.
+is_null
+Return type:
+BOOLEAN
+Behavior:
+Returns TRUE if the mirrored access value is null otherwise FALSE.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+351
+Copyright © 2019 IEEE. All rights reserved.
+##### 16.12.3.10 File subtype and value mirrors
+
+The file type FILE_SUBTYPE_MIRROR designates a FILE_SUBTYPE_MIRROR_PT. The access type
+FILE_VALUE_MIRROR designates a FILE_VALUE_MIRROR_PT.
+The protected type FILE_VALUE_MIRROR_PT mirrors a file type instance. It provides the following
+methods:
+The access type FILE_SUBTYPE_MIRROR designates a FILE_SUBTYPE_MIRROR_PT. The access type
+FILE_VALUE_MIRROR designates a FILE_VALUE_MIRROR_PT.
+##### 16.12.3.11 Protected type and value mirrors
+
+The protected type PROTECTED_SUBTYPE_MIRROR_PT mirrors a protected type subtype. It provides
+the following methods:
+The protected type PROTECTED_VALUE_MIRROR_PT mirrors a protected type instance. It provides the
+following methods:
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+simple_name
+Return type:
+STRING_MIRROR
+Behavior:
+Returns the simple name of the corresponding subtype.
+designated_subtype
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing the
+designated subtype.
+get_subtype_mirror
+Return type:
+FILE_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+file_logical_name
+Return type:
+STRING
+Behavior:
+Returns the file logical name of the mirrored file type instance.
+file_open_kind
+Return type:
+FILE_OPEN_KIND
+Behavior:
+Returns the file open kind of the mirrored file type instance.
+to_subtype_mirror
+Return type:
+SUBTYPE_MIRROR
+Behavior:
+Returns a SUBTYPE_MIRROR_PT instance representing this mirror
+as a common subtype mirror.
+simple_name
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the simple name of the corresponding subtype.
+get_subtype_mirror
+Return type:
+PROTECTED_SUBTYPE_MIRROR
+Behavior:
+Returns the common subtype mirror.
+to_value_mirror
+Return type:
+VALUE_MIRROR
+Behavior:
+Returns the common value mirror for this mirror.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+352
+Copyright © 2019 IEEE. All rights reserved.
+The
+access
+type
+PROTECTED_SUBTYPE_MIRROR
+designates
+a
+PROTECTED_SUBTYPE_MIRROR_PT. The access type PROTECTED_VALUE_MIRROR designates a
+PROTECTED_VALUE_MIRROR_PT.
+#### 16.12.4 Examples
+
+##### 16.12.4.1 General
+
+The following complex data type shall be converted to a string:
+process
+   type Rec is record
+I : INTEGER_VECTOR(0 to 3);
+    R : REAL;
+    T : TIME;
+   end record;
+   constant test : Rec := (
+I => (1, 3, 7, 9),
+R => 3.14,
+T => 25 ns
+);
+   variable mirror : VALUE_MIRROR := test'reflect;
+begin
+   report to_string(mirror);
+   wait;
+end process;
+-- result:
+-- (I => (1, 3, 7, 9), R => 3.14, T => 25 ns)
+##### 16.12.4.2 Length of discrete types
+
+-- determines the length of a discrete type
+function length(stm : SUBTYPE_MIRROR) return INDEX is
+   constant class : TYPE_CLASS := stm.get_type_class;
+begin
+   case class is
+      when CLASS_ENUMERATION => return stm.to_enumeration.length;
+      when CLASS_INTEGER => return stm.to_integer.length;
+      when others =>
+         report TYPE_CLASS'image(class) &
+                " doesn't have a length." severity FAILURE;
+   end case;
+   return -1;
+end function;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+353
+Copyright © 2019 IEEE. All rights reserved.
+##### 16.12.4.3 Generic to_string
+
+-- can create a string for any value
+function to_string(value : VALUE_MIRROR) return STRING is
+-- string-ify arrays
+function to_string(value : ARRAY_VALUE_MIRROR) return STRING is
+variable length : INDEX;
+begin
+array_type := value.get_subtype;
+length := length(array_type.index_subtype(1));
+if array_type.dimensions /= 1 then
+-- not supported in this example
+report "only 1D arrays are supported" severity FAILURE;
+return INDEX'image(array_type.dimensions) & "D array";
+end if;
+return "(" & to_string(value, 0, length, "") & ")";
+end function;
+-- string-ify array elements
+function to_string(value : ARRAY_VALUE_MIRROR;
+element_idx, array_length : INDEX;
+prefix : STRING ) return STRING is
+variable current_index : index_vector;
+begin
+assert element_idx < array_length
+report "Illegal state : index out of bounds" severity FAILURE;
+current_index := (0 => element_idx);
+block
+constant element_str : STRING :=
+to_string(value.get(current_index));
+begin
+if element_idx < array_length - 1 then
+return to_string(value, element_idx + 1, array_length,
+prefix & element_str & ", ");
+elsif element_idx = array_length - 1 then
+return prefix & element_str;
+else
+-- return if continue from out-of-bounds FAILURE
+return prefix;
+end if;
+end block;
+end function;
+-- string-ify records
+function to_string(value : RECORD_VALUE_MIRROR) return STRING is
+begin
+return "(" & to_string(value, 0, "") & ")";
+end function;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+354
+Copyright © 2019 IEEE. All rights reserved.
+-- string-ify record elements
+function to_string(value : RECORD_VALUE_MIRROR;
+element_idx : INDEX;
+prefix : STRING) return STRING is
+variable record_type : RECORD_SUBTYPE_MIRROR;
+begin
+assert element_idx < record_type.length
+report "Illegal state : index out of bounds" severity FAILURE;
+record_type := value.get_subtype;
+block
+constant element_str : STRING :=
+record_type.element.element_name(element_idx) & " => " &
+to_string(value.get(element_idx));
+begin
+if element_idx < record_type.length - 1 then
+return to_string(value, element_idx + 1,
+prefix & element_str & ", ");
+elsif element_idx = record_type.length - 1 then
+return prefix & element_str;
+else
+-- return if continue from out-of-bounds FAILURE
+return prefix;
+end if;
+end block;
+end function;
+constant class : VALUE_CLASS := value.get_value_class;
+begin
+case class is
+when CLASS_ENUMERATION =>
+return value.to_enumeration.image;
+when CLASS_INTEGER =>
+return INTEGER'image(value.to_integer.value);
+when CLASS_FLOATING =>
+return REAL'image(value.to_floating.value);
+when CLASS_PHYSICAL =>
+return value.to_physical.image;
+when CLASS_RECORD =>
+return to_string(value.to_record);
+when CLASS_ARRAY =>
+return to_string(value.to_array);
+when CLASS_ACCESS =>
+return "access type " &
+value.to_access.get_subtype.simple_name;
+when CLASS_FILE =>
+return "file type";
+when CLASS_PROTECTED =>
+return "protected type";
+end case;
+end function;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

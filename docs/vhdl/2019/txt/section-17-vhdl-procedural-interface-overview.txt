@@ -1,0 +1,234 @@
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+355
+Copyright © 2019 IEEE. All rights reserved.
+17. VHDL Procedural Interface overview
+17.1 General
+The VHDL Procedural Interface (VHPI) is an application-programming interface to VHDL tools that allows
+programmatic access to a VHDL model during its analysis, elaboration, and execution. The VHPI is
+described in this clause, subsequent clauses through to Clause 23, and Annex B.
+17.2 Organization of the interface
+17.2.1 General
+The VHPI consists of two aspects:
+—
+An information model that represents the topology and state of a VHDL model
+—
+A number of functions that operate on the information model to access or affect the state of the
+VHDL model and that interact with tools during analysis, elaboration, or execution of the VHDL
+model
+A tool is a program that maintains a representation of a VHDL model and provides the VHPI functions. A
+VHPI program is a program that calls the VHPI functions.
+The information model is expressed in an object-oriented manner as a set of classes that bear relationships
+to one another. The classes are data types that have data properties and subprogram operations. A subclass
+may be derived from one or more superclasses, in which case it inherits the properties and operations of its
+superclasses. An object is an instance of a class and of any superclasses of that class. The most specialized
+class of an object is the class of which the object is a member and that has no subclass of which the object is
+also a member. An abstract class cannot be the most specialized class of any object; however, it may be a
+superclass of a non-abstract class that is the most specialized class of an object.
+Some objects are static; that is, once created, they remain in existence until termination of the tool. Other
+objects are dynamic; that is, once created, they may cease to exist at a later time during execution of the tool.
+The properties of a class represent data that is characteristic of an object of the class. The VHPI provides
+functions that allow a VHPI program to access and modify the values of properties of a given object. By
+using such functions, a VHPI program can access and modify values of VHDL objects in a VHDL model.
+In addition to the inheritance relationship, a class may bear an association relationship with one or more
+other classes. A one-to-one association means that an object of a class is associated with at most one object
+of the second class. A one-to-many association means that an object of the class is associated with possibly
+more than one object of the second class. The VHPI provides functions that allow a VHPI program to
+traverse associations; that is, to locate objects that are associated with a given object.
+The information model contains two sub-models. The first, referred to as the library information model,
+represents the design units that comprise a VHDL model after analysis and prior to elaboration. The second,
+referred to as the design hierarchy information model, represents the elaborated VHDL model. It contains
+instances, created through elaboration, of objects from the library information model. The design hierarchy
+information model may be used by a tool that simulates the VHDL model to gain access to the state of the
+VHDL model during execution. The design hierarchy information model includes associations with objects
+in the library information model, allowing navigation between the information models. The information
+model also contains objects representing the tool and its environment.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+356
+Copyright © 2019 IEEE. All rights reserved.
+A VHPI program can interact with a tool by providing callback functions. Such functions are identified to
+the tool using VHPI registration functions. The tool then calls the functions in response to events specified
+during registration. Such events include phases of tool execution, phases of model simulation, and changes
+of value of VHDL objects.
+The VHPI also provides utility functions for such purposes as printing, error checking, and tool control.
+In this standard, the VHPI information model is described using the UML notation. UML is described in
+ISO/IEC 19501:2005. The VHPI is ISO C-compliant. The VHPI functions are expressed as C functions, and
+the data and arguments used by the functions are expressed as C data types. ISO C is described in ISO/IEC
+9899:2018.
+17.2.2 VHPI naming conventions
+Named items in the VHPI conform to the following conventions:
+—
+The names of functions consist of the letters vhpi followed by an underline character and one or
+more words, each of which consists of lowercase letters, with a single underline character between
+words.
+—
+The names of items other than functions consist of the letters vhpi followed by one or more words,
+each of which consists of an uppercase letter followed by zero or more lowercase letters, with no
+character between words.
+—
+The names of types end in an uppercase letter T.
+—
+The names of enumeration constants that correspond to classes end in an uppercase letter K.
+—
+The names of enumeration constants that correspond to properties end in an uppercase letter P.
+—
+The names of enumeration constants that correspond to one-to-many associations end in a lowercase
+letter s, indicating plurality.
+—
+Some words are abbreviated, for example, decl for declaration, stmt for statement, conc for
+concurrent, seq for sequential, and subp for subprogram.
+In this standard, C identifiers are formatted in a monospaced font to enhance readability of the text.
+17.3 Capability sets
+The VHPI is divided into a number of capability sets, each of which provides a subset of the VHPI
+operations, properties, and functions. Corresponding to each capability set, there is an enumeration constant
+of type vhpiCapabilitiesT defined in the VHPI header file (see Annex B).
+The VHPI capability set names and corresponding enumeration constants are as follows:
+—
+Hierarchy set: vhpiProvidesHierarchy.
+A tool that implements this hierarchy set shall provide access to objects in the design hierarchy
+information model that represent statically elaborated regions and declarations and shall provide
+access to the values of declared objects.
+—
+Static access set: vhpiProvidesStaticAccess. This set requires the hierarchy set.
+A tool that implements the static access set shall additionally provide access to objects in the design
+hierarchy information model that represent statically elaborated statements and the expressions
+within them.
+—
+Connectivity set: vhpiProvidesConnectivity. This set requires the hierarchy set.
+A tool that implements the connectivity set shall additionally provide access to objects in the design
+hierarchy information model that represent drivers, contributors, loads, and port associations.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+357
+Copyright © 2019 IEEE. All rights reserved.
+—
+Post-analysis set: vhpiProvidesPostAnalysis.
+A tool that implements the post-analysis set shall provide access to objects in the library information
+model and shall provide access to the values of declared objects that are initialized with locally static
+expressions.
+—
+Basic foreign model set: vhpiProvidesForeignModel. This set requires the hierarchy set.
+A tool that implements the basic foreign model set shall additionally support creation of foreign
+models and foreign model callbacks and shall provide access to objects in the design hierarchy
+information model that represent foreign models.
+—
+Advanced foreign model set: vhpiProvidesAdvancedForeignModel. This set requires the
+basic foreign model set.
+A tool that implements the advanced foreign model set shall additionally support creation of foreign
+drivers and processes and scheduling of transactions on foreign drivers.
+—
+Save/restart set: vhpiProvidesSaveRestart.
+A tool that implements the save/restart set shall support save and restart of foreign models, use of the
+vhpi_put_data and vhpi_get_data functions, save and restart callbacks, and shall provide
+access to the Id and SaveRestartLocation properties.
+—
+Reset set: vhpiProvidesReset.
+A tool that implements the reset set shall support reset of foreign models and reset callbacks.
+—
+Basic debug and runtime simulation set: vhpiProvidesDebugRuntime. This set requires the
+static access set and the connectivity set.
+A tool that implements the debug and runtime simulation set shall support use of the
+vhpi_control, vhpi_get_time, and vhpi_get_next_time functions; object value
+change callbacks for signals, ports, and drivers; time and action callbacks; and updating of signals,
+ports, and drivers.
+—
+Advanced debug and runtime simulation set: vhpiProvidesAdvancedDebugRuntime. This
+set requires the basic debug and runtime simulation set.
+A tool that implements the advanced debug and runtime simulation set shall additionally support
+object value change callbacks for variables, updating of variables, and the LineOffset property.
+—
+Dynamic elaboration set: vhpiProvidesDynamicElab. This set requires the debug and runtime
+simulation set.
+A tool that implements the dynamic elaboration set shall additionally provide access to objects that
+represent dynamically elaborated regions, declarations, and constructs.
+If a tool specifies that it implements a given capability set, it shall provide all of the operations, properties,
+and functions specified for the capability set. If the capability set requires one or more other capability sets,
+the tool shall also implement the required capability sets. A tool shall provide a value for the
+vhpiCapabilitiesP property of the tool class that specifies the capability sets that the tool
+implements.
+If a VHPI program calls an operation or function that is not provided in the capability sets provided by a
+tool, the function shall raise a VHPI error condition. Similarly, if a VHPI program accesses a property that is
+not provided in the capability sets provided by a tool, the access function shall raise a VHPI error condition.
+In both cases, the error message returned by a subsequent call to vhpi_check_error shall indicate that
+the operation is not implemented.
+NOTE—A minimal implementation of the VHPI need only provide the function interface described in Clause 23 and
+Annex B, with none of the capability sets described in this subclause being implemented by the tool. In such a minimal
+implementation, calls to functions would, in most cases, raise a VHPI error condition.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+358
+Copyright © 2019 IEEE. All rights reserved.
+17.4 Handles
+17.4.1 General
+A handle is an opaque reference to an object in the VHPI information model. It is represented as a value of
+the data type vhpiHandleT (see Annex B); however, the interpretation of the representation is
+implementation defined. A handle allows a VHPI program to refer to an object without assuming details of
+the representation of the object. The VHPI provides functions that operate on objects referred to by handles.
+The particular operations that are legal for an object referred to by a handle depend on the class of the object.
+The class is identified by the Kind property of the object.
+In this standard, if an object is described as being of a given class, the object may be of the given class,
+provided the class is not an abstract class or any non-abstract subclass of the given class.
+NOTE—The Kind property of an object identifies the most specific class of the object, that is, the class for which no
+subclass is also a class of the object.
+17.4.2 Handle creation
+A handle is created by a tool as the result of one of the following functions called by a VHPI program:
+—
+vhpi_handle_by_name, which returns a handle that refers to an object identified by a name
+—
+vhpi_handle_by_index, which returns a handle that refers to an object in an ordered
+one-to-many association
+—
+vhpi_handle, which returns a handle that refers to the object in a one-to-one association
+—
+vhpi_create, which creates or modifies an object, such as a driver, a process statement, or a
+collection, and returns a handle that refers to the object
+—
+vhpi_register_cb, which returns a handle that refers to the callback object
+—
+vhpi_register_foreignf, which returns a handle that refers to the callback object
+—
+vhpi_iterator, which returns a handle that refers to an iterator
+—
+vhpi_scan, which returns a handle that refers to an object referenced by an iterator
+A tool shall support multiple VHPI programs, each of which acquires handles. The way in which a tool
+implements handles shall allow a VHPI program to function correctly independently of other VHPI
+programs executing concurrently. A tool may share between VHPI programs resources associated with the
+implementation of handles and the objects to which they refer. However, the occurrence of such sharing
+shall not alter the effect of the VHPI programs.
+If a tool creates two handles that refer to the same object, the tool may create two distinct handles or may
+provide the same handle in both cases. Two distinct handles that refer to the same object are equivalent.
+NOTE—The number of handles that an implementation can create may be constrained by the capacity of the host
+system.
+17.4.3 Handle release
+The function vhpi_release_handle called by a VHPI program causes a tool to release a handle. If a
+tool shares resources associated with handles and one VHPI program releases a handle, other VHPI
+programs shall be able to continue to refer to objects using handles that they have not released.
+The tool may reclaim resources associated with the representation of a released handle.
+NOTE 1—It is recommended that a VHPI program release handles when they are no longer needed.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+359
+Copyright © 2019 IEEE. All rights reserved.
+NOTE 2—A tool may reclaim resources associated with a handle when the handle is released by a VHPI program,
+provided the requirements of 17.4 are met. As a consequence, resources might not be reclaimed immediately upon
+release of a handle by a VHPI program, as the resources may be associated with handles in use by other VHPI programs.
+17.4.4 Handle comparison
+The function vhpi_compare_handles compares handles. It returns the value vhpiTrue if the handles
+are equivalent (that is, they refer to the same object); otherwise it returns the value vhpiFalse.
+17.4.5 Validity of handles
+The lifetime of an object is the duration of existence of the object in the VHPI information model. A static
+object is created at some time during the execution of a tool and exists until termination of the tool. A
+dynamic object is created at some time during the execution of a tool and may cease to exist at a later time
+during the execution of the tool, either as a consequence of execution of the VHDL model or of removal by
+a VHPI program.
+A tool can create a handle that refers to an object only during the lifetime of the object. A handle is said to be
+valid from the time of its creation until the time at which it is released, or until the object that it refers to
+ceases to exist, or until termination of the tool; at other times it is invalid. A VHPI program that attempts to
+refer to an object using an invalid handle is erroneous.
+NOTE—A VHPI program that attempts to release an invalid handle is also erroneous.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

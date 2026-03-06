@@ -109,6 +109,73 @@ def collect_sections(
     return sections
 
 
+def heading_from_page_text(
+    text: str,
+    clause_depth: int,
+    include_annex: bool,
+) -> Tuple[str, str] | None:
+    lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
+    lines = [line for line in lines if line]
+
+    # Only inspect the first chunk of each page where section headings usually live.
+    for line in lines[:40]:
+        keep, section_id, title = is_clause_heading(line, clause_depth, include_annex)
+        if not keep:
+            continue
+        # Reject obvious false positives from inline references.
+        if len(title) < 3 or len(title) > 160:
+            continue
+        if not re.search(r"[A-Za-z]", title):
+            continue
+        return section_id, title
+    return None
+
+
+def collect_sections_without_toc(
+    doc: fitz.Document,
+    clause_depth: int,
+    include_annex: bool,
+    limit: int | None,
+) -> List[Section]:
+    total_pages = len(doc)
+    candidates: List[Tuple[int, str, str, int, str]] = []
+    seen_ids: set[str] = set()
+
+    for page_idx in range(total_pages):
+        page = doc.load_page(page_idx)
+        text = page.get_text("text")
+        heading = heading_from_page_text(text, clause_depth, include_annex)
+        if heading is None:
+            continue
+        section_id, short_title = heading
+        if section_id in seen_ids:
+            continue
+        seen_ids.add(section_id)
+        page_start = page_idx + 1
+        source_title = f"{section_id} {short_title}"
+        candidates.append((page_start, section_id, short_title, 1, source_title))
+
+    candidates.sort(key=lambda x: x[0])
+    if limit is not None:
+        candidates = candidates[:limit]
+
+    sections: List[Section] = []
+    for idx, (page_start, section_id, short_title, level, source_title) in enumerate(candidates):
+        next_start = candidates[idx + 1][0] if idx + 1 < len(candidates) else total_pages + 1
+        page_end = max(page_start, next_start - 1)
+        sections.append(
+            Section(
+                section_id=section_id,
+                title=short_title,
+                page_start=page_start,
+                page_end=page_end,
+                toc_level=level,
+                source_title=source_title,
+            )
+        )
+    return sections
+
+
 def extract_text_range(doc: fitz.Document, page_start: int, page_end: int) -> str:
     # Input pages are 1-based inclusive.
     chunks = []
@@ -176,20 +243,27 @@ def main() -> int:
 
     doc = fitz.open(str(pdf_path))
     toc = doc.get_toc(simple=True)
-    if not toc:
-        raise SystemExit("error: PDF has no TOC; this script depends on embedded TOC entries")
-
-    sections = collect_sections(
-        toc=toc,
-        total_pages=len(doc),
-        clause_depth=args.clause_depth,
-        include_annex=args.include_annex,
-        toc_max_level=args.toc_max_level,
-        limit=args.limit,
-    )
+    if toc:
+        sections = collect_sections(
+            toc=toc,
+            total_pages=len(doc),
+            clause_depth=args.clause_depth,
+            include_annex=args.include_annex,
+            toc_max_level=args.toc_max_level,
+            limit=args.limit,
+        )
+        detection_mode = "pdf_toc"
+    else:
+        sections = collect_sections_without_toc(
+            doc=doc,
+            clause_depth=args.clause_depth,
+            include_annex=args.include_annex,
+            limit=args.limit,
+        )
+        detection_mode = "page_heading_fallback"
     if not sections:
         raise SystemExit(
-            "error: no matching sections extracted from TOC; try increasing --toc-max-level or --clause-depth"
+            "error: no matching sections extracted; try adjusting --clause-depth / --toc-max-level"
         )
 
     for section in sections:
@@ -199,6 +273,7 @@ def main() -> int:
     manifest = {
         "source_pdf": str(pdf_path),
         "standard": args.standard,
+        "detection_mode": detection_mode,
         "total_pages": len(doc),
         "toc_entries": len(toc),
         "clause_depth": args.clause_depth,

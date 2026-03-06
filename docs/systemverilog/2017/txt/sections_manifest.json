@@ -1,0 +1,544 @@
+{
+  "source_pdf": "/Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2017.pdf",
+  "standard": "IEEE 1800-2017",
+  "detection_mode": "page_heading_fallback",
+  "total_pages": 1315,
+  "toc_entries": 0,
+  "clause_depth": 1,
+  "include_annex": true,
+  "toc_max_level": 6,
+  "section_count": 59,
+  "sections": [
+    {
+      "section_id": "3",
+      "title": "Park Avenue",
+      "page_start": 1,
+      "page_end": 4,
+      "toc_level": 1,
+      "source_title": "3 Park Avenue",
+      "filename": "section-3-park-avenue.txt"
+    },
+    {
+      "section_id": "445",
+      "title": "Hoes Lane",
+      "page_start": 5,
+      "page_end": 8,
+      "toc_level": 1,
+      "source_title": "445 Hoes Lane",
+      "filename": "section-445-hoes-lane.txt"
+    },
+    {
+      "section_id": "2004",
+      "title": "Accellera is a consortium of EDA, semiconductor, and system companies. IEEE Std 1800 enables a",
+      "page_start": 9,
+      "page_end": 23,
+      "toc_level": 1,
+      "source_title": "2004 Accellera is a consortium of EDA, semiconductor, and system companies. IEEE Std 1800 enables a",
+      "filename": "section-2004-accellera-is-a-consortium-of-eda-semiconductor-and-system-companies-ieee-std-1800-enables-a.txt"
+    },
+    {
+      "section_id": "Annex H",
+      "title": "(normative) DPI C layer............................................................................................................. 1222",
+      "page_start": 24,
+      "page_end": 38,
+      "toc_level": 1,
+      "source_title": "Annex H (normative) DPI C layer............................................................................................................. 1222",
+      "filename": "section-Annex_H-normative-dpi-c-layer-1222.txt"
+    },
+    {
+      "section_id": "1",
+      "title": "Overview",
+      "page_start": 39,
+      "page_end": 39,
+      "toc_level": 1,
+      "source_title": "1 Overview",
+      "filename": "section-1-overview.txt"
+    },
+    {
+      "section_id": "2005",
+      "title": "These two standards were designed to be used as one language. Merging the base Verilog language into the",
+      "page_start": 40,
+      "page_end": 43,
+      "toc_level": 1,
+      "source_title": "2005 These two standards were designed to be used as one language. Merging the base Verilog language into the",
+      "filename": "section-2005-these-two-standards-were-designed-to-be-used-as-one-language-merging-the-base-verilog-language-into-the.txt"
+    },
+    {
+      "section_id": "Annex A",
+      "title": "(normative) defines the formal syntax of SystemVerilog, using BNF.",
+      "page_start": 44,
+      "page_end": 44,
+      "toc_level": 1,
+      "source_title": "Annex A (normative) defines the formal syntax of SystemVerilog, using BNF.",
+      "filename": "section-Annex_A-normative-defines-the-formal-syntax-of-systemverilog-using-bnf.txt"
+    },
+    {
+      "section_id": "Annex N",
+      "title": "(normative) provides the C source code for the SystemVerilog random distribution system",
+      "page_start": 45,
+      "page_end": 45,
+      "toc_level": 1,
+      "source_title": "Annex N (normative) provides the C source code for the SystemVerilog random distribution system",
+      "filename": "section-Annex_N-normative-provides-the-c-source-code-for-the-systemverilog-random-distribution-system.txt"
+    },
+    {
+      "section_id": "2",
+      "title": "Normative references",
+      "page_start": 46,
+      "page_end": 59,
+      "toc_level": 1,
+      "source_title": "2 Normative references",
+      "filename": "section-2-normative-references.txt"
+    },
+    {
+      "section_id": "4",
+      "title": "Scheduling semantics",
+      "page_start": 60,
+      "page_end": 69,
+      "toc_level": 1,
+      "source_title": "4 Scheduling semantics",
+      "filename": "section-4-scheduling-semantics.txt"
+    },
+    {
+      "section_id": "5",
+      "title": "Lexical conventions",
+      "page_start": 70,
+      "page_end": 70,
+      "toc_level": 1,
+      "source_title": "5 Lexical conventions",
+      "filename": "section-5-lexical-conventions.txt"
+    },
+    {
+      "section_id": "1024",
+      "title": "characters. If an identifier exceeds the implementation-specific length limit, an error shall be reported.",
+      "page_start": 71,
+      "page_end": 75,
+      "toc_level": 1,
+      "source_title": "1024 characters. If an identifier exceeds the implementation-specific length limit, an error shall be reported.",
+      "filename": "section-1024-characters-if-an-identifier-exceeds-the-implementation-specific-length-limit-an-error-shall-be-reported.txt"
+    },
+    {
+      "section_id": "32",
+      "title": "'h 12ab_f001",
+      "page_start": 76,
+      "page_end": 83,
+      "toc_level": 1,
+      "source_title": "32 'h 12ab_f001",
+      "filename": "section-32-h-12ab-f001.txt"
+    },
+    {
+      "section_id": "6",
+      "title": "Data types",
+      "page_start": 84,
+      "page_end": 103,
+      "toc_level": 1,
+      "source_title": "6 Data types",
+      "filename": "section-6-data-types.txt"
+    },
+    {
+      "section_id": "65536",
+      "title": "(216) bits.",
+      "page_start": 104,
+      "page_end": 139,
+      "toc_level": 1,
+      "source_title": "65536 (216) bits.",
+      "filename": "section-65536-216-bits.txt"
+    },
+    {
+      "section_id": "7",
+      "title": "Aggregate data types",
+      "page_start": 140,
+      "page_end": 146,
+      "toc_level": 1,
+      "source_title": "7 Aggregate data types",
+      "filename": "section-7-aggregate-data-types.txt"
+    },
+    {
+      "section_id": "16",
+      "title": "777 216 (224) elements.",
+      "page_start": 147,
+      "page_end": 170,
+      "toc_level": 1,
+      "source_title": "16 777 216 (224) elements.",
+      "filename": "section-16-777-216-224-elements.txt"
+    },
+    {
+      "section_id": "8",
+      "title": "Classes",
+      "page_start": 171,
+      "page_end": 205,
+      "toc_level": 1,
+      "source_title": "8 Classes",
+      "filename": "section-8-classes.txt"
+    },
+    {
+      "section_id": "9",
+      "title": "Processes",
+      "page_start": 206,
+      "page_end": 232,
+      "toc_level": 1,
+      "source_title": "9 Processes",
+      "filename": "section-9-processes.txt"
+    },
+    {
+      "section_id": "10",
+      "title": "Assignment statements",
+      "page_start": 233,
+      "page_end": 254,
+      "toc_level": 1,
+      "source_title": "10 Assignment statements",
+      "filename": "section-10-assignment-statements.txt"
+    },
+    {
+      "section_id": "11",
+      "title": "Operators and expressions",
+      "page_start": 255,
+      "page_end": 265,
+      "toc_level": 1,
+      "source_title": "11 Operators and expressions",
+      "filename": "section-11-operators-and-expressions.txt"
+    },
+    {
+      "section_id": "0",
+      "title": "(defined as false), or, if the result is ambiguous, the unknown value (x). The precedence of && is greater",
+      "page_start": 266,
+      "page_end": 298,
+      "toc_level": 1,
+      "source_title": "0 (defined as false), or, if the result is ambiguous, the unknown value (x). The precedence of && is greater",
+      "filename": "section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.txt"
+    },
+    {
+      "section_id": "12",
+      "title": "Procedural programming statements",
+      "page_start": 299,
+      "page_end": 319,
+      "toc_level": 1,
+      "source_title": "12 Procedural programming statements",
+      "filename": "section-12-procedural-programming-statements.txt"
+    },
+    {
+      "section_id": "13",
+      "title": "Tasks and functions (subroutines)",
+      "page_start": 320,
+      "page_end": 336,
+      "toc_level": 1,
+      "source_title": "13 Tasks and functions (subroutines)",
+      "filename": "section-13-tasks-and-functions-subroutines.txt"
+    },
+    {
+      "section_id": "14",
+      "title": "Clocking blocks",
+      "page_start": 337,
+      "page_end": 354,
+      "toc_level": 1,
+      "source_title": "14 Clocking blocks",
+      "filename": "section-14-clocking-blocks.txt"
+    },
+    {
+      "section_id": "15",
+      "title": "Interprocess synchronization and communication",
+      "page_start": 355,
+      "page_end": 484,
+      "toc_level": 1,
+      "source_title": "15 Interprocess synchronization and communication",
+      "filename": "section-15-interprocess-synchronization-and-communication.txt"
+    },
+    {
+      "section_id": "17",
+      "title": "Checkers",
+      "page_start": 485,
+      "page_end": 503,
+      "toc_level": 1,
+      "source_title": "17 Checkers",
+      "filename": "section-17-checkers.txt"
+    },
+    {
+      "section_id": "18",
+      "title": "Constrained random value generation",
+      "page_start": 504,
+      "page_end": 553,
+      "toc_level": 1,
+      "source_title": "18 Constrained random value generation",
+      "filename": "section-18-constrained-random-value-generation.txt"
+    },
+    {
+      "section_id": "19",
+      "title": "Functional coverage",
+      "page_start": 554,
+      "page_end": 591,
+      "toc_level": 1,
+      "source_title": "19 Functional coverage",
+      "filename": "section-19-functional-coverage.txt"
+    },
+    {
+      "section_id": "20",
+      "title": "Utility system tasks and system functions",
+      "page_start": 592,
+      "page_end": 624,
+      "toc_level": 1,
+      "source_title": "20 Utility system tasks and system functions",
+      "filename": "section-20-utility-system-tasks-and-system-functions.txt"
+    },
+    {
+      "section_id": "21",
+      "title": "Input/output system tasks and system functions",
+      "page_start": 625,
+      "page_end": 655,
+      "toc_level": 1,
+      "source_title": "21 Input/output system tasks and system functions",
+      "filename": "section-21-input-output-system-tasks-and-system-functions.txt"
+    },
+    {
+      "section_id": "800",
+      "title": "time units later (at time 1010), and stops it 900 time units later (at time 1910).",
+      "page_start": 656,
+      "page_end": 674,
+      "toc_level": 1,
+      "source_title": "800 time units later (at time 1010), and stops it 900 time units later (at time 1910).",
+      "filename": "section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.txt"
+    },
+    {
+      "section_id": "22",
+      "title": "Compiler directives",
+      "page_start": 675,
+      "page_end": 696,
+      "toc_level": 1,
+      "source_title": "22 Compiler directives",
+      "filename": "section-22-compiler-directives.txt"
+    },
+    {
+      "section_id": "23",
+      "title": "Modules and hierarchy",
+      "page_start": 697,
+      "page_end": 742,
+      "toc_level": 1,
+      "source_title": "23 Modules and hierarchy",
+      "filename": "section-23-modules-and-hierarchy.txt"
+    },
+    {
+      "section_id": "24",
+      "title": "Programs",
+      "page_start": 743,
+      "page_end": 748,
+      "toc_level": 1,
+      "source_title": "24 Programs",
+      "filename": "section-24-programs.txt"
+    },
+    {
+      "section_id": "25",
+      "title": "Interfaces",
+      "page_start": 749,
+      "page_end": 775,
+      "toc_level": 1,
+      "source_title": "25 Interfaces",
+      "filename": "section-25-interfaces.txt"
+    },
+    {
+      "section_id": "26",
+      "title": "Packages",
+      "page_start": 776,
+      "page_end": 786,
+      "toc_level": 1,
+      "source_title": "26 Packages",
+      "filename": "section-26-packages.txt"
+    },
+    {
+      "section_id": "27",
+      "title": "Generate constructs",
+      "page_start": 787,
+      "page_end": 797,
+      "toc_level": 1,
+      "source_title": "27 Generate constructs",
+      "filename": "section-27-generate-constructs.txt"
+    },
+    {
+      "section_id": "28",
+      "title": "Gate-level and switch-level modeling",
+      "page_start": 798,
+      "page_end": 828,
+      "toc_level": 1,
+      "source_title": "28 Gate-level and switch-level modeling",
+      "filename": "section-28-gate-level-and-switch-level-modeling.txt"
+    },
+    {
+      "section_id": "29",
+      "title": "User-defined primitives",
+      "page_start": 829,
+      "page_end": 839,
+      "toc_level": 1,
+      "source_title": "29 User-defined primitives",
+      "filename": "section-29-user-defined-primitives.txt"
+    },
+    {
+      "section_id": "30",
+      "title": "Specify blocks",
+      "page_start": 840,
+      "page_end": 863,
+      "toc_level": 1,
+      "source_title": "30 Specify blocks",
+      "filename": "section-30-specify-blocks.txt"
+    },
+    {
+      "section_id": "31",
+      "title": "Timing checks",
+      "page_start": 864,
+      "page_end": 902,
+      "toc_level": 1,
+      "source_title": "31 Timing checks",
+      "filename": "section-31-timing-checks.txt"
+    },
+    {
+      "section_id": "33",
+      "title": "Configuring the contents of a design",
+      "page_start": 903,
+      "page_end": 917,
+      "toc_level": 1,
+      "source_title": "33 Configuring the contents of a design",
+      "filename": "section-33-configuring-the-contents-of-a-design.txt"
+    },
+    {
+      "section_id": "34",
+      "title": "Protected envelopes",
+      "page_start": 918,
+      "page_end": 938,
+      "toc_level": 1,
+      "source_title": "34 Protected envelopes",
+      "filename": "section-34-protected-envelopes.txt"
+    },
+    {
+      "section_id": "35",
+      "title": "Direct programming interface",
+      "page_start": 939,
+      "page_end": 953,
+      "toc_level": 1,
+      "source_title": "35 Direct programming interface",
+      "filename": "section-35-direct-programming-interface.txt"
+    },
+    {
+      "section_id": "36",
+      "title": "Programming language interface (PLI/VPI) overview",
+      "page_start": 954,
+      "page_end": 963,
+      "toc_level": 1,
+      "source_title": "36 Programming language interface (PLI/VPI) overview",
+      "filename": "section-36-programming-language-interface-pli-vpi-overview.txt"
+    },
+    {
+      "section_id": "2001",
+      "title": "and IEEE Std 1364-2005 (vpiRealVar arrays were not yet allowed in IEEE Std 1364-1995). In",
+      "page_start": 964,
+      "page_end": 966,
+      "toc_level": 1,
+      "source_title": "2001 and IEEE Std 1364-2005 (vpiRealVar arrays were not yet allowed in IEEE Std 1364-1995). In",
+      "filename": "section-2001-and-ieee-std-1364-2005-vpirealvar-arrays-were-not-yet-allowed-in-ieee-std-1364-1995-in.txt"
+    },
+    {
+      "section_id": "37",
+      "title": "VPI object model diagrams",
+      "page_start": 967,
+      "page_end": 1052,
+      "toc_level": 1,
+      "source_title": "37 VPI object model diagrams",
+      "filename": "section-37-vpi-object-model-diagrams.txt"
+    },
+    {
+      "section_id": "38",
+      "title": "VPI routine definitions",
+      "page_start": 1053,
+      "page_end": 1057,
+      "toc_level": 1,
+      "source_title": "38 VPI routine definitions",
+      "filename": "section-38-vpi-routine-definitions.txt"
+    },
+    {
+      "section_id": "Annex M",
+      "title": "for the value that shall be returned. Unless otherwise specified, calling vpi_get64() for a protected",
+      "page_start": 1058,
+      "page_end": 1111,
+      "toc_level": 1,
+      "source_title": "Annex M for the value that shall be returned. Unless otherwise specified, calling vpi_get64() for a protected",
+      "filename": "section-Annex_M-for-the-value-that-shall-be-returned-unless-otherwise-specified-calling-vpi-get64-for-a-protected.txt"
+    },
+    {
+      "section_id": "39",
+      "title": "Assertion API",
+      "page_start": 1112,
+      "page_end": 1120,
+      "toc_level": 1,
+      "source_title": "39 Assertion API",
+      "filename": "section-39-assertion-api.txt"
+    },
+    {
+      "section_id": "40",
+      "title": "Code coverage control and API",
+      "page_start": 1121,
+      "page_end": 1134,
+      "toc_level": 1,
+      "source_title": "40 Code coverage control and API",
+      "filename": "section-40-code-coverage-control-and-api.txt"
+    },
+    {
+      "section_id": "41",
+      "title": "Data read API",
+      "page_start": 1135,
+      "page_end": 1185,
+      "toc_level": 1,
+      "source_title": "41 Data read API",
+      "filename": "section-41-data-read-api.txt"
+    },
+    {
+      "section_id": "2012",
+      "title": "The text of this deprecated subclause and its syntax do not appear in this version of the standard. They",
+      "page_start": 1186,
+      "page_end": 1195,
+      "toc_level": 1,
+      "source_title": "2012 The text of this deprecated subclause and its syntax do not appear in this version of the standard. They",
+      "filename": "section-2012-the-text-of-this-deprecated-subclause-and-its-syntax-do-not-appear-in-this-version-of-the-standard-they.txt"
+    },
+    {
+      "section_id": "100",
+      "title": "time units:",
+      "page_start": 1196,
+      "page_end": 1277,
+      "toc_level": 1,
+      "source_title": "100 time units:",
+      "filename": "section-100-time-units.txt"
+    },
+    {
+      "section_id": "74",
+      "title": "/* TRUE for protected design information */",
+      "page_start": 1278,
+      "page_end": 1292,
+      "toc_level": 1,
+      "source_title": "74 /* TRUE for protected design information */",
+      "filename": "section-74-true-for-protected-design-information.txt"
+    },
+    {
+      "section_id": "656",
+      "title": "/* strength of temporal operator */",
+      "page_start": 1293,
+      "page_end": 1294,
+      "toc_level": 1,
+      "source_title": "656 /* strength of temporal operator */",
+      "filename": "section-656-strength-of-temporal-operator.txt"
+    },
+    {
+      "section_id": "83",
+      "title": "/* accept_on operator */",
+      "page_start": 1295,
+      "page_end": 1295,
+      "toc_level": 1,
+      "source_title": "83 /* accept_on operator */",
+      "filename": "section-83-accept-on-operator.txt"
+    },
+    {
+      "section_id": "95",
+      "title": "/* inside operator */",
+      "page_start": 1296,
+      "page_end": 1315,
+      "toc_level": 1,
+      "source_title": "95 /* inside operator */",
+      "filename": "section-95-inside-operator.txt"
+    }
+  ]
+}

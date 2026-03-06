@@ -1,0 +1,319 @@
+{
+  "source_pdf": "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf",
+  "standard": "IEEE 1076-2019",
+  "detection_mode": "pdf_toc",
+  "total_pages": 673,
+  "toc_entries": 756,
+  "clause_depth": 1,
+  "include_annex": true,
+  "toc_max_level": 6,
+  "section_count": 34,
+  "sections": [
+    {
+      "section_id": "1",
+      "title": "Overview",
+      "page_start": 15,
+      "page_end": 18,
+      "toc_level": 1,
+      "source_title": "1. Overview",
+      "filename": "section-1-overview.txt"
+    },
+    {
+      "section_id": "2",
+      "title": "Normative references",
+      "page_start": 19,
+      "page_end": 19,
+      "toc_level": 1,
+      "source_title": "2. Normative references",
+      "filename": "section-2-normative-references.txt"
+    },
+    {
+      "section_id": "3",
+      "title": "Design entities and configurations",
+      "page_start": 20,
+      "page_end": 32,
+      "toc_level": 1,
+      "source_title": "3. Design entities and configurations",
+      "filename": "section-3-design-entities-and-configurations.txt"
+    },
+    {
+      "section_id": "4",
+      "title": "Subprograms and packages",
+      "page_start": 33,
+      "page_end": 49,
+      "toc_level": 1,
+      "source_title": "4. Subprograms and packages",
+      "filename": "section-4-subprograms-and-packages.txt"
+    },
+    {
+      "section_id": "5",
+      "title": "Types",
+      "page_start": 50,
+      "page_end": 85,
+      "toc_level": 1,
+      "source_title": "5. Types",
+      "filename": "section-5-types.txt"
+    },
+    {
+      "section_id": "6",
+      "title": "Declarations",
+      "page_start": 86,
+      "page_end": 126,
+      "toc_level": 1,
+      "source_title": "6. Declarations",
+      "filename": "section-6-declarations.txt"
+    },
+    {
+      "section_id": "7",
+      "title": "Specifications",
+      "page_start": 127,
+      "page_end": 138,
+      "toc_level": 1,
+      "source_title": "7. Specifications",
+      "filename": "section-7-specifications.txt"
+    },
+    {
+      "section_id": "8",
+      "title": "Names",
+      "page_start": 139,
+      "page_end": 148,
+      "toc_level": 1,
+      "source_title": "8. Names",
+      "filename": "section-8-names.txt"
+    },
+    {
+      "section_id": "9",
+      "title": "Expressions",
+      "page_start": 149,
+      "page_end": 176,
+      "toc_level": 1,
+      "source_title": "9. Expressions",
+      "filename": "section-9-expressions.txt"
+    },
+    {
+      "section_id": "10",
+      "title": "Sequential statements",
+      "page_start": 177,
+      "page_end": 199,
+      "toc_level": 1,
+      "source_title": "10. Sequential statements",
+      "filename": "section-10-sequential-statements.txt"
+    },
+    {
+      "section_id": "11",
+      "title": "Concurrent statements",
+      "page_start": 200,
+      "page_end": 216,
+      "toc_level": 1,
+      "source_title": "11. Concurrent statements",
+      "filename": "section-11-concurrent-statements.txt"
+    },
+    {
+      "section_id": "12",
+      "title": "Scope and visibility",
+      "page_start": 217,
+      "page_end": 225,
+      "toc_level": 1,
+      "source_title": "12. Scope and visibility",
+      "filename": "section-12-scope-and-visibility.txt"
+    },
+    {
+      "section_id": "13",
+      "title": "Design units and their analysis",
+      "page_start": 226,
+      "page_end": 229,
+      "toc_level": 1,
+      "source_title": "13. Design units and their analysis",
+      "filename": "section-13-design-units-and-their-analysis.txt"
+    },
+    {
+      "section_id": "14",
+      "title": "Elaboration and execution",
+      "page_start": 230,
+      "page_end": 256,
+      "toc_level": 1,
+      "source_title": "14. Elaboration and execution",
+      "filename": "section-14-elaboration-and-execution.txt"
+    },
+    {
+      "section_id": "15",
+      "title": "Lexical elements",
+      "page_start": 257,
+      "page_end": 269,
+      "toc_level": 1,
+      "source_title": "15. Lexical elements",
+      "filename": "section-15-lexical-elements.txt"
+    },
+    {
+      "section_id": "16",
+      "title": "Predefined language environment",
+      "page_start": 270,
+      "page_end": 355,
+      "toc_level": 1,
+      "source_title": "16. Predefined language environment",
+      "filename": "section-16-predefined-language-environment.txt"
+    },
+    {
+      "section_id": "17",
+      "title": "VHDL Procedural Interface overview",
+      "page_start": 356,
+      "page_end": 360,
+      "toc_level": 1,
+      "source_title": "17. VHDL Procedural Interface overview",
+      "filename": "section-17-vhdl-procedural-interface-overview.txt"
+    },
+    {
+      "section_id": "18",
+      "title": "VHPI access functions",
+      "page_start": 361,
+      "page_end": 364,
+      "toc_level": 1,
+      "source_title": "18. VHPI access functions",
+      "filename": "section-18-vhpi-access-functions.txt"
+    },
+    {
+      "section_id": "19",
+      "title": "VHPI information model",
+      "page_start": 365,
+      "page_end": 414,
+      "toc_level": 1,
+      "source_title": "19. VHPI information model",
+      "filename": "section-19-vhpi-information-model.txt"
+    },
+    {
+      "section_id": "20",
+      "title": "VHPI tool execution",
+      "page_start": 415,
+      "page_end": 425,
+      "toc_level": 1,
+      "source_title": "20. VHPI tool execution",
+      "filename": "section-20-vhpi-tool-execution.txt"
+    },
+    {
+      "section_id": "21",
+      "title": "VHPI callbacks",
+      "page_start": 426,
+      "page_end": 439,
+      "toc_level": 1,
+      "source_title": "21. VHPI callbacks",
+      "filename": "section-21-vhpi-callbacks.txt"
+    },
+    {
+      "section_id": "22",
+      "title": "VHPI value access and update",
+      "page_start": 440,
+      "page_end": 452,
+      "toc_level": 1,
+      "source_title": "22. VHPI value access and update",
+      "filename": "section-22-vhpi-value-access-and-update.txt"
+    },
+    {
+      "section_id": "23",
+      "title": "VHPI function reference",
+      "page_start": 453,
+      "page_end": 507,
+      "toc_level": 1,
+      "source_title": "23. VHPI function reference",
+      "filename": "section-23-vhpi-function-reference.txt"
+    },
+    {
+      "section_id": "24",
+      "title": "Standard tool directives",
+      "page_start": 508,
+      "page_end": 525,
+      "toc_level": 1,
+      "source_title": "24. Standard tool directives",
+      "filename": "section-24-standard-tool-directives.txt"
+    },
+    {
+      "section_id": "Annex A",
+      "title": "(informative) VHPI definitions file",
+      "page_start": 526,
+      "page_end": 527,
+      "toc_level": 1,
+      "source_title": "Annex A (informative) VHPI definitions file",
+      "filename": "section-Annex_A-informative-vhpi-definitions-file.txt"
+    },
+    {
+      "section_id": "Annex B",
+      "title": "(normative) VHPI header file",
+      "page_start": 528,
+      "page_end": 530,
+      "toc_level": 1,
+      "source_title": "Annex B (normative) VHPI header file",
+      "filename": "section-Annex_B-normative-vhpi-header-file.txt"
+    },
+    {
+      "section_id": "Annex C",
+      "title": "(informative) Syntax summary",
+      "page_start": 531,
+      "page_end": 557,
+      "toc_level": 1,
+      "source_title": "Annex C (informative) Syntax summary",
+      "filename": "section-Annex_C-informative-syntax-summary.txt"
+    },
+    {
+      "section_id": "Annex D",
+      "title": "(informative) Potentially non-portable constructs",
+      "page_start": 558,
+      "page_end": 558,
+      "toc_level": 1,
+      "source_title": "Annex D (informative) Potentially non-portable constructs",
+      "filename": "section-Annex_D-informative-potentially-non-portable-constructs.txt"
+    },
+    {
+      "section_id": "Annex E",
+      "title": "(informative) Changes from IEEE Std 1076-2008",
+      "page_start": 559,
+      "page_end": 559,
+      "toc_level": 1,
+      "source_title": "Annex E (informative) Changes from IEEE Std 1076-2008",
+      "filename": "section-Annex_E-informative-changes-from-ieee-std-1076-2008.txt"
+    },
+    {
+      "section_id": "Annex F",
+      "title": "(informative) Features under consideration for removal",
+      "page_start": 560,
+      "page_end": 560,
+      "toc_level": 1,
+      "source_title": "Annex F (informative) Features under consideration for removal",
+      "filename": "section-Annex_F-informative-features-under-consideration-for-removal.txt"
+    },
+    {
+      "section_id": "Annex G",
+      "title": "(informative) Guide to use of standard packages",
+      "page_start": 561,
+      "page_end": 597,
+      "toc_level": 1,
+      "source_title": "Annex G (informative) Guide to use of standard packages",
+      "filename": "section-Annex_G-informative-guide-to-use-of-standard-packages.txt"
+    },
+    {
+      "section_id": "Annex H",
+      "title": "(informative) Guide to use of protect directives",
+      "page_start": 598,
+      "page_end": 605,
+      "toc_level": 1,
+      "source_title": "Annex H (informative) Guide to use of protect directives",
+      "filename": "section-Annex_H-informative-guide-to-use-of-protect-directives.txt"
+    },
+    {
+      "section_id": "Annex I",
+      "title": "(informative) Glossary",
+      "page_start": 606,
+      "page_end": 632,
+      "toc_level": 1,
+      "source_title": "Annex I (informative) Glossary",
+      "filename": "section-Annex_I-informative-glossary.txt"
+    },
+    {
+      "section_id": "Annex J",
+      "title": "(informative) Bibliography",
+      "page_start": 633,
+      "page_end": 673,
+      "toc_level": 1,
+      "source_title": "Annex J (informative) Bibliography",
+      "filename": "section-Annex_J-informative-bibliography.txt"
+    }
+  ]
+}

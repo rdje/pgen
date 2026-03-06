@@ -1,0 +1,1131 @@
+---
+title: "Section 800: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language"
+document: "SystemVerilog Language Reference Manual"
+standard: "IEEE 1800-2017"
+domain: "SystemVerilog"
+section: "800"
+source_txt: "section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.txt"
+source_pdf: "/Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2017.pdf"
+---
+
+# Section 800: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+655
+Copyright © 2018 IEEE. All rights reserved.
+This call shall dump all variables in module mod1 and in all module instances below mod1, along with
+variable net1 in module mod2. The argument 0 applies only to the module instance top.mod1 and not to
+the individual variable top.mod2.net1.
+##### 21.7.1.3 Stopping and resuming the dump ($dumpoff/$dumpon)
+
+Executing the $dumpvars task causes the value change dumping to start at the end of the current simulation
+time unit. To suspend the dump, the $dumpoff task can be invoked. To resume the dump, the $dumpon task
+can be invoked. The syntax of these two tasks is given in Syntax 21-16.
+```ebnf
+dumpoff_task ::=
+```
+
+$dumpoff ;
+```ebnf
+dumpon_task ::=
+```
+
+$dumpon ;
+Syntax 21-16—Syntax for $dumpoff and $dumpon tasks (not in Annex A)
+When the $dumpoff task is executed, a checkpoint is made in which every selected variable is dumped as
+an x value. When the $dumpon task is later executed, each variable is dumped with its value at that time. In
+the interval between $dumpoff and $dumpon, no value changes are dumped.
+The $dumpoff and $dumpon tasks provide the mechanism to control the simulation period during which the
+dump shall take place.
+For example:
+initial begin
+#10
+  $dumpvars( . . . );
+#200    $dumpoff;
+#800    $dumpon;
+#900
+ $dumpoff;
+end
+This example starts the VCD after 10 time units, stops it 200 time units later (at time 210), restarts it again
+## 800 time units later (at time 1010), and stops it 900 time units later (at time 1910).
+
+##### 21.7.1.4 Generating a checkpoint ($dumpall)
+
+The $dumpall task creates a checkpoint in the VCD file that shows the current value of all selected
+variables. The syntax is given in Syntax 21-17.
+```ebnf
+dumpall_task ::=
+```
+
+$dumpall ;
+Syntax 21-17—Syntax for $dumpall task (not in Annex A)
+When dumping is enabled, the value change dumper records the values of the variables that change during
+each time increment. Values of variables that do not change during a time increment are not dumped.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+656
+Copyright © 2018 IEEE. All rights reserved.
+##### 21.7.1.5 Limiting size of dump file ($dumplimit)
+
+The $dumplimit task can be used to set the size of the VCD file. The syntax for this task is given in
+Syntax 21-18.
+```ebnf
+dumplimit_task ::=
+```
+
+$dumplimit ( filesize ) ;
+Syntax 21-18—Syntax for $dumplimit task (not in Annex A)
+The filesize argument specifies the maximum size of the VCD file in bytes. When the size of the VCD file
+reaches this number of bytes, the dumping stops, and a comment is inserted in the VCD file indicating the
+dump limit was reached.
+##### 21.7.1.6 Reading dump file during simulation ($dumpflush)
+
+The $dumpflush task can be used to empty the VCD file buffer of the operating system to verify all the
+data in that buffer are stored in the VCD file. After executing a $dumpflush task, dumping is resumed as
+before so no value changes are lost. The syntax for the task is given in Syntax 21-19.
+```ebnf
+dumpflush_task ::=
+```
+
+$dumpflush ;
+Syntax 21-19—Syntax for $dumpflush task (not in Annex A)
+A common application is to call $dumpflush to update the dump file so an application program can read
+the VCD file during a simulation.
+Example 1: This example shows how the $dumpflush task can be used in a SystemVerilog source file.
+initial begin
+$dumpvars ;
+.
+.
+.
+$dumpflush ;
+$(applications program) ;
+end
+Example 2: The following is a simple source description example to produce a VCD file:
+In this example, the name of the dump file is verilog.dump. It dumps value changes for all variables in the
+model. Dumping begins when an event do_dump occurs. The dumping continues for 500 clock cycles and
+then stops and waits for the event do_dump to be triggered again. At every 10 000 time steps, the current
+values of all VCD variables are dumped.
+module dump;
+event do_dump;
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+657
+Copyright © 2018 IEEE. All rights reserved.
+initial $dumpfile("verilog.dump");
+initial @do_dump
+$dumpvars;
+//dump variables in the design
+always @do_dump
+//to begin the dump at event do_dump
+begin
+$dumpon;
+//no effect the first time through
+repeat (500) @(posedge clock); //dump for 500 cycles
+   $dumpoff;
+//stop the dump
+end
+initial @(do_dump)
+forever #10000 $dumpall; // checkpoint all variables
+endmodule
+#### 21.7.2 Format of 4-state VCD file
+
+The dump file is structured in a free format. White space is used to separate commands and to make the file
+easily readable by a text editor.
+##### 21.7.2.1 Syntax of 4-state VCD file
+
+The syntax of the 4-state VCD file is given in Syntax 21-20.
+```ebnf
+value_change_dump_definitions ::=
+```
+
+{ declaration_command }{ simulation_command }
+```ebnf
+declaration_command ::=
+```
+
+$comment [ comment_text ] $end
+| $date [ date_text ] $end
+| $enddefinitions $end
+| $scope [ scope_type scope_identifier ] $end
+| $timescale [ time_number time_unit ] $end
+| $upscope $end
+| $var [ var_type size identifier_code reference ] $end
+| $version [ version_text system_task ] $end
+```ebnf
+simulation_command ::=
+```
+
+$dumpall { value_change } $end
+| $dumpoff { value_change } $end
+| $dumpon { value_change } $end
+| $dumpvars { value_change } $end
+| $comment [ comment_text ] $end
+| simulation_time
+| value_change
+```ebnf
+scope_type ::=
+```
+
+begin
+| fork
+| function
+| module
+| task
+```ebnf
+time_number ::= 1 | 10 | 100
+time_unit ::= s | ms | us | ns | ps | fs
+var_type ::=
+```
+
+event | integer | parameter | real | realtime | reg | supply0 | supply1 | time
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+658
+Copyright © 2018 IEEE. All rights reserved.
+| tri | triand | trior | trireg | tri0 | tri1 | wand | wire | wor
+```ebnf
+simulation_time ::= # decimal_number
+value_change ::=
+```
+
+scalar_value_change
+| vector_value_change
+```ebnf
+scalar_value_change ::= value identifier_code
+value ::= 0 | 1 | x | X | z | Z
+vector_value_change ::=
+```
+
+b binary_number identifier_code
+| B binary_number identifier_code
+| r real_number identifier_code
+| R real_number identifier_code
+```ebnf
+identifier_code ::= { ASCII character }
+size ::= decimal_number
+reference ::=
+```
+
+identifier
+| identifier [ bit_select_index ]
+| identifier [ msb_index : lsb_index ]
+```ebnf
+index ::= decimal_number
+scope_identifier ::= { ASCII character }
+comment_text ::= { ASCII character }
+date_text ::= { ASCII character }
+version_text ::= { ASCII character }
+system_task ::= ${ASCII character}
+```
+
+Syntax 21-20—Syntax for output 4-state VCD file (not in Annex A)
+The VCD file starts with header information giving the date, the version number of the simulator used for
+the simulation, and the timescale used. Next, the file contains definitions of the scope and type of variables
+being dumped, followed by the actual value changes at each simulation time increment. Only the variables
+that change value during a time increment are listed.
+The simulation time recorded in the VCD file is the absolute value of the simulation time for the changes in
+variable values that follow.
+Value changes for real variables are specified by real numbers. Value changes for all other variables are
+specified in binary format by 0, 1, x, or z values. Strength information and memories are not dumped.
+A real number is dumped using a %.16g printf() format. This preserves the precision of that number by
+outputting all 53 bits in the mantissa of a 64-bit IEEE 754 double-precision number. Application programs
+can read a real number using a %g format to scanf().
+The value change dumper generates character identifier codes to represent variables. The identifier code is a
+code composed of the printable characters, which are in the ASCII character set from ! to ~ (decimal 33 to
+126).
+The VCD format does not support a mechanism to dump part of a vector. For example, bits 8 to 15
+([8:15]) of a 16-bit vector cannot be dumped in VCD file; instead, the entire vector ([0:15]) has to be
+dumped. In addition, expressions, such as a + b, cannot be dumped in the VCD file.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+659
+Copyright © 2018 IEEE. All rights reserved.
+Data in the VCD file are case sensitive.
+##### 21.7.2.2 Formats of variable values
+
+Variables can be either scalars or vectors. Each type is dumped in its own format. Dumps of value changes
+to scalar variables shall not have any white space between the value and the identifier code.
+Dumps of value changes to vectors shall not have any white space between the base letter and the value
+digits, but they shall have one white space between the value digits and the identifier code.
+The output format for each value is right-justified. Vector values appear in the shortest form possible:
+redundant bit values that result from left-extending values to fill a particular vector size are eliminated.
+The rules for left-extending vector values are given in Table 21-9.
+Table 21-10 shows how the VCD can shorten values.
+Events are dumped in the same format as scalars; for example, 1*%. For events, however, the value (1 in this
+example) is irrelevant. Only the identifier code (*% in this example) is significant. It appears in the VCD file
+as a marker to indicate the event was triggered during the time step.
+For example:
+1*@     No space between the value 1 and the identifier code *@
+b1100x01z (k
+No space between the b and 1100x01z,
+but a space between b1100x01z and (k
+Table 21-9—Rules for left-extending vector values
+When the value is
+VCD left-extends with
+1
+0
+0
+0
+Z
+Z
+X
+X
+Table 21-10—How the VCD can shorten values
+Binary value
+Extends to fill a
+4-bit reg as
+Appears in the
+VCD file as
+10
+0010
+b10
+X10
+XX10
+bX10
+ZX0
+ZZX0
+bZX0
+0X10
+0X10
+b0X10
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+660
+Copyright © 2018 IEEE. All rights reserved.
+##### 21.7.2.3 Description of keyword commands
+
+The general information in the VCD file is presented as a series of sections surrounded by keywords.
+Keyword commands provide a means of inserting information in the VCD file. Keyword commands can be
+inserted either by the dumper or manually.
+This subclause deals with the keyword commands given in Table 21-11.
+The $comment section provides a means of inserting a comment in the VCD file. For example:
+$comment This is a single-line comment
+$end
+$comment This is a
+multiple-line comment
+$end
+The $date section indicates the date on which the VCD file was generated. For example:
+$date
+June 25, 1989 09:24:35
+$end
+The $enddefinitions section marks the end of the header information and definitions.
+The $scope section defines the scope of the variables being dumped. The scope type indicates one of the
+following scopes:
+module
+ Top-level module and module instances
+task
+ Tasks
+function
+ Functions
+begin
+ Named sequential blocks
+fork
+ Named parallel blocks
+For example:
+$scope
+module top
+$end
+The $timescale keyword specifies what timescale was used for the simulation. For example:
+$timescale 10 ns $end
+The $upscope section indicates a change of scope to the next higher level in the design hierarchy.
+Table 21-11—Keyword commands
+Declaration keywords
+Simulation keywords
+$comment
+$timescale
+$dumpall
+$date
+$upscope
+$dumpoff
+$enddefinitions
+$var
+$dumpon
+$scope
+$version
+$dumpvars
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+661
+Copyright © 2018 IEEE. All rights reserved.
+The $var section prints the names and identifier codes of the variables being dumped. The size specifies
+how many bits are in the variable. The identifier code specifies the name of the variable using printable
+ASCII characters, as previously described.
+a)
+The msb index indicates the most significant index; the lsb index indicates the least significant
+index.
+b)
+More than one reference name can be mapped to the same identifier code. For example, net10 and
+net15 can be interconnected in the circuit and, therefore, have the same identifier code.
+c)
+The individual bits of vector nets can be dumped individually.
+d)
+The identifier is the name of the variable being dumped in the model.
+In the $var section, a net of net type uwire shall have a var_type of wire.
+For example:
+$var
+integer 32 (2 index
+$end
+The $version section indicates which version of the VCD writer was used to produce the VCD file and the
+$dumpfile system task used to create the file. If a variable or an expression was used to specify the
+filename within $dumpfile, the unevaluated variable or expression literal shall appear in the $version
+string. For example:
+$version
+VERILOG-SIMULATOR 1.0a
+$dumpfile("dump1.dump")
+$end
+The $dumpall keyword specifies current values of all variables dumped. For example:
+$dumpall
+1*@
+x*#
+0*$
+bx
+(k
+$end
+The $dumpoff keyword indicates all variables dumped with X values. For example:
+$dumpoff
+x*@
+x*#
+x*$
+bx
+(k
+$end
+The $dumpon keyword indicates resumption of dumping and lists current values of all variables dumped.
+For example:
+$dumpon
+x*@
+0*#
+x*$
+b1
+(k
+$end
+The section beginning with $dumpvars keyword lists initial values of all variables dumped. For example:
+$dumpvars
+x*@
+z*$
+b0
+(k
+$end
+##### 21.7.2.4 4-state VCD file format example
+
+The following example illustrates the format of the 4-state VCD file:
+$date June 26, 1989 10:05:41
+$end
+$version VERILOG-SIMULATOR 1.0a
+$end
+$timescale 1 ns
+$end
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+662
+Copyright © 2018 IEEE. All rights reserved.
+$scope module top $end
+$scope module m1  $end
+$var trireg 1 *@ net1 $end
+$var trireg 1 *# net2 $end
+$var trireg 1 *$ net3 $end
+$upscope $end
+$scope task t1 $end
+$var reg 32 (k accumulator[31:0] $end
+$var integer 32 {2 index  $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+$comment
+$dumpvars was executed at time '#500'.
+All initial values are dumped at this time.
+$end
+#500
+$dumpvars
+x*@
+x*#
+x*$
+bx (k
+bx {2
+$end
+#505
+0*@
+1*#
+1*$
+b10zx1110x11100 (k
+b1111000101z01x {2
+#510
+0*$
+#520
+1*$
+#530
+0*$
+bz (k
+#535
+$dumpall   0*@   1*#   0*$
+bz (k
+b1111000101z01x {2
+$end
+#540
+1*$
+#1000
+$dumpoff
+x*@
+x*#
+x*$
+bx (k
+bx {2
+$end
+#2000
+$dumpon
+z*@
+1*#
+0*$
+b0 (k
+bx {2
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+663
+Copyright © 2018 IEEE. All rights reserved.
+$end
+#2010
+1*$
+#### 21.7.3 Creating extended VCD file
+
+The steps involved in creating the extended VCD file are listed as follows and illustrated in Figure 21-2.
+a)
+Insert the extended VCD system tasks in the SystemVerilog source file to define the dump file name
+and to specify the variables to be dumped.
+b)
+Run the simulation.
+The 4-state VCD file rules and syntax apply to the extended VCD file unless otherwise stated in this
+subclause.
+##### 21.7.3.1 Specifying dump file name and ports to be dumped ($dumpports)
+
+The $dumpports task shall be used to specify the name of the VCD file and the ports to be dumped. The
+syntax for the task is given in Syntax 21-21.
+```ebnf
+dumpports_task ::=
+```
+
+$dumpports ( scope_list , filename ) ;
+```ebnf
+scope_list ::=
+```
+
+module_identifier { , module_identfier }
+Syntax 21-21—Syntax for $dumpports task (not in Annex A)
+The arguments are optional and are defined as follows:
+The scope_list is one or more module_identifiers. Only modules are allowed (not variables). If more than
+one module_identifier is specified, they shall be separated by a comma. Path names to modules are allowed,
+using the period hierarchy separator. String literals are not allowed for the module_identifier. If no
+scope_list value is provided, the scope shall be the module from which $dumpports is called.
+The filename is an expression that is a string literal, string data type, or an integral data type containing a
+character string that denotes the file that shall contain the port VCD information. If no filename is provided,
+initial
+$dumpports(,"dump2.dump");
+       .
+       .
+       .
+       .
+       .
+       .
+simulation
+SystemVerilog Source File
+Extended VCD File
+dump2.dump
+(Header
+Information)
+(Node
+Information)
+(Value
+Changes)
+User
+Postprocessing
+Figure 21-2—Creating the extended VCD file
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+664
+Copyright © 2018 IEEE. All rights reserved.
+the file shall be written to the current working directory with the name dumpports.vcd. If that file already
+exists, it shall be silently overwritten. All file-writing checks shall be made by the simulator (e.g., write
+rights, correct path name) and appropriate errors or warnings issued.
+The following rules apply to the use of the $dumpports system task:
+—
+All the ports in the model from the point of the $dumpports call are considered primary I/O pins
+and shall be included in the VCD file. However, any ports that exist in instantiations below
+scope_list are not dumped.
+—
+If no arguments are specified for the task, $dumpports; and $dumpports(); are allowed. In both
+of these cases, the default values for the arguments shall be used.
+—
+If the first argument is null, a comma shall be used before specifying the second argument in the
+argument list.
+—
+Each scope specified in the scope_list shall be unique. If multiple calls to $dumpports are
+specified, the scope_list values in these calls shall also be unique.
+—
+The $dumpports task can be used in source code that also contains the $dumpvars task.
+—
+When $dumpports executes, the associated value change dumping shall start at the end of the
+current simulation time unit.
+—
+The $dumpports task can be invoked multiple times throughout the model, but the execution of all
+$dumpports tasks shall be at the same simulation time. Specifying the same filename multiple
+times is not allowed.
+##### 21.7.3.2 Stopping and resuming the dump ($dumpportsoff/$dumpportson)
+
+The $dumpportsoff and $dumpportson system tasks provide a means to control the simulation period
+for dumping port values. The syntax for these system tasks is given in Syntax 21-22.
+```ebnf
+dumpportsoff_task ::=
+```
+
+$dumpportsoff ( filename ) ;
+```ebnf
+dumpportson_task ::=
+```
+
+$dumpportson ( filename ) ;
+Syntax 21-22—Syntax for $dumpportsoff and $dumpportson system tasks (not in Annex A)
+The filename is an expression that is a string literal, string data type, or an integral data type containing a
+character string that denotes the filename specified in the $dumpports system task.
+When the $dumpportsoff task is executed, a checkpoint is made in the filename where each specified port
+is dumped with an X value. Port values are no longer dumped from that simulation time forward. If filename
+is not specified, all dumping to files opened by $dumpports calls shall be suspended.
+When the $dumpportson task is executed, all ports specified by the associated $dumpports call shall have
+their values dumped. This system task is typically used to resume dumping after the execution of
+$dumpportsoff. If filename is not specified, dumping shall resume for all files specified by $dumpports
+calls, if dumping to those files was stopped.
+If $dumpportson is executed while ports are already being dumped to filename, the system task is ignored.
+If $dumpportsoff is executed while port dumping is already suspended for filename, the system task is
+ignored.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+665
+Copyright © 2018 IEEE. All rights reserved.
+##### 21.7.3.3 Generating a checkpoint ($dumpportsall)
+
+The $dumpportsall system task creates a checkpoint in the VCD file that shows the value of all selected
+ports at that time in the simulation, regardless of whether the port values have changed since the last time
+step. The syntax for this system task is given in Syntax 21-23.
+```ebnf
+dumpportsall_task ::=
+```
+
+$dumpportsall ( filename ) ;
+Syntax 21-23—Syntax for $dumpportsall system task (not in Annex A)
+The filename is an expression that is a string literal, string data type, or an integral data type containing a
+character string that denotes the filename specified in the $dumpports system task.
+If the filename is not specified, checkpointing occurs for all files opened by calls to $dumpports.
+##### 21.7.3.4 Limiting size of dump file ($dumpportslimit)
+
+The $dumpportslimit system task allows control of the VCD file size. The syntax for this system task is
+given in Syntax 21-24.
+```ebnf
+dumpportslimit_task ::=
+```
+
+$dumpportslimit ( filesize , filename ) ;
+Syntax 21-24—Syntax for $dumpportslimit system task (not in Annex A)
+The filesize integer argument is required, and it specifies the maximum size in bytes for the associated
+filename. When this filesize is reached, the dumping stops, and a comment is inserted into filename
+indicating the size limit was attained.
+The filename is an expression that is a string literal, string data type, or an integral data type containing a
+character string that denotes the filename specified in the $dumpports system task.
+If the filename is not specified, the filesize limit applies to all files opened for dumping due to calls to
+$dumpports.
+##### 21.7.3.5 Reading dump file during simulation ($dumpportsflush)
+
+To facilitate performance, simulators often buffer VCD output and write to the file at intervals, instead of
+line by line. The $dumpportsflush system task writes all port values to the associated file, clearing a
+simulator’s VCD buffer.
+The syntax for this system task is given in Syntax 21-25.
+```ebnf
+dumpportsflush_task ::=
+```
+
+$dumpportsflush ( filename ) ;
+Syntax 21-25—Syntax for $dumpportsflush system task (not in Annex A)
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+666
+Copyright © 2018 IEEE. All rights reserved.
+The filename is an expression that is a string literal, string data type, or an integral data type containing a
+character string that denotes the filename specified in the $dumpports system task.
+If the filename is not specified, the VCD buffers shall be flushed for all files opened by calls to
+$dumpports.
+##### 21.7.3.6 Description of keyword commands
+
+The general information in the extended VCD file is presented as a series of sections surrounded by
+keywords. Keyword commands provide a means of inserting information in the extended VCD file.
+Keyword commands can be inserted either by the dumper or manually. Extended VCD provides one
+additional keyword command to that of the 4-state VCD.
+###### 21.7.3.6.1 $vcdclose
+
+The $vcdclose keyword indicates the final simulation time at the time the extended VCD file is closed.
+This allows accurate recording of the end simulation time, regardless of the state of signal changes, in order
+to assist parsers that require this information. The syntax for the keyword is given in Syntax 21-26.
+```ebnf
+vcdclose_task ::=
+```
+
+$vcdclose final_simulation_time $end
+Syntax 21-26—Syntax for $vcdclose keyword (not in Annex A)
+For example:
+$vcdclose #13000 $end
+##### 21.7.3.7 General rules for extended VCD system tasks
+
+For each extended VCD system task, the following rules apply:
+—
+If a filename is specified that does not match a filename specified in a $dumpports call, the control
+task shall be ignored.
+—
+If no arguments are specified for the tasks that have only optional arguments, the system task name
+can be used with no arguments or the name followed by ( ) can be specified, for example,
+$dumpportsflush or $dumpportsflush(). In both of these cases, the default actions for the
+arguments shall be executed.
+#### 21.7.4 Format of extended VCD file
+
+The format of the extended VCD file is similar to that of the 4-state VCD file, as it is also structured in a free
+format. White space is used to separate commands and to make the file easily readable by a text editor.
+##### 21.7.4.1 Syntax of extended VCD file
+
+The syntax of the extended VCD file is given in Syntax 21-27. A 4-state VCD construct name that matches
+an extended VCD construct shall be considered equivalent, except if preceded by an *.
+```ebnf
+value_change_dump_definitions ::= {declaration_command} {simulation_command}
+declaration_command ::= declaration_keyword [command_text] $end
+simulation_command ::=
+```
+
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+667
+Copyright © 2018 IEEE. All rights reserved.
+simulation_keyword { value_change } $end
+| $comment [comment_text] $end
+| simulation_time
+| value_change
+```ebnf
+declaration_keyword ::=
+```
+
+$comment | $date | $enddefinitions | $scope | $timescale | $upscope | $var | $vcdclose
+| $version
+```ebnf
+command_text ::=
+```
+
+comment_text | close_text | date_section | scope_section | timescale_section | var_section
+| version_section
+```ebnf
+simulation_keyword ::= $dumpports | $dumpportsoff | $dumpportson | $dumpportsall
+simulation_time ::= #decimal_number
+final_simulation_time ::= simulation_time
+value_change ::= value identifier_code
+value ::= pport_value 0_strength_component 1_strength_component
+port_value ::= input_value | output_value | unknown_direction_value
+input_value ::= D | U | N | Z | d | u
+output_value ::= L | H | X | T | l | h
+unknown_direction_value ::= 0 | 1 | ? | F | A | a | B | b | C | c | f
+strength_component ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+identifier_code ::= <{integer}
+comment_text ::= {ASCII_character}
+close_text ::= final_simulation_time
+date_section ::= date_text
+```
+
+date_text :: = day month date time year
+```ebnf
+scope_section ::= scope_type scope_identifier
+scope_type ::= module
+timescale_section ::= number time_unit
+number ::= 1 | 10 | 100
+time_unit ::= fs | ps | ns | us | ms | s
+var_section ::= var_type size identifier_code reference
+var_type ::= port
+size ::= 1 | vector_index
+vector_index ::= [ msb_index : lsb_index ]
+index ::= decimal_number
+msb_index ::= index
+lsb_index ::= index
+reference ::= port_identifier
+identifier ::= {printable_ASCII_character}
+version_section ::= version_text
+version_text ::= version_identifier {dumpports_command}
+dumpports_command ::=
+```
+
+$dumpports (scope_identifier , string_literal | variable | expression )
+Syntax 21-27—Syntax for output extended VCD file (not in Annex A)
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+668
+Copyright © 2018 IEEE. All rights reserved.
+The extended VCD file starts with header information giving the date, the version number of the simulator
+used for the simulation, and the timescale used. Next, the file contains definitions of the scope of the ports
+being dumped, followed by the actual value changes at each simulation time increment. Only the ports that
+change value during a time increment are listed.
+The simulation time recorded in the extended VCD file is the absolute value of the simulation time for the
+changes in port values that follow.
+Value changes for all ports are specified in binary format by 0, 1, x, or z values and include strength
+information.
+A real number is dumped using a %.16g printf() format. This preserves the precision of that number by
+outputting all 53 bits in the mantissa of a 64-bit IEEE 754 double-precision number. Application programs
+can read a real number using a %g format to scanf().
+The extended VCD format does not support a mechanism to dump part of a vector. For example, bits 8 to 15
+([8:15]) of a 16-bit vector cannot be dumped in VCD file; instead, the entire vector ([0:15]) has to be
+dumped. In addition, expressions, such as a + b, cannot be dumped in the VCD file.
+Data in the extended VCD file are case sensitive.
+##### 21.7.4.2 Extended VCD node information
+
+The node information section (also referred to as the variable definitions section) is affected by the
+$dumpports task as Syntax 21-28 shows.
+$var var_type size < identifier_code reference $end
+```ebnf
+var_type ::= port
+size ::= 1 | vector_index
+vector_index ::= [ msb_index : lsb_index ]
+index ::= decimal_number
+identifier_code ::= integer
+reference ::= port_identifier
+```
+
+Syntax 21-28—Syntax for extended VCD node information (not in Annex A)
+The constructs are defined as follows:
+var_type
+The keyword port. No other keyword is allowed.
+size
+A decimal number indicating the number of bits in the port. If the port is a single
+bit, the value shall be 1. If the port is a bus, the actual index is printed. The msb
+indicates the most significant index; lsb, the least significant index.
+identifier_code
+An integer preceded by <, which starts at zero and ascends in one-unit increments
+for each port, in the order found in the module declaration.
+reference
+Identifier indicating the port name.
+For example:
+module test_device(count_out, carry, data, reset)
+output count_out, carry ;
+input [0:3] data;
+input reset;
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+669
+Copyright © 2018 IEEE. All rights reserved.
+. . .
+initial
+begin
+$dumpports(testbench.DUT, "testoutput.vcd");
+. . .
+end
+endmodule
+This example produces the following node information in the VCD file:
+$scope module testbench.DUT $end
+$var port
+## 1 <0
+
+count_out
+$end
+$var port
+## 1 <1
+
+carry
+$end
+$var port
+[0:3] <2
+data
+$end
+$var port
+## 1 <3
+
+reset
+$end
+$upscope
+$end
+At least one space shall separate each syntactical element. However, the formatting of the information is the
+choice of the simulator vendor. All 4-state VCD syntax rules for the vector_index apply.
+If the vector_index appears in the port declaration, this shall be the index dumped. If the vector_index is not
+in the port declaration, the vector_index in the net or variable declaration matching the port name shall be
+dumped. If no vector_index is found, the port is considered scalar (1-bit wide).
+Concatenated ports shall appear in the extended VCD file as separate entries.
+For example:
+module addbit ({A, b}, ci, sum, co);
+input    A, b, ci;
+output   sum, co;
+. . .
+The VCD file output looks like the following:
+$scope module addbit $end
+$var port 1 <0 A $end
+$var port 1 <1 b $end
+$var port 1 <2 ci $end
+$enddefinitions $end
+. . .
+##### 21.7.4.3 Value changes
+
+The value change section of the VCD file is also affected by $dumpports, as Syntax 21-29 shows.
+```ebnf
+value ::= pport_value 0_strength_component 1_strength_component
+```
+
+Syntax 21-29—Syntax for value change section (not in Annex A)
+The constructs are defined as follows:
+p
+Key character that indicates a port. There is no space between the p and the
+port_value.
+port_value
+State character (described as follows).
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+670
+Copyright © 2018 IEEE. All rights reserved.
+0_strength_component
+One of the eight SystemVerilog strengths that indicates the strength0
+specification for the port.
+1_strength_component
+One of the eight SystemVerilog strengths that indicates the strength1
+specification for the port.
+The SystemVerilog strength values are as follows (append keyword with 0 or 1 as appropriate for the
+strength component):
+0
+highz
+1
+small
+2
+medium
+3
+weak
+4
+large
+5
+pull
+6
+strong
+7
+supply
+identifier_code
+the integer preceded by the < character as defined in the $var construct for the
+port.
+###### 21.7.4.3.1 State characters
+
+The following state information is listed in terms of input values from a test fixture, the output values of the
+device under test (DUT), and the states representing unknown direction:
+INPUT (TESTFIXTURE):
+D
+low
+U
+high
+N
+unknown
+Z
+three-state
+d
+low (two or more drivers active)
+u
+high (two or more drivers active)
+OUTPUT (DUT):
+L
+low
+H
+high
+X
+unknown (do not care)
+T
+three-state
+l
+low (two or more drivers active)
+h
+high (two or more drivers active)
+UNKNOWN DIRECTION:
+0
+low (both input and output are active with 0 value)
+1
+high (both input and output are active with 1 value)
+?
+unknown
+F
+three-state (input and output unconnected)
+A
+unknown (input 0 and output 1)
+a
+unknown (input 0 and output X)
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+671
+Copyright © 2018 IEEE. All rights reserved.
+B
+unknown (input 1 and output 0)
+b
+unknown (input 1 and output X)
+C
+unknown (input X and output 0)
+c
+unknown (input X and output 1)
+f
+unknown (input and output three-stated)
+###### 21.7.4.3.2 Drivers
+
+Drivers are considered only in terms of primitives, continuous assignments, and procedural continuous
+assignments. Value 0/1 means both input and output are active with value 0/1. 0 and 1 are conflict states.
+The following rules apply to conflicts:
+—
+If both input and output are driving the same value with the same range of strength, then this is a
+conflict. The resolved value is 0/1, and the strength is the stronger of the two.
+—
+If the input is driving a strong strength (range) and the output is driving a weak strength (range), the
+resolved value is d/u, and the strength is the strength of the input.
+—
+If the input is driving a weak strength (range) and the output is driving a strong strength (range), then
+the resolved value is l/h, and the strength is the strength of the output.
+Range is as follows:
+—
+Strength 7 to 5 : strong strength
+—
+Strength 4 to 1: weak strength
+##### 21.7.4.4 Extended VCD file format example
+
+The following example illustrates the format of the extended VCD file.
+A module declaration:
+module adder(data0, data1, data2, data3, carry, as, rdn, reset,
+test, write);
+inout data0, data1, data2, data3;
+output carry;
+input as, rdn, reset, test, write;
+. . .
+and the resulting VCD fragment:
+$scope module testbench.adder_instance $end
+$var port
+## 1 <0
+
+data0 $end
+$var port
+## 1 <1
+
+data1 $end
+$var port
+## 1 <2
+
+data2 $end
+$var port
+## 1 <3
+
+data3 $end
+$var port
+## 1 <4
+
+carry $end
+$var port
+## 1 <5
+
+as
+$end
+$var port
+## 1 <6
+
+rdn
+$end
+$var port
+## 1 <7
+
+reset $end
+$var port
+## 1 <8
+
+test
+$end
+$var port
+## 1 <9
+
+write $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpports
+pX  6  6    <0
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+672
+Copyright © 2018 IEEE. All rights reserved.
+pX  6  6    <1
+pX  6  6    <2
+pX  6  6    <3
+pX  6  6    <4
+pN  6  6    <5
+pN  6  6    <6
+pU  0  6    <7
+pD  6  0    <8
+pN  6  6    <9
+$end
+#180
+pH  0  6    <4
+#200000
+pD  6  0    <5
+pU  0  6    <6
+pD  6  0    <9
+#200500
+pf  0  0    <0
+pf  0  0    <1
+pf  0  0    <2
+pf  0  0    <3
+#### 21.7.5 VCD SystemVerilog type mappings
+
+SystemVerilog does not extend the IEEE 1364-2005 VCD format. Some SystemVerilog types can be
+dumped into a standard VCD file by masquerading as an IEEE 1364-2005 type. Table 21-12 lists the basic
+SystemVerilog types and their mapping to an IEEE 1364-2005 type for VCD dumping.
+Packed arrays and structures are dumped as a single vector of reg. Multiple packed array dimensions are
+collapsed into a single dimension.
+If an enum declaration specified a type, it is dumped as that type rather than the default shown previoiusly.
+Unpacked structures appear as named fork-join blocks, and their member elements of the structure appear as
+the preceding types. Because named fork-join blocks with variable declarations are seldom used in
+testbenches and hardware models, this makes structures easy to distinguish from variables declared in
+begin-end blocks, which are more frequently used in testbenches and models.
+Table 21-12—VCD type mapping
+SystemVerilog
+IEEE 1364-2005
+Verilog
+Size
+bit
+reg
+Total size of packed dimension
+logic
+reg
+Total size of packed dimension
+int
+integer
+32
+shortint
+reg
+16
+longint
+reg
+64
+byte
+reg
+8
+enum
+integer
+32
+shortreal
+real
+—
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+673
+Copyright © 2018 IEEE. All rights reserved.
+Unpacked arrays and automatic variables are not dumped.
+NOTE—The current VCD format does not indicate whether a variable has been declared as signed or unsigned.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

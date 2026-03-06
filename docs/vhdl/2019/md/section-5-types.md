@@ -1,0 +1,1970 @@
+---
+title: "Section 5: IEEE Standard for VHDL Language Reference Manual"
+document: "VHDL Language Reference Manual"
+standard: "IEEE 1076-2019"
+domain: "VHDL"
+section: "5"
+source_txt: "section-5-types.txt"
+source_pdf: "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf"
+---
+
+# Section 5: IEEE Standard for VHDL Language Reference Manual
+
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+49
+Copyright © 2019 IEEE. All rights reserved.
+5. Types
+### 5.1 General
+
+This clause describes the various categories of types that are provided by the language as well as those
+specific types that are predefined. The declarations of all predefined types are contained in package
+STANDARD, the declaration of which appears in Clause 16.
+A type is characterized by a set of values and a set of operations. The set of operations of a type includes the
+explicitly declared subprograms that have a parameter or result of the type. The remaining operations of a
+type are the basic operations and the predefined operations (see 5.2.6, 5.3.2.4, 5.4.3, and 5.5.2). These
+operations are each implicitly declared for a given type declaration immediately after the type declaration
+and before the next explicit declaration, if any.
+A basic operation is an operation that is inherent in one of the following:
+—
+An assignment (in assignment statements and initializations)
+—
+An allocator
+—
+A selected name, an indexed name, or a slice name
+—
+A qualification (in a qualified expression), an explicit type conversion, a formal or actual part in the
+form of a type conversion, or an implicit type conversion of a value of type universal_integer or
+universal_real to the corresponding value of another numeric type
+—
+A numeric literal (for a universal type), the literal null (for an access type), a string literal, a bit string
+literal, an aggregate, or a predefined attribute
+There are five primary classes of types. A scalar type contains a single value. Scalar types include integer
+types, floating-point types, physical types, and enumeration types. An enumeration type is defined by an
+enumeration of its values. A composite type is a collection of elements. Composite types include array types
+and record types. An access type provides access to objects of a given type. A file type provides access to
+objects that contain a sequence of values of a given type. A protected type provides atomic and exclusive
+access to a variable accessible to multiple processes.
+The type mark in a port declaration or a parameter declaration or the subtype indication of an external name
+may also denote an unspecified type. An unspecified type is an incomplete type indication that defines a set
+of allowed operations.
+The set of possible values for an object of a given type can be subjected to a condition that is called a
+constraint (the case where the constraint imposes no restriction is also included); a value is said to satisfy a
+constraint if it satisfies the corresponding condition. A subtype is a type together with a constraint. A value is
+said to belong to a subtype of a given type if it belongs to the type and satisfies the constraint; the given type
+is called the base type of the subtype. A type is a subtype of itself; such a subtype is said to be unconstrained
+(it corresponds to a condition that imposes no restriction). The base type of a type is the type itself.
+A composite subtype is said to be unconstrained if:
+—
+It is an array subtype with no index constraint and the element subtype either is not a composite
+subtype or is an unconstrained composite type, or
+—
+It is a record subtype with at least one element of a composite subtype and each element that is of a
+composite subtype is unconstrained.
+A composite subtype is said to be fully constrained if:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+50
+Copyright © 2019 IEEE. All rights reserved.
+—
+It is an array subtype with an index constraint and the element subtype either is not a composite
+subtype or is a fully constrained composite type, or
+—
+It is a record subtype and each element subtype either is not a composite subtype or is a fully
+constrained composite subtype.
+A composite subtype is said to be partially constrained if it is neither unconstrained nor fully constrained.
+The set of operations defined for a subtype of a given type includes the operations defined for the type;
+however, the assignment operation to an object having a given subtype only assigns values that belong to the
+subtype. Additional operations, such as qualification (in a qualified expression) are implicitly defined by a
+subtype declaration.
+The term subelement is used in this standard in place of the term element to indicate either an element, or an
+element of another element. Where other subelements are excluded, the term element is used instead.
+A given type shall not have a subelement whose type is the given type itself.
+A member of an object is one of the following:
+—
+A slice of the object
+—
+A subelement of the object
+—
+A slice of a subelement of the object
+The name of a class of types is used in this standard as a qualifier for objects and values that have a type of
+the class considered. For example, the term array object is used for an object whose type is an array type;
+similarly, the term access value is used for a value of an access type.
+NOTE 1—The set of values of a subtype is a subset of the values of the base type. This subset need not be a proper
+subset.
+NOTE 2—All composite subelements of an unconstrained type are unconstrained.
+### 5.2 Scalar types
+
+#### 5.2.1 General
+
+Scalar types consist of enumeration types, integer types, physical types, and floating-point types.
+Enumeration types and integer types are called discrete types. Integer types, floating-point types, and
+physical types are called numeric types. All scalar types are ordered; that is, all relational operators are
+predefined for their values. Each value of a discrete or physical type has a position number that is an integer
+value.
+```ebnf
+scalar_type_definition ::=
+```
+
+enumeration_type_definition
+|
+integer_type_definition
+|
+floating_type_definition
+|   physical_type_definition
+```ebnf
+range_constraint ::= range range
+range ::=
+```
+
+range_attribute_name
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+51
+Copyright © 2019 IEEE. All rights reserved.
+|   simple_range
+|   range_expression
+```ebnf
+simple_range ::= simple_expression direction simple_expression
+direction ::= to | downto
+```
+
+A range specifies a subset of values of a scalar type. A range is said to be a null range if the specified subset
+is empty.
+The range L to R is called an ascending range; if L > R, then the range is a null range. The range L downto
+R is called a descending range; if L < R, then the range is a null range. L is called the left bound of the range,
+and R is called the right bound of the range. The lower bound of a range is the left bound if the range is
+ascending or the right bound if the range is descending. The upper bound of a range is the right bound if the
+range is ascending or the left bound if the range is descending. The value V is said to belong to the range if
+the relations (lower bound <= V) and (V <= upper bound) are both true. The operators >, <, and <= in the
+preceding definitions are the predefined operators of the applicable scalar type.
+For values of discrete or physical types, a value V1 is said to be to the left of a value V2 within a given range
+if both V1 and V2 belong to the range and either the range is an ascending range and V2 is the successor of
+V1, or the range is a descending range and V2 is the predecessor of V1. A list of values of a given range is in
+left to right order if each value in the list is to the left of the next value in the list within that range, except for
+the last value in the list.
+Each scalar type and each scalar subtype has an implicitly defined record type, called range record, which
+represents the range of that scalar type (see 5.3.3.2). A range record is said to correspond to a type or subtype
+T and vice versa, if the type of the range record bounds matches T.
+It is an error if the type of a range expression is not a range record type.
+If a range constraint is used in a subtype indication, the type of the expressions (likewise, of the bounds of a
+range attribute) shall be the same as the base type of the type mark of the subtype indication. A range
+constraint is compatible with a subtype if each bound of the range belongs to the subtype or if the range
+constraint defines a null range. Otherwise, the range constraint is not compatible with the subtype.
+A subtype S1 is compatible with a subtype S2 if the range constraint associated with S1 is compatible with
+S2.
+The direction of a range constraint is the same as the direction of its range.
+NOTE—Indexing and iteration rules use values of discrete types.
+#### 5.2.2 Enumeration types
+
+##### 5.2.2.1 General
+
+An enumeration type definition defines an enumeration type.
+```ebnf
+enumeration_type_definition ::=
+```
+
+( enumeration_literal { , enumeration_literal } )
+```ebnf
+enumeration_literal ::=  identifier | character_literal
+```
+
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+52
+Copyright © 2019 IEEE. All rights reserved.
+The identifiers and character literals listed by an enumeration type definition shall be distinct within the
+enumeration type definition. Each enumeration literal is the declaration of the corresponding enumeration
+literal. For the purpose of determining the parameter and result type profile of an enumeration literal, this
+declaration is equivalent to the declaration of a parameterless function whose designator is the same as the
+enumeration literal and whose result type is the same as the enumeration type; the declaration is,
+nonetheless, a declaration of a literal, not of a function.
+An enumeration type is said to be a character type if at least one of its enumeration literals is a character
+literal.
+Each enumeration literal yields a different enumeration value. The predefined order relations between
+enumeration values follow the order of corresponding position numbers. The position number of the value
+of the first listed enumeration literal is zero; the position number for each additional enumeration literal is
+one more than that of its predecessor in the list.
+If the same identifier or character literal is specified in more than one enumeration type definition, the
+corresponding literals are said to be overloaded. At any place where an overloaded enumeration literal
+occurs in the text of a program, the type of the enumeration literal is determined according to the rules for
+overloaded subprograms (see 4.5).
+Each enumeration type definition defines an ascending range.
+Examples:
+type MULTI_LEVEL_LOGIC is (LOW, HIGH, RISING, FALLING, AMBIGUOUS);
+type BIT is ('0','1');
+type SWITCH_LEVEL is ('0','1','X');     --  Overloads '0' and '1'
+##### 5.2.2.2 Predefined enumeration types
+
+The predefined enumeration types are CHARACTER, BIT, BOOLEAN, SEVERITY_LEVEL,
+RANGE_DIRECTION,
+FILE_OPEN_KIND,
+FILE_OPEN_STATUS,
+FILE_OPEN_STATE,
+and
+FILE_ORIGIN_KIND.
+The predefined type CHARACTER is a character type whose values are the 256 characters of the ISO/IEC
+8859-1 character set. Each of the 191 graphic characters of this character set is denoted by the corresponding
+character literal.
+The declarations of the predefined types CHARACTER, BIT, BOOLEAN, SEVERITY_LEVEL,
+RANGE_DIRECTION,
+FILE_OPEN_KIND,
+FILE_OPEN_STATUS,
+FILE_OPEN_STATE,
+and
+FILE_ORIGIN_KIND appear in package STANDARD in Clause 16.
+NOTE 1—The first 33 nongraphic elements of the predefined type CHARACTER (from NUL through DEL) are the
+ASCII abbreviations for the nonprinting characters in the ASCII set (except for those noted in Clause 16). The ASCII
+names are chosen as ISO/IEC 8859-1:1998 does not assign them abbreviations. The next 32 (C128 through C159) are
+also not assigned abbreviations, so names unique to VHDL are assigned.
+NOTE 2—Type BOOLEAN can be used to model either active high or active low logic depending on the particular
+conversion functions chosen to and from type BIT.
+#### 5.2.3 Integer types
+
+##### 5.2.3.1 General
+
+An integer type definition defines an integer type whose set of values includes those of the specified range.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+53
+Copyright © 2019 IEEE. All rights reserved.
+```ebnf
+integer_type_definition ::=  range_constraint
+```
+
+An integer type definition defines both a type and a subtype of that type. The type is an anonymous type, the
+range of which is selected by the implementation; this range shall be such that it wholly contains the range
+given in the integer type definition. The subtype is a named subtype of this anonymous base type, where the
+name of the subtype is that given by the corresponding type declaration and the range of the subtype is the
+given range.
+Each bound of a range constraint that is used in an integer type definition shall be a locally static expression
+of some integer type, but the two bounds need not have the same integer type. (Negative bounds are
+allowed.)
+Integer literals are the literals of an anonymous predefined type that is called universal_integer in this
+standard. Other integer types have no literals. However, for each integer type there exists an implicit
+conversion that converts a value of type universal_integer into the corresponding value (if any) of the
+integer type (see 9.3.6).
+The position number of an integer value is the corresponding value of the type universal_integer.
+The same arithmetic operators are predefined for all integer types (see 9.2). It is an error if the execution of
+such an operation (in particular, an implicit conversion) cannot deliver the correct result (that is, if the value
+corresponding to the mathematical result is not a value of the integer type).
+An implementation may restrict the bounds of the range constraint of integer types other than type
+universal_integer. However, an implementation shall allow the declaration of any integer type whose range
+is wholly contained within the bounds –(263) and (263)–1 inclusive.
+Examples:
+type TWOS_COMPLEMENT_INTEGER is range -32768 to 32767;
+type BYTE_LENGTH_INTEGER is range 0 to 255;
+type WORD_INDEX is range 31 downto 0;
+subtype HIGH_BIT_LOW is BYTE_LENGTH_INTEGER range 0 to 127;
+##### 5.2.3.2 Predefined integer types
+
+The only predefined integer type is the type INTEGER. The range of INTEGER is implementation
+dependent and shall include the range –(263) to (263)–1 inclusive. It is defined with an ascending range. The
+declaration of type INTEGER appears in the package STANDARD in Clause 16.
+NOTE—The range of INTEGER in a particular implementation is determinable from the values of its 'LOW and 'HIGH
+attributes.
+#### 5.2.4 Physical types
+
+##### 5.2.4.1 General
+
+Values of a physical type represent measurements of some quantity. Any value of a physical type is an
+integral multiple of the primary unit of measurement for that type.
+```ebnf
+physical_type_definition ::=
+```
+
+range_constraint
+
+units
+
+primary_unit_declaration
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+54
+Copyright © 2019 IEEE. All rights reserved.
+
+{ secondary_unit_declaration }
+end units [ physical_type_simple_name ]
+```ebnf
+primary_unit_declaration ::=  identifier ;
+secondary_unit_declaration ::= identifier = physical_literal ;
+physical_literal ::=  [ abstract_literal ] unit_name
+```
+
+A physical type definition defines both a type and a subtype of that type. The type is an anonymous type, the
+range of which is selected by the implementation; this range shall be such that it wholly contains the range
+given in the physical type definition. The subtype is a named subtype of this anonymous base type, where
+the name of the subtype is that given by the corresponding type declaration and the range of the subtype is
+the given range.
+Each bound of a range constraint that is used in a physical type definition shall be a locally static expression
+of some integer type, but the two bounds need not have the same integer type. (Negative bounds are
+allowed.)
+Each unit declaration (either the primary unit declaration or a secondary unit declaration) defines a unit
+name. Unit names declared in secondary unit declarations shall be directly or indirectly defined in terms of
+integral multiples of the primary unit of the type declaration in which they appear. The position numbers of
+unit names need not lie within the range specified by the range constraint.
+If a simple name appears at the end of a physical type declaration, it shall repeat the identifier of the type
+declaration in which the physical type definition is included.
+The abstract literal portion (if present) of a physical literal appearing in a secondary unit declaration shall be
+an integer literal.
+A physical literal consisting solely of a unit name is equivalent to the integer 1 followed by the unit name.
+There is a position number corresponding to each value of a physical type. The position number of the value
+corresponding to a unit name is the number of primary units represented by that unit name. The position
+number of the value corresponding to a physical literal with an abstract literal part is the largest integer that
+is not greater than the product of the value of the abstract literal and the position number of the
+accompanying unit name.
+The same arithmetic operators are predefined for all physical types (see 9.2). It is an error if the execution of
+such an operation cannot deliver the correct result (i.e., if the value corresponding to the mathematical result
+is not a value of the physical type).
+An implementation may restrict the bounds of the range constraint of a physical type. However, an
+implementation shall allow the declaration of any physical type whose range is wholly contained within the
+bounds –(263) and (263)–1 inclusive.
+Examples:
+type DURATION is range -1E18 to 1E18
+units
+fs;
+-- femtosecond
+ps =   1000 fs;
+-- picosecond
+ns =   1000 ps;
+-- nanosecond
+us =   1000 ns;
+-- microsecond
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+55
+Copyright © 2019 IEEE. All rights reserved.
+ms =   1000 us;
+-- millisecond
+sec = 1000 ms;
+-- second
+min = 60 sec;
+-- minute
+end units;
+type DISTANCE is range 0 to 1E16
+units
+-- primary unit:
+Å;
+-- angstrom
+-- metric lengths:
+nm =
+## 10 Å;
+
+-- nanometer
+um =
+## 1000 nm;
+
+-- micrometer (or micron)
+mm =
+## 1000 um;
+
+-- millimeter
+cm =
+## 10 mm;
+
+-- centimeter
+m =   1000 mm;
+-- meter
+km =
+## 1000 m;
+
+-- kilometer
+end units DISTANCE;
+variable x: distance;
+variable y: duration;
+variable z: integer;
+x := 5 Å + 13 m - 27 cm;
+y := 3 ns + 5 min;
+z := ns / ps;
+x := z * m;
+y := y/10;
+z := 159.34 cm / m;
+NOTE 1—The 'POS and 'VAL attributes may be used to convert between abstract values and physical values.
+NOTE 2—The value of a physical literal, whose abstract literal is either the integer value zero or the floating-point value
+zero, is the same value (specifically zero primary units) no matter what unit name follows the abstract literal.
+##### 5.2.4.2 Predefined physical types
+
+The only predefined physical type is type TIME. The range of TIME is implementation dependent and shall
+include the range –(263) to (263)–1. It is defined with an ascending range. All specifications of delays and
+pulse rejection limits shall be of type TIME. The declaration of type TIME appears in package STANDARD
+in Clause 16.
+By default, the primary unit of type TIME (1 fs) is the resolution limit for type TIME. Any TIME value
+whose absolute value is smaller than this limit is truncated to zero (0) time units. An implementation may
+allow a given elaboration of a model (see Clause 14) to select a secondary unit of type TIME as the
+resolution limit. Furthermore, an implementation may restrict the precision of the representation of values of
+type TIME and the results of expressions of type TIME, provided that values as small as the resolution limit
+are representable within those restrictions. It is an error if a given unit of type TIME appears anywhere
+within the design hierarchy defining a model to be elaborated, and if the position number of that unit is less
+than that of the secondary unit selected as the resolution limit for type TIME during the elaboration of the
+model, unless that unit is part of a physical literal whose abstract literal is either the integer value zero or the
+floating-point value zero.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+56
+Copyright © 2019 IEEE. All rights reserved.
+NOTE—By selecting a secondary unit of type TIME as the resolution limit for type TIME, it may be possible to
+simulate for a longer period of simulated time, with reduced accuracy, or to simulate with greater accuracy for a shorter
+period of simulated time.
+Cross-references: Delay and rejection limit in a signal assignment, 10.5; disconnection, delay of a guarded
+signal, 7.4; function NOW, 16.3; predefined attributes, functions of TIME, 16.2; simulation time, 14.7.3 and
+14.7.4; type TIME, 16.3; updating a projected waveform, 10.5.2.2; wait statements, timeout clause in, 10.2;
+elaboration of a declarative part, 14.4.
+#### 5.2.5 Floating-point types
+
+##### 5.2.5.1 General
+
+Floating-point types provide approximations to the real numbers.
+```ebnf
+floating_type_definition ::=  range_constraint
+```
+
+A floating type definition defines both a type and a subtype of that type. The type is an anonymous type, the
+range of which is selected by the implementation; this range shall be such that it wholly contains the range
+given in the floating type definition. The subtype is a named subtype of this anonymous base type, where the
+name of the subtype is that given by the corresponding type declaration and the range of the subtype is the
+given range.
+Each bound of a range constraint that is used in a floating type definition shall be a locally static expression
+of some floating-point type, but the two bounds need not have the same floating-point type. (Negative
+bounds are allowed.)
+Floating-point literals are the literals of an anonymous predefined type that is called universal_real in this
+standard. Other floating-point types have no literals. However, for each floating-point type there exists an
+implicit conversion that converts a value of type universal_real into the corresponding value (if any) of the
+floating-point type (see 9.3.6).
+The same arithmetic operations are predefined for all floating-point types (see 9.2). A design is erroneous if
+the execution of such an operation cannot deliver the correct result (that is, if the value corresponding to the
+mathematical result is not a value of the floating-point type).
+An implementation shall choose a representation for all floating-point types except for universal_real that
+conforms to IEEE Std 754-2019. A minimum representation size of 64 bits is required for this chosen
+representation.
+An implementation may restrict the bounds of the range constraint of floating-point types other than type
+universal_real. However, an implementation shall allow the declaration of any floating-point type whose
+range is wholly contained within the bounds allowed by the chosen representation.
+NOTE—An implementation is not required to detect errors in the execution of a predefined floating-point arithmetic
+operation, since the detection of overflow conditions resulting from such operations might not be easily accomplished on
+many host systems.
+##### 5.2.5.2 Predefined floating-point types
+
+The only predefined floating-point type is the type REAL. The range of REAL is host-dependent and shall
+be the largest allowed by the chosen representation. It is defined with an ascending range. The declaration of
+type REAL appears in package STANDARD in Clause 16.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+57
+Copyright © 2019 IEEE. All rights reserved.
+NOTE—The range of REAL in a particular implementation is determinable from the values of its 'LOW and 'HIGH
+attributes.
+#### 5.2.6 Predefined operations on scalar types
+
+Given a type declaration that declares a scalar type T, the following operations are implicitly declared
+immediately following the type declaration (except for the TO_STRING operations in package
+STANDARD, which are implicitly declared at the end of the package declaration):
+function MINIMUM (L, R: T) return T;
+function MAXIMUM (L, R: T) return T;
+function TO_STRING (VALUE: T) return STRING;
+The MINIMUM operation returns the value of L if L < R, or the value of R otherwise. The MAXIMUM
+operation returns the value of R if L < R, or the value of L otherwise. For both operations, the comparison is
+performed using the predefined relational operator for the type.
+The TO_STRING operation returns the string representation (see 5.7) of the value of its actual parameter.
+The result type of the operation is the type STRING defined in package STANDARD.
+The following operations are implicitly declared in package STD.STANDARD immediately following the
+declaration of the type BOOLEAN:
+function RISING_EDGE (signal S: BOOLEAN) return BOOLEAN;
+function FALLING_EDGE (signal S: BOOLEAN) return BOOLEAN;
+The function RISING_EDGE applied to a signal S of type BOOLEAN is TRUE if the expression
+“S'EVENT and S” is TRUE, and FALSE otherwise. The function FALLING_EDGE applied to a signal S of
+type BOOLEAN is TRUE if the expression “S'EVENT and not S” is TRUE, and FALSE otherwise.
+The following operations are implicitly declared in package STD.STANDARD immediately following the
+declaration of the type BIT:
+function RISING_EDGE (signal S: BIT) return BOOLEAN;
+function FALLING_EDGE (signal S: BIT) return BOOLEAN;
+The function RISING_EDGE applied to a signal S of type BIT is TRUE if the expression “S'EVENT and S
+= '1'” is TRUE, and FALSE otherwise. The function FALLING_EDGE applied to a signal S of type BIT is
+TRUE if the expression “S'EVENT and S = '0'” is TRUE, and FALSE otherwise.
+The following operation is implicitly declared in package STD.STANDARD at the end of the package
+declaration:
+function TO_STRING (VALUE: TIME; UNIT: TIME) return STRING;
+This overloaded TO_STRING operation returns the string representation (see 5.7) of the value of its actual
+parameter. The result type of the operation is the type STRING defined in package STANDARD. The
+parameter UNIT specifies how the result is to be formatted. The value of this parameter shall be equal to one
+of the units declared as part of the declaration of type TIME; the result is that the TIME value is formatted as
+an integer or real literal representing the number of multiples of this unit, followed by the name of the unit
+itself.
+The following operations are implicitly declared in package STD.STANDARD at the end of the package
+declaration:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+58
+Copyright © 2019 IEEE. All rights reserved.
+function TO_STRING (VALUE: REAL; DIGITS: NATURAL) return STRING;
+function TO_STRING (VALUE: REAL; FORMAT: STRING) return STRING;
+These overloaded TO_STRING operations return the value of the VALUE parameter converted to a string
+whose format is specified by the value of the DIGITS or FORMAT parameter, respectively. The result type
+of the operations is the type STRING defined in package STANDARD.
+For the operation with the DIGITS parameter, the result is the string representation of the value. The
+DIGITS specifies how many digits appear to the right of the decimal point. If DIGITS is 0, then the string
+representation is the same as that produced by the TO_STRING operation without the DIGITS or FORMAT
+parameter. If DIGITS is non-zero, then the string representation contains an integer part followed by '.'
+followed by the fractional part, using the specified number of digits, and no exponent (e.g., 3.14159).
+For the operation with the FORMAT parameter, the format of the result is determined using the value of the
+FORMAT parameter in the manner described in ISO/IEC 8859-1:1998, ISO/IEC 9899:2018 for the C
+fprintf function. A model is erroneous if it calls the operation with a value for the FORMAT parameter
+that is other than a conversion specification in which the conversion specifier is one of e, E, f, F, g, G, a, or
+A. Moreover, the model is erroneous if the conversion specification contains a length modifier or uses an
+asterisk for the field width or precision. An implementation shall support use of the conversion specifiers e,
+E, f, g, and G, and may additionally support use of the conversion specifiers F, a, and A. A model is
+erroneous if it calls the operation with a value for the FORMAT parameter that is a conversion specification
+in which the conversion specifier is one of F, a, or A and the implementation does not support use of the
+conversion specifier. The values of FLT_RADIX and DECIMAL_DIG (described in ISO/IEC 8859-1:1998,
+ISO/IEC 9899:2018) are implementation defined.
+### 5.3 Composite types
+
+#### 5.3.1 General
+
+Composite types are collections of elements. These include both arrays (a collection whose elements have a
+homogeneous type) and records (a collection whose elements potentially have heterogeneous types).
+```ebnf
+composite_type_definition ::=
+```
+
+array_type_definition
+|
+record_type_definition
+An object of a composite type represents a collection of objects, one for each element of the composite
+object. Thus an object of a composite type ultimately represents a collection of objects of scalar, access, file
+or protected types, one for each noncomposite subelement of the composite object.
+If any subelement of a composite type has a protected type, then all noncomposite subelements of the
+composite type shall have protected types. For each of these subelements of protected type, the guarantee of
+exclusive access extends only to the shared data of that subelement and is not extended to other subelements
+of the composite. Thus one process may access a method of one noncomposite subelement of the object
+while another process may simultaneously access a method of a different noncomposite subelement.
+If any subelement of a composite type has a file type, then all noncomposite subelements of the composite
+type shall have file types.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+59
+Copyright © 2019 IEEE. All rights reserved.
+#### 5.3.2 Array types
+
+##### 5.3.2.1 General
+
+An array object is a composite object consisting of elements that have the same subtype. The name for an
+element of an array uses one or more index values belonging to specified discrete types. For an array object
+whose subelements have neither a protected type nor a file type, the value of the object is a composite value
+consisting of the value of its elements. Array objects with subelements of a protected type or a file type have
+no value.
+```ebnf
+array_type_definition ::=
+```
+
+unbounded_array_definition
+    |
+constrained_array_definition
+```ebnf
+unbounded_array_definition ::=
+```
+
+array ( index_subtype_definition { , index_subtype_definition } )
+
+of element_subtype_indication
+```ebnf
+constrained_array_definition ::=
+```
+
+array index_constraint
+of element_subtype_indication
+```ebnf
+index_subtype_definition ::= type_mark range <>
+array_constraint ::=
+```
+
+index_constraint [ array_element_constraint ]
+      |
+( open ) [ array_element_constraint ]
+```ebnf
+array_element_constraint ::= element_constraint
+index_constraint ::=  ( discrete_range { , discrete_range } )
+discrete_range ::=
+```
+
+discrete_subtype_indication
+|
+range
+An array constraint may be used to constrain an array type or subtype (see 5.3.2.2, 6.3).
+An array object is characterized by the number of indices (the dimensionality of the array); the type,
+position, and range of each index; and the type and possible constraints of the elements. The order of the
+indices is significant.
+A one-dimensional array has a distinct element for each possible index value. A multidimensional array has
+a distinct element for each possible sequence of index values that can be formed by selecting one value for
+each index (in the given order). The possible values for a given index are all the values that belong to the
+corresponding range; this range of values is called the index range.
+An unbounded array definition in which the element subtype indication denotes either an unconstrained
+composite subtype or a subtype that is not a composite subtype defines an array type and a name denoting
+that type. For each object that has the array type, the number of indices, the type and position of each index,
+and the subtype of the elements are as in the type definition. The index subtype for a given index position is,
+by definition, the subtype denoted by the type mark of the corresponding index subtype definition. The
+values of the left and right bounds of each index range are not defined, but shall belong to the corresponding
+index subtype; similarly, the direction of each index range is not defined. The symbol <> (called a box) in an
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+60
+Copyright © 2019 IEEE. All rights reserved.
+index subtype definition stands for an undefined range (different objects of the type need not have the same
+bounds and direction).
+An unbounded array definition in which the element subtype indication denotes a partially or fully
+constrained composite subtype defines both an array type and a subtype of this type:
+—
+The array type is an implicitly declared anonymous type; this type is defined by an implicit
+unbounded array definition, in which the element subtype indication denotes the base type of the
+subtype denoted by the element subtype indication of the explicit unbounded array definition and in
+which the index subtype definitions are those of the explicit unbounded array definition, in the same
+order.
+—
+The array subtype is the subtype obtained by imposition of the constraint of the subtype denoted by
+the element subtype indication of the explicit unbounded array definition as an array element
+constraint on the array type.
+A constrained array definition similarly defines both an array type and a subtype of this type:
+—
+The array type is an implicitly declared anonymous type; this type is defined by an (implicit)
+unbounded array definition, in which the element subtype indication either denotes the base type of
+the subtype denoted by the element subtype indication of the constrained array definition, if that
+subtype is a composite type, or otherwise is the element subtype indication of the constrained array
+definition, and in which the type mark of each index subtype definition denotes the subtype defined
+by the corresponding discrete range.
+—
+The array subtype is the subtype obtained by imposition of the index constraint on the array type and,
+if the element subtype indication of the constrained array definition denotes a fully or partially
+constrained composite subtype, imposition of the constraint of that subtype as an array element
+constraint on the array type.
+If an array definition that defines both an array type and a subtype of that type is given for a type declaration,
+the simple name declared by this declaration denotes the array subtype.
+The direction of a discrete range is the same as the direction of the range or the discrete subtype indication
+that defines the discrete range. If a subtype indication appears as a discrete range, the subtype indication
+shall not contain a resolution indication.
+Examples:
+—
+Examples of fully constrained array declarations:
+type MY_WORD is array (0 to 31) of BIT;
+--  A memory word type with an ascending range.
+type DATA_IN is array (7 downto 0) of FIVE_LEVEL_LOGIC;
+--  An input port type with a descending range.
+—
+Example of partially constrained array declarations:
+type MEMORY is array (INTEGER range <>) of MY_WORD;
+--  A memory array type.
+—
+Example of unconstrained array declarations:
+type SIGNED_FXPT is array (INTEGER range <>) of BIT;
+-- A signed fixed-point array type
+type SIGNED_FXPT_VECTOR is array (NATURAL range <>) of
+SIGNED_FXPT;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+61
+Copyright © 2019 IEEE. All rights reserved.
+-- A vector of signed fixed-point elements
+—
+Example of partially constrained array declarations:
+type SIGNED_FXPT_5x4 is array (1 to 5, 1 to 4) of SIGNED_FXPT;
+-- A matrix of signed fixed-point elements
+—
+Examples of array object declarations:
+signal DATA_LINE: DATA_IN;
+
+--  Defines a data input line.
+variable MY_MEMORY: MEMORY (0 to 2**n-1);
+
+--  Defines a memory of 2n 32-bit words.
+signal FXPT_VAL: SIGNED_FXPT (3 downto -4);
+
+-- Defines an 8-bit fixed-point signal
+signal VEC: SIGNED_FXPT_VECTOR (1 to 20)(9 downto 0);
+
+-- Defines a vector of 20 10-bit fixed-point elements
+variable SMATRIX: SIGNED_FXPT_5x4 (open)(3 downto -4);
+
+-- Defines a 5x4 matrix of 8-bit fixed-point elements
+NOTE—The rules concerning constrained type declarations mean that a type declaration with a constrained array
+definition such as:
+type T is array (POSITIVE range MIN_BOUND to MAX_BOUND) of ELEMENT;
+is equivalent to the sequence of declarations
+subtype index_subtype is POSITIVE range MIN_BOUND to MAX_BOUND;
+type array_type is array (index_subtype range <>) of ELEMENT'BASE;
+subtype T is array_type (index_subtype)element_constraint;
+where index_subtype and array_type are both anonymous and element_constraint is the constraint that applies to the
+subtype ELEMENT. Consequently, T is the name of a subtype and all objects declared with this type mark are arrays
+that have the same index range.
+Similarly, a type declaration with an unbounded array definition whose element subtype indication denotes a partially or
+fully constrained subtype such as
+type T is array (INTEGER range <>) of STRING(1 to 10);
+is equivalent to the sequence of declarations
+type array_type is array (INTEGER range <>) of STRING'BASE;
+subtype T is array_type (open)(1 to 10);
+##### 5.3.2.2 Index constraints and discrete ranges
+
+An index constraint determines the index range for every index of an array type and, thereby, the
+corresponding array bounds.
+For a discrete range used in a constrained array definition and defined by a range, an implicit conversion to
+the predefined type INTEGER is assumed if the type of both bounds (prior to the implicit conversion) is the
+type universal_integer. Otherwise, the type of the range shall be determined by applying the rules of 12.5 to
+the range, considered as a complete context, using the rules that the type shall be discrete and that both
+bounds shall have the same type. These rules apply also to a discrete range used in a loop parameter
+specification (see 10.10) or a generate parameter specification (see 11.8).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+62
+Copyright © 2019 IEEE. All rights reserved.
+If an array constraint of the first form (including an index constraint) applies to a type or subtype, then the
+type or subtype shall be an unconstrained or partially constrained array type with no index constraint
+applying to the index subtypes, or an access type whose designated type is such a type. In either case, the
+index constraint shall provide a discrete range for each index of the array type, and the type of each discrete
+range shall be the same as that of the corresponding index.
+An array constraint of the first form is compatible with the type if, and only if, the constraint defined by each
+discrete range is compatible with the corresponding index subtype and the array element constraint, if
+present, is compatible with the element subtype of the type. If any of the discrete ranges defines a null range,
+any array thus constrained is a null array, having no elements. An array value satisfies an index constraint if
+at each index position the array value and the index constraint have the same index range. (Note, however,
+that assignment and certain other operations on arrays involve an implicit subtype conversion.)
+If an array constraint of the second form (including the reserved word open in place of an index constraint)
+applies to a type or subtype, then the type or subtype shall be an array type or an access type whose
+designated type is an array type. The array constraint imposes no further constraint on the index subtypes of
+the array type. An array constraint of the second form is compatible with the type if, and only if, the array
+element constraint, if present, is compatible with the element subtype of the type.
+The index range for each index of an array object or array subelement of a composite object is determined as
+follows:
+a)
+For a constant, variable, or signal declared by an object declaration, if the subtype indication of the
+object declaration defines the index range, then the index range of the object is that defined by the
+subtype indication; otherwise, the index range of the object is the corresponding index range of the
+initial value if one is given. It is an error if the index range of the object cannot be determined from
+either the subtype indication or the initialization expression.
+b)
+For an attribute whose value is specified by an attribute specification, if the subtype of the attribute
+defines the index range, the index range of the value of the attribute is that defined by the subtype;
+otherwise, the index range of the value of the attribute is the corresponding index range of the
+expression given in the specification.
+c)
+For an object designated by an access value, the index ranges are defined by the allocator that
+creates the designated object (see 9.3.7).
+d)
+For an interface object of an array type, or a subelement of an interface object for which the
+subelement type is an array type, each index range is obtained as follows: Let the subtype index
+range be the corresponding index range of the subtype indication of the declaration of the object.
+1)
+If the subtype index range is defined by a constraint, the index range of the object is the subtype
+index range.
+2)
+If the subtype index range is undefined, and the interface object is associated by more than one
+association element or is associated by a single association element in which the formal
+designator is a slice name, then the direction of the index range of the object is that of the
+corresponding index subtype of the base type of the interface object, and the high and low
+bounds of the index range of the object are respectively determined from the maximum and
+minimum values of the indices given in the association element or elements corresponding to
+the interface object.
+3)
+If the subtype index range is undefined, and the interface object is associated in whole (see
+6.5.7.1) or is a subelement that is associated individually by a single association element other
+than one in which the formal designator is a slice name, then the index range of the object is
+obtained from the association element in the following manner:
+—
+For an interface object whose mode is in, inout or linkage, if the actual part includes a
+conversion function or a type conversion, then the result type of that function or the type
+mark of the type conversion shall define a constraint for the index range corresponding to
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+63
+Copyright © 2019 IEEE. All rights reserved.
+the index range of the object, and the index range of the object is obtained from that
+constraint; otherwise, the index range is obtained from the object or value denoted by the
+actual designator.
+—
+For an interface object whose mode is out, buffer, inout, or linkage, if the formal part
+includes a conversion function or a type conversion, then the parameter subtype of that
+function or the type mark of the type conversion shall define a constraint for the index
+range corresponding to the index range of the object, and the index range is obtained from
+that constraint; otherwise, the index range is obtained from the object denoted by the
+actual designator.
+—
+For an interface object of mode inout or linkage, the index range determined by the first
+rule shall be identical to the index range determined by the second rule.
+For a given array interface object, or for a given array subelement of an interface object, it is an error if
+application of the preceding rules yields different index ranges for any corresponding array subelements of
+the given interface object or given subelement.
+Examples:
+type Word is array (NATURAL range <>) of BIT;
+type Memory is array (NATURAL range <>) of Word (31 downto 0);
+constant A_Word: Word := "10011";
+
+--  The index range of A_Word is 0 to 4
+entity E is
+
+generic (ROM: Memory);
+
+port (Op1, Op2: in Word; Result: out Word);
+end entity E;
+
+-- The index ranges of the generic and the ports are defined by
+
+-- the actuals associated with an instance bound to E; these index
+
+-- ranges are accessible via the predefined array attributes
+
+-- (see Clause 16.2).
+signal A, B: Word (1 to 4);
+signal C: Word (5 downto 0);
+Instance: entity E
+generic map (ROM(1 to 2) => (others => (others => '0')))
+ port map (A, Op2(3 to 4) => B(1 to 2), Op2(2) => B(3),
+             Result => C(3 downto 1));
+   -- In this instance, the index range of ROM is 1 to 2 (matching
+   -- that of the actual), the index range of Op1 is 1 to 4 (matching
+   -- the index range of A), the index range of Op2 is 2 to 4, and
+   -- the index range of Result is(3 downto 1) (again matching the
+   -- index range of the actual).
+NOTE—An index constraint with a null discrete range for an index of an array subelement of a composite array type
+defines a null array subelement type. The array type is not necessarily a null array type. For example, given the
+declarations
+type E is array (NATURAL range <>) of INTEGER;
+type T is array (1 to 10) of E (1 to 0);
+values of type T are not null arrays. Rather, they are arrays of ten elements, each of which is a null array.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+64
+Copyright © 2019 IEEE. All rights reserved.
+##### 5.3.2.3 Predefined array types
+
+The predefined array types are STRING, BOOLEAN_VECTOR, BIT_VECTOR, INTEGER_VECTOR,
+REAL_VECTOR, and TIME_VECTOR, defined in package STANDARD in Clause 16.
+The values of the predefined type STRING are one-dimensional arrays of the predefined type
+CHARACTER, indexed by values of the predefined subtype POSITIVE:
+subtype POSITIVE is INTEGER range 1 to INTEGER'HIGH;
+type STRING is array (POSITIVE range <>) of CHARACTER;
+The values of the predefined types BOOLEAN_VECTOR, BIT_VECTOR, INTEGER_VECTOR,
+REAL_VECTOR, and TIME_VECTOR, are one-dimensional arrays of the predefined types BOOLEAN,
+BIT, INTEGER, REAL, and TIME, respectively, indexed by values of the predefined subtype NATURAL:
+subtype NATURAL is INTEGER range 0 to INTEGER'HIGH;
+type BOOLEAN_VECTOR is array (NATURAL range <>) of BOOLEAN;
+type BIT_VECTOR is array (NATURAL range <>) of BIT;
+type INTEGER_VECTOR is array (NATURAL range <>) of INTEGER;
+type REAL_VECTOR is array (NATURAL range <>) of REAL;
+type TIME_VECTOR is array (NATURAL range <>) of TIME;
+Examples:
+variable MESSAGE: STRING (1 to 17) := "THIS IS A MESSAGE";
+signal LOW_BYTE: BIT_VECTOR (0 to 7);
+constant MONITOR_ELEMENTS: BOOLEAN_VECTOR (LOW_BYTE'RANGE)
+
+:= (others => FALSE);
+constant ELEMENT_DELAYS: TIME_VECTOR (LOW_BYTE'RANGE)
+
+:= (others => UNIT_DELAY);
+variable BUCKETS: INTEGER_VECTOR (1 to 10);
+variable AVERAGES: REAL_VECTOR (1 to 10);
+##### 5.3.2.4 Predefined operations on array types
+
+Given a type declaration that declares a scalar array type T (see 9.2.3), the following operations are
+implicitly declared immediately following the type declaration:
+function MINIMUM (L, R: T) return T;
+function MAXIMUM (L, R: T) return T;
+The MINIMUM operation returns the value of L if L < R, or the value of R otherwise. The MAXIMUM
+operation returns the value of R if L < R, or the value of L otherwise. For both operations, the comparison is
+performed using the predefined relational operator for the type.
+In addition, given a type declaration that declares a one-dimensional array type T whose elements are of a
+scalar type E, the following operations are implicitly declared immediately following the type declaration:
+function MINIMUM (L: T) return E;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+65
+Copyright © 2019 IEEE. All rights reserved.
+function MAXIMUM (L: T) return E;
+The values returned by these operations are defined as follows.
+—
+The MINIMUM operation returns a value that is the least of the elements of L. That is, if L is a null
+array, the return value is E'HIGH. Otherwise, the return value is the result of a two-parameter
+MINIMUM operation. The first parameter of the two-parameter MINIMUM operation is the
+leftmost element of L. The second parameter of the two-parameter MINIMUM operation is the
+result of a single-parameter MINIMUM operation with the parameter being the rightmost
+(L'LENGTH – 1) elements of L.
+—
+The MAXIMUM operation returns a value that is the greatest of the elements of L. That is, if L is a
+null array, the return value is E'LOW. Otherwise, the return value is the result of a two-parameter
+MAXIMUM operation. The first parameter of the two-parameter MAXIMUM operation is the left-
+most element of L. The second parameter of the two-parameter MAXIMUM operation is the result
+of a single-parameter MAXIMUM operation with the parameter being the rightmost (L'LENGTH –
+1) elements of L.
+Given a type declaration that declares a representable array type T (see 5.7), the following operation is
+implicitly declared immediately following the type declaration:
+function TO_STRING (VALUE: T) return STRING;
+The TO_STRING operation returns the string representation (see 5.7) of the value of its actual parameter.
+The result type of the operation is the type STRING defined in package STANDARD.
+The following operations are implicitly declared in package STD.STANDARD immediately following the
+declaration of the type BIT_VECTOR:
+alias TO_BSTRING is TO_STRING [BIT_VECTOR return STRING];
+alias TO_BINARY_STRING is TO_STRING [BIT_VECTOR return STRING];
+function TO_OSTRING (VALUE: BIT_VECTOR) return STRING;
+alias TO_OCTAL_STRING is TO_OSTRING [BIT_VECTOR return STRING];
+function TO_HSTRING (VALUE: BIT_VECTOR) return STRING;
+alias TO_HEX_STRING is TO_HSTRING [BIT_VECTOR return STRING];
+These operations return strings that are the binary, octal, and hexadecimal representations, respectively, of
+the parameters. For the TO_OSTRING operation, the result has an uppercase octal digit corresponding to
+each group of three elements in the parameter value. If the length of the parameter value is not a multiple of
+three, then one or two '0' elements are implicitly concatenated on the left of the parameter value to yield a
+value that is a multiple of three in length. Similarly, for the TO_HSTRING operation, the result has an
+uppercase hexadecimal digit corresponding to each group of four elements in the parameter value. If the
+length of the parameter value is not a multiple of four, then one, two, or three '0' elements are implicitly
+concatenated on the left of the parameter value to yield a value that is a multiple of four in length.
+#### 5.3.3 Record types
+
+##### 5.3.3.1 General
+
+A record type is a composite type, objects of which consist of named elements. For a record object whose
+subelements have neither a protected type nor a file type, the value of the object is a composite value
+consisting of the values of its elements. Record objects with subelements of a protected type or a file type
+have no value.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+66
+Copyright © 2019 IEEE. All rights reserved.
+```ebnf
+record_type_definition ::=
+```
+
+record
+
+{ element_declaration }
+
+end record [ record_type_simple_name ]
+```ebnf
+element_declaration ::=
+```
+
+identifier_list : element_subtype_definition ;
+```ebnf
+identifier_list ::=  identifier { , identifier }
+element_subtype_definition ::= subtype_indication
+record_constraint ::=
+```
+
+( record_element_constraint { , record_element_constraint } )
+```ebnf
+record_element_constraint ::= record_element_simple_name element_constraint
+```
+
+A record constraint may be used to constrain a record type or subtype (see 6.3).
+Each element declaration declares an element of the record type. The identifiers of all elements of a record
+type shall be distinct. The use of a name that denotes a record element is not allowed within the record type
+definition that declares the element.
+An element declaration with several identifiers is equivalent to a sequence of single element declarations.
+Each single element declaration declares a record element whose subtype is specified by the element
+subtype definition.
+If a simple name appears at the end of a record type declaration, it shall repeat the identifier of the type
+declaration in which the record type definition is included.
+A record type definition creates a record type; it consists of the element declarations in the order in which
+they appear in the type definition.
+A record type definition in which each element subtype definition denotes either an unconstrained
+composite subtype or a subtype that is not a composite subtype defines a record type and a name denoting
+that type.
+A record type definition in which at least one element subtype definition denotes a partially or fully
+constrained composite subtype defines both a record type and a subtype of this type:
+—
+The record type is an implicitly declared anonymous type; this type is defined by an implicit record
+type definition with element declarations corresponding to those of the explicit record type
+definition, in the same order. Each element declaration has the same identifier list as that of the
+corresponding element declaration in the explicit record type definition. The element subtype
+definition in each element declaration denotes the base type of the subtype denoted by the element
+subtype definition of the corresponding element declaration in the explicit record type definition.
+—
+The record subtype is the subtype obtained by imposition of the constraints of the subtypes denoted
+by the element subtype definitions of the explicit record type definition as a record constraint on the
+record type.
+If a record type definition that defines both a record type and a subtype of that type is given for a type
+declaration, the simple name declared by this declaration denotes the record subtype.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+67
+Copyright © 2019 IEEE. All rights reserved.
+If a record constraint applies to a type or subtype, then the type or subtype shall be a record type or an access
+type whose designated type is a record type. For each record element constraint in the record constraint, the
+record type shall have an element with the same simple name as the record element simple name in the
+record element constraint. A record constraint is compatible with the type if, and only if, the constraint in
+each record element constraint is compatible with the element subtype of the corresponding element of the
+type.
+Example:
+type DATE is
+   record
+      DAY   : INTEGER range 1 to 31;
+      MONTH : MONTH_NAME;
+      YEAR  : INTEGER range 0 to 4000;
+   end record;
+type SIGNED_FXPT_COMPLEX is
+   record
+      RE : SIGNED_FXPT;
+      IM : SIGNED_FXPT;
+   end record;
+signal COMPLEX_VAL: SIGNED_FXPT_COMPLEX (RE(4 downto -16),
+
+IM(4 downto -12));
+##### 5.3.3.2 Predefined record types
+
+The declaration of each scalar type or subtype T defines an implicit record type, the range record of T, with
+three elements: Left, Right, and Direction. The elements Left and Right are of type T. The element Direction
+is of enumeration type RANGE_DIRECTION.
+The implicit range record shall be defined using the following template:
+type <unnamed_range_record> is record
+
+Left      : <scalar_type>;
+    Right     : <scalar_type>;
+    Direction : RANGE_DIRECTION;
+end record;
+##### 5.3.3.3 Predefined operations on record types
+
+Given a type declaration that declares a representable record type T (see 5.7), the following operation is
+implicitly declared immediately following the type declaration:
+function TO_STRING (VALUE: T) return STRING;
+The TO_STRING operation returns the string representation (see 5.7) of the value of its actual parameter.
+The result type of the operation is the type STRING defined in package STANDARD.
+NOTE—The TO_STRING function can be overridden to customize the returned string for a particular application. The
+format described in 5.7 is reasonably compact and simple for a machine to produce and parse. However, it would be
+challenging for a person to interpret from a simulation transcript.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+68
+Copyright © 2019 IEEE. All rights reserved.
+### 5.4 Access types
+
+#### 5.4.1 General
+
+An object declared by an object declaration is created by the elaboration of the object declaration and is
+denoted by a simple name or by some other form of name. In contrast, objects that are created by the
+evaluation of allocators (see 9.3.7) have no simple name. Access to such an object is achieved by an access
+value returned by an allocator; the access value is said to designate the object.
+```ebnf
+access_type_definition ::=  access subtype_indication [ generic_map_aspect ]
+```
+
+For each access type, there is a literal null that has a null access value designating no object at all. The null
+value of an access type is the default initial value of the type. Other values of an access type are obtained by
+evaluation of a special operation of the type, called an allocator. Each such access value designates an object
+of the subtype defined by the subtype indication of the access type definition. This subtype is called the
+designated subtype and the base type of this subtype is called the designated type.
+An object declared to be of an access type shall be an object of class variable. An object designated by an
+access value is always an object of class variable. It is an error if the object declared to be of access type is
+an object of subclass shared variable.
+If the designated type of an access type is a file type or a composite type with a subelement of a file type, an
+access value of that access type designates a file object. Similarly if the designated type of an access type is
+a protected type or a composite type with a subelement of a protected type, then an access value of that
+access type designates an object with a protected type.
+When a generic map aspect is present, the subtype indication shall denote an uninstantiated protected type
+declared in a protected type declaration. The generic map aspect, in this case, optionally associates a single
+actual with each formal generic (or member thereof) in the corresponding protected type declaration. Each
+formal generic (or member thereof) shall be associated at most once. The generic map aspect is described in
+6.5.7.2.
+For an access type definition whose designated type is specified by an uninstantiated protected type and a
+generic map aspect there is an equivalent implicit protected type instance declaration and an access type
+definition whose designated type is the implicitly defined protected type instance. The implicit protected
+type instance is defined immediately prior to the access type declaration in the same declarative region. A
+reference to the access type whose designated type is specified by an uninstantiated protected type and a
+generic map aspect is the same as a reference to an access type whose designated type is an explicitly
+declared protected type instance. The implicitly defined protected type instance declaration does not have a
+simple name.
+The designated type of an access type may denote an uninstantiated protected type without a generic map
+aspect. In this case the generic map aspect shall be part of the allocator (see 9.3.7).
+The only form of constraint that is allowed after the name of an access type in a subtype indication is an
+array constraint or a record constraint. An access value belongs to a corresponding subtype of an access type
+either if the access value is the null value or if the value of the designated object satisfies the constraint.
+Examples:
+type ADDRESS is access MEMORY;
+type BUFFER_PTR is access TEMP_BUFFER;
+type SB_Ptr_Type_slv is access ScoreBoardPType_slv ;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+69
+Copyright © 2019 IEEE. All rights reserved.
+-- ScoreBoardPType_slv is defined in Clause 5.6.4
+type SB_Generic_Ptr_Type is access ScoreBoardGenericPType ;
+-- access to uninstantiated protected types is allowed
+-- ScoreBoardGenericPType is defined in Clause 5.6.2
+type SB_Ptr_Type_int is access ScoreBoardGenericPType
+generic map (
+ExpectedType    => integer,
+ActualType      => integer,
+check           => std.standard."="
+);
+NOTE 1—An access value delivered by an allocator can be assigned to several variables of the corresponding access
+type. Hence, it is possible for an object created by an allocator to be designated by more than one variable of the access
+type. An access value can only designate an object created by an allocator; in particular, it cannot designate an object
+declared by an object declaration.
+NOTE 2—If the type of the object designated by the access value is an array type or has a subelement that is of an array
+type, this object is constrained with the array bounds supplied implicitly or explicitly for the corresponding allocator.
+#### 5.4.2 Incomplete type declarations
+
+The type of an element of the designated type of an access type can be another access type or even the same
+access type. This permits mutually dependent and recursive access types. Declarations of such types require
+a prior incomplete type declaration for one or more types.
+```ebnf
+incomplete_type_declaration ::= type identifier ;
+```
+
+For each incomplete type declaration there shall be a corresponding full type declaration with the same
+identifier. This full type declaration shall occur later and immediately within the same declarative part as the
+incomplete type declaration to which it corresponds.
+Prior to the end of the corresponding full type declaration, the only allowed use of a name that denotes a type
+declared by an incomplete type declaration is as the type mark in the subtype indication of an access type
+definition; no constraints are allowed in this subtype indication.
+Example of a recursive type:
+type CELL;  --  An incomplete type declaration.
+type LINK is access CELL;
+type CELL is
+record
+      VALUE : INTEGER;
+      SUCC  : LINK;
+      PRED  : LINK;
+   end record CELL;
+variable HEAD: LINK := new CELL'(0, null, null);
+variable \NEXT\: LINK := HEAD.SUCC;
+Examples of mutually dependent access types:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+70
+Copyright © 2019 IEEE. All rights reserved.
+type PART;  --  Incomplete type declarations.
+type WIRE;
+type PART_PTR is access PART;
+type WIRE_PTR is access WIRE;
+type PART_LIST is array (POSITIVE range <>) of PART_PTR;
+type WIRE_LIST is array (POSITIVE range <>) of WIRE_PTR;
+type PART_LIST_PTR is access PART_LIST;
+type WIRE_LIST_PTR is access WIRE_LIST;
+type PART is
+record
+PART_NAME   : STRING (1 to MAX_STRING_LEN);
+CONNECTIONS : WIRE_LIST_PTR;
+
+end record;
+type WIRE is
+
+record
+      WIRE_NAME : STRING (1 to MAX_STRING_LEN);
+      CONNECTS  : PART_LIST_PTR;
+   end record;
+#### 5.4.3 Allocation and deallocation of objects
+
+An object designated by an access value is allocated by an allocator for that type. An allocator is a primary
+of an expression; allocators are described in 9.3.7. For each access type, a deallocation operation is
+implicitly declared immediately following the full type declaration for the type.
+Given the following access type declaration:
+type AT is access T;
+the following legacy operation is implicitly declared immediately following the access type declaration:
+procedure DEALLOCATE (P: inout AT);
+Procedure DEALLOCATE takes as its single parameter a variable of the specified access type. The
+operation has no effect other than setting the access parameter P to the null value for the specified type.
+NOTE—If an access value is copied to a second variable and the first variable is then deleted, the first variable is set to
+null. However, the designated object remains allocated and the second variable still designates the object.
+### 5.5 File types
+
+#### 5.5.1 General
+
+A file type definition defines a file type. File types are used to define objects representing files in the host
+system environment. The value of a file object is the sequence of values contained in the host system file.
+```ebnf
+file_type_definition ::= file of type_mark
+```
+
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+71
+Copyright © 2019 IEEE. All rights reserved.
+The type mark in a file type definition defines the subtype of the values contained in the file. The type mark
+may denote either a fully constrained, a partially constrained, or an unconstrained subtype. The base type of
+this subtype shall not be a file type, an access type, or a protected type. If the base type is a composite type,
+it shall not contain a subelement of an access, protected, or file type. If the base type is an array type, it shall
+be a one-dimensional array type whose element subtype is fully constrained. If the base type is a record type,
+it shall be fully constrained.
+NOTE—A type mark in a file type declaration may be a formal generic type or have a subelement of a formal generic
+type. However, for an instance of the enclosing declaration that defines the formal generic type, a check is required that
+the actual generic type is neither an access type, protected type or file type nor contains a subelement of an access type,
+protected type or file type. Depending on the implementation, this check may be done during analysis of the
+instantiation, or it may be deferred until the design hierarchy is elaborated.
+Examples:
+file of STRING         --  Defines a file type that can contain
+
+--  an indefinite number of strings of
+
+--  arbitrary length.
+file of NATURAL        --  Defines a file type that can contain
+
+--  only nonnegative integer values.
+#### 5.5.2 File operations
+
+The language implicitly defines the operations for objects of a file type. Given the following file type
+declaration:
+type FT is file of TM;
+where type mark TM is as described in 5.5.1, the following operations are implicitly declared immediately
+following the file type declaration:
+procedure FILE_OPEN (file F: FT;
+                     External_Name: in STRING;
+                     Open_Kind: in FILE_OPEN_KIND := READ_MODE);
+procedure FILE_OPEN (Status: out FILE_OPEN_STATUS;
+                     file F: FT;
+                     External_Name: in STRING;
+                     Open_Kind: in FILE_OPEN_KIND := READ_MODE);
+impure function FILE_OPEN (file F: FT;
+
+External_Name: in STRING;
+
+Open_Kind: in FILE_OPEN_KIND := READ_MODE)
+return FILE_OPEN_STATUS;
+procedure FILE_REWIND (file F: FT);
+procedure FILE_SEEK (file F: FT; Offset: INTEGER;
+
+Origin: FILE_ORIGIN_KIND := FILE_ORIGIN_BEGIN);
+procedure FILE_TRUNCATE (
+file F: FT; Size: INTEGER;
+
+Origin: FILE_ORIGIN_KIND :=
+FILE_ORIGIN_BEGIN);
+function FILE_STATE (file F: FT) return FILE_OPEN_STATE;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+72
+Copyright © 2019 IEEE. All rights reserved.
+function FILE_MODE (file F: FT) return FILE_OPEN_KIND;
+function FILE_POSITION (file F: FT;
+Origin: FILE_ORIGIN_KIND :=
+FILE_ORIGIN_BEGIN)
+return INTEGER;
+function FILE_SIZE (file F: FT) return INTEGER;
+function FILE_CANSEEK (file F: FT) return BOOLEAN;
+procedure FILE_CLOSE (file F: FT);
+procedure READ (file F: FT; VALUE: out TM);
+procedure WRITE (file F: FT; VALUE: in TM);
+procedure FLUSH (file F: FT);
+function ENDFILE (file F: FT) return BOOLEAN;
+The FILE_OPEN procedures open an external file specified by the External_Name parameter and associate
+it with the file object F. If the call to FILE_OPEN is successful (see the following), the file object is said to
+be open and the file object has an access mode dependent on the value supplied to the Open_Kind parameter
+(see 16.3).
+—
+If the value supplied to the Open_Kind parameter is READ_MODE, the access mode of the file
+object is read-only. In addition, the file object is initialized so that a subsequent READ will return
+the first value in the external file. The file position is at the file beginning (position zero). Values are
+read from the file object in the order that they appear in the external file.
+—
+If the value supplied to the Open_Kind parameter is READ_WRITE_MODE, the access mode of the
+file object is read-write. The file position is at the file beginning (position zero). Values are read
+from the file object in the order in which they appear in the external file. Values written to the file
+object are placed in the external file in the order in which they are written.
+—
+If the value supplied to the Open_Kind parameter is WRITE_MODE, the access mode of the file
+object is write-only. In addition, the external file is made initially empty. The file position is at the
+beginning of the file (position zero). Values written to the file object are placed in the external file in
+the order in which they are written.
+—
+If the value supplied to the Open_Kind parameter is APPEND_MODE, the access mode of the file
+object is write-only. In addition, the file object is initialized so that values written to it will be added
+to the end of the external file in the order in which they are written. The file position is at the file
+ending.
+A slash ('/') occurring as an element of an External_Name is interpreted by the implementation as signifying
+the path separator sign. The implementation shall transform the slash into the implementation-defined
+representation of the path separator sign.
+In forms of FILE_OPEN with a Status parameter, the value returned through the Status parameter indicates
+the results of the procedure call:
+—
+A value of OPEN_OK indicates that the call to FILE_OPEN was successful. If the call to
+FILE_OPEN specifies an external file that does not exist at the beginning of the call, and if the
+access mode of the file object passed to the call is write-only, then the external file is created.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+73
+Copyright © 2019 IEEE. All rights reserved.
+—
+A value of STATUS_ERROR indicates that the file object already has an external file associated
+with it.
+—
+A value of NAME_ERROR indicates that the external file does not exist (in the case of an attempt to
+read from the external file) or the external file cannot be created (in the case of an attempt to write or
+append to an external file that does not exist). This value is also returned if the external file cannot be
+associated with the file object for any reason.
+—
+A value of MODE_ERROR indicates that the external file cannot be opened with the requested
+Open_Kind.
+The first form of FILE_OPEN causes an error to occur if the second form of FILE_OPEN, when called
+under identical conditions, would return a Status value other than OPEN_OK.
+A call to FILE_OPEN of the first form is successful if and only if the call does not cause an error to occur.
+Similarly, a call to FILE_OPEN of the latter form is successful if and only if it returns a status value of
+OPEN_OK.
+The impure function FILE_OPEN implements the same behavior as the procedure FILE_OPEN, with
+parameters F, External_Name, Open_Kind, and Status. The procedure’s output parameter Status of type
+FILE_OPEN_STATUS in the return value of the function.
+The unit of measurement for all read, write, seek and size operations is one scalar or fully constrained value
+as denoted by the type mark in the file type definition. If the type mark in a file type definition denotes an
+unconstrained array type, then each operation shall use the fully constrained element type of that
+unconstrained one-dimensional array type as a unit of measurement. The size and data structure alignment
+of the physical representation of a type mark is implementation-defined.
+The procedure FILE_REWIND moves the file position to the beginning of the file (position zero). It is an
+error if the file object is not open. It is also an error if the underlying file does not support seek operations,
+especially for the predefined file objects INPUT and OUTPUT.
+The procedure FILE_SEEK moves the file position relative to one of three origins denoted by the parameter
+Origin. Negative values for parameter Offset are allowed. The file position shall not exceed the range of a
+file object, which ranges from position zero (beginning) to the position returned by FILE_SIZE minus one.
+It is an error if the file object is not open. It is also an error if the underlying file does not support seek
+operations, especially for the predefined file objects INPUT and OUTPUT.
+The procedure FILE_TRUNCATE sets the size of a file. The file size can be set as an absolute size from the
+beginning or as a relative size by setting the Origin parameter. If parameter Origin is either
+FILE_ORIGIN_CURRENT or FILE_ORIGIN_END, then Size can also be negative to shrink a file. It is an
+error if the file object is not open or the file object was opened in READ_MODE. It is also an error if the
+underlying file does not support resize operations, especially for the predefined file objects INPUT and
+OUTPUT.
+The function FILE_STATE returns the current state (FILE_OPEN_STATE) of a file object, which is
+STATE_OPEN if the file is open, otherwise STATE_CLOSED.
+The function FILE_MODE returns the mode (FILE_OPEN_KIND) in which a file object was opened. It is
+an error to call FILE_MODE if the file is not open.
+The function FILE_POSITION returns the current file position. The return value is relative to one of three
+possible origins denoted by the Origin parameter. The absolute value of the return value shall not exceed the
+file object's range from position 0 to the position returned by FILE_SIZE minus one. It is an error if the
+underlying file does not support seek operations, especially for the predefined file objects INPUT and
+OUTPUT.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+74
+Copyright © 2019 IEEE. All rights reserved.
+The function FILE_SIZE returns the current size of a file object. It is also an error if the underlying file does
+not support seek operations, especially for the predefined file objects INPUT and OUTPUT.
+The function FILE_CANSEEK returns TRUE if the file supports seek and size operations, otherwise
+FALSE. It is also an error if the file is not open.
+If a file object F is associated with an external file, procedure FILE_CLOSE terminates access to the
+external file associated with F and closes the external file. If F is not associated with an external file, then
+FILE_CLOSE has no effect. In either case, the file object is no longer open after a call to FILE_CLOSE that
+associates the file object with the formal parameter F.
+An implicit call to FILE_CLOSE exists in a subprogram body for every file object declared in the
+corresponding subprogram declarative part. Each such call associates a unique file object with the formal
+parameter F and is called whenever the corresponding subprogram completes its execution.
+Procedure READ retrieves the next value from a file; it is an error if the access mode of the file object is
+write-only or if the file object is not open. Procedure WRITE appends a value to a file. Procedure FLUSH
+requests that the implementation complete the effect of all previous calls to the WRITE procedure for a file.
+For the WRITE and FLUSH procedures, it is an error if the access mode of the file object is read-only or if
+the file is not open. Function ENDFILE returns FALSE if a subsequent READ operation on an open file
+object whose access mode is read-only can retrieve another value from the file; otherwise, it returns TRUE.
+Function ENDFILE always returns TRUE for an open file object whose access mode is write-only. It is an
+error if ENDFILE is called on a file object that is not open.
+For a file type declaration in which the type mark denotes an unconstrained or partially constrained array
+type, the same operations are implicitly declared, except that the READ operation is declared as follows:
+procedure READ (file F: FT; VALUE: out TM; LENGTH: out Natural);
+The READ operation for such a type performs the same function as the READ operation for other types, but
+in addition it returns a value in parameter LENGTH that specifies the actual length of the array value read by
+the operation. If the object associated with formal parameter VALUE is shorter than this length, then only
+that portion of the array value read by the operation that can be contained in the object is returned by the
+READ operation, and the rest of the value is lost. If the object associated with formal parameter VALUE is
+longer than this length, then the entire value is returned and remaining elements of the object are unaffected
+by the READ operation.
+An error will occur when a READ operation is performed on file F if ENDFILE(F) would return TRUE at
+that point.
+If a READ operation for a file object is executed after a FLUSH operation for a second file object and the
+same external file is associated with both file objects, an implementation should fulfill the request made by
+the FLUSH operation before retrieving a value from the file for the READ operation.
+At the beginning of the execution of any file operation, the execution of the file operation blocks (see 14.6)
+until exclusive access to the file object denoted by the formal parameter F can be granted. Exclusive access
+to the given file object is then granted and the execution of the file operation proceeds. Once the file
+operation completes, exclusive access to the given file object is rescinded.
+NOTE 1—Due to latency of distributed or remote file systems, it is possible that a value written before a FLUSH
+operation is not available before a subsequent READ operation to that same file.
+NOTE 2—Predefined package TEXTIO is provided to support formatted human-readable I/O. It defines type TEXT (a
+file type representing files of variable-length text strings) and type LINE (an access type that designates such strings).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+75
+Copyright © 2019 IEEE. All rights reserved.
+READ and WRITE operations are provided in package TEXTIO that append or extract data from a single line.
+Additional operations are provided to read or write entire lines and to determine the status of the current line or of the file
+itself. Package TEXTIO is defined in Clause 16.
+### 5.6 Protected types
+
+#### 5.6.1 Protected type definitions
+
+A protected type definition defines a protected type. A protected type implements instantiatiable regions of
+sequential statements, each of which shall have exclusive access to shared data. Shared data is a set of
+variable objects that may be potentially accessed as a unit by multiple processes.
+```ebnf
+protected_type_definition  ::=
+```
+
+protected_type_declaration
+|    protected_type_body
+Each protected type declaration appearing immediately within a given declarative region (see 12.1) shall
+have exactly one corresponding protected type body appearing immediately within the same declarative
+region and textually subsequent to the protected type declaration. Similarly, each protected type body
+appearing immediately within a given declarative region shall have exactly one corresponding protected
+type declaration appearing immediately within the same declarative region and textually prior to the
+protected type body.
+#### 5.6.2 Protected type declarations
+
+A protected type declaration declares the external interface to a protected type.
+```ebnf
+protected_type_declaration  ::=
+```
+
+protected
+
+protected_type_header
+
+protected_type_declarative_part
+
+end protected [ protected_type_simple_name ]
+```ebnf
+protected_type_header ::=
+```
+
+[ generic_clause
+[ generic_map_aspect ; ] ]
+```ebnf
+protected_type_declarative_part  ::=
+```
+
+{ protected_type_declarative_item }
+```ebnf
+protected_type_declarative_item  ::=
+```
+
+subprogram_declaration
+|
+subprogram_instantiation_declaration
+|
+attribute_specification
+|
+use_clause
+|
+private_variable_declaration
+|
+alias_declaration
+
+```ebnf
+private_variable_declaration ::=
+```
+
+private variable_declaration
+If a simple name appears at the end of a protected type declaration, it shall repeat the identifier of the type
+declaration in which the protected type definition is included.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+76
+Copyright © 2019 IEEE. All rights reserved.
+If the protected type header is empty, the protected type declared by a protected type declaration is called a
+simple protected type. If the protected type header contains a generic clause and no generic map aspect, the
+protected type is called an uninstantiated protected type. If the protected type header contains both a generic
+clause and a generic map aspect, the protected type is called a generic-mapped protected type. A protected
+type declared with a generic clause in which every generic declaration has a default, and with no generic
+map aspect, is still considered to be an uninstantiated protected type and is not a generic-mapped protected
+type with default associations for all of the generic declarations.
+Each subprogram specified within a given protected type declaration defines an abstract operation, called a
+method, that operates atomically and exclusively on a single object of the protected type. In addition to the
+object of the protected type operated on by the subprogram, parameters may be explicitly specified in the
+formal parameter list of the subprogram declaration of the subprogram.
+It is erroneous if, after a method completes, a data object internal to a protected type and a data object
+external to a protected type both have a reference either directly or through a series of references to the same
+object.
+A private variable declaration denotes that it is only visible within the scope of the protected type. An alias
+declared within a protected type declaration may make a method of the private variable visible. It is an error
+if an alias declared within a protected type declaration denotes anything other than a method of a protected
+type.
+Examples:
+type SharedCounter is protected
+procedure increment (N: Integer := 1);
+procedure decrement (N: Integer := 1);
+impure function value return Integer;
+end protected SharedCounter;
+type ComplexNumber is protected
+procedure extract (variable r, i: out Real);
+procedure add (variable a, b: inout ComplexNumber);
+end protected ComplexNumber;
+type VariableSizeBitArray is protected
+procedure add_bit (index: Positive; value: Bit);
+impure function size return Natural;
+end protected VariableSizeBitArray;
+-- A protected type with a generic clause
+type ScoreBoardGenericPType is protected
+    generic (
+type ExpectedType;
+type ActualType;
+function check(
+Actual : ActualType;
+
+Expected : ExpectedType)
+return Boolean
+) ;
+    ...
+end protected ScoreBoardGenericPType;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+77
+Copyright © 2019 IEEE. All rights reserved.
+#### 5.6.3 Protected type bodies
+
+A protected type body provides the implementation for a protected type.
+```ebnf
+protected_type_body ::=
+      protected body
+            protected_type_body_declarative_part
+      end protected body [ protected_type_simple name ]
+protected_type_body_declarative_part ::=
+      { protected_type_body_declarative_item }
+protected_type_body_declarative_item ::=
+```
+
+subprogram_declaration
+|
+subprogram_body
+|
+subprogram_instantiation_declaration
+|
+package_declaration
+|
+package_body
+|
+package_instantiation_declaration
+|
+type_declaration
+|
+subtype_declaration
+|
+constant_declaration
+|
+variable_declaration
+|
+file_declaration
+|
+alias_declaration
+|
+attribute_declaration
+|
+attribute_specification
+|
+use_clause
+|
+group_template_declaration
+|
+group_declaration
+Each subprogram declaration appearing in a given protected type declaration shall have a corresponding
+subprogram body appearing in the corresponding protected type body.
+NOTE—Subprogram bodies appearing in a protected type body not lexically conformant to any of the subprogram
+declarations in the corresponding protected type declaration are visible only within the protected type body. Such
+subprograms may have parameters that are access and file types and (in the case of functions) return types that are or
+contain access types.
+Examples:
+type SharedCounter is protected body
+variable counter: Integer := 0;
+procedure increment (N: Integer := 1) is
+begin
+
+counter := counter + N;
+
+end procedure increment;
+
+procedure decrement (N: Integer := 1) is
+
+begin
+
+counter := counter - N;
+
+end procedure decrement;
+
+impure function value return Integer is
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+78
+Copyright © 2019 IEEE. All rights reserved.
+
+begin
+
+return counter;
+
+end function value;
+end protected body SharedCounter;
+type ComplexNumber is protected body
+variable re, im: Real;
+procedure extract (variable r, i: out Real) is
+begin
+
+r := re;
+
+i := im;
+end procedure extract;
+procedure add (variable a, b: inout ComplexNumber) is
+
+variable a_real, b_real: Real;
+
+variable a_imag, b_imag: Real;
+
+begin
+
+a.extract (a_real, a_imag);
+
+b.extract (b_real, b_imag);
+
+re  := a_real + b_real;
+
+im := a_imag + b_imag;
+
+end procedure add;
+end protected body ComplexNumber;
+type VariableSizeBitArray is protected body
+type bit_vector_access is access Bit_Vector;
+variable bit_array: bit_vector_access := null;
+variable bit_array_length: Natural := 0;
+
+procedure add_bit (index: Positive; value: Bit) is
+
+variable tmp: bit_vector_access;
+begin
+if index > bit_array_length then
+tmp := bit_array;
+bit_array := new bit_vector (1 to index);
+if tmp /= null then
+bit_array (1 to bit_array_length) := tmp.all;
+
+deallocate (tmp);
+
+end if;
+
+bit_array_length := index;
+end if;
+bit_array (index) := value;
+
+end procedure add_bit;
+impure function size return Natural is
+begin
+return bit_array_length;
+
+end function size;
+end protected body VariableSizeBitArray;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+79
+Copyright © 2019 IEEE. All rights reserved.
+#### 5.6.4 Protected type instantiation
+
+A protected type instantiation declaration defines an instance of an uninstantiated protected type. The
+instance is called an instantiated protected type.
+```ebnf
+protected_type_instantiation_definition ::=
+```
+
+new subtype_indication [ generic_map_aspect ]
+A protected type instantiation declaration is the conjunction of a type declaration (see 6.2) and a protected
+type instantiation definition.
+The subtype indication shall denote an uninstantiated protected type or a composite the subelements of
+which are all of the same uninstantiated protected type. The generic map aspect, if present, optionally
+associates a single actual with each formal generic (or member thereof) in the corresponding protected type
+declaration. Each formal generic (or member thereof) shall be associated at most once. The generic map
+aspect is described in 6.5.7.2.
+The protected type instantiation declaration is equivalent to a protected type declaration and a protected type
+body that jointly define a generic-mapped protected type. The simple name of the generic-mapped protected
+type declaration is the identifier of the protected type instantiation declaration. The generic-mapped
+protected type declaration has the generic clause of the uninstantiated protected type declaration, the generic
+map aspect of the protected type instantiation declaration, and the declarations of the uninstantiated
+protected type declaration. The meaning of any identifier appearing anywhere in the generic-mapped
+protected type declaration or protected type body is that associated with the corresponding occurrence of the
+identifier in the protected type instantiation declaration, the uninstantiated protected type declaration, or the
+uninstantiated protected type body, respectively, except that an identifier that denotes the uninstantiated
+protected type denotes, instead, the generic-mapped protected type.
+If the protected type instantiation declaration occurs immediately within an enclosing package declaration,
+the generic-mapped protected type body occurs at the end of the package body corresponding to the
+enclosing package declaration. If there is no such package body, then there is implicitly a package body
+corresponding to the enclosing package declaration, and that implicit body contains the generic-mapped
+protected type body.
+Examples:
+-- See Clause 5.6.2 for declaration of ScoreBoardGenericPType
+type ScoreBoardPType_slv is new ScoreBoardGenericPType
+generic map (
+ExpectedType    => std_logic_vector,
+ActualType      => std_logic_vector,
+check           => std_match
+);
+### 5.7 String representations
+
+The string representation of a value of a given type is a value of type STRING, defined as follows:
+—
+For a given value of type CHARACTER, the string representation contains one element that is the
+given value.
+—
+For a given value of an enumeration type other than CHARACTER, if the value is a character literal,
+the string representation contains a single element that is the character literal; otherwise, the string
+representation is the sequence of characters in the identifier that is the given value. For an extended
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+80
+Copyright © 2019 IEEE. All rights reserved.
+identifier, the string representation does not include leading or trailing backslash characters, and
+backslash characters in the extended identifier are not doubled in the string representation.
+—
+For a given value of an integer type, the string representation is the sequence of characters of an
+abstract literal without a point and whose value is the given value. The sequence of characters of the
+abstract literal may be preceded by a sign character with no intervening space or format effector
+characters.
+—
+For a given value of a physical type, the string representation is the sequence of characters of a
+physical literal whose value is the given value. The sequence of characters of the physical literal may
+be preceded by a sign character with no intervening space or format effector characters.
+—
+For a given value of a floating-point type, the string representation is the sequence of characters of an
+abstract literal that includes a point and whose value is the given value. The sequence of characters
+of the abstract literal may be preceded by a sign character with no intervening space or format
+effector characters.
+—
+For a given value that is of a one-dimensional array type whose element type is a character type that
+contains only character literals, the string representation has the same length as the given value. Each
+element of the string representation is the same character literal as the matching element of the given
+value.
+—
+ A value of type STRING is its own string representation.
+—
+ For a given value that is of a composite type other than described by the preceding paragraphs, the
+string representation consists of the concatenation of a left parenthesis, the string representations of
+the elements of the type separated by commas, and a right parenthesis. The string representations of
+the elements occur in left-to-right order for objects of any array type and in element declaration order
+for objects of a record type. A composite type is representable if the base type of each of its elements
+is a scalar type or a representable composite type.
+—
+For a given value that is of a composite type that cannot be represented according to the preceding
+list item, there is no string representation.
+—
+For a value of an access type, a file type, or a protected type, there is no string representation.
+In each case where a string representation is defined, the index range of the string representation is not
+specified by this standard.
+—
+When forming the string representation for a WRITE procedure in STD.TEXTIO (see Clause 16) or
+for an implicitly defined TO_STRING operation, except where otherwise specified for an
+overloaded TO_STRING operation:
+—
+For a value of an integer type, the abstract literal is a decimal literal and there is no exponent.
+—
+Letters in a basic identifier are in lowercase.
+—
+Characters in an extended identifier include the leading and trailing reverse solidus (backslash). In
+the case that a graphic character in an extended identifier is a backslash, the backslash shall be
+doubled in the string.
+—
+For a value of a floating-point type, when forming the string representation for a TO_STRING
+operation, the abstract literal is a decimal literal in standard form, consisting of a normalized
+mantissa and an exponent in which the sign is present and the “e” is in lowercase. The number of
+digits in the standard form is implementation defined. When forming the string representation for the
+WRITE procedure for type REAL in which the DIGITS parameter has the value 0, the string
+representation is as described for a TO_STRING operation. When the DIGITS parameter is
+non-zero, the abstract literal is a decimal literal without the exponent, as described in 16.4.
+—
+For a value of a physical type, when forming the string representation for a TO_STRING operation,
+the abstract literal is a decimal literal that is an integer literal, there is no exponent, and there is a
+single SPACE character between the abstract literal and the unit name. If the physical type is TIME,
+the unit name is the simple name of the resolution limit (see 5.2.4.2); otherwise, the unit name is the
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+81
+Copyright © 2019 IEEE. All rights reserved.
+simple name of the primary unit of the physical type. When forming the string representation for the
+WRITE procedure for type TIME, the physical literal is as described in 16.4.
+—
+There are no insignificant leading or trailing zeros in a decimal literal.
+—
+There is no sign preceding the string representation of a nonnegative value of an integer, physical or
+floating-point type.
+### 5.8 Unspecified types
+
+#### 5.8.1 General
+
+An unspecified type abstractly defines the type class for generics, ports, parameters, and external names. An
+object of unspecified type obtains its actual type from the type or object with which it is associated.
+An unspecified type can be classified as a private, scalar, discrete, integer, physical, floating, array, access,
+or file incomplete type definition. Each of these classifications defines the operators that shall be
+implemented on the actual type associated with the formal.
+```ebnf
+unspecified_type_indication ::=
+```
+
+type is incomplete_type_definition
+```ebnf
+incomplete_type_definition ::=
+```
+
+private_incomplete_type_definition
+|   scalar_incomplete_type_definition
+|   discrete_incomplete_type_definition
+|   integer_incomplete_type_definition
+|   physical_incomplete_type_definition
+|   floating_incomplete_type_definition
+    |  array_incomplete_type_definition
+    |   access_incomplete_type_definition
+    |   file_incomplete_type_definition
+```ebnf
+incomplete_subtype_indication ::=
+```
+
+subtype_indication
+   |   unspecified_type_indication
+```ebnf
+incomplete_type_mark ::=
+```
+
+type_mark
+    |   unspecified_type_indication
+```ebnf
+private_incomplete_type_definition ::= private
+scalar_incomplete_type_definition ::= <>
+discrete_incomplete_type_definition ::= ( <> )
+integer_incomplete_type_definition ::= range <>
+physical_incomplete_type_definition ::= units <>
+floating_incomplete_type_definition ::= range <>.<>
+array_incomplete_type_definition ::=
+```
+
+array ( array_index_incomplete_type_list )
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+82
+Copyright © 2019 IEEE. All rights reserved.
+of element_incomplete_subtype_indication
+```ebnf
+array_index_incomplete_type_list ::=
+    array_index_incomplete_type { , array_index_incomplete_type }
+array_index_incomplete_type ::=
+```
+
+index_subtype_definition
+|   index_constraint
+    |   unspecified_type_indication
+```ebnf
+access_incomplete_type_definition ::=
+```
+
+access access_incomplete_subtype_indication
+```ebnf
+file_incomplete_type_definition ::=
+```
+
+file of file_incomplete_type_mark
+The following basic operations are defined for all incomplete type definitions: assignment, allocation, type
+qualification and type conversion. In addition, each incomplete type definition may include additional
+predefined operators and attributes.
+#### 5.8.2 Private incomplete type
+
+A private incomplete type is an unspecified type that denotes any type except file and protected types.
+The following operators are implicitly defined for a private incomplete type: equality (=) and inequality (/=).
+The predefined attributes for a private incomplete type, and objects thereof, are the same as the predefined
+attributes common to all types other than a file type or protected type, and objects thereof, respectively, as
+listed in 16.2.
+#### 5.8.3 Scalar incomplete type
+
+A scalar incomplete type is an unspecified type definition that denotes any scalar type.
+The following operators are implicitly defined for a scalar incomplete type: equality (=), inequality (/=), less
+than (<), less than or equal (<=), greater than (>), greater than or equal (>=), MINIMUM, MAXIMUM, and
+TO_STRING. The predefined attributes for the scalar incomplete type, and objects thereof are the same as
+the predefined attributes for scalar types, and objects thereof, respectively, as listed in 16.2.
+#### 5.8.4 Discrete incomplete type
+
+A discrete incomplete type is an unspecified type that denotes any discrete type.
+The following operators are implicitly defined for a discrete incomplete type: equality (=), inequality (/=),
+less than (<), less than or equal (<=), greater than (>), greater than or equal (>=), MINIMUM, MAXIMUM,
+and TO_STRING. The predefined attributes for the discrete incomplete type, and objects thereof are the
+same as the predefined attributes for discrete types, and objects thereof, respectively, as listed in 16.2.
+#### 5.8.5 Integer incomplete type
+
+An integer incomplete type is an unspecified type that denotes any integer type.
+The following operators are implicitly defined for an integer incomplete type: equality (=), inequality (/=),
+less than (<), less than or equal (<=), greater than (>), greater than or equal (>=), identity (+), negation (–),
+addition (+), subtraction (–), multiplication (*), division (/), exponentiation (**), remainder (rem), modulus
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+83
+Copyright © 2019 IEEE. All rights reserved.
+(mod), absolute value (abs), MINIMUM, MAXIMUM, and TO_STRING. The predefined attributes for the
+integer incomplete type, and objects thereof are the same as the predefined attributes for integer types, and
+objects thereof, respectively, as listed in 16.2.
+#### 5.8.6 Physical incomplete type
+
+A physical incomplete type is an unspecified type that denotes any physical type.
+The following operators are implicitly defined for a physical incomplete type: equality (=), inequality (/=),
+less than (<), less than or equal (<=), greater than (>), greater than or equal (>=), identity (+), negation (–),
+addition (+), subtraction (–), multiplication (*), division (/), remainder (rem), modulus (mod), absolute value
+(abs), MINIMUM, MAXIMUM, and TO_STRING. The predefined attributes for the physical incomplete
+type, and objects thereof are the same as the predefined attributes for physical types, and objects thereof,
+respectively, as listed in 16.2.
+#### 5.8.7 Floating incomplete type
+
+A floating incomplete type is an unspecified type that denotes any floating-point type.
+The following operators are implicitly defined for a floating incomplete type: equality (=), inequality (/=),
+less than (<), less than or equal (<=), greater than (>), greater than or equal (>=), identity (+), negation (–),
+addition (+), subtraction (–), multiplication (*), division (/), exponentiation (**), absolute value (abs),
+MINIMUM, MAXIMUM, and TO_STRING. The predefined attributes for the floating incomplete type, and
+objects thereof are the same as the predefined attributes for floating-point types, and objects thereof,
+respectively, as listed in 16.2.
+#### 5.8.8 Array incomplete type
+
+An array incomplete type is an unspecified type that denotes any array type.
+If an array index incomplete type in an array index incomplete type list has the form of an unspecified type
+indication, then the incomplete type definition of the unspecified type indication shall be a discrete
+incomplete type definition. It is an error if, in an array index incomplete type list, one array index incomplete
+type has the form of an index constraint and another array index incomplete type has the form of an index
+subtype definition.
+The element incomplete subtype indication may either be a subtype indication or an unspecified type
+indication.
+The basic operation aggregation is defined for any array incomplete type. The following operators are
+implicitly defined for any array incomplete type: equality (=), and inequality (/=). In addition, the operator
+concatenation (&) is implicitly defined, if the array incomplete type denotes a single dimensional array. If
+the array incomplete type denotes a scalar array type, then the following operators are defined: less than (<),
+less than or equal (<=), greater than (>), greater than or equal (>=), MINIMUM and MAXIMUM. The
+predefined attributes for the array incomplete type, and objects thereof, are the same as the predefined
+attributes for array types, and objects thereof, respectively, as listed in 16.2. Objects created from array
+incomplete type can be used as a prefix in indexed names (see 8.4) and slice names (see 8.5).
+#### 5.8.9 Access incomplete type
+
+An access incomplete type is an unspecified type that denotes any access type.
+The access incomplete subtype indication may either be a subtype indication or an unspecified type
+indication.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+84
+Copyright © 2019 IEEE. All rights reserved.
+The following operators are implicitly defined for an access incomplete type: equality (=) and inequality (/
+=). The predefined attributes for the interface access type, and objects thereof are the same as the predefined
+attributes for access types, and objects thereof, respectively, as listed in 16.2.
+#### 5.8.10 File incomplete type
+
+A file incomplete type is an unspecified type that denotes any file type.
+The file incomplete type mark may either be a type mark or an unspecified type indication.
+The following interface subprograms are implicitly defined for a file incomplete type: FILE_OPEN,
+FILE_CLOSE, READ, WRITE, FLUSH, ENDFILE, FILE_REWIND, FILE_SEEK, FILE_TRUNCATE,
+FILE_STATE, FILE_MODE, FILE_POSITION, FILE_SIZE, FILE_CANSEEK. The predefined attributes
+for the file incomplete type, and objects thereof are the same as the predefined attributes for file types, and
+objects thereof, respectively, as listed in 16.2.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

@@ -268,6 +268,13 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
 - [x] Add dual-LRM source ingestion tooling/workspaces for clause-based conversion (`PDF -> section txt -> section md -> grammar extraction`) targeting IEEE 1800-2023 and IEEE 1076-2019.
   - Progress (2026-02-27): added adapted scripts under `tools/` (`split_sections.py`, `txt_to_md_converter.py`, `extract_grammar.py`, `extract_grammar_v2.py`, `create_clean_grammar.py`, `ieee_lrm_converter.py`) and local workspaces under `docs/systemverilog/` and `docs/vhdl/`.
+  - Progress (2026-03-06): executed full-versioned conversion/extraction runs for IEEE 1800-2017 and IEEE 1800-2023 into tracked workspaces:
+    - `docs/systemverilog/2017/{txt,md}` + grammar artifacts (`grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`)
+    - `docs/systemverilog/2023/{txt,md}` + grammar artifacts (`grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`)
+    - extraction fallback hardening added in `tools/split_sections.py` for PDFs without embedded TOC (`page_heading_fallback`) with explicit manifest `detection_mode`.
+  - Progress (2026-03-06): promoted canonical extracted SV EBNF snapshots into `grammars/`:
+    - `grammars/systemverilog_2017_lrm_extracted.ebnf`
+    - `grammars/systemverilog_2023_lrm_extracted.ebnf`
 - [x] Build syntax-closure burn-down loop:
   - grow `systemverilog.ebnf` clause-by-clause under deterministic no-regression gates.
   - Progress (2026-02-27): first syntax-consistency hardening step complete: unresolved symbol references reduced to zero in the current seed grammar.
@@ -1023,6 +1030,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Completed full dual-SV LRM extraction refresh into versioned tracked workspaces (`docs/systemverilog/2017` and `docs/systemverilog/2023`) including `txt/`, `md/`, and grammar artifacts, added TOC-missing fallback extraction mode in `tools/split_sections.py`, and promoted canonical extracted EBNF snapshots to `grammars/systemverilog_2017_lrm_extracted.ebnf` and `grammars/systemverilog_2023_lrm_extracted.ebnf`.
 - 2026-03-06: Promoted aggregate VHDL stimuli quality stage to required strict by setting `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1` after VHDL strict-promotion ratchet evidence remained green.
 - 2026-03-06: Promoted aggregate VHDL strict-promotion mode to required strict by setting `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1` after converged deterministic trial evidence and focused strict-path validation.
 - 2026-03-06: Added deterministic `vhdl_strict_promotion_gate` and aggregate policy telemetry wiring (`RUN/REQUIRE VHDL strict promotion` + `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_*`) to formalize objective evidence before enabling required strict VHDL aggregate mode.

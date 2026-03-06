@@ -1,0 +1,310 @@
+---
+title: "Section 38: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language"
+document: "SystemVerilog Language Reference Manual"
+standard: "IEEE 1800-2017"
+domain: "SystemVerilog"
+section: "38"
+source_txt: "section-38-vpi-routine-definitions.txt"
+source_pdf: "/Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2017.pdf"
+---
+
+# Section 38: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1052
+Copyright © 2018 IEEE. All rights reserved.
+38. VPI routine definitions
+### 38.1 General
+
+This clause describes the VPI routines and explains their function, syntax, and usage. The routines are listed
+in alphabetical order.
+The following conventions are used in the definitions of the PLI routines described in this clause:
+—
+Synopsis: A brief description of the PLI routine functionality, intended to be used as a quick
+reference when searching for PLI routines to perform specific tasks.
+—
+Syntax: The exact name of the PLI routine and the order of the arguments passed to the routine.
+—
+Returns: The definition of the value returned when the PLI routine is called, along with a brief
+description of what the value represents. The return definition contains the following fields:
+•
+Type: The data type of the C value that is returned. The data type is either a standard ANSI C
+type or a special type defined within the PLI.
+•
+Description: A brief description of what the value represents.
+—
+Arguments: The definition of the arguments passed with a call to the PLI routine. The argument
+definition contains the following fields:
+•
+Type: The data type of the C values that are passed as arguments. The data type is either a
+standard ANSI C type or a special type defined within the PLI.
+•
+Name: The name of the argument used in the syntax definition.
+•
+Description: A brief description of what the value represents.
+All arguments shall be considered mandatory unless specifically noted in the definition of the PLI
+routine.
+—
+Related routines: A list of PLI routines that are typically used with, or provide similar functionality
+to, the PLI routine being defined. This list is provided as a convenience to facilitate finding
+information in this standard. It is not intended to be all-inclusive, and it does not imply that the
+related routines have to be used.
+### 38.2 vpi_chk_error()
+
+The VPI routine vpi_chk_error() shall return an integer constant representing an error severity level if the
+previous call to a VPI routine resulted in an error. The error constants are shown in Table 38-1. If the
+previous call to a VPI routine did not result in an error, then vpi_chk_error() shall return 0 (false). The error
+vpi_chk_error()
+Synopsis:
+Retrieve information about VPI routine errors.
+Syntax:
+vpi_chk_error(error_info_p)
+Type
+Description
+Returns:
+PLI_INT32
+The error severity level if the previous VPI routine call resulted in an error; 0 (false)
+if no error occurred.
+Type
+Name
+Description
+Arguments:
+p_vpi_error_info
+error_info_p
+Pointer to a structure containing error information.
+Related
+routines:
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1053
+Copyright © 2018 IEEE. All rights reserved.
+status shall be reset by any VPI routine call except vpi_chk_error(). Calling vpi_chk_error() shall have no
+effect on the error status.
+If an error occurred, the s_vpi_error_info structure shall contain information about the error. If the error
+information is not needed, a NULL can be passed to the routine. The s_vpi_error_info structure used by
+vpi_chk_error() is defined in vpi_user.h and is listed in Figure 38-1.
+### 38.3 vpi_compare_objects()
+
+The VPI routine vpi_compare_objects() shall return 1 (TRUE) if the two handles refer to the same
+underlying simulation object at the time the function is called, provided that the simulation object exists.
+Table 38-1—Return error constants for vpi_chk_error()
+Error constant
+Severity level
+vpiNotice
+Lowest severity
+vpiWarning
+vpiError
+vpiSystem
+vpiInternal
+Highest severity
+vpi_compare_objects()
+Synopsis:
+Compare two handles to determine whether they reference the same object.
+Syntax:
+vpi_compare_objects(obj1, obj2)
+Type
+Description
+Returns:
+PLI_INT32
+## 1 (true) if the two handles refer to the same object; 0 (false) otherwise.
+
+Type
+Name
+Description
+Arguments:
+vpiHandle
+obj1
+Handle to an object.
+vpiHandle
+obj2
+Handle to an object.
+Related
+routines:
+typedef struct t_vpi_error_info
+{
+  PLI_INT32 state;          /* vpi[Compile,PLI,Run] */
+  PLI_INT32 level;          /* vpi[Notice,Warning,Error,System,Internal] */
+  PLI_BYTE8 *message;
+  PLI_BYTE8 *product;
+  PLI_BYTE8 *code;
+  PLI_BYTE8 *file;
+  PLI_INT32 line;
+} s_vpi_error_info, *p_vpi_error_info;
+Figure 38-1—s_vpi_error_info structure definition
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1054
+Copyright © 2018 IEEE. All rights reserved.
+Otherwise, 0 (FALSE) shall be returned. Object equivalence cannot be determined with a C “==”
+comparison.
+The following examples illustrate the use of vpi_compare_objects().
+Example 1:
+struct packed {
+int a;
+reg [0:7] b;
+} ps;
+...
+initial begin
+ps[0] = ...;
+ps.b[7] = ...;
+end
+The expression ps[0] is another way of referring to bit 7 of ps.b, so if a handle obj1 refers to ps[0] and
+a handle obj2 refers to ps.b[7], then vpi_compare_objects(obj1, obj2) shall return TRUE.
+Example 2:
+integer i [0:3];
+int j;
+...
+initial begin
+j = 0;
+i[j] = ...;
+#(1)
+j = 1;
+i[j] = ...;
+end
+Let obj1 be a handle to an occurrence of the expression i[j], and let obj2 be a handle to the object i[0]
+derived by iteration from the integer array i. Then
+vpi_compare_objects(obj1, obj2)
+shall return TRUE when j has the value 0 and FALSE when j has the value 1.
+Example 3:
+class MyClass;
+int a;
+endclass
+...
+MyClass c, d;
+...
+initial begin
+c = null;
+d = null;
+#(1)
+c = new;
+c.a = 5;
+#(1)
+d = c;
+d.a = 6;
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1055
+Copyright © 2018 IEEE. All rights reserved.
+#(1)
+c = new;
+c.a = 7;
+end
+If obj1 represents the expression c.a, while obj2 represents d.a, then initially neither object exists, and
+vpi_compare_objects(obj1, obj2) shall return FALSE. After one time step, c.a exists, but d.a does
+not, and vpi_compare_objects(obj1, obj2) shall still return FALSE. After the second time step, c.a
+and d.a point to the same int data member of the same class object, and vpi_compare_objects(obj1,
+obj2) shall return TRUE. Finally, c gets a new class object assigned to it, but d does not, and
+vpi_compare_objects(obj1, obj2) shall once again return FALSE.
+### 38.4 vpi_control()
+
+The VPI routine vpi_control() shall pass information from a user PLI application to a SystemVerilog
+software tool, such as a simulator. The following control constants are defined as part of the VPI standard:
+vpiStop
+Causes the $stop built-in SystemVerilog system task to be executed upon return
+of the application routine. This operation shall be passed one additional integer
+argument, which is the same as the diagnostic message level argument passed to
+$stop (see 20.2).
+vpiFinish
+Causes the $finish built-in SystemVerilog system task to be executed upon
+return of the application routine. This operation shall be passed one additional
+integer argument, which is the same as the diagnostic message level argument
+passed to $finish (see 20.2).
+vpiReset
+Causes the $reset built-in SystemVerilog system task to be executed upon
+return of the application routine. This operation shall be passed three additional
+integer arguments: stop_value, reset_value, and diagnostics_value,
+which are the same values passed to the $reset system task (see D.8).
+vpiSetInteractiveScope
+Causes a tool’s interactive scope to be immediately changed to a new scope. This
+operation shall be passed one additional argument, which is a vpiHandle object
+within the vpiScope class.
+vpi_control()
+Synopsis:
+Pass information from the application code to the simulator.
+Syntax:
+vpi_control(operation, varargs)
+Type
+Description
+Returns:
+PLI_INT32
+## 1 (true) if successful; 0 (false) on a failure.
+
+Type
+Name
+Description
+Arguments:
+PLI_INT32
+operation
+Select type of operation.
+varargs
+Variable number of operation-specific arguments.
+Related
+routines:
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+1056
+Copyright © 2018 IEEE. All rights reserved.
+### 38.5 vpi_flush()
+
+The routine vpi_flush() shall flush the output buffers for the simulator’s output channel and current log file.
+### 38.6 vpi_get()
+
+The VPI routine vpi_get() shall return the value of integer and Boolean object properties. These properties
+shall be of type PLI_INT32. Boolean properties shall have a value of 1 for TRUE and 0 for FALSE. For
+integer object properties such as vpiSize, any integer shall be returned. For integer object properties that
+return a defined value, see Annex K and Annex M for the value that shall be returned. For object property
+vpiTimeUnit or vpiTimePrecision, if the object is NULL, then the simulation time unit shall be returned.
+Unless otherwise specified, calling vpi_get() for a protected object shall be an error. Should an error occur,
+vpi_get() shall return vpiUndefined.
+vpi_flush()
+Synopsis:
+Flushes the data from the simulator output channel and log file output buffers.
+Syntax:
+vpi_flush()
+Type
+Description
+Returns:
+PLI_INT32
+## 0 if successful; nonzero if unsuccessful.
+
+Type
+Name
+Description
+Arguments:
+None
+Related
+routines:
+Use vpi_printf() to write a finite number of arguments to the simulator output channel and log file.
+Use vpi_vprintf() to write a variable number of arguments to the simulator output channel and log file.
+Use vpi_mcd_printf() to write one or more opened files.
+vpi_get()
+Synopsis:
+Get the value of an integer or Boolean property of an object.
+Syntax:
+vpi_get(prop, obj)
+Type
+Description
+Returns:
+PLI_INT32
+Value of an integer or Boolean property.
+Type
+Name
+Description
+Arguments:
+PLI_INT32
+prop
+An integer constant representing the property of an
+object for which to obtain a value.
+vpiHandle
+obj
+Handle to an object.
+Related
+routines:
+Use vpi_get_str() to get string properties.
+Use vpi_get64() to get 64-bit integer properties.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

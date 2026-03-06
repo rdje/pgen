@@ -1,0 +1,535 @@
+{
+  "source_pdf": "/Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2023.pdf",
+  "standard": "IEEE 1800-2023",
+  "detection_mode": "pdf_toc",
+  "total_pages": 1354,
+  "toc_entries": 1754,
+  "clause_depth": 1,
+  "include_annex": true,
+  "toc_max_level": 6,
+  "section_count": 58,
+  "sections": [
+    {
+      "section_id": "1",
+      "title": "Overview",
+      "page_start": 42,
+      "page_end": 48,
+      "toc_level": 2,
+      "source_title": "1. Overview",
+      "filename": "section-1-overview.txt"
+    },
+    {
+      "section_id": "2",
+      "title": "Normative references",
+      "page_start": 49,
+      "page_end": 50,
+      "toc_level": 2,
+      "source_title": "2. Normative references",
+      "filename": "section-2-normative-references.txt"
+    },
+    {
+      "section_id": "3",
+      "title": "Design and verification building blocks",
+      "page_start": 51,
+      "page_end": 62,
+      "toc_level": 2,
+      "source_title": "3. Design and verification building blocks",
+      "filename": "section-3-design-and-verification-building-blocks.txt"
+    },
+    {
+      "section_id": "4",
+      "title": "Scheduling semantics",
+      "page_start": 63,
+      "page_end": 73,
+      "toc_level": 2,
+      "source_title": "4. Scheduling semantics",
+      "filename": "section-4-scheduling-semantics.txt"
+    },
+    {
+      "section_id": "5",
+      "title": "Lexical conventions",
+      "page_start": 74,
+      "page_end": 88,
+      "toc_level": 2,
+      "source_title": "5. Lexical conventions",
+      "filename": "section-5-lexical-conventions.txt"
+    },
+    {
+      "section_id": "6",
+      "title": "Data types",
+      "page_start": 89,
+      "page_end": 146,
+      "toc_level": 2,
+      "source_title": "6. Data types",
+      "filename": "section-6-data-types.txt"
+    },
+    {
+      "section_id": "7",
+      "title": "Aggregate data types",
+      "page_start": 147,
+      "page_end": 179,
+      "toc_level": 2,
+      "source_title": "7. Aggregate data types",
+      "filename": "section-7-aggregate-data-types.txt"
+    },
+    {
+      "section_id": "8",
+      "title": "Classes",
+      "page_start": 180,
+      "page_end": 220,
+      "toc_level": 2,
+      "source_title": "8. Classes",
+      "filename": "section-8-classes.txt"
+    },
+    {
+      "section_id": "9",
+      "title": "Processes",
+      "page_start": 221,
+      "page_end": 247,
+      "toc_level": 2,
+      "source_title": "9. Processes",
+      "filename": "section-9-processes.txt"
+    },
+    {
+      "section_id": "10",
+      "title": "Assignment statements",
+      "page_start": 248,
+      "page_end": 269,
+      "toc_level": 2,
+      "source_title": "10. Assignment statements",
+      "filename": "section-10-assignment-statements.txt"
+    },
+    {
+      "section_id": "11",
+      "title": "Operators and expressions",
+      "page_start": 270,
+      "page_end": 314,
+      "toc_level": 2,
+      "source_title": "11. Operators and expressions",
+      "filename": "section-11-operators-and-expressions.txt"
+    },
+    {
+      "section_id": "12",
+      "title": "Procedural programming statements",
+      "page_start": 315,
+      "page_end": 335,
+      "toc_level": 2,
+      "source_title": "12. Procedural programming statements",
+      "filename": "section-12-procedural-programming-statements.txt"
+    },
+    {
+      "section_id": "13",
+      "title": "Tasks and functions (subroutines)",
+      "page_start": 336,
+      "page_end": 354,
+      "toc_level": 2,
+      "source_title": "13. Tasks and functions (subroutines)",
+      "filename": "section-13-tasks-and-functions-subroutines.txt"
+    },
+    {
+      "section_id": "14",
+      "title": "Clocking blocks",
+      "page_start": 355,
+      "page_end": 372,
+      "toc_level": 2,
+      "source_title": "14. Clocking blocks",
+      "filename": "section-14-clocking-blocks.txt"
+    },
+    {
+      "section_id": "15",
+      "title": "Interprocess synchronization and communication",
+      "page_start": 373,
+      "page_end": 383,
+      "toc_level": 2,
+      "source_title": "15. Interprocess synchronization and communication",
+      "filename": "section-15-interprocess-synchronization-and-communication.txt"
+    },
+    {
+      "section_id": "16",
+      "title": "Assertions",
+      "page_start": 384,
+      "page_end": 503,
+      "toc_level": 2,
+      "source_title": "16. Assertions",
+      "filename": "section-16-assertions.txt"
+    },
+    {
+      "section_id": "17",
+      "title": "Checkers",
+      "page_start": 504,
+      "page_end": 522,
+      "toc_level": 2,
+      "source_title": "17. Checkers",
+      "filename": "section-17-checkers.txt"
+    },
+    {
+      "section_id": "18",
+      "title": "Constrained random value generation",
+      "page_start": 523,
+      "page_end": 575,
+      "toc_level": 2,
+      "source_title": "18. Constrained random value generation",
+      "filename": "section-18-constrained-random-value-generation.txt"
+    },
+    {
+      "section_id": "19",
+      "title": "Functional coverage",
+      "page_start": 576,
+      "page_end": 619,
+      "toc_level": 2,
+      "source_title": "19. Functional coverage",
+      "filename": "section-19-functional-coverage.txt"
+    },
+    {
+      "section_id": "20",
+      "title": "Utility system tasks and system functions",
+      "page_start": 620,
+      "page_end": 654,
+      "toc_level": 2,
+      "source_title": "20. Utility system tasks and system functions",
+      "filename": "section-20-utility-system-tasks-and-system-functions.txt"
+    },
+    {
+      "section_id": "21",
+      "title": "Input/output system tasks and system functions",
+      "page_start": 655,
+      "page_end": 704,
+      "toc_level": 2,
+      "source_title": "21. Input/output system tasks and system functions",
+      "filename": "section-21-input-output-system-tasks-and-system-functions.txt"
+    },
+    {
+      "section_id": "22",
+      "title": "Compiler directives",
+      "page_start": 705,
+      "page_end": 728,
+      "toc_level": 2,
+      "source_title": "22. Compiler directives",
+      "filename": "section-22-compiler-directives.txt"
+    },
+    {
+      "section_id": "23",
+      "title": "Modules and hierarchy",
+      "page_start": 729,
+      "page_end": 774,
+      "toc_level": 2,
+      "source_title": "23. Modules and hierarchy",
+      "filename": "section-23-modules-and-hierarchy.txt"
+    },
+    {
+      "section_id": "24",
+      "title": "Programs",
+      "page_start": 775,
+      "page_end": 780,
+      "toc_level": 2,
+      "source_title": "24. Programs",
+      "filename": "section-24-programs.txt"
+    },
+    {
+      "section_id": "25",
+      "title": "Interfaces",
+      "page_start": 781,
+      "page_end": 807,
+      "toc_level": 2,
+      "source_title": "25. Interfaces",
+      "filename": "section-25-interfaces.txt"
+    },
+    {
+      "section_id": "26",
+      "title": "Packages",
+      "page_start": 808,
+      "page_end": 818,
+      "toc_level": 2,
+      "source_title": "26. Packages",
+      "filename": "section-26-packages.txt"
+    },
+    {
+      "section_id": "27",
+      "title": "Generate constructs",
+      "page_start": 819,
+      "page_end": 829,
+      "toc_level": 2,
+      "source_title": "27. Generate constructs",
+      "filename": "section-27-generate-constructs.txt"
+    },
+    {
+      "section_id": "28",
+      "title": "Gate-level and switch-level modeling",
+      "page_start": 830,
+      "page_end": 860,
+      "toc_level": 2,
+      "source_title": "28. Gate-level and switch-level modeling",
+      "filename": "section-28-gate-level-and-switch-level-modeling.txt"
+    },
+    {
+      "section_id": "29",
+      "title": "User-defined primitives",
+      "page_start": 861,
+      "page_end": 871,
+      "toc_level": 2,
+      "source_title": "29. User-defined primitives",
+      "filename": "section-29-user-defined-primitives.txt"
+    },
+    {
+      "section_id": "30",
+      "title": "Specify blocks",
+      "page_start": 872,
+      "page_end": 895,
+      "toc_level": 2,
+      "source_title": "30. Specify blocks",
+      "filename": "section-30-specify-blocks.txt"
+    },
+    {
+      "section_id": "31",
+      "title": "Timing checks",
+      "page_start": 896,
+      "page_end": 924,
+      "toc_level": 2,
+      "source_title": "31. Timing checks",
+      "filename": "section-31-timing-checks.txt"
+    },
+    {
+      "section_id": "32",
+      "title": "Backannotation using the standard delay format",
+      "page_start": 925,
+      "page_end": 934,
+      "toc_level": 2,
+      "source_title": "32. Backannotation using the standard delay format",
+      "filename": "section-32-backannotation-using-the-standard-delay-format.txt"
+    },
+    {
+      "section_id": "33",
+      "title": "Configuring the contents of a design",
+      "page_start": 935,
+      "page_end": 949,
+      "toc_level": 2,
+      "source_title": "33. Configuring the contents of a design",
+      "filename": "section-33-configuring-the-contents-of-a-design.txt"
+    },
+    {
+      "section_id": "34",
+      "title": "Protected envelopes",
+      "page_start": 950,
+      "page_end": 970,
+      "toc_level": 2,
+      "source_title": "34. Protected envelopes",
+      "filename": "section-34-protected-envelopes.txt"
+    },
+    {
+      "section_id": "35",
+      "title": "Direct programming interface",
+      "page_start": 971,
+      "page_end": 985,
+      "toc_level": 2,
+      "source_title": "35. Direct programming interface",
+      "filename": "section-35-direct-programming-interface.txt"
+    },
+    {
+      "section_id": "36",
+      "title": "Programming language interface (PLI/VPI) overview",
+      "page_start": 986,
+      "page_end": 998,
+      "toc_level": 2,
+      "source_title": "36. Programming language interface (PLI/VPI) overview",
+      "filename": "section-36-programming-language-interface-pli-vpi-overview.txt"
+    },
+    {
+      "section_id": "37",
+      "title": "VPI object model diagrams",
+      "page_start": 999,
+      "page_end": 1088,
+      "toc_level": 2,
+      "source_title": "37. VPI object model diagrams",
+      "filename": "section-37-vpi-object-model-diagrams.txt"
+    },
+    {
+      "section_id": "38",
+      "title": "VPI routine definitions",
+      "page_start": 1089,
+      "page_end": 1147,
+      "toc_level": 2,
+      "source_title": "38. VPI routine definitions",
+      "filename": "section-38-vpi-routine-definitions.txt"
+    },
+    {
+      "section_id": "39",
+      "title": "Assertion API",
+      "page_start": 1148,
+      "page_end": 1156,
+      "toc_level": 2,
+      "source_title": "39. Assertion API",
+      "filename": "section-39-assertion-api.txt"
+    },
+    {
+      "section_id": "40",
+      "title": "Code coverage control and API",
+      "page_start": 1157,
+      "page_end": 1170,
+      "toc_level": 2,
+      "source_title": "40. Code coverage control and API",
+      "filename": "section-40-code-coverage-control-and-api.txt"
+    },
+    {
+      "section_id": "41",
+      "title": "Data read API",
+      "page_start": 1171,
+      "page_end": 1172,
+      "toc_level": 2,
+      "source_title": "41. Data read API",
+      "filename": "section-41-data-read-api.txt"
+    },
+    {
+      "section_id": "Annex A",
+      "title": "(normative) Formal syntax",
+      "page_start": 1173,
+      "page_end": 1219,
+      "toc_level": 2,
+      "source_title": "Annex A (normative) Formal syntax",
+      "filename": "section-Annex_A-normative-formal-syntax.txt"
+    },
+    {
+      "section_id": "Annex B",
+      "title": "(normative) Keywords",
+      "page_start": 1220,
+      "page_end": 1221,
+      "toc_level": 2,
+      "source_title": "Annex B (normative) Keywords",
+      "filename": "section-Annex_B-normative-keywords.txt"
+    },
+    {
+      "section_id": "Annex C",
+      "title": "(normative) Deprecation",
+      "page_start": 1222,
+      "page_end": 1225,
+      "toc_level": 2,
+      "source_title": "Annex C (normative) Deprecation",
+      "filename": "section-Annex_C-normative-deprecation.txt"
+    },
+    {
+      "section_id": "Annex D",
+      "title": "(informative) Optional system tasks and system functions",
+      "page_start": 1226,
+      "page_end": 1232,
+      "toc_level": 2,
+      "source_title": "Annex D (informative) Optional system tasks and system functions",
+      "filename": "section-Annex_D-informative-optional-system-tasks-and-system-functions.txt"
+    },
+    {
+      "section_id": "Annex E",
+      "title": "(informative) Optional compiler directives",
+      "page_start": 1233,
+      "page_end": 1234,
+      "toc_level": 2,
+      "source_title": "Annex E (informative) Optional compiler directives",
+      "filename": "section-Annex_E-informative-optional-compiler-directives.txt"
+    },
+    {
+      "section_id": "Annex F",
+      "title": "(normative) Formal semantics of concurrent assertions",
+      "page_start": 1235,
+      "page_end": 1257,
+      "toc_level": 2,
+      "source_title": "Annex F (normative) Formal semantics of concurrent assertions",
+      "filename": "section-Annex_F-normative-formal-semantics-of-concurrent-assertions.txt"
+    },
+    {
+      "section_id": "Annex G",
+      "title": "(normative) Std package",
+      "page_start": 1258,
+      "page_end": 1259,
+      "toc_level": 2,
+      "source_title": "Annex G (normative) Std package",
+      "filename": "section-Annex_G-normative-std-package.txt"
+    },
+    {
+      "section_id": "Annex H",
+      "title": "(normative) DPI C layer",
+      "page_start": 1260,
+      "page_end": 1292,
+      "toc_level": 2,
+      "source_title": "Annex H (normative) DPI C layer",
+      "filename": "section-Annex_H-normative-dpi-c-layer.txt"
+    },
+    {
+      "section_id": "Annex I",
+      "title": "(normative) svdpi.h",
+      "page_start": 1293,
+      "page_end": 1302,
+      "toc_level": 2,
+      "source_title": "Annex I (normative) svdpi.h",
+      "filename": "section-Annex_I-normative-svdpi-h.txt"
+    },
+    {
+      "section_id": "Annex J",
+      "title": "(normative) Inclusion of foreign language code",
+      "page_start": 1303,
+      "page_end": 1306,
+      "toc_level": 2,
+      "source_title": "Annex J (normative) Inclusion of foreign language code",
+      "filename": "section-Annex_J-normative-inclusion-of-foreign-language-code.txt"
+    },
+    {
+      "section_id": "Annex K",
+      "title": "(normative) vpi_user.h",
+      "page_start": 1307,
+      "page_end": 1323,
+      "toc_level": 2,
+      "source_title": "Annex K (normative) vpi_user.h",
+      "filename": "section-Annex_K-normative-vpi-user-h.txt"
+    },
+    {
+      "section_id": "Annex L",
+      "title": "(normative) vpi_compatibility.h",
+      "page_start": 1324,
+      "page_end": 1326,
+      "toc_level": 2,
+      "source_title": "Annex L (normative) vpi_compatibility.h",
+      "filename": "section-Annex_L-normative-vpi-compatibility-h.txt"
+    },
+    {
+      "section_id": "Annex M",
+      "title": "(normative) sv_vpi_user.h",
+      "page_start": 1327,
+      "page_end": 1337,
+      "toc_level": 2,
+      "source_title": "Annex M (normative) sv_vpi_user.h",
+      "filename": "section-Annex_M-normative-sv-vpi-user-h.txt"
+    },
+    {
+      "section_id": "Annex N",
+      "title": "(normative) Algorithm for probabilistic distribution functions",
+      "page_start": 1338,
+      "page_end": 1345,
+      "toc_level": 2,
+      "source_title": "Annex N (normative) Algorithm for probabilistic distribution functions",
+      "filename": "section-Annex_N-normative-algorithm-for-probabilistic-distribution-functions.txt"
+    },
+    {
+      "section_id": "Annex O",
+      "title": "(informative) Encryption/decryption flow",
+      "page_start": 1346,
+      "page_end": 1349,
+      "toc_level": 2,
+      "source_title": "Annex O (informative) Encryption/decryption flow",
+      "filename": "section-Annex_O-informative-encryption-decryption-flow.txt"
+    },
+    {
+      "section_id": "Annex P",
+      "title": "(informative) Glossary",
+      "page_start": 1350,
+      "page_end": 1352,
+      "toc_level": 2,
+      "source_title": "Annex P (informative) Glossary",
+      "filename": "section-Annex_P-informative-glossary.txt"
+    },
+    {
+      "section_id": "Annex Q",
+      "title": "(informative) Bibliography",
+      "page_start": 1353,
+      "page_end": 1354,
+      "toc_level": 2,
+      "source_title": "Annex Q (informative) Bibliography",
+      "filename": "section-Annex_Q-informative-bibliography.txt"
+    }
+  ]
+}

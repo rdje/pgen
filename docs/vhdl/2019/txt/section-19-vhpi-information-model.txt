@@ -1,0 +1,2458 @@
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+364
+Copyright © 2019 IEEE. All rights reserved.
+19. VHPI information model
+19.1 General
+This clause describes the VHPI information model using the Unified Modeling Language (UML) (ISO/IEC
+19501:2005). The clause specifies the classes, subclass relationships, associations, properties, and
+operations of the information model. Part of this clause is included here in textual form. The remainder of
+this clause is included in machine-readable form, comprising a navigable representation of the information
+model.
+The information model described here allows representation of VHDL models that conform to
+IEEE Std 1076-2002. Certain aspects of the language added in the current revision cannot be represented by
+the information model. It is expected that a subsequent revision of this standard will extend the information
+model to allow representation of those aspects.
+19.2 Formal notation
+19.2.1 General
+The information model is described using a set of UML class diagrams. The diagrams specify the classes
+that are included in the information model, the subclass relationships that exist between classes, the
+properties and operations of classes, and the associations that exist between objects of classes.
+Each association is annotated with the navigability of the association. If the association is navigable from an
+object of one class to an object of a second class, the first class is said to be the reference class, and the
+second class is said to be the target class. The object of the reference class is said to be the reference object,
+and an object of the target class is said to be a target object. An association may be navigable in one
+direction only (in which case, it is shown with an arrow indicating the direction of navigability) or it may be
+navigable in both directions (in which case it is shown with no arrow).
+Each association is annotated with the multiplicity of the association in the direction of navigation of the
+association. One-to-one associations are those that have a multiplicity of 1 or 0..1 in the direction of
+navigation. One-to-many associations are those that have a multiplicity of 0..* or 1..* in the direction of
+navigation.
+Some associations are annotated with a role name in the direction of navigation of the association. If an
+association is not so annotated, the role name is implicitly the name of the target class.
+Some one-to-many associations are annotated with the ordered constraint. The description of the association
+includes a specification of the order of occurrence of target objects within the association.
+In certain cases, a class inherits a given property or association from more than one superclass, or has a
+given property or association and also inherits the property or association from a superclass. In such cases,
+the class does not replicate the property or association. Rather, the class has a single occurrence of the
+property or association. The meaning of the property or association is the same for all classes in which it is
+specified.
+19.2.2 Machine-readable information model
+The machine-readable form of the information model is part of this clause. The following aspects of the
+machine-readable form are normative:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+365
+Copyright © 2019 IEEE. All rights reserved.
+a)
+The partitioning of class diagrams, class specification, and association specifications into packages
+b)
+The class diagrams
+c)
+For each package specification:
+—
+The package name
+—
+The text of the documentation
+—
+The list of classes provided by the package
+d)
+For each class specification:
+—
+The text of the documentation
+—
+The specification of whether the class is abstract
+—
+The cardinality
+—
+The name and signature of operations
+—
+The name, supplying class, and type of properties (referred to as “attributes” in the
+machine-readable form)
+—
+The role names and target classes of associations
+—
+The specialized class and supplier class of generalization relationships
+e)
+For each property specification:
+—
+The name, type, and supplying class of the property
+—
+The text of the documentation
+f)
+For each operation specification:
+—
+The name, signature, and supplying class of operations
+—
+The text of the documentation
+g)
+For each association specification:
+—
+If an association is navigable in a given direction, the target class role name, and the target class
+—
+Otherwise, the role name is shown as “Not Named”
+h)
+For each navigable association role specification:
+—
+The role name and target class
+—
+The text of the documentation
+—
+The multiplicity (referred to as the “cardinality” in the machine-readable form)
+—
+The navigability
+NOTE—Other aspects of the machine-readable form do not form part of this standard. They occur as a side effect of the
+software program used to develop this standard.
+19.3 Class inheritance hierarchy
+The UML description of the VHPI information model is partitioned into several UML packages. Each
+package defines one or more classes and includes one or more class diagrams. The class diagrams of all of
+the packages jointly specify the inheritance hierarchy of the UML description, that is, the set of inheritance
+relationships that exist between all of the classes of the information model.
+The class base forms the root of the inheritance hierarchy; all other classes inherit directly or indirectly
+from it. A single virtual object of class null represents the context in which the VHPI tool executes and is
+accessed using a NULL handle. Other classes represent aspects of the VHDL model and VHPI programs
+being processed by the VHPI tool.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+366
+Copyright © 2019 IEEE. All rights reserved.
+For each class, this clause and the documentation in the machine-readable form of the information model
+jointly describe the properties, operations, and associations defined in the information model. The class also
+inherits properties, operations, and associations defined for its superclasses.
+19.4 Name properties
+19.4.1 General
+This subclause (19.4) describes certain properties of objects that relate to the names of VHDL named
+entities or constructs. Other name-related properties are described in the documentation in the
+machine-readable form of the information model.
+19.4.2 Implicit labels of statements
+19.4.2.1 General
+Certain properties that relate to names derive their values from labels of statements. In cases where the label
+of such a statement is optional, this subclause (19.4.2) describes rules for determining an implicit label that
+is used in the value of the property.
+19.4.2.2 Implicit labels of loop statements
+For each loop statement that occurs immediately within a given declarative region, there corresponds a
+unique sequence number, determined as follows. The loop statements are ordered according to the order of
+occurrence of their first lexical elements in the text of the declarative region. The sequence number of the
+first loop statement in the ordering, if any, is 0. The sequence number of each subsequent loop statement in
+the ordering, if any, is one greater than that of the preceding loop statement.
+If a loop statement is unlabeled, an implicit label is defined for use in name properties. The implicit label is
+a sequence of characters starting with an underline character, followed by the letter 'L' or 'l', further followed
+by the loop sequence number of the loop statement expressed in decimal without leading insignificant zero
+digits. The choice between the letter 'L' and 'l' is implementation defined.
+Example:
+In the following VHDL procedure body, the implicit loop labels are indicated in comments.
+procedure LOOP_EXAMPLE is
+begin
+   loop
+-- _L0
+      L: for I in 1 to 10 loop
+ -- explicitly labeled,
+                                 
+-- so no implicit label defined
+         while TEST loop
+-- _L2
+            ...
+         end loop;
+      end loop L;
+   end loop;
+   loop 
+-- _L3
+         ...
+   end loop;
+end procedure LOOP_EXAMPLE;
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+367
+Copyright © 2019 IEEE. All rights reserved.
+19.4.2.3 Implicit labels of concurrent statements
+For each concurrent statement that is a process statement or is equivalent to a process statement and that
+occurs immediately within a given declarative region, there corresponds a unique sequence number,
+determined as follows. The statements are ordered according to their order of occurrence in the text of the
+declarative region. In the case of statements occurring immediately within an entity declaration, a block
+statement, or a generate statement, the sequence number of the first statement in the ordering, if any, is 0. In
+the case of statements occurring immediately within an architecture body, the sequence number of the first
+statement in the ordering, if any, is one greater than that of the last statement in the ordering of the entity
+declaration to which the architecture body corresponds. The sequence number of each subsequent statement
+in the ordering of the given declarative region, if any, is one greater than that of the preceding statement.
+If a concurrent statement that is a process statement or is equivalent to a process statement is unlabeled, an
+implicit label is defined for use in name properties. The implicit label is a sequence of characters starting
+with an underline character, followed by the letter 'P' or 'p', further followed by the sequence number of the
+statement expressed in decimal without leading insignificant zero digits. The choice between the letter 'P'
+and 'p' is implementation defined.
+Example:
+In the following VHDL model, the implicit labels are indicated in comments.
+entity E is
+generic (G: INTEGER);
+port (S: out INTEGER);
+   assert G > 0;
+-- _P0
+end entity E;
+architecture A of E is
+begin
+   process is
+-- _P1
+   begin
+      ...
+   end process;
+   A1: assert G > 2;
+   B: block is
+   begin
+      WORK.PKG.PROC(G);
+-- _P0
+   end block B;
+   S <= G;
+-- _P2
+end architecture A;
+19.4.3 The Name and CaseName properties
+Certain objects in the information model have both the Name and CaseName properties. If the value of the
+Name property of an object is the simple name of a named entity and the simple name is in the form of an
+extended identifier, the case of letters occurring in the value of the Name property is the same as the case of
+letters occurring in the extended identifier. Otherwise, the case of letters occurring in the value of the Name
+property is not specified by this standard.
+For an object of class decl that does not represent the declaration of an anonymous named entity, the
+values of the Name and CaseName properties are the simple name or operator symbol of the declaration
+represented by the object. In determining the case of letters in the CaseName property, there are four cases:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+368
+Copyright © 2019 IEEE. All rights reserved.
+—
+If the object represents a type declaration, either there is both an incomplete type declaration and a
+full type declaration, in which case the case of letters in the value of the CaseName property is the
+same as the case of letters in the identifier of the incomplete type declaration; or there is only a full
+type declaration, in which case the case of letters in the value of the CaseName property is the same
+as the case of letters in the identifier of the full type declaration.
+—
+If the object represents an interface object of a subprogram, either there is both a subprogram
+declaration and a subprogram body, in which case the case of letters in the value of the CaseName
+property is the same as the case of letters in the identifier of the interface declaration of the
+subprogram declaration; or there is only a subprogram body, in which case the case of letters in the
+value of the CaseName property is the same as the case of letters in the identifier of the interface
+declaration of the subprogram body.
+—
+If the object represents a subprogram body for which there is a separate subprogram declaration, the
+case of letters in the value of the CaseName property is the same as the case of letters in the
+designator of the subprogram specification of the subprogram declaration. Otherwise, if the object
+represents a subprogram body for which there is no separate subprogram declaration, the case of
+letters in the value of the CaseName property is the same as the case of letters in the designator of
+the subprogram specification of the subprogram body.
+—
+If the object is none of the preceding cases, the case of letters in the value of the CaseName property
+is the same as the case of letters in the identifier or operator symbol in the declaration represented by
+the object.
+The values of the Name and CaseName properties of an object of class decl that represents the
+declaration of an anonymous named entity are not specified by this standard.
+For an object of class rootInst, the values of the Name and CaseName properties are the simple name
+of the entity declaration whose instantiation is represented by the object. The case of letters in the value of
+the CaseName property is the same as the case of letters in the identifier of the entity declaration.
+For an object of class packInst, the values of the Name and CaseName properties are the simple name
+of the package declaration whose elaboration is represented by the object. The case of letters in the value of
+the CaseName property is the same as the case of letters in the identifier of the package declaration.
+For an object of class protectedTypeInst, the values of the Name and CaseName properties are the
+simple name of the variable whose elaboration is represented by the object. The case of letters in the value of
+the CaseName property is the same as the case of letters in the identifier of the variable declaration.
+For an object of class blockStmt, eqProcessStmt, or compInstStmt, or for an object of class
+generateStmt other than an object of class forGenerate in the design hierarchy information model,
+or for an object of class loopStmt, the values of the Name and CaseName properties are the label, either
+explicit or implicit (see 19.4.2), of the statement represented by the object. The case of letters in the value of
+the CaseName property is the same as the case of letters in the label of the statement.
+For an object of class forGenerate in the design hierarchy information model, the values of the Name
+and CaseName properties are a string of the form:
+generate_statement_label ( literal )
+The string includes no leading, trailing, or embedded space characters between lexical elements. The
+generate statement label is the label of the generate statement represented by the object, and the literal is the
+value of the generate parameter corresponding to the instance of the generate statement represented by the
+object. If the generate parameter is of an integer type, the literal is a numeric literal whose value is an
+integer. Otherwise, if the generate parameter is of an enumeration type, the literal is an enumeration literal
+whose value is of the type of the generate parameter. The case of letters in the label part of the value of the
+CaseName property is the same as the case of letters in the label of the statement. The case of letters in a
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+369
+Copyright © 2019 IEEE. All rights reserved.
+numeric literal in the value of the CaseName property is not specified by this standard. The case of letters
+in an enumeration literal that is an identifier in the value of the CaseName property is the same as the case
+of letters in the identifier in the declaration of the enumeration type of which the enumeration literal is a
+value.
+For an object of class seqProcCall or funcCall representing an invocation of a subprogram other than
+a method of a protected type, the values of the Name and CaseName properties are the values of the Name
+and CaseName properties, respectively, of an object of class subpDecl representing the subprogram
+specification of the subprogram invoked.
+For an object of class seqProcCall or funcCall representing invocation of a method of a protected
+type, the value of the Name property is a string of the form:
+shared_variable_name_property . named_entity_name_property
+and the value of the CaseName property is a string of the form:
+shared_variable_case_name_property . named_entity_case_name_property
+The strings include no leading, trailing, or embedded space characters between lexical elements. The shared
+variable name property and the shared variable case name property are the values of the Name and
+CaseName properties, respectively, of an object of class decl representing the declaration of the shared
+variable denoted by the prefix of the name of the subprogram invoked. The named entity name property and
+the named entity case name property are the values of the Name and CaseName properties, respectively, of
+an object of class subpDecl representing the subprogram specification of the subprogram invoked.
+For an object of class indexedName representing an element of a named entity that is a declared object of
+an array type, the value of the Name property is a string of the form:
+named_entity_name_property ( literal { , literal } )
+and the value of the CaseName property is a string of the form:
+named_entity_case_name_property ( literal { , literal } )
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity name property is the value of the Name property of the object representing the
+declaration of the named entity, and the named entity case name property is the value of the
+CaseName property of that object.
+—
+Each literal is the index value of the element for the corresponding index position of the array type of
+the named entity. If the index subtype for a given index position is an integer type, the literal for that
+index position is a numeric literal whose value is an integer. Otherwise, if the index subtype for the
+index position is an enumeration type, the literal is an enumeration literal whose value is of the index
+subtype.
+For an object of class selectedName representing an element of a named entity that is a declared object
+of a record type, the value of the Name property is a string of the form:
+named_entity_name_property . element_simple_name
+and the value of the CaseName property is a string of the form:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+370
+Copyright © 2019 IEEE. All rights reserved.
+named_entity_case_name_property . element_simple_name
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings
+—
+the named entity name property is the value of the Name property of the object representing the
+declaration of the named entity, and the named entity case name property is the value of the
+CaseName property of that object.
+—
+the element simple name is the simple name of the element. The case of letters in the element simple
+name in the value of the CaseName property is the same as the case of letters occurring in the
+identifier of the element in the declaration of the record type.
+For an object of class sliceName representing
+—
+a slice of a named entity that is a declared object of an array type, and
+—
+a slice in which the discrete range is in the form of a literal representing the left bound, a direction,
+and a literal representing the right bound,
+the value of the Name property is a string of the form:
+named_entity_name_property ( literal direction literal )
+and the value of the CaseName property is a string of the form:
+named_entity_case_name_property ( literal direction literal )
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity name property is the value of the Name property of the object representing the
+declaration of the object denoted by the prefix of the slice, and the named entity case name property
+is the value of the CaseName property of the former object.
+—
+The literals are the left and right bounds, respectively, of the range of the slice. If the index subtype
+of the object denoted by the prefix is an integer type, the literals are a numeric literals whose values
+are integers. Otherwise, if the index subtype of the object denoted by the prefix is an enumeration
+type, the literals are enumeration literals whose value is of the index subtype.
+—
+The direction is to if the discrete range of the slice is an ascending range, or downto otherwise.
+For an object of class derefObj in the library information model representing an element of an array
+variable, the values of the Name and CaseName properties are strings of the same form as the value of the
+Name and CaseName properties, respectively, of an object of class indexedName, except that:
+—
+The named entity name property is the value of the Name property of an object representing the
+access value that designates the array variable, and the named entity case name property is the value
+of the CaseName property of that object.
+—
+Each literal is the index value of the element for the corresponding index position of the array type of
+the array variable.
+For an object of class derefObj in the library information model representing an element of a record
+variable, the values of the Name and CaseName properties are strings of the same form as the value of the
+Name and CaseName properties, respectively, of an object of class selectedName, except that the
+named entity name property is the value of the Name property of an object representing the access value that
+designates the record variable, and the named entity case name property is the value of the CaseName
+property of that object.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+371
+Copyright © 2019 IEEE. All rights reserved.
+For an object of class derefObj in the library information model representing a slice of an array variable,
+the values of the Name and CaseName properties are strings of the same form as the value of the Name and
+CaseName properties, respectively, of an object of class sliceName, except that the named entity name
+property is the value of the Name property of an object representing the access value that designates the
+array variable, and the named entity case name property is the value of the CaseName property of that
+object.
+For an object of class derefObj in the library information model representing an entire variable, denoted
+by a selected name with the suffix all, the value of the Name property is a string of the form:
+named_entity_name_property . all
+and the value of the CaseName property is a string of the form:
+named_entity_case_name_property . all
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings, the named entity name property is the value of the Name property of an object representing the
+access value that designates the variable, and the named entity case name property is the value of the
+CaseName property of that object.
+It is an error if a VHPI program reads the Name or CaseName property of an object of class derefObj in
+the design hierarchy information model.
+For an object of class attrName representing an attribute name, the value of the Name property is a string
+of the form:
+named_entity_name_property ' attribute_name_property
+and the value of the CaseName property is a string of the form:
+named_entity_case_name_property ' attribute_case_name_property
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity name property is the value of the Name property of the object representing the
+prefix of the attribute name, and the named entity case name property is the value of the CaseName
+property of that object.
+—
+For user-defined attributes, the attribute name property is the value of the Name property of the
+object representing the declaration of the attribute denoted by the attribute designator in the attribute
+name, and the attribute case name property is the value of the CaseName property of that object.
+—
+For predefined attributes, the attribute name property and the attribute case name property are both
+the simple name of the attribute. The case of letters in the attribute case name property is not
+specified by this standard.
+For an object of class useClause representing a reference to a declaration in a use clause, the values of the
+Name and CaseName properties are the values of the Name and CaseName properties, respectively, of an
+object of class decl representing the declaration.
+For an object of class designUnit representing an analyzed design unit in the library information model,
+the values of the Name and CaseName properties are the simple name of the design unit. The case of letters
+in the simple name in the value of the CaseName property is the same as the case of letters occurring in the
+identifier of the design unit.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+372
+Copyright © 2019 IEEE. All rights reserved.
+19.4.4 The SignatureName property
+An object of class subpDecl, charLiteral, or enumLiteral has the SignatureName property.
+The value of the property is a string that is the signature (see 4.5.3) of the subprogram or enumeration literal,
+as appropriate, represented by the object. Similarly, an object of class subpCall has the
+SignatureName property. The value of the property is a string that is the signature of the subprogram
+invoked by the procedure call statement or function call represented by the object.
+The signature includes a type mark for each parameter of the subprogram, and that type mark denotes the
+base type of the parameter. If the subprogram is a function, the signature includes the reserved word return
+and a further type mark that denotes the base type of the return type of the function. The case of letters in the
+value of the SignatureName property is not specified by this standard.
+19.4.5 The UnitName property
+Objects of class designUnit in the library information model have the UnitName property. The value of
+the property is a string of the form:
+library_name_property . design_unit_name_property [ : body_name_property ]
+The string includes no leading, trailing, or embedded space characters between lexical elements. The library
+name property is the value of the LibLogicalName property of the object that represents the library
+containing the design unit. If the design unit is a primary unit, the design unit name property is the value of
+the Name property of the object that represents the design unit in the library information model, and the
+colon character and body name property are not included in the string. If the design unit is an architecture
+body, the design unit name property is the value of the Name property of the object that represents the
+corresponding entity declaration in the library information model, and the body name property is the simple
+name of the architecture body. If the design unit is a package body, the design unit name property is the
+value of the Name property of the object that represents the package declaration in the library information
+model, and the body name property is the letters body with the case of letters not specified by this standard.
+19.4.6 The DefName and DefCaseName properties
+Objects of class lexicalScope and decl in the library information model have both the DefName and
+DefCaseName properties. For a given object representing a named entity other than an anonymous named
+entity, the value of the DefName property is a string of the form:
+@ unit_name_property { . lexical_scope_name_property } [ . named_entity_name_property ]
+and the value of the DefCaseName property is a string of the form:
+@ unit_name_property { . lexical_scope_case_name_property } [ . named_entity_case_name_property ]
+The strings include no leading, trailing, or embedded space characters between lexical elements. If the
+named entity is a design unit, the unit name property is the value of the UnitName property of the given
+object; otherwise, the unit name property is the value of the UnitName property of the object that
+represents the design unit in which the named entity is declared. There is one lexical scope name property in
+the value of the DefName property, and one lexical scope case name property in the value of the
+DefCaseName property, for each declarative region (if any) between the design unit and the declaration of
+the named entity. A lexical scope name property is the value of the Name property of the object that
+represents the corresponding declarative region, and a lexical scope case name property is the value of the
+CaseName property of that object. If the named entity is a design unit, the named entity name property and
+the named entity case name property and the immediately preceding period characters are not included in the
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+373
+Copyright © 2019 IEEE. All rights reserved.
+strings. Otherwise, the named entity name property and the named entity case name property are the values
+of the Name and CaseName properties, respectively, of the object representing the named entity.
+For a given object in the library information model representing an anonymous named entity, the values of
+the DefName and DefCaseName properties are not specified by this standard.
+Objects in the design hierarchy information model that have the Name and CaseName properties also have
+the DefName and DefCaseName properties.
+For a given object of class decl in the design hierarchy information model representing a named entity, the
+value of the DefName and DefCaseName properties are the values of the DefName and DefCaseName
+properties, respectively, of the object in the library information model that represents the declaration of the
+named entity.
+For a given object of class rootInst, the value of the DefName and DefCaseName properties are the
+values of the DefName and DefCaseName properties, respectively, of the object in the library information
+model representing the entity declaration whose instantiation is represented by the given object.
+For an object of class packInst, the value of the DefName and DefCaseName properties are the values
+of the DefName and DefCaseName properties, respectively, of the object in the library information model
+representing the package declaration whose instantiation is represented by the given object.
+For an object of class protectedTypeInst, the value of the DefName and DefCaseName properties
+are the values of the DefName and DefCaseName properties, respectively, of the object in the library
+information model representing the variable declaration whose instantiation is represented by the given
+object.
+For an object of class concStmt in the design hierarchy information model other than an object of class
+concProcCallStmt, or for an object of class forLoop, the value of the DefName and
+DefCaseName properties are the values of the DefName and DefCaseName properties, respectively, of
+the object in the library information model representing the statement whose instantiation is represented by
+the given object.
+For an object of class subpCall in the design hierarchy information model representing a subprogram call,
+the value of the DefName property is a string of the form:
+lexical_scope_definition_name_property . named_entity_name_property
+and the value of the DefCaseName property is a string of the form:
+lexical_scope_definition_case_name_property . named_entity_case_name_property
+The strings include no leading, trailing, or embedded space characters between lexical elements. The lexical
+scope definition name property and the lexical scope definition case name property are the values of the
+DefName and DefCaseName properties, respectively, of the object of class lexicalScope in the
+library information model representing the declarative region immediately within which the subprogram call
+occurs. The named entity name property and the named entity case name property are the values of the
+Name and CaseName properties, respectively, of the object in the library information model representing
+the subprogram call.
+For an object of class indexedName representing an element of a named entity that is a declared object of
+an array type, the value of the DefName property is a string of the form:
+named_entity_definition_name_property ( literal { , literal } )
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+374
+Copyright © 2019 IEEE. All rights reserved.
+and the value of the DefCaseName property is a string of the form:
+named_entity_definition_case_name_property ( literal { , literal } )
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity definition name property is the value of the DefName property of the object
+representing the declaration of the named entity, and the named entity definition case name property
+is the value of the DefCaseName property of that object.
+—
+The literals are formed according to the rules for forming the literals in the Name and CaseName
+properties of the object (see 19.4.3).
+For an object of class selectedName representing an element of a named entity that is a declared object
+of a record type, the value of the DefName property is a string of the form:
+named_entity_definition_name_property . element_simple_name
+and the value of the DefCaseName property is a string of the form:
+named_entity_definition_case_name_property . element_simple_name
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity definition name property is the value of the DefName property of the object
+representing the declaration of the named entity, and the named entity definition case name property
+is the value of the DefCaseName property of that object.
+—
+The element simple name is formed according to the rules for forming the element simple name in
+the Name and CaseName properties of the object (see 19.4.3).
+For an object of class sliceName representing
+—
+a slice of a named entity that is a declared object of an array type, and
+—
+a slice in which the discrete range is in the form of a literal representing the left bound, a direction
+and a literal representing the right bound,
+the value of the DefName property is a string of the form:
+named_entity_definition_name_property ( literal direction literal )
+and the value of the DefCaseName property is a string of the form:
+named_entity_definition_case_name_property ( literal direction literal )
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity definition name property is the value of the DefName property of the object
+representing the declaration of the object denoted by the prefix of the slice, and the named entity
+definition case name property is the value of the DefCaseName property of the former object.
+—
+The literals and the direction are formed according to the rules for forming the literals and direction
+in the Name and CaseName properties of the object (see 19.4.3).
+For an object of class derefObj in the library information model representing an element of an array
+variable, the values of the DefName and DefCaseName properties are strings of the same form as the
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+375
+Copyright © 2019 IEEE. All rights reserved.
+value of the DefName and DefCaseName properties, respectively, of an object of class indexedName,
+except that:
+—
+The named entity definition name property is the value of the DefName property of an object
+representing the access value that designates the array variable, and the named entity definition case
+name property is the value of the DefCaseName property of that object.
+—
+Each literal is the index value of the element for the corresponding index position of the array type of
+the array variable.
+For an object of class derefObj in the library information model representing an element of a record
+variable, the values of the DefName and DefCaseName properties are strings of the same form as the
+value of the DefName and DefCaseName properties, respectively, of an object of class selectedName,
+except that the named entity definition name property is the value of the DefName property of an object
+representing the access value that designates the record variable, and the named entity definition case name
+property is the value of the DefCaseName property of that object.
+For an object of class derefObj in the library information model representing a slice of an array variable,
+the values of the DefName and DefCaseName properties are strings of the same form as the value of the
+DefName and DefCaseName properties, respectively, of an object of class sliceName, except that the
+named entity definition name property is the value of the DefName property of an object representing the
+access value that designates the array variable, and the named entity definition case name property is the
+value of the DefCaseName property of that object.
+For an object of class derefObj in the library information model representing an entire variable, denoted
+by a selected name with the suffix all, the value of the DefName property is a string of the form:
+named_entity_definition_name_property . all
+and the value of the DefCaseName property is a string of the form:
+named_entity_case_definition_name_property . all
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings, the named entity definition name property is the value of the DefName property of an object repre-
+senting the access value that designates the variable, and the named entity definition case name property is
+the value of the DefCaseName property of that object.
+It is an error if a VHPI program reads the DefName or DefCaseName property of an object of class
+derefObj in the design hierarchy information model.
+For an object of class attrName representing an attribute name, the value of the DefName property is a
+string of the form:
+named_entity_definition_name_property ' attribute_name_property
+and the value of the DefCaseName property is a string of the form:
+named_entity_definition_case_name_property ' attribute_case_name_property
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+376
+Copyright © 2019 IEEE. All rights reserved.
+—
+The named entity definition name property is the value of the DefName property of the object
+representing the prefix of the attribute name, and the named entity definition case name property is
+the value of the DefCaseName property of that object.
+—
+The attribute name property and the attribute case name property are formed according to the rules
+for forming the attribute name property and the attribute case name property in the Name and
+CaseName properties of the object (see 19.4.3).
+19.4.7 The FullName and FullCaseName properties
+Objects of class decl and name in the library information model have the FullName and
+FullCaseName string properties. The value of the FullName property of such an object is the same as
+the value of the DefName property of the object, and the value of the FullCaseName property of such an
+object is the same as the value of the DefCaseName property of the object.
+Objects of classes decl, region, and name in the design hierarchy information model have the
+FullName and FullCaseName string properties.
+For a given object of class decl or region representing a named entity that is statically elaborated and
+that is either a package, declared immediately within a package, or elaborated as a declaration in a protected
+type that is the type of a shared variable declared immediately within a package, the value of the FullName
+property is a string of the form:
+@ library_name_property : package_name_property :
+      [ shared_variable_name_property : ] [ named_entity_name_property ]
+and the value of the FullCaseName property is a string of the form:
+@ library_case_name_property : package_case_name_property :
+      [ shared_variable_case_name_property : ] [ named_entity_case_name_property ]
+The strings include no leading, trailing, or embedded space characters between lexical elements. The library
+name property and the library case name property are both the value of the LibLogicalName property of
+the object that represents the library containing the package declaration. The package name property and the
+package case name property are the values of the Name and CaseName properties, respectively, of the
+object that represents the package. The shared variable name property and the shared variable case name
+property are present if the given object represents a named entity elaborated as a declaration in a protected
+type that is the type of a shared variable declared immediately within a package. In that case, the properties
+are the values of the Name and CaseName properties, respectively, of the object that represents the shared
+variable. The named entity name property and the named entity case name property are present if the given
+object represents a named entity declared immediately within a package or elaborated as a declaration in a
+protected type that is the type of a shared variable declared immediately within a package. In that case, the
+properties are the values of the Name and CaseName properties, respectively, of the given object.
+For a given object of class decl or region representing a named entity that is statically elaborated and
+that is a root design entity instance, a named entity declared in a declarative region other than immediately
+within a package, a named entity elaborated as a declaration in a protected type that is the type of a shared
+variable declared other than immediately within a package, or a concurrent statement, the value of the
+FullName property is a string of the form:
+: { region_name_property : } [ named_entity_name_property ]
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+377
+Copyright © 2019 IEEE. All rights reserved.
+and the value of the FullCaseName property is a string of the form:
+: { region_case_name_property : } [ named_entity_case_name_property ]
+The strings include no leading, trailing, or embedded space characters between lexical elements. There is
+one region name property in the value of the FullName property, and one region case name property in the
+CaseName property, for the root design entity and each declarative region instance in the design hierarchy
+between the root design entity and the named entity. Each region name property is the value of the Name
+property of the object representing the corresponding root design entity or declarative region instance, and
+each region case name property is the value of the CaseName property of the object representing the corre-
+sponding root design entity or declarative region instance. The named entity name property or named entity
+case name property is present if the given object represents a declared named entity. In that case, the named
+entity name property is the value of the Name property of the given object, and the named entity case name
+property is the CaseName property of the given object.
+For an object of class decl or region representing a named entity that is dynamically elaborated, the
+value of the FullName property is a string of the form:
+parent_process_full_name_property : { parent_subprogram_full_name_property : }
+      [ variable_name_property : ] named_entity_name_property
+and the value of the FullCaseName property is a string of the form:
+parent_process_full_case_name_property : { parent_subprogram_full_case_name_property : }
+      [ variable_case_name_property : ] named_entity_case_name_property
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The parent process full name property is the value of the FullName property of the object
+representing the equivalent process instance from which the subprogram containing the named entity
+is directly or indirectly called, and the parent process full case name property is the value of the
+FullCaseName property of that object.
+—
+There is one occurrence of the parent subprogram full name property and one occurrence of the
+parent subprogram full case name property for each dynamically elaborated subprogram call, if any,
+in the chain of subprogram calls between the equivalent process instance and the named entity. Each
+parent subprogram full name property is the value of the FullName property of the object of class
+subpCall representing the corresponding subprogram call, and each parent subprogram full case
+name property is the value of the FullCaseName property of the object of class subpCall
+representing the corresponding subprogram call.
+—
+The variable name property and the variable case name property are present if the named entity is
+elaborated as a declaration in a protected type that is the type of a variable declared immediately
+within the subprogram, if any, that is at the end of the chain of subprogram calls leading to the named
+entity. In that case, the properties are the values of the Name and CaseName properties,
+respectively, of the object representing the elaborated variable.
+—
+The named entity name property and the named entity case name property are the values of the Name
+and CaseName properties, respectively, of the object that represents the named entity.
+For an object of class indexedName representing an element of a named entity that is a declared object of
+an array type, the value of the FullName property is a string of the form:
+named_entity_full_name_property ( literal { , literal } )
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+378
+Copyright © 2019 IEEE. All rights reserved.
+and the value of the FullCaseName property is a string of the form:
+named_entity_full_case_name_property ( literal { , literal } )
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity full name property is the value of the FullName property of the object
+representing the declaration of the named entity, and the named entity full case name property is the
+value of the FullCaseName property of that object.
+—
+The literals are formed according to the rules for forming the literals in the Name and CaseName
+properties of the object (see 19.4.3).
+For an object of class selectedName representing an element of a named entity that is a declared object
+of a record type, the value of the FullName property is a string of the form:
+named_entity_full_name_property . element_simple_name
+and the value of the FullCaseName property is a string of the form:
+named_entity_full_case_name_property . element_simple_name
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity full name property is the value of the FullName property of the object
+representing the declaration of the named entity, and the named entity full case name property is the
+value of the FullCaseName property of that object.
+—
+The element simple name is formed according to the rules for forming the element simple name in
+the Name and CaseName properties of the object (see 19.4.3).
+For an object of class sliceName representing:
+—
+a slice of a named entity that is a declared object of an array type, and
+—
+a slice in which the discrete range is in the form of a literal representing the left bound, a direction,
+and a literal representing the right bound,
+the value of the FullName property is a string of the form:
+named_entity_full_name_property ( literal direction literal )
+and the value of the FullCaseName property is a string of the form:
+named_entity_full_case_name_property ( literal direction literal )
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity full name property is the value of the FullName property of the object
+representing the declaration of the object denoted by the prefix of the slice, and the named entity full
+case name property is the value of the FullCaseName property of the former object.
+—
+The literals and the direction are formed according to the rules for forming the literals and direction
+in the Name and CaseName properties of the object (see 19.4.3).
+It is an error if a VHPI program reads the FullName or FullCaseName property of an object of class
+derefObj in the design hierarchy information model.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+379
+Copyright © 2019 IEEE. All rights reserved.
+For an object of class attrName representing an attribute name, the value of the FullName property is a
+string of the form:
+named_entity_full_name_property ' attribute_name_property
+and the value of the FullCaseName property is a string of the form:
+named_entity_full_case_name_property ' attribute_case_name_property
+The strings include no leading, trailing, or embedded space characters between lexical elements. In the
+strings:
+—
+The named entity full name property is the value of the FullName property of the object
+representing the prefix of the attribute name, and the named entity full case name property is the
+value of the FullCaseName property of that object.
+—
+The attribute name property and the attribute case name property are formed according to the rules
+for forming the attribute name property and the attribute case name property in the Name and
+CaseName properties of the object (see 19.4.3).
+NOTE 1—For a named entity with a package, the value of the 'PATH_NAME attribute is a package-based path in which
+the library logical name may, in some designs, be the same as the root design entity name. In such designs, there may be
+a named entity within the design hierarchy that has the same value of the 'PATH_NAME attribute as that of a named
+entity within the package. The FullName property of the object representing the named entity in the package has the
+leader character replaced with “@” to avoid the ambiguity.
+NOTE 2—An object of class subpCall in the design hierarchy information model representing a concurrent procedure
+call statement is treated as an object of class region representing a statically elaborated named entity. An object of
+class subpCall in the design hierarchy information model representing a sequential procedure call statement is treated
+as an object of class region representing a dynamically elaborated named entity.
+19.4.8 The PathName and InstanceName properties
+Objects of classes decl and region in the design hierarchy information model have the PathName and
+InstanceName string properties. The value of the PathName property of such an object is the same as
+the value of the 'PATH_NAME attribute of the named entity represented by the object, and the value of the
+InstanceName property of such an object is the same as the value of the 'INSTANCE_NAME attribute of
+the named entity represented by the object (see 16.2).
+19.5 The stdUninstantiated package
+The class diagrams in the stdUninstantiated package specify aspects of the VHPI information model
+that relate to uninstantiated design units in the VHDL model. See Figure 3, Figure 4, and Figure 5.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+380
+Copyright © 2019 IEEE. All rights reserved.
+Figure 3—ConfigDecl class diagram
+compConfig
+CompName : String
+IsOpen : Boolean
+InstNames : String
+IsDefault : Boolean
+blockConfig
+SpecName : String
+blockConfig
+SpecName : String
+compInstStmt
+entityAspect
+archBody
+entityDecl
+assocElem
+configDecl
+expr
+constraint
+configItem
+decl
+genIndex
++PortAssocs
+{ordered}
+0..*
++GenericAssocs
+{ordered}
+0..*
++ConfigSpec
+0..1
+1
+0..1
+0..1
+1
+0..1
+0..*
++Uses
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+381
+Copyright © 2019 IEEE. All rights reserved.
+Figure 4—DesignUnit class diagram
+Figure 5—LexicalScope class diagram
+secondaryUnit
+decl
+libraryDecl
+portDecl
+spec
+null
+genericDecl
+configItem
+packDecl
+archBody
+primaryUnit
+stmt
+packBody
+designUnit
+configDecl
+entityDecl
+0..*
+1
++Uses
+0..*
+0..*
+1
+0..*
+{ordered}
+0..*
++DepUnits
+1..*
+{ordered}
+0..*
++ConfigSpecs
+0..*
+0..*
+0..*
+0..*
+1
+compConfig
+recordTypeDecl
+useClause
+protectedTypeDecl
+subpBody
+blockStmt
+subpDecl
+protectedTypeBody
+designUnit
+generateStmt
+loopStmt
+lexicalScope
+blockConfig
+compDecl
+decl
+spec
+0..1
+1
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+382
+Copyright © 2019 IEEE. All rights reserved.
+19.6 The stdHierarchy package
+The class diagrams in the stdHierarchy package specify aspects of the VHPI information model that
+relate to the VHDL design hierarchy. See Figure 6 through Figure 18.
+Figure 6—AliasDecl class diagram
+Figure 7—Composite class diagram
+aliasDecl
+vhpi_put_value()
+subpBody
+processStmt
+designInstUnit
+generateStmt
+protectedTypeBody
+blockStmt
+aliasedName
+stmt
+decl
+designUnit
+type
+name
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..1
+1
+derefObj
+selectedName
+convFunc
+indexedName
+funcCall
+varDecl
+{ordered}
+0..*
+{ordered}
+0..*
+{ordered}
+0..*
+{ordered}
+0..*
+0..1
+0..1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+383
+Copyright © 2019 IEEE. All rights reserved.
+Figure 8—Constants class diagram
+Figure 9—DeclInheritance class diagram
+constDecl
+IsDeferred : Boolean
+compInstStmt
+packInst
+generateStmt
+rootInst
+subpCall
+forGenerate
+forLoop
+blockStmt
+processStmt
+constParamDecl
+selectedName
+indexedName
+sliceName
+constant
+0..*
++ParamDecl
+1
++ParamDecl
+1
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+decl
+IsImplicitDecl : Boolean
+LineOffset : IntT
+LineNo : IntT
+FileName : String
+FullCaseName : String
+FullName : String
+CaseName : String
+Name : String
+DefName : String
+protectedTypeBody
+groupTempDecl
+compDecl
+subpBody
+libraryDecl
+subpDecl
+aliasDecl
+objDecl
+attrDecl
+enumLiteral
+charLiteral
+typeDecl
+subtypeDecl
+elemDecl
+groupDecl
+unitDecl
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+384
+Copyright © 2019 IEEE. All rights reserved.
+Figure 10—FileInheritance class diagram
+Figure 11—Generics class diagram
+Figure 12—GroupDecl class diagram
+fileDecl
+LogicalName : String
+OpenMode : OpenModeT
+fileParamDecl
+file
+compInstStmt
+NumPorts : IntT
+NumGens : IntT
+CompName : String
+IsDefault : Boolean
+IsOpen : Boolean
+CompInstKind : CompInstKindT
+CompInstName : String
+blockStmt
+NumPorts : IntT
+NumGens : IntT
+IsGuarded : Boolean
+EndLineNo : IntT
+BeginLineNo : IntT
+compDecl
+NumPorts : IntT
+NumGens : IntT
+genericDecl
+IsLocal : Boolean
+Mode : ModeT
+IsVital : Boolean
+vhpi_put_value()
+rootInst
+NumPorts : IntT
+NumGens : IntT
+indexedName
+sliceName
+selectedName
+generic
+{ordered}
+0..*
+{ordered}
+0..*
+{ordered}
+0..*
+{ordered}
+0..*
+entityClassEntry
+IsUnconstrained : Boolean
+EntityClass : EntityClassT
+entityDesignator
+groupTempDecl
+groupDecl
+attrSpec
+{ordered}
+1..*
+0..*
+{ordered}
+0..*
+1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+385
+Copyright © 2019 IEEE. All rights reserved.
+Figure 13—Object class diagram
+varDecl
+IsProtectedType : Boolean
+IsShared : Boolean
+vhpi_protected_call()
+vhpi_put_value()
+fileDecl
+LogicalName : String
+OpenMode : OpenModeT
+sigParamDecl
+Mode : ModeT
+IsResolved : Boolean
+IsGuarded : Boolean
+vhpi_put_value()
+constDecl
+IsDeferred : Boolean
+sigDecl
+SigKind : SigKindT
+IsGuarded : Boolean
+vhpi_register_cb()
+vhpi_put_value()
+objDecl
+Access : IntT
+IsDynamic : Boolean
+portDecl
+Mode : ModeT
+IsLocal : Boolean
+IsOpen : Boolean
+SigKind : SigKindT
+vhpi_put_value()
+vhpi_register_cb()
+protectedTypeInst
+expr
+funcDecl
+predefAttrName
+interfaceDecl
+Position : IntT
+genericDecl
+IsLocal : Boolean
+Mode : ModeT
+IsVital : Boolean
+vhpi_put_value()
+constParamDecl
+Mode : ModeT
+varParamDecl
+Mode : ModeT
+vhpi_put_value()
+fileParamDecl
+type
+type
+typeDecl
+paramDecl
++InitExpr 0..1
++LogicalExpr
+0..1
++InitExpr
+0..1
++FirstNamedType
+1
++ResolFunc
+0..1
++InitExpr
+0..1
++SigAttrs
+0..*
++ResolFunc 0..1
++SigAttrs
+0..*
++ResolFunc
+0..1
++InitExpr
+0..1
++BaseType
+1
++Type
+1
+0..1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+386
+Copyright © 2019 IEEE. All rights reserved.
+Figure 14—Ports class diagram
+compInstStmt
+NumPorts : IntT
+NumGens : IntT
+CompName : String
+IsDefault : Boolean
+IsOpen : Boolean
+CompInstKind : CompInstKindT
+CompInstName : String
+portDecl
+Mode : ModeT
+IsLocal : Boolean
+IsOpen : Boolean
+SigKind : SigKindT
+vhpi_put_value()
+vhpi_register_cb()
+blockStmt
+NumPorts : IntT
+NumGens : IntT
+IsGuarded : Boolean
+EndLineNo : IntT
+BeginLineNo : IntT
+rootInst
+NumPorts : IntT
+NumGens : IntT
+compDecl
+NumPorts : IntT
+NumGens : IntT
+predefAttrName
+selectedName
+indexedName
+port
+outPort
+inPort
+sliceName
+{ordered}
+0..*
+{ordered}
+0..*
+{ordered}
+0..*
+{ordered}
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+387
+Copyright © 2019 IEEE. All rights reserved.
+Figure 15—RegionInstance class diagram
+Figure 16—Signals class diagram
+decl
+IsImplicitDecl : Boolean
+LineOffset : IntT
+LineNo : IntT
+FileName : String
+FullCaseName : String
+FullName : String
+CaseName : String
+Name : String
+DefName : String
+region
+LineOffset : IntT
+LineNo : IntT
+FileName : String
+DefName : String
+CaseName : String
+Name : String
+FullCaseName : String
+FullName : String
+compDecl
+NumPorts : IntT
+NumGens : IntT
+protectedTypeInst
+eqProcessStmt
+generateStmt
+configDecl
+designInstUnit
+compInstStmt
+null
+loopStmt
+blockStmt
+rootInst
+packInst
+subpCall
+designUnit
+stmt
+0..*
++ImmRegion
+0..1
+0..*
++InternalRegions
+0..*
++UpperRegion
+0..1
+0..1
+1
+0..*
+0..1
+1
+sigDecl
+SigKind : SigKindT
+IsGuarded : Boolean
+vhpi_register_cb()
+vhpi_put_value()
+predefAttrName
+sigParamDecl
+compInstStmt
+rootInst
+generateStmt
+indexedName
+packInst
+blockStmt
+selectedName
+sliceName
+signal
+0..*
+0..*
+0..*
+0..*
++GuardSig
+0..1
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+388
+Copyright © 2019 IEEE. All rights reserved.
+Figure 17—StructuralRegions class diagram
+Figure 18—Variables class diagram
+19.7 The stdTypes package
+The class diagrams in the stdTypes package specify aspects of the VHPI information model that relate to
+types and subtypes in the VHDL model. See Figure 19, Figure 20, Figure 21, and Figure 22.
+rootInst
+eqProcessStmt
+generateStmt
+compInstStmt
+eqProcessStmt
+blockStmt
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+varDecl
+IsProtectedType : Boolean
+IsShared : Boolean
+vhpi_protected_call()
+vhpi_put_value()
+selectedName
+compInstStmt
+indexedName
+packInst
+generateStmt
+varParamDecl
+processStmt
+blockStmt
+subpCall
+rootInst
+sliceName
+derefObj
+variable
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+389
+Copyright © 2019 IEEE. All rights reserved.
+Figure 19—Constraint class diagram
+Figure 20—ScalarType class diagram
+range
+Staticness : StaticnessT
+IsUnconstrained : Boolean
+IsNull : Boolean
+IsUp : Boolean
+IsDiscrete : Boolean
+physRange
+PhysRightBound : PhysT
+PhysLeftBound : PhysT
+floatRange
+FloatRightBound : RealT
+FloatLeftBound : RealT
+intRange
+RightBound : IntT
+LeftBound : IntT
+enumRange
+RightBound : IntT
+LeftBound : IntT
+paramAttrName
+expr
+type
+constraint
++LeftExpr
+0..1
++RightExpr
+0..1
++Constraint
+0..1
+PhysPosition : PhysT
+unitDecl
+enumTypeDecl
+NumLiterals : IntT
+scalarTypeDecl
+intTypeDecl
+physTypeDecl
+floatTypeDecl
+enumLiteral
+physLiteral
+constraint
+0..1
+0..1
+1..*
+0..1
++BaseUnit
+1
+0..1
+1..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+390
+Copyright © 2019 IEEE. All rights reserved.
+Figure 21—TypeInheritance class diagram
+Figure 22—TypeSubtype class diagram
+type
+IsComposite : Boolean
+IsScalar : Boolean
+IsUnconstrained : Boolean
+protectedTypeBody
+EndLineNo : IntT
+NumDimensions : IntT
+arrayTypeDecl
+compositeTypeDecl
+accessTypeDecl
+protectedTypeDecl
+EndLineNo : IntT
+fileTypeDecl
+recordTypeDecl
+NumFields : IntT
+elemDecl
+Position : IntT
+scalarTypeDecl
+constraint
+typeDecl
++ElemType
+1
++ValType 1
+1
+1
++ValType
+1
++RecordElems
+{ordered}
+1..*
+1
+{ordered}
+1..*
+typeDecl
++IsAnonymous : Boolean
+type
++IsComposite : Boolean
++IsScalar : Boolean
++IsUnconstrained : Boolean
+subtypeDecl
+IsResolved : Boolean
+type
+typeDecl
+attrSpec
+constraint
+constraint
+funcDecl
+type
++BaseType
+0..1
++FirstNamedType
+1
++ResolFunc
+0..1
+{ordered}
+0..*
++ReturnType
+1
+0..1
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+391
+Copyright © 2019 IEEE. All rights reserved.
+19.8 The stdExpr package
+The class diagrams in the stdExpr package specify aspects of the VHPI information model that relate to
+expressions in the VHDL model. See Figure 23 through Figure 29.
+Figure 23—Aggregate class diagram
+Figure 24—Attribute class diagram
+expr
+Staticness : StaticnessT
+vhpi_get_value()
+elemAssoc
+IsNamed : Boolean
+aggregate
+choice
+0..*
+1
+1..*
+predefAttrName
+AttrKind : AttrKindT
+PredefAttr : PredefAttrT
+expr
+Staticness : StaticnessT
+vhpi_get_value()
+entityDesignator
+paramAttrName
+userAttrName
+simpAttrName
+attrSpec
+attrName
++ParamExprs
+0..*
++Prefix
+1
+1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+392
+Copyright © 2019 IEEE. All rights reserved.
+Figure 25—Expression class diagram
+name
+Size : IntT
+FullCaseName : String
+CaseName : String
+FullName : String
+Name : String
+Access : IntT
+DefName : String
+vhpi_get_value()
+typeDecl
++IsAnonymous : Boolean
+expr
+Staticness : StaticnessT
+vhpi_get_value()
+expr
+Staticness : StaticnessT
+vhpi_get_value()
+indexedName
+BaseIndex : IntT
+prefixedName
+vhpi_put_value()
+selectedName
+simpleName
+attrName
+sliceName
+qualifiedExpr
+allocator
+typeConv
+elemDecl
+literal
+aggregate
+funcCall
+prefix
+derefObj
+constraint
+1
++Suffix
+1
+0..1
+1
+1
+0..1
++IndexExprs
+{ordered}
+0..*
++Suffix
+0..1
++BaseType
+1
++IndexExprs
+{ordered}
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+393
+Copyright © 2019 IEEE. All rights reserved.
+Figure 26—Literal class diagram
+Figure 27—Name class diagram
+physLiteral
+PhysPosition : PhysT
+PhysVal : PhysT
+StrVal : String
+Position : IntT
+SignatureName : String
+enumLiteral
+StrVal : String
+Position : IntT
+SignatureName : String
+charLiteral
+realLiteral
+RealVal : RealT
+abstractLiteral
+stringLiteral
+StrVal : String
+literal
+vhpi_get_value()
+intLiteral
+IntVal : IntT
+bitStringLiteral
+StrVal : String
+attrSpec
+unitDecl
+nullLiteral
+0..*
+1
+1
+selectedName
+indexedName
+funcCall
+name
+derefObj
+0..1
+0..1
+{ordered}
+0..*
+{ordered}
+0..*
+{ordered}
+0..*
+{ordered}
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+394
+Copyright © 2019 IEEE. All rights reserved.
+Figure 28—SimpleName class diagram
+Figure 29—TypeConvAllocator class diagram
+19.9 The stdSpec package
+The class diagrams in the stdSpec package specify aspects of the VHPI information model that relate to
+attribute, disconnection, and configuration specifications in the VHDL model. See Figure 30, Figure 31,
+Figure 32, and Figure 33.
+simpleName
+objDecl
+aliasDecl
+expr
+Staticness : StaticnessT
+vhpi_get_value()
+allocator
+Size : IntT
+type
+typeConv
++ValType
+1
+1
++InitExpr
+0..1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+395
+Copyright © 2019 IEEE. All rights reserved.
+Figure 30—AttrSpec class diagram
+Figure 31—AttrSpecIterations class diagram
+entityDesignator
+EntityClass : EntityClassT
+attrDecl
+protectedTypeBody
+processStmt
+blockStmt
+designInstUnit
+subpBody
+designUnit
+others
+type
+stmt
+expr
+attrSpec
+literal
+decl
+all
+0..*
+0..*
+0..*
+0..*
+0..*
+1
+1..*
+1
+1
+type
+unitDecl
+region
+attrSpec
+stmt
+groupDecl
+subpDecl
+literal
+objDecl
+compDecl
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+396
+Copyright © 2019 IEEE. All rights reserved.
+Figure 32—DisconnectionSpec class diagram
+Figure 33—SpecInheritance class diagram
+19.10 The stdSubprograms package
+The class diagrams in the stdSubprograms package specify aspects of the VHPI information model that
+relate to subprogram declarations and subprogram calls in the VHDL model. See Figure 34 and Figure 35.
+disconnectSpec
+others
+expr
+signal
+all
+type
+1
+0..*
+0..1
++TimeExpr
+1
+0..1
+protectedTypeBody
+disconnectSpec
+blockStmt
+processStmt
+compConfig
+subpBody
+generateStmt
+designUnit
+attrSpec
+spec
+0..*
+0..*
+0..*
+0..*
+0..*
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+397
+Copyright © 2019 IEEE. All rights reserved.
+Figure 34—SubBody class diagram
+subpBody
+EndLineNo : IntT
+BeginLineNo : IntT
+IsForeign : Boolean
+subpDecl
+NumParams : IntT
+SignatureName : String
+funcDecl
+IsPure : Boolean
+varParamDecl
+sigParamDecl
+constParamDecl
+fileParamDecl
+procDecl
+paramDecl
+attrSpec
+decl
+type
+stmt
++ReturnType
+1
+0..*
+{ordered}
+0..*
+0..1
+1
+{ordered}
+0..*
+0..*
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+398
+Copyright © 2019 IEEE. All rights reserved.
+Figure 35—SubpCall class diagram
+19.11 The stdStmts package
+The class diagrams in the stdStmts package specify aspects of the VHPI information model that relate to
+concurrent and sequential statements in the VHDL model. See Figure 36 through Figure 44.
+EndLineNo : IntT
+BeginLineNo : IntT
+IsForeign : Boolean
+subpBody
+subpDecl
+NumParams : IntT
+SignatureName : String
+subpCall
+NumParams : IntT
+IsBuiltIn : Boolean
+stackFrame
++FrameLevel : IntT
+concProcCallStmt
+funcCall
+IsOperator : Boolean
+vhpi_put_value()
+seqProcCallStmt
+procCallStmt
+IsPassive : Boolean
+assocElem
+stackFrame
+sigDecl
+paramDecl
++ParamAssocs
+{ordered}
+0..*
+{ordered}
+0..*
+0..1
+1
++DrivenSigs
+0..*
++CurStackFrame
+0..1
++UpStack
+0..1
++DownStack
+0..1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+399
+Copyright © 2019 IEEE. All rights reserved.
+Figure 36—CaseIfWaitReturnStmt class diagram
+branch
+FileName : String
+LineOffset : IntT
+LineNo : IntT
+choice
+caseStmt
+constraint
+others
+name
+waitStmt
+seqStmt
+returnStmt
+expr
+ifStmt
+1..*
++CaseExpr
+1
++CondExpr
+0..1
++ReturnExpr
+0..1
++SigNames
+0..*
++TimeOutExpr
+0..1
+1..*
+0..*
++CondExpr
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+400
+Copyright © 2019 IEEE. All rights reserved.
+Figure 37—ConcSigAssignStmt class diagram
+sigAssignStmt
+IsGuarded : Boolean
+IsTransport : Boolean
+concSigAssignStmt
+IsUnaffected : Boolean
+waveformElem
+condSigAssignStmt
+simpleSigAssignStmt
+selectWaveform
+FileName : String
+LineNo : IntT
+selectSigAssignStmt
+condWaveform
+FileName : String
+LineNo : IntT
+expr
+expr
+expr
+sigDecl
+expr
+choice
++RejectTime
+0..1
++LhsExpr
+1
+1..*
++GuardSig
+0..1
++CondExpr
+0..1
++SelectExpr
+1
++ValExpr
+0..1
++TimeExpr
+0..1
+1..*
+1..*
+1..*
+1..*
+1..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+401
+Copyright © 2019 IEEE. All rights reserved.
+Figure 38—ConcStmt class diagram
+Figure 39—GenerateStmt class diagram
+IsPostponed : Boolean
+eqProcessStmt
+concProcCallStmt
+concSigAssignStmt
+processStmt
+IsForeign : Boolean
+EndLineNo : IntT
+BeginLineNo : IntT
+IsPassive : Boolean
+vhpi_create()
+stmt
+IsSeqStmt : Boolean
+LabelName : String
+FileName : String
+LineNo : IntT
+blockStmt
+generateStmt
+compInstStmt
+concAssertStmt
+concStmt
+name
+attrSpec
+seqStmt
++Parent
+0..1
+0..*
++Sensitivities
+0..*
+forGenerate
+GenerateIndex : IntT
+generateStmt
+constraint
+ifGenerate
+expr
+constDecl
++CondExpr
+1
+1
++ParamDecl
+1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+402
+Copyright © 2019 IEEE. All rights reserved.
+Figure 40—LoopNextStmt class diagram
+Figure 41—SeqSigAssignStmt class diagram
+exitStmt
+LoopLabelName : String
+LoopLabelName : String
+nextStmt
+forLoop
+expr
+constraint
+constDecl
+loopStmt
+whileLoop
+foreverLoop
++ParamDecl
+1
+1
++CondExpr
+1
++CondExpr
+0..1
++CondExpr
+0..1
+sigAssignStmt
+IsGuarded : Boolean
+IsTransport : Boolean
+IsUnaffected : Boolean
+waveformElem
+seqSigAssignStmt
+expr
+seqStmt
+sigDecl
+expr
+expr
++RejectTime
+0..1
++LhsExpr
+1
++GuardSig
+0..1
+1..*
++ValExpr
+0..1
++TimeExpr
+0..1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+403
+Copyright © 2019 IEEE. All rights reserved.
+Figure 42—SeqStmtInheritance class diagram
+Figure 43—StructStmt class diagram
+seqSigAssignStmt
+seqAssertStmt
+varAssignStmt
+seqProcCallStmt
+waitStmt
+seqStmt
+region
+ifStmt
+nextStmt
+loopStmt
+reportStmt
+exitStmt
+caseStmt
+returnStmt
+nullStmt
+stmt
++ImmRegion
+1
++Parent
+0..1
+interfaceElt
+interfaceElt
+assocElem
+IsNamed : Boolean
+IsOpen : Boolean
+Position : IntT
+compInstStmt
+interfaceElt
+blockStmt
+sigDecl
+rootInst
+expr
++GenericAssocs
+{ordered}
+0..*
++PortAssocs
+{ordered}
+0..*
++PortAssocs
+{ordered}
+0..*
++GenericAssocs
+{ordered}
+0..*
++GuardExpr
+0..1
++GuardSig
+0..1
++GenericAssocs
+{ordered}
+0..*
++PortAssocs
+{ordered}
+0..*
++Actual
+0..1
++Local
+0..1
++Formal
+0..1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+404
+Copyright © 2019 IEEE. All rights reserved.
+Figure 44—VarAssignAssertReportStmt class diagram
+19.12 The stdConnectivity package
+19.12.1 Class diagrams
+The class diagrams in the stdConnectivity package specify aspects of the VHPI information model
+that relate to the interconnection of drivers, ports, and signals in the VHDL model. See Figure 45 through
+Figure 49.
+reportStmt
+assertStmt
+concAssertStmt
+seqAssertStmt
+varAssignStmt
+expr
++ReportExpr
+0..1
++LhsExpr
+1
++RhsExpr
+1
++SeverityExpr
+0..1
++ReportExpr
+1
++SeverityExpr
+0..1
++CondExpr
+1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+405
+Copyright © 2019 IEEE. All rights reserved.
+Figure 45—BasicSignal class diagram
+indexedName
+sliceName
+predefAttrName
+indexedName
+selectedName
+signal
+IsForced : Boolean
+isBasic : Boolean
+IsSimNet : Boolean
+sliceName
+predefAttrName
+sigDecl
+sigParamDecl
+selectedName
+port
+inPort
+outPort
+portDecl
++BasicSignals
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+406
+Copyright © 2019 IEEE. All rights reserved.
+Figure 46—Connectivity class diagram
+Figure 47—Contributor class diagram
+inPort
+vhpi_register_cb()
+vhpi_get_value()
+vhpi_put_value()
+signal
+IsForced : Boolean
+isBasic : Boolean
+IsSimNet : Boolean
+outPort
+vhpi_register_cb()
+vhpi_get_value()
+vhpi_put_value()
+convFunc
+contributor
+constant
+generic
+file
+port
+expr
+variable
+funcDecl
+interfaceElt
+interfaceElt
+interfaceElt
+typeConv
++LocalContributors
+0..*
++OptimizedContributors
+0..*
+1
++InPort
+0..1
++OutPort
+0..1
++Actual
+0..1
++Actual
+1
+1
+1
++BasicSignals
+0..*
++SimNet
+0..1
+signal
+expr
+convFunc
+contributor
+driver
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+407
+Copyright © 2019 IEEE. All rights reserved.
+Figure 48—Driver class diagram
+Figure 49—Loads class diagram
+19.12.2 Contributors, loads, and simulated nets
+19.12.2.1 General
+The VHPI information model uses the class signal to represent parts of a net, including declared signals
+and ports, and subelements and slices of declared signals and ports. The information model also uses the
+class to represent signal parameters, implicit signals (namely, predefined attributes of signal kind and
+implicitly declared GUARD signals), and subelements and slices of signal parameters and implicitly
+declared signals.
+Each basic signal, represented by an object of class signal for which the IsBasic property has the value
+vhpiTrue, has contributors and loads. A contributor provides a value that is used to determine the value of
+the object. A load reads the value of an object represented by an object of class signal.
+driver
+Access : IntT
+Size : IntT
+IsForeign : Boolean
+IsDisconnected : Boolean
+vhpi_create()
+vhpi_get_value()
+vhpi_schedule_transaction()
+vhpi_put_value()
+eqProcessStmt
+signal
+IsForced : Boolean
+isBasic : Boolean
+IsSimNet : Boolean
+transaction
+IsNull : Boolean
+Time : PhysT
+vhpi_get_value()
+1
+0..*
+0..*
+1
+0..*
+eqProcessStmt
+base
+convFunc
+signal
+signal
+load
+typeConv
++OptimizedLoads
+0..*
++LocalLoads
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+408
+Copyright © 2019 IEEE. All rights reserved.
+The VHPI information model represents contributors and loads that are defined by the VHDL model or
+created by calls to the vhpi_create function. Such contributors and loads are called local contributors
+and local loads, respectively. An implementation may optimize its internal representation of contributors
+and loads, for example, to represent only those contributors or loads whose values are distinct. The VHPI
+provides associations that allow an implementation to identify such optimized contributors and optimized
+loads. This standard does not specify which contributors or loads, if any, are the target objects of
+associations that identify optimized contributors or loads.
+NOTE—The VHPI information model does not represent contributors and loads for aliases of objects represented by
+objects of class signal. Those contributors and loads are represented as contributors and loads of the aliased object.
+19.12.2.2 Local contributors
+The local contributors for a basic signal are defined as follows:
+a)
+For a declared signal, a port of mode out, the aspect of a port of mode inout or buffer that is in
+common with a port of mode out, the aspect of a port of mode buffer that is in common with a port
+of mode in, including a subelement or slice of any of these, each of the following subelements is a
+local contributor:
+—
+A driver of the signal, represented by an object of class driver
+—
+A port of mode out, inout, or buffer, represented by an object of class interfaceElt, with
+which the signal is associated as an actual in an association element in which the formal part is
+in the form of the port name
+—
+A type conversion, represented by an object of class typeConv, or a conversion function call,
+represented by an object of class convFunc, occurring as the formal part of an association
+element in which the signal name is the actual designator
+—
+If the signal has no sources, the default expression, represented by an object of class expr, in
+the declaration of the signal
+b)
+For a port of mode in, or the aspect of a port of mode inout that is in common with a port of mode
+in, including a subelement or slice of any of these, each of the following is a local contributor:
+—
+If the port is associated with an actual object or expression in an association element in which
+the actual part is the name of the actual object or is an expression, the actual object, or
+expression, represented by an object of class expr
+—
+If the port is associated with an actual object in an association element in which the actual part
+is in the form of a type conversion or a conversion function call, the type conversion,
+represented by an object of class typeConv, or the conversion function call, represented by an
+object of class convFunc, respectively
+—
+If the port is unassociated or unconnected and the declaration of the port includes a default
+expression, the default expression, represented by an object of class expr
+c)
+For a formal signal parameter that is associated with an actual signal that is a basic signal, each of
+the following is a local contributor:
+—
+If the formal signal parameter is of mode in or inout, the local contributors of the actual signal
+—
+If the formal signal parameter is of mode out, the driver for the formal signal parameter
+NOTE—A signal that is one of the predefined attributes 'DELAYED, 'STABLE, 'QUIET, or 'TRANSACTION may be a
+contributor.
+19.12.2.3 Local loads
+The local loads for a basic signal are defined as follows:
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+409
+Copyright © 2019 IEEE. All rights reserved.
+a)
+A process, or a concurrent statement that is equivalent to a process, represented by an object of class
+eqProcessStmt, that reads the basic signal or an alias of the basic signal
+b)
+A port of mode in or inout, represented by an object of class interfaceElt, with which the
+basic signal is associated as an actual in an association element in which the actual part is in the form
+of the name of the basic signal
+c)
+A type conversion, represented by an object of class typeConv, or a conversion function call,
+represented by an object of class convFunc, occurring as the actual part of an association element
+in which the name of the basic signal is the actual designator
+d)
+For a basic signal that is a port of mode out or for the aspect of a basic signal that is a port of mode
+inout or buffer that is in common with a port of mode out, where the port is associated in an
+association element with an actual object
+—
+If the formal part of the association element is the name of the port, the actual object
+—
+If the formal part is in the form of a type conversion or a conversion function call, the type
+conversion, represented by an object of class typeConv, or the conversion function call,
+represented by an object of class convFunc, respectively
+19.12.2.4 Simulated nets
+Where a number of objects represented by objects of class signal have the same effective and driving
+values, as appropriate, at all simulations times, those objects jointly form a simulated net. An
+implementation may represent a simulated net by selecting one of the constituent objects as a representative
+of the simulated net, setting the value of its IsSimNet property to the value vhpiTrue and making it the
+target object of the SimNet association for each object in the simulated net; for the remaining objects, the
+implementation sets the value of the IsSimNet property to the value vhpiFalse.
+19.13 The stdCallbacks package
+The stdCallbacks package contains the Callbacks class diagram that specifies aspects of the VHPI
+information model that relate to callbacks in VHPI programs. See Figure 50.
+Figure 50—Callbacks class diagram
+19.14 The stdEngine package
+The stdEngine package contains the SimulatorKernel class diagram that specifies aspects of the
+VHPI information model that relate to the simulation kernel. See Figure 51.
+callback
+State : StateT
+Reason : ReasonT
+vhpi_disable_cb()
+vhpi_enable_cb()
+vhpi_remove_cb()
+vhpi_get_cb_info()
+vhpi_register_cb()
+null
++CurCallback
+0..1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+410
+Copyright © 2019 IEEE. All rights reserved.
+Figure 51—SimulatorKernel class diagram
+19.15 The stdForeign package
+The stdForeign package contains the ForeignModel class diagram that specifies aspects of the VHPI
+information model that relate to foreign models and applications implemented by VHPI programs. See
+Figure 52.
+Figure 52—ForeignModel class diagram
+19.16 The stdMeta package
+The class diagrams in the stdMeta package specify aspects of the VHPI information model that relate to
+the VHPI tool, collections, and iterators. The package also contains a class diagram that relates classes to the
+base class. See Figure 53, Figure 54, and Figure 55.
+null
+Id : IntT
+SaveRestartLocation : String
+callback
+region
++CurCallback
+0..1
++CurRegion
+0..1
+foreignf
+ForeignKind : ForeignKindT
+vhpi_get_foreignf_info()
+vhpi_register_foreignf()
+null
++Foreignfs
+0..*
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+411
+Copyright © 2019 IEEE. All rights reserved.
+Figure 53—Base class diagram
+base
+IsUninstantiated : Boolean
+KindStr : String
+Kind : ClassKindT
+protectedTypeBody
+interfaceElt
+entityClassEntry
+entityDesignator
+entityAspect
+selectWaveform
+condWaveform
+waveformElem
+stackFrame
+collection
+argv
+transaction
+callback
+spec
+foreignf
+region
+range
+iterator
+branch
+elemAssoc
+contributor
+choice
+assocElem
+tool
+genIndex
+useClause
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+412
+Copyright © 2019 IEEE. All rights reserved.
+Figure 54—Collection class diagram
+Figure 55—Iterator class diagram
+19.17 The stdTool package
+The stdTool package contains the Tool class diagram that specifies aspects of the VHPI information
+model that relate to the VHPI tool. See Figure 56.
+driverCollection
+vhpi_schedule_transaction()
+collection
+NumMembers : IntT
+vhpi_create()
+anyCollection
+uniformCollection
+base
++Members
+{ordered}
+0..*
+iterator
+IteratorType : OneToManyT
+vhpi_iterator()
+vhpi_scan()
+base
+base
++Use
+1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+413
+Copyright © 2019 IEEE. All rights reserved.
+Figure 56—Tool class diagram
+19.18 Application contexts
+Objects of certain classes in the information model exist during different phases of tool execution. The
+application context of a class specifies whether objects of the class may exist in either or both of the library
+information model or the design hierarchy information model, and as a consequence, when the object is
+accessible to VHPI programs. The documentation for each class in the machine-readable information model
+describes the application context for that class.
+Objects in the library information model representing a design unit are created during the analysis phase of
+tool execution in which the design unit is analyzed. Objects representing previously analyzed design units
+are accessible from the start of tool execution and remain accessible until the end of tool execution. If a
+VHPI tool performs the analysis phase, objects representing a design unit being analyzed by the tool are
+accessible at the end of the analysis phase.
+Objects in the design hierarchy information model are created during the elaboration phase of tool execution
+and are accessible at the end of the elaboration phase. It is an error if a VHPI program accesses objects in the
+design hierarchy information model during the elaboration phase other than from an elaboration function as
+specified in 20.4.1.
+NOTE—For objects in the library information model, the target objects of associations are also in the library
+information model. The library information model includes no associations with objects in the design hierarchy
+information model. For objects in the design hierarchy information model, the target objects of associations are also in
+the design hierarchy information model, except where specified in the documentation for the association. Those
+associations from objects in the design hierarchy information model to objects in the library information model allow a
+VHPI program to navigate between the two information models.
+tool
+ToolVersion : String
+Phase : PhaseT
+ResolutionLimit : PhysT
+VHDLversion : IntT
+CapabilitiesP : IntT
+Name : String
+Argc : IntT
+AutomaticRestore : AutomaticRestoreT
+argv
+IsPLI : Boolean
+StrVal : String
+null
+{ordered}
+0..*
+1
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

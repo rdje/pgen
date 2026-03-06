@@ -1,0 +1,212 @@
+---
+title: "Section 13: IEEE Standard for VHDL Language Reference Manual"
+document: "VHDL Language Reference Manual"
+standard: "IEEE 1076-2019"
+domain: "VHDL"
+section: "13"
+source_txt: "section-13-design-units-and-their-analysis.txt"
+source_pdf: "/Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf"
+---
+
+# Section 13: IEEE Standard for VHDL Language Reference Manual
+
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+225
+Copyright © 2019 IEEE. All rights reserved.
+13. Design units and their analysis
+### 13.1 Design units
+
+Certain constructs are independently analyzed and inserted into a design library; these constructs are called
+design units. One or more design units in sequence comprise a design file.
+```ebnf
+design_file ::=  design_unit { design_unit }
+design_unit ::= context_clause library_unit
+library_unit ::=
+```
+
+primary_unit
+|
+secondary_unit
+```ebnf
+primary_unit ::=
+```
+
+entity_declaration
+|
+configuration_declaration
+
+|
+package_declaration
+
+|
+package_instantiation_declaration
+
+|
+context_declaration
+
+|
+PSL_verification_unit
+```ebnf
+secondary_unit ::=
+```
+
+architecture_body
+|
+package_body
+Design units in a design file are analyzed in the textual order of their appearance in the design file. Analysis
+of a design unit defines the corresponding library unit in a design library. A library unit is either a primary
+unit or a secondary unit. A secondary unit is a separately analyzed body of a primary unit resulting from a
+previous analysis.
+It is an error if the context clause preceding a library unit that is a context declaration is not empty.
+The name of a primary unit is given by the first identifier after the initial reserved word of that unit. Of the
+secondary units, only architecture bodies are named; the name of an architecture body is given by the identi-
+fier following the reserved word architecture. Each primary unit in a given library shall have a simple name
+that is unique within the given library, and each architecture body associated with a given entity declaration
+shall have a simple name that is unique within the set of names of the architecture bodies associated with
+that entity declaration.
+Entity declarations, architecture bodies, and configuration declarations are discussed in Clause 3. Package
+declarations, package bodies, and package instantiations are discussed in Clause 4. Context declarations are
+discussed in 13.3. PSL verification units are described in IEEE Std 1850-2010.
+### 13.2 Design libraries
+
+A design library is an implementation-dependent storage facility for previously analyzed design units. A
+given implementation is required to support any number of design libraries.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+226
+Copyright © 2019 IEEE. All rights reserved.
+```ebnf
+library_clause  ::=  library logical_name_list ;
+logical_name_list  ::=  logical_name { , logical_name }
+logical_name  ::=  identifier
+```
+
+A library clause defines logical names for design libraries in the host environment. A library clause appears
+as part of a context clause, either at the beginning of a design unit or within a context declaration. For the
+former case, the declaration of each logical name defined by the library clause occurs immediately within
+the root declarative region associated with the design unit. For a library clause that appears within a context
+declarative region, the logical names are not declared; rather, there is an equivalent library clause that
+declares the logical names (see 13.4).
+If two or more logical names having the same identifier (see 15.4) appear in library clauses in the same
+context clause, the second and subsequent occurrences of the logical name have no effect. The same is true
+of logical names appearing both in the context clause of a primary unit and in the context clause of a
+corresponding secondary unit.
+Each logical name defined by the library clause denotes a design library in the host environment.
+For a given library logical name, the actual name of the corresponding design library in the host
+environment may or may not be the same. A given implementation shall provide some mechanism to
+associate a library logical name with a host-dependent library. Such a mechanism is not defined by the
+language.
+There are two classes of design libraries: working libraries and resource libraries. A working library is the
+library into which the library unit resulting from the analysis of a design unit is placed. A resource library is
+a library containing library units that are referenced within the design unit being analyzed. Only one library
+is the working library during the analysis of any given design unit; in contrast, any number of libraries
+(including the working library itself) may be resource libraries during such an analysis.
+Every design unit except a context declaration and package STANDARD is assumed to contain the
+following implicit context items as part of its context clause:
+library STD, WORK; use STD.STANDARD.all;
+Library logical name STD denotes the design library in which the packages STANDARD, TEXTIO, ENV,
+and REFLECTION reside (see Clause 16). The use clause makes all declarations within package
+STANDARD directly visible within the corresponding design unit; see 12.4. Library logical name WORK
+denotes the current working library during a given analysis. Library logical name IEEE denotes the design
+library in which the mathematical, multivalue logic, synthesis packages, and the synthesis context
+declarations reside (see Clause 16).
+The library denoted by the library logical name STD contains no library units other than packages
+STANDARD, TEXTIO, ENV, and REFLECTION.
+A secondary unit corresponding to a given primary unit shall be placed into the design library in which the
+primary unit resides.
+NOTE—The design of the language assumes that the contents of resource libraries named in all library clauses in the
+context clause of a design unit will remain unchanged during the analysis of that unit (with the possible exception of the
+updating of the library unit corresponding to the analyzed design unit within the working library, if that library is also a
+resource library).
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+227
+Copyright © 2019 IEEE. All rights reserved.
+### 13.3 Context declarations
+
+A context declaration defines context items that may be referenced by design units.
+```ebnf
+context_declaration ::=
+```
+
+context identifier is
+
+context_clause
+end [ context ] [ context_simple_name ] ;
+If a simple name appears at the end of a context declaration, it shall repeat the identifier of the context
+declaration.
+It is an error if a library clause in a context declaration defines the library logical name WORK, or if a
+selected name in a use clause or a context reference in a context declaration has the library logical name
+WORK as a prefix.
+Example:
+context project_context is
+library project_lib;
+use project_lib.project_defs.all;
+library IP_lib;
+context IP_lib.IP_context;
+end context project_context;
+### 13.4 Context clauses
+
+A context clause defines the initial name environment in which a design unit is analyzed.
+```ebnf
+context_clause ::=  { context_item }
+context_item  ::=
+```
+
+library_clause
+|
+use_clause
+
+|
+context_reference
+```ebnf
+context_reference ::=
+```
+
+context selected_name { , selected_name } ;
+A library clause defines library logical names that may be referenced in the design unit; library clauses are
+described in 13.2. A use clause makes certain declarations directly visible within the design unit; use clauses
+are described in 12.4.
+It is an error if a selected name in a context reference does not denote a context declaration.
+A given context clause is equivalent to an expanded context clause containing only library clauses and use
+clauses. The expanded context clause is formed from the given context clause by replacing each context
+reference with the expanded context clause of the context clause in the context declaration denoted by the
+selected name of the context reference.
+For a context clause that precedes a library unit, rules concerning scope and visibility are interpreted to
+apply to the expanded context clause at the place of the context clause.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1076-2019
+IEEE Standard for VHDL Language Reference Manual
+228
+Copyright © 2019 IEEE. All rights reserved.
+It is an error if, during analysis of a design unit, there is a library clause in the expanded context clause of the
+design unit that occurs as part of a replacement of a context reference, and a logical name in that library
+clause denotes a different design library from the design library denoted by the logical name during analysis
+of the context declaration from which the library clause was expanded.
+NOTE 1—The rules given for use clauses are such that the same effect is obtained whether the name of a library unit is
+mentioned once or more than once by the applicable use clauses, or even within a given use clause.
+NOTE 2—For a context clause that appears within a context declaration, the library clauses and use clauses have no
+scope; hence, rules concerning scope and visibility do not apply.
+### 13.5 Order of analysis
+
+The rules defining the order in which design units can be analyzed are direct consequences of the visibility
+rules. In particular
+a)
+A primary unit whose name is referenced within a given design unit shall be analyzed prior to the
+analysis of the given design unit.
+b)
+A primary unit shall be analyzed prior to the analysis of any corresponding secondary unit.
+In each case, the second unit depends on the first unit.
+The order in which design units are analyzed shall be consistent with the partial ordering defined by the pre-
+ceding rules.
+If any error is detected while attempting to analyze a design unit, then the attempted analysis is rejected and
+has no effect whatsoever on the current working library.
+A given library unit is potentially affected by a change in any library unit whose name is referenced within
+the given library unit. A secondary unit is potentially affected by a change in its corresponding primary unit.
+If a library unit is changed (e.g., by reanalysis of the corresponding design unit), then all library units that are
+potentially affected by such a change become obsolete and shall be reanalyzed before they can be used
+again.
+Authorized licensed use limited to: BOURNEMOUTH UNIVERSITY. Downloaded on December 30,2019 at 14:55:36 UTC from IEEE Xplore.  Restrictions apply.

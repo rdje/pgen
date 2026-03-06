@@ -1,0 +1,300 @@
+---
+title: "Section 1024: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language"
+document: "SystemVerilog Language Reference Manual"
+standard: "IEEE 1800-2017"
+domain: "SystemVerilog"
+section: "1024"
+source_txt: "section-1024-characters-if-an-identifier-exceeds-the-implementation-specific-length-limit-an-error-shall-be-reported.txt"
+source_pdf: "/Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2017.pdf"
+---
+
+# Section 1024: IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+70
+Copyright © 2018 IEEE. All rights reserved.
+### 5.6 Identifiers, keywords, and system names
+
+An identifier is used to give an object a unique name so it can be referenced. An identifier is either a simple
+identifier or an escaped identifier (see 5.6.1). A simple identifier shall be any sequence of letters, digits,
+dollar signs ($), and underscore characters (_).
+The first character of a simple identifier shall not be a digit or $; it can be a letter or an underscore.
+Identifiers shall be case sensitive.
+For example:
+shiftreg_a
+busa_index
+error_condition
+merge_ab
+_bus3
+n$657
+Implementations may set a limit on the maximum length of identifiers, but the limit shall be at least
+## 1024 characters. If an identifier exceeds the implementation-specific length limit, an error shall be reported.
+
+#### 5.6.1 Escaped identifiers
+
+Escaped identifiers shall start with the backslash character (\) and end with white space (space, tab,
+newline). They provide a means of including any of the printable ASCII characters in an identifier (the
+decimal values 33 through 126, or 21 through 7E in hexadecimal).
+Neither the leading backslash character nor the terminating white space is considered to be part of the
+identifier. Therefore, an escaped identifier \cpu3 is treated the same as a nonescaped identifier cpu3.
+For example:
+\busa+index
+\-clock
+\***error-condition***
+\net1/\net2
+\{a,b}
+\a*(b+c)
+#### 5.6.2 Keywords
+
+Keywords are predefined nonescaped identifiers that are used to define the language constructs. A
+SystemVerilog keyword preceded by an escape character is not interpreted as a keyword.
+All keywords are defined in lowercase only. Annex B gives a list of all defined keywords. Subclause 22.14
+discusses compatibility of reserved keywords with previous versions of IEEE Std 1364 and IEEE Std 1800.
+#### 5.6.3 System tasks and system functions
+
+The dollar sign ($) introduces a language construct that enables development of user-defined system tasks
+and system functions. System constructs are not design semantics, but refer to simulator functionality. A
+name following the $ is interpreted as a system task or a system function.
+The syntax for system tasks and system functions is given in Syntax 5-1.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+71
+Copyright © 2018 IEEE. All rights reserved.
+```ebnf
+system_tf_call ::=
+```
+
+// from A.8.2
+system_tf_identifier [ ( list_of_arguments ) ]
+| system_tf_identifier ( data_type [ , expression ] )
+| system_tf_identifier ( expression { , [ expression ] } [ , [ clocking_event ] ] )
+```ebnf
+system_tf_identifier50 ::= $[ a-zA-Z0-9_$ ]{ [ a-zA-Z0-9_$ ] }
+```
+
+// from A.9.3
+50) The $ character in a system_tf_identifier shall not be followed by white_space. A system_tf_identifier shall not be
+escaped.
+Syntax 5-1—Syntax for system tasks and system functions (excerpt from Annex A)
+SystemVerilog defines a standard set of system tasks and system functions in this document (see Clause 20
+and Clause 21). Additional user-defined system tasks and system functions can be defined using the PLI, as
+described in Clause 36. Software implementations can also specify additional system tasks and system
+functions, which may be tool-specific (see Annex D for some common additional system tasks and system
+functions). Additional system tasks and system functions are not part of this standard.
+For example:
+$display ("display a message");
+$finish;
+#### 5.6.4 Compiler directives
+
+The ` character (the ASCII value 0x60, called grave accent) introduces a language construct used to
+implement compiler directives. The compiler behavior dictated by a compiler directive shall take effect as
+soon as the compiler reads the directive. The directive shall remain in effect for the rest of the compilation
+unless a different compiler directive specifies otherwise. A compiler directive in one description file can,
+therefore, control compilation behavior in multiple description files. The effects of a compiler directive are
+limited to a compilation unit (see 3.12.1) and shall not affect other compilation units.
+For example:
+`define wordsize
+SystemVerilog defines a standard set of compiler directives in this document (see Clause 22). Software
+implementations can also specify additional compiler directives, which may be tool-specific (see Annex E
+for some common additional compiler directives). Additional compiler directives are not part of this
+standard.
+### 5.7 Numbers
+
+Constant numbers can be specified as integer constants (see 5.7.1) or real constants (see 5.7.2). The formal
+syntax for numbers is listed in Syntax 5-2.
+```ebnf
+primary_literal ::= number | time_literal | unbased_unsized_literal | string_literal
+```
+
+// from A.8.4
+```ebnf
+time_literal44 ::=
+```
+
+unsigned_number time_unit
+| fixed_point_number time_unit
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+72
+Copyright © 2018 IEEE. All rights reserved.
+```ebnf
+time_unit ::= s | ms | us | ns | ps | fs
+number ::=
+```
+
+// from A.8.7
+integral_number
+| real_number
+```ebnf
+integral_number ::=
+```
+
+decimal_number
+| octal_number
+| binary_number
+| hex_number
+```ebnf
+decimal_number ::=
+```
+
+unsigned_number
+| [ size ] decimal_base unsigned_number
+| [ size ] decimal_base x_digit { _ }
+| [ size ] decimal_base z_digit { _ }
+```ebnf
+binary_number ::= [ size ] binary_base binary_value
+octal_number ::= [ size ] octal_base octal_value
+hex_number ::= [ size ] hex_base hex_value
+sign ::= + | -
+size ::= non_zero_unsigned_number
+non_zero_unsigned_number33 ::= non_zero_decimal_digit { _ | decimal_digit}
+real_number33 ::=
+```
+
+fixed_point_number
+| unsigned_number [ . unsigned_number ] exp [ sign ] unsigned_number
+```ebnf
+fixed_point_number33 ::= unsigned_number . unsigned_number
+exp ::= e | E
+unsigned_number33 ::= decimal_digit { _ | decimal_digit }
+binary_value33 ::= binary_digit { _ | binary_digit }
+octal_value33 ::= octal_digit { _ | octal_digit }
+hex_value33 ::= hex_digit { _ | hex_digit }
+decimal_base33 ::= '[s|S]d | '[s|S]D
+binary_base33 ::= '[s|S]b | '[s|S]B
+octal_base33 ::= '[s|S]o | '[s|S]O
+hex_base33 ::= '[s|S]h | '[s|S]H
+non_zero_decimal_digit ::= 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+decimal_digit ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+binary_digit ::= x_digit | z_digit | 0 | 1
+octal_digit ::= x_digit | z_digit | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+hex_digit ::= x_digit | z_digit | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | a | b | c | d | e | f | A | B | C | D | E | F
+x_digit ::= x | X
+z_digit ::= z | Z | ?
+unbased_unsized_literal ::= '0 | '1 | 'z_or_x 48
+string_literal ::= " { Any_ASCII_Characters } "
+```
+
+// from A.8.8
+33) Embedded spaces are illegal.
+44) The unsigned number or fixed-point number in time_literal shall not be followed by a white_space.
+48) The apostrophe ( ' ) in unbased_unsized_literal shall not be followed by white_space.
+Syntax 5-2—Syntax for integer and real numbers (excerpt from Annex A)
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+73
+Copyright © 2018 IEEE. All rights reserved.
+#### 5.7.1 Integer literal constants
+
+Integer literal constants can be specified in decimal, hexadecimal, octal, or binary format.
+There are two forms to express integer literal constants. The first form is a simple decimal number, which
+shall be specified as a sequence of digits 0 through 9, optionally starting with a plus or minus unary
+operator. The second form specifies a based literal constant, which shall be composed of up to three
+tokens—an optional size constant, an apostrophe character (', ASCII 0x27) followed by a base format
+character, and the digits representing the value of the number. It shall be legal to macro-substitute these three
+tokens.
+The first token, a size constant, shall specify the size of the integer literal constant in terms of its exact
+number of bits. It shall be specified as a nonzero unsigned decimal number. For example, the size
+specification for two hexadecimal digits is eight because one hexadecimal digit requires 4 bits.
+The second token, a base_format, shall consist of a case insensitive letter specifying the base for the
+number, optionally preceded by the single character s (or S) to indicate a signed quantity, preceded by the
+apostrophe character. Legal base specifications are d, D, h, H, o, O, b, or B for the bases decimal,
+hexadecimal, octal, and binary, respectively.
+The apostrophe character and the base format character shall not be separated by any white space.
+The third token, an unsigned number, shall consist of digits that are legal for the specified base format. The
+unsigned number token shall immediately follow the base format, optionally preceded by white space. The
+hexadecimal digits a to f shall be case insensitive.
+Simple decimal numbers without the size and the base format shall be treated as signed integers, whereas the
+numbers specified with the base format shall be treated as signed integers if the s designator is included or
+as unsigned integers if the base format only is used. The s designator does not affect the bit pattern
+specified, only its interpretation.
+A plus or minus operator preceding the size constant is a unary plus or minus operator. A plus or minus
+operator between the base format and the number is an illegal syntax.
+Negative numbers shall be represented in two’s-complement form.
+An x represents the unknown value in hexadecimal, octal, and binary literal constants. A z represents the
+high-impedance value. See 6.3 for a discussion of the SystemVerilog value set. An x shall set 4 bits to
+unknown in the hexadecimal base, 3 bits in the octal base, and 1 bit in the binary base. Similarly, a z shall set
+## 4 bits, 3 bits, and 1 bit, respectively, to the high-impedance value.
+
+If the size of the unsigned number is smaller than the size specified for the literal constant, the unsigned
+number shall be padded to the left with zeros. If the leftmost bit in the unsigned number is an x or a z, then
+an x or a z shall be used to pad to the left, respectively. If the size of the unsigned number is larger than the
+size specified for the literal constant, the unsigned number shall be truncated from the left.
+The number of bits that make up an unsized number (which is a simple decimal number or a number with a
+base specifier but no size specification) shall be at least 32. Unsized unsigned literal constants where the
+high-order bit is unknown (X or x) or three-state (Z or z) shall be extended to the size of the expression
+containing the literal constant.
+NOTE—In IEEE Std 1364-1995, in unsized literal constants where the high-order bit is unknown or three-state, the x or
+z was only extended to 32 bits.
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+74
+Copyright © 2018 IEEE. All rights reserved.
+An unsized single-bit value can be specified by preceding the single-bit value with an apostrophe ( ' ), but
+without the base specifier. All bits of the unsized value shall be set to the value of the specified bit. In a
+self-determined context, an unsized single-bit value shall have a width of 1 bit, and the value shall be treated
+as unsigned.
+'0, '1, 'X, 'x, 'Z, 'z
+// sets all bits to specified value
+The use of x and z in defining the value of a number is case insensitive.
+When used in a number, the question mark (?) character is a SystemVerilog alternative for the z character.
+It sets 4 bits to the high-impedance value in hexadecimal numbers, 3 bits in octal, and 1 bit in binary. The
+question mark can be used to enhance readability in cases where the high-impedance value is a do-not-care
+condition. See the discussion of casez and casex in 12.5.1. The question mark character is also used in
+UDP state tables. See Table 29-1 in 29.3.6.
+In a decimal literal constant, the unsigned number token shall not contain any x, z, or ? digits, unless there is
+exactly one digit in the token, indicating that every bit in the decimal literal constant is x or z.
+The underscore character (_) shall be legal anywhere in a number except as the first character. The
+underscore character is ignored. This feature can be used to break up long numbers for readability purposes.
+Several examples of specifying literal integer numbers are as follows:
+Example 1: Unsized literal constant numbers
+659
+
+// is a decimal number
+'h 837FF
+// is a hexadecimal number
+'o7460
+// is an octal number
+4af
+// is illegal (hexadecimal format requires 'h)
+Example 2: Sized literal constant numbers
+4'b1001
+// is a 4-bit binary number
+## 5 'D 3
+
+// is a 5-bit decimal number
+3'b01x
+// is a 3-bit number with the least
+// significant bit unknown
+12'hx
+// is a 12-bit unknown number
+16'hz
+// is a 16-bit high-impedance number
+Example 3: Using sign with literal constant numbers
+## 8 'd -6
+
+// this is illegal syntax
+-8 'd 6
+// this defines the two's-complement of 6,
+// held in 8 bits—equivalent to -(8'd 6)
+## 4 'shf
+
+// this denotes the 4-bit number '1111', to
+// be interpreted as a two's-complement number,
+// or '-1'. This is equivalent to -4'h 1
+-4 'sd15
+// this is equivalent to -(-4'd 1), or '0001'
+16'sd?
+// the same as 16'sbz
+Example 4: Automatic left padding of literal constant numbers
+logic [11:0] a, b, c, d;
+logic [84:0] e, f, g;
+initial begin
+a = 'h x;
+// yields xxx
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

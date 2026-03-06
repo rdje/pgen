@@ -1,0 +1,506 @@
+---
+title: "Section Annex.H: Copyright © 2018 IEEE. All rights reserved."
+document: "SystemVerilog Language Reference Manual"
+standard: "IEEE 1800-2017"
+domain: "SystemVerilog"
+section: "Annex.H"
+source_txt: "section-Annex_H-normative-dpi-c-layer-1222.txt"
+source_pdf: "/Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2017.pdf"
+---
+
+# Section Annex.H: Copyright © 2018 IEEE. All rights reserved.
+
+23
+Copyright © 2018 IEEE. All rights reserved.
+Annex H (normative) DPI C layer............................................................................................................. 1222
+Annex I (normative) svdpi.h...................................................................................................................... 1255
+Annex J (normative) Inclusion of foreign language code.......................................................................... 1264
+Annex K (normative) vpi_user.h ............................................................................................................... 1268
+Annex L (normative) vpi_compatibility.h................................................................................................. 1285
+Annex M (normative) sv_vpi_user.h......................................................................................................... 1288
+Annex N (normative) Algorithm for probabilistic distribution functions ................................................. 1298
+Annex O (informative) Encryption/decryption flow ................................................................................. 1306
+Annex P (informative) Glossary................................................................................................................ 1310
+Annex Q (informative) Bibliography ........................................................................................................ 1313
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+24
+Copyright © 2018 IEEE. All rights reserved.
+List of figures
+Figure 4-1—Event scheduling regions .......................................................................................................... 64
+Figure 6-1—Simulation values of a trireg and its driver............................................................................... 89
+Figure 6-2—Simulation results of a capacitive network ............................................................................... 90
+Figure 6-3—Simulation results of charge sharing......................................................................................... 91
+Figure 7-1—VInt type with packed qualifier .............................................................................................. 144
+Figure 7-2—Instr type with packed qualifier .............................................................................................. 145
+Figure 9-1—Intra-assignment repeat event control utilizing a clock edge.................................................. 224
+Figure 14-1—Sample and drive times including skew with respect to the positive edge of the clock ....... 339
+Figure 16-1—Sampling a variable in a simulation time step ...................................................................... 376
+Figure 16-2—Concatenation of sequences.................................................................................................. 381
+Figure 16-3—Value change expressions ..................................................................................................... 396
+Figure 16-4—Future value change .............................................................................................................. 401
+Figure 16-5—ANDing (and) two sequences ............................................................................................... 403
+Figure 16-6—ANDing (and) two sequences, including a time range ......................................................... 404
+Figure 16-7—ANDing (and) two Boolean expressions .............................................................................. 404
+Figure 16-8—Intersecting two sequences.................................................................................................... 405
+Figure 16-9—ORing (or) two Boolean expressions.................................................................................... 406
+Figure 16-10—ORing (or) two sequences................................................................................................... 407
+Figure 16-11—ORing (or) two sequences, including a time range............................................................. 407
+Figure 16-12—Match with throughout restriction fails............................................................................... 410
+Figure 16-13—Match with throughout restriction succeeds ....................................................................... 410
+Figure 16-14—Conditional sequence matching .......................................................................................... 427
+Figure 16-15—Conditional sequences......................................................................................................... 428
+Figure 16-16—Results without the condition.............................................................................................. 428
+Figure 16-17—Clocking blocks and concurrent assertion .......................................................................... 483
+Figure 17-1—Nondeterministic free checker variable ................................................................................ 495
+Figure 18-1—Example of randc .................................................................................................................. 509
+Figure 18-2—Global constraints ................................................................................................................. 518
+Figure 18-3—Truth tables for conjunction, disjunction, and negation rules............................................... 523
+Figure 21-1—Creating the 4-state VCD file................................................................................................ 653
+Figure 21-2—Creating the extended VCD file............................................................................................ 663
+Figure 23-1—Hierarchy in a model............................................................................................................. 723
+Figure 23-2—Scopes available to upward name referencing...................................................................... 730
+Figure 28-1—Schematic diagram of interconnections in array of instances............................................... 803
+Figure 28-2—Scale of strengths .................................................................................................................. 811
+Figure 28-3—Combining unequal strengths................................................................................................ 811
+Figure 28-4—Combination of signals of equal strength and opposite values............................................. 812
+Figure 28-5—Weak x signal strength.......................................................................................................... 812
+Figure 28-6—Bufifs with control inputs of x .............................................................................................. 813
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+25
+Copyright © 2018 IEEE. All rights reserved.
+Figure 28-7—Strong H range of values....................................................................................................... 813
+Figure 28-8—Strong L range of values ....................................................................................................... 813
+Figure 28-9—Combined signals of ambiguous strength ............................................................................. 814
+Figure 28-10—Range of strengths for an unknown signal.......................................................................... 814
+Figure 28-11—Ambiguous strengths from switch networks....................................................................... 814
+Figure 28-12—Range of two strengths of a defined value.......................................................................... 815
+Figure 28-13—Range of three strengths of a defined value........................................................................ 815
+Figure 28-14—Unknown value with a range of strengths........................................................................... 815
+Figure 28-15—Strong X range .................................................................................................................... 816
+Figure 28-16—Ambiguous strength from gates .......................................................................................... 816
+Figure 28-17—Ambiguous strength signal from a gate .............................................................................. 816
+Figure 28-18—Weak 0 ................................................................................................................................ 817
+Figure 28-19—Ambiguous strength in combined gate signals ................................................................... 817
+Figure 28-20—Elimination of strength levels ............................................................................................. 818
+Figure 28-21—Result showing a range and the elimination of strength levels of two values .................... 819
+Figure 28-22—Result showing a range and the elimination of strength levels of one value...................... 820
+Figure 28-23—A range of both values ........................................................................................................ 820
+Figure 28-24—Wired logic with unambiguous strength signals................................................................. 821
+Figure 28-25—Wired logic and ambiguous strengths................................................................................. 822
+Figure 28-26—Trireg net with capacitance................................................................................................. 827
+Figure 29-1—Module schematic and simulation times of initial value propagation .................................. 836
+Figure 30-1—Module path delays ............................................................................................................... 841
+Figure 30-2—Difference between parallel and full connection paths......................................................... 847
+Figure 30-3—Module path delays longer than distributed delays............................................................... 853
+Figure 30-4—Module path delays shorter than distributed delays.............................................................. 854
+Figure 30-5—Example of pulse filtering..................................................................................................... 854
+Figure 30-6—On-detect versus on-event..................................................................................................... 857
+Figure 30-7—Current event cancellation problem and correction .............................................................. 859
+Figure 30-8—NAND gate with nearly simultaneous input switching where
+one event is scheduled prior to another that has not matured...................................................................... 860
+Figure 30-9—NAND gate with nearly simultaneous input switching with
+output event scheduled at same time ........................................................................................................... 861
+Figure 31-1—Sample $timeskew ................................................................................................................ 875
+Figure 31-2—Sample $timeskew with remain_active_flag set................................................................... 876
+Figure 31-3—Sample $fullskew.................................................................................................................. 878
+Figure 31-4—Data constraint interval, positive setup/hold......................................................................... 887
+Figure 31-5—Data constraint interval, negative setup/hold........................................................................ 888
+Figure 31-6—Timing check violation windows.......................................................................................... 891
+Figure 37-1—Example of object relationships diagram.............................................................................. 968
+Figure 37-2—Accessing a class of objects using tags................................................................................. 969
+Figure 38-1—s_vpi_error_info structure definition .................................................................................. 1053
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+26
+Copyright © 2018 IEEE. All rights reserved.
+Figure 38-2—s_cb_data structure definition ............................................................................................. 1058
+Figure 38-3—s_vpi_delay structure definition.......................................................................................... 1059
+Figure 38-4—s_vpi_time structure definition ........................................................................................... 1059
+Figure 38-5—s_vpi_systf_data structure definition .................................................................................. 1062
+Figure 38-6—s_vpi_time structure definition ........................................................................................... 1063
+Figure 38-7—s_vpi_value structure definition.......................................................................................... 1065
+Figure 38-8—s_vpi_vecval structure definition........................................................................................ 1065
+Figure 38-9—s_vpi_strengthval structure definition................................................................................. 1065
+Figure 38-10—s_vpi_vlog_info structure definition................................................................................. 1074
+Figure 38-11—s_vpi_delay structure definition........................................................................................ 1087
+Figure 38-12—s_vpi_time structure definition ......................................................................................... 1087
+Figure 38-13—s_vpi_value structure definition........................................................................................ 1091
+Figure 38-14—s_vpi_time structure definition ......................................................................................... 1091
+Figure 38-15—s_vpi_vecval structure definition...................................................................................... 1092
+Figure 38-16—s_vpi_strengthval structure definition............................................................................... 1092
+Figure 38-17—s_cb_data structure definition ........................................................................................... 1096
+Figure 38-18—s_vpi_systf_data structure definition ................................................................................ 1105
+Figure 39-1—Assertions with global clocking future sampled value functions ....................................... 1116
+Figure 40-1—Hierarchical instance example ............................................................................................ 1124
+Figure 40-2—FSM specified with pragmas............................................................................................... 1129
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+27
+Copyright © 2018 IEEE. All rights reserved.
+List of tables
+Table 3-1—Time unit strings......................................................................................................................... 55
+Table 6-2—Truth table for wire and tri nets ................................................................................................. 87
+Table 6-3—Truth table for wand and triand nets .......................................................................................... 88
+Table 6-4—Truth table for wor and trior nets ............................................................................................... 88
+Table 6-5—Truth table for tri0 net ............................................................................................................... 92
+Table 6-6—Truth table for tri1 net ................................................................................................................ 92
+Table 6-7—Default variable initial values................................................................................................... 102
+Table 6-8—Integer data types...................................................................................................................... 104
+Table 6-10—Enumeration element ranges .................................................................................................. 116
+Table 6-11—Differences between specparams and parameters.................................................................. 125
+Table 9-2—Detecting posedge and negedge ............................................................................................... 217
+Table 9-3—Intra-assignment timing control equivalence ........................................................................... 223
+Table 11-2—Operator precedence and associativity................................................................................... 257
+Table 11-3—Arithmetic operators defined ................................................................................................. 260
+Table 11-4—Power operator rules............................................................................................................... 261
+Table 11-5—Unary operators defined ........................................................................................................ 261
+Table 11-6—Examples of modulus and power operators ........................................................................... 261
+Table 11-7—Data type interpretation by arithmetic operators.................................................................... 262
+Table 11-8—Definitions of relational operators ......................................................................................... 263
+Table 11-9—Definitions of equality operators............................................................................................ 264
+Table 11-10—Wildcard equality and wildcard inequality operators........................................................... 264
+Table 11-11—Bitwise binary AND operator............................................................................................... 266
+Table 11-12—Bitwise binary OR operator.................................................................................................. 266
+Table 11-13—Bitwise binary exclusive OR operator.................................................................................. 267
+Table 11-14—Bitwise binary exclusive NOR operator............................................................................... 267
+Table 11-15—Bitwise unary negation operator........................................................................................... 267
+Table 11-16—Reduction unary AND operator ........................................................................................... 268
+Table 11-17—Reduction unary OR operator............................................................................................... 268
+Table 11-18—Reduction unary exclusive OR operator .............................................................................. 268
+Table 11-19—Results of unary reduction operations.................................................................................. 268
+Table 11-20—Ambiguous condition results for conditional operator ........................................................ 270
+Table 11-21—Bit lengths resulting from self-determined expressions....................................................... 283
+Table 16-2—Global clocking future sampled value functions.................................................................... 401
+Table 16-3—Sequence and property operator precedence and associativity .............................................. 423
+Table 18-2—Ordered constraint c legal value probability .......................................................................... 519
+Table 18-3—rand_mode argument.............................................................................................................. 533
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+28
+Copyright © 2018 IEEE. All rights reserved.
+Table 18-4—constraint_mode argument ..................................................................................................... 534
+Table 19-2—Coverage options per syntactic level...................................................................................... 580
+Table 19-3—Coverage group type (static) options...................................................................................... 581
+Table 19-4—Coverage type options............................................................................................................ 582
+Table 19-5—Predefined coverage methods................................................................................................. 583
+Table 20-2—$timeformat units_number arguments.................................................................................... 595
+Table 20-3—$timeformat default value for arguments ............................................................................... 596
+Table 20-4—SystemVerilog to C real math function cross-listing ............................................................. 603
+Table 20-5—Values for control_type for assertion control tasks................................................................ 609
+Table 20-6—Values for assertion_type for assertion control tasks............................................................. 609
+Table 20-7—Values for directive_type for assertion control tasks ............................................................. 610
+Table 20-8—VPI callbacks for assertion control tasks ............................................................................... 613
+Table 20-9—Types of queues of $q_type values ....................................................................................... 617
+Table 20-10—Argument values for $q_exam system task.......................................................................... 618
+Table 20-11—Status code values ............................................................................................................... 619
+Table 20-12—PLA modeling system tasks ................................................................................................ 620
+Table 21-2—Escape sequences for format specifications ........................................................................... 626
+Table 21-3—Format specifications for real numbers.................................................................................. 628
+Table 21-4—Logic value component of strength format ............................................................................ 631
+Table 21-5—Mnemonics for strength levels ............................................................................................... 631
+Table 21-6—Explanation of strength formats ............................................................................................. 632
+Table 21-7—Types for file descriptors........................................................................................................ 636
+Table 21-8—$fscanf input field characters.................................................................................................. 641
+Table 21-9—Rules for left-extending vector values.................................................................................... 659
+Table 21-10—How the VCD can shorten values ........................................................................................ 659
+Table 21-11—Keyword commands............................................................................................................. 660
+Table 21-12—VCD type mapping............................................................................................................... 672
+Table 22-2—IEEE 1364-2001 additional reserved keywords ................................................................... 692
+Table 22-3—IEEE 1364-2005 additional reserved keywords .................................................................... 692
+Table 22-4—IEEE 1800-2005 additional reserved keywords .................................................................... 693
+Table 22-5—IEEE 1800-2009 additional reserved keywords  ................................................................... 693
+Table 22-6—IEEE 1800-2012 additional reserved keywords .................................................................... 694
+Table 28-2—Valid gate types for strength specifications ........................................................................... 799
+Table 28-3—Truth tables for multiple input logic gates ............................................................................ 804
+Table 28-4—Truth tables for multiple output logic gates .......................................................................... 805
+Table 28-5—Truth tables for three-state logic gates ................................................................................... 806
+Table 28-6—Truth tables for MOS switches .............................................................................................. 807
+Table 28-7—Strength levels for scalar net signal values ............................................................................ 810
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+29
+Copyright © 2018 IEEE. All rights reserved.
+Table 28-8—Strength reduction rules.......................................................................................................... 823
+Table 28-9—Rules for propagation delays.................................................................................................. 824
+Table 29-2—Initial statements in UDPs and modules................................................................................. 834
+Table 29-3—Mixing of level-sensitive and edge-sensitive entries ............................................................. 838
+Table 30-2—Associating path delay expressions with transitions .............................................................. 850
+Table 30-3—Calculating delays for x transitions ....................................................................................... 852
+Table 31-2—$hold arguments .................................................................................................................... 867
+Table 31-3—$setuphold arguments ............................................................................................................ 868
+Table 31-4—$removal arguments ............................................................................................................... 870
+Table 31-5—$recovery arguments .............................................................................................................. 871
+Table 31-6—$recrem arguments ................................................................................................................. 872
+Table 31-7—$skew arguments ................................................................................................................... 874
+Table 31-8—$timeskew arguments............................................................................................................. 875
+Table 31-9—$fullskew arguments............................................................................................................... 877
+Table 31-10—$width arguments ................................................................................................................. 879
+Table 31-11—$period arguments ................................................................................................................ 880
+Table 31-12—$nochange arguments........................................................................................................... 881
+Table 31-13—Notifier value responses to timing violations ...................................................................... 883
+Table 32-2—Mapping of SDF timing check constructs to SystemVerilog................................................. 894
+Table 32-3—SDF annotation of interconnect delays .................................................................................. 896
+Table 32-4—SDF to SystemVerilog delay value mapping ......................................................................... 899
+Table 32-5—mtm_spec argument ............................................................................................................... 900
+Table 32-6—scale_type argument............................................................................................................... 901
+Table 34-2—Encoding algorithm identifiers............................................................................................... 924
+Table 34-3—Encryption algorithm identifiers ............................................................................................ 926
+Table 34-4—Message digest algorithm identifiers...................................................................................... 931
+Table 36-2—VPI routines for system task or system function callbacks.................................................... 960
+Table 36-3—VPI routines for traversing SystemVerilog hierarchy............................................................ 960
+Table 36-4—VPI routines for accessing properties of objects.................................................................... 960
+Table 36-5—VPI routines for accessing objects from properties................................................................ 960
+Table 36-6—VPI routines for delay processing .......................................................................................... 960
+Table 36-7—VPI routines for logic and strength value processing............................................................. 960
+Table 36-8—VPI routines for simulation time processing.......................................................................... 961
+Table 36-9—VPI routines for miscellaneous utilities ................................................................................. 961
+Table 36-10—Summary of VPI incompatibilities across versions ............................................................. 962
+Table 38-2—Size of the s_vpi_delay->da array........................................................................................ 1060
+Table 38-3—Return value field of the s_vpi_value structure union ......................................................... 1066
+Table 38-4—Size of the s_vpi_delay->da array........................................................................................ 1087
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+30
+Copyright © 2018 IEEE. All rights reserved.
+Table 38-5—Value format field of cb_data_p->value->format ................................................................ 1098
+Table 38-6—cbStmt callbacks................................................................................................................... 1100
+Table 40-2—Instance coverage permutations ........................................................................................... 1123
+Table 40-3—Assertion coverage results.................................................................................................... 1131
+Table B.1—Reserved keywords ................................................................................................................ 1182
+Table D.1—Argument return value for $countdriver function.................................................................. 1189
+Table H.1—Mapping data types................................................................................................................ 1227
+Table N.1—SystemVerilog to C function cross-listing............................................................................. 1298
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+31
+Copyright © 2018 IEEE. All rights reserved.
+List of syntax excerpts
+Syntax 5-1—Syntax for system tasks and system functions (excerpt from Annex A).................................. 71
+Syntax 5-2—Syntax for integer and real numbers (excerpt from Annex A)................................................. 72
+Syntax 5-3—Syntax for attributes (excerpt from Annex A).......................................................................... 80
+Syntax 6-1—Syntax for net type declarations (excerpt from Annex A) ....................................................... 92
+Syntax 6-2—Syntax for net declarations (excerpt from Annex A) ............................................................... 97
+Syntax 6-3—Syntax for variable declarations (excerpt from Annex A) ..................................................... 101
+Syntax 6-4—User-defined types (excerpt from Annex A).......................................................................... 112
+Syntax 6-5—Enumerated types (excerpt from Annex A)............................................................................ 114
+Syntax 6-6—Parameter declaration syntax (excerpt from Annex A).......................................................... 120
+Syntax 6-7—Casting (excerpt from Annex A)............................................................................................ 132
+Syntax 7-1—Structure declaration syntax (excerpt from Annex A) ........................................................... 139
+Syntax 7-2—Union declaration syntax (excerpt from Annex A)................................................................ 142
+Syntax 7-3—Dynamic array new constructor syntax (excerpt from Annex A) .......................................... 150
+Syntax 7-4—Declaration of queue dimension (excerpt from Annex A)..................................................... 161
+Syntax 7-5—Array method call syntax (not in Annex A)........................................................................... 165
+Syntax 8-1—Class syntax (excerpt from Annex A) .................................................................................... 172
+Syntax 8-2—Calling a constructor (excerpt from Annex A)....................................................................... 176
+Syntax 8-3—Class syntax (excerpt from Annex A) .................................................................................... 195
+Syntax 9-1—Syntax for structured procedures (excerpt from Annex A).................................................... 205
+Syntax 9-2—Syntax for sequential block (excerpt from Annex A) ............................................................ 210
+Syntax 9-3—Syntax for parallel block (excerpt from Annex A)................................................................. 211
+Syntax 9-4—Delay and event control syntax (excerpt from Annex A)....................................................... 216
+Syntax 9-5—Syntax for wait statement (excerpt from Annex A) ............................................................... 221
+Syntax 9-6—Syntax for intra-assignment delay and event control (excerpt from Annex A) ..................... 222
+Syntax 9-7—Syntax for process control statements (excerpt from Annex A) ............................................ 225
+Syntax 10-1—Syntax for continuous assignment (excerpt from Annex A)................................................ 233
+Syntax 10-2—Blocking assignment syntax (excerpt from Annex A) ......................................................... 237
+Syntax 10-3—Nonblocking assignment syntax (excerpt from Annex A)................................................... 238
+Syntax 10-4—Syntax for procedural continuous assignments (excerpt from Annex A) ............................ 241
+Syntax 10-5—Assignment patterns syntax (excerpt from Annex A).......................................................... 246
+Syntax 10-6—Syntax for net aliasing (excerpt from Annex A) .................................................................. 252
+Syntax 11-1—Operator syntax (excerpt from Annex A)............................................................................. 255
+Syntax 11-2—Conditional operator syntax (excerpt from Annex A).......................................................... 269
+Syntax 11-3—Inside expression syntax (excerpt from Annex A)............................................................... 273
+Syntax 11-4—Streaming concatenation syntax (excerpt from Annex A) ................................................... 274
+Syntax 11-5—With expression syntax (excerpt from Annex A)................................................................. 277
+Syntax 11-6—Tagged union syntax (excerpt from Annex A)..................................................................... 287
+Syntax 11-7—Syntax for min:typ:max expression (excerpt from Annex A).............................................. 291
+Syntax 11-8—Let syntax (excerpt from Annex A) ..................................................................................... 292
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+32
+Copyright © 2018 IEEE. All rights reserved.
+Syntax 12-1—Procedural statement syntax (excerpt from Annex A) ......................................................... 299
+Syntax 12-2—Syntax for if–else statement (excerpt from Annex A).......................................................... 299
+Syntax 12-3—Syntax for case statements (excerpt from Annex A)............................................................ 304
+Syntax 12-4—Pattern syntax (excerpt from Annex A) ............................................................................... 309
+Syntax 12-5—Loop statement syntax (excerpt from Annex A).................................................................. 313
+Syntax 12-6—Jump statement syntax (excerpt from Annex A).................................................................. 317
+Syntax 13-1—Task syntax (excerpt from Annex A)................................................................................... 320
+Syntax 13-2—Function syntax (excerpt from Annex A)............................................................................. 324
+Syntax 13-3—Task or function call syntax (excerpt from Annex A).......................................................... 330
+Syntax 14-1—Clocking block syntax (excerpt from Annex A) .................................................................. 337
+Syntax 14-2—Cycle delay syntax (excerpt from Annex A)........................................................................ 343
+Syntax 14-3—Default clocking syntax (excerpt from Annex A)................................................................ 344
+Syntax 14-4—Global clocking syntax (excerpt from Annex A) ................................................................. 345
+Syntax 14-5—Synchronous drive syntax (excerpt from Annex A)............................................................. 350
+Syntax 15-1—Event trigger syntax (excerpt from Annex A)...................................................................... 360
+Syntax 15-2—Wait_order event sequencing syntax (excerpt from Annex A)............................................ 361
+Syntax 16-1—Immediate assertion syntax (excerpt from Annex A)........................................................... 365
+Syntax 16-2—Deferred immediate assertion syntax (excerpt from Annex A)............................................ 368
+Syntax 16-3—Sequence syntax (excerpt from Annex A)............................................................................ 379
+Syntax 16-4—Sequence concatenation syntax (excerpt from Annex A) .................................................... 380
+Syntax 16-5—Sequence declaration syntax (excerpt from Annex A)......................................................... 383
+Syntax 16-6—Sequence repetition syntax (excerpt from Annex A) ........................................................... 391
+Syntax 16-7—And operator syntax (excerpt from Annex A)...................................................................... 402
+Syntax 16-8—Intersect operator syntax (excerpt from Annex A)............................................................... 404
+Syntax 16-9—Or operator syntax (excerpt from Annex A) ........................................................................ 405
+Syntax 16-10—First_match operator syntax (excerpt from Annex A) ....................................................... 408
+Syntax 16-11—Throughout construct syntax (excerpt from Annex A) ...................................................... 409
+Syntax 16-12—Within construct syntax (excerpt from Annex A).............................................................. 411
+Syntax 16-13—Assertion variable declaration syntax (excerpt from Annex A)......................................... 413
+Syntax 16-14—Variable assignment syntax (excerpt from Annex A)........................................................ 414
+Syntax 16-15—Subroutine call in sequence syntax (excerpt from Annex A)............................................. 419
+Syntax 16-16—Property construct syntax (excerpt from Annex A) ........................................................... 421
+Syntax 16-17—Implication syntax (excerpt from Annex A) ...................................................................... 425
+Syntax 16-18—Followed-by syntax (excerpt from Annex A) .................................................................... 429
+Syntax 16-19—Property statement case syntax (excerpt from Annex A)................................................... 439
+Syntax 16-20—Concurrent assert construct syntax (excerpt from Annex A)............................................. 457
+Syntax 16-21—Default clocking and default disable syntax (excerpt from Annex A)............................... 473
+Syntax 16-22—Expect statement syntax (excerpt from Annex A) ............................................................. 481
+Syntax 17-1—Checker declaration syntax (excerpt from Annex A)........................................................... 485
+Syntax 17-2—Checker instantiation syntax (excerpt from Annex A)......................................................... 488
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+33
+Copyright © 2018 IEEE. All rights reserved.
+Syntax 18-1—Random variable declaration syntax (excerpt from Annex A)............................................. 506
+Syntax 18-2—Constraint syntax (excerpt from Annex A) .......................................................................... 510
+Syntax 18-3—Constraint distribution syntax (excerpt from Annex A)....................................................... 512
+Syntax 18-4—Uniqueness constraint syntax (excerpt from Annex A) ....................................................... 513
+Syntax 18-5—Constraint implication syntax (excerpt from Annex A)....................................................... 514
+Syntax 18-6—If–else constraint syntax (excerpt from Annex A) ............................................................... 515
+Syntax 18-7—Foreach iterative constraint syntax (excerpt from Annex A)............................................... 516
+Syntax 18-8—Solve...before constraint ordering syntax (excerpt from Annex A) ..................................... 520
+Syntax 18-9—Static constraint syntax (excerpt from Annex A)................................................................. 520
+Syntax 18-10—Inline constraint syntax (excerpt from Annex A)............................................................... 530
+Syntax 18-11—Scope randomize function syntax (not in Annex A) .......................................................... 537
+Syntax 18-12—Randcase syntax (excerpt from Annex A).......................................................................... 543
+Syntax 18-13—Randsequence syntax (excerpt from Annex A).................................................................. 544
+Syntax 18-14—Random production weights syntax (excerpt from Annex A) ........................................... 546
+Syntax 18-15—If–else conditional random production syntax (excerpt from Annex A) ........................... 546
+Syntax 18-16—Case random production syntax (excerpt from Annex A).................................................. 547
+Syntax 18-17—Repeat random production syntax (excerpt from Annex A) .............................................. 547
+Syntax 18-18—Rand join random production syntax (excerpt from Annex A).......................................... 548
+Syntax 18-19—Random production syntax (excerpt from Annex A)......................................................... 550
+Syntax 19-1—Covergroup syntax (excerpt from Annex A)........................................................................ 554
+Syntax 19-2—Coverage point syntax (excerpt from Annex A) .................................................................. 559
+Syntax 19-3—Transition bin syntax (excerpt from Annex A) .................................................................... 563
+Syntax 19-4—Cross coverage syntax (excerpt from Annex A) .................................................................. 570
+Syntax 20-1—Syntax for simulation control tasks (not in Annex A).......................................................... 592
+Syntax 20-2—Syntax for time system functions (not in Annex A)............................................................. 592
+Syntax 20-3—Syntax for $printtimescale (not in Annex A) ....................................................................... 594
+Syntax 20-4—Syntax for $timeformat (not in Annex A)............................................................................ 595
+Syntax 20-5—Type name function syntax (not in Annex A)...................................................................... 598
+Syntax 20-6—Size function syntax (not in Annex A)................................................................................. 599
+Syntax 20-7—Range function syntax (not in Annex A).............................................................................. 600
+Syntax 20-8—Array querying function syntax (not in Annex A) ............................................................... 601
+Syntax 20-9—Bit vector system function syntax (not in Annex A)............................................................ 604
+Syntax 20-10—Severity system task syntax (not in Annex A) ................................................................... 605
+Syntax 20-11—Elaboration system task syntax (excerpt from Annex A)................................................... 606
+Syntax 20-12—Assertion control syntax (not in Annex A) ........................................................................ 608
+Syntax 20-13—Sampled value system function syntax (not in Annex A).................................................. 615
+Syntax 20-14—Syntax for $random (not in Annex A)................................................................................ 616
+Syntax 20-15—Syntax for probabilistic distribution functions (not in Annex A) ...................................... 616
+Syntax 20-16—Syntax for PLA modeling system task (not in Annex A)................................................... 619
+Syntax 20-17—$system function syntax (not in Annex A)......................................................................... 623
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+34
+Copyright © 2018 IEEE. All rights reserved.
+Syntax 21-1—Syntax for $display and $write system tasks (not in Annex A) ........................................... 625
+Syntax 21-2—Syntax for $strobe system tasks (not in Annex A)............................................................... 634
+Syntax 21-3—Syntax for $monitor system tasks (not in Annex A)............................................................ 634
+Syntax 21-4—Syntax for $fopen and $fclose system tasks (not in Annex A) ............................................ 635
+Syntax 21-5—Syntax for file output system tasks (not in Annex A) .......................................................... 637
+Syntax 21-6—Syntax for formatting data tasks (not in Annex A) .............................................................. 638
+Syntax 21-7—Syntax for file read system functions (not in Annex A)....................................................... 639
+Syntax 21-8—Syntax for file positioning system functions (not in Annex A) ........................................... 643
+Syntax 21-9—Syntax for file flush system task (not in Annex A).............................................................. 644
+Syntax 21-10—Syntax for file I/O error detection system function (not in Annex A) ............................... 645
+Syntax 21-11—Syntax for end-of-file file detection system function (not in Annex A) ............................ 645
+Syntax 21-12—Syntax for memory load system tasks (not in Annex A) ................................................... 645
+Syntax 21-13—$writemem system task syntax (not in Annex A) .............................................................. 649
+Syntax 21-14—Syntax for $dumpfile task (not in Annex A)...................................................................... 653
+Syntax 21-15—Syntax for $dumpvars task (not in Annex A)..................................................................... 654
+Syntax 21-16—Syntax for $dumpoff and $dumpon tasks (not in Annex A) .............................................. 655
+Syntax 21-17—Syntax for $dumpall task (not in Annex A) ....................................................................... 655
+Syntax 21-18—Syntax for $dumplimit task (not in Annex A).................................................................... 656
+Syntax 21-19—Syntax for $dumpflush task (not in Annex A) ................................................................... 656
+Syntax 21-20—Syntax for output 4-state VCD file (not in Annex A) ........................................................ 658
+Syntax 21-21—Syntax for $dumpports task (not in Annex A) ................................................................... 663
+Syntax 21-22—Syntax for $dumpportsoff and $dumpportson system tasks (not in Annex A).................. 664
+Syntax 21-23—Syntax for $dumpportsall system task (not in Annex A) ................................................... 665
+Syntax 21-24—Syntax for $dumpportslimit system task (not in Annex A)................................................ 665
+Syntax 21-25—Syntax for $dumpportsflush system task (not in Annex A) ............................................... 665
+Syntax 21-26—Syntax for $vcdclose keyword (not in Annex A)............................................................... 666
+Syntax 21-27—Syntax for output extended VCD file (not in Annex A) .................................................... 667
+Syntax 21-28—Syntax for extended VCD node information (not in Annex A) ......................................... 668
+Syntax 21-29—Syntax for value change section (not in Annex A) ............................................................ 669
+Syntax 22-1—Syntax for include compiler directive (not in Annex A)...................................................... 675
+Syntax 22-2—Syntax for text macro definition (not in Annex A) .............................................................. 676
+Syntax 22-3—Syntax for text macro usage (not in Annex A)..................................................................... 677
+Syntax 22-4—Syntax for undef compiler directive (not in Annex A) ........................................................ 681
+Syntax 22-5—Syntax for conditional compilation directives (not in Annex A) ......................................... 681
+Syntax 22-6—Syntax for timescale compiler directive (not in Annex A) .................................................. 684
+Syntax 22-7—Syntax for default_nettype compiler directive (not in Annex A)......................................... 686
+Syntax 22-8—Syntax for pragma compiler directive (not in Annex A)...................................................... 687
+Syntax 22-9—Syntax for line compiler directive (not in Annex A)............................................................ 688
+Syntax 22-10—Syntax for begin_keywords and end_keywords compiler directives (not in Annex A)..... 689
+Syntax 23-1—Module declaration syntax (excerpt from Annex A)............................................................ 697
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+35
+Copyright © 2018 IEEE. All rights reserved.
+Syntax 23-2—Non-ANSI style module header declaration syntax (excerpt from Annex A) ..................... 698
+Syntax 23-3—Non-ANSI style port declaration syntax (excerpt from Annex A)....................................... 699
+Syntax 23-4—ANSI style list_of_port_declarations syntax (excerpt from Annex A)................................ 702
+Syntax 23-5—Module item syntax (excerpt from Annex A) ...................................................................... 708
+Syntax 23-6—Module instance syntax (excerpt from Annex A) ................................................................ 709
+Syntax 23-7—Syntax for hierarchical path names (excerpt from Annex A)............................................... 722
+Syntax 23-8—Syntax for upward name referencing (not in Annex A)....................................................... 727
+Syntax 23-9—Bind construct syntax (excerpt from Annex A) ................................................................... 739
+Syntax 24-1—Program declaration syntax (excerpt from Annex A) .......................................................... 743
+Syntax 25-1—Interface syntax (excerpt from Annex A)............................................................................. 750
+Syntax 25-2—Modport clocking declaration syntax (excerpt from Annex A) ........................................... 759
+Syntax 25-3—Virtual interface declaration syntax (excerpt from Annex A).............................................. 769
+Syntax 26-1—Package declaration syntax (excerpt from Annex A)........................................................... 776
+Syntax 26-2—Package import syntax (excerpt from Annex A).................................................................. 777
+Syntax 26-3—Package import in header syntax (excerpt from Annex A).................................................. 781
+Syntax 26-4—Package export syntax (excerpt from Annex A) .................................................................. 783
+Syntax 26-5—Std package import syntax (not in Annex A)....................................................................... 785
+Syntax 27-1—Syntax for generate constructs (excerpt from Annex A)...................................................... 788
+Syntax 28-1—Syntax for gate instantiation (excerpt from Annex A)......................................................... 798
+Syntax 29-1—Syntax for UDPs (excerpt from Annex A)........................................................................... 829
+Syntax 29-2—Syntax for UDP instances (excerpt from Annex A)............................................................. 836
+Syntax 30-1—Syntax for specify block (excerpt from Annex A)............................................................... 839
+Syntax 30-2—Syntax for module path declaration (excerpt from Annex A).............................................. 840
+Syntax 30-3—Syntax for simple module path (excerpt from Annex A)..................................................... 841
+Syntax 30-4—Syntax for edge-sensitive path declaration (excerpt from Annex A)................................... 842
+Syntax 30-5—Syntax for state-dependent paths (excerpt from Annex A).................................................. 843
+Syntax 30-6—Syntax for path delay value (excerpt from Annex A) .......................................................... 850
+Syntax 30-7—Syntax for PATHPULSE$ pulse control (excerpt from Annex A)...................................... 855
+Syntax 30-8—Syntax for pulse style declarations (excerpt from Annex A) ............................................... 857
+Syntax 30-9—Syntax for showcancelled declarations (excerpt from Annex A)......................................... 858
+Syntax 31-1—Syntax for system timing checks (excerpt from Annex A).................................................. 864
+Syntax 31-2—Syntax for time check conditions and timing check events (excerpt from Annex A).......... 865
+Syntax 31-3—Syntax for $setup (excerpt from Annex A).......................................................................... 866
+Syntax 31-4—Syntax for $hold (excerpt from Annex A) ........................................................................... 867
+Syntax 31-5—Syntax for $setuphold (excerpt from Annex A)................................................................... 868
+Syntax 31-6—Syntax for $removal (excerpt from Annex A) ..................................................................... 870
+Syntax 31-7—Syntax for $recovery (excerpt from Annex A)..................................................................... 870
+Syntax 31-8—Syntax for $recrem (excerpt from Annex A) ....................................................................... 871
+Syntax 31-9—Syntax for $skew (excerpt from Annex A) .......................................................................... 873
+Syntax 31-10—Syntax for $timeskew (excerpt from Annex A) ................................................................. 874
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+36
+Copyright © 2018 IEEE. All rights reserved.
+Syntax 31-11—Syntax for $fullskew (excerpt from Annex A)................................................................... 877
+Syntax 31-12—Syntax for $width (excerpt from Annex A) ....................................................................... 879
+Syntax 31-13—Syntax for $period (excerpt from Annex A) ...................................................................... 880
+Syntax 31-14—Syntax for $nochange (excerpt from Annex A) ................................................................. 881
+Syntax 31-15—Syntax for edge-control specifier (excerpt from Annex A)................................................ 882
+Syntax 31-16—Syntax for controlled timing check events (excerpt from Annex A) ................................. 885
+Syntax 32-1—Syntax for $sdf_annotate system task (not in Annex A)...................................................... 900
+Syntax 33-1—Syntax for cell (excerpt from Annex A)............................................................................... 903
+Syntax 33-2—Syntax for declaring library in library map file (excerpt from Annex A)............................ 904
+Syntax 33-3—Syntax for include command (excerpt from Annex A)........................................................ 905
+Syntax 33-4—Syntax for configurations (excerpt from Annex A) ............................................................. 906
+Syntax 35-1—DPI import declaration syntax (excerpt from Annex A)...................................................... 945
+Syntax 35-2—DPI export declaration syntax (excerpt from Annex A) ...................................................... 950
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.
+IEEE Std 1800-2017
+IEEE Standard for SystemVerilog—Unified Hardware Design, Specification, and Verification Language
+37
+Copyright © 2018 IEEE. All rights reserved.
+Part One:
+Design and Verification Constructs
+Authorized licensed use limited to: Richard DJE. Downloaded on April 22,2021 at 14:18:32 UTC from IEEE Xplore.  Restrictions apply.

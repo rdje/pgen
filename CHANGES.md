@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-03-06 - Dual-SV LRM Capture Closure: Versioned TXT/MD Trees + Full EBNF Extraction Artifacts
+### ✅ Achievement Summary
+Completed full SystemVerilog LRM conversion/extraction into versioned tracked workspaces for both IEEE 1800-2017 and IEEE 1800-2023, and promoted canonical extracted EBNF snapshots into `grammars/`.
+
+### Scope of Changes
+- Conversion fallback hardening:
+  - `/Users/richarddje/Documents/github/pgen/tools/split_sections.py`
+    - added TOC-missing fallback section detection (`page_heading_fallback`) and explicit manifest `detection_mode`.
+- Versioned conversion workspace outputs:
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/txt/*`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/md/*`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/grammar_catalog.txt`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/grammar_normalized.ebnf`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/grammar_clean.ebnf`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/grammar_report.json`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/txt/*`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/md/*`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/grammar_catalog.txt`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/grammar_normalized.ebnf`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/grammar_clean.ebnf`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/grammar_report.json`
+- Canonical extracted grammar snapshots:
+  - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_2017_lrm_extracted.ebnf`
+  - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_2023_lrm_extracted.ebnf`
+- Documentation synchronization:
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/README.md`
+  - `/Users/richarddje/Documents/github/pgen/docs/vhdl/README.md`
+  - `/Users/richarddje/Documents/github/pgen/tools/LRM_CONVERSION_WORKFLOW.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/README.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Section/markdown completeness checks:
+  - IEEE 1800-2017: `59` txt + `59` md (`docs/systemverilog/2017`)
+  - IEEE 1800-2023: `58` txt + `58` md (`docs/systemverilog/2023`)
+- Manifest detection-mode checks:
+  - IEEE 1800-2017: `detection_mode=page_heading_fallback`
+  - IEEE 1800-2023: `detection_mode=pdf_toc`
+- Full grammar extraction counts:
+  - IEEE 1800-2017: `rule_count=426`
+  - IEEE 1800-2023: `rule_count=492`
+
 ## 2026-03-06 - Phase O Policy Ratchet: Promote VHDL Stimuli Quality Gate to Required Aggregate Enforcement
 ### ✅ Achievement Summary
 Promoted aggregate `vhdl_stimuli_quality_gate` mode from informational to required strict after the VHDL strict-promotion ratchet was validated green.
