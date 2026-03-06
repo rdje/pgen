@@ -214,6 +214,11 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
     - `vhdl_stimuli_quality_gate` now emits dedicated realistic-corpus report artifact:
       - `rust/target/vhdl_stimuli_quality_gate/work/vhdl_realistic_corpus_report.json`,
       - plus summary telemetry for case counts and parse timing/size metrics.
+  - Progress (2026-03-06): expanded VHDL realistic corpus depth from `6` to `14` deterministic cases (`version: 2` manifest) to strengthen strict-promotion evidence:
+    - expectation split now tracks `8` expected-pass and `6` expected-fail realistic families,
+    - added pass families (record/package usage, component instantiation, process-if/else, configuration, context declaration),
+    - added explicit known-gap fail families (labeled generate-for, wait-for time expressions, assert/report statements),
+    - validated per-case expectation parity with `parseability_probe` and revalidated full `vhdl_stimuli_quality_gate` telemetry (`observed pass/fail == expected pass/fail`).
 - [x] Wire `vhdl_stimuli_quality_gate` into aggregate SOTA exit policy with informational-first defaults.
   - Progress (2026-02-27): added aggregate policy defaults in `rust/config/sota_exit_policy.env`:
     - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
@@ -1000,6 +1005,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Expanded VHDL realistic corpus manifest (`vhdl_realistic_corpus_v0.json` -> `version: 2`) from 6 to 14 deterministic cases (8 expected-pass / 6 expected-fail), with full gate telemetry parity revalidated.
 - 2026-03-06: Expanded Phase O VHDL corpus hardening by adding a deterministic realistic-corpus stage to `vhdl_stimuli_quality_gate` (contract `v2`) with curated fixture manifest and explicit report telemetry (`vhdl_realistic_corpus_report.json`).
 - 2026-03-06: Marked Phase P Nexsim differential/integration hardening item complete after adding `sv_stimuli_quality_gate` realistic-corpus budget stage (`nexsim_realistic_corpus`, contract `v25`) with deterministic corpus fixtures and dedicated report telemetry.
 - 2026-03-06: Marked Phase P SV semantic-steering mode item complete after adding explicit grammar steering on `module_header_ports` and parameter-port rules and validating `sv_file`, `sv_parseable_file`, `sv_snippet`, and `sv_semantic_file` mode behavior under deterministic `sv_stimuli_quality_gate` runs.

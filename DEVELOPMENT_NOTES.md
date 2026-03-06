@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase O VHDL Corpus Hardening: Expanded Realistic-Corpus Coverage (8 pass / 6 fail)
+### Context
+After adding the initial realistic-corpus stage, the next roadmap priority was to broaden deterministic VHDL corpus evidence so strict-promotion decisions are based on richer legal/illegal families rather than a small six-case seed.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
+
+Manifest expansion:
+- promoted corpus manifest to `version: 2`.
+- expanded from 6 to 14 cases with explicit expectation split:
+  - expected parse-full pass: 8
+  - expected parse-full fail: 6
+
+Added pass-oriented deterministic families:
+- `record_package_signal_usage.vhd`
+- `component_instantiation_port_map.vhd`
+- `process_if_else_assignment.vhd`
+- `configuration_basic.vhd`
+- `context_declaration_only.vhd`
+
+Added expected-fail deterministic families (known grammar/runtime debt):
+- `generate_for_label.vhd`
+- `wait_for_time.vhd`
+- `assert_report_statement.vhd`
+
+Retained baseline cases:
+- existing pass: `entity_and2_architecture`, `entity_only_port_decl`, `package_constant_only`
+- existing expected-fail: `process_wait_statement`, `use_package_vector_width`, `direct_entity_instantiation`
+
+### Validation
+Executed:
+- `jq empty rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json` (passed)
+- per-case parseability verification loop with:
+  - `rust/target/debug/parseability_probe --parse vhdl <case>`
+  - result: all 14 cases matched declared expectation polarity.
+- end-to-end gate:
+  - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate` (passed)
+
+Observed realistic-corpus telemetry:
+- `realistic_corpus_cases_declared=14`
+- `realistic_corpus_cases_executed=14`
+- `realistic_corpus_expected_pass_total=8`
+- `realistic_corpus_expected_fail_total=6`
+- `realistic_corpus_observed_parse_pass_total=8`
+- `realistic_corpus_observed_parse_fail_total=6`
+- `realistic_corpus_expected_fail_parse_pass_total=0`.
+
+### Notes
+- This is a corpus-depth increment only; no runtime gate logic change was required.
+- The expanded corpus gives a better objective base for future `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` promotion criteria.
+
 ## 2026-03-06 - Phase O VHDL Corpus Hardening: Contractized Realistic-Corpus Stage in `vhdl_stimuli_quality_gate`
 ### Context
 Next-priority roadmap work after Phase P closure was expanding contractized SV/VHDL corpora. VHDL gate coverage was generated-stimuli-only; there was no deterministic curated corpus stage to track realistic parser acceptance debt with explicit, budgeted evidence.

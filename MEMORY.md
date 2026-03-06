@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-o-vhdl-realistic-corpus-gate-v2)
+Last updated: 2026-03-06 (+0100, task: phase-o-vhdl-realistic-corpus-depth-v2)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `c84e0d2` (`Close Phase P Nexsim integration hardening with realistic-corpus budgets`).
+- Latest commit: `3bdc5cb` (`Phase O: add deterministic VHDL realistic-corpus quality stage (contract v2)`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -830,10 +830,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `258`
+- Commit count at last refresh (before current uncommitted changes): `259`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 3bdc5cb Phase O: add deterministic VHDL realistic-corpus quality stage (contract v2)
 - c84e0d2 Close Phase P Nexsim integration hardening with realistic-corpus budgets
 - f2093c7 Close Phase P SV semantic-steering mode item with header/parameter priority steering
 - a1a306b Close Phase-P semantic-closure validator milestone and fix type-parameter false positives.
@@ -1055,6 +1056,36 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-06: Expanded VHDL realistic corpus depth from 6 to 14 deterministic cases
+- Root cause:
+  - initial VHDL realistic corpus stage was operational but too narrow (`6` cases), leaving strict-promotion evidence shallow across legal/known-gap family coverage.
+- Fix:
+  - upgraded `rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json` to `version: 2`,
+  - expanded deterministic corpus to `14` cases with explicit expectation split:
+    - `8` expected parse-full pass
+    - `6` expected parse-full fail
+  - added new pass families:
+    - record/package usage,
+    - component `port map` instantiation,
+    - process `if/else` assignment,
+    - configuration declaration,
+    - context declaration.
+  - added new expected-fail families:
+    - labeled `for ... generate`,
+    - `wait for <time-unit>`,
+    - `assert ... report ...`.
+- Validation:
+  - manifest sanity check: `jq empty rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json` passed.
+  - per-case expectation check with parseability probe (`--parse vhdl`) passed across all `14` manifest entries.
+  - full gate run:
+    - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate` passed with telemetry parity:
+      - `realistic_corpus_cases_declared=14`
+      - `realistic_corpus_cases_executed=14`
+      - `realistic_corpus_expected_pass_total=8`
+      - `realistic_corpus_expected_fail_total=6`
+      - `realistic_corpus_observed_parse_pass_total=8`
+      - `realistic_corpus_observed_parse_fail_total=6`.
 
 ### 2026-03-06: Expanded VHDL quality gate with deterministic realistic-corpus stage (contract `v2`)
 - Root cause:
@@ -2586,11 +2617,10 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Expand VHDL realistic corpus breadth beyond seed fixtures:
-   - add additional deterministic legal/illegal families (package/use, process/clocked, generate-like structure equivalents, subtype/range forms),
-   - keep contract budgets objective and tune only with evidence.
-2. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
-   - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate and realistic-corpus stability are proven across broader corpus.
+1. Define and execute deterministic VHDL strict-promotion trial criteria:
+   - require repeated green `vhdl_stimuli_quality_gate` runs with stable realistic-corpus telemetry under fixed seeds before toggling strict aggregate policy.
+2. Promote VHDL aggregate mode from informational to strict-required when criteria are met:
+   - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until strict-promotion trial evidence is sustained.
 3. Expand SV Nexsim realistic corpus and semantic closure evidence while preserving `100%` parse-full floor policy.
 4. Close roadmap operational policy tail:
    - enforce branch protection requirement for `fixed-point-gate` pre-merge check.

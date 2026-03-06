@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-03-06 - Phase O VHDL Corpus Hardening: Realistic-Corpus Expansion to 14 Deterministic Cases
+### ✅ Achievement Summary
+Expanded the deterministic VHDL realistic corpus from 6 to 14 contractized cases (8 expected-pass, 6 expected-fail) to improve objective parser-readiness evidence for eventual strict aggregate promotion.
+
+### Scope of Changes
+- Corpus manifest update:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
+    - `version: 2` (from `1`)
+    - expanded case roster to include additional legal and known-gap realistic families.
+- New deterministic VHDL fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/record_package_signal_usage.vhd`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/component_instantiation_port_map.vhd`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/process_if_else_assignment.vhd`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/configuration_basic.vhd`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/context_declaration_only.vhd`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/generate_for_label.vhd`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/wait_for_time.vhd`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/assert_report_statement.vhd`
+- Documentation/continuity sync:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json` ✅
+- Per-case expectation check via parseability probe across all manifest cases ✅
+  - observed: `8` expected-pass cases passed; `6` expected-fail cases failed.
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate` ✅
+  - realistic corpus telemetry:
+    - `realistic_corpus_cases_declared=14`
+    - `realistic_corpus_cases_executed=14`
+    - `realistic_corpus_expected_pass_total=8`
+    - `realistic_corpus_expected_fail_total=6`
+    - `realistic_corpus_observed_parse_pass_total=8`
+    - `realistic_corpus_observed_parse_fail_total=6`.
+
 ## 2026-03-06 - Phase O VHDL Corpus Hardening: Realistic-Corpus Stage in `vhdl_stimuli_quality_gate` (Contract v2)
 ### ✅ Achievement Summary
 Expanded contractized VHDL hardening with a deterministic realistic-corpus stage in `vhdl_stimuli_quality_gate`, including curated VHDL fixtures, parse-full latency/size budgets, and a dedicated report artifact for repeatable evidence.

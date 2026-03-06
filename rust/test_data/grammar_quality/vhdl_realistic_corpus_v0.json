@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Deterministic VHDL realistic corpus for parse-full and budget hardening in vhdl_stimuli_quality_gate.",
   "cases": [
     {
@@ -18,6 +18,31 @@
       "expect_parse_full_pass": true
     },
     {
+      "name": "record_package_signal_usage",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/record_package_signal_usage.vhd",
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "component_instantiation_port_map",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/component_instantiation_port_map.vhd",
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "process_if_else_assignment",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/process_if_else_assignment.vhd",
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "configuration_basic",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/configuration_basic.vhd",
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "context_declaration_only",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/context_declaration_only.vhd",
+      "expect_parse_full_pass": true
+    },
+    {
       "name": "process_wait_statement",
       "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/process_wait_statement.vhd",
       "expect_parse_full_pass": false
@@ -30,6 +55,21 @@
     {
       "name": "direct_entity_instantiation",
       "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/direct_entity_instantiation.vhd",
+      "expect_parse_full_pass": false
+    },
+    {
+      "name": "generate_for_label",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/generate_for_label.vhd",
+      "expect_parse_full_pass": false
+    },
+    {
+      "name": "wait_for_time",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/wait_for_time.vhd",
+      "expect_parse_full_pass": false
+    },
+    {
+      "name": "assert_report_statement",
+      "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/assert_report_statement.vhd",
       "expect_parse_full_pass": false
     }
   ]

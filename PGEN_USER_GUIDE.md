@@ -3028,6 +3028,10 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - runs curated VHDL fixtures through parse-full with per-case latency/size budget enforcement,
     - `expect_parse_full_pass=true` => parse-full pass is required,
     - `expect_parse_full_pass=false` => parse-full fail is currently accepted; parse-full pass is counted as improvement telemetry.
+  - current deterministic corpus baseline (`vhdl_realistic_corpus_v0.json`, `version: 2`):
+    - `14` total cases (`8` expected-pass, `6` expected-fail),
+    - pass families include record/package usage, component port-map instantiation, process if/else assignment, configuration declaration, and context declaration,
+    - expected-fail families include currently tracked gaps such as labeled `for ... generate`, `wait for <time-unit>`, and `assert ... report ...`.
 
 `sv_syntax_closure_gate` no-regression contract:
 - deterministic flow:
