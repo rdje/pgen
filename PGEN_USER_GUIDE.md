@@ -2924,6 +2924,16 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - rule-level expansion now also covers additional high-fanout rules:
     - item/declaration flow: `module_item`, `non_port_module_item`, `program_item`, `non_port_program_item`, `module_or_generate_item`, `interface_or_generate_item`, `package_or_generate_item_declaration`, `generate_item`, `block_item_declaration`, `statement_or_null`,
     - lexical/shape flow: `module_keyword`, `module_header_ports`, `named_port_connection`, `hierarchy_separator`, `primary`, `data_type`, `identifier`.
+  - module-header/parameter steering closure details:
+    - `module_header_ports` now prioritizes `list_of_port_declarations` over `dot_star`/empty alternatives,
+    - `parameter_port_list` now uses explicit `priority_first` steering to bias populated declaration forms over empty `#()`,
+    - `parameter_port_declaration` now has explicit branch priorities favoring stable declaration branches.
+  - mode-closure validation coverage:
+    - representative deterministic runs are green for:
+      - `sv_file` (parse-full enabled),
+      - `sv_parseable_file` (parse-full burn-down subset),
+      - `sv_semantic_file` (semantic-closure profile),
+      - `sv_snippet` (expected parse-full ineligible path).
   - important steering detail:
     - `identifier` steering now explicitly favors `simple_identifier` over `escaped_identifier` to reduce exotic-name noise in generated SV stimuli.
 - parse-full stage behavior:

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-p-semantic-closure-type-parameter-fp-fix)
+Last updated: 2026-03-06 (+0100, task: phase-p-semantic-steering-modes-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -142,6 +142,15 @@ Use this file to resume work without replaying full chat history.
     - lexical/shape steering:
       - `module_keyword`, `module_header_ports`, `named_port_connection`, `hierarchy_separator`,
       - `primary`, `data_type`, `identifier` (favoring `simple_identifier`).
+  - mode-closure steering increment is now applied on module-header/parameter paths:
+    - `module_header_ports` priority now favors `list_of_port_declarations`,
+    - `parameter_port_list` now has explicit `priority_first` + `@priority` steering,
+    - `parameter_port_declaration` now has explicit `priority_first` + `@priority` steering.
+  - deterministic cross-mode evidence for this increment:
+    - `sv_file`: representative run green with `parse_full_pass_ratio_percent=100` (`4/4`),
+    - `sv_parseable_file`: representative run green with `parse_full_pass_ratio_percent=100` (`4/4`),
+    - `sv_snippet`: expected parse-full ineligible path remains green,
+    - `sv_semantic_file`: semantic baseline remains green (`semantic_baseline_passes=4/4`) with deterministic semantic suites passing.
   - parse-full burn-down subset mode is now wired:
     - grammar entry: `systemverilog_parseable_file := parseable_source_item*`,
     - contract mode: `sv_parseable_file` (`entry_rule=systemverilog_parseable_file`, parse-full eligible, closed-loop enabled),
@@ -753,6 +762,26 @@ Use this file to resume work without replaying full chat history.
   - semantic-closure deterministic run passed:
     - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
     - `semantic_baseline_passes=4/4`, semantic suites all pass (`declared_identifier=16/16`, `width=10/10`, `port_binding=10/10`, `package_qualification=10/10`, `context_legality=10/10`).
+
+### 2026-03-06: Closed Phase P SV semantic-steering modes item with parameter/header priority steering
+- Root cause:
+  - Phase P still had one open mode-level semantic steering closure item; header/parameter branch shaping needed stronger grammar-driven steering for deterministic legality in generated SV files.
+- Fix:
+  - updated `grammars/systemverilog.ebnf`:
+    - `module_header_ports` priority shifted to prefer `list_of_port_declarations`,
+    - `parameter_port_list` now has explicit `@branch_policy: priority_first` and `@priority: [12, 2]`,
+    - `parameter_port_declaration` now has explicit `@branch_policy: priority_first` and `@priority: [12, 8, 3, 2]`.
+  - updated roadmap:
+    - marked `Add SV stimuli generation modes with semantic steering` complete,
+    - logged cross-mode deterministic evidence under Phase P progress and roadmap changelog.
+- Validation:
+  - representative run:
+    - `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - pass with `parse_full_pass_ratio_percent=100` (`4/4`) and deterministic semantic suites all pass.
+  - cross-mode closure evidence:
+    - `sv_parseable_file` pass (`parse_full_pass_ratio_percent=100`, `4/4`),
+    - `sv_snippet` pass with expected parse-full ineligible path,
+    - `sv_semantic_file` pass (`semantic_baseline_passes=4/4`) with deterministic semantic suites passing.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
@@ -2485,22 +2514,19 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Add annotation-driven SV stimuli steering:
-   - initial baseline + rule-level expansion are in place, parseable-subset mode (`sv_parseable_file`) is contractized with `100%` parse-full, and `sv_file` deterministic run is now also at `100%` for current trial shape,
-   - next increment should broaden trial shapes/corpus stress (counts/seeds/contracts) while preserving `sv_file` parse-full stability and semantic-suite closure.
-2. Add differential and integration hardening for Nexsim (remaining Phase P open item):
+1. Add differential and integration hardening for Nexsim (remaining Phase P open item):
    - continue mismatch-taxonomy and integration contract hardening under required strict gates,
    - continue performance/memory budget hardening on broader realistic SV corpora.
-3. Expand contractized SV/VHDL corpora:
+2. Expand contractized SV/VHDL corpora:
    - SV preprocess-heavy deterministic semantic suite increment is done (`version: 2` across enforced SV semantic suites),
    - next corpus increment should target VHDL deterministic semantic/parseability families and additional SV parse-full-improving families.
-4. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
+3. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-5. Close roadmap operational policy tail:
+4. Close roadmap operational policy tail:
    - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
-6. Continue Rust-native EBNF migration hardening:
+5. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-7. Keep roadmap + UG + memory synced after every gate/contract increment.
+6. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

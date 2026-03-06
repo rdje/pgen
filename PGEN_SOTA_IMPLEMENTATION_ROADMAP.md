@@ -635,7 +635,7 @@ Toolbox baseline to leverage end-to-end:
       - `systemverilog_port_binding_legality_contract_cases.json`
     - added directive-noise and conditional/macro-qualified cases to exercise semantic check behavior on preprocess-shaped samples (not only plain raw snippets),
     - validated via deterministic `sv_stimuli_quality_gate` run with all semantic contract suites enforced and passing.
-- [ ] Add SV stimuli generation modes with semantic steering:
+- [x] Add SV stimuli generation modes with semantic steering:
   - `sv_snippet` mode (targeted constructs),
   - `sv_file` mode (full compilation units),
   - semantic-annotation-driven branch/value policies to synthesize legal SV.
@@ -702,6 +702,15 @@ Toolbox baseline to leverage end-to-end:
       - `parse_full_pass_ratio_percent=100` (`16/16`) across `2017` + `2023`,
     - promotion ceiling evidence remained green at policy `4x8`:
       - `trial_passed=4/4`, observed ratio `100/100/100`.
+  - Progress (2026-03-06): closed mode-level semantic steering item with additional grammar steering on module parameter/header paths and cross-mode validation:
+    - expanded annotation-driven steering in `grammars/systemverilog.ebnf`:
+      - `module_header_ports` now prioritizes `list_of_port_declarations` over looser alternatives,
+      - `parameter_port_list` and `parameter_port_declaration` now carry explicit branch-priority steering to bias toward stable parameter-declaration forms,
+    - validated deterministic gate behavior across the target mode surface:
+      - `sv_file` mode: `parse_full_pass_ratio_percent=100` (`4/4`) in representative run,
+      - `sv_parseable_file` mode: `parse_full_pass_ratio_percent=100` (`4/4`) in representative run,
+      - `sv_snippet` mode: expected parse-full ineligible path remained green (`parse_full unavailable (disabled_by_stimuli_mode)`),
+      - `sv_semantic_file` mode: semantic baseline remained green (`semantic_baseline_passes=4/4`) with deterministic semantic suites fully passing.
 - [x] Enforce closed-loop convergence for SV:
   - generate -> parse -> semantic-validate -> coverage merge -> gap extraction -> targeted regeneration,
   - deterministic seed replay + shrinking for failing syntax/semantic samples.
@@ -972,6 +981,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Marked Phase P SV semantic-steering mode item complete after adding explicit grammar steering on `module_header_ports` and parameter-port rules and validating `sv_file`, `sv_parseable_file`, `sv_snippet`, and `sv_semantic_file` mode behavior under deterministic `sv_stimuli_quality_gate` runs.
 - 2026-03-06: Marked Phase P semantic-closure profile/validator item complete after fixing declared-before-use false positives on `type` parameter declarations and revalidating semantic-closure deterministic run green (`semantic_baseline_passes=4/4`, semantic suites all pass).
 - 2026-03-06: Expanded declared-identifier deterministic semantic suite to `version: 3` with indexed-assignment pass/fail cases and hardened `sv_stimuli_quality_gate` declared-before-use checker to detect undeclared indexed-LHS identifiers (`arr[idx] = ...`) while preserving green closed-loop validation.
 - 2026-03-06: Added configurable SV parse-full promotion seed-stride control (`..._SEED_STRIDE`) across standalone + aggregate paths, promoted tracked aggregate default to `250000`, and validated sustained target-`100` convergence under `4x8` trials.

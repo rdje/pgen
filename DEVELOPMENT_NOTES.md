@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase P Semantic-Steering Modes Closure: Priority Steering on Module Header/Parameter Rules
+### Context
+Phase P still had one open item: close SV stimuli mode-level semantic steering with executable evidence across `sv_file`, `sv_parseable_file`, `sv_snippet`, and `sv_semantic_file`. Existing steering was broad, but module header/parameter-port shape still allowed looser branches too often.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+Grammar steering changes:
+- `module_header_ports`
+  - kept `@branch_policy: priority_first`
+  - changed priority vector from `[8, 2, 1]` to `[2, 12, 1]` to bias toward `list_of_port_declarations`.
+- `parameter_port_list`
+  - added:
+    - `@branch_policy: priority_first`
+    - `@priority: [12, 2]`
+  - intent: prefer populated parameter-port declarations over empty `#()`.
+- `parameter_port_declaration`
+  - added:
+    - `@branch_policy: priority_first`
+    - `@priority: [12, 8, 3, 2]`
+  - intent: bias toward stable declaration forms in generated module headers.
+
+Roadmap closure:
+- marked `Add SV stimuli generation modes with semantic steering` complete,
+- recorded cross-mode deterministic validation evidence and changelog update in the roadmap.
+
+### Validation
+Executed representative strict deterministic quality run:
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` (passed).
+
+Observed in current run:
+- `parse_full_pass_ratio_percent=100` (`4/4`) in `sv_file`.
+- deterministic semantic suites all pass (`declared_identifier`, `width`, `port_binding`, `package_qualification`, `context_legality`).
+
+Task closure evidence from deterministic cross-mode runs:
+- `sv_parseable_file` remained parse-full green (`4/4`).
+- `sv_snippet` remained correctly parse-full ineligible (`disabled_by_stimuli_mode`).
+- `sv_semantic_file` remained semantic-green (`semantic_baseline_passes=4/4`).
+
+### Notes
+- This increment is grammar-driven and EBNF-agnostic at pipeline level: no Rust pipeline logic was specialized for SystemVerilog.
+- Next open Phase P item remains Nexsim differential/integration hardening (trusted-reference taxonomy, realistic corpora budgets, embedding usage evidence).
+
 ## 2026-03-06 - Phase P Semantic-Closure Hardening: Recognize `type` Parameter Declarations in Declared-Before-Use Checker
 ### Context
 Semantic-closure mode (`sv_semantic_file`) exposed a declaration-before-use false positive on generated samples where module parameter lists contained `type` declarations (for example `type RC9Zb=string`). The checker parsed `RC9Zb=...` as assignment-use and flagged it undeclared.

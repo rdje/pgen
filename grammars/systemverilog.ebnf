@@ -59,7 +59,7 @@ module_keyword := kw_module
                 | kw_macromodule
 
 @branch_policy: priority_first
-@priority: [8, 2, 1]
+@priority: [2, 12, 1]
 module_header_ports := lparen (dot_star | list_of_port_declarations | list_of_ports)? rparen
 module_label := colon identifier
 
@@ -207,9 +207,13 @@ package_or_generate_item_declaration := net_declaration
 # Ports and parameters
 # ---------------------------------------------------------------------------
 
+@branch_policy: priority_first
+@priority: [12, 2]
 parameter_port_list := hash lparen parameter_port_declaration (comma parameter_port_declaration)* rparen
                      | hash lparen rparen
 
+@branch_policy: priority_first
+@priority: [12, 8, 3, 2]
 parameter_port_declaration := parameter_declaration
                             | local_parameter_declaration
                             | data_type list_of_param_assignments semi

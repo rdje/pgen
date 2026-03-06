@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-06 - Phase P Semantic-Steering Modes Closure: Header/Parameter Priority Steering + Cross-Mode Validation
+### ✅ Achievement Summary
+Closed the remaining Phase P SV semantic-steering modes item by extending grammar-level branch-priority steering on module header/parameter rules and validating deterministic behavior across `sv_file`, `sv_parseable_file`, `sv_snippet`, and `sv_semantic_file`.
+
+### Scope of Changes
+- Grammar steering updates:
+  - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+    - `module_header_ports` priority updated to favor `list_of_port_declarations`:
+      - `@priority: [2, 12, 1]`
+    - added explicit steering on parameter-port shape:
+      - `parameter_port_list`:
+        - `@branch_policy: priority_first`
+        - `@priority: [12, 2]`
+      - `parameter_port_declaration`:
+        - `@branch_policy: priority_first`
+        - `@priority: [12, 8, 3, 2]`
+- Roadmap synchronization:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - marked `Add SV stimuli generation modes with semantic steering` as complete,
+    - added deterministic cross-mode validation evidence for `sv_file`, `sv_parseable_file`, `sv_snippet`, `sv_semantic_file`,
+    - logged roadmap changelog entry for the closure.
+- Documentation/continuity sync:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - `sv_file` representative run stayed green:
+    - `parse_full_pass_ratio_percent=100` (`4/4`)
+    - deterministic semantic suites all pass.
+- Cross-mode closure evidence (deterministic task runs):
+  - `sv_parseable_file`: `parse_full_pass_ratio_percent=100` (`4/4`) ✅
+  - `sv_snippet`: parse-full ineligible path behaves as designed (`disabled_by_stimuli_mode`) ✅
+  - `sv_semantic_file`: semantic baseline remained green (`semantic_baseline_passes=4/4`) with deterministic semantic suites passing ✅
+
 ## 2026-03-06 - Phase P Semantic-Closure Milestone: Fix Declared-Before-Use `type` Parameter False Positives
 ### ✅ Achievement Summary
 Closed a semantic-closure false-positive class in SV generated-sample validation by treating `type` parameter identifiers as declarations in the declared-before-use checker, and revalidated semantic-closure mode end-to-end.
