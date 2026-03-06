@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase O Policy Ratchet: VHDL Strict-Promotion Is Now Required in Aggregate Mode
+### Context
+The VHDL strict-promotion mechanism was implemented and already returning deterministic `enable_required_strict_mode` recommendations, but aggregate policy still ran it informationally (`strict=0`). The highest-priority next task was to ratchet that stage to required strict.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+
+Policy update:
+- switched aggregate strictness for VHDL promotion stage:
+  - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1` (previously `0`).
+
+Documentation synchronization:
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation
+Executed focused aggregate strict-path check:
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_COUNT=1 make -C rust SHELL=/bin/bash sota_exit_gate`
+  - passed with required strict policy active for VHDL strict-promotion stage.
+
+### Notes
+- This closes the current top-priority roadmap action and moves VHDL aggregate policy one step closer to full strict enforcement (`vhdl_stimuli_quality` strict ratchet remains next).
+
 ## 2026-03-06 - Phase O VHDL Strict-Promotion Trial Gate + Aggregate Policy Integration
 ### Context
 VHDL quality gate and realistic corpus were already in place, but we lacked an explicit, repeatable promotion mechanism to objectively decide when aggregate policy can safely switch VHDL mode from informational to required strict.

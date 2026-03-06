@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-o-vhdl-strict-promotion-gate-integration)
+Last updated: 2026-03-06 (+0100, task: phase-o-vhdl-strict-promotion-required-ratchet)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `f4433c4` (`Enforce README synchronization as binding workflow policy`).
+- Latest commit: `5acfb05` (`Add deterministic VHDL strict-promotion gate and aggregate policy wiring`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -72,9 +72,9 @@ Use this file to resume work without replaying full chat history.
   - Aggregate parse-full promotion telemetry now also surfaces observed ratio range:
     - `sv_parse_full_ratio_promotion_observed_ratio_min`
     - `sv_parse_full_ratio_promotion_observed_ratio_max`
-  - VHDL strict-promotion stage is now policy-wired informationally:
+  - VHDL strict-promotion stage is now policy-wired as required strict:
     - `PGEN_SOTA_POLICY_RUN_VHDL_STRICT_PROMOTION=1`
-    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=0`
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1`
     - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_TRIALS=3`
     - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_COUNT=8`
     - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_SEED_BASE=22001`
@@ -848,10 +848,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `262`
+- Commit count at last refresh (before current uncommitted changes): `263`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 5acfb05 Add deterministic VHDL strict-promotion gate and aggregate policy wiring
 - f4433c4 Enforce README synchronization as binding workflow policy
 - 714231a Promote README as canonical PGEN project entrypoint
 - 4a3867c Expand VHDL realistic corpus to 14 deterministic cases (v2 manifest)
@@ -1082,6 +1083,18 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-06: Promoted aggregate VHDL strict-promotion mode to required strict
+- Root cause:
+  - VHDL strict-promotion mechanism existed and produced converged eligibility recommendations, but aggregate policy still treated the stage as informational (`strict=0`).
+- Fix:
+  - ratcheted aggregate policy in `rust/config/sota_exit_policy.env`:
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1`.
+  - synchronized docs/roadmap to reflect the strict-policy promotion.
+- Validation:
+  - focused strict-path aggregate run passed:
+    - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract ... PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=1 ... make -C rust SHELL=/bin/bash sota_exit_gate`.
+  - aggregate summary confirmed VHDL strict-promotion telemetry emitted under required policy mode.
 
 ### 2026-03-06: Added deterministic VHDL strict-promotion gate and aggregate telemetry wiring
 - Root cause:
@@ -2677,25 +2690,22 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Promote VHDL strict-promotion stage from informational to required-strict once current evidence is ratified:
-   - candidate policy change:
-     - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1`.
-2. Promote aggregate VHDL stimuli mode from informational to required-strict after promotion-stage policy ratchet:
+1. Promote aggregate VHDL stimuli mode from informational to required-strict after strict-promotion ratchet:
    - candidate policy change:
      - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1`.
-3. Expand SV Nexsim realistic corpus and semantic closure evidence while preserving `100%` parse-full floor policy.
-4. Close roadmap operational policy tail:
+2. Expand SV Nexsim realistic corpus and semantic closure evidence while preserving `100%` parse-full floor policy.
+3. Close roadmap operational policy tail:
    - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
-5. Continue Rust-native EBNF migration hardening:
+4. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-6. Keep roadmap + UG + memory synced after every gate/contract increment.
+5. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Declared-before-use runtime semantic enforcement is active in `sv_semantic_file` with parseability guardrails; parse-full debt is now measured (`parse_full_pass_ratio_percent`) but still significant in semantic-closure mode.
-- Aggregate VHDL stimuli gate is currently informational-first; strict promotion is pending additional stability evidence.
+- Aggregate VHDL stimuli gate is still informational-first; strict promotion remains pending additional stability evidence.
 - SV preprocessor trusted-reference differential path still depends on host availability of external backends (`iverilog`/`verilator`), but offline curated differential gate now provides deterministic no-external baseline evidence.
 - Phase R is fully closed: implementation + gate-level validation + embedding API + end-user workflow playbooks are now complete.
 

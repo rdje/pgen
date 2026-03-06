@@ -2862,9 +2862,9 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `blockers.breakdown`
   - behavior:
     - runs deterministic `vhdl_stimuli_quality_gate` trial matrix and emits readiness recommendation for promoting aggregate VHDL mode to required strict.
-    - supports strict mode (`PGEN_VHDL_STRICT_PROMOTION_MODE=1`) for future policy hard-enforcement once evidence is converged.
+    - supports strict mode (`PGEN_VHDL_STRICT_PROMOTION_MODE=1`) and is now policy-enforced in aggregate required mode.
   - default aggregate policy:
-    - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`) while strict-enablement evidence converges.
+    - wired into `sota_exit_gate` as required strict (`run=1`, `strict=1`).
     - trial shape and constraints are policy-driven via:
       - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_TRIALS`
       - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_COUNT`

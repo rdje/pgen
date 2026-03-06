@@ -228,13 +228,14 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
   - Progress (2026-03-06): wired VHDL strict-promotion stage into aggregate `sota_exit_gate` with policy/runtime controls and summary telemetry:
     - policy defaults in `rust/config/sota_exit_policy.env`:
       - `PGEN_SOTA_POLICY_RUN_VHDL_STRICT_PROMOTION=1`
-      - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=0`
+      - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1`
       - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_*` trial-shape/threshold knobs,
     - aggregate summary now emits:
       - `vhdl_strict_promotion_report_json`
       - `vhdl_strict_promotion_recommendation`
       - `vhdl_strict_promotion_eligible_for_required_strict_mode`
       - `vhdl_strict_promotion_primary_blocker`.
+  - Progress (2026-03-06): promoted VHDL strict-promotion in aggregate policy from informational to required strict (`run=1`, `strict=1`) after deterministic trial evidence converged and focused aggregate strict-mode validation remained green.
 - [x] Wire `vhdl_stimuli_quality_gate` into aggregate SOTA exit policy with informational-first defaults.
   - Progress (2026-02-27): added aggregate policy defaults in `rust/config/sota_exit_policy.env`:
     - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
@@ -1021,6 +1022,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Promoted aggregate VHDL strict-promotion mode to required strict by setting `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1` after converged deterministic trial evidence and focused strict-path validation.
 - 2026-03-06: Added deterministic `vhdl_strict_promotion_gate` and aggregate policy telemetry wiring (`RUN/REQUIRE VHDL strict promotion` + `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_*`) to formalize objective evidence before enabling required strict VHDL aggregate mode.
 - 2026-03-06: Expanded VHDL realistic corpus manifest (`vhdl_realistic_corpus_v0.json` -> `version: 2`) from 6 to 14 deterministic cases (8 expected-pass / 6 expected-fail), with full gate telemetry parity revalidated.
 - 2026-03-06: Expanded Phase O VHDL corpus hardening by adding a deterministic realistic-corpus stage to `vhdl_stimuli_quality_gate` (contract `v2`) with curated fixture manifest and explicit report telemetry (`vhdl_realistic_corpus_report.json`).

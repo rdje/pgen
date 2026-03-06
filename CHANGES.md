@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-06 - Phase O Policy Ratchet: Promote VHDL Strict-Promotion to Required Aggregate Enforcement
+### ✅ Achievement Summary
+Promoted aggregate VHDL strict-promotion from informational to required strict mode now that deterministic promotion evidence is converged and strict-path validation is stable.
+
+### Scope of Changes
+- Aggregate policy update:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1` (from `0`).
+- Docs/roadmap sync:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Focused aggregate strict-path run ✅
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_COUNT=1 make -C rust SHELL=/bin/bash sota_exit_gate` passed under required strict policy.
+  - aggregate output/summary includes VHDL strict-promotion telemetry with strict policy active.
+
 ## 2026-03-06 - Phase O VHDL Strict-Promotion Trials: New Gate + Aggregate Telemetry Wiring
 ### ✅ Achievement Summary
 Implemented deterministic VHDL strict-promotion trialing with a dedicated gate and wired it into aggregate SOTA telemetry/policy controls to objectively decide when VHDL aggregate mode can move from informational to required strict.
