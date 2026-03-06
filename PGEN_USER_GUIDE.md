@@ -2672,6 +2672,19 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `expect_parse_full_pass=true` means parse-full pass is required,
     - `expect_parse_full_pass=false` means parse-full fail is currently accepted (a pass is tracked as improvement telemetry, not a failure),
     - report captures case-level outcomes plus aggregate timing/size/diagnostic totals.
+  - current checked-in baseline (`version: 2`):
+    - `11` declared cases (`22` executions across `2017` + `2023`),
+    - `9` expected-pass families,
+    - `2` expected-fail realism sentinels:
+      - `always_ff_sequential_block`
+      - `generate_for_array_assign`
+  - supported expected-pass families currently include:
+    - module ports + assignment,
+    - named instantiation (single-port and multi-port),
+    - package-qualified types and package-qualified constant/vector-width references,
+    - interface/modport,
+    - wildcard instantiation (`.*`),
+    - file-level `timeunit`.
 - aggregate observability behavior (`sota_exit_gate`):
   - aggregate stage state dir:
     - `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Deterministic Nexsim-oriented realistic SystemVerilog corpus for preprocess/parse_full budget and integration hardening.",
   "cases": [
     {
@@ -23,6 +23,36 @@
     {
       "name": "interface_with_modport",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/interface_with_modport.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "package_constant_assign",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_constant_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "two_module_multi_port_instantiation",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/two_module_multi_port_instantiation.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "wildcard_instantiation",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/wildcard_instantiation.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "timeunit_assign",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/timeunit_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "package_vector_instantiation",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_vector_instantiation.sv",
       "profiles": ["2017", "2023"],
       "expect_parse_full_pass": true
     },

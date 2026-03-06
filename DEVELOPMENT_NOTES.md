@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase P Semantic Closure Evidence: Expanded Nexsim Realistic SystemVerilog Corpus (`v2`)
+### Context
+The realistic-corpus stage in `sv_stimuli_quality_gate` was already wired and contractized, but its deterministic corpus was still shallow (`6` declared cases). We had proof that the current generated parser could handle several additional realistic SystemVerilog families, but that evidence was not yet baked into the checked-in Nexsim corpus. The next useful hardening step was therefore to widen the deterministic corpus without relaxing the contract floor: `parse_full` had to remain `100%` on the generated closed-loop samples while the realistic corpus gained more legal supported cases.
+
+### Implementation
+Primary manifest:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - bumped `version` from `1` to `2`.
+  - expanded declared cases from `6` to `11`.
+  - retained dual-profile execution (`2017`, `2023`) for every case.
+  - current expectation split:
+    - `9` expected parse-full passes,
+    - `2` expected parse-full failures (`always_ff`, `generate_for`) kept as known-gap minimums.
+
+New checked-in realistic fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_constant_assign.sv`
+  - validates package-qualified scalar constant reference in a module assignment.
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/two_module_multi_port_instantiation.sv`
+  - validates named multi-port binding across a child/top module pair.
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/wildcard_instantiation.sv`
+  - validates wildcard port connection (`.*`) on a simple module instantiation.
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/timeunit_assign.sv`
+  - validates file-level `timeunit` declaration preceding a module definition.
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_vector_instantiation.sv`
+  - validates package-qualified width references in port declarations and instantiation wiring.
+
+Why these cases:
+- they were already proven `parse_full`-clean under the current generated `systemverilog` parser,
+- each adds a distinct family relevant to Nexsim integration,
+- they broaden semantic evidence without smuggling grammar-specific logic into the Rust pipeline.
+
+Documentation updates:
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation
+Primary gate run:
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+
+Observed deterministic results:
+- semantic suites:
+  - declared identifiers: `16/16`
+  - width compatibility: `10/10`
+  - port binding legality: `10/10`
+  - package qualification: `10/10`
+  - context legality: `10/10`
+- generated closed-loop samples:
+  - `parse_full_pass_ratio_percent=100`
+  - `parse_full_passes=16/16`
+  - `closed_loop_profiles_passed=2/2`
+- realistic corpus:
+  - `realistic_corpus_cases_declared=11`
+  - `realistic_corpus_cases_executed=22`
+  - `realistic_corpus_expected_pass_total=9`
+  - `realistic_corpus_expected_fail_total=2`
+  - `realistic_corpus_observed_parse_pass_total=18`
+  - `realistic_corpus_observed_parse_fail_total=4`
+  - `realistic_corpus_preprocess_error_total=0`
+  - `realistic_corpus_parse_max_ms=207`
+
+### Notes
+- This increment strengthens objective Nexsim evidence without claiming closure on unsupported families (`always_ff`, `generate_for` remain explicit expected-fail realism checks).
+- The key invariant held: broadening the realistic corpus did not reduce the deterministic `100%` parse-full floor on generated samples.
+
 ## 2026-03-06 - Dual-SV LRM Capture Closure: Full Versioned TXT/MD + EBNF Extraction Promotion
 ### Context
 The SV LRM conversion workspace had partial/non-versioned expectations and no guaranteed path for PDFs without embedded TOC. We needed complete, tracked `txt`/`md` trees for both IEEE 1800-2017 and IEEE 1800-2023 plus canonical extracted EBNF snapshots.

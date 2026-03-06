@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: dual-sv-lrm-capture-closure)
+Last updated: 2026-03-06 (+0100, task: sv-nexsim-realistic-corpus-v2)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -208,6 +208,24 @@ Use this file to resume work without replaying full chat history.
     - expectation policy:
       - `expect_parse_full_pass=true` => required pass,
       - `expect_parse_full_pass=false` => fail accepted, pass counted as improvement signal.
+    - current checked-in corpus baseline:
+      - manifest `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json` is now `version: 2`,
+      - `11` declared cases / `22` executions across `2017` + `2023`,
+      - `9` expected-pass cases / `2` expected-fail realism sentinels,
+      - added expected-pass families:
+        - package constant assignment,
+        - named multi-port instantiation,
+        - wildcard instantiation (`.*`),
+        - file-level `timeunit`,
+        - package-qualified vector-width instantiation.
+    - latest strict validation evidence:
+      - `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+      - `parse_full_pass_ratio_percent=100`
+      - `parse_full_passes=16/16`
+      - `semantic_baseline_passes=16/16`
+      - `realistic_corpus_observed_parse_pass_total=18`
+      - `realistic_corpus_observed_parse_fail_total=4`
+      - `realistic_corpus_preprocess_error_total=0`.
 
 ### 2026-03-06: Broadened ceiling parse-full promotion evidence density from 3x6 to 4x8
 - Root cause:
@@ -2713,11 +2731,12 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Expand SV Nexsim realistic corpus and semantic closure evidence while preserving `100%` parse-full floor policy.
-2. Close roadmap operational policy tail:
+1. Close roadmap operational policy tail:
    - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
-3. Continue Rust-native EBNF migration hardening:
+2. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
+3. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
+   - keep expanding realistic/preprocessor corpora while preserving the `100%` generated-sample `parse_full` floor.
 4. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks

@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-03-06 - Phase P Semantic Closure Evidence: Expand Nexsim Realistic SV Corpus to 11 Cases (`v2`)
+### ✅ Achievement Summary
+Expanded the deterministic Nexsim-oriented SystemVerilog realistic corpus from `6` to `11` declared cases and revalidated strict dual-profile closure with the aggregate `parse_full` floor held at `100%`.
+
+### Scope of Changes
+- Corpus manifest update:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - bumped to `version: 2`,
+    - expanded from `6` to `11` declared cases,
+    - now tracks `9` expected-pass cases and `2` expected-fail cases across both `2017` and `2023` profiles.
+- New deterministic realistic-corpus fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_constant_assign.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/two_module_multi_port_instantiation.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/wildcard_instantiation.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/timeunit_assign.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_vector_instantiation.sv`
+- Coverage families added by this increment:
+  - package-qualified constant reference in assignment,
+  - multi-port named instantiation,
+  - wildcard port binding (`.*`),
+  - file-level `timeunit` declaration,
+  - package-qualified vector-width propagation through module instantiation.
+- Documentation synchronization:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Strict deterministic dual-profile quality run ✅
+  - `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - Key observed results:
+    - `parse_full_pass_ratio_percent=100`
+    - `parse_full_passes=16/16`
+    - `semantic_baseline_passes=16/16`
+    - `closed_loop_profiles_passed=2/2`
+    - `realistic_corpus_cases_declared=11`
+    - `realistic_corpus_cases_executed=22`
+    - `realistic_corpus_expected_pass_total=9`
+    - `realistic_corpus_expected_fail_total=2`
+    - `realistic_corpus_observed_parse_pass_total=18`
+    - `realistic_corpus_observed_parse_fail_total=4`
+    - `realistic_corpus_preprocess_error_total=0`
+    - `realistic_corpus_parse_max_ms=207`
+
 ## 2026-03-06 - Dual-SV LRM Capture Closure: Versioned TXT/MD Trees + Full EBNF Extraction Artifacts
 ### ✅ Achievement Summary
 Completed full SystemVerilog LRM conversion/extraction into versioned tracked workspaces for both IEEE 1800-2017 and IEEE 1800-2023, and promoted canonical extracted EBNF snapshots into `grammars/`.

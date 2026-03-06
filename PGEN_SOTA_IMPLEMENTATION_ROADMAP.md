@@ -796,6 +796,21 @@ Toolbox baseline to leverage end-to-end:
     - `sv_stimuli_quality_gate` now emits dedicated realistic-corpus report artifact:
       - `rust/target/sv_stimuli_quality_gate/work/systemverilog_nexsim_realistic_corpus_report.json`,
       - plus summary/perf-report telemetry for realistic corpus totals, timing, and size metrics.
+  - Progress (2026-03-06): expanded the checked-in Nexsim realistic corpus to `11` declared deterministic cases (`version: 2`) while preserving the strict `100%` generated-sample `parse_full` floor:
+    - added new expected-pass families for:
+      - package constant assignment,
+      - named multi-port instantiation,
+      - wildcard instantiation (`.*`),
+      - file-level `timeunit`,
+      - package-qualified vector-width instantiation,
+    - deterministic dual-profile validation remained green:
+      - `parse_full_pass_ratio_percent=100`,
+      - `parse_full_passes=16/16`,
+      - `semantic_baseline_passes=16/16`,
+      - realistic corpus totals:
+        - `cases_declared=11`
+        - `expected_pass_total=9`
+        - `expected_fail_total=2`.
 - [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
   - deterministic error/diagnostic schema for host integration,
@@ -1030,6 +1045,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Expanded the deterministic Nexsim SystemVerilog realistic corpus (`systemverilog_nexsim_realistic_corpus_v0.json` -> `version: 2`) from 6 to 11 declared cases by adding package-qualification, named multi-port binding, wildcard binding, timeunit, and package-width instantiation families; revalidated `sv_stimuli_quality_gate` green with `parse_full_pass_ratio_percent=100`, `parse_full_passes=16/16`, and realistic-corpus totals `expected_pass_total=9`, `expected_fail_total=2`.
 - 2026-03-06: Completed full dual-SV LRM extraction refresh into versioned tracked workspaces (`docs/systemverilog/2017` and `docs/systemverilog/2023`) including `txt/`, `md/`, and grammar artifacts, added TOC-missing fallback extraction mode in `tools/split_sections.py`, and promoted canonical extracted EBNF snapshots to `grammars/systemverilog_2017_lrm_extracted.ebnf` and `grammars/systemverilog_2023_lrm_extracted.ebnf`.
 - 2026-03-06: Promoted aggregate VHDL stimuli quality stage to required strict by setting `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1` after VHDL strict-promotion ratchet evidence remained green.
 - 2026-03-06: Promoted aggregate VHDL strict-promotion mode to required strict by setting `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1` after converged deterministic trial evidence and focused strict-path validation.
