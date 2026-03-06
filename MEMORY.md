@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: workflow-readme-sync-policy-hardening)
+Last updated: 2026-03-06 (+0100, task: phase-o-vhdl-strict-promotion-gate-integration)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `714231a` (`Promote README as canonical PGEN project entrypoint`).
+- Latest commit: `f4433c4` (`Enforce README synchronization as binding workflow policy`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -72,6 +72,24 @@ Use this file to resume work without replaying full chat history.
   - Aggregate parse-full promotion telemetry now also surfaces observed ratio range:
     - `sv_parse_full_ratio_promotion_observed_ratio_min`
     - `sv_parse_full_ratio_promotion_observed_ratio_max`
+  - VHDL strict-promotion stage is now policy-wired informationally:
+    - `PGEN_SOTA_POLICY_RUN_VHDL_STRICT_PROMOTION=1`
+    - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=0`
+    - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_TRIALS=3`
+    - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_COUNT=8`
+    - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_SEED_BASE=22001`
+    - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_SEED_STRIDE=250000`
+    - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE=auto`
+    - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE=auto`
+    - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0`
+    - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY=1`
+  - Aggregate VHDL strict-promotion telemetry now surfaces:
+    - `vhdl_strict_promotion_report_json`
+    - `vhdl_strict_promotion_recommendation`
+    - `vhdl_strict_promotion_eligible_for_required_strict_mode`
+    - `vhdl_strict_promotion_primary_blocker`
+    - `vhdl_strict_promotion_trial_passed`
+    - `vhdl_strict_promotion_trial_failed`
   - Aggregate `sv_stimuli_quality_gate` now runs under aggregate state and emits core telemetry:
     - stage dir: `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`
     - `sv_stimuli_quality_parse_full_pass_ratio_percent`
@@ -830,10 +848,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `261`
+- Commit count at last refresh (before current uncommitted changes): `262`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- f4433c4 Enforce README synchronization as binding workflow policy
 - 714231a Promote README as canonical PGEN project entrypoint
 - 4a3867c Expand VHDL realistic corpus to 14 deterministic cases (v2 manifest)
 - 3bdc5cb Phase O: add deterministic VHDL realistic-corpus quality stage (contract v2)
@@ -1063,6 +1082,27 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-06: Added deterministic VHDL strict-promotion gate and aggregate telemetry wiring
+- Root cause:
+  - VHDL quality evidence existed (`vhdl_stimuli_quality_gate` + realistic corpus), but there was no dedicated promotion mechanism to objectively decide when aggregate VHDL mode should move from informational to required strict.
+- Fix:
+  - added standalone gate:
+    - `rust/scripts/vhdl_strict_promotion_gate.sh`
+    - target: `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+    - report: `rust/target/vhdl_strict_promotion_gate/work/vhdl_strict_promotion_report.json`
+  - gate now executes deterministic multi-trial runs of `vhdl_stimuli_quality_gate` with:
+    - configurable trial shape (`trials`, `count`, `seed_base`, `seed_stride`),
+    - optional parse-full ratio threshold (`target_min_ratio`),
+    - optional realistic-corpus parity requirement (`require_realistic_parity`).
+  - wired aggregate policy/runtime controls + telemetry:
+    - new policy keys `PGEN_SOTA_POLICY_RUN_VHDL_STRICT_PROMOTION`, `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT`, and `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_*`,
+    - aggregate `sota_exit_gate` now runs `vhdl_strict_promotion_gate` and emits report/recommendation/blocker/trial counters.
+- Validation:
+  - `bash -n rust/scripts/vhdl_strict_promotion_gate.sh` passed.
+  - `bash -n rust/scripts/sota_exit_gate.sh` passed.
+  - `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate` passed with recommendation `enable_required_strict_mode` (`trial_passed=3`, `trial_failed=0`).
+  - focused aggregate wiring run passed with VHDL strict-promotion telemetry in output/summary.
 
 ### 2026-03-06: Enforced README synchronization as a binding workflow rule
 - Root cause:
@@ -2637,10 +2677,12 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Define and execute deterministic VHDL strict-promotion trial criteria:
-   - require repeated green `vhdl_stimuli_quality_gate` runs with stable realistic-corpus telemetry under fixed seeds before toggling strict aggregate policy.
-2. Promote VHDL aggregate mode from informational to strict-required when criteria are met:
-   - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until strict-promotion trial evidence is sustained.
+1. Promote VHDL strict-promotion stage from informational to required-strict once current evidence is ratified:
+   - candidate policy change:
+     - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1`.
+2. Promote aggregate VHDL stimuli mode from informational to required-strict after promotion-stage policy ratchet:
+   - candidate policy change:
+     - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1`.
 3. Expand SV Nexsim realistic corpus and semantic closure evidence while preserving `100%` parse-full floor policy.
 4. Close roadmap operational policy tail:
    - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
@@ -2668,6 +2710,8 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
 - VHDL closed-loop quality:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+- VHDL strict-promotion trial gate:
+  - `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
 - AST dump contract gate:
   - `make -C rust SHELL=/bin/bash ast_dump_contract_gate`
 - Declared-shadow promotion trial gate:

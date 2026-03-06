@@ -2218,6 +2218,11 @@ VHDL parser/stimuli closed-loop command:
 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate
 ```
 
+VHDL strict-promotion trial command:
+```bash
+make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate
+```
+
 SV syntax-closure burn-down no-regression command:
 ```bash
 make -C rust SHELL=/bin/bash sv_syntax_closure_gate
@@ -2273,6 +2278,16 @@ Aggregate gate tuning:
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to promotion trials)
 - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
+- `PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of VHDL strict-promotion trials)
+- `PGEN_SOTA_REQUIRE_VHDL_STRICT_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when VHDL strict-promotion eligibility is not met)
+- `PGEN_SOTA_VHDL_STRICT_PROMOTION_TRIALS` (integer `>=1`, default from policy file; aggregate VHDL strict-promotion trial count)
+- `PGEN_SOTA_VHDL_STRICT_PROMOTION_COUNT` (integer `>=1`, default from policy file; per-trial sample count for VHDL strict-promotion runs)
+- `PGEN_SOTA_VHDL_STRICT_PROMOTION_SEED_BASE` (integer `>=0`, default from policy file; aggregate VHDL strict-promotion deterministic seed base)
+- `PGEN_SOTA_VHDL_STRICT_PROMOTION_SEED_STRIDE` (integer `>=1`, default from policy file; per-trial seed-base stride for VHDL strict-promotion runs)
+- `PGEN_SOTA_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default from policy file; parse-full mode forwarded to VHDL strict-promotion trials)
+- `PGEN_SOTA_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE` (`auto`/`0`/`1`, default from policy file; realistic-corpus mode forwarded to VHDL strict-promotion trials)
+- `PGEN_SOTA_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default from policy file; parse-full ratio floor forwarded to VHDL strict-promotion trials)
+- `PGEN_SOTA_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY` (`0`/`1`, default from policy file; require realistic-corpus expected-vs-observed parity in VHDL strict-promotion trials)
 - `PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRED_CHECKS` (space-separated required check override list)
 - `PGEN_SOTA_POLICY_FILE` (override machine policy file path)
@@ -2537,6 +2552,21 @@ Optional VHDL stimuli quality-gate tuning:
 - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS` (override realistic-corpus manifest path)
 - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES` (integer `>=0`, default `0` meaning run all corpus cases)
 - `PGEN_VHDL_STIMULI_QUALITY_STATE_DIR` (default `rust/target/vhdl_stimuli_quality_gate`)
+
+Optional VHDL strict-promotion gate tuning:
+- `PGEN_VHDL_STRICT_PROMOTION_MODE` (`auto`/`0`/`1`, default `auto`)
+  - `auto`: run deterministic promotion trials and emit recommendation without failing on ineligible outcomes.
+  - `0`: skip VHDL strict-promotion gate.
+  - `1`: strict promotion mode (fails when required-strict eligibility is not met).
+- `PGEN_VHDL_STRICT_PROMOTION_TRIALS` (default `3`)
+- `PGEN_VHDL_STRICT_PROMOTION_COUNT` (default `8`, sample count per trial)
+- `PGEN_VHDL_STRICT_PROMOTION_SEED_BASE` (default `22001`)
+- `PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE` (default `250000`, per-trial seed-base offset)
+- `PGEN_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default `0`)
+- `PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY` (`0`/`1`, default `1`)
+- `PGEN_VHDL_STRICT_PROMOTION_STATE_DIR` (default `rust/target/vhdl_strict_promotion_gate`)
 
 Optional SV syntax-closure gate tuning:
 - `PGEN_SV_SYNTAX_CLOSURE_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`)
@@ -2814,6 +2844,47 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `rust/target/sota_exit_gate/summary.txt`
       under section:
       - `Promotion Telemetry`.
+- VHDL strict-promotion trial gate:
+  - target:
+    - `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+  - deterministic report artifact:
+    - `rust/target/vhdl_strict_promotion_gate/work/vhdl_strict_promotion_report.json`
+  - report fields:
+    - `recommendation` (`enable_required_strict_mode` or `hold`)
+    - `eligibility.eligible_for_required_strict_mode`
+    - per-trial parse-full ratio outcomes and aggregated min/max/avg ratio telemetry
+    - per-trial blocker attribution:
+      - `trials[].blocker_key`
+      - `trials[].blocker_detail`
+    - aggregate blocker attribution:
+      - `blockers.failed_trial_count`
+      - `blockers.primary_blocker`
+      - `blockers.breakdown`
+  - behavior:
+    - runs deterministic `vhdl_stimuli_quality_gate` trial matrix and emits readiness recommendation for promoting aggregate VHDL mode to required strict.
+    - supports strict mode (`PGEN_VHDL_STRICT_PROMOTION_MODE=1`) for future policy hard-enforcement once evidence is converged.
+  - default aggregate policy:
+    - wired into `sota_exit_gate` as informational-first (`run=1`, `strict=0`) while strict-enablement evidence converges.
+    - trial shape and constraints are policy-driven via:
+      - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_TRIALS`
+      - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_COUNT`
+      - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_SEED_BASE`
+      - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_SEED_STRIDE`
+      - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE`
+      - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE`
+      - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO`
+      - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY`
+      plus matching `PGEN_SOTA_VHDL_*` runtime overrides.
+  - aggregate observability behavior:
+    - when run from `sota_exit_gate`, promotion artifacts are written under:
+      - `rust/target/sota_exit_gate/work/vhdl_strict_promotion_gate`
+    - aggregate output and `summary.txt` include:
+      - `vhdl_strict_promotion_report_json`
+      - `vhdl_strict_promotion_recommendation`
+      - `vhdl_strict_promotion_eligible_for_required_strict_mode`
+      - `vhdl_strict_promotion_primary_blocker`
+      - `vhdl_strict_promotion_trial_passed`
+      - `vhdl_strict_promotion_trial_failed`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - gate executes selected profile set and reports profile-tagged rows in summary output.

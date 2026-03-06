@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-03-06 - Phase O VHDL Strict-Promotion Trials: New Gate + Aggregate Telemetry Wiring
+### ✅ Achievement Summary
+Implemented deterministic VHDL strict-promotion trialing with a dedicated gate and wired it into aggregate SOTA telemetry/policy controls to objectively decide when VHDL aggregate mode can move from informational to required strict.
+
+### Scope of Changes
+- New gate/runtime:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh`
+    - added deterministic multi-trial VHDL promotion workflow over `vhdl_stimuli_quality_gate`,
+    - emits promotion report artifact:
+      - `vhdl_strict_promotion_report.json`,
+    - recommendation outcomes:
+      - `enable_required_strict_mode`
+      - `hold`,
+    - supports strict mode (`PGEN_VHDL_STRICT_PROMOTION_MODE=1`) and informational mode (`auto`).
+- Build/CLI surface:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+    - added target:
+      - `vhdl_strict_promotion_gate`.
+- Aggregate policy wiring:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+    - added `PGEN_SOTA_POLICY_RUN_VHDL_STRICT_PROMOTION` / `REQUIRE_VHDL_STRICT_PROMOTION_STRICT`,
+    - added `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_*` trial-shape and threshold knobs.
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+    - added runtime policy ingestion/validation for `PGEN_SOTA_VHDL_STRICT_PROMOTION_*`,
+    - executes `vhdl_strict_promotion_gate` in aggregate flows,
+    - emits VHDL strict-promotion telemetry in stdout + `summary.txt`.
+- Docs/roadmap sync:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/README.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_strict_promotion_gate` ✅
+  - observed recommendation:
+    - `enable_required_strict_mode`
+  - default deterministic trial totals:
+    - `trial_passed=3`
+    - `trial_failed=0`.
+- Focused aggregate wiring check ✅
+  - `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract ... PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=1 make -C rust SHELL=/bin/bash sota_exit_gate`
+  - aggregate output includes:
+    - `vhdl_strict_promotion_report_json`
+    - `vhdl_strict_promotion_recommendation`
+    - `vhdl_strict_promotion_eligible_for_required_strict_mode`.
+
 ## 2026-03-06 - Workflow Hardening: Enforce README Synchronization as Commit-Flow Requirement
 ### ✅ Achievement Summary
 Made `README.md` synchronization an explicit binding workflow rule so README remains the single, up-to-date entrypoint whenever project objective/flow/path/command/doc-map changes.

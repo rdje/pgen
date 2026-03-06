@@ -239,6 +239,7 @@ help:
 	@echo "  sv_declared_shadow_promotion_gate - Run strict declared-shadow promotion trials and emit runtime-enforcement readiness report"
 	@echo "  sv_parse_full_ratio_promotion_gate - Run strict parse-full ratio promotion trials and emit threshold-ratchet readiness report"
 	@echo "  vhdl_stimuli_quality_gate - Enforce deterministic VHDL closed-loop stimuli quality gate (coverage/gap/replay -> parse_full)"
+	@echo "  vhdl_strict_promotion_gate - Run deterministic VHDL strict-promotion trials and emit required-mode readiness report"
 	@echo "  sv_syntax_closure_gate - Enforce deterministic SystemVerilog syntax-closure burn-down no-regression contract"
 	@echo "  ast_dump_contract_gate - Enforce deterministic/bounded AST dump contract checks (generation + parser dump surfaces)"
 	@echo "  annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics"
@@ -522,6 +523,12 @@ vhdl_stimuli_quality_gate:
 	@echo "🧪 Running VHDL stimuli closed-loop quality gate..."
 	cd $(RUST_DIR) && ./scripts/vhdl_stimuli_quality_gate.sh
 	@echo "✅ VHDL stimuli closed-loop quality gate passed."
+
+.PHONY: vhdl_strict_promotion_gate
+vhdl_strict_promotion_gate:
+	@echo "🧪 Running VHDL strict-promotion gate..."
+	cd $(RUST_DIR) && ./scripts/vhdl_strict_promotion_gate.sh
+	@echo "✅ VHDL strict-promotion gate completed."
 
 .PHONY: sv_syntax_closure_gate
 sv_syntax_closure_gate:

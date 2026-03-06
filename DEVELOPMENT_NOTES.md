@@ -1,4 +1,64 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase O VHDL Strict-Promotion Trial Gate + Aggregate Policy Integration
+### Context
+VHDL quality gate and realistic corpus were already in place, but we lacked an explicit, repeatable promotion mechanism to objectively decide when aggregate policy can safely switch VHDL mode from informational to required strict.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+
+New gate behavior (`vhdl_strict_promotion_gate`):
+- deterministic trial matrix over `vhdl_stimuli_quality_gate` with configurable shape:
+  - `trials`, `sample_count`, `seed_base`, `seed_stride`.
+- extracts per-trial parse-full ratio telemetry from trial summaries.
+- supports optional ratio threshold:
+  - `PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO`.
+- enforces realistic-corpus parity when configured:
+  - `PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY=1` checks expected-vs-observed pass/fail parity from trial realistic-corpus report.
+- emits deterministic report:
+  - `rust/target/vhdl_strict_promotion_gate/work/vhdl_strict_promotion_report.json`.
+- recommendation contract:
+  - `enable_required_strict_mode` when all trial criteria pass,
+  - `hold` otherwise, with blocker taxonomy.
+- strict mode:
+  - `PGEN_VHDL_STRICT_PROMOTION_MODE=1` fails gate if eligibility is not met.
+
+Aggregate `sota_exit_gate` integration:
+- added policy/runtime controls:
+  - `PGEN_SOTA_POLICY_RUN_VHDL_STRICT_PROMOTION`
+  - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT`
+  - `PGEN_SOTA_POLICY_VHDL_STRICT_PROMOTION_*` trial-shape/threshold knobs
+  - plus `PGEN_SOTA_VHDL_STRICT_PROMOTION_*` runtime overrides.
+- added stage execution/wiring:
+  - `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+  - aggregate-scoped state dir:
+    - `rust/target/sota_exit_gate/work/vhdl_strict_promotion_gate`.
+- added aggregate telemetry fields:
+  - `vhdl_strict_promotion_report_json`
+  - `vhdl_strict_promotion_recommendation`
+  - `vhdl_strict_promotion_eligible_for_required_strict_mode`
+  - `vhdl_strict_promotion_primary_blocker`
+  - `vhdl_strict_promotion_trial_passed`
+  - `vhdl_strict_promotion_trial_failed`.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/vhdl_strict_promotion_gate.sh` (passed)
+- `bash -n rust/scripts/sota_exit_gate.sh` (passed)
+- `PGEN_VHDL_STRICT_PROMOTION_TRIALS=2 PGEN_VHDL_STRICT_PROMOTION_COUNT=2 make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate` (passed)
+- default run:
+  - `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate` (passed)
+  - recommendation: `enable_required_strict_mode`
+  - deterministic totals: `trial_passed=3`, `trial_failed=0`.
+- focused aggregate wiring check (minimal required-check footprint) passed with new VHDL strict-promotion telemetry emitted.
+
+### Notes
+- Policy remains informational-first (`REQUIRE_VHDL_STRICT_PROMOTION_STRICT=0`) while strict mode is now fully executable.
+- This closes the “define objective strict-promotion mechanism” gap and prepares a controlled policy ratchet for VHDL.
+
 ## 2026-03-06 - Workflow Policy: README Synchronization Is Now Mandatory
 ### Context
 README was promoted to the project single entrypoint, but synchronization expectations were implicit. We needed explicit, durable policy text so future sessions consistently keep README aligned.
