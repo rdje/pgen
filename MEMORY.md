@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-p-ceiling-promotion-evidence-density-3x6-to-4x8)
+Last updated: 2026-03-06 (+0100, task: phase-p-contract-density-promotion-6x6-to-8x8)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `9de2614` (`Ratchet aggregate SV parse-full policy floor from 95 to 100`).
+- Latest commit: `9b88ff4` (`Increase SV parse-full promotion evidence density from 3x6 to 4x8`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -175,6 +175,25 @@ Use this file to resume work without replaying full chat history.
     - `trial_passed=4/4`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
 - Result:
   - aggregate promotion telemetry is now backed by denser deterministic evidence while ceiling floor/target semantics remain unchanged.
+
+### 2026-03-06: Promoted SV closed-loop contract defaults from 6/6 to 8/8 (`systemverilog_core_v0` v24)
+- Root cause:
+  - wider deterministic stress (`8` sample shape) had already been proven through overrides, but default contract settings remained `6/6`, so broader evidence was not baseline behavior.
+- Fix:
+  - updated `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`:
+    - `version: 24` (from `23`),
+    - `sample_count: 8` (from `6`),
+    - `closed_loop.replay_sample_count: 8` (from `6`).
+- Validation:
+  - `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` passed.
+  - strict contract-default run:
+    - `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - passed with `parse_full_pass_ratio_percent=100` (`16/16`), `sample_count=8`, and `closed_loop_replay_sample_count=8`.
+  - sustained ceiling promotion run:
+    - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+    - `trial_passed=4/4`, observed ratio `100/100/100`.
+- Result:
+  - broader SV stress is now baseline contract behavior rather than override-only evidence.
 
 ### 2026-03-06: Ratcheted aggregate parse-full floor from 95 to 100 with promotion target held at ceiling
 - Root cause:
@@ -693,10 +712,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `251`
+- Commit count at last refresh (before current uncommitted changes): `252`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 9b88ff4 Increase SV parse-full promotion evidence density from 3x6 to 4x8
 - 9de2614 Ratchet aggregate SV parse-full policy floor from 95 to 100
 - 971f7b9 Ratchet aggregate SV parse-full policy floor from 90 to 95
 - f1a46e6 Ratchet aggregate SV parse-full policy floor from 85 to 90
@@ -2420,7 +2440,7 @@ Use this file to resume work without replaying full chat history.
 ## Next Likely Tasks (Priority)
 1. Continue Phase P semantic-closure implementation for SV:
    - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=100`),
-   - promotion evidence at target `100` now includes denser deterministic shape (`trial_passed=4/4` at `count=8`, observed ratio `100/100/100`), so next work should broaden seed/corpus stress while preserving semantic-suite closure.
+   - promotion evidence at target `100` now includes denser deterministic shape (`trial_passed=4/4` at `count=8`, observed ratio `100/100/100`) and contract-default `8/8` closed-loop stress, so next work should broaden seed-space/corpus families while preserving semantic-suite closure.
 2. Add annotation-driven SV stimuli steering:
    - initial baseline + rule-level expansion are in place, parseable-subset mode (`sv_parseable_file`) is contractized with `100%` parse-full, and `sv_file` deterministic run is now also at `100%` for current trial shape,
    - next increment should broaden trial shapes/corpus stress (counts/seeds/contracts) while preserving `sv_file` parse-full stability and semantic-suite closure.

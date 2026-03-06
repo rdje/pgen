@@ -2875,9 +2875,10 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
         - `require_width_compatibility_simple=true`
         - `require_context_legality_basic=true`
 - closed-loop contract controls (from `systemverilog_core_v0_contract.json`):
+  - top-level `sample_count` (current default `8`)
   - `closed_loop.gap_report_threshold`
   - `closed_loop.target_max_attempts`
-  - `closed_loop.replay_sample_count`
+  - `closed_loop.replay_sample_count` (current default `8`)
   - `closed_loop.require_non_increasing_target_debt`
 - failure replay + shrinking controls (from `systemverilog_core_v0_contract.json`):
   - `failure_replay.enabled`

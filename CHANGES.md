@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-06 - Phase P Contract Density Promotion: Make SV Closed-Loop 8/8 the Default (v24)
+### ✅ Achievement Summary
+Promoted broader SV closed-loop stress from override-only usage to baseline contract behavior by raising `systemverilog_core_v0` default `sample_count` and `closed_loop.replay_sample_count` to `8`, and validated strict parse-full ceiling behavior with the new defaults.
+
+### Scope of Changes
+- Updated SV quality contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+    - `version=24` (was `23`)
+    - `sample_count=8` (was `6`)
+    - `closed_loop.replay_sample_count=8` (was `6`)
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - strict run with contract-default `sample_count=8` and `replay_sample_count=8` passed:
+    - `parse_full_pass_ratio_percent=100` (`16/16`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - promotion ceiling evidence remained green:
+    - `trial_passed=4/4`, observed ratio `100/100/100`.
+
 ## 2026-03-06 - Phase P Parse-Full Promotion Evidence Density: Increase Trial Shape from 3x6 to 4x8
 ### ✅ Achievement Summary
 Broadened deterministic ceiling-evidence collection for SV parse-full promotion by increasing promotion trial density from `3x6` to `4x8` while keeping aggregate required floor and target pinned at `100`.

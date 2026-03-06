@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase P Contract Density Promotion: `systemverilog_core_v0` Default 6/6 -> 8/8 (v24)
+### Context
+Promotion and strict-quality gates had already proven stability under `8`-sample shapes via env overrides. The next step was to make broader stress the default contract baseline rather than a per-run override.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+
+Changes:
+- Promoted contract density baseline:
+  - `version: 24` (from `23`)
+  - `sample_count: 8` (from `6`)
+  - `closed_loop.replay_sample_count: 8` (from `6`)
+- Kept ceiling acceptance policy unchanged:
+  - aggregate floor `100`
+  - promotion target `100`
+  - promotion trial shape `4x8` from policy.
+- Synced docs/continuity surfaces:
+  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+
+### Validation
+Executed:
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+  - passed (contract JSON integrity).
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - passed with contract-default `sample_count=8`, `replay_sample_count=8`, and `parse_full_pass_ratio_percent=100` (`16/16`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - passed with `trial_passed=4/4`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`.
+
+### Notes
+- This change converts broader deterministic stress from opt-in to default SV contract behavior.
+- Next increment should broaden seed-space/corpus families while holding semantic suite determinism and parse-full ceiling behavior.
+
 ## 2026-03-06 - Phase P Ceiling Evidence Hardening: Parse-Full Promotion Trial Shape 3x6 -> 4x8
 ### Context
 After ratcheting aggregate parse-full minimum to `100`, promotion evidence remained green at ceiling target `100` under trial shape `3x6`. The next closure step was to increase deterministic evidence density before moving to broader corpus-level expansions.
