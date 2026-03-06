@@ -1,0 +1,8 @@
+module gtop(input logic [3:0] a, output logic [3:0] y);
+  genvar i;
+  generate
+    for (i = 0; i < 4; i = i + 1) begin : g
+      assign y[i] = a[i];
+    end
+  endgenerate
+endmodule

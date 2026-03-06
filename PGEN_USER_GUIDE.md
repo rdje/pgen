@@ -2517,6 +2517,12 @@ Optional SV stimuli quality-gate tuning:
   - `0`: disable SV performance/memory-proxy budget checks.
   - `auto`: follow contract toggle `performance_budgets.enforce`.
   - `1`: strict-enable budget checks regardless of contract toggle.
+- `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE` (`auto`/`0`/`1`, default `auto`)
+  - `0`: disable Nexsim realistic-corpus integration/budget stage.
+  - `auto`: follow contract toggle `nexsim_realistic_corpus.enforce`.
+  - `1`: strict-enable realistic-corpus stage regardless of contract toggle.
+- `PGEN_SV_STIMULI_REALISTIC_CORPUS` (override realistic-corpus manifest path)
+- `PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES` (integer `>=0`, default `0` meaning run all corpus cases)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
 
 Optional VHDL stimuli quality-gate tuning:
@@ -2610,6 +2616,26 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - threshold values,
     - observed per-stage totals/averages/maxima,
     - max generated/preprocessed sample size.
+- deterministic realistic-corpus budget/integration stage:
+  - contract keys (`systemverilog_core_v0_contract.json`):
+    - `nexsim_realistic_corpus.enforce`
+    - `nexsim_realistic_corpus.cases_path`
+    - `nexsim_realistic_corpus.max_preprocess_ms_per_case`
+    - `nexsim_realistic_corpus.max_parse_full_ms_per_case`
+    - `nexsim_realistic_corpus.max_sample_bytes`
+    - `nexsim_realistic_corpus.max_preprocessed_bytes`
+    - `nexsim_realistic_corpus.require_no_preprocess_errors`
+  - mode/path controls:
+    - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=auto|0|1`
+    - `PGEN_SV_STIMULI_REALISTIC_CORPUS`
+    - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES`
+  - deterministic report artifact:
+    - `rust/target/sv_stimuli_quality_gate/work/systemverilog_nexsim_realistic_corpus_report.json`
+  - behavior:
+    - runs curated SV fixtures through `preprocess -> parse_full` with per-case timing/size budget enforcement,
+    - `expect_parse_full_pass=true` means parse-full pass is required,
+    - `expect_parse_full_pass=false` means parse-full fail is currently accepted (a pass is tracked as improvement telemetry, not a failure),
+    - report captures case-level outcomes plus aggregate timing/size/diagnostic totals.
 - aggregate observability behavior (`sota_exit_gate`):
   - aggregate stage state dir:
     - `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`

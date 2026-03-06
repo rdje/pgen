@@ -37,6 +37,9 @@ DIFF_MODE="${PGEN_SV_STIMULI_DIFF_MODE:-auto}"
 DIFF_MAX_SAMPLES="${PGEN_SV_STIMULI_DIFF_MAX_SAMPLES:-8}"
 DIFF_REFERENCE_RUNNER="${PGEN_SV_STIMULI_REFERENCE_RUNNER:-}"
 PERF_BUDGET_MODE="${PGEN_SV_STIMULI_PERF_BUDGET_MODE:-auto}"
+REALISTIC_CORPUS_MODE="${PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE:-auto}"
+REALISTIC_CORPUS_OVERRIDE="${PGEN_SV_STIMULI_REALISTIC_CORPUS:-}"
+REALISTIC_CORPUS_MAX_CASES="${PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES:-0}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
@@ -93,6 +96,15 @@ now_ms() {
 
 file_size_bytes() {
     perl -e 'my $f = shift; my $s = -s $f; print defined($s) ? $s : 0;' "$1"
+}
+
+resolve_path() {
+    local raw="$1"
+    if [[ "$raw" == /* ]]; then
+        printf '%s\n' "$raw"
+    else
+        printf '%s\n' "$ROOT_DIR/$raw"
+    fi
 }
 
 enforce_threshold_le() {
@@ -1201,6 +1213,10 @@ if [[ "$PERF_BUDGET_MODE" != "auto" && "$PERF_BUDGET_MODE" != "0" && "$PERF_BUDG
     echo "error: PGEN_SV_STIMULI_PERF_BUDGET_MODE must be one of: auto, 0, 1" >&2
     exit 2
 fi
+if [[ "$REALISTIC_CORPUS_MODE" != "auto" && "$REALISTIC_CORPUS_MODE" != "0" && "$REALISTIC_CORPUS_MODE" != "1" ]]; then
+    echo "error: PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE must be one of: auto, 0, 1" >&2
+    exit 2
+fi
 if [[ "$DECLARED_SHADOW_MODE" != "auto" && "$DECLARED_SHADOW_MODE" != "0" && "$DECLARED_SHADOW_MODE" != "1" ]]; then
     echo "error: PGEN_SV_STIMULI_QUALITY_DECLARED_SHADOW_MODE must be one of: auto, 0, 1" >&2
     exit 2
@@ -1211,6 +1227,10 @@ if [[ "$DECLARED_SHADOW_PARSEABLE_ONLY" != "0" && "$DECLARED_SHADOW_PARSEABLE_ON
 fi
 if ! [[ "$DIFF_MAX_SAMPLES" =~ ^[0-9]+$ ]] || [[ "$DIFF_MAX_SAMPLES" -lt 1 ]]; then
     echo "error: PGEN_SV_STIMULI_DIFF_MAX_SAMPLES must be an integer >= 1" >&2
+    exit 2
+fi
+if ! [[ "$REALISTIC_CORPUS_MAX_CASES" =~ ^[0-9]+$ ]] || [[ "$REALISTIC_CORPUS_MAX_CASES" -lt 0 ]]; then
+    echo "error: PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES must be an integer >= 0" >&2
     exit 2
 fi
 if [[ "$SEMANTIC_CLOSURE_MODE" != "0" && "$SEMANTIC_CLOSURE_MODE" != "1" ]]; then
@@ -1283,6 +1303,13 @@ perf_max_preprocess_ms_per_sample="$(jq -er '(.performance_budgets.max_preproces
 perf_max_parse_full_ms_per_sample="$(jq -er '(.performance_budgets.max_parse_full_ms_per_sample // 0) | numbers' "$CONTRACT_FILE")"
 perf_max_sample_bytes="$(jq -er '(.performance_budgets.max_sample_bytes // 0) | numbers' "$CONTRACT_FILE")"
 perf_max_preprocessed_bytes="$(jq -er '(.performance_budgets.max_preprocessed_bytes // 0) | numbers' "$CONTRACT_FILE")"
+realistic_corpus_contract_enforced="$(jq -er 'if (.nexsim_realistic_corpus.enforce // false) then 1 else 0 end' "$CONTRACT_FILE")"
+realistic_corpus_rel_default="$(jq -er '(.nexsim_realistic_corpus.cases_path // "") | strings' "$CONTRACT_FILE")"
+realistic_max_preprocess_ms_per_case="$(jq -er '(.nexsim_realistic_corpus.max_preprocess_ms_per_case // 0) | numbers' "$CONTRACT_FILE")"
+realistic_max_parse_full_ms_per_case="$(jq -er '(.nexsim_realistic_corpus.max_parse_full_ms_per_case // 0) | numbers' "$CONTRACT_FILE")"
+realistic_max_sample_bytes="$(jq -er '(.nexsim_realistic_corpus.max_sample_bytes // 0) | numbers' "$CONTRACT_FILE")"
+realistic_max_preprocessed_bytes="$(jq -er '(.nexsim_realistic_corpus.max_preprocessed_bytes // 0) | numbers' "$CONTRACT_FILE")"
+realistic_require_no_preprocess_errors="$(jq -er 'if (.nexsim_realistic_corpus.require_no_preprocess_errors // true) then 1 else 0 end' "$CONTRACT_FILE")"
 parse_full_quality_contract_enforced="$(jq -er 'if (.parse_full_quality.enforce_min_pass_ratio // false) then 1 else 0 end' "$CONTRACT_FILE")"
 parse_full_quality_min_pass_ratio="$(jq -er '(.parse_full_quality.min_pass_ratio // 0) | numbers' "$CONTRACT_FILE")"
 declared_shadow_contract_enabled="$(jq -er 'if (.semantic_promotion.declared_identifier_shadow_enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
@@ -1368,6 +1395,14 @@ if [[ -n "$context_legality_suite_rel" ]]; then
         context_legality_suite_path="$ROOT_DIR/$context_legality_suite_rel"
     fi
 fi
+realistic_corpus_rel="$realistic_corpus_rel_default"
+if [[ -n "$REALISTIC_CORPUS_OVERRIDE" ]]; then
+    realistic_corpus_rel="$REALISTIC_CORPUS_OVERRIDE"
+fi
+realistic_corpus_path=""
+if [[ -n "$realistic_corpus_rel" ]]; then
+    realistic_corpus_path="$(resolve_path "$realistic_corpus_rel")"
+fi
 
 if ! [[ "$sample_count" =~ ^[0-9]+$ ]] || [[ "$sample_count" -lt 1 ]]; then
     echo "error: sample_count must be an integer >= 1 (effective value: '$sample_count')" >&2
@@ -1411,6 +1446,22 @@ if ! [[ "$perf_max_sample_bytes" =~ ^[0-9]+$ ]]; then
 fi
 if ! [[ "$perf_max_preprocessed_bytes" =~ ^[0-9]+$ ]]; then
     echo "error: performance_budgets.max_preprocessed_bytes must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$realistic_max_preprocess_ms_per_case" =~ ^[0-9]+$ ]]; then
+    echo "error: nexsim_realistic_corpus.max_preprocess_ms_per_case must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$realistic_max_parse_full_ms_per_case" =~ ^[0-9]+$ ]]; then
+    echo "error: nexsim_realistic_corpus.max_parse_full_ms_per_case must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$realistic_max_sample_bytes" =~ ^[0-9]+$ ]]; then
+    echo "error: nexsim_realistic_corpus.max_sample_bytes must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$realistic_max_preprocessed_bytes" =~ ^[0-9]+$ ]]; then
+    echo "error: nexsim_realistic_corpus.max_preprocessed_bytes must be an integer >= 0" >&2
     exit 2
 fi
 if ! [[ "$parse_full_quality_min_pass_ratio" =~ ^[0-9]+$ ]] || [[ "$parse_full_quality_min_pass_ratio" -lt 0 ]] || [[ "$parse_full_quality_min_pass_ratio" -gt 100 ]]; then
@@ -1607,6 +1658,15 @@ echo "performance_max_preprocess_ms_per_sample: $perf_max_preprocess_ms_per_samp
 echo "performance_max_parse_full_ms_per_sample: $perf_max_parse_full_ms_per_sample"
 echo "performance_max_sample_bytes: $perf_max_sample_bytes"
 echo "performance_max_preprocessed_bytes: $perf_max_preprocessed_bytes"
+echo "realistic_corpus_mode: $REALISTIC_CORPUS_MODE"
+echo "realistic_corpus_contract_enforced: $realistic_corpus_contract_enforced"
+echo "realistic_corpus_path: ${realistic_corpus_path:-<unset>}"
+echo "realistic_corpus_max_cases: $REALISTIC_CORPUS_MAX_CASES"
+echo "realistic_corpus_max_preprocess_ms_per_case: $realistic_max_preprocess_ms_per_case"
+echo "realistic_corpus_max_parse_full_ms_per_case: $realistic_max_parse_full_ms_per_case"
+echo "realistic_corpus_max_sample_bytes: $realistic_max_sample_bytes"
+echo "realistic_corpus_max_preprocessed_bytes: $realistic_max_preprocessed_bytes"
+echo "realistic_corpus_require_no_preprocess_errors: $realistic_require_no_preprocess_errors"
 echo "parse_full_quality_enforced: $parse_full_quality_contract_enforced"
 echo "parse_full_quality_min_pass_ratio: $parse_full_quality_min_pass_ratio"
 echo "declared_shadow_mode: $DECLARED_SHADOW_MODE"
@@ -1714,6 +1774,36 @@ if [[ "$perf_budget_enabled" -eq 1 && "$parse_full_enabled" -ne 1 && "$perf_max_
     perf_budget_note="${perf_budget_note}; parse_full timing budget skipped (${parse_full_effective})"
 fi
 
+realistic_corpus_enabled=0
+realistic_corpus_effective="disabled_by_mode"
+realistic_corpus_note="realistic corpus validation disabled by mode"
+if [[ "$REALISTIC_CORPUS_MODE" == "1" ]]; then
+    realistic_corpus_enabled=1
+    realistic_corpus_effective="enabled"
+    realistic_corpus_note="realistic corpus validation enabled by strict mode"
+elif [[ "$REALISTIC_CORPUS_MODE" == "auto" ]]; then
+    if [[ "$realistic_corpus_contract_enforced" -eq 1 ]]; then
+        realistic_corpus_enabled=1
+        realistic_corpus_effective="enabled"
+        realistic_corpus_note="realistic corpus validation enabled by contract"
+    else
+        realistic_corpus_enabled=0
+        realistic_corpus_effective="disabled_by_contract"
+        realistic_corpus_note="realistic corpus validation disabled by contract"
+    fi
+fi
+if [[ "$realistic_corpus_enabled" -eq 1 && "$parse_full_supported" -ne 1 ]]; then
+    echo "error: realistic corpus validation requires generated parser adapter for '$grammar_name'" >&2
+    exit 1
+fi
+if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
+    if [[ -z "$realistic_corpus_path" ]]; then
+        echo "error: realistic corpus validation is enabled but no corpus path is configured" >&2
+        exit 1
+    fi
+    require_file "$realistic_corpus_path"
+fi
+
 declared_shadow_enabled=0
 declared_shadow_strict=0
 declared_shadow_effective="disabled_by_mode"
@@ -1770,12 +1860,29 @@ perf_parse_full_max_ms=0
 perf_parse_full_samples=0
 perf_sample_bytes_max=0
 perf_preprocessed_bytes_max=0
+realistic_cases_declared=0
+realistic_cases_executed=0
+realistic_expected_pass_total=0
+realistic_expected_fail_total=0
+realistic_parse_pass_total=0
+realistic_parse_fail_total=0
+realistic_expected_fail_parse_pass_total=0
+realistic_preprocess_warning_total=0
+realistic_preprocess_error_total=0
+realistic_preprocess_total_ms=0
+realistic_preprocess_max_ms=0
+realistic_parse_total_ms=0
+realistic_parse_max_ms=0
+realistic_sample_bytes_max=0
+realistic_preprocessed_bytes_max=0
 declared_shadow_total=0
 declared_shadow_passed=0
 declared_shadow_failed=0
 declared_shadow_skipped_unparseable=0
 declared_shadow_report_json="$WORK_DIR/${grammar_name}_declared_identifier_shadow_report.json"
 declared_shadow_cases_jsonl="$WORK_DIR/${grammar_name}_declared_identifier_shadow_cases.jsonl"
+realistic_report_json="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_report.json"
+realistic_cases_jsonl="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_cases.jsonl"
 if [[ "$declared_shadow_enabled" -eq 1 ]]; then
     : >"$declared_shadow_cases_jsonl"
 fi
@@ -2147,6 +2254,253 @@ if [[ "$declared_shadow_enabled" -eq 1 && "$declared_shadow_strict" -eq 1 && "$d
     exit 1
 fi
 
+realistic_cases_json='[]'
+if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
+    : >"$realistic_cases_jsonl"
+    mapfile -t realistic_case_rows < <(jq -c '.cases[]?' "$realistic_corpus_path")
+    realistic_cases_declared="${#realistic_case_rows[@]}"
+    if (( realistic_cases_declared == 0 )); then
+        echo "error: realistic corpus has zero cases: $realistic_corpus_path" >&2
+        exit 1
+    fi
+
+    realistic_case_manifest_idx=0
+    for case_json in "${realistic_case_rows[@]}"; do
+        if (( REALISTIC_CORPUS_MAX_CASES > 0 && realistic_case_manifest_idx >= REALISTIC_CORPUS_MAX_CASES )); then
+            break
+        fi
+        realistic_case_manifest_idx=$((realistic_case_manifest_idx + 1))
+
+        case_name="$(jq -er '.name | strings' <<<"$case_json")"
+        case_source_rel="$(jq -er '.path | strings' <<<"$case_json")"
+        case_expect_parse_full_pass="$(jq -er 'if has("expect_parse_full_pass") then (if .expect_parse_full_pass then 1 else 0 end) else 1 end' <<<"$case_json")"
+        case_profiles_csv="$(jq -er '(.profiles // []) | map(select(type=="string")) | join(",")' <<<"$case_json")"
+        case_source_path="$(resolve_path "$case_source_rel")"
+        require_file "$case_source_path"
+
+        if [[ "$case_expect_parse_full_pass" -eq 1 ]]; then
+            realistic_expected_pass_total=$((realistic_expected_pass_total + 1))
+        else
+            realistic_expected_fail_total=$((realistic_expected_fail_total + 1))
+        fi
+
+        declare -a case_profiles=()
+        if [[ -n "$case_profiles_csv" ]]; then
+            IFS=',' read -r -a _case_profiles_raw <<< "$case_profiles_csv"
+            for _raw_profile in "${_case_profiles_raw[@]}"; do
+                _profile="$(echo "$_raw_profile" | tr -d '[:space:]')"
+                if [[ -n "$_profile" ]]; then
+                    case_profiles+=("$_profile")
+                fi
+            done
+        fi
+        if [[ "${#case_profiles[@]}" -eq 0 ]]; then
+            case_profiles=("${run_profiles[@]}")
+        fi
+
+        case_name_key="$(printf '%s' "$case_name" | tr -c 'A-Za-z0-9_' '_')"
+        for case_profile in "${case_profiles[@]}"; do
+            if [[ -z "${supported_profiles_map[$case_profile]:-}" ]]; then
+                echo "error: realistic corpus case '$case_name' uses unsupported LRM profile '$case_profile'" >&2
+                exit 1
+            fi
+
+            case_profile_key="$(printf '%s' "$case_profile" | tr -c 'A-Za-z0-9_' '_')"
+            case_input_file="$WORK_DIR/realistic_case_${case_name_key}_${case_profile_key}.sv"
+            case_preprocessed_file="$WORK_DIR/realistic_case_${case_name_key}_${case_profile_key}.preprocessed.sv"
+            case_diagnostics_json="$WORK_DIR/realistic_case_${case_name_key}_${case_profile_key}.diagnostics.json"
+            case_parse_log="$LOG_DIR/realistic_case_${case_name_key}_${case_profile_key}_parse_full.log"
+
+            cp "$case_source_path" "$case_input_file"
+
+            case_sample_bytes="$(file_size_bytes "$case_input_file")"
+            if (( case_sample_bytes > realistic_sample_bytes_max )); then
+                realistic_sample_bytes_max="$case_sample_bytes"
+            fi
+            enforce_threshold_le 1 "realistic_sample_bytes" "$case_sample_bytes" "$realistic_max_sample_bytes" "case=${case_name},profile=${case_profile}"
+
+            case_preprocess_started_ms="$(now_ms)"
+            run_logged "realistic_case_${case_name_key}_${case_profile_key}_preprocess" \
+                "$AST_PIPELINE_BIN" "$case_input_file" \
+                --preprocess-systemverilog \
+                --output "$case_preprocessed_file" \
+                --sv-diagnostics-json "$case_diagnostics_json" \
+                --sv-include-max-depth "$include_max_depth" \
+                --sv-include-path-policy "$include_path_policy" \
+                --sv-macro-redefine-policy "$macro_redefine_policy" \
+                --sv-conditional-symbol-policy "$conditional_symbol_policy" \
+                --sv-conditional-expr-policy "$conditional_expr_policy" \
+                --sv-strict-warning-codes "$strict_warning_codes"
+            case_preprocess_elapsed_ms=$(( $(now_ms) - case_preprocess_started_ms ))
+            realistic_preprocess_total_ms=$((realistic_preprocess_total_ms + case_preprocess_elapsed_ms))
+            if (( case_preprocess_elapsed_ms > realistic_preprocess_max_ms )); then
+                realistic_preprocess_max_ms="$case_preprocess_elapsed_ms"
+            fi
+            enforce_threshold_le 1 "realistic_preprocess_ms_per_case" "$case_preprocess_elapsed_ms" "$realistic_max_preprocess_ms_per_case" "case=${case_name},profile=${case_profile}"
+
+            case_preprocessed_bytes="$(file_size_bytes "$case_preprocessed_file")"
+            if (( case_preprocessed_bytes > realistic_preprocessed_bytes_max )); then
+                realistic_preprocessed_bytes_max="$case_preprocessed_bytes"
+            fi
+            enforce_threshold_le 1 "realistic_preprocessed_bytes" "$case_preprocessed_bytes" "$realistic_max_preprocessed_bytes" "case=${case_name},profile=${case_profile}"
+
+            case_warning_count="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$case_diagnostics_json")"
+            case_error_count="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$case_diagnostics_json")"
+            realistic_preprocess_warning_total=$((realistic_preprocess_warning_total + case_warning_count))
+            realistic_preprocess_error_total=$((realistic_preprocess_error_total + case_error_count))
+            if [[ "$realistic_require_no_preprocess_errors" -eq 1 && "$case_error_count" -gt 0 ]]; then
+                echo "error: realistic corpus case '$case_name' profile '$case_profile' has preprocess diagnostics errors ($case_error_count)" >&2
+                exit 1
+            fi
+
+            case_parse_started_ms="$(now_ms)"
+            if "$PARSE_PROBE_BIN" --parse "$grammar_name" "$case_preprocessed_file" >"$case_parse_log" 2>&1; then
+                case_parse_status="pass"
+                realistic_parse_pass_total=$((realistic_parse_pass_total + 1))
+            else
+                case_parse_status="fail"
+                realistic_parse_fail_total=$((realistic_parse_fail_total + 1))
+            fi
+            case_parse_elapsed_ms=$(( $(now_ms) - case_parse_started_ms ))
+            realistic_parse_total_ms=$((realistic_parse_total_ms + case_parse_elapsed_ms))
+            if (( case_parse_elapsed_ms > realistic_parse_max_ms )); then
+                realistic_parse_max_ms="$case_parse_elapsed_ms"
+            fi
+            enforce_threshold_le 1 "realistic_parse_full_ms_per_case" "$case_parse_elapsed_ms" "$realistic_max_parse_full_ms_per_case" "case=${case_name},profile=${case_profile}"
+
+            case_status="pass"
+            case_note="parse_full status '${case_parse_status}' matched minimum expectation"
+            if [[ "$case_expect_parse_full_pass" -eq 1 && "$case_parse_status" != "pass" ]]; then
+                case_status="fail"
+                case_note="expected parse_full pass but observed fail"
+                echo "error: realistic corpus case '$case_name' profile '$case_profile' failed required parse_full pass" >&2
+                tail -n 80 "$case_parse_log" >&2 || true
+                exit 1
+            elif [[ "$case_expect_parse_full_pass" -eq 0 && "$case_parse_status" == "pass" ]]; then
+                realistic_expected_fail_parse_pass_total=$((realistic_expected_fail_parse_pass_total + 1))
+                case_note="parse_full passed on expected-fail case (coverage improvement signal)"
+            fi
+
+            jq -n \
+                --arg case_name "$case_name" \
+                --arg profile "$case_profile" \
+                --arg source_file "$case_source_path" \
+                --arg sample_file "$case_input_file" \
+                --arg preprocessed_file "$case_preprocessed_file" \
+                --arg diagnostics_file "$case_diagnostics_json" \
+                --arg parse_log_file "$case_parse_log" \
+                --arg parse_status "$case_parse_status" \
+                --arg status "$case_status" \
+                --arg note "$case_note" \
+                --argjson expect_parse_full_pass "$case_expect_parse_full_pass" \
+                --argjson preprocess_ms "$case_preprocess_elapsed_ms" \
+                --argjson parse_full_ms "$case_parse_elapsed_ms" \
+                --argjson sample_bytes "$case_sample_bytes" \
+                --argjson preprocessed_bytes "$case_preprocessed_bytes" \
+                --argjson preprocess_warnings "$case_warning_count" \
+                --argjson preprocess_errors "$case_error_count" \
+                '{
+                    case_name: $case_name,
+                    profile: $profile,
+                    source_file: $source_file,
+                    sample_file: $sample_file,
+                    preprocessed_file: $preprocessed_file,
+                    diagnostics_file: $diagnostics_file,
+                    parse_log_file: $parse_log_file,
+                    expect_parse_full_pass: ($expect_parse_full_pass == 1),
+                    parse_status: $parse_status,
+                    status: $status,
+                    note: $note,
+                    observed: {
+                        preprocess_ms: $preprocess_ms,
+                        parse_full_ms: $parse_full_ms,
+                        sample_bytes: $sample_bytes,
+                        preprocessed_bytes: $preprocessed_bytes,
+                        preprocess_warnings: $preprocess_warnings,
+                        preprocess_errors: $preprocess_errors
+                    }
+                }' >>"$realistic_cases_jsonl"
+
+            realistic_cases_executed=$((realistic_cases_executed + 1))
+        done
+    done
+fi
+
+if [[ -s "$realistic_cases_jsonl" ]]; then
+    realistic_cases_json="$(jq -s '.' "$realistic_cases_jsonl")"
+fi
+
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg requested_mode "$REALISTIC_CORPUS_MODE" \
+    --arg effective_mode "$realistic_corpus_effective" \
+    --arg note "$realistic_corpus_note" \
+    --arg corpus_path "${realistic_corpus_path:-}" \
+    --argjson max_cases "$REALISTIC_CORPUS_MAX_CASES" \
+    --argjson enabled "$realistic_corpus_enabled" \
+    --argjson contract_enforced "$realistic_corpus_contract_enforced" \
+    --argjson cases_declared "$realistic_cases_declared" \
+    --argjson cases_executed "$realistic_cases_executed" \
+    --argjson expected_pass_total "$realistic_expected_pass_total" \
+    --argjson expected_fail_total "$realistic_expected_fail_total" \
+    --argjson observed_parse_pass_total "$realistic_parse_pass_total" \
+    --argjson observed_parse_fail_total "$realistic_parse_fail_total" \
+    --argjson expected_fail_parse_pass_total "$realistic_expected_fail_parse_pass_total" \
+    --argjson preprocess_warning_total "$realistic_preprocess_warning_total" \
+    --argjson preprocess_error_total "$realistic_preprocess_error_total" \
+    --argjson preprocess_total_ms "$realistic_preprocess_total_ms" \
+    --argjson preprocess_max_ms "$realistic_preprocess_max_ms" \
+    --argjson parse_total_ms "$realistic_parse_total_ms" \
+    --argjson parse_max_ms "$realistic_parse_max_ms" \
+    --argjson sample_bytes_max "$realistic_sample_bytes_max" \
+    --argjson preprocessed_bytes_max "$realistic_preprocessed_bytes_max" \
+    --argjson max_preprocess_ms_per_case "$realistic_max_preprocess_ms_per_case" \
+    --argjson max_parse_full_ms_per_case "$realistic_max_parse_full_ms_per_case" \
+    --argjson max_sample_bytes "$realistic_max_sample_bytes" \
+    --argjson max_preprocessed_bytes "$realistic_max_preprocessed_bytes" \
+    --argjson require_no_preprocess_errors "$realistic_require_no_preprocess_errors" \
+    --argjson cases "$realistic_cases_json" \
+    '{
+        grammar_name: $grammar_name,
+        requested_mode: $requested_mode,
+        effective_mode: $effective_mode,
+        note: $note,
+        corpus_path: $corpus_path,
+        max_cases: $max_cases,
+        enabled: $enabled,
+        contract_enforced: $contract_enforced,
+        thresholds: {
+            max_preprocess_ms_per_case: $max_preprocess_ms_per_case,
+            max_parse_full_ms_per_case: $max_parse_full_ms_per_case,
+            max_sample_bytes: $max_sample_bytes,
+            max_preprocessed_bytes: $max_preprocessed_bytes,
+            require_no_preprocess_errors: ($require_no_preprocess_errors == 1)
+        },
+        totals: {
+            cases_declared: $cases_declared,
+            cases_executed: $cases_executed,
+            expected_pass_total: $expected_pass_total,
+            expected_fail_total: $expected_fail_total,
+            observed_parse_pass_total: $observed_parse_pass_total,
+            observed_parse_fail_total: $observed_parse_fail_total,
+            expected_fail_parse_pass_total: $expected_fail_parse_pass_total,
+            preprocess_warning_total: $preprocess_warning_total,
+            preprocess_error_total: $preprocess_error_total,
+            preprocess_total_ms: $preprocess_total_ms,
+            preprocess_max_ms: $preprocess_max_ms,
+            parse_total_ms: $parse_total_ms,
+            parse_max_ms: $parse_max_ms,
+            sample_bytes_max: $sample_bytes_max,
+            preprocessed_bytes_max: $preprocessed_bytes_max
+        },
+        cases: $cases
+    }' >"$realistic_report_json"
+
+if [[ "$realistic_corpus_enabled" -eq 1 && "$realistic_cases_executed" -eq 0 ]]; then
+    echo "error: realistic corpus validation is enabled but no cases executed" >&2
+    exit 1
+fi
+
 diff_report_json="$WORK_DIR/${grammar_name}_differential_report.json"
 diff_cases_jsonl="$WORK_DIR/${grammar_name}_differential_cases.jsonl"
 diff_effective_mode="disabled"
@@ -2446,6 +2800,31 @@ jq -n \
     --argjson observed_parse_full_max_ms "$perf_parse_full_max_ms" \
     --argjson observed_sample_bytes_max "$perf_sample_bytes_max" \
     --argjson observed_preprocessed_bytes_max "$perf_preprocessed_bytes_max" \
+    --argjson realistic_enabled "$realistic_corpus_enabled" \
+    --arg realistic_effective_mode "$realistic_corpus_effective" \
+    --arg realistic_note "$realistic_corpus_note" \
+    --arg realistic_corpus_path "${realistic_corpus_path:-}" \
+    --argjson realistic_cases_declared "$realistic_cases_declared" \
+    --argjson realistic_cases_executed "$realistic_cases_executed" \
+    --argjson realistic_expected_pass_total "$realistic_expected_pass_total" \
+    --argjson realistic_expected_fail_total "$realistic_expected_fail_total" \
+    --argjson realistic_observed_parse_pass_total "$realistic_parse_pass_total" \
+    --argjson realistic_observed_parse_fail_total "$realistic_parse_fail_total" \
+    --argjson realistic_expected_fail_parse_pass_total "$realistic_expected_fail_parse_pass_total" \
+    --argjson realistic_preprocess_warning_total "$realistic_preprocess_warning_total" \
+    --argjson realistic_preprocess_error_total "$realistic_preprocess_error_total" \
+    --argjson realistic_preprocess_total_ms "$realistic_preprocess_total_ms" \
+    --argjson realistic_preprocess_max_ms "$realistic_preprocess_max_ms" \
+    --argjson realistic_parse_total_ms "$realistic_parse_total_ms" \
+    --argjson realistic_parse_max_ms "$realistic_parse_max_ms" \
+    --argjson realistic_sample_bytes_max "$realistic_sample_bytes_max" \
+    --argjson realistic_preprocessed_bytes_max "$realistic_preprocessed_bytes_max" \
+    --argjson realistic_max_preprocess_ms_per_case "$realistic_max_preprocess_ms_per_case" \
+    --argjson realistic_max_parse_full_ms_per_case "$realistic_max_parse_full_ms_per_case" \
+    --argjson realistic_max_sample_bytes "$realistic_max_sample_bytes" \
+    --argjson realistic_max_preprocessed_bytes "$realistic_max_preprocessed_bytes" \
+    --argjson realistic_require_no_preprocess_errors "$realistic_require_no_preprocess_errors" \
+    --arg realistic_report_json "$realistic_report_json" \
     '{
         grammar_name: $grammar_name,
         requested_mode: $requested_mode,
@@ -2473,6 +2852,37 @@ jq -n \
             parse_full_max_ms: $observed_parse_full_max_ms,
             sample_bytes_max: $observed_sample_bytes_max,
             preprocessed_bytes_max: $observed_preprocessed_bytes_max
+        },
+        realistic_corpus: {
+            enabled: ($realistic_enabled == 1),
+            effective_mode: $realistic_effective_mode,
+            note: $realistic_note,
+            corpus_path: $realistic_corpus_path,
+            report_json: $realistic_report_json,
+            thresholds: {
+                max_preprocess_ms_per_case: $realistic_max_preprocess_ms_per_case,
+                max_parse_full_ms_per_case: $realistic_max_parse_full_ms_per_case,
+                max_sample_bytes: $realistic_max_sample_bytes,
+                max_preprocessed_bytes: $realistic_max_preprocessed_bytes,
+                require_no_preprocess_errors: ($realistic_require_no_preprocess_errors == 1)
+            },
+            observed: {
+                cases_declared: $realistic_cases_declared,
+                cases_executed: $realistic_cases_executed,
+                expected_pass_total: $realistic_expected_pass_total,
+                expected_fail_total: $realistic_expected_fail_total,
+                observed_parse_pass_total: $realistic_observed_parse_pass_total,
+                observed_parse_fail_total: $realistic_observed_parse_fail_total,
+                expected_fail_parse_pass_total: $realistic_expected_fail_parse_pass_total,
+                preprocess_warning_total: $realistic_preprocess_warning_total,
+                preprocess_error_total: $realistic_preprocess_error_total,
+                preprocess_total_ms: $realistic_preprocess_total_ms,
+                preprocess_max_ms: $realistic_preprocess_max_ms,
+                parse_total_ms: $realistic_parse_total_ms,
+                parse_max_ms: $realistic_parse_max_ms,
+                sample_bytes_max: $realistic_sample_bytes_max,
+                preprocessed_bytes_max: $realistic_preprocessed_bytes_max
+            }
         }
     }' >"$perf_report_json"
 
@@ -2556,6 +2966,25 @@ jq -n \
     echo "perf_observed_sample_bytes_max: $perf_sample_bytes_max"
     echo "perf_observed_preprocessed_bytes_max: $perf_preprocessed_bytes_max"
     echo "perf_report_json: $perf_report_json"
+    echo "realistic_corpus_effective: $realistic_corpus_effective"
+    echo "realistic_corpus_note: $realistic_corpus_note"
+    echo "realistic_corpus_path: ${realistic_corpus_path:-}"
+    echo "realistic_corpus_cases_declared: $realistic_cases_declared"
+    echo "realistic_corpus_cases_executed: $realistic_cases_executed"
+    echo "realistic_corpus_expected_pass_total: $realistic_expected_pass_total"
+    echo "realistic_corpus_expected_fail_total: $realistic_expected_fail_total"
+    echo "realistic_corpus_observed_parse_pass_total: $realistic_parse_pass_total"
+    echo "realistic_corpus_observed_parse_fail_total: $realistic_parse_fail_total"
+    echo "realistic_corpus_expected_fail_parse_pass_total: $realistic_expected_fail_parse_pass_total"
+    echo "realistic_corpus_preprocess_warning_total: $realistic_preprocess_warning_total"
+    echo "realistic_corpus_preprocess_error_total: $realistic_preprocess_error_total"
+    echo "realistic_corpus_preprocess_total_ms: $realistic_preprocess_total_ms"
+    echo "realistic_corpus_preprocess_max_ms: $realistic_preprocess_max_ms"
+    echo "realistic_corpus_parse_total_ms: $realistic_parse_total_ms"
+    echo "realistic_corpus_parse_max_ms: $realistic_parse_max_ms"
+    echo "realistic_corpus_sample_bytes_max: $realistic_sample_bytes_max"
+    echo "realistic_corpus_preprocessed_bytes_max: $realistic_preprocessed_bytes_max"
+    echo "realistic_corpus_report_json: $realistic_report_json"
     echo "semantic_baseline_passes: $semantic_pass_count/$total_samples"
     echo "parse_full_passes: $parse_full_pass_count/$total_samples"
     echo "parse_full_failures: $parse_full_fail_count"

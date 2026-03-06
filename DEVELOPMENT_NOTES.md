@@ -1,4 +1,71 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase P Nexsim Integration Closure: Contractized Realistic-Corpus Stage in `sv_stimuli_quality_gate`
+### Context
+Phase P had one remaining open item: Nexsim differential/integration hardening needed executable budget checks on realistic SV fixtures, not only generated random stimuli. Existing gate stages covered differential taxonomy and generic performance proxies, but lacked a deterministic curated corpus path.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/*.sv`
+
+Contract and control surface:
+- promoted `systemverilog_core_v0_contract.json` to `version: 25`.
+- added `nexsim_realistic_corpus` section:
+  - `enforce`
+  - `cases_path`
+  - `max_preprocess_ms_per_case`
+  - `max_parse_full_ms_per_case`
+  - `max_sample_bytes`
+  - `max_preprocessed_bytes`
+  - `require_no_preprocess_errors`.
+- added runtime/env controls:
+  - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=auto|0|1`
+  - `PGEN_SV_STIMULI_REALISTIC_CORPUS` (manifest override path)
+  - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES` (cap executed corpus cases; `0` means all).
+
+Runtime stage behavior:
+- when enabled, stage executes deterministic per-case flow:
+  - `preprocess -> parse_full`
+  - with per-case timing/size threshold enforcement and optional preprocess error hard-fail policy.
+- stage writes dedicated artifact:
+  - `rust/target/sv_stimuli_quality_gate/work/systemverilog_nexsim_realistic_corpus_report.json`.
+- stage metrics are also surfaced in:
+  - gate `summary.txt`,
+  - `systemverilog_performance_report.json` under `realistic_corpus`.
+
+Expectation policy:
+- `expect_parse_full_pass=true`:
+  - parse-full pass is required (failure is hard error).
+- `expect_parse_full_pass=false`:
+  - parse-full fail is currently accepted (known unsupported debt),
+  - parse-full pass is treated as improvement signal and tracked via:
+    - `expected_fail_parse_pass_total`.
+
+Curated corpus content:
+- added deterministic corpus manifest/fixtures with six Nexsim-oriented cases:
+  - currently-supported parse-full families (modules, named-port instantiation, package-qualified vectors, interface/modport),
+  - known unsupported-but-realistic families (`always_ff`, `generate`) encoded as expected-fail minimums.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh` (passed)
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` (passed)
+- `jq empty rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json` (passed)
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` (passed)
+
+Observed (realistic corpus stage):
+- `realistic_corpus_cases_declared=6`
+- `realistic_corpus_cases_executed=12` (2 LRM profiles)
+- `realistic_corpus_observed_parse_pass_total=8`
+- `realistic_corpus_observed_parse_fail_total=4`
+- `realistic_corpus_preprocess_error_total=0`.
+
+### Notes
+- This closes the remaining open Phase P Nexsim differential/integration checklist item in the roadmap.
+- Expected-fail corpus policy is intentionally non-blocking on future parser improvements.
+
 ## 2026-03-06 - Phase P Semantic-Steering Modes Closure: Priority Steering on Module Header/Parameter Rules
 ### Context
 Phase P still had one open item: close SV stimuli mode-level semantic steering with executable evidence across `sv_file`, `sv_parseable_file`, `sv_snippet`, and `sv_semantic_file`. Existing steering was broad, but module header/parameter-port shape still allowed looser branches too often.

@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "description": "Deterministic Nexsim-oriented realistic SystemVerilog corpus for preprocess/parse_full budget and integration hardening.",
+  "cases": [
+    {
+      "name": "module_ports_assign",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_ports_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "two_module_named_port_instantiation",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/two_module_named_port_instantiation.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "package_qualified_vector_type",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_qualified_vector_type.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "interface_with_modport",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/interface_with_modport.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "always_ff_sequential_block",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/always_ff_sequential_block.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": false
+    },
+    {
+      "name": "generate_for_array_assign",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/generate_for_array_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": false
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-p-semantic-steering-modes-closure)
+Last updated: 2026-03-06 (+0100, task: phase-p-nexsim-realistic-corpus-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -165,6 +165,21 @@ Use this file to resume work without replaying full chat history.
       - `max_depth=20`
       - `max_repeat=2`
     - deterministic `sv_file` evidence now reaches `100%` parse-full pass ratio (`12/12`) in dual-profile run.
+  - Nexsim realistic-corpus integration stage is now contractized and enabled by default in `sv_stimuli_quality_gate`:
+    - contract section:
+      - `nexsim_realistic_corpus` in `systemverilog_core_v0_contract.json` (`version: 25`),
+    - corpus manifest + fixtures:
+      - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+      - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/*.sv`,
+    - runtime controls:
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=auto|0|1`
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS`
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES`,
+    - deterministic artifact:
+      - `rust/target/sv_stimuli_quality_gate/work/systemverilog_nexsim_realistic_corpus_report.json`,
+    - expectation policy:
+      - `expect_parse_full_pass=true` => required pass,
+      - `expect_parse_full_pass=false` => fail accepted, pass counted as improvement signal.
 
 ### 2026-03-06: Broadened ceiling parse-full promotion evidence density from 3x6 to 4x8
 - Root cause:
@@ -782,6 +797,36 @@ Use this file to resume work without replaying full chat history.
     - `sv_parseable_file` pass (`parse_full_pass_ratio_percent=100`, `4/4`),
     - `sv_snippet` pass with expected parse-full ineligible path,
     - `sv_semantic_file` pass (`semantic_baseline_passes=4/4`) with deterministic semantic suites passing.
+
+### 2026-03-06: Closed Phase P Nexsim differential/integration hardening with realistic-corpus budget stage
+- Root cause:
+  - the remaining Phase P open item required deterministic performance/parseability evidence on curated realistic SV fixtures, not only generated random stimuli.
+- Fix:
+  - updated `sv_stimuli_quality_gate.sh` with contractized realistic-corpus stage:
+    - mode/path controls:
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE`
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS`
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES`
+    - per-case budget enforcement:
+      - preprocess ms, parse-full ms, sample bytes, preprocessed bytes,
+      - optional hard-fail on preprocess errors.
+  - promoted `systemverilog_core_v0_contract.json` to `version: 25` and added `nexsim_realistic_corpus` section.
+  - added deterministic corpus manifest + fixtures:
+    - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/*.sv`
+  - added dedicated artifact:
+    - `systemverilog_nexsim_realistic_corpus_report.json`.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - `jq empty` passed for both updated contract and corpus manifest JSONs.
+  - deterministic gate run passed:
+    - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - realistic-corpus telemetry:
+      - `cases_declared=6`
+      - `cases_executed=12` (dual profile)
+      - `observed_parse_pass_total=8`
+      - `observed_parse_fail_total=4`
+      - `preprocess_error_total=0`.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
@@ -2514,19 +2559,16 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Add differential and integration hardening for Nexsim (remaining Phase P open item):
-   - continue mismatch-taxonomy and integration contract hardening under required strict gates,
-   - continue performance/memory budget hardening on broader realistic SV corpora.
-2. Expand contractized SV/VHDL corpora:
+1. Expand contractized SV/VHDL corpora:
    - SV preprocess-heavy deterministic semantic suite increment is done (`version: 2` across enforced SV semantic suites),
    - next corpus increment should target VHDL deterministic semantic/parseability families and additional SV parse-full-improving families.
-3. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
+2. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-4. Close roadmap operational policy tail:
+3. Close roadmap operational policy tail:
    - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
-5. Continue Rust-native EBNF migration hardening:
+4. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-6. Keep roadmap + UG + memory synced after every gate/contract increment.
+5. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

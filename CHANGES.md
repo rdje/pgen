@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-03-06 - Phase P Nexsim Integration Closure: Realistic SV Corpus Budgets in `sv_stimuli_quality_gate` (Contract v25)
+### ✅ Achievement Summary
+Closed the remaining Phase P Nexsim differential/integration hardening item by adding a deterministic realistic-corpus budget stage to `sv_stimuli_quality_gate` with contractized thresholds, curated SV fixtures, and explicit report telemetry.
+
+### Scope of Changes
+- Gate/runtime hardening:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+    - added `nexsim_realistic_corpus` stage with controls:
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=auto|0|1`
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS`
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES`
+    - added contract-driven per-case budget enforcement for:
+      - preprocess latency,
+      - parse-full latency,
+      - input/preprocessed size,
+      - optional no-preprocess-errors policy.
+    - emits deterministic report artifact:
+      - `systemverilog_nexsim_realistic_corpus_report.json`.
+- Contract update:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+    - `version: 25` (from `24`)
+    - added `nexsim_realistic_corpus` section with enforce/path/threshold policy.
+- New curated realistic corpus:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/*.sv`
+    - mix of currently-supported parse-full families and known unsupported-but-realistic constructs (`always_ff`, `generate`) as expected-fail minimums.
+- Docs/roadmap sync:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - marked Phase P Nexsim differential/integration hardening item complete.
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` ✅
+- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - realistic corpus stage telemetry:
+    - `realistic_corpus_cases_declared=6`
+    - `realistic_corpus_cases_executed=12` (dual-profile)
+    - `realistic_corpus_observed_parse_pass_total=8`
+    - `realistic_corpus_observed_parse_fail_total=4`
+    - `realistic_corpus_preprocess_error_total=0`.
+
 ## 2026-03-06 - Phase P Semantic-Steering Modes Closure: Header/Parameter Priority Steering + Cross-Mode Validation
 ### ✅ Achievement Summary
 Closed the remaining Phase P SV semantic-steering modes item by extending grammar-level branch-priority steering on module header/parameter rules and validating deterministic behavior across `sv_file`, `sv_parseable_file`, `sv_snippet`, and `sv_semantic_file`.

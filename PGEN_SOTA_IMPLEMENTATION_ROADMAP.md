@@ -732,7 +732,7 @@ Toolbox baseline to leverage end-to-end:
     - gap text report.
     summary now reports `closed_loop_initial_replay_determinism_passes`.
   - Progress (2026-02-27): aligned sample-stage order in gate implementation to `preprocess -> parse_full(optional) -> semantic_validate_baseline` so runtime sequencing matches contract intent while preserving strict parse-full immediate-fail semantics.
-- [ ] Add differential and integration hardening for Nexsim:
+- [x] Add differential and integration hardening for Nexsim:
   - mismatch taxonomy against trusted references,
   - performance/memory budgets on realistic SV corpora,
   - embedding contract checks for Nexsim parser API usage.
@@ -747,6 +747,16 @@ Toolbox baseline to leverage end-to-end:
     - deterministic report artifact: `systemverilog_performance_report.json`,
     - strict budget enforcement now fails on threshold breaches while preserving parse-full optional-mode behavior.
   - Progress (2026-02-27): added executable `make nexsim_parser_embedding_contract_gate` (`rust/scripts/nexsim_parser_embedding_contract_gate.sh`) and wired it into `embedding_api_gate` so parser-profile contract checks are continuously enforced in both bootstrap and `generated_parsers` modes.
+  - Progress (2026-03-06): added deterministic realistic-corpus budget/integration stage to `sv_stimuli_quality_gate` and closed the remaining Nexsim hardening gap:
+    - added contractized `nexsim_realistic_corpus` section in `systemverilog_core_v0_contract.json` (`version: 25`) with:
+      - corpus path, modeable enforcement, preprocess/parse timing budgets, sample-size budgets, and preprocess-error policy,
+    - added deterministic curated corpus manifest + fixtures:
+      - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+      - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/*.sv`,
+      - corpus includes both currently-supported parse-full families and known unsupported-but-realistic constructs (`always_ff`, `generate`) as expected-fail minimums (passes on these are tracked as improvement signals, not failures),
+    - `sv_stimuli_quality_gate` now emits dedicated realistic-corpus report artifact:
+      - `rust/target/sv_stimuli_quality_gate/work/systemverilog_nexsim_realistic_corpus_report.json`,
+      - plus summary/perf-report telemetry for realistic corpus totals, timing, and size metrics.
 - [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
   - deterministic error/diagnostic schema for host integration,
@@ -981,6 +991,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Marked Phase P Nexsim differential/integration hardening item complete after adding `sv_stimuli_quality_gate` realistic-corpus budget stage (`nexsim_realistic_corpus`, contract `v25`) with deterministic corpus fixtures and dedicated report telemetry.
 - 2026-03-06: Marked Phase P SV semantic-steering mode item complete after adding explicit grammar steering on `module_header_ports` and parameter-port rules and validating `sv_file`, `sv_parseable_file`, `sv_snippet`, and `sv_semantic_file` mode behavior under deterministic `sv_stimuli_quality_gate` runs.
 - 2026-03-06: Marked Phase P semantic-closure profile/validator item complete after fixing declared-before-use false positives on `type` parameter declarations and revalidating semantic-closure deterministic run green (`semantic_baseline_passes=4/4`, semantic suites all pass).
 - 2026-03-06: Expanded declared-identifier deterministic semantic suite to `version: 3` with indexed-assignment pass/fail cases and hardened `sv_stimuli_quality_gate` declared-before-use checker to detect undeclared indexed-LHS identifiers (`arr[idx] = ...`) while preserving green closed-loop validation.
