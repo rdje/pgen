@@ -244,7 +244,7 @@ Toolbox baseline to leverage end-to-end:
     - unresolved rule references capped (`max_unresolved_rule_references=0`),
     - entry rule and rule-name uniqueness invariants,
     - reachable/unreachable rule/branch thresholds from deterministic gap summary.
-- [ ] Build semantic-closure profile and validator pass for generated SV stimuli:
+- [x] Build semantic-closure profile and validator pass for generated SV stimuli:
   - declaration-before-use,
   - scope/package import resolution,
   - port binding legality,
@@ -357,6 +357,11 @@ Toolbox baseline to leverage end-to-end:
     - `sv_semantic_file` now enables `require_declared_identifiers_before_use=true`,
     - added `require_declared_identifiers_parseable_only=true` for semantic-closure runs to skip declaration-before-use runtime checks when `parse_full` is not `pass`,
     - `sv_stimuli_quality_gate` semantic baseline now consumes parse status when evaluating declaration-before-use checks to avoid parseability-driven false positives.
+  - Progress (2026-03-06): closed a semantic-closure false-positive class and revalidated generated-sample semantic pass behavior:
+    - hardened `check_declared_identifiers_before_use` to treat `type <id>=...` parameter identifiers as declarations (fixes indexed use false positives such as `type RC9Zb=string` being misclassified as undeclared assignment-use),
+    - deterministic semantic-closure run remained green for semantic baseline (`semantic_baseline_passes=4/4`) with all deterministic semantic suites passing (`declared_identifier=16/16`, `width=10/10`, `port_binding=10/10`, `package_qualification=10/10`, `context_legality=10/10`) under:
+      - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1`
+      - `PGEN_SV_STIMULI_QUALITY_COUNT=2`.
   - Progress (2026-03-01): added parse-full acceptance telemetry/threshold controls (`systemverilog_core_v0_contract.json` v21) in `sv_stimuli_quality_gate`:
     - new contract surface:
       - `parse_full_quality.enforce_min_pass_ratio`
@@ -967,6 +972,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Marked Phase P semantic-closure profile/validator item complete after fixing declared-before-use false positives on `type` parameter declarations and revalidating semantic-closure deterministic run green (`semantic_baseline_passes=4/4`, semantic suites all pass).
 - 2026-03-06: Expanded declared-identifier deterministic semantic suite to `version: 3` with indexed-assignment pass/fail cases and hardened `sv_stimuli_quality_gate` declared-before-use checker to detect undeclared indexed-LHS identifiers (`arr[idx] = ...`) while preserving green closed-loop validation.
 - 2026-03-06: Added configurable SV parse-full promotion seed-stride control (`..._SEED_STRIDE`) across standalone + aggregate paths, promoted tracked aggregate default to `250000`, and validated sustained target-`100` convergence under `4x8` trials.
 - 2026-03-06: Promoted `systemverilog_core_v0` default closed-loop density to `8/8` (`version: 24`, `sample_count=8`, `closed_loop.replay_sample_count=8`) and validated strict min-`100` parse-full ceiling behavior (`16/16`) plus sustained `4x8` promotion convergence at target `100`.

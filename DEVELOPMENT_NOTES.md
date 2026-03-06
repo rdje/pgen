@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase P Semantic-Closure Hardening: Recognize `type` Parameter Declarations in Declared-Before-Use Checker
+### Context
+Semantic-closure mode (`sv_semantic_file`) exposed a declaration-before-use false positive on generated samples where module parameter lists contained `type` declarations (for example `type RC9Zb=string`). The checker parsed `RC9Zb=...` as assignment-use and flagged it undeclared.
+
+### Implementation
+Primary file:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+
+Change:
+- In `check_declared_identifiers_before_use`:
+  - added declaration capture for type parameters:
+    - regex shape: `type <identifier> ( = | , | ) | ; )`
+  - this ensures `type`-declared identifiers are recorded in `%declared` before use-site scans process assignment-like forms.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh` (passed).
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` (passed).
+
+Observed:
+- semantic closure run in `sv_semantic_file` mode stayed green:
+  - `semantic_baseline_passes=4/4`.
+- deterministic semantic suites stayed green:
+  - declared identifier `16/16`,
+  - width `10/10`,
+  - port binding `10/10`,
+  - package qualification `10/10`,
+  - context legality `10/10`.
+
+### Notes
+- This removes a concrete false-positive class while preserving strict undeclared-use detection on true violations.
+- Phase P semantic-closure roadmap checklist item is now marked complete based on executable deterministic evidence.
+
 ## 2026-03-06 - Phase P Declared-Identifier Suite v3 + Indexed-LHS Undeclared Detection Fix
 ### Context
 To broaden Phase P deterministic semantic-corpus coverage, we added indexed-assignment declared/undeclared cases. The first run exposed a checker gap: undeclared index identifiers on assignment LHS were not treated as uses (for example `arr[idx] = 1'b0` passed unexpectedly).

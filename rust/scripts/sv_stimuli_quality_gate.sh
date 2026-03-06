@@ -289,6 +289,9 @@ check_declared_identifiers_before_use() {
             while ($text =~ /\bimport\s+([A-Za-z_][A-Za-z0-9_]*)::(?:\*|[A-Za-z_][A-Za-z0-9_]*)/g) {
                 $declared{$1} = 1;
             }
+            while ($text =~ /\btype\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=|[,;)])/g) {
+                $declared{$1} = 1;
+            }
             while ($text =~ /\b(?:input|output|inout|ref|var|logic|reg|wire|bit|byte|shortint|int|integer|longint|string|chandle|event|time|realtime)\b(?:\s+(?:signed|unsigned))?(?:\s*\[[^\]]+\])?\s+([^;]+)/g) {
                 my $tail = $1;
                 while ($tail =~ /\b([A-Za-z_][A-Za-z0-9_]*)\b/g) {

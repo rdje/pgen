@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-p-declared-identifier-indexed-lhs-contract-hardening)
+Last updated: 2026-03-06 (+0100, task: phase-p-semantic-closure-type-parameter-fp-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `86910f3` (`Add configurable seed-stride control to SV parse-full promotion trials.`).
+- Latest commit: `fb2884f` (`Expand SV declared-identifier suite and fix indexed-LHS undeclared detection.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -741,12 +741,26 @@ Use this file to resume work without replaying full chat history.
   - syntax checks passed for `sv_parse_full_ratio_promotion_gate.sh` and `sota_exit_gate.sh`.
   - promotion gate passed at default and target ceiling (`100`) with `trials=4`, `count=8`, observed ratio `100/100/100`.
 
+### 2026-03-06: Closed semantic-closure false positives for `type` parameter declarations
+- Root cause:
+  - semantic-closure mode run (`sv_semantic_file`) surfaced undeclared-use false positives when `type` parameter declarations (for example `type RC9Zb=string`) were parsed as assignment-use tokens.
+- Fix:
+  - hardened `check_declared_identifiers_before_use` in `sv_stimuli_quality_gate.sh` to register `type` parameter identifiers as declared symbols before use-site scans.
+  - roadmap sync:
+    - Phase P item `Build semantic-closure profile and validator pass for generated SV stimuli` marked complete.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - semantic-closure deterministic run passed:
+    - `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+    - `semantic_baseline_passes=4/4`, semantic suites all pass (`declared_identifier=16/16`, `width=10/10`, `port_binding=10/10`, `package_qualification=10/10`, `context_legality=10/10`).
+
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `254`
+- Commit count at last refresh (before current uncommitted changes): `255`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- fb2884f Expand SV declared-identifier suite and fix indexed-LHS undeclared detection.
 - 86910f3 Add configurable seed-stride control to SV parse-full promotion trials.
 - f32eb49 Promote SV closed-loop contract defaults from 6/6 to 8/8 (v24)
 - 9b88ff4 Increase SV parse-full promotion evidence density from 3x6 to 4x8
@@ -2471,20 +2485,22 @@ Use this file to resume work without replaying full chat history.
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
 ## Next Likely Tasks (Priority)
-1. Continue Phase P semantic-closure implementation for SV:
-   - runtime declaration-before-use is enabled and parse-full quality thresholding is aggregate-policy enforced (`enforce=1`, `min=100`),
-   - promotion evidence at target `100` now includes denser deterministic shape (`trial_passed=4/4` at `count=8`, observed ratio `100/100/100`) and contract-default `8/8` closed-loop stress, so next work should broaden seed-space/corpus families while preserving semantic-suite closure.
-2. Add annotation-driven SV stimuli steering:
+1. Add annotation-driven SV stimuli steering:
    - initial baseline + rule-level expansion are in place, parseable-subset mode (`sv_parseable_file`) is contractized with `100%` parse-full, and `sv_file` deterministic run is now also at `100%` for current trial shape,
    - next increment should broaden trial shapes/corpus stress (counts/seeds/contracts) while preserving `sv_file` parse-full stability and semantic-suite closure.
+2. Add differential and integration hardening for Nexsim (remaining Phase P open item):
+   - continue mismatch-taxonomy and integration contract hardening under required strict gates,
+   - continue performance/memory budget hardening on broader realistic SV corpora.
 3. Expand contractized SV/VHDL corpora:
    - SV preprocess-heavy deterministic semantic suite increment is done (`version: 2` across enforced SV semantic suites),
    - next corpus increment should target VHDL deterministic semantic/parseability families and additional SV parse-full-improving families.
 4. Promote VHDL aggregate mode from informational to strict-required when stability criteria are met:
    - keep `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0` until deterministic pass rate is proven across broader corpus.
-5. Continue Rust-native EBNF migration hardening:
+5. Close roadmap operational policy tail:
+   - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
+6. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-6. Keep roadmap + UG + memory synced after every gate/contract increment.
+7. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

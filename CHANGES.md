@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-06 - Phase P Semantic-Closure Milestone: Fix Declared-Before-Use `type` Parameter False Positives
+### ✅ Achievement Summary
+Closed a semantic-closure false-positive class in SV generated-sample validation by treating `type` parameter identifiers as declarations in the declared-before-use checker, and revalidated semantic-closure mode end-to-end.
+
+### Scope of Changes
+- Semantic checker hardening:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+    - `check_declared_identifiers_before_use` now registers `type <id>=...` style parameter declarations as declared symbols.
+- Roadmap/doc synchronization:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - marked Phase P item `Build semantic-closure profile and validator pass for generated SV stimuli` as complete.
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+    - documented `type` parameter declaration handling in declared-identifier semantic precheck behavior.
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - semantic closure status:
+    - `semantic_baseline_passes=4/4`
+    - deterministic semantic suites all pass:
+      - `declared_identifier=16/16`
+      - `width=10/10`
+      - `port_binding=10/10`
+      - `package_qualification=10/10`
+      - `context_legality=10/10`.
+
 ## 2026-03-06 - Phase P Semantic Suite Expansion: Declared-Identifier Indexed-LHS Coverage + Checker Hardening
 ### ✅ Achievement Summary
 Expanded the deterministic declared-identifier SV semantic suite and hardened the suite checker so undeclared identifiers in indexed LHS assignment targets are now caught (`arr[idx] = ...`).
