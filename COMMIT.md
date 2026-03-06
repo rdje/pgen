@@ -1,6 +1,6 @@
 # COMMIT.md
 
-Last updated: 2026-02-28
+Last updated: 2026-03-06
 
 ## Purpose
 Define the exact commit workflow for this project so a new AI instance can apply it consistently without re-reading chat history.
@@ -9,6 +9,9 @@ Define the exact commit workflow for this project so a new AI instance can apply
 Run this workflow after each completed task/activity.
 
 ## Files Involved
+- `README.md` (tracked)
+  - Single project entrypoint and navigation hub.
+  - Must be updated whenever objective, canonical flow, key paths, standard commands, or doc map changes.
 - `git_message_brief.txt` (must remain untracked)
   - Short, concise commit message file.
   - Used with `git commit -F git_message_brief.txt`.
@@ -30,7 +33,12 @@ Run this workflow after each completed task/activity.
    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
    - strict source lint must pass.
    - generated-parser lint runs too; set `PGEN_CLIPPY_GENERATED_STRICT=1` to fail on generated clippy debt.
-3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, others touched by task).
+3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `README.md`, others touched by task).
+   - `README.md` sync is required when:
+     - project objective/scope changes,
+     - canonical generation flow changes,
+     - key project paths or standard commands change,
+     - markdown documentation map/ramp-up order changes.
 4. Write concise commit message to `git_message_brief.txt`.
 5. Stage only intended tracked files (`git add <files>`).
 6. Commit with:

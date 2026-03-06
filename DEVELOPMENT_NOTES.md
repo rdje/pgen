@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Workflow Policy: README Synchronization Is Now Mandatory
+### Context
+README was promoted to the project single entrypoint, but synchronization expectations were implicit. We needed explicit, durable policy text so future sessions consistently keep README aligned.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/COMMIT.md`
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+Policy changes:
+- `COMMIT.md` now includes `README.md` in workflow-involved files and requires README review/update when:
+  - objective/scope changes,
+  - canonical generation flow changes,
+  - key paths or standard commands change,
+  - markdown onboarding/document-map changes.
+- `MEMORY.md` binding workflow rules now explicitly require README synchronization under the same trigger conditions.
+
+### Validation
+- Policy docs are aligned and now encode README maintenance as a required part of normal task/commit closure.
+
 ## 2026-03-06 - Phase O VHDL Corpus Hardening: Expanded Realistic-Corpus Coverage (8 pass / 6 fail)
 ### Context
 After adding the initial realistic-corpus stage, the next roadmap priority was to broaden deterministic VHDL corpus evidence so strict-promotion decisions are based on richer legal/illegal families rather than a small six-case seed.

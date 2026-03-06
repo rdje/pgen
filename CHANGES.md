@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-06 - Workflow Hardening: Enforce README Synchronization as Commit-Flow Requirement
+### ✅ Achievement Summary
+Made `README.md` synchronization an explicit binding workflow rule so README remains the single, up-to-date entrypoint whenever project objective/flow/path/command/doc-map changes.
+
+### Scope of Changes
+- `/Users/richarddje/Documents/github/pgen/COMMIT.md`
+  - added `README.md` to workflow-involved files,
+  - added explicit README-sync trigger criteria under required commit workflow.
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+  - added README synchronization requirement under binding workflow rules.
+- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
+- `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+
+### Validation Results
+- Policy documents now require README sync checks as part of normal task completion and commit workflow.
+
 ## 2026-03-06 - Phase O VHDL Corpus Hardening: Realistic-Corpus Expansion to 14 Deterministic Cases
 ### ✅ Achievement Summary
 Expanded the deterministic VHDL realistic corpus from 6 to 14 contractized cases (8 expected-pass, 6 expected-fail) to improve objective parser-readiness evidence for eventual strict aggregate promotion.

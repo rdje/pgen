@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-o-vhdl-realistic-corpus-depth-v2)
+Last updated: 2026-03-06 (+0100, task: workflow-readme-sync-policy-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `3bdc5cb` (`Phase O: add deterministic VHDL realistic-corpus quality stage (contract v2)`).
+- Latest commit: `714231a` (`Promote README as canonical PGEN project entrypoint`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -830,10 +830,12 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `259`
+- Commit count at last refresh (before current uncommitted changes): `261`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 714231a Promote README as canonical PGEN project entrypoint
+- 4a3867c Expand VHDL realistic corpus to 14 deterministic cases (v2 manifest)
 - 3bdc5cb Phase O: add deterministic VHDL realistic-corpus quality stage (contract v2)
 - c84e0d2 Close Phase P Nexsim integration hardening with realistic-corpus budgets
 - f2093c7 Close Phase P SV semantic-steering mode item with header/parameter priority steering
@@ -1048,6 +1050,11 @@ Use this file to resume work without replaying full chat history.
   - current snapshot values,
   - recent work summary,
   - session git history block (`origin/main..HEAD` hash/message list).
+- `README.md` is the single project entrypoint and must be updated whenever necessary:
+  - objective/scope changes,
+  - canonical EBNF->JSON->parser/stimuli flow changes,
+  - key project paths or standard gate commands change,
+  - markdown onboarding/ramp-up map changes.
 - `questions_keep_untracked.txt` must remain untracked.
 - Generated artifacts under `generated/` are not authoritative state and may be overwritten/regenerated.
 - `--bootstrap-mode` is reserved for generating:
@@ -1056,6 +1063,19 @@ Use this file to resume work without replaying full chat history.
 - For other grammars (`json`, `regex`, `ebnf`, generic `foolang`), use non-bootstrap path.
 
 ## Recent Work Summaries (Root Cause -> Fix -> Validation)
+
+### 2026-03-06: Enforced README synchronization as a binding workflow rule
+- Root cause:
+  - README had been promoted to the single entrypoint but sync behavior was not yet explicitly enforced in operational workflow contracts.
+- Fix:
+  - updated `COMMIT.md`:
+    - added `README.md` to required workflow files,
+    - added explicit README-sync trigger criteria (objective/flow/path/command/doc-map changes),
+    - updated required workflow step to include README review/update as needed.
+  - updated `MEMORY.md` binding rules:
+    - README synchronization is now an explicit non-optional workflow requirement.
+- Validation:
+  - policy documents updated and aligned; subsequent tasks will require README sync checks during commit workflow.
 
 ### 2026-03-06: Expanded VHDL realistic corpus depth from 6 to 14 deterministic cases
 - Root cause:
