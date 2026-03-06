@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-p-contract-density-promotion-6x6-to-8x8)
+Last updated: 2026-03-06 (+0100, task: phase-p-seed-space-hardening-promotion-seed-stride)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `9b88ff4` (`Increase SV parse-full promotion evidence density from 3x6 to 4x8`).
+- Latest commit: `f32eb49` (`Promote SV closed-loop contract defaults from 6/6 to 8/8 (v24)`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -35,6 +35,7 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE=12001`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=250000`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE=auto`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE=0`
     - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE=sv_file`
@@ -710,12 +711,28 @@ Use this file to resume work without replaying full chat history.
 - Result:
   - Steering coverage is materially broader while preserving deterministic gate stability; parse-full debt remains an open closure target.
 
+### 2026-03-06: Added policy-driven seed-stride hardening for SV parse-full promotion trials
+- Root cause:
+  - promotion trials used a fixed hardcoded seed stride, so seed-space broadening was implicit and not policy-controlled.
+- Fix:
+  - added `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE` in standalone promotion gate.
+  - added aggregate policy/runtime controls:
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE`
+    - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE`
+  - set tracked policy default:
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=250000`
+  - surfaced `seed_stride` in standalone and aggregate telemetry.
+- Validation:
+  - syntax checks passed for `sv_parse_full_ratio_promotion_gate.sh` and `sota_exit_gate.sh`.
+  - promotion gate passed at default and target ceiling (`100`) with `trials=4`, `count=8`, observed ratio `100/100/100`.
+
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `252`
+- Commit count at last refresh (before current uncommitted changes): `253`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- f32eb49 Promote SV closed-loop contract defaults from 6/6 to 8/8 (v24)
 - 9b88ff4 Increase SV parse-full promotion evidence density from 3x6 to 4x8
 - 9de2614 Ratchet aggregate SV parse-full policy floor from 95 to 100
 - 971f7b9 Ratchet aggregate SV parse-full policy floor from 90 to 95

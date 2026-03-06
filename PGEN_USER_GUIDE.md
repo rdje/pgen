@@ -2267,6 +2267,7 @@ Aggregate gate tuning:
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` (integer `>=1`, default from policy file; aggregate promotion trial count)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_COUNT` (integer `>=1`, default from policy file; per-trial sample count for aggregate promotion runs)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` (integer `>=0`, default from policy file; aggregate promotion deterministic seed base)
+- `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE` (integer `>=1`, default from policy file; per-trial seed-base stride for aggregate promotion runs)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default from policy file; parse-full mode forwarded to promotion trials)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default from policy file; semantic-closure mode forwarded to promotion trials)
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to promotion trials)
@@ -2490,9 +2491,10 @@ Optional SV stimuli quality-gate tuning:
   - `auto`: run strict-ratio trials and emit recommendation without failing on ineligible outcomes.
   - `0`: skip parse-full ratio promotion gate.
   - `1`: strict promotion mode (fails when threshold-ratchet eligibility is not met).
-- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` (default `3`)
-- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT` (default `6`, sample count per trial)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` (default `4`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT` (default `8`, sample count per trial)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE` (default `12001`)
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE` (default `250000`, per-trial seed-base offset)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE` (`0`/`1`, default `0`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)

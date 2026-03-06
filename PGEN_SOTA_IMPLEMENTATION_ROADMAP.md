@@ -545,6 +545,13 @@ Toolbox baseline to leverage end-to-end:
       - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4`
       - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8`
     - denser promotion run at target `100` converged (`trial_passed=4/4`, recommendation `raise_min_parse_full_pass_ratio`, observed ratio `100/100/100`).
+  - Progress (2026-03-06): added seed-space stride control for promotion trials and promoted broader trial spacing:
+    - standalone/aggregate wiring now supports:
+      - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE` (standalone),
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE` (aggregate policy/runtime),
+    - tracked policy default now sets:
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=250000`,
+    - validation at target `100` remained green with `4x8` trial shape and widened seed spacing (`trial_passed=4/4`, observed ratio `100/100/100`).
   - Progress (2026-03-01): added dedicated parse-full ratio promotion-trial gate (`sv_parse_full_ratio_promotion_gate`) and wired it into aggregate SOTA policy in informational-first mode:
     - gate runs deterministic strict `sv_stimuli_quality_gate` trial matrix at configurable target threshold and emits:
       - `rust/target/sv_parse_full_ratio_promotion_gate/work/systemverilog_parse_full_ratio_promotion_report.json`
@@ -956,6 +963,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Added configurable SV parse-full promotion seed-stride control (`..._SEED_STRIDE`) across standalone + aggregate paths, promoted tracked aggregate default to `250000`, and validated sustained target-`100` convergence under `4x8` trials.
 - 2026-03-06: Promoted `systemverilog_core_v0` default closed-loop density to `8/8` (`version: 24`, `sample_count=8`, `closed_loop.replay_sample_count=8`) and validated strict min-`100` parse-full ceiling behavior (`16/16`) plus sustained `4x8` promotion convergence at target `100`.
 - 2026-03-06: Increased aggregate SV parse-full promotion trial evidence density from `3x6` to `4x8` (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=4`, `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=8`) and validated sustained ceiling convergence at target `100` (`trial_passed=4/4`, observed ratio `100/100/100`).
 - 2026-03-06: Ratcheted aggregate required SV parse-full minimum from `95` to `100` (`PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=100`) after strict deterministic validation at min `100` (`parse_full_pass_ratio_percent=100`, `12/12`), with promotion target held at ceiling (`PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100`) and sustained green informational evidence (`trial_passed=3/3`, observed ratio `100/100/100`).

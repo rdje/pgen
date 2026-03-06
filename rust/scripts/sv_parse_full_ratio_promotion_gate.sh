@@ -11,9 +11,10 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 PROMOTION_REPORT_JSON="$WORK_DIR/systemverilog_parse_full_ratio_promotion_report.json"
 
 PROMOTION_MODE="${PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE:-auto}" # auto|0|1
-TRIALS="${PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS:-3}"
-SAMPLE_COUNT="${PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT:-6}"
+TRIALS="${PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS:-4}"
+SAMPLE_COUNT="${PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT:-8}"
 SEED_BASE="${PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE:-12001}"
+SEED_STRIDE="${PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE:-250000}"
 PARSE_FULL_MODE="${PGEN_SV_PARSE_FULL_RATIO_PROMOTION_PARSE_FULL_MODE:-auto}" # auto|0|1
 # Default to aggregate-profile alignment (sv_file, semantic closure off) so ratchet evidence
 # measures the same parse-full policy surface that sota_exit_gate enforces by default.
@@ -35,6 +36,10 @@ if ! [[ "$SAMPLE_COUNT" =~ ^[0-9]+$ ]] || [[ "$SAMPLE_COUNT" -lt 1 ]]; then
 fi
 if ! [[ "$SEED_BASE" =~ ^[0-9]+$ ]]; then
     echo "error: PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_BASE must be an integer >= 0" >&2
+    exit 2
+fi
+if ! [[ "$SEED_STRIDE" =~ ^[0-9]+$ ]] || [[ "$SEED_STRIDE" -lt 1 ]]; then
+    echo "error: PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE must be an integer >= 1" >&2
     exit 2
 fi
 if [[ "$PARSE_FULL_MODE" != "auto" && "$PARSE_FULL_MODE" != "0" && "$PARSE_FULL_MODE" != "1" ]]; then
@@ -62,6 +67,7 @@ echo "promotion_mode: $PROMOTION_MODE"
 echo "trials: $TRIALS"
 echo "sample_count: $SAMPLE_COUNT"
 echo "seed_base: $SEED_BASE"
+echo "seed_stride: $SEED_STRIDE"
 echo "parse_full_mode: $PARSE_FULL_MODE"
 echo "semantic_closure_mode: $SEMANTIC_CLOSURE_MODE"
 echo "promotion_stimuli_mode: $PROMOTION_STIMULI_MODE"
@@ -157,7 +163,7 @@ ratio_min=101
 ratio_max=0
 
 for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
-    trial_seed_base=$((SEED_BASE + (trial_idx * 100000)))
+    trial_seed_base=$((SEED_BASE + (trial_idx * SEED_STRIDE)))
     trial_state_dir="$WORK_DIR/trial_${trial_idx}"
     trial_log="$LOG_DIR/trial_${trial_idx}.log"
     mkdir -p "$trial_state_dir"
@@ -313,6 +319,8 @@ jq -n \
     --argjson target_min_ratio "$TARGET_MIN_RATIO" \
     --argjson trials "$TRIALS" \
     --argjson sample_count "$SAMPLE_COUNT" \
+    --argjson seed_base "$SEED_BASE" \
+    --argjson seed_stride "$SEED_STRIDE" \
     --argjson eligible "$eligible_for_ratio_promotion" \
     --argjson trial_passed "$trial_passed" \
     --argjson trial_failed "$trial_failed" \
@@ -340,6 +348,8 @@ jq -n \
         totals: {
             trials: $trials,
             sample_count_per_trial: $sample_count,
+            seed_base: $seed_base,
+            seed_stride: $seed_stride,
             trial_passed: $trial_passed,
             trial_failed: $trial_failed,
             trial_gate_failures: $trial_gate_failures,
@@ -365,6 +375,8 @@ jq -n \
     echo "note: $promotion_note"
     echo "eligible_for_ratio_promotion: $eligible_for_ratio_promotion"
     echo "target_min_ratio: $TARGET_MIN_RATIO"
+    echo "seed_base: $SEED_BASE"
+    echo "seed_stride: $SEED_STRIDE"
     echo "trial_passed: $trial_passed"
     echo "trial_failed: $trial_failed"
     echo "trial_gate_failures: $trial_gate_failures"

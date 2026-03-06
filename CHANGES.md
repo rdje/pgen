@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-06 - Phase P Seed-Space Hardening: Configurable Promotion Seed Stride + Aggregate Wiring
+### ✅ Achievement Summary
+Added explicit per-trial seed-stride control to SV parse-full promotion and wired it through aggregate policy/runtime surfaces, then validated deterministic convergence at both default and ceiling targets.
+
+### Scope of Changes
+- Promotion gate control surface:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+    - added `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE` (`>=1`) and report/summary surfacing.
+    - trial seed selection now uses `seed_base + trial_idx * seed_stride` (no hardcoded stride).
+    - aligned standalone defaults to current ceiling evidence profile:
+      - `TRIALS=4` (was `3`)
+      - `COUNT=8` (was `6`)
+      - `SEED_STRIDE=250000` (new).
+- Aggregate policy/runtime forwarding:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+    - added policy/runtime variables:
+      - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE`
+      - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE`
+    - added validation (`integer >=1`), effective config output, and forwarding into promotion-stage invocations.
+- Tracked policy default:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=250000`.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - default run shows `seed_stride: 250000` and passes (`trial_passed=4/4`, observed ratio `100/100/100`).
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - ceiling run remains green with widened seed spacing (`trial_passed=4/4`, observed ratio `100/100/100`).
+
 ## 2026-03-06 - Phase P Contract Density Promotion: Make SV Closed-Loop 8/8 the Default (v24)
 ### ✅ Achievement Summary
 Promoted broader SV closed-loop stress from override-only usage to baseline contract behavior by raising `systemverilog_core_v0` default `sample_count` and `closed_loop.replay_sample_count` to `8`, and validated strict parse-full ceiling behavior with the new defaults.

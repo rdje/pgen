@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase P Seed-Space Hardening: Configurable Promotion Seed Stride (`250000`) End-to-End
+### Context
+Promotion trials previously used a hardcoded per-trial seed offset in the standalone gate. To make seed-space broadening explicit and policy-driven, stride needed to become a first-class configurable control in both standalone and aggregate paths.
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+
+Changes:
+- `sv_parse_full_ratio_promotion_gate`:
+  - added `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE` (`>=1`),
+  - replaced fixed trial offset with:
+    - `trial_seed_base = SEED_BASE + trial_idx * SEED_STRIDE`,
+  - surfaced `seed_stride` in console summary and JSON report totals,
+  - aligned standalone defaults to current ceiling evidence shape:
+    - `TRIALS=4`, `COUNT=8`, `SEED_STRIDE=250000`.
+- `sota_exit_gate`:
+  - added policy/runtime pass-through for stride:
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE`
+    - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE`,
+  - added strict validation (`integer >=1`),
+  - printed effective stride in aggregate config output,
+  - forwarded stride to promotion stage in both strict and informational modes.
+- policy file:
+  - set tracked aggregate default:
+    - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=250000`.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - both passed.
+- `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - default run now reports `seed_stride: 250000` and converged with `trial_passed=4/4`, observed ratio `100/100/100`.
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - ceiling run remained green with widened seed spacing (`trial_passed=4/4`, observed ratio `100/100/100`).
+
+### Notes
+- This closes hardcoded trial-seed spacing debt and makes seed-space broadening reproducible, reviewable, and policy-controlled.
+- Next seed-space increment can now be done by policy-only adjustments (stride, seed base, trials/count), without script edits.
+
 ## 2026-03-06 - Phase P Contract Density Promotion: `systemverilog_core_v0` Default 6/6 -> 8/8 (v24)
 ### Context
 Promotion and strict-quality gates had already proven stability under `8`-sample shapes via env overrides. The next step was to make broader stress the default contract baseline rather than a per-run override.
