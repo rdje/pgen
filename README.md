@@ -1,310 +1,156 @@
-# Multi-Language EBNF Parser Generator
+# PGEN
 
-A comprehensive EBNF (Extended Backus-Naur Form) parser generator with multi-language AST transformation pipeline. Converts EBNF grammar specifications into executable parsers across multiple programming languages while preserving semantic and logging annotations.
+PGEN is a production-focused parser and stimuli generator platform.
 
-## 🚀 Quick Start
+## Project Objective
+- Build **state-of-the-art, EBNF-driven parser/stimuli generation** for serious language tooling.
+- Support advanced **return annotations** and **semantic annotations** with contract-grade validation.
+- Deliver parser/stimuli quality via deterministic gates, coverage/gap analysis, and closed-loop replay.
+- Primary near-term integration targets:
+  - **Nexsim** (SystemVerilog + VHDL parsing)
+  - **RGX** (regex parsing)
 
-### End-to-End Parser Generation (Recommended)
-```bash
-# Clone the repository
-git clone https://github.com/rdje/pgen
-cd pgen
+## Canonical Flow
+- `foolang.ebnf -> foolang.json -> foolang.rs`
+- Annotation parsers (`return_annotation_parser`, `semantic_annotation_parser`) are generated with bootstrap mode only.
+- All other grammars use the non-bootstrap path.
 
-# Generate complete parser flows (using Makefile system)
-make return_parser      # Bootstrap + high-performance return annotation parser
-make semantic_parser    # Bootstrap + high-performance semantic annotation parser  
-make regex_tests        # Full regex parser with comprehensive testing
+## Fast Ramp-Up (Read In This Order)
+1. `README.md` (this file)
+2. `QUICKSTART_AI_ONBOARDING.md`
+3. `PGEN_USER_GUIDE.md`
+4. `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+5. `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+6. `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+7. `CHANGES.md`
+8. `DEVELOPMENT_NOTES.md`
+9. `MEMORY.md`
+10. `COMMIT.md`
 
-# Check build status
-make status
+## Key Project Paths
+- `grammars/`: EBNF sources (`*.ebnf`)
+- `generated/`: generated artifacts (regenerable outputs)
+- `rust/src/`: Rust AST pipeline, generators, parser registry, embedding API
+- `rust/scripts/`: executable quality gates and policy runners
+- `rust/test_data/grammar_quality/`: gate contracts, corpora, deterministic case manifests
+- `rust/docs/`: Rust-specific architecture/API/test docs
+- `tools/`: conversion/extraction and support workflows
+- `perl/`: legacy/frontend EBNF-to-JSON path (`ebnf_to_json.pl`) still used in hybrid flow
+- `docs/systemverilog/`: SV LRM conversion workspace
+- `docs/vhdl/`: VHDL LRM conversion workspace
+- `tests/`: test how-to and test guides
 
-# Clean build from scratch
-make clean && make bootstrap-test
-```
+## Standard Commands
+- Aggregate policy gate:
+  - `make -C rust SHELL=/bin/bash sota_exit_gate`
+- SV quality gate:
+  - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- VHDL quality gate:
+  - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+- EBNF dual-run gate:
+  - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
 
-### Manual AST Pipeline (Advanced)
-```bash
-# Generate Raw AST from EBNF (using Perl)
-cd perl
-perl ebnf_to_json.pl ../test_grammars/arithmetic.ebnf raw_ast.json
+## Documentation Structure
+- Project governance and status:
+  - `PROJECT_OVERVIEW.md`, `CURRENT_STATUS.md`, `PGEN_RELEASE_POLICY.md`, `WARP.md`
+- Core contracts and roadmaps:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `SV_GRAMMAR_COVERAGE_MATRIX.md`
+- Operational continuity:
+  - `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `COMMIT.md`
+- User/developer onboarding:
+  - `PGEN_USER_GUIDE.md`, `QUICKSTART_AI_ONBOARDING.md`, `IMPLEMENTATION_GUIDE.md`, `STRESS_TEST_STANDARDIZATION.md`
 
-# Transform Raw AST to final AST (choose your language)
-cd ../rust && cargo run ../raw_ast.json transformed.json
-cd ../julia && julia ast_pipeline.jl ../raw_ast.json transformed.json
-cd ../go && go run ast_pipeline.go ../raw_ast.json transformed.json
-cd ../python && python ast_pipeline.py ../raw_ast.json transformed.json
-```
-
-## 📚 Primary Docs
-- User guide: `PGEN_USER_GUIDE.md`
-- SOTA implementation roadmap: `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- Annotation normative contract: `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-- Stimuli-module normative contract: `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
-
-## 📋 Project Status
-
-### Implementation Status
-|| Language | AST Pipeline | Build System | Testing Level | Status |
-|----------|-------------|-------------|---------------|---------|
-| **Perl**     | ✅ Complete | ✅ Complete | ✅ Better Tested | **Most Reliable** |
-| **Rust**     | ✅ Complete + Both Annotations | ✅ Complete + **Makefile System** | ✅ Full Annotation Testing | **Production Ready** |
-| **Julia**    | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
-| **Go**       | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
-| **Python**   | ✅ Complete | ✅ Complete | ⚠️ Minimal Testing | **Needs Testing** |
-| **Zig**      | ⚠️ Partial  | ❌ Build Issues | ⚠️ Minimal Testing | **In Development** |
-
-### Recent Achievements ✅ (2025-01-07)
-- **Makefile System Validated**: Complete end-to-end parser generation flows working perfectly
-- **Bootstrap System**: Handles circular dependencies flawlessly with convenience aliases
-- **Parser Generation**: All three parsers (return_annotation, semantic_annotation, regex) generate substantial files (202K-382K)
-- **AI Onboarding Guide**: Created comprehensive quick-start guide for future contributors
-
-### Current Issues ⚠️
-- **Test Interface Mismatches**: Comprehensive stress tests fail due to interface expectations vs generated parser reality
-- **Priority Fix Required**: Update test expectations or modify parser generation to align interfaces
-
-**⚠️ Important**: While all implementations are coded, comprehensive stress tests need interface alignment.
-
-## 🏗️ Architecture
-
-### Three-Phase Pipeline
-
-```
-EBNF Grammar → Raw AST JSON → Transformed AST JSON → Parser Code
-     ↓              ↓                  ↓               ↓
-  (Perl)      (Multi-language)   (Multi-language)   (Perl)
-```
-
-### Data Flow
-
-1. **EBNF Input** → `perl/ebnf_to_json.pl` → **Raw AST JSON**
-2. **Raw AST JSON** → Multi-language implementations → **Transformed AST JSON** 
-3. **Transformed AST JSON** → `perl/AST/Transform.pm` → **Parser Code**
-
-### Five-Stage Transformation Pipeline
-
-All language implementations follow the same transformation stages:
-
-1. **Extract Annotations**: Preserve semantic/logging metadata, clean grammar tokens
-2. **Group by OR**: Split rule alternatives on "|" operators
-3. **Handle Parentheses**: Process grouping constructs and nested structures
-4. **Parse Sequences**: Build structured AST nodes from token sequences
-5. **Build Tree**: Assemble final grammar tree with proper node relationships
-
-## 📝 Annotation System
-
-The system supports three types of annotations:
-
-### Semantic Annotations
-```ebnf
-@type: "Expression"
-@range: {min: 0, max: 1000}
-expression := term ('+' term)*
-```
-**Format**: `['semantic_annotation', [<name>, <value>]]`
-**Purpose**: Static metadata about rule semantics
-
-### Logging Annotations  
-```ebnf
-@log: "Processing term"
-@debug: "Captured value", "$1"
-term := factor ('*' factor)*
-```
-**Format**: `['logging_annotation', [<name>, [<arg1>, <arg2>, ...]]]`
-**Purpose**: Dynamic runtime logging during parsing
-
-### Return Annotations
-```ebnf
-@return_scalar: "number"
-number := /(\d+)/
-```
-**Format**: `['return_scalar'|'return_array'|'return_object', <type>]`
-**Purpose**: Specify parser return value transformation
-
-## 🔧 Installation & Usage
-
-### Prerequisites
-- **Perl**: 5.20+, JSON module
-- **Rust**: 1.70+, cargo
-- **Julia**: 1.8+, JSON3 package
-- **Go**: 1.19+
-- **Python**: 3.8+
-- **Zig**: 0.15.1+ (build system needs fixing)
-
-### Build Commands
-
-#### Rust
-```bash
-cd rust
-cargo build
-cargo test
-cargo run input.json output.json
-```
-
-#### Julia
-```bash
-cd julia
-julia -e "using Pkg; Pkg.activate(.); Pkg.instantiate()"
-julia ast_pipeline.jl input.json output.json
-```
-
-#### Go
-```bash
-cd go
-go build ast_pipeline.go
-go test
-./ast_pipeline input.json output.json
-```
-
-#### Python
-```bash
-cd python
-python ast_pipeline.py input.json output.json
-python -m pytest tests/ # (when tests are created)
-```
-
-#### Perl
-```bash
-cd perl
-perl ebnf_to_json.pl input.ebnf output.json
-perl -Mlib=. -MAST::Transform -e "test_suite()" # (existing tests)
-```
-
-## 📊 Example
-
-### Input EBNF
-```ebnf
-@type: "Arithmetic"
-expression := term ('+' term)*
-
-@log: "Processing term"
-term := factor ('*' factor)*
-
-@examples: [42, 123, 999]
-factor := number | '(' expression ')'
-
-number := /(\d+)/
-```
-
-### Output Transformed AST (excerpt)
-```json
-{
-  "grammar_name": "arithmetic",
-  "grammar_tree": {
-    "expression": {
-      "type": "sequence",
-      "elements": [
-        {"type": "atom", "value": ["identifier", "term"]},
-        {
-          "type": "quantified",
-          "element": {
-            "type": "sequence", 
-            "elements": [
-              {"type": "atom", "value": ["operator", "+"]},
-              {"type": "atom", "value": ["identifier", "term"]}
-            ]
-          },
-          "quantifier": "*"
-        }
-      ]
-    }
-  },
-  "metadata": {
-    "annotations": {
-      "semantic_annotations": {
-        "expression": ["type:Arithmetic"],
-        "factor": ["examples:42,123,999"]
-      },
-      "logging_annotations": {
-        "term": ["log(Processing term)"]
-      }
-    }
-  }
-}
-```
-
-## 🧪 Testing Status
-
-### Current State
-- **Perl**: Has validation tests and real-world usage examples
-- **Other Languages**: Basic compilation tests only
-- **Cross-Language**: No systematic compatibility validation
-- **Integration**: Limited end-to-end testing
-
-### Testing Needs
-- [ ] Comprehensive unit tests for all non-Perl implementations
-- [ ] Integration tests with complex grammar files  
-- [ ] Cross-language JSON compatibility validation
-- [ ] Error handling and edge case coverage
-- [ ] Performance benchmarks and scalability testing
-
-## 🗺️ Roadmap
-
-### Phase 1: Stabilization (High Priority)
-- [ ] **Complete Zig implementation** (fix build system issues)
-- [ ] **Create comprehensive test suites** for all languages
-- [ ] **Cross-language validation** (ensure equivalent JSON output)
-- [ ] **Bug discovery and fixing** through systematic testing
-
-### Phase 2: Parser Generation (Medium Priority)  
-- [ ] **Complete parser code generation** (Perl-based)
-- [ ] **Left-recursion elimination** for grammar transformation
-- [ ] **Optimization passes** for generated parser performance
-
-### Phase 3: Advanced Features (Lower Priority)
-- [ ] **Syntactic data generation** from grammar + semantic annotations
-- [ ] **Grammar analysis tools** (validation, conflict detection)
-- [ ] **Performance profiling** and optimization
-
-### Phase 4: Extended Support (Future)
-- [ ] **Additional languages** (C/C++, C#, Java, Swift)
-- [ ] **IDE integration** (Language Server Protocol)
-- [ ] **Web interface** for grammar editing
-- [ ] **Package manager distribution** (cargo, npm, pip)
-
-## 🤝 Contributing
-
-### High-Impact Opportunities
-1. **Testing**: Create comprehensive test suites for non-Perl implementations
-2. **Zig Completion**: Fix build system and complete implementation
-3. **Cross-Language Validation**: Ensure JSON compatibility between languages
-4. **Bug Discovery**: Run systematic tests to find implementation issues
-
-### Getting Started
-1. Read [`IMPLEMENTATION_GUIDE.md`](IMPLEMENTATION_GUIDE.md) for detailed technical guide
-2. Check [`CURRENT_STATUS.md`](CURRENT_STATUS.md) for accurate project status
-3. Review [`PROJECT_OVERVIEW.md`](PROJECT_OVERVIEW.md) for complete technical details
-
-### Development Workflow
-- **Most Reliable**: Use Perl implementation for reference
-- **Testing First**: Create tests before claiming implementations work
-- **Cross-Language**: Validate JSON compatibility between implementations
-- **Documentation**: Update docs for any API changes
-
-## 📚 Documentation
-
-- **[PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)**: Comprehensive end-user guide for EBNF, annotations, stimuli/coverage flows, differential gates, and embedding workflows
-- **[PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md)**: Living normative contract for bootstrap/full annotation syntax + typed validator diagnostics
-- **[QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md)**: **NEW** - Rapid onboarding guide for AI contributors 🚀
-- **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)**: Complete technical architecture
-- **[IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md)**: Developer guide with implementation details  
-- **[CURRENT_STATUS.md](CURRENT_STATUS.md)**: Accurate project status and testing gaps
-- **[docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md](docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md)**: Semantic annotation system analysis
-- **[docs/RUST_AST_SEMANTIC_ANNOTATIONS.md](docs/RUST_AST_SEMANTIC_ANNOTATIONS.md)**: Rust semantic annotation implementation
-- **[docs/](docs/)**: Additional technical documentation
-
-## ⚠️ Important Notes
-
-1. **Testing Required**: Only Perl implementation has adequate testing
-2. **Expect Bugs**: Non-Perl implementations are largely untested
-3. **Cross-Language Compatibility**: Designed but not validated
-4. **Production Use**: Not recommended without comprehensive testing
-5. **Zig Issues**: Build system needs updating for Zig 0.15.1
-
-## 📄 License
-
-[License information to be added]
-
-## 🏷️ Keywords
-
-`EBNF` `parser-generator` `AST` `multi-language` `Perl` `Rust` `Julia` `Go` `Python` `Zig` `JSON` `annotations` `grammar` `compilation` `transformation-pipeline`
+## Complete Markdown Index (Tracked)
+The list below is the complete set of tracked markdown files and is intended to keep `README.md` as the single navigation entrypoint.
+- `CHANGES.md`
+- `COMMIT.md`
+- `CURRENT_STATUS.md`
+- `DEVELOPMENT_NOTES.md`
+- `docs/api_interfaces.md`
+- `docs/AST_BASED_GENERATOR.md`
+- `docs/AST_GENERATOR_ARCHITECTURE.md`
+- `docs/AST_GENERATOR_MIGRATION.md`
+- `docs/AST_TRANSFORM_REFACTOR_PLAN.md`
+- `docs/ast_transformation_pipeline.md`
+- `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+- `docs/BOOTSTRAP_SYSTEM_COMPLETE.md`
+- `docs/CLEANUP_SUMMARY.md`
+- `docs/COMPLETE_AST_TRANSFORMATION_PIPELINE.md`
+- `docs/DEBUGGING_STARTUP_GUIDE.md`
+- `docs/DEVELOPMENT_NOTES.md`
+- `docs/EBNF_GENERATOR_ARCHITECTURE.md`
+- `docs/EBNF_GRAMMAR_RULES.md`
+- `docs/EBNF_IMPROVEMENT_ROADMAP.md`
+- `docs/EBNF_INCLUDE_SYSTEM.md`
+- `docs/EBNF_PARSER_GENERATOR_GUIDE.md`
+- `docs/EBNF_PARSER_GENERATOR.md`
+- `docs/EBNF_QUICK_REFERENCE.md`
+- `docs/ERROR_REPORTING_GUIDE.md`
+- `docs/fully_featured_return_annotation_parsers_status.md`
+- `docs/GROUPED_QUANTIFIER_DOCUMENTATION_INDEX.md`
+- `docs/GROUPED_QUANTIFIER_FIXES_SUMMARY.md`
+- `docs/GROUPING_QUANTIFIERS_ANALYSIS.md`
+- `docs/HDL_GRAMMAR_VALIDATION_REPORT.md`
+- `docs/HYBRID_AST_IMPLEMENTATION.md`
+- `docs/implementation_complete.md`
+- `docs/json_schemas.md`
+- `docs/julia_parser_gen.md`
+- `docs/LINKEDSPEC_DEEP_UNDERSTANDING.md`
+- `docs/LINKEDSPEC_IMPROVEMENTS.md`
+- `docs/multi_language_architecture.md`
+- `docs/MULTI_LANGUAGE_PARSER_VISION.md`
+- `docs/parser_architecture_evolution.md`
+- `docs/PARSER_REGENERATION_SUMMARY.md`
+- `docs/PERFORMANCE_GUIDE.md`
+- `docs/PROJECT_STATUS_REPORT.md`
+- `docs/python_ast_pipeline.md`
+- `docs/python_syntactic_data_generator.md`
+- `docs/QUANTIFIED_SEQUENCE_SERIALIZATION_FIX.md`
+- `docs/RETURN_ANNOTATION_PARSER.md`
+- `docs/return_annotation_self_hosting.md`
+- `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+- `docs/round_trip_testing_ideas.md`
+- `docs/RUST_AST_SEMANTIC_ANNOTATIONS.md`
+- `docs/rust_parser_gen.md`
+- `docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md`
+- `docs/STRING_GENERATOR_FEATURES_TO_PORT.md`
+- `docs/SYNTACTIC_DATA_GENERATOR.md`
+- `docs/systemverilog/README.md`
+- `docs/TEST_INFRASTRUCTURE.md`
+- `docs/test_stability_plan.md`
+- `docs/tools.md`
+- `docs/ULTIMATE_DOT_NOTATION_DOCS.md`
+- `docs/ultimate_return_annotation_parser_status.md`
+- `docs/universal_return_annotation_system.md`
+- `docs/vhdl/README.md`
+- `IMPLEMENTATION_GUIDE.md`
+- `MEMORY.md`
+- `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_RELEASE_POLICY.md`
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+- `PROJECT_OVERVIEW.md`
+- `QUICKSTART_AI_ONBOARDING.md`
+- `README.md`
+- `REGEX_BOOTSTRAP_ARCHITECTURE.md`
+- `rust/BRANCH_RETURN_ANNOTATIONS.md`
+- `rust/DEBUG_IMPLEMENTATION.md`
+- `rust/docs/CLI_REFERENCE.md`
+- `rust/docs/DEVELOPMENT_GUIDE.md`
+- `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `rust/docs/TECHNICAL_ARCHITECTURE.md`
+- `rust/docs/TEST_AUTOMATION.md`
+- `rust/LOG_FILES_README.md`
+- `rust/RETURN_ANNOTATION_PIPELINE.md`
+- `rust/RETURN_ANNOTATION_STATUS.md`
+- `STRESS_TEST_STANDARDIZATION.md`
+- `SV_GRAMMAR_COVERAGE_MATRIX.md`
+- `tests/GENERATE_TEST_INPUT.md`
+- `tests/README.md`
+- `tests/TEST_GUIDE.md`
+- `tools/LRM_CONVERSION_WORKFLOW.md`
+- `WARP.md`
+- `zig/zig-0.15.1-arraylist-changes.md`
