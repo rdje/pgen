@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "description": "Deterministic semantic contract suite for declared-before-use validator behavior in sv_stimuli_quality_gate.",
   "cases": [
     {
@@ -71,6 +71,16 @@
       "name": "preprocessor_conditional_undeclared_fail",
       "expect_pass": false,
       "input": "module m; logic a; `ifdef FEAT assign a = b; `else assign a = 1'b0; `endif endmodule"
+    },
+    {
+      "name": "indexed_assignment_declared_index_pass",
+      "expect_pass": true,
+      "input": "module m; logic [3:0] arr; int idx; always_comb begin idx = 0; arr[idx] = 1'b0; end endmodule"
+    },
+    {
+      "name": "indexed_assignment_undeclared_index_fail",
+      "expect_pass": false,
+      "input": "module m; logic [3:0] arr; always_comb begin arr[idx] = 1'b0; end endmodule"
     }
   ]
 }

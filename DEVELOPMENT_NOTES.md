@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-06 - Phase P Declared-Identifier Suite v3 + Indexed-LHS Undeclared Detection Fix
+### Context
+To broaden Phase P deterministic semantic-corpus coverage, we added indexed-assignment declared/undeclared cases. The first run exposed a checker gap: undeclared index identifiers on assignment LHS were not treated as uses (for example `arr[idx] = 1'b0` passed unexpectedly).
+
+### Implementation
+Primary files:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+
+Changes:
+- Contract suite:
+  - promoted to `version: 3`,
+  - added:
+    - `indexed_assignment_declared_index_pass`
+    - `indexed_assignment_undeclared_index_fail`.
+- Checker hardening (`check_declared_identifiers_before_use`):
+  - assignment LHS regex now captures optional index-expression payload,
+  - captured LHS index expression is passed through `mark_chunk_uses(...)`,
+  - undeclared identifiers embedded in indexed LHS targets are now visible to the declared-before-use scan.
+
+### Validation
+Executed:
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh` (passed).
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` (passed).
+
+Observed:
+- `declared_identifier_contract_suite` passed `16/16` (up from `14/14`).
+- full gate remained stable:
+  - all semantic suites `pass`,
+  - parse-full pass ratio `100` (`4/4`),
+  - `total_errors=0`.
+
+### Notes
+- This closes a concrete false-negative class in declared-before-use semantic checking.
+- The added contract cases now enforce this behavior in deterministic prechecks for future regressions.
+
 ## 2026-03-06 - Phase P Seed-Space Hardening: Configurable Promotion Seed Stride (`250000`) End-to-End
 ### Context
 Promotion trials previously used a hardcoded per-trial seed offset in the standalone gate. To make seed-space broadening explicit and policy-driven, stride needed to become a first-class configurable control in both standalone and aggregate paths.

@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-06 - Phase P Semantic Suite Expansion: Declared-Identifier Indexed-LHS Coverage + Checker Hardening
+### ✅ Achievement Summary
+Expanded the deterministic declared-identifier SV semantic suite and hardened the suite checker so undeclared identifiers in indexed LHS assignment targets are now caught (`arr[idx] = ...`).
+
+### Scope of Changes
+- Contract suite expansion:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+    - `version: 3` (was `2`)
+    - added new cases:
+      - `indexed_assignment_declared_index_pass`
+      - `indexed_assignment_undeclared_index_fail`
+- Checker hardening:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+    - `check_declared_identifiers_before_use` now scans indexed LHS expressions and marks index identifiers as usage candidates before declaration checks.
+- Synced docs/continuity:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - semantic suite status:
+    - `declared_identifier_suite_passed=16/16` (was `14/14`)
+  - overall deterministic run remained green:
+    - `parse_full_pass_ratio_percent=100` (`4/4`)
+    - `total_errors=0`.
+
 ## 2026-03-06 - Phase P Seed-Space Hardening: Configurable Promotion Seed Stride + Aggregate Wiring
 ### ✅ Achievement Summary
 Added explicit per-trial seed-stride control to SV parse-full promotion and wired it through aggregate policy/runtime surfaces, then validated deterministic convergence at both default and ceiling targets.

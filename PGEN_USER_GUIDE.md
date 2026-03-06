@@ -2544,7 +2544,7 @@ Optional SV syntax-closure gate tuning:
     - `declared_identifier_suite_failed`
   - behavior:
     - runs before profile/sample generation loops,
-    - enforces deterministic pass/fail expected outcomes from a fixed corpus (for example declared-vs-undeclared assignment/use, `for`/`foreach` iterators, event-control and named-port usage).
+    - enforces deterministic pass/fail expected outcomes from a fixed corpus (for example declared-vs-undeclared assignment/use, indexed-LHS assignment identifiers like `arr[idx] = ...`, `for`/`foreach` iterators, event-control and named-port usage).
 - per-profile closed loop:
   - deterministic initial-stage replay check:
     - gate reruns initial closed-loop generation with same seed/profile config and asserts deterministic equivalence for:

@@ -351,10 +351,14 @@ check_declared_identifiers_before_use() {
             }
 
             # Assignment/use contexts (structured-only to avoid lexical noise false positives).
-            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]+\])?\s*(?:<=|=(?!=))/g) {
+            while ($text =~ /\b([A-Za-z_][A-Za-z0-9_]*)(\s*\[[^\]]+\])?\s*(?:<=|=(?!=))/g) {
                 my $lhs = $1;
+                my $lhs_index_expr = $2 // "";
                 next if $keywords{$lhs};
                 $used{$lhs} = 1;
+                if ($lhs_index_expr ne "") {
+                    mark_chunk_uses($lhs_index_expr, \%used, \%keywords);
+                }
             }
             while ($text =~ /(?:<=|=(?!=))\s*([^;]+)/g) {
                 mark_chunk_uses($1, \%used, \%keywords);

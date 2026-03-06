@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: phase-p-seed-space-hardening-promotion-seed-stride)
+Last updated: 2026-03-06 (+0100, task: phase-p-declared-identifier-indexed-lhs-contract-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,7 +24,7 @@ Use this file to resume work without replaying full chat history.
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
-- Latest commit: `f32eb49` (`Promote SV closed-loop contract defaults from 6/6 to 8/8 (v24)`).
+- Latest commit: `86910f3` (`Add configurable seed-stride control to SV parse-full promotion trials.`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -708,8 +708,23 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` passed.
   - Semantic suites remained green (`declared_identifier 14/14`, `width 10/10`, `port_binding 10/10`, `package_qualification 10/10`, `context_legality 10/10`).
   - Parse-full telemetry in this run remained `0%`.
-- Result:
+  - Result:
   - Steering coverage is materially broader while preserving deterministic gate stability; parse-full debt remains an open closure target.
+
+### 2026-03-06: Expanded declared-identifier suite and fixed indexed-LHS undeclared detection
+- Root cause:
+  - declared-identifier suite expansion exposed a false-negative: `arr[idx] = ...` did not flag undeclared `idx`.
+- Fix:
+  - `systemverilog_declared_identifier_contract_cases.json` promoted to `version: 3` with:
+    - `indexed_assignment_declared_index_pass`
+    - `indexed_assignment_undeclared_index_fail`
+  - `check_declared_identifiers_before_use` in `sv_stimuli_quality_gate.sh` now extracts/scans indexed LHS expressions and marks index identifiers as uses.
+- Validation:
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh` passed.
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` passed.
+  - deterministic suite metrics:
+    - declared identifier suite `16/16` pass (up from `14/14`),
+    - parse-full ratio `100` (`4/4`) in representative run.
 
 ### 2026-03-06: Added policy-driven seed-stride hardening for SV parse-full promotion trials
 - Root cause:
@@ -728,10 +743,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Session Git History (Hash + Message)
 - Scope used for continuity tracking: `origin/main..HEAD`
-- Commit count at last refresh (before current uncommitted changes): `253`
+- Commit count at last refresh (before current uncommitted changes): `254`
 - Refresh command:
   - `git log --oneline --reverse origin/main..HEAD`
 <!-- SESSION_GIT_HISTORY_BEGIN -->
+- 86910f3 Add configurable seed-stride control to SV parse-full promotion trials.
 - f32eb49 Promote SV closed-loop contract defaults from 6/6 to 8/8 (v24)
 - 9b88ff4 Increase SV parse-full promotion evidence density from 3x6 to 4x8
 - 9de2614 Ratchet aggregate SV parse-full policy floor from 95 to 100
