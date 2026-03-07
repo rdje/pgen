@@ -6,6 +6,11 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Build **state-of-the-art, EBNF-driven parser/stimuli generation** for serious language tooling.
 - Support advanced **return annotations** and **semantic annotations** with contract-grade validation.
 - Deliver parser/stimuli quality via deterministic gates, coverage/gap analysis, and closed-loop replay.
+- Treat parser quality as the product:
+  - generated parsers must be correct, fast, accurate, predictable, observable, and trustworthy in real systems.
+- North-star trust goal:
+  - make PGEN the de facto go-to platform for parsers because projects can trust it,
+  - make PGEN sign-off-grade when parsing correctness materially affects downstream flows.
 - Primary near-term integration targets:
   - **Nexsim** (SystemVerilog + VHDL parsing)
   - **RGX** (regex parsing)
