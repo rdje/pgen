@@ -2502,6 +2502,8 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_SV_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
 - `PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` (integer `>=1`, overrides contract `closed_loop.target_max_attempts` for the current invocation only)
+  - intended for bounded evidence refreshes and faster closed-loop reruns without editing the contract manifest.
 - `PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO` (`0`/`1`, overrides contract parse-full ratio enforcement)
 - `PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO` (`0-100`, overrides contract parse-full minimum pass ratio percent)
 - `PGEN_SV_STIMULI_QUALITY_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from contract)
@@ -2625,6 +2627,11 @@ Optional SV syntax-closure gate tuning:
       - gap text report
     - summary metric:
       - `closed_loop_initial_replay_determinism_passes`
+  - effective replay-budget summary metrics:
+    - `closed_loop_target_max_attempts`
+    - `closed_loop_target_max_attempts_source`
+      - `contract`: using `closed_loop.target_max_attempts` from the manifest.
+      - `env_override`: using `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` for that invocation.
   - `coverage/gap(initial) -> target-driven replay -> non-increasing target debt check`.
   - preprocess convergence debt extraction on closed-loop corpora:
     - `closed_loop_initial_preprocess_warnings_total`
@@ -3026,6 +3033,8 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - top-level `sample_count` (current default `8`)
   - `closed_loop.gap_report_threshold`
   - `closed_loop.target_max_attempts`
+    - runtime override:
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
   - `closed_loop.replay_sample_count` (current default `8`)
   - `closed_loop.require_non_increasing_target_debt`
 - failure replay + shrinking controls (from `systemverilog_core_v0_contract.json`):

@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-07 - Document Bounded SV Replay Override In Operator Docs
+### ✅ Achievement Summary
+Surfaced the `sv_stimuli_quality_gate` bounded replay override in operator-facing docs so the existing gate control is discoverable without reading changelog/state files only.
+
+### Scope of Changes
+- Updated:
+  - `/Users/richarddje/Documents/github/pgen/README.md`
+    - added a bounded rerun example for:
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+    - documented `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` in the SV quality-gate tuning section,
+    - documented invocation-only override semantics for `closed_loop.target_max_attempts`,
+    - documented summary telemetry:
+      - `closed_loop_target_max_attempts`
+      - `closed_loop_target_max_attempts_source`
+
+### Validation Results
+- Documentation surface check:
+  - verified `README.md` and `PGEN_USER_GUIDE.md` now both mention `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`.
+
+### Notes
+- This is a documentation-only closure item; no gate logic changed in this increment.
+
 ## 2026-03-07 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 6`
 ### ✅ Achievement Summary
 Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `20` to `24` declared all-pass cases by adding semantic-noise and package-macro integration families, then refreshed bounded aggregate evidence on the promoted manifest.

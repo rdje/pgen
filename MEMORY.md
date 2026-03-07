@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: sv-realistic-corpus-expansion-v6)
+Last updated: 2026-03-07 (+0100, task: sv-bounded-rerun-doc-surfacing)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -87,6 +87,9 @@ Use this file to resume work without replaying full chat history.
     - bounded full-gate evidence refresh is now green:
       - `rust/scripts/sv_stimuli_quality_gate.sh` accepts ad hoc replay-budget override:
         - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
+      - operator-facing docs now surface this control in:
+        - `README.md`
+        - `PGEN_USER_GUIDE.md`
       - gate summaries now surface:
         - `closed_loop_target_max_attempts_source=contract|env_override`
       - realistic-corpus staged preprocess now forwards the original case directory as `--sv-include-dir`, fixing local `.svh` include resolution after fixture copy into `$WORK_DIR`,
@@ -2889,9 +2892,8 @@ Use this file to resume work without replaying full chat history.
    - current concrete syntax gap worth closing: `foreach` array-assignment still fails `parse_full` after preprocess in both profiles.
 2. Continue Rust-native EBNF migration hardening:
    - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
-3. Decide whether `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` should be surfaced in end-user/operator docs beyond roadmap/state notes if bounded reruns become a normal workflow.
-4. Keep roadmap + UG + memory synced after every gate/contract increment.
-5. Paused operational follow-up:
+3. Keep roadmap + UG + memory synced after every gate/contract increment.
+4. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.
 
 ## Known Gaps / Risks

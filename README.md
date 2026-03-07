@@ -55,6 +55,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
 - SV quality gate:
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - bounded replay rerun example:
+    - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - VHDL quality gate:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
 - VHDL strict-promotion trials:

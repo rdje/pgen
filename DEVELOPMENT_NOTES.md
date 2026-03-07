@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Surfaced Bounded SV Replay Override In User-Facing Docs
+### Context
+After `sv_stimuli_quality_gate` gained the ad hoc replay-budget override `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`, the control existed in code/changelog/memory but was still missing from the main operator docs.
+
+### Implementation
+Updated:
+- `/Users/richarddje/Documents/github/pgen/README.md`
+  - added a bounded rerun example under standard commands.
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - added the environment variable to optional SV quality-gate tuning,
+  - clarified that it overrides `closed_loop.target_max_attempts` only for the current invocation,
+  - documented summary telemetry:
+    - `closed_loop_target_max_attempts`
+    - `closed_loop_target_max_attempts_source`
+
+### Validation
+- Confirmed both docs now mention `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`.
+
+### Notes
+- No runtime or policy behavior changed here; this closes the documentation follow-up only.
+
 ## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 6` Semantic-Noise Increment
 ### Context
 After the `version: 5` corpus promotion, the next useful Phase P/Q increment was to widen the realistic corpus with parser-supported semantic-noise and package-macro integration shapes rather than only more pure preprocess families.
