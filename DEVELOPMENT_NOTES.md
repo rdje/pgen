@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Branch-Protection Contract Promotion
+### Context
+The release policy already documented the minimum pre-merge checks we expected GitHub branch protection to require, but that requirement still lived only in prose. The remaining roadmap tail for Pillar 1 was to turn that expectation into tracked repo state so it could fail locally and in CI if the minimum set drifted, especially if `fixed-point-gate` ever fell out of the required checks.
+
+### Implementation
+Added a small contract-and-validator layer:
+- tracked branch-protection policy:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/branch_protection_policy.json`
+    - carries the default branch,
+    - `require_up_to_date_before_merge`,
+    - required status checks.
+- validator gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/branch_protection_contract_gate.sh`
+    - validates JSON shape with `JSON::PP`,
+    - enforces the roadmap/release minimum set:
+      - `sota-exit-gate`
+      - `annotation-contract-gate`
+      - `differential-regression-gate`
+      - `fixed-point-gate`
+      - `performance-gate`
+    - scans `.github/workflows/*.yml` for workflow/job check names,
+    - fails if a required check is not backed by a tracked workflow/job name,
+    - fails if the mapped workflow does not trigger on `pull_request`,
+    - writes machine-readable/text summaries under `rust/target/branch_protection_contract_gate`.
+- local/CI wiring:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+    - new target: `branch_protection_contract_gate`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/branch-protection-contract-gate.yml`
+    - lightweight policy-validation workflow with artifact upload.
+
+### Validation
+Primary validation command:
+- `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+
+Observed artifacts:
+- `rust/target/branch_protection_contract_gate/summary.txt`
+- `rust/target/branch_protection_contract_gate/report.json`
+
+Observed result highlights:
+- `result=pass`
+- `missing_minimum_checks=[]`
+- `policy_checks_missing_workflow=[]`
+- `policy_checks_missing_pull_request_trigger=[]`
+
+### Notes
+- This does not mutate GitHub branch protection settings directly; instead it puts the intended minimum contract under version control and makes drift visible/failing in normal repo validation.
+- The validator intentionally checks workflow/job names and `pull_request` triggers, because a required check that no longer runs on PRs is effectively dead for branch-protection purposes.
+
 ## 2026-03-07 - Active `systemverilog.ebnf` Promotion to Flattened Dual-LRM Grammar
 ### Context
 The staged dual-LRM grammar work had reached an awkward midpoint: the extracted/profiled SystemVerilog grammar could be synthesized and compiled into parser source, but the staged wrapper still looked blocked because the normal Perl frontend only saw three rules. The real blocker was not the LRM extraction itself; it was that the wrapper depended on `include(...)`, which the current Perl HDL path does not expand. Once that was understood, the remaining work reduced to flattening the active file and fixing the last parser-facing translation gaps.

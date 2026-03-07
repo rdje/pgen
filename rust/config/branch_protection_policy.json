@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "default_branch": "main",
+  "require_up_to_date_before_merge": true,
+  "required_status_checks": [
+    "sota-exit-gate",
+    "annotation-contract-gate",
+    "differential-regression-gate",
+    "fixed-point-gate",
+    "performance-gate"
+  ]
+}

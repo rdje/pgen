@@ -1999,6 +1999,9 @@ Tracked baselines:
   - one-shot release-grade aggregate check for fixed-point, annotation, non-annotation EBNF quality loop, stimuli-module parity, differential, performance, embedding, and EBNF readiness reporting
 - `sota_release_policy` (local utility target)
   - prints the tracked machine policy consumed by `sota_exit_gate`
+- `branch_protection_contract_gate` (local gate target)
+  - validates the tracked minimum pre-merge required-check contract in `rust/config/branch_protection_policy.json`,
+  - fails if a required check disappears, loses workflow coverage, or stops running on `pull_request`
 - `sv_declared_shadow_promotion_gate` (local gate target)
   - executes deterministic strict declared-shadow trial matrix and emits:
     - `rust/target/sv_declared_shadow_promotion_gate/work/systemverilog_declared_identifier_promotion_report.json`
@@ -2123,6 +2126,7 @@ Tracked baselines:
   - contract stability for embedding API behavior
 
 Workflow files:
+- `.github/workflows/branch-protection-contract-gate.yml`
 - `.github/workflows/fixed-point-gate.yml`
 - `.github/workflows/performance-gate.yml`
 - `.github/workflows/differential-regression-gate.yml`

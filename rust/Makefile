@@ -223,6 +223,7 @@ help:
 	@echo "  clean        - Remove generated files"
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
+	@echo "  branch_protection_contract_gate - Validate tracked branch-protection required-check contract vs workflows"
 	@echo "  clippy_on_rust_change - Run cargo clippy flow automatically when Rust/generated Rust files changed"
 	@echo "  sota_exit_gate - Run release-grade aggregate gate (fixed-point, annotation, differential, performance, embedding, EBNF readiness report)"
 	@echo "  sota_release_policy - Show active SOTA release policy file"
@@ -428,6 +429,12 @@ fixed_point_gate:
 	@echo "🔁 Running fixed-point bootstrap reproducibility gate..."
 	cd $(RUST_DIR) && PGEN_STRICT_ANNOTATION_VALIDATION=$${PGEN_STRICT_ANNOTATION_VALIDATION:-1} ./scripts/fixed_point_bootstrap_gate.sh --cycles $(FIXED_POINT_CYCLES)
 	@echo "✅ Fixed-point gate passed."
+
+.PHONY: branch_protection_contract_gate
+branch_protection_contract_gate:
+	@echo "🛡️  Running branch protection contract gate..."
+	cd $(RUST_DIR) && ./scripts/branch_protection_contract_gate.sh
+	@echo "✅ Branch protection contract gate passed."
 
 .PHONY: clippy_on_rust_change
 clippy_on_rust_change:

@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-03-07 - Added Tracked Branch-Protection Contract Gate
+### ✅ Achievement Summary
+Closed the roadmap branch-protection tail by promoting the pre-merge required-check policy from prose to tracked repo state with a validator and dedicated CI workflow.
+
+### Scope of Changes
+- Added tracked branch-protection contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/config/branch_protection_policy.json`
+    - declares default branch `main`,
+    - requires up-to-date merges,
+    - pins the minimum required pre-merge checks:
+      - `sota-exit-gate`
+      - `annotation-contract-gate`
+      - `differential-regression-gate`
+      - `fixed-point-gate`
+      - `performance-gate`
+- Added local validator gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/branch_protection_contract_gate.sh`
+    - validates policy shape,
+    - enforces the roadmap/release minimum check set,
+    - verifies every required check is backed by a tracked workflow/job name,
+    - verifies each mapped workflow runs on `pull_request`,
+    - emits artifacts under:
+      - `/Users/richarddje/Documents/github/pgen/rust/target/branch_protection_contract_gate`
+- Wired the validator into local and CI flows:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+    - new target: `branch_protection_contract_gate`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/branch-protection-contract-gate.yml`
+    - runs on `pull_request` and `main` pushes,
+    - uploads validator artifacts on every run.
+- Documentation synchronization:
+  - `/Users/richarddje/Documents/github/pgen/README.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_RELEASE_POLICY.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Branch-protection contract gate ✅
+  - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+  - observed:
+    - `result=pass`
+    - `missing_minimum_checks=[]`
+    - `policy_checks_missing_workflow=[]`
+    - `policy_checks_missing_pull_request_trigger=[]`
+
 ## 2026-03-07 - Promoted Active Dual-LRM SystemVerilog Grammar (`systemverilog.ebnf`)
 ### ✅ Achievement Summary
 Promoted `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf` from the old seed grammar to the active flattened dual-profile IEEE 1800 grammar synthesized from the 2017/2023 markdown workspaces, with real runtime profile behavior for `sv_2017` and `sv_2023`.

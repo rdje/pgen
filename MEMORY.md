@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: sv-dual-lrm-active-promotion)
+Last updated: 2026-03-07 (+0100, task: branch-protection-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -50,6 +50,22 @@ Use this file to resume work without replaying full chat history.
       - restoring shared `assignment_operator`,
       - disambiguating labeled `generate_block` parsing (`begin : g`).
 - SOTA policy status:
+  - Branch-protection contract is now tracked and executable:
+    - policy file:
+      - `rust/config/branch_protection_policy.json`
+    - local gate:
+      - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+    - CI workflow:
+      - `.github/workflows/branch-protection-contract-gate.yml`
+    - validator invariants:
+      - required minimum pre-merge checks must include:
+        - `sota-exit-gate`
+        - `annotation-contract-gate`
+        - `differential-regression-gate`
+        - `fixed-point-gate`
+        - `performance-gate`
+      - each required check must map to a tracked workflow/job name,
+      - each mapped workflow must run on `pull_request`.
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
   - SV parse-full ratio promotion stage enabled informationally:
@@ -2778,14 +2794,12 @@ Use this file to resume work without replaying full chat history.
     - `realistic_corpus_preprocess_error_total=0`
 
 ## Next Likely Tasks (Priority)
-1. Close roadmap operational policy tail:
-   - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
-2. Continue Rust-native EBNF migration hardening:
+1. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
-3. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
+2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
    - keep expanding beyond the now-green `11/11` realistic corpus baseline, especially preprocess-shaped and additional Nexsim integration families, while preserving the `100%` generated-sample `parse_full` floor.
-4. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the promoted active dual-profile grammar and keep the artifact evidence if it completes green.
-5. Keep roadmap + UG + memory synced after every gate/contract increment.
+3. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the promoted active dual-profile grammar and keep the artifact evidence if it completes green.
+4. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

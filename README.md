@@ -31,6 +31,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `grammars/`: EBNF sources (`*.ebnf`)
 - `generated/`: generated artifacts (regenerable outputs)
 - `rust/src/`: Rust AST pipeline, generators, parser registry, embedding API
+- `rust/config/branch_protection_policy.json`: tracked minimum branch-protection required-check contract
 - `rust/scripts/`: executable quality gates and policy runners
 - `rust/test_data/grammar_quality/`: gate contracts, corpora, deterministic case manifests
 - `rust/docs/`: Rust-specific architecture/API/test docs
@@ -47,6 +48,8 @@ PGEN is a production-focused parser and stimuli generator platform.
 ## Standard Commands
 - Aggregate policy gate:
   - `make -C rust SHELL=/bin/bash sota_exit_gate`
+- Branch-protection contract gate:
+  - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
 - SV quality gate:
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - VHDL quality gate:

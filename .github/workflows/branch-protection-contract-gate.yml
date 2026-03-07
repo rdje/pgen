@@ -1,0 +1,32 @@
+name: branch-protection-contract-gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  branch-protection-contract-gate:
+    name: branch-protection-contract-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Perl runtime
+        run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
+
+      - name: Run branch protection contract gate
+        run: make -C rust SHELL=/bin/bash branch_protection_contract_gate
+
+      - name: Upload branch protection contract artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-protection-contract-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/branch_protection_contract_gate
+          if-no-files-found: warn
+          retention-days: 14

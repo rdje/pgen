@@ -1065,9 +1065,10 @@ Objective: make AST visibility first-class for generator and generated-parser de
 
 ### Completed in this sprint
 - Added a reproducibility gate that regenerates return/semantic annotation JSON and parser outputs for multiple cycles and asserts byte-identical outputs between cycle 1 and subsequent cycles.
+- Closed the branch-protection policy tail with a tracked contract file (`rust/config/branch_protection_policy.json`), a local validator gate (`branch_protection_contract_gate`), and a dedicated CI workflow that enforces the minimum required pre-merge checks, including `fixed-point-gate`.
 
 ### Remaining for Pillar 1 completion
-- Branch protection rule should require the `fixed-point-gate` check before merge.
+- None; the current Pillar 1 sprint tail is closed.
 
 ## Risks and Mitigations
 - Risk: Non-deterministic codegen details (ordering, paths, timestamps) can create false drifts.
@@ -1078,6 +1079,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-07: Closed the Pillar 1 branch-protection tail by adding tracked policy config (`rust/config/branch_protection_policy.json`), local validator script/Make target (`branch_protection_contract_gate`), and CI workflow (`branch-protection-contract-gate`) that enforce the minimum required pre-merge checks and `pull_request` trigger coverage.
 - 2026-03-06: Closed the last two SystemVerilog realistic-corpus parse gaps by hardening `grammars/systemverilog.ebnf` for edge-qualified event expressions and indexed selects/lvalues, then promoted `systemverilog_nexsim_realistic_corpus_v0.json` to `version: 3` with `11` expected-pass / `0` expected-fail cases (`22/22` realistic dual-profile parses pass in focused validation).
 - 2026-03-06: Expanded the deterministic Nexsim SystemVerilog realistic corpus (`systemverilog_nexsim_realistic_corpus_v0.json` -> `version: 2`) from 6 to 11 declared cases by adding package-qualification, named multi-port binding, wildcard binding, timeunit, and package-width instantiation families; revalidated `sv_stimuli_quality_gate` green with `parse_full_pass_ratio_percent=100`, `parse_full_passes=16/16`, and realistic-corpus totals `expected_pass_total=9`, `expected_fail_total=2`.
 - 2026-03-06: Completed full dual-SV LRM extraction refresh into versioned tracked workspaces (`docs/systemverilog/2017` and `docs/systemverilog/2023`) including `txt/`, `md/`, and grammar artifacts, added TOC-missing fallback extraction mode in `tools/split_sections.py`, and promoted canonical extracted EBNF snapshots to `grammars/systemverilog_2017_lrm_extracted.ebnf` and `grammars/systemverilog_2023_lrm_extracted.ebnf`.
