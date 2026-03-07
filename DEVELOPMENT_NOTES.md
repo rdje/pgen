@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 11` Width-Multi-Assign + Macro Module-Name Increment
+### Context
+After the `version: 10` promotion, the next useful Phase P/Q increment was to keep pushing the same parser-backed composition frontier one step further: multi-width import/use rather than single-width only, macro-expanded module names over internal-packed and wildcard width shapes, and deeper include topology that brings in package-width state.
+
+### Implementation
+Promoted seven additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 11`
+  - `cases: 53`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_assign.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_bind_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_assign.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_internal_packed.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_width_wildcard.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_width_multi_port.sv`
+- support include files:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_mid.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_leaf.svh`
+
+This slice extends the realistic corpus in three useful directions:
+- width-vector import/use breadth:
+  - module-local import with multiple width-vector assignments,
+  - package-import multi-width bind instantiation,
+  - macro-expanded multi-width import/use.
+- macro-expanded module-name and port-name breadth:
+  - macro-expanded module-name internal-packed binding,
+  - macro-expanded module-name width wildcard binding,
+  - macro-expanded port-name width multi-port binding.
+- deeper include topology:
+  - three-step local include chain ending in a package-width child instantiation.
+
+### Validation
+Direct dual-profile replay:
+- preprocessed each new preprocess-shaped case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each direct or preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+- observed:
+  - `7` new cases,
+  - `2` profiles each,
+  - `14/14` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v11_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5484`
+  - `closed_loop_replay_targets_total=5211`
+  - `realistic_corpus_cases_declared=53`
+  - `realistic_corpus_cases_executed=106`
+  - `realistic_corpus_observed_parse_pass_total=106`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_warning_total=2`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This increment stayed fully all-pass again; no expected-fail sentinels were added.
+- The next likely search space is now further out again: macro-expanded width/import combinations spread across more than one module, or additional profile-sensitive realistic families beyond the current composition baseline.
+
 ## 2026-03-07 - Doctrine Capture: Parser Trust Must Be Backed By Contracts And Gates
 ### Context
 You clarified that the desired end-state is not just "high quality parsers," but a stricter rule: parser trustworthiness itself must be expressed as implementation contracts, executable gates, and enforced invariants wherever possible.

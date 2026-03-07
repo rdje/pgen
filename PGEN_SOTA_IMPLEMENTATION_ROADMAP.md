@@ -898,6 +898,23 @@ Toolbox baseline to leverage end-to-end:
       - `realistic_corpus_cases_executed=92`,
       - `realistic_corpus_observed_parse_pass_total=92`,
       - `realistic_corpus_observed_parse_fail_total=0`.
+  - Progress (2026-03-07): expanded the checked-in Nexsim realistic corpus to `53` declared deterministic all-pass cases (`version: 11`) with multi-width import/use, macro-expanded module-name width families, and deeper include-chain package-width composition:
+    - added required-pass cases for:
+      - module-local import multi-width assignment,
+      - package-import multi-width bind instantiation,
+      - deeper include-chain package-width instantiation,
+      - macro-expanded multi-width import/use,
+      - macro-expanded module-name internal-packed binding,
+      - macro-expanded module-name width wildcard binding,
+      - macro-expanded port-name width multi-port binding,
+    - direct dual-profile preprocess + parse-full validation for the new cases remained green:
+      - `14/14` passes across `sv_2017` and `sv_2023`,
+    - bounded full-gate refresh remained green:
+      - `closed_loop_profiles_passed=2/2`,
+      - `realistic_corpus_cases_declared=53`,
+      - `realistic_corpus_cases_executed=106`,
+      - `realistic_corpus_observed_parse_pass_total=106`,
+      - `realistic_corpus_observed_parse_fail_total=0`.
 - [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
   - deterministic error/diagnostic schema for host integration,
@@ -1172,6 +1189,7 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `46` to `53` declared all-pass cases (`version: 11`) by promoting multi-width import/use integration, macro-expanded module-name width variants, and deeper include-chain package-width composition; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=106/106`.
 - 2026-03-07: Added a roadmap-only RTLSyn parser-stack track capturing the four mandatory planned parser families (synthesizable RTL frontend, constant-expression evaluator, Liberty, and SDC) plus later-only gate-netlist/config/SDF readers; no implementation was started in this amendment.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `39` to `46` declared all-pass cases (`version: 10`) by promoting width-vector import/use integration, deeper include-chain wildcard/internal-packed variants, and macro-expanded port-name/import families; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=92/92`.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `32` to `39` declared all-pass cases (`version: 9`) by promoting deeper include-chain composition, macro-expanded multi-port/module-name instantiation variants, and richer multi-constant import/use families; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=78/78`.

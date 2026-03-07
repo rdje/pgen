@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 11,
   "description": "Deterministic Nexsim-oriented realistic SystemVerilog corpus for preprocess/parse_full budget and integration hardening.",
   "cases": [
     {
@@ -275,6 +275,48 @@
     {
       "name": "preprocess_macro_port_name_multi_port",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_port.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "module_local_import_multi_width_assign",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "package_import_multi_width_bind_instantiation",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_bind_instantiation.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_deep_include_package_width_instantiation",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_instantiation.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_import_multi_width_assign",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_module_name_internal_packed",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_internal_packed.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_module_name_width_wildcard",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_width_wildcard.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_port_name_width_multi_port",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_width_multi_port.sv",
       "profiles": ["2017", "2023"],
       "expect_parse_full_pass": true
     }

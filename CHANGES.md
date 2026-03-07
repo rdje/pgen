@@ -1,4 +1,59 @@
 # CHANGES.md
+## 2026-03-07 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 11`
+### ✅ Achievement Summary
+Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `46` to `53` declared all-pass cases by promoting the next validated width-multi-assign, macro-module-name, macro-port-name, and deep-include package-width families.
+
+### Scope of Changes
+- Updated corpus manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - promoted from `version: 10` to `version: 11`
+    - declared cases increased from `46` to `53`
+- Added new realistic-corpus fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_assign.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_bind_instantiation.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_instantiation.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_assign.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_internal_packed.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_width_wildcard.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_width_multi_port.sv`
+  - support include files:
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_defs.svh`
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_mid.svh`
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_leaf.svh`
+
+### Validation Results
+- Direct realistic-case replay through the real SV preprocess + parseability path:
+  - each new preprocess-shaped case was preprocessed with:
+    - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+  - each direct or preprocessed output was `parse_full`-probed with:
+    - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017|sv_2023`
+  - observed:
+    - `14/14` passes across the `7` new cases and `2` LRM profiles.
+- Bounded aggregate evidence refresh:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v11_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_initial_targets_total=5484`
+    - `closed_loop_replay_targets_total=5211`
+    - `realistic_corpus_cases_declared=53`
+    - `realistic_corpus_cases_executed=106`
+    - `realistic_corpus_expected_pass_total=53`
+    - `realistic_corpus_expected_fail_total=0`
+    - `realistic_corpus_observed_parse_pass_total=106`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_warning_total=2`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- The newly promoted families are:
+  - module-local import with multiple width-vector assignments,
+  - package-import multi-width bind instantiation,
+  - deeper include-chain package-width instantiation,
+  - macro-expanded multi-width import/use,
+  - macro-expanded module-name internal-packed binding,
+  - macro-expanded module-name width wildcard binding,
+  - macro-expanded port-name width multi-port binding.
+
 ## 2026-03-07 - Codify Parser Trust Doctrine As Roadmap/Release Criteria
 ### ✅ Achievement Summary
 Codified the parser-trust bar as an explicit roadmap and release-policy doctrine so parser quality claims are now framed as contracts, gates, invariants, and machine-checkable evidence categories rather than informal goals.
