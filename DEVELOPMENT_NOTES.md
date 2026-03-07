@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Branch Protection Gate Portability: `rg` Optional
+### Context
+The GitHub Actions `branch_protection_contract_gate` run failed before real policy evaluation because `rust/scripts/branch_protection_contract_gate.sh` used `rg` (`ripgrep`) directly to detect `pull_request:` triggers in workflow files. GitHub-hosted runners do not guarantee `rg`, so the script reported false missing-trigger failures even though the workflows were correctly configured.
+
+### Implementation
+Updated `/Users/richarddje/Documents/github/pgen/rust/scripts/branch_protection_contract_gate.sh`:
+- added `workflow_declares_pull_request_trigger()`,
+- uses `rg` when present for local convenience,
+- falls back to `grep -E` when `rg` is unavailable.
+
+### Validation
+- `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+
+### Notes
+- The correct default for CI gate scripts is:
+  - use baseline tools already expected on runners (`bash`, `grep`, `awk`, `perl`, `sort`, etc.),
+  - or explicitly install nonstandard tools in the workflow.
+- For this case, installing `ripgrep` in Actions would have been unnecessary overhead compared with a simple in-script fallback.
+
 ## 2026-03-07 - Repository Policy Reversal: Track Full `generated/` Tree
 ### Context
 The selective tracking policy fixed the first clean-checkout failure (`include!(...)` Rust sources) but the next GitHub Actions run showed the same underlying problem for gate-time JSON inputs, specifically `generated/return_annotation.json` and `generated/semantic_annotation.json` in `annotation_nonbootstrap_e2e_gate.sh`. The user requested a simpler and broader contract: version control the whole `generated/` directory.

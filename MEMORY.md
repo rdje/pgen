@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: track-full-generated-tree-clean)
+Last updated: 2026-03-07 (+0100, task: branch-protection-gate-rg-fallback)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -31,6 +31,9 @@ Use this file to resume work without replaying full chat history.
   - the full `generated/` tree is now version controlled by repository policy,
   - gates and compile-time paths may assume these files exist in clean checkouts,
   - transient logs and bootstrap-test scratch artifacts were moved out of `generated/` into `rust/target/...` so the tracked tree stays clean.
+- Branch protection contract portability:
+  - `rust/scripts/branch_protection_contract_gate.sh` no longer requires `rg`,
+  - it falls back to `grep -E` on runners where `ripgrep` is unavailable.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),

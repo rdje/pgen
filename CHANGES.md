@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-07 - Make Branch Protection Gate Portable Without `rg`
+### ✅ Achievement Summary
+Fixed the branch protection contract gate so it no longer fails on GitHub Actions runners that do not have `ripgrep` (`rg`) installed.
+
+### Scope of Changes
+- Updated:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/branch_protection_contract_gate.sh`
+    - added a helper that uses `rg` when available,
+    - falls back to standard `grep -E` otherwise,
+    - removes the hard dependency on `ripgrep` for `pull_request` trigger detection.
+
+### Validation Results
+- `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+
+### Notes
+- GitHub-hosted runners do not guarantee nonstandard utilities like `rg`.
+- For project reliability, lightweight gate checks should prefer POSIX/baseline tools or provide fallbacks unless the workflow explicitly installs the dependency.
+
 ## 2026-03-07 - Track Full `generated/` Tree
 ### ✅ Achievement Summary
 Adopted repository policy to version control the full `generated/` directory instead of maintaining a narrow tracked-exception list.

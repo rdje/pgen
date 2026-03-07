@@ -23,6 +23,16 @@ fail() {
   exit 1
 }
 
+workflow_declares_pull_request_trigger() {
+  local workflow_file="$1"
+
+  if command -v rg >/dev/null 2>&1; then
+    rg -q '^  pull_request:' "${workflow_file}"
+  else
+    grep -Eq '^  pull_request:' "${workflow_file}"
+  fi
+}
+
 write_list_file() {
   local output_file="$1"
   shift || true
@@ -147,7 +157,7 @@ for check in "${REQUIRED_CHECKS[@]}"; do
   )"
   [[ -n "${workflow_file}" ]] || fail "failed to resolve workflow source for check '${check}'"
 
-  if ! rg -q '^  pull_request:' "${workflow_file}"; then
+  if ! workflow_declares_pull_request_trigger "${workflow_file}"; then
     POLICY_CHECKS_MISSING_PR_TRIGGER+=("${check}")
   fi
 done
