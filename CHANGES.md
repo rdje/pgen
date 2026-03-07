@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-03-07 - Expand SystemVerilog Nexsim Realistic Corpus With Preprocess Cases
+### ✅ Achievement Summary
+Expanded the deterministic Nexsim-oriented SystemVerilog realistic corpus with five more all-pass required cases, biased toward preprocess-shaped files and one additional package-import integration family.
+
+### Scope of Changes
+- Updated corpus manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - promoted from `version: 3` to `version: 4`
+    - declared cases increased from `11` to `16`
+- Added new realistic-corpus fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_localparam.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_payload.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_conditional_branch.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_function_args.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_define_undef_guard.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_localparam_assign.sv`
+
+### Validation Results
+- Direct realistic-case replay through the real SV preprocess + parseability path:
+  - each new file was preprocessed with:
+    - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+  - each preprocessed output was `parse_full`-probed with:
+    - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017|sv_2023`
+  - observed:
+    - `10/10` passes across the `5` new cases and `2` LRM profiles.
+
+### Notes
+- The newly promoted families are:
+  - local include expansion,
+  - selected `ifdef` branch module,
+  - function-like macro substitution in a localparam,
+  - `define/undef` guard fallthrough,
+  - package-import localparam assignment.
+- The full long `sv_stimuli_quality_gate` rerun remains the next follow-up item for refreshed aggregate evidence on the expanded corpus.
+
 ## 2026-03-07 - Closed `regex.ebnf` Raw-AST Parity Audit
 ### ✅ Achievement Summary
 Resolved the open Rust-vs-Perl raw-AST parity question for `grammars/regex.ebnf`: the Rust frontend is keeping real source rules, and the legacy Perl export is the side that under-reports them.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: workflow-jq-provisioning-audit)
+Last updated: 2026-03-07 (+0100, task: sv-realistic-corpus-expansion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -66,6 +66,16 @@ Use this file to resume work without replaying full chat history.
       - flattening the active grammar because the current Perl frontend does not expand `include(...)`,
       - restoring shared `assignment_operator`,
       - disambiguating labeled `generate_block` parsing (`begin : g`).
+  - realistic corpus expansion status:
+    - checked-in Nexsim realistic corpus manifest is now `version: 4` with `16` declared all-pass cases,
+    - newly promoted required-pass families:
+      - local include expansion,
+      - `ifdef` branch-selected module,
+      - function-like macro substitution in a localparam,
+      - `define/undef` guard fallthrough,
+      - module-local package import with imported localparam assignment,
+    - direct preprocess + parse-full validation for the new slice is green:
+      - `10/10` passes across `sv_2017` and `sv_2023`.
 - Rust-native EBNF migration snapshot:
   - `ast_pipeline` now supports standalone Rust raw-AST export:
     - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
@@ -2847,9 +2857,9 @@ Use this file to resume work without replaying full chat history.
     - `realistic_corpus_preprocess_error_total=0`
 
 ## Next Likely Tasks (Priority)
-1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
-   - keep expanding beyond the now-green `11/11` realistic corpus baseline, especially preprocess-shaped and additional Nexsim integration families, while preserving the `100%` generated-sample `parse_full` floor.
-2. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the promoted active dual-profile grammar and keep the artifact evidence if it completes green.
+1. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the expanded `version: 4` realistic corpus and keep the artifact evidence if it completes green.
+2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
+   - keep expanding beyond the new `16`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
 3. Continue Rust-native EBNF migration hardening:
    - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
 4. Keep roadmap + UG + memory synced after every gate/contract increment.

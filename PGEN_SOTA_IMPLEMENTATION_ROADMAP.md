@@ -848,6 +848,16 @@ Toolbox baseline to leverage end-to-end:
       - `realistic_corpus_expected_pass_total=11`,
       - `realistic_corpus_expected_fail_total=0`,
       - `realistic_corpus_observed_parse_pass_total=22`,
+  - Progress (2026-03-07): expanded the checked-in Nexsim realistic corpus to `16` declared deterministic all-pass cases (`version: 4`) with preprocess-shaped and package-import families:
+    - added preprocess-driven required-pass cases for:
+      - local include expansion,
+      - `define/ifdef` selected module branch,
+      - function-like macro substitution in a localparam,
+      - `define/undef/ifdef` guard fallthrough,
+    - added package-import integration required-pass case:
+      - module-local `import cfg_pkg::*;` with imported localparam assignment,
+    - direct dual-profile preprocess + parse-full validation for the new cases remained green:
+      - `10/10` passes across `sv_2017` and `sv_2023`.
       - `realistic_corpus_observed_parse_fail_total=0`.
 - [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
@@ -1093,6 +1103,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `11` to `16` declared all-pass cases (`version: 4`) by adding four preprocess-shaped required-pass families (include, conditional branch selection, function-like macro substitution, define/undef guard fallthrough) plus one package-import integration case; direct preprocess+parse-full validation for the new slice passed `10/10` across `sv_2017` and `sv_2023`.
 - 2026-03-07: Closed the `regex.ebnf` raw-AST parity audit for the Rust-native EBNF migration: clean committed-snapshot replay showed the Rust frontend correctly retains all `87` source rules while the legacy Perl export under-reports `9` real trailing helper definitions (`78` total), so the closure direction is to preserve Rust behavior and treat Perl parity as a known legacy limitation.
 - 2026-03-07: Closed the Pillar 1 branch-protection tail by adding tracked policy config (`rust/config/branch_protection_policy.json`), local validator script/Make target (`branch_protection_contract_gate`), and CI workflow (`branch-protection-contract-gate`) that enforce the minimum required pre-merge checks and `pull_request` trigger coverage.
 - 2026-03-06: Closed the last two SystemVerilog realistic-corpus parse gaps by hardening `grammars/systemverilog.ebnf` for edge-qualified event expressions and indexed selects/lvalues, then promoted `systemverilog_nexsim_realistic_corpus_v0.json` to `version: 3` with `11` expected-pass / `0` expected-fail cases (`22/22` realistic dual-profile parses pass in focused validation).

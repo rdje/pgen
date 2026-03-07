@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "description": "Deterministic Nexsim-oriented realistic SystemVerilog corpus for preprocess/parse_full budget and integration hardening.",
   "cases": [
     {
@@ -65,6 +65,36 @@
     {
       "name": "generate_for_array_assign",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/generate_for_array_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_include_localparam",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_localparam.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_conditional_branch",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_conditional_branch.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_function_args",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_function_args.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_define_undef_guard",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_define_undef_guard.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "package_import_localparam_assign",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_localparam_assign.sv",
       "profiles": ["2017", "2023"],
       "expect_parse_full_pass": true
     }

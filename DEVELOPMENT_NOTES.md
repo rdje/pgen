@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: Preprocess-Shaped Pass Families
+### Context
+The next highest-priority Phase P/Q task after the `regex.ebnf` parity audit was to broaden the checked-in Nexsim realistic corpus beyond the `11/11` all-pass baseline, with emphasis on preprocess-shaped files and another realistic integration family, without weakening the required-pass expectations.
+
+### Implementation
+Promoted five more required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 4`
+  - `cases: 16`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_localparam.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_payload.svh`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_conditional_branch.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_function_args.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_define_undef_guard.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_localparam_assign.sv`
+
+The new slice intentionally targets:
+- preprocess-local include expansion,
+- preprocess branch selection (`ifdef` / `undef`),
+- function-like macro substitution that still lands in parser-supported syntax,
+- module-local package import usage.
+
+### Validation
+Used the real generated `systemverilog` parseability path already built by the SV gate tooling:
+- preprocessed each new case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+
+Observed result:
+- `5` new cases
+- `2` profiles each
+- `10/10` `parse_full` passes
+
+### Notes
+- I deliberately did not promote a direct macro-expanded packed-range width case (`logic [`WIDTH-1:0] ...`) because the current parser still rejects that post-preprocess shape.
+- That keeps the realistic corpus honest: only demonstrated pass families are promoted to required-pass status.
+- The full long `sv_stimuli_quality_gate` rerun is still the next evidence refresh item after this corpus increment.
+
 ## 2026-03-07 - `regex.ebnf` Raw-AST Parity Audit Closure
 ### Context
 The Rust-native EBNF migration had one remaining parity nuance: `grammars/regex.ebnf` produced `87` rules from the Rust raw-AST export but only `78` from the legacy Perl `ebnf_to_json.pl` path. The unresolved question was whether the Rust frontend was over-emitting rules or whether the older Perl export was truncating legitimate helper definitions.
