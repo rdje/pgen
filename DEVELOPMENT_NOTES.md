@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 5` Closure Increment
+### Context
+With the bounded rerun path in place, the next concrete Phase P/Q increment was to widen the checked-in Nexsim realistic corpus again, but only with cases already demonstrated to preprocess and `parse_full` cleanly in both `sv_2017` and `sv_2023`.
+
+### Implementation
+Promoted four additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 5`
+  - `cases: 20`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_conditionals.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_token_paste.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_imported_packages.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multiple_genvar_declarations.sv`
+
+The promoted families intentionally extend two active dimensions:
+- preprocess-shaped realistic files:
+  - nested conditional selection,
+  - token-paste identifier synthesis.
+- nontrivial integration/context shapes:
+  - multiple package imports in one file,
+  - multiple `genvar` declarations across separate generate loops.
+
+### Validation
+Direct dual-profile replay:
+- preprocessed each new case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+- observed:
+  - `4` new cases,
+  - `2` profiles each,
+  - `8/8` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v5_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `realistic_corpus_cases_declared=20`
+  - `realistic_corpus_cases_executed=40`
+  - `realistic_corpus_observed_parse_pass_total=40`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This keeps the realistic corpus on the same policy line as before: only parser-proven pass families are promoted to required-pass status.
+- The bounded rerun path remains useful operationally because the contract default replay budget is still intentionally much larger than what is convenient for fast evidence refreshes.
+
 ## 2026-03-07 - `sv_stimuli_quality_gate`: Bounded Replay Override + Realistic Include Replay Fix
 ### Context
 The immediate follow-up after expanding the Nexsim realistic corpus to `version: 4` was to refresh aggregate `sv_stimuli_quality_gate` evidence. The default closed-loop replay budget (`5000` target attempts) made that rerun hour-scale on the new gap inventory, and the first bounded replay exposed a separate gate bug: realistic cases with local includes failed once the gate copied them into its temporary work directory.

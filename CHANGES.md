@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-07 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 5`
+### ✅ Achievement Summary
+Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `16` to `20` declared all-pass cases and refreshed the bounded full-gate evidence on the promoted manifest.
+
+### Scope of Changes
+- Updated corpus manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - promoted from `version: 4` to `version: 5`
+    - declared cases increased from `16` to `20`
+- Added new realistic-corpus fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_conditionals.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_token_paste.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_imported_packages.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multiple_genvar_declarations.sv`
+
+### Validation Results
+- Direct realistic-case replay through the real SV preprocess + parseability path:
+  - each new file was preprocessed with:
+    - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+  - each preprocessed output was `parse_full`-probed with:
+    - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017|sv_2023`
+  - observed:
+    - `8/8` passes across the `4` new cases and `2` LRM profiles.
+- Bounded aggregate evidence refresh:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v5_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `realistic_corpus_cases_declared=20`
+    - `realistic_corpus_cases_executed=40`
+    - `realistic_corpus_observed_parse_pass_total=40`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- The newly promoted families are:
+  - nested `ifdef` selection,
+  - macro token-paste expansion into an identifier,
+  - multi-package import/use in one file,
+  - multiple `genvar` declarations across separate generate loops.
+- The bounded replay override and realistic-corpus include-path fix added earlier remain the mechanism used for aggregate evidence refreshes.
+
 ## 2026-03-07 - Close SV `version: 4` Corpus Gate Follow-Up With Bounded Replay Evidence
 ### ✅ Achievement Summary
 Closed the immediate follow-up from the `version: 4` SystemVerilog realistic-corpus expansion by hardening `sv_stimuli_quality_gate` for bounded evidence reruns and by fixing realistic-case local include resolution after fixture staging.

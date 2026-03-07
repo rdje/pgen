@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "description": "Deterministic Nexsim-oriented realistic SystemVerilog corpus for preprocess/parse_full budget and integration hardening.",
   "cases": [
     {
@@ -69,6 +69,12 @@
       "expect_parse_full_pass": true
     },
     {
+      "name": "multiple_genvar_declarations",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multiple_genvar_declarations.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
       "name": "preprocess_include_localparam",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_localparam.sv",
       "profiles": ["2017", "2023"],
@@ -93,8 +99,26 @@
       "expect_parse_full_pass": true
     },
     {
+      "name": "preprocess_nested_conditionals",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_conditionals.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_token_paste",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_token_paste.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
       "name": "package_import_localparam_assign",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_localparam_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "multi_imported_packages",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_imported_packages.sv",
       "profiles": ["2017", "2023"],
       "expect_parse_full_pass": true
     }
