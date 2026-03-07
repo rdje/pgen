@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-07 - Selectively Tracked `generated/*.rs` Include Sources
+### ✅ Achievement Summary
+Fixed the GitHub gate checkout failure mode caused by clean clones missing the generated Rust sources referenced by compile-time `include!(...)` statements.
+
+### Scope of Changes
+- Updated ignore policy:
+  - `/Users/richarddje/Documents/github/pgen/.gitignore`
+    - still ignores `generated/` by default,
+    - but now explicitly unignores the three generated Rust sources that are compile-time library inputs:
+      - `generated/ebnf.rs`
+      - `generated/return_annotation_parser.rs`
+      - `generated/semantic_annotation_parser.rs`
+- Repository contract/documentation synchronization:
+  - `/Users/richarddje/Documents/github/pgen/README.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+  - `/Users/richarddje/Documents/github/pgen/COMMIT.md`
+
+### Validation Results
+- Include-surface audit ✅
+  - confirmed repo-local compile-time `include!(...)` dependencies are exactly:
+    - `generated/ebnf.rs`
+    - `generated/return_annotation_parser.rs`
+    - `generated/semantic_annotation_parser.rs`
+- Gate-entry build verification ✅
+  - `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner`
+  - `cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ebnf_dual_run_diff`
+
+### Notes
+- This is intentionally selective:
+  - most of `generated/` remains ignored and non-authoritative,
+  - only the `.rs` files that are directly consumed by `include!(...)` are now version controlled for clean-checkout CI reliability.
+
 ## 2026-03-07 - Hardened Rust-Native EBNF Frontend Gate Path
 ### ✅ Achievement Summary
 Completed the next Rust-native EBNF migration increment by adding a standalone Rust `raw_ast` export mode, wiring the tracked EBNF gates to select the Rust frontend path, and fixing multiline semantic-annotation handling so `regex.ebnf` now passes the Rust readiness and closed-loop quality flows.

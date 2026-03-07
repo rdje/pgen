@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Clean-Checkout Gate Fix: Track the `generated/*.rs` Include Inputs
+### Context
+The failing GitHub gate runs were not caused by broken relative include paths. The paths in `rust/src/lib.rs` were correct; the problem was that a clean Actions checkout does not contain the generated Rust sources those `include!(...)` statements point at. Locally the files existed, but they were ignored/untracked under `generated/`, so any workflow compiling `generated_parsers` or `ebnf_dual_run` failed before the actual gate logic even ran.
+
+### Implementation
+Promoted the compile-time included generated Rust sources to selective tracked artifacts:
+- ignore-policy change:
+  - `/Users/richarddje/Documents/github/pgen/.gitignore`
+    - still ignores `generated/` broadly,
+    - explicitly unignores only:
+      - `generated/ebnf.rs`
+      - `generated/return_annotation_parser.rs`
+      - `generated/semantic_annotation_parser.rs`
+- repository contract update:
+  - `/Users/richarddje/Documents/github/pgen/README.md`
+  - `/Users/richarddje/Documents/github/pgen/COMMIT.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+    - all now state that these three files are the deliberate exception to the normal “generated artifacts are not authoritative/tracked” rule.
+
+### Validation
+Audited the compile-time include surface:
+- repo-local includes in `rust/src/lib.rs` are exactly:
+  - `generated/ebnf.rs`
+  - `generated/return_annotation_parser.rs`
+  - `generated/semantic_annotation_parser.rs`
+- other generated parser includes (`systemverilog`, `systemverilog_preprocessor`, `vhdl`) remain env-driven and conditional, so they do not need blanket tracking in the clean-checkout baseline.
+
+Verified gate-entry compilation on the tracked include surfaces:
+- `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner`
+- `cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ebnf_dual_run_diff`
+
+### Notes
+- This is intentionally not a policy reversal for all of `generated/`.
+- The goal is narrower: only the generated Rust files that the crate directly `include!`s at compile time are version controlled so GitHub Actions can build from a fresh clone without pre-populating ignored local artifacts.
+
 ## 2026-03-07 - Rust EBNF Frontend Gate Path: Raw-AST Export + Multiline Annotation Closure
 ### Context
 The next Rust-native EBNF migration step was to make the tracked EBNF gates runnable against the Rust frontend itself instead of always shelling through `tools/ebnf_to_json.pl`. The shell wiring landed quickly, but the first real Rust-path replay exposed the actual blocker: the generated `ebnf` parser does not model multiline semantic annotations as full annotation nodes, so `regex.ebnf` block annotations like `@dispatch: { ... }` and `@dispatch_table: { ... }` collapsed the old parse-tree-based raw-AST adapter.

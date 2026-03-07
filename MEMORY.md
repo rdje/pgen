@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: rust-ebnf-frontend-gate-hardening)
+Last updated: 2026-03-07 (+0100, task: selective-tracked-generated-rs-include-inputs)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -19,12 +19,23 @@ Use this file to resume work without replaying full chat history.
    - `git_message_brief.txt`
    - `questions_keep_untracked.txt`
 5. If generated artifacts are needed, regenerate; do not assume they are committed.
+   - exception:
+     - the three generated Rust sources consumed by compile-time `include!(...)` are now tracked and should exist in a clean checkout:
+       - `generated/ebnf.rs`
+       - `generated/return_annotation_parser.rs`
+       - `generated/semantic_annotation_parser.rs`
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
 - Latest commit: run `git log -1 --oneline` at resume time (do not rely on stale hash text).
+- Clean-checkout generated-source contract:
+  - repo-local compile-time `include!(...)` dependencies are now intentionally tracked for CI/build reliability:
+    - `generated/ebnf.rs`
+    - `generated/return_annotation_parser.rs`
+    - `generated/semantic_annotation_parser.rs`
+  - all other `generated/` outputs remain ignored unless explicitly promoted by separate policy.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),

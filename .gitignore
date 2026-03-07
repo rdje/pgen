@@ -205,7 +205,10 @@ nytprof/
 # =============================================================================
 # Generated parsers (preserve source grammars, ignore generated code)
 **/target/
-generated/
+generated/*
+!generated/ebnf.rs
+!generated/return_annotation_parser.rs
+!generated/semantic_annotation_parser.rs
 generated_*.pm
 generated_*.jl
 generated_*.rs

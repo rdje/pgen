@@ -25,7 +25,12 @@ Run this workflow after each completed task/activity.
 - `questions_keep_untracked.txt` (must remain untracked)
   - User backlog/questions for future UG work.
 - `generated/` artifacts
-  - Regenerable outputs; not authoritative source-of-truth.
+  - Regenerable outputs; not authoritative source-of-truth by default.
+  - Exception:
+    - the compile-time `include!(...)` inputs are intentionally tracked and must remain in git:
+      - `generated/ebnf.rs`
+      - `generated/return_annotation_parser.rs`
+      - `generated/semantic_annotation_parser.rs`
 
 ## Required Commit Workflow (Exact Order)
 1. Ensure task is complete and tested.
@@ -54,6 +59,11 @@ Run this workflow after each completed task/activity.
 - Do not add `git_message_brief.txt` to git.
 - Do not track `questions_keep_untracked.txt`.
 - Do not commit generated artifacts unless explicitly requested.
+  - Exception:
+    - keep the tracked `include!(...)` Rust sources in git:
+      - `generated/ebnf.rs`
+      - `generated/return_annotation_parser.rs`
+      - `generated/semantic_annotation_parser.rs`
 - Do not use destructive git commands unless explicitly requested.
 
 ## Command Template
