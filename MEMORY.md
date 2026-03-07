@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: sv-realistic-corpus-expansion-v10)
+Last updated: 2026-03-07 (+0100, task: parser-trust-doctrine-capture)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -53,6 +53,23 @@ Use this file to resume work without replaying full chat history.
     - pipeline/config formats,
     - optional SDF,
   - this is roadmap-only for now and is not active implementation work.
+- Parser trust doctrine is now explicit in the roadmap and release policy:
+  - claimed parser quality is only considered closed when backed by a machine-checkable contract, gate, invariant, or artifact,
+  - required evidence categories now explicitly include:
+    - grammar-contract correctness,
+    - ambiguity/error predictability,
+    - embedder-grade performance,
+    - failure observability,
+    - regeneration/release stability,
+    - realistic-corpus and reference-backed proof where practical,
+  - execution preference remains:
+    - gates over claims,
+    - realistic corpora over toy-only success,
+    - profile-aware coverage,
+    - differential validation,
+    - performance budgets,
+    - deterministic reproducibility,
+    - embedder-facing diagnostics and AST visibility.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),

@@ -5,6 +5,28 @@ Last updated: 2026-03-07
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
 
+## Parser Trust Doctrine
+The product bar for PGEN is parser trustworthiness, not parser novelty. Roadmap items should be considered incomplete until they map to implementation contracts, executable gates, or enforced invariants for the following qualities:
+
+- correctness on the intended grammar contract,
+- predictability under ambiguity and error cases,
+- performance sufficient for real embedder workflows,
+- observability when parsing or generation fails,
+- stability across regeneration and releases,
+- proof against realistic corpora and external references where practical.
+
+Execution preference for this roadmap:
+- executable quality gates over claims,
+- realistic-corpus expansion over toy-only success,
+- profile-aware contract coverage,
+- differential/reference validation,
+- explicit performance budgets,
+- deterministic reproducibility,
+- embedder-facing diagnostics and AST visibility.
+
+Interpretation rule:
+- if a claimed parser quality does not have a machine-checkable artifact, gate, contract, or invariant behind it, treat that quality as not yet closed.
+
 ## Status Legend
 - `Not Started`
 - `In Progress`

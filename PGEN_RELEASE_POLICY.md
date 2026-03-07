@@ -5,6 +5,27 @@ Last updated: 2026-03-07
 ## Purpose
 Define objective, machine-enforced pass criteria for release-grade validation of PGEN.
 
+## Release Doctrine
+Release readiness is not just "the gates are green." Release-grade confidence must continue to map to explicit contracts, gates, or invariants for the parser qualities below:
+
+- correctness on the intended grammar contract,
+- predictability under ambiguity and error cases,
+- performance sufficient for real embedder workflows,
+- observability when parsing or generation fails,
+- stability across regeneration and releases,
+- proof against realistic corpora and external references where practical.
+
+Release-policy preference order:
+- executable quality gates over claims,
+- realistic corpora over toy-only success,
+- profile-aware contract coverage,
+- differential/reference validation when a trustworthy reference exists,
+- explicit performance budgets,
+- deterministic reproducibility,
+- embedder-facing diagnostics and AST visibility.
+
+If one of these qualities is not backed by machine-checkable evidence, it should be treated as release debt rather than assumed complete.
+
 This policy is consumed by:
 - `rust/scripts/sota_exit_gate.sh`
 - `make -C rust SHELL=/bin/bash sota_exit_gate`

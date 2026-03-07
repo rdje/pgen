@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Doctrine Capture: Parser Trust Must Be Backed By Contracts And Gates
+### Context
+You clarified that the desired end-state is not just "high quality parsers," but a stricter rule: parser trustworthiness itself must be expressed as implementation contracts, executable gates, and enforced invariants wherever possible.
+
+### Implementation
+Updated:
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - added a `Parser Trust Doctrine` section directly under the mission,
+  - encoded the required parser-quality evidence categories:
+    - grammar-contract correctness,
+    - ambiguity/error predictability,
+    - embedder-grade performance,
+    - failure observability,
+    - regeneration/release stability,
+    - realistic-corpus and external-reference proof where practical,
+  - encoded the preferred execution posture:
+    - executable gates over claims,
+    - realistic corpora over toy-only success,
+    - profile-aware contract coverage,
+    - differential/reference validation,
+    - explicit performance budgets,
+    - deterministic reproducibility,
+    - embedder-facing diagnostics and AST visibility.
+- `/Users/richarddje/Documents/github/pgen/PGEN_RELEASE_POLICY.md`
+  - added matching release-doctrine wording so these qualities are treated as required evidence categories rather than optional aspirations.
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+  - added handoff context for the doctrine so future work resumes with the same interpretation.
+
+### Validation
+- Documentation surface check:
+  - confirmed the roadmap, release policy, and handoff file all carry the new parser-trust doctrine.
+
+### Notes
+- This is a policy/doctrine capture task only.
+- No code, grammar, or gate implementation changed here.
+
 ## 2026-03-07 - Roadmap Amendment: RTLSyn Planned Parser Stack
 ### Context
 You identified a distinct downstream requirement set for the planned RTLSyn flow that should be visible in the main roadmap even though it is not part of the active implementation thread.

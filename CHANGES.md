@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-07 - Codify Parser Trust Doctrine As Roadmap/Release Criteria
+### ✅ Achievement Summary
+Codified the parser-trust bar as an explicit roadmap and release-policy doctrine so parser quality claims are now framed as contracts, gates, invariants, and machine-checkable evidence categories rather than informal goals.
+
+### Scope of Changes
+- Updated:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - added a `Parser Trust Doctrine` section near the mission,
+    - captured the required parser-quality evidence categories:
+      - grammar-contract correctness,
+      - ambiguity/error predictability,
+      - embedder-grade performance,
+      - failure observability,
+      - regeneration/release stability,
+      - realistic-corpus and external-reference proof where practical,
+    - recorded the roadmap execution preference:
+      - gates over claims,
+      - realistic corpora over toy-only success,
+      - profile-aware contract coverage,
+      - differential/reference validation,
+      - performance budgets,
+      - deterministic reproducibility,
+      - embedder-facing diagnostics and AST visibility.
+  - `/Users/richarddje/Documents/github/pgen/PGEN_RELEASE_POLICY.md`
+    - added matching release doctrine language so missing machine-checkable evidence is treated as release debt.
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+    - added handoff context for the new parser-trust doctrine.
+
+### Validation Results
+- Documentation surface check only:
+  - confirmed the roadmap, release policy, and handoff file all carry the parser-trust doctrine language.
+
+### Notes
+- This task codifies acceptance criteria and policy posture only.
+- No parser/runtime implementation changed in this increment.
+
 ## 2026-03-07 - Capture RTLSyn Planned Parser Stack In Roadmap
 ### ✅ Achievement Summary
 Recorded the planned RTLSyn parser-family minimum set in the roadmap as future work, without starting implementation.
