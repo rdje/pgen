@@ -24,5 +24,15 @@ jobs:
         with:
           workspaces: rust
 
+      - name: Ensure jq runtime
+        run: |
+          if command -v jq >/dev/null 2>&1; then
+            jq --version
+          else
+            sudo apt-get update
+            sudo apt-get install -y jq
+            jq --version
+          fi
+
       - name: Run annotation normative contract gate
         run: make -C rust SHELL=/bin/bash annotation_contract_gate

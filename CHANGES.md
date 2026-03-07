@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-07 - Provision `jq` Explicitly In GitHub Gate Workflows
+### ✅ Achievement Summary
+Hardened the tracked GitHub Actions gate workflows so they no longer rely on runner-image defaults for `jq`.
+
+### Scope of Changes
+- Updated workflows:
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/annotation-contract-gate.yml`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/annotation-nonbootstrap-e2e-gate.yml`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/branch-protection-contract-gate.yml`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/differential-regression-gate.yml`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/ebnf-frontend-dual-run-diff.yml`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/fixed-point-gate.yml`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/performance-gate.yml`
+  - `/Users/richarddje/Documents/github/pgen/.github/workflows/sota-exit-gate.yml`
+- Added an `Ensure jq runtime` step to each gate job:
+  - uses `jq` if already present,
+  - otherwise installs it with `apt-get` before the gate runs.
+
+### Validation Results
+- Audit:
+  - all tracked gate workflows now contain `Ensure jq runtime`
+  - no remaining unguarded `rg` use in the tracked workflow/gate surface
+  - no `fd` / `yq` / `tree` / `realpath` / `gtimeout` assumptions found in the tracked workflow/gate surface
+
+### Notes
+- The branch protection gate still optionally uses `rg` when present, but it now safely falls back to `grep`.
+- This keeps GitHub Actions behavior deterministic even if runner image contents change.
+
 ## 2026-03-07 - Make Branch Protection Gate Portable Without `rg`
 ### ✅ Achievement Summary
 Fixed the branch protection contract gate so it no longer fails on GitHub Actions runners that do not have `ripgrep` (`rg`) installed.

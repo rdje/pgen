@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - GitHub Workflow Tooling Sanity Check: Explicit `jq`
+### Context
+After the `rg` failure in the branch protection gate, the next sanity check was to look for other non-baseline command assumptions in the tracked GitHub Actions workflow/gate surface before pushing again. The main remaining risk was `jq`: several gate scripts use it, but the workflow jobs were relying on the runner image having it preinstalled.
+
+### Implementation
+Updated all tracked gate workflows to provision `jq` explicitly before running the gate:
+- `/Users/richarddje/Documents/github/pgen/.github/workflows/annotation-contract-gate.yml`
+- `/Users/richarddje/Documents/github/pgen/.github/workflows/annotation-nonbootstrap-e2e-gate.yml`
+- `/Users/richarddje/Documents/github/pgen/.github/workflows/branch-protection-contract-gate.yml`
+- `/Users/richarddje/Documents/github/pgen/.github/workflows/differential-regression-gate.yml`
+- `/Users/richarddje/Documents/github/pgen/.github/workflows/ebnf-frontend-dual-run-diff.yml`
+- `/Users/richarddje/Documents/github/pgen/.github/workflows/fixed-point-gate.yml`
+- `/Users/richarddje/Documents/github/pgen/.github/workflows/performance-gate.yml`
+- `/Users/richarddje/Documents/github/pgen/.github/workflows/sota-exit-gate.yml`
+
+Each now runs:
+- `jq --version` when `jq` already exists,
+- otherwise `sudo apt-get update && sudo apt-get install -y jq`.
+
+### Validation
+Audit results:
+- every tracked gate workflow now contains `Ensure jq runtime`,
+- the only remaining `rg` reference is the optional branch-protection helper path with `grep` fallback,
+- no `fd`, `yq`, `tree`, `realpath`, or `gtimeout` assumptions were found in the tracked workflow/gate surface.
+
+### Notes
+- This is the right pattern for non-baseline utilities in GitHub Actions:
+  - either install them in the workflow,
+  - or make the script itself portable to baseline tools.
+
 ## 2026-03-07 - Branch Protection Gate Portability: `rg` Optional
 ### Context
 The GitHub Actions `branch_protection_contract_gate` run failed before real policy evaluation because `rust/scripts/branch_protection_contract_gate.sh` used `rg` (`ripgrep`) directly to detect `pull_request:` triggers in workflow files. GitHub-hosted runners do not guarantee `rg`, so the script reported false missing-trigger failures even though the workflows were correctly configured.

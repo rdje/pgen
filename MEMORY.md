@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: branch-protection-gate-rg-fallback)
+Last updated: 2026-03-07 (+0100, task: workflow-jq-provisioning-audit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -34,6 +34,10 @@ Use this file to resume work without replaying full chat history.
 - Branch protection contract portability:
   - `rust/scripts/branch_protection_contract_gate.sh` no longer requires `rg`,
   - it falls back to `grep -E` on runners where `ripgrep` is unavailable.
+- GitHub workflow tooling sanity:
+  - tracked gate workflows now explicitly ensure `jq` is installed before gate execution,
+  - no remaining unguarded `rg` usage in the tracked workflow/gate surface,
+  - no `fd`, `yq`, `tree`, `realpath`, or `gtimeout` assumptions found in the tracked workflow/gate surface.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),

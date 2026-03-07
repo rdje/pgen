@@ -16,6 +16,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Ensure jq runtime
+        run: |
+          if command -v jq >/dev/null 2>&1; then
+            jq --version
+          else
+            sudo apt-get update
+            sudo apt-get install -y jq
+            jq --version
+          fi
+
       - name: Verify Perl runtime
         run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
 
