@@ -1,4 +1,71 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 12` Multi-Width Wildcard + Macro Import/Module Increment
+### Context
+After the `version: 11` promotion, the next clean Phase P/Q increment was to keep expanding the width/import composition cluster instead of pivoting away too early: add wildcard and named-port variants over multi-width import/use, combine deeper include-chain package-width state with both wildcard and internal-packed reuse, and add the corresponding width-aware macro import/module-name/port-name families.
+
+### Implementation
+Promoted seven additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 12`
+  - `cases: 60`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_named_port_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_wildcard_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_named_port_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_bind.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_width_internal_packed_multi.sv`
+- support include files:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_mid.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_leaf.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_mid.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_leaf.svh`
+
+This slice extends the realistic corpus in three useful directions:
+- multi-width import/use breadth:
+  - module-local multi-width named-port instantiation,
+  - package-import multi-width wildcard instantiation.
+- deeper include topology:
+  - three-step local include chain ending in package-width internal-packed reuse,
+  - three-step local include chain ending in package-width wildcard reuse.
+- width-aware macro breadth:
+  - macro-expanded multi-width import plus named-port instantiation,
+  - macro-expanded module-name multi-width binding,
+  - macro-expanded port-name internal-packed multi-width binding.
+
+### Validation
+Direct dual-profile replay:
+- preprocessed each new preprocess-shaped case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each direct or preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+- observed:
+  - `7` new cases,
+  - `2` profiles each,
+  - `14/14` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v12_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5484`
+  - `closed_loop_replay_targets_total=5211`
+  - `realistic_corpus_cases_declared=60`
+  - `realistic_corpus_cases_executed=120`
+  - `realistic_corpus_observed_parse_pass_total=120`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_warning_total=2`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This increment stayed fully all-pass again; no expected-fail sentinels were added.
+- The next likely search space is now further out again: richer multi-module width/import compositions or the next profile-sensitive families not yet represented in the current preprocess/macro/include matrix.
+
 ## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 11` Width-Multi-Assign + Macro Module-Name Increment
 ### Context
 After the `version: 10` promotion, the next useful Phase P/Q increment was to keep pushing the same parser-backed composition frontier one step further: multi-width import/use rather than single-width only, macro-expanded module names over internal-packed and wildcard width shapes, and deeper include topology that brings in package-width state.
