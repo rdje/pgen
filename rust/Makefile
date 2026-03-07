@@ -40,6 +40,7 @@ RUST_AST_PIPELINE = $(RUST_DIR)/target/debug/ast_pipeline
 RUST_AST_PIPELINE_BOOTSTRAP = $(RUST_DIR)/target/debug/ast_pipeline_bootstrap
 DIFFERENTIAL_REPORT_DIR = $(RUST_DIR)/target/differential_harness
 DIFFERENTIAL_BASELINE_DIR = $(RUST_DIR)/test_data/differential_baseline
+GENERATED_LOG_DIR = $(RUST_DIR)/target/generated_logs
 
 # Differential harness policy:
 # - default reports mismatches without failing local flows
@@ -335,45 +336,45 @@ force-debug-json:
 .PHONY: regex-parser-with-log
 regex-parser-with-log:
 	@echo "Generating regex parser with full debug logging..."
-	@mkdir -p $(GENERATED_DIR)
+	@mkdir -p $(GENERATED_DIR) $(GENERATED_LOG_DIR)
 	@rm -f $(REGEX_JSON) $(REGEX_PARSER)
-	@echo "Step 1: Generate regex JSON..." | tee $(GENERATED_DIR)/regex_parser.log
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(REGEX_EBNF) -o $(REGEX_JSON) 2>&1 | tee $(GENERATED_DIR)/regex_parser.log
-	@echo "\nStep 2: Generate regex parser from JSON..." | tee $(GENERATED_DIR)/regex_parser.log
-	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER) 2>&1 | tee $(GENERATED_DIR)/regex_parser.log
-	@echo "\nRegex parser generation complete! Check $(GENERATED_DIR)/regex_parser.log for details"
+	@echo "Step 1: Generate regex JSON..." | tee $(GENERATED_LOG_DIR)/regex_parser.log
+	$(EBNF_TO_JSON) --verbosity debug --pretty $(REGEX_EBNF) -o $(REGEX_JSON) 2>&1 | tee $(GENERATED_LOG_DIR)/regex_parser.log
+	@echo "\nStep 2: Generate regex parser from JSON..." | tee -a $(GENERATED_LOG_DIR)/regex_parser.log
+	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER) 2>&1 | tee -a $(GENERATED_LOG_DIR)/regex_parser.log
+	@echo "\nRegex parser generation complete! Check $(GENERATED_LOG_DIR)/regex_parser.log for details"
 
 .PHONY: return-annotation-parser-with-log
 return-annotation-parser-with-log:
 	@echo "Generating return annotation parser with full debug logging..."
-	@mkdir -p $(GENERATED_DIR)
+	@mkdir -p $(GENERATED_DIR) $(GENERATED_LOG_DIR)
 	@rm -f $(RETURN_ANNOTATION_JSON) $(RETURN_ANNOTATION_PARSER)
-	@echo "Step 1: Generate return annotation JSON..." | tee $(GENERATED_DIR)/return_annotation_parser.log
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(RETURN_ANNOTATION_EBNF) -o $(RETURN_ANNOTATION_JSON) 2>&1 | tee $(GENERATED_DIR)/return_annotation_parser.log
-	@echo "\nStep 2: Generate return annotation parser from JSON..." | tee -a $(GENERATED_DIR)/return_annotation_parser.log
-	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER) 2>&1 | tee -a $(GENERATED_DIR)/return_annotation_parser.log
-	@echo "\nReturn annotation parser generation complete! Check $(GENERATED_DIR)/return_annotation_parser.log for details"
+	@echo "Step 1: Generate return annotation JSON..." | tee $(GENERATED_LOG_DIR)/return_annotation_parser.log
+	$(EBNF_TO_JSON) --verbosity debug --pretty $(RETURN_ANNOTATION_EBNF) -o $(RETURN_ANNOTATION_JSON) 2>&1 | tee $(GENERATED_LOG_DIR)/return_annotation_parser.log
+	@echo "\nStep 2: Generate return annotation parser from JSON..." | tee -a $(GENERATED_LOG_DIR)/return_annotation_parser.log
+	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER) 2>&1 | tee -a $(GENERATED_LOG_DIR)/return_annotation_parser.log
+	@echo "\nReturn annotation parser generation complete! Check $(GENERATED_LOG_DIR)/return_annotation_parser.log for details"
 
 .PHONY: semantic-annotation-parser-with-log
 semantic-annotation-parser-with-log:
 	@echo "Generating semantic annotation parser with full debug logging..."
-	@mkdir -p $(GENERATED_DIR)
+	@mkdir -p $(GENERATED_DIR) $(GENERATED_LOG_DIR)
 	@rm -f $(SEMANTIC_ANNOTATION_JSON) $(SEMANTIC_ANNOTATION_PARSER)
-	@echo "Step 1: Generate semantic annotation JSON..." | tee $(GENERATED_DIR)/semantic_annotation_parser.log
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(SEMANTIC_ANNOTATION_EBNF) -o $(SEMANTIC_ANNOTATION_JSON) 2>&1 | tee $(GENERATED_DIR)/semantic_annotation_parser.log
-	@echo "\nStep 2: Generate semantic annotation parser from JSON..." | tee -a $(GENERATED_DIR)/semantic_annotation_parser.log
-	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER) 2>&1 | tee -a $(GENERATED_DIR)/semantic_annotation_parser.log
-	@echo "\nSemantic annotation parser generation complete! Check $(GENERATED_DIR)/semantic_annotation_parser.log for details"
+	@echo "Step 1: Generate semantic annotation JSON..." | tee $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
+	$(EBNF_TO_JSON) --verbosity debug --pretty $(SEMANTIC_ANNOTATION_EBNF) -o $(SEMANTIC_ANNOTATION_JSON) 2>&1 | tee $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
+	@echo "\nStep 2: Generate semantic annotation parser from JSON..." | tee -a $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
+	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER) 2>&1 | tee -a $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
+	@echo "\nSemantic annotation parser generation complete! Check $(GENERATED_LOG_DIR)/semantic_annotation_parser.log for details"
 
 .PHONY: debug-semantic-annotations
 debug-semantic-annotations: $(SEMANTIC_ANNOTATION_EXE) $(RETURN_ANNOTATION_EXE)
 	@echo "Testing semantic annotation parsing with debug output..."
-	@mkdir -p $(GENERATED_DIR)
-	@echo "Testing semantic annotation parser with sample input:" | tee $(GENERATED_DIR)/semantic_debug.log
-	@echo 'codegen: "escape_literal_handling"' | $(SEMANTIC_ANNOTATION_EXE) --debug 2>&1 | tee $(GENERATED_DIR)/semantic_debug.log
-	@echo "\n\nTesting return annotation parser with sample input:" | tee $(GENERATED_DIR)/semantic_debug.log
-	@echo '{type: "escape", pattern: $$1}' | $(RETURN_ANNOTATION_EXE) --debug 2>&1 | tee $(GENERATED_DIR)/semantic_debug.log
-	@echo "\nDebug output saved to $(GENERATED_DIR)/semantic_debug.log"
+	@mkdir -p $(GENERATED_LOG_DIR)
+	@echo "Testing semantic annotation parser with sample input:" | tee $(GENERATED_LOG_DIR)/semantic_debug.log
+	@echo 'codegen: "escape_literal_handling"' | $(SEMANTIC_ANNOTATION_EXE) --debug 2>&1 | tee -a $(GENERATED_LOG_DIR)/semantic_debug.log
+	@echo "\n\nTesting return annotation parser with sample input:" | tee -a $(GENERATED_LOG_DIR)/semantic_debug.log
+	@echo '{type: "escape", pattern: $$1}' | $(RETURN_ANNOTATION_EXE) --debug 2>&1 | tee -a $(GENERATED_LOG_DIR)/semantic_debug.log
+	@echo "\nDebug output saved to $(GENERATED_LOG_DIR)/semantic_debug.log"
 
 # Parser-specific comprehensive flow targets
 # These create complete EBNF -> JSON -> PARSER.RS -> STRESS_TESTS flows

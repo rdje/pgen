@@ -203,12 +203,9 @@ nytprof/
 # =============================================================================
 # PARSER GENERATED FILES
 # =============================================================================
-# Generated parsers (preserve source grammars, ignore generated code)
+# Generated parsers / artifacts
+# `generated/` is intentionally version controlled by repository policy.
 **/target/
-generated/*
-!generated/ebnf.rs
-!generated/return_annotation_parser.rs
-!generated/semantic_annotation_parser.rs
 generated_*.pm
 generated_*.jl
 generated_*.rs
@@ -375,3 +372,7 @@ Desktop.ini
 # Test runner logs
 test_runner_*.log
 universal_test_runner_*.log
+
+# Repository policy: keep the full generated tree in git.
+!generated/
+!generated/**

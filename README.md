@@ -31,11 +31,8 @@ PGEN is a production-focused parser and stimuli generator platform.
 
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)
-- `generated/`: generated artifacts (regenerable outputs)
-  - exception: the Rust sources reached by compile-time `include!(...)` are intentionally tracked:
-    - `generated/ebnf.rs`
-    - `generated/return_annotation_parser.rs`
-    - `generated/semantic_annotation_parser.rs`
+- `generated/`: version-controlled canonical generated artifacts used by compile-time includes and clean-checkout gates
+- `rust/target/generated_logs/`: scratch generation/debug logs kept out of `generated/`
 - `rust/src/`: Rust AST pipeline, generators, parser registry, embedding API
 - `rust/config/branch_protection_policy.json`: tracked minimum branch-protection required-check contract
 - `rust/scripts/`: executable quality gates and policy runners

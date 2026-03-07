@@ -7,6 +7,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PGEN_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ARTIFACT_ROOT="$PGEN_ROOT/rust/target/bootstrap_tests"
 cd "$PGEN_ROOT"
 
 echo "🧪 Bootstrap Parser Comprehensive Test Suite"
@@ -33,10 +34,12 @@ run_test() {
     
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
     
-    # Convert EBNF to JSON - place artifacts in generated/
-    local json_file="generated/${test_name}.json"
-    local parser_file="generated/${test_name}_parser.rs"
-    local log_file="generated/${test_name}.log"
+    # Keep bootstrap test scratch artifacts out of generated/
+    local artifact_dir="$ARTIFACT_ROOT/${parser_type}/${test_type}"
+    mkdir -p "$artifact_dir"
+    local json_file="${artifact_dir}/${test_name}.json"
+    local parser_file="${artifact_dir}/${test_name}_parser.rs"
+    local log_file="${artifact_dir}/${test_name}.log"
     
     # Step 1: EBNF to JSON conversion
     if ! tools/ebnf_to_json.pl "$test_file" -o "$json_file" > "$log_file" 2>&1; then

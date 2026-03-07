@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Repository Policy Reversal: Track Full `generated/` Tree
+### Context
+The selective tracking policy fixed the first clean-checkout failure (`include!(...)` Rust sources) but the next GitHub Actions run showed the same underlying problem for gate-time JSON inputs, specifically `generated/return_annotation.json` and `generated/semantic_annotation.json` in `annotation_nonbootstrap_e2e_gate.sh`. The user requested a simpler and broader contract: version control the whole `generated/` directory.
+
+### Implementation
+Updated repository policy and ignore behavior so `generated/` is no longer treated as an ignored tree with narrow exceptions:
+- `/Users/richarddje/Documents/github/pgen/.gitignore`
+  - removed the selective `generated/*.rs` exception model,
+  - added a final `!generated/` / `!generated/**` override so all current and future files in the tree are visible to git.
+- cleaned the tree so only canonical generated assets remain in it:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+    - debug/parser logs now go to `rust/target/generated_logs/`
+  - `/Users/richarddje/Documents/github/pgen/tests/bootstrap_tests/run_simple_tests.sh`
+    - bootstrap test scratch JSON/parser/log files now go to `rust/target/bootstrap_tests/`
+- promoted current canonical `generated/` contents to tracked repository artifacts, including:
+  - grammar JSONs,
+  - generated Rust parser sources,
+- synchronized repository contract docs:
+  - `/Users/richarddje/Documents/github/pgen/README.md`
+  - `/Users/richarddje/Documents/github/pgen/COMMIT.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation
+Confirmed the failing clean-checkout gate path is now satisfied by tracked repository content:
+- `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=2 make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+
+### Notes
+- This intentionally trades a tighter generated-artifact policy for operational simplicity.
+- The prior “track only a few generated exceptions” rule is superseded by “track the full `generated/` directory”.
+- “Track the full `generated/` directory” still excludes transient logs and test scratch by relocating those outputs outside the tree.
+
 ## 2026-03-07 - Clean-Checkout Gate Fix: Track the `generated/*.rs` Include Inputs
 ### Context
 The failing GitHub gate runs were not caused by broken relative include paths. The paths in `rust/src/lib.rs` were correct; the problem was that a clean Actions checkout does not contain the generated Rust sources those `include!(...)` statements point at. Locally the files existed, but they were ignored/untracked under `generated/`, so any workflow compiling `generated_parsers` or `ebnf_dual_run` failed before the actual gate logic even ran.

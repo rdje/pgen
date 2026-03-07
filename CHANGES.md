@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-07 - Track Full `generated/` Tree
+### ✅ Achievement Summary
+Adopted repository policy to version control the full `generated/` directory instead of maintaining a narrow tracked-exception list.
+
+### Scope of Changes
+- Updated ignore policy:
+  - `/Users/richarddje/Documents/github/pgen/.gitignore`
+    - unignores the full `generated/` tree,
+    - keeps the rest of the repository ignore rules intact.
+- Cleaned `generated/` so it contains canonical generated assets rather than scratch logs:
+  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+    - moved parser/debug log output to `rust/target/generated_logs/`
+  - `/Users/richarddje/Documents/github/pgen/tests/bootstrap_tests/run_simple_tests.sh`
+    - moved bootstrap test scratch JSON/parser/log files to `rust/target/bootstrap_tests/`
+- Promoted current canonical generated artifacts to tracked checkout content, including:
+  - `/Users/richarddje/Documents/github/pgen/generated/ebnf.json`
+  - `/Users/richarddje/Documents/github/pgen/generated/ebnf.rs`
+  - `/Users/richarddje/Documents/github/pgen/generated/json.json`
+  - `/Users/richarddje/Documents/github/pgen/generated/regex.json`
+  - `/Users/richarddje/Documents/github/pgen/generated/return_annotation.json`
+  - `/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs`
+  - `/Users/richarddje/Documents/github/pgen/generated/semantic_annotation.json`
+  - `/Users/richarddje/Documents/github/pgen/generated/semantic_annotation_parser.rs`
+- Synced repository contract docs:
+  - `/Users/richarddje/Documents/github/pgen/README.md`
+  - `/Users/richarddje/Documents/github/pgen/COMMIT.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=2 make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+
+### Notes
+- This supersedes the earlier selective-tracking exception policy for `generated/*.rs` and annotation JSON gate inputs.
+- Temporary logs and bootstrap-test scratch outputs no longer belong in `generated/`.
+
 ## 2026-03-07 - Selectively Tracked `generated/*.rs` Include Sources
 ### ✅ Achievement Summary
 Fixed the GitHub gate checkout failure mode caused by clean clones missing the generated Rust sources referenced by compile-time `include!(...)` statements.
