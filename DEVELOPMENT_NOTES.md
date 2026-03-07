@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 6` Semantic-Noise Increment
+### Context
+After the `version: 5` corpus promotion, the next useful Phase P/Q increment was to widen the realistic corpus with parser-supported semantic-noise and package-macro integration shapes rather than only more pure preprocess families.
+
+### Implementation
+Promoted four additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 6`
+  - `cases: 24`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_always_comb.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/comment_noise_package_assign.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_named_port.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/macro_qualified_package_reference.sv`
+
+This slice extends the realistic corpus in two directions:
+- semantic-noise pass families:
+  - comments around package declaration/use,
+  - directives ahead of `always_comb`,
+  - directives ahead of named-port instantiation.
+- package/macro integration:
+  - macro expansion to a package-qualified reference.
+
+### Validation
+Direct dual-profile replay:
+- preprocessed each new case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+- observed:
+  - `4` new cases,
+  - `2` profiles each,
+  - `8/8` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v6_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `realistic_corpus_cases_declared=24`
+  - `realistic_corpus_cases_executed=48`
+  - `realistic_corpus_observed_parse_pass_total=48`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- I also probed a `foreach` array-assignment candidate during this increment.
+- Result:
+  - preprocess passed,
+  - `parse_full` still failed in both `sv_2017` and `sv_2023`.
+- Conclusion:
+  - `foreach` remains a current parser gap,
+  - do not promote it into the required-pass realistic corpus until that syntax closes.
+
 ## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 5` Closure Increment
 ### Context
 With the bounded rerun path in place, the next concrete Phase P/Q increment was to widen the checked-in Nexsim realistic corpus again, but only with cases already demonstrated to preprocess and `parse_full` cleanly in both `sv_2017` and `sv_2023`.

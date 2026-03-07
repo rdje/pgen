@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "description": "Deterministic Nexsim-oriented realistic SystemVerilog corpus for preprocess/parse_full budget and integration hardening.",
   "cases": [
     {
@@ -75,6 +75,12 @@
       "expect_parse_full_pass": true
     },
     {
+      "name": "directive_noise_always_comb",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_always_comb.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
       "name": "preprocess_include_localparam",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_localparam.sv",
       "profiles": ["2017", "2023"],
@@ -119,6 +125,24 @@
     {
       "name": "multi_imported_packages",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_imported_packages.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "comment_noise_package_assign",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/comment_noise_package_assign.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "directive_noise_named_port",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_named_port.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "macro_qualified_package_reference",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/macro_qualified_package_reference.sv",
       "profiles": ["2017", "2023"],
       "expect_parse_full_pass": true
     }

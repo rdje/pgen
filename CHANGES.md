@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-07 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 6`
+### ✅ Achievement Summary
+Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `20` to `24` declared all-pass cases by adding semantic-noise and package-macro integration families, then refreshed bounded aggregate evidence on the promoted manifest.
+
+### Scope of Changes
+- Updated corpus manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - promoted from `version: 5` to `version: 6`
+    - declared cases increased from `20` to `24`
+- Added new realistic-corpus fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_always_comb.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/comment_noise_package_assign.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_named_port.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/macro_qualified_package_reference.sv`
+
+### Validation Results
+- Direct realistic-case replay through the real SV preprocess + parseability path:
+  - each new file was preprocessed with:
+    - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+  - each preprocessed output was `parse_full`-probed with:
+    - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017|sv_2023`
+  - observed:
+    - `8/8` passes across the `4` new cases and `2` LRM profiles.
+- Bounded aggregate evidence refresh:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v6_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `realistic_corpus_cases_declared=24`
+    - `realistic_corpus_cases_executed=48`
+    - `realistic_corpus_observed_parse_pass_total=48`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- The newly promoted families are:
+  - directive noise ahead of `always_comb`,
+  - comment noise around package declaration and package-qualified use,
+  - directive noise ahead of named-port instantiation,
+  - macro-qualified package reference expansion.
+- A `foreach` assignment candidate was also probed during this increment and still fails `parse_full`, so it was intentionally not promoted.
+
 ## 2026-03-07 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 5`
 ### ✅ Achievement Summary
 Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `16` to `20` declared all-pass cases and refreshed the bounded full-gate evidence on the promoted manifest.
