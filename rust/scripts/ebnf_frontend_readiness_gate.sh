@@ -15,6 +15,7 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 STRICT="${PGEN_EBNF_FRONTEND_STRICT:-0}"
 STIMULI_COUNT="${PGEN_EBNF_FRONTEND_STIMULI_COUNT:-8}"
 STIMULI_SEED="${PGEN_EBNF_FRONTEND_STIMULI_SEED:-1337}"
+FRONTEND_IMPL="${PGEN_EBNF_FRONTEND_IMPL:-perl}"
 
 GRAMMARS=("ebnf" "json" "regex")
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
@@ -28,11 +29,19 @@ if ! [[ "$STIMULI_COUNT" =~ ^[0-9]+$ ]] || [[ "$STIMULI_COUNT" -lt 1 ]]; then
     echo "error: PGEN_EBNF_FRONTEND_STIMULI_COUNT must be an integer >= 1" >&2
     exit 2
 fi
+if [[ "$FRONTEND_IMPL" != "perl" && "$FRONTEND_IMPL" != "rust" ]]; then
+    echo "error: PGEN_EBNF_FRONTEND_IMPL must be 'perl' or 'rust'" >&2
+    exit 2
+fi
 
 mkdir -p "$STATE_DIR" "$LOG_DIR" "$WORK_DIR"
 
 echo "==> Building ast_pipeline binary"
-(cd "$RUST_DIR" && cargo build --bin ast_pipeline >/dev/null)
+if [[ "$FRONTEND_IMPL" == "rust" ]]; then
+    (cd "$RUST_DIR" && cargo build --features ebnf_dual_run --bin ast_pipeline >/dev/null)
+else
+    (cd "$RUST_DIR" && cargo build --bin ast_pipeline >/dev/null)
+fi
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary not found at '$AST_PIPELINE_BIN'" >&2
@@ -44,12 +53,23 @@ echo "grammar,ebnf_to_json,json_to_parser,json_to_stimuli,overall,notes" >"$SUMM
     echo "PGEN EBNF Frontend Readiness Summary"
     echo "state_dir: $STATE_DIR"
     echo "strict_mode: $STRICT"
+    echo "frontend_impl: $FRONTEND_IMPL"
     echo "stimuli_count: $STIMULI_COUNT"
     echo "stimuli_seed: $STIMULI_SEED"
     echo
 } >"$SUMMARY_TXT"
 
 failures=0
+
+run_frontend_to_json() {
+    local grammar_file="$1"
+    local json_out="$2"
+    if [[ "$FRONTEND_IMPL" == "perl" ]]; then
+        perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$json_out"
+    else
+        "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$json_out"
+    fi
+}
 
 for grammar in "${GRAMMARS[@]}"; do
     grammar_file="$GRAMMARS_DIR/${grammar}.ebnf"
@@ -66,7 +86,7 @@ for grammar in "${GRAMMARS[@]}"; do
     parser_log="$LOG_DIR/${grammar}.json_to_parser.log"
     stimuli_log="$LOG_DIR/${grammar}.json_to_stimuli.log"
 
-    if perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$json_out" >"$ebnf_log" 2>&1; then
+    if run_frontend_to_json "$grammar_file" "$json_out" >"$ebnf_log" 2>&1; then
         ebnf_to_json_status="pass"
         if "$AST_PIPELINE_BIN" "$json_out" --generate-parser --eliminate-left-recursion -o "$parser_out" >"$parser_log" 2>&1; then
             json_to_parser_status="pass"

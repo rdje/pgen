@@ -12,6 +12,8 @@ PGEN is a production-focused parser and stimuli generator platform.
 
 ## Canonical Flow
 - `foolang.ebnf -> foolang.json -> foolang.rs`
+- Rust-native EBNF frontend now also supports direct `raw_ast` export:
+  - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
 - Annotation parsers (`return_annotation_parser`, `semantic_annotation_parser`) are generated with bootstrap mode only.
 - All other grammars use the non-bootstrap path.
 
@@ -58,6 +60,10 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
 - EBNF dual-run gate:
   - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
+- EBNF frontend readiness (Rust path):
+  - `PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
+- EBNF closed-loop quality (Rust path):
+  - `PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
 
 ## Documentation Structure
 - Project governance and status:

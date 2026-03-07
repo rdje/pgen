@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-03-03
+Last updated: 2026-03-07
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -90,6 +90,13 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin tes
 tools/ebnf_to_json.pl --verbosity debug --pretty grammars/foolang.ebnf -o generated/foolang.json
 ```
 
+Rust frontend alternative:
+```bash
+cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- \
+  grammars/foolang.ebnf \
+  --emit-raw-ast-json generated/foolang.json
+```
+
 ### JSON -> parser source (Rust AST pipeline)
 ```bash
 cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/foolang.json --generate-parser --output generated/foolang_parser.rs
@@ -136,14 +143,18 @@ Primary modes:
 1. Transform JSON
 - `ast_pipeline INPUT.json [OUTPUT.json]`
 
-2. Generate parser
+2. Export Rust EBNF `raw_ast`
+- `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
+- Requires building with `--features ebnf_dual_run`.
+
+3. Generate parser
 - `ast_pipeline INPUT.json --generate-parser --output PARSER.rs`
 
-3. Generate stimuli
+4. Generate stimuli
 - `ast_pipeline INPUT.json --generate-stimuli --count N --seed S --output samples.txt`
 - This is the default stimuli flow (in-memory generation, optional newline output artifact).
 
-4. Generate stimuli module
+5. Generate stimuli module
 - `ast_pipeline INPUT --generate-stimuli-module --count N [--seed S] [--output generated/<grammar>_stimuli.rs]`
 - Emits a Rust file containing:
   - metadata constants (`STIMULI_MODULE_API_VERSION`, `GRAMMAR_NAME`, requested/generated sample count, seed, entry rule),
@@ -155,7 +166,7 @@ Primary modes:
   - `ENTRY_RULE` is always resolved and exported as a concrete string constant,
   - module mode supports the same parseability/coverage/gap-report flags used by in-memory stimuli mode for parity and regression workflows.
 
-5. Preprocess SystemVerilog source
+6. Preprocess SystemVerilog source
 - `ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]`
 - This mode executes the Rust preprocessor stage and emits:
   - expanded/preprocessed SV text,
@@ -2138,6 +2149,14 @@ EBNF frontend readiness commands:
 make -C rust SHELL=/bin/bash ebnf_frontend_readiness
 make -C rust SHELL=/bin/bash ebnf_frontend_gate
 ```
+- Rust frontend path:
+```bash
+PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness
+PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_gate
+```
+- Notes:
+  - `PGEN_EBNF_FRONTEND_IMPL=perl` remains the default.
+  - the Rust path now handles multiline semantic annotation blocks in tracked grammars such as `grammars/regex.ebnf`.
 
 HDL frontend readiness commands (Pillar 5 kickoff):
 ```bash
@@ -2201,6 +2220,10 @@ make -C rust SHELL=/bin/bash return_parity_gate
 Non-annotation EBNF closed-loop command:
 ```bash
 make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate
+```
+Rust frontend variant:
+```bash
+PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh
 ```
 
 SV preprocessor closed-loop command:

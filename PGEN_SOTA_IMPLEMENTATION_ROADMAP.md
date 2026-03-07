@@ -77,6 +77,7 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Add executable EBNF frontend readiness report/gate for `grammars/ebnf.ebnf`, `grammars/json.ebnf`, and `grammars/regex.ebnf` (Perl `EBNF -> JSON`, Rust `JSON -> parser`, Rust stimuli generation).
 - [x] Fix `grammars/ebnf.ebnf` compatibility gaps so readiness strict mode is green for all tracked grammars.
 - [x] Add dual-run differential harness between Perl `ebnf_to_json.pl` and Rust-native EBNF parser (`generated/ebnf.rs`) once Rust EBNF parser generation path is available.
+- [x] Add Rust-front-end `raw_ast` export mode plus gate-path frontend selection (`PGEN_EBNF_FRONTEND_IMPL=perl|rust`) and close multiline semantic-annotation handling for tracked grammars.
 
 ### Phase I (New): SOTA Exit Criteria Aggregation
 - [x] Add aggregate `make sota_exit_gate` to execute required release-grade checks in one command.

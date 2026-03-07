@@ -1,4 +1,62 @@
 # CHANGES.md
+## 2026-03-07 - Hardened Rust-Native EBNF Frontend Gate Path
+### ✅ Achievement Summary
+Completed the next Rust-native EBNF migration increment by adding a standalone Rust `raw_ast` export mode, wiring the tracked EBNF gates to select the Rust frontend path, and fixing multiline semantic-annotation handling so `regex.ebnf` now passes the Rust readiness and closed-loop quality flows.
+
+### Scope of Changes
+- Added standalone Rust EBNF `raw_ast` export mode:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`
+    - supports:
+      - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
+    - allows gates and ad hoc validation to use the Rust EBNF frontend without immediately generating parser/stimuli output.
+- Hardened the Rust raw-AST adapter:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs`
+    - replaced parse-tree-derived rule extraction with a top-level text scanner for rule blocks,
+    - preserves multiline semantic annotation payloads such as `@dispatch: { ... }` and `@dispatch_table: { ... }`,
+    - preserves same-line return annotations and multiline alternative continuations,
+    - keeps parser validation for normal cases while tolerating the current generated `ebnf` parser limitation on multiline annotation blocks.
+- Wired tracked EBNF gates for selectable frontend implementation:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh`
+    - new selector:
+      - `PGEN_EBNF_FRONTEND_IMPL=perl|rust`
+    - Rust path uses `ast_pipeline INPUT.ebnf --emit-raw-ast-json ...`,
+    - Perl bootstrap path remains in place where `generated/ebnf.rs` regeneration is still required.
+
+### Validation Results
+- Focused Rust frontend unit coverage ✅
+  - `cargo test --features ebnf_dual_run ebnf_frontend -- --nocapture`
+  - observed:
+    - `8` tests passed,
+    - multiline semantic-annotation regression coverage now included.
+- Direct Rust raw-AST export on `regex.ebnf` ✅
+  - `cargo run --features ebnf_dual_run --bin ast_pipeline -- ../grammars/regex.ebnf --emit-raw-ast-json /tmp/pgen_regex_rust_frontend.json`
+  - observed:
+    - Rust export succeeds,
+    - `class_item`, `class_escape`, and `posix_name` multiline annotation blocks now round-trip correctly.
+- Rust-path readiness gate ✅
+  - `PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
+  - observed:
+    - `ebnf/json/regex` all `pass` for `ebnf_to_json`, `json_to_parser`, and `json_to_stimuli`.
+- Rust-path closed-loop quality gate ✅
+  - `PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+  - observed:
+    - all `5` contract grammars passed,
+    - `regex` closed-loop summary: `initial_targets=298`, `resolved=298`, `final_targets=0`.
+
+### Notes
+- The Rust raw-AST path currently emits `87` rules for `grammars/regex.ebnf` versus `78` in the Perl export because it retains nine trailing helper rules that the Perl raw-AST path dropped:
+  - `code_not_squote_or_backslash`
+  - `code_safe_special`
+  - `letter`
+  - `digit`
+  - `hex_digit`
+  - `octal_digit`
+  - `whitespace`
+  - `any_char`
+  - `special_char`
+- Functionally, the Rust readiness and stimuli-quality gates are green with those extra rules present, so this is tracked as parity-follow-up rather than a blocking regression.
+
 ## 2026-03-07 - Added Tracked Branch-Protection Contract Gate
 ### ✅ Achievement Summary
 Closed the roadmap branch-protection tail by promoting the pre-merge required-check policy from prose to tracked repo state with a validator and dedicated CI workflow.

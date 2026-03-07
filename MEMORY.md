@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: branch-protection-contract-gate)
+Last updated: 2026-03-07 (+0100, task: rust-ebnf-frontend-gate-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -49,6 +49,40 @@ Use this file to resume work without replaying full chat history.
       - flattening the active grammar because the current Perl frontend does not expand `include(...)`,
       - restoring shared `assignment_operator`,
       - disambiguating labeled `generate_block` parsing (`begin : g`).
+- Rust-native EBNF migration snapshot:
+  - `ast_pipeline` now supports standalone Rust raw-AST export:
+    - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
+  - tracked EBNF gate scripts now accept:
+    - `PGEN_EBNF_FRONTEND_IMPL=perl|rust`
+  - Rust raw-AST extraction no longer depends on the current generated `ebnf` parse tree for rule/annotation boundaries:
+    - `/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs` now scans top-level rule blocks directly,
+    - multiline semantic annotation payloads (`@dispatch: { ... }`, `@dispatch_table: { ... }`) are preserved,
+    - same-line return annotations are preserved.
+  - latest Rust-path validation evidence:
+    - focused tests:
+      - `cargo test --features ebnf_dual_run ebnf_frontend -- --nocapture`
+      - `8/8` passed
+    - readiness gate:
+      - `PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
+      - `ebnf/json/regex` all `pass`
+    - closed-loop quality gate:
+      - `PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+      - all `5` contract grammars `pass`
+      - `regex final_targets=0`
+  - remaining parity nuance:
+    - Rust raw-AST export emits `87` rules for `grammars/regex.ebnf`,
+    - Perl raw-AST export emits `78`,
+    - extra Rust-emitted helper rules:
+      - `code_not_squote_or_backslash`
+      - `code_safe_special`
+      - `letter`
+      - `digit`
+      - `hex_digit`
+      - `octal_digit`
+      - `whitespace`
+      - `any_char`
+      - `special_char`
+    - both Rust-path gates are green despite this; treat as parity-audit follow-up, not current blocker.
 - SOTA policy status:
   - Branch-protection contract is now tracked and executable:
     - policy file:
@@ -2795,7 +2829,7 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Continue Rust-native EBNF migration hardening:
-   - preserve parity/dual-run contracts while reducing Perl frontend dependence.
+   - audit the `regex.ebnf` Perl-vs-Rust raw-AST parity gap (`78` vs `87` rules) and decide whether the Perl export was truncating trailing helper rules or whether the Rust scanner should filter them.
 2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
    - keep expanding beyond the now-green `11/11` realistic corpus baseline, especially preprocess-shaped and additional Nexsim integration families, while preserving the `100%` generated-sample `parse_full` floor.
 3. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the promoted active dual-profile grammar and keep the artifact evidence if it completes green.
@@ -2803,7 +2837,9 @@ Use this file to resume work without replaying full chat history.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
-- Rust EBNF frontend exists and is validated via dual-run, but is not full replacement yet.
+- Rust EBNF frontend now passes readiness + closed-loop quality gate paths, but is not full replacement yet because:
+  - parseability bootstrap still regenerates `generated/ebnf.rs` through the Perl path,
+  - the `regex.ebnf` raw-AST parity delta (`87` Rust vs `78` Perl) still needs explicit closure/audit.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Declared-before-use runtime semantic enforcement is active in `sv_semantic_file` with parseability guardrails; parse-full debt is now measured (`parse_full_pass_ratio_percent`) but still significant in semantic-closure mode.
 - SV preprocessor trusted-reference differential path still depends on host availability of external backends (`iverilog`/`verilator`), but offline curated differential gate now provides deterministic no-external baseline evidence.
@@ -2817,7 +2853,7 @@ Use this file to resume work without replaying full chat history.
 - Strict dual-run check:
   - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
 - Non-annotation closed-loop quality:
-  - `PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+  - `PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
 - VHDL closed-loop quality:
   - `make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
 - VHDL strict-promotion trial gate:

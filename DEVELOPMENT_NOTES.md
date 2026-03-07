@@ -1,4 +1,64 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Rust EBNF Frontend Gate Path: Raw-AST Export + Multiline Annotation Closure
+### Context
+The next Rust-native EBNF migration step was to make the tracked EBNF gates runnable against the Rust frontend itself instead of always shelling through `tools/ebnf_to_json.pl`. The shell wiring landed quickly, but the first real Rust-path replay exposed the actual blocker: the generated `ebnf` parser does not model multiline semantic annotations as full annotation nodes, so `regex.ebnf` block annotations like `@dispatch: { ... }` and `@dispatch_table: { ... }` collapsed the old parse-tree-based raw-AST adapter.
+
+### Implementation
+Completed the increment in three pieces:
+- standalone Rust `raw_ast` export:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`
+    - new mode:
+      - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
+    - this lets gate scripts use the Rust frontend directly without forcing parser/stimuli generation in the same command.
+- gate-path selector wiring:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh`
+    - both now accept `PGEN_EBNF_FRONTEND_IMPL=perl|rust`,
+    - both route frontend JSON generation through a common helper,
+    - the stimuli gate still preserves the Perl bootstrap flow when `generated/ebnf.rs` regeneration is required for parseability contracts.
+- raw-AST extraction hardening:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs`
+    - dropped parse-tree-derived rule extraction for the emitted raw-AST path,
+    - replaced it with a top-level text scanner that:
+      - groups rule headers plus continuation lines,
+      - preserves multiline annotation payloads,
+      - splits same-line return annotations correctly,
+      - keeps quoted/regex/grouped structures intact while scanning for `->`.
+    - parser validation is still attempted, but multiline-annotation files no longer fail the Rust frontend just because the current generated `ebnf` parser stops at single-line `@...` forms.
+
+### Validation
+Focused unit validation:
+- `cargo test --features ebnf_dual_run ebnf_frontend -- --nocapture`
+  - all `8` targeted tests passed,
+  - new regression coverage now explicitly checks multiline `@dispatch: { ... }` preservation.
+
+Direct workload validation:
+- `cargo run --features ebnf_dual_run --bin ast_pipeline -- ../grammars/regex.ebnf --emit-raw-ast-json /tmp/pgen_regex_rust_frontend.json`
+  - succeeded after the adapter rewrite,
+  - multiline `class_item`, `class_escape`, and `posix_name` annotations now serialize correctly.
+
+Gate validation:
+- `PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
+  - `ebnf`, `json`, and `regex` all pass the Rust frontend path end-to-end.
+- `PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+  - all tracked non-annotation grammars passed,
+  - `regex` target debt closed to `final_targets=0`,
+  - `builtin_return_annotation` and `builtin_semantic_annotation` parseability-required paths also remained green.
+
+### Notes
+- The Rust raw-AST export currently produces `87` rules for `grammars/regex.ebnf`, while the Perl export still produces `78`.
+- The extra Rust-emitted rules are the file’s trailing helper definitions:
+  - `code_not_squote_or_backslash`
+  - `code_safe_special`
+  - `letter`
+  - `digit`
+  - `hex_digit`
+  - `octal_digit`
+  - `whitespace`
+  - `any_char`
+  - `special_char`
+- Because both Rust-path gates now pass with those helpers present, this is best treated as a parity-audit follow-up on the old Perl export rather than a blocker to the migration increment that just landed.
+
 ## 2026-03-07 - Branch-Protection Contract Promotion
 ### Context
 The release policy already documented the minimum pre-merge checks we expected GitHub branch protection to require, but that requirement still lived only in prose. The remaining roadmap tail for Pillar 1 was to turn that expectation into tracked repo state so it could fail locally and in CI if the minimum set drifted, especially if `fixed-point-gate` ever fell out of the required checks.

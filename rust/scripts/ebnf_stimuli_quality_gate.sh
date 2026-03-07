@@ -17,6 +17,7 @@ SAMPLE_COUNT="${PGEN_EBNF_STIMULI_QUALITY_COUNT:-12}"
 GAP_THRESHOLD="${PGEN_EBNF_STIMULI_QUALITY_GAP_THRESHOLD:-1}"
 TARGET_MAX_ATTEMPTS="${PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-5000}"
 CONTRACT_FILE="${PGEN_EBNF_STIMULI_QUALITY_CONTRACT:-$RUST_DIR/test_data/grammar_quality/ebnf_stimuli_contract.json}"
+FRONTEND_IMPL="${PGEN_EBNF_FRONTEND_IMPL:-perl}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
@@ -34,6 +35,10 @@ if ! [[ "$GAP_THRESHOLD" =~ ^[0-9]+$ ]] || [[ "$GAP_THRESHOLD" -lt 1 ]]; then
 fi
 if ! [[ "$TARGET_MAX_ATTEMPTS" =~ ^[0-9]+$ ]] || [[ "$TARGET_MAX_ATTEMPTS" -lt 1 ]]; then
     echo "error: PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS must be an integer >= 1" >&2
+    exit 2
+fi
+if [[ "$FRONTEND_IMPL" != "perl" && "$FRONTEND_IMPL" != "rust" ]]; then
+    echo "error: PGEN_EBNF_FRONTEND_IMPL must be 'perl' or 'rust'" >&2
     exit 2
 fi
 
@@ -317,7 +322,6 @@ closed_loop_for_grammar() {
 require_tool jq
 require_tool perl
 require_tool base64
-require_file "$EBNF_TO_JSON"
 require_file "$CONTRACT_FILE"
 
 grammar_count="$(jq -er '.grammars | length | numbers' "$CONTRACT_FILE")"
@@ -326,6 +330,9 @@ require_ebnf_parseability="$(jq -er '[.grammars[] | select(.grammar_name == "ebn
 if [[ "$grammar_count" -lt 1 ]]; then
     echo "error: contract '$CONTRACT_FILE' must contain at least one grammar entry" >&2
     exit 1
+fi
+if [[ "$FRONTEND_IMPL" == "perl" || "$require_ebnf_parseability" -eq 1 ]]; then
+    require_file "$EBNF_TO_JSON"
 fi
 
 echo "==> EBNF stimuli quality gate"
@@ -336,6 +343,7 @@ echo "grammar_count: $grammar_count"
 echo "sample_count: $SAMPLE_COUNT"
 echo "gap_threshold: $GAP_THRESHOLD"
 echo "target_max_attempts: $TARGET_MAX_ATTEMPTS"
+echo "frontend_impl: $FRONTEND_IMPL"
 echo "require_ebnf_parseability: $require_ebnf_parseability"
 
 echo "grammar,grammar_name,parseability_required,initial_targets,resolved_targets,final_targets,target_attempts,stage0_successes,stage3_successes,status" >"$SUMMARY_CSV"
@@ -347,6 +355,16 @@ if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2
     exit 1
 fi
+
+run_frontend_to_json() {
+    local grammar_file="$1"
+    local json_out="$2"
+    if [[ "$FRONTEND_IMPL" == "perl" ]]; then
+        "$EBNF_TO_JSON" --pretty --quiet "$grammar_file" -o "$json_out"
+    else
+        "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$json_out"
+    fi
+}
 
 if [[ "$require_ebnf_parseability" -eq 1 ]]; then
     mkdir -p "$GENERATED_DIR"
@@ -363,6 +381,14 @@ if [[ "$require_ebnf_parseability" -eq 1 ]]; then
         --output "$EBNF_BOOTSTRAP_RS"
     require_nonempty_file "$EBNF_BOOTSTRAP_RS"
 
+    run_logged_rust "rebuild_generated_ast_pipeline_with_ebnf_dual_run" \
+        cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+
+    if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
+        echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after ebnf_dual_run rebuild" >&2
+        exit 1
+    fi
+elif [[ "$FRONTEND_IMPL" == "rust" ]]; then
     run_logged_rust "rebuild_generated_ast_pipeline_with_ebnf_dual_run" \
         cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
@@ -389,7 +415,7 @@ for encoded in "${grammar_rows[@]}"; do
     require_file "$ebnf_path"
 
     run_logged "${label}_frontend_ebnf_to_json" \
-        "$EBNF_TO_JSON" --pretty --quiet "$ebnf_path" -o "$grammar_json"
+        run_frontend_to_json "$ebnf_path" "$grammar_json"
 
     require_nonempty_file "$grammar_json"
     assert_json "$grammar_json" ".grammar_name == \"$grammar_name\"" "frontend grammar_name mismatch for contract entry '$label'"

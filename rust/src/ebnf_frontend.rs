@@ -1,11 +1,10 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use chrono::Utc;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::fs;
 use std::path::Path;
 
 use crate::ast_pipeline::runtime_logger_box;
-use crate::ast_pipeline::{ParseContent, ParseNode};
 use crate::ebnf_generated_parser::EbnfParser;
 
 /// Parse an EBNF file with the Rust-generated EBNF parser and emit an
@@ -26,12 +25,22 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     grammar_name: &str,
     source_file: Option<&str>,
 ) -> Result<Value> {
-    let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
-    let root = parser
-        .parse_full_grammar_file()
-        .map_err(|err| anyhow!("Rust EBNF parser failed: {}", err))?;
+    let scanned_rules = scan_top_level_rules(input)?;
+    let has_multiline_annotations = scanned_rules
+        .iter()
+        .flat_map(|rule| rule.annotations.iter())
+        .any(|annotation| annotation.contains('\n'));
+    let mut raw_ast = Vec::with_capacity(scanned_rules.len());
+    for rule in &scanned_rules {
+        raw_ast.push(convert_scanned_rule(rule)?);
+    }
 
-    let raw_ast = extract_raw_ast_rules(input, &root)?;
+    let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
+    if let Err(err) = parser.parse_full_grammar_file() {
+        if !has_multiline_annotations {
+            return Err(anyhow!("Rust EBNF parser failed: {}", err));
+        }
+    }
     let source_file_value = source_file.unwrap_or("<memory>");
 
     Ok(json!({
@@ -49,143 +58,369 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     }))
 }
 
-fn extract_raw_ast_rules(input: &str, root: &ParseNode<'_>) -> Result<Vec<Value>> {
-    let mut grammar_rules = Vec::new();
-    collect_descendants_by_rule(root, "grammar_rule", &mut grammar_rules);
-    grammar_rules.sort_by_key(|node| node.span.start);
-
-    let mut raw_ast = Vec::with_capacity(grammar_rules.len());
-    for grammar_rule in grammar_rules {
-        raw_ast.push(convert_grammar_rule(input, grammar_rule)?);
-    }
-
-    Ok(raw_ast)
+#[derive(Debug)]
+struct ScannedRule {
+    name: String,
+    annotations: Vec<String>,
+    expression: String,
+    return_annotation: Option<String>,
 }
 
-fn convert_grammar_rule(input: &str, grammar_rule: &ParseNode<'_>) -> Result<Value> {
-    let rule_definition = find_first_descendant_by_rule(grammar_rule, "rule_definition")
-        .ok_or_else(|| {
-            anyhow!(
-                "missing rule_definition in grammar_rule at {:?}",
-                grammar_rule.span
-            )
-        })?;
-    let rule_name_node =
-        find_first_descendant_by_rule(rule_definition, "rule_name").ok_or_else(|| {
-            anyhow!(
-                "missing rule_name in rule_definition at {:?}",
-                rule_definition.span
-            )
-        })?;
-    let rule_expression_node = find_first_descendant_by_rule(rule_definition, "rule_expression")
-        .ok_or_else(|| {
-            anyhow!(
-                "missing rule_expression in rule_definition at {:?}",
-                rule_definition.span
-            )
-        })?;
+fn scan_top_level_rules(input: &str) -> Result<Vec<ScannedRule>> {
+    let lines: Vec<&str> = input.lines().collect();
+    let mut rules = Vec::new();
+    let mut pending_annotations = Vec::new();
+    let mut idx = 0usize;
 
-    let rule_name = node_text(input, rule_name_node)?;
-    if rule_name.trim().is_empty() {
-        return Err(anyhow!("empty rule name at {:?}", rule_name_node.span));
+    while idx < lines.len() {
+        let line = lines[idx];
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            idx += 1;
+            continue;
+        }
+
+        if leading_whitespace_len(line) != 0 {
+            idx += 1;
+            continue;
+        }
+
+        if is_include_directive(trimmed) {
+            idx += 1;
+            continue;
+        }
+
+        if trimmed.starts_with('@') {
+            let (annotation, next_idx) = collect_annotation_block(&lines, idx)?;
+            pending_annotations.push(annotation);
+            idx = next_idx;
+            continue;
+        }
+
+        if let Some((rule_name, first_body)) = parse_rule_header(trimmed) {
+            let (body, next_idx) = collect_rule_body(&lines, idx, first_body);
+            let (expression, return_annotation) =
+                split_rule_expression_and_return_annotation(&body);
+            rules.push(ScannedRule {
+                name: rule_name,
+                annotations: std::mem::take(&mut pending_annotations),
+                expression,
+                return_annotation,
+            });
+            idx = next_idx;
+            continue;
+        }
+
+        idx += 1;
     }
 
-    let mut tokens = Vec::new();
-    tokens.push(json!(["rule", rule_name.trim().to_string()]));
+    Ok(rules)
+}
 
-    if let Some(annotation_list) = find_first_descendant_by_rule(grammar_rule, "annotation_list") {
-        let mut annotations = Vec::new();
-        collect_descendants_by_rule(annotation_list, "semantic_annotation", &mut annotations);
-        annotations.sort_by_key(|node| node.span.start);
-        for annotation in annotations {
-            if annotation.span.start == annotation.span.end {
-                continue;
-            }
-            let raw_annotation = slice_span(input, annotation.span.clone())?.trim();
-            if raw_annotation.is_empty() {
-                continue;
-            }
-            if let Some((name, payload)) = parse_semantic_annotation_text(raw_annotation) {
-                tokens.push(json!(["semantic_annotation", [name, payload]]));
-            }
+fn convert_scanned_rule(rule: &ScannedRule) -> Result<Value> {
+    let mut tokens = Vec::new();
+    tokens.push(json!(["rule", rule.name.clone()]));
+
+    for raw_annotation in &rule.annotations {
+        if raw_annotation.trim().is_empty() {
+            continue;
+        }
+        if let Some((name, payload)) = parse_semantic_annotation_text(raw_annotation) {
+            tokens.push(json!(["semantic_annotation", [name, payload]]));
         }
     }
 
-    let expression_text = slice_span(input, rule_expression_node.span.clone())?;
-    tokens.extend(tokenize_rule_expression(expression_text)?);
+    tokens.extend(tokenize_rule_expression(&rule.expression)?);
 
-    if let Some(return_node) = find_first_descendant_by_rule(rule_definition, "return_annotation") {
-        if return_node.span.start < return_node.span.end {
-            let raw_return = slice_span(input, return_node.span.clone())?;
-            if let Some(return_body) = normalize_return_annotation_text(raw_return) {
-                if !return_body.is_empty() {
-                    let token_type = classify_return_annotation(&return_body);
-                    tokens.push(json!([token_type, return_body]));
-                }
-            }
+    if let Some(return_body) = &rule.return_annotation {
+        if !return_body.is_empty() {
+            let token_type = classify_return_annotation(return_body);
+            tokens.push(json!([token_type, return_body]));
         }
     }
 
     Ok(Value::Array(tokens))
 }
 
-fn node_text(input: &str, node: &ParseNode<'_>) -> Result<String> {
-    match &node.content {
-        ParseContent::Terminal(s) => Ok((*s).to_string()),
-        ParseContent::TransformedTerminal(s) => Ok(s.clone()),
-        _ => Ok(slice_span(input, node.span.clone())?.to_string()),
-    }
+fn leading_whitespace_len(line: &str) -> usize {
+    line.chars().take_while(|ch| ch.is_whitespace()).count()
 }
 
-fn slice_span<'a>(input: &'a str, span: std::ops::Range<usize>) -> Result<&'a str> {
-    input.get(span.clone()).ok_or_else(|| {
-        anyhow!(
-            "invalid parser span {:?} for input length {}",
-            span,
-            input.len()
-        )
-    })
+fn is_include_directive(line: &str) -> bool {
+    matches!(
+        line,
+        s if s.starts_with("include(")
+            || s.starts_with("include_file(")
+            || s.starts_with("include_dir(")
+            || s.starts_with("file(")
+            || s.starts_with("dir(")
+    )
 }
 
-fn collect_descendants_by_rule<'a>(
-    node: &'a ParseNode<'a>,
-    rule_name: &str,
-    out: &mut Vec<&'a ParseNode<'a>>,
-) {
-    if node.rule_name == rule_name {
-        out.push(node);
-    }
-
-    match &node.content {
-        ParseContent::Sequence(children) | ParseContent::Quantified(children, _) => {
-            for child in children {
-                collect_descendants_by_rule(child, rule_name, out);
+fn parse_rule_header(line: &str) -> Option<(String, String)> {
+    let mut name_end = 0usize;
+    for (idx, ch) in line.char_indices() {
+        if idx == 0 {
+            if !(ch == '_' || ch.is_ascii_alphabetic()) {
+                return None;
             }
+            name_end = ch.len_utf8();
+            continue;
         }
-        ParseContent::Alternative(child) => collect_descendants_by_rule(child, rule_name, out),
-        ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => {}
+
+        if ch == '_' || ch.is_ascii_alphanumeric() {
+            name_end = idx + ch.len_utf8();
+        } else {
+            break;
+        }
     }
+
+    if name_end == 0 {
+        return None;
+    }
+
+    let rule_name = line.get(..name_end)?.to_string();
+    let rest = line.get(name_end..)?.trim_start();
+    for operator in ["::=", ":=", ":-", "="] {
+        if let Some(body) = rest.strip_prefix(operator) {
+            return Some((rule_name, body.trim_start().to_string()));
+        }
+    }
+    None
 }
 
-fn find_first_descendant_by_rule<'a>(
-    node: &'a ParseNode<'a>,
-    rule_name: &str,
-) -> Option<&'a ParseNode<'a>> {
-    if node.rule_name == rule_name {
-        return Some(node);
+fn collect_annotation_block(lines: &[&str], start_idx: usize) -> Result<(String, usize)> {
+    let mut annotation = lines
+        .get(start_idx)
+        .copied()
+        .unwrap_or_default()
+        .trim_end()
+        .to_string();
+    let mut idx = start_idx + 1;
+
+    while annotation_requires_continuation(&annotation)? && idx < lines.len() {
+        annotation.push('\n');
+        annotation.push_str(lines[idx].trim_end());
+        idx += 1;
     }
 
-    match &node.content {
-        ParseContent::Sequence(children) | ParseContent::Quantified(children, _) => {
-            for child in children {
-                if let Some(found) = find_first_descendant_by_rule(child, rule_name) {
-                    return Some(found);
+    Ok((annotation, idx))
+}
+
+fn annotation_requires_continuation(annotation: &str) -> Result<bool> {
+    let Some((_name, payload)) = parse_semantic_annotation_text(annotation) else {
+        return Ok(false);
+    };
+    let tracker = DelimiterTracker::scan_annotations(&payload)?;
+    Ok(tracker.is_open())
+}
+
+fn collect_rule_body(lines: &[&str], start_idx: usize, first_body: String) -> (String, usize) {
+    let mut body_lines = vec![first_body.trim_end().to_string()];
+    let mut idx = start_idx + 1;
+
+    while idx < lines.len() {
+        let line = lines[idx];
+        let trimmed = line.trim();
+        let is_top_level = leading_whitespace_len(line) == 0;
+        if is_top_level
+            && (trimmed.is_empty()
+                || trimmed.starts_with('#')
+                || trimmed.starts_with('@')
+                || is_include_directive(trimmed)
+                || parse_rule_header(trimmed).is_some())
+        {
+            break;
+        }
+
+        if trimmed.is_empty() && is_top_level {
+            break;
+        }
+
+        body_lines.push(line.trim_end().to_string());
+        idx += 1;
+    }
+
+    (body_lines.join("\n"), idx)
+}
+
+fn split_rule_expression_and_return_annotation(body: &str) -> (String, Option<String>) {
+    let Some(idx) = find_top_level_return_annotation(body) else {
+        return (body.trim().to_string(), None);
+    };
+
+    let expression = body
+        .get(..idx)
+        .map(str::trim)
+        .unwrap_or_default()
+        .to_string();
+    let return_annotation = body
+        .get(idx + 2..)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
+
+    (expression, return_annotation)
+}
+
+fn find_top_level_return_annotation(body: &str) -> Option<usize> {
+    let mut tracker = DelimiterTracker::default();
+    let mut chars = body.char_indices().peekable();
+
+    while let Some((idx, ch)) = chars.next() {
+        if tracker.consume(
+            ch,
+            chars.peek().map(|(_, next)| *next),
+            ScanMode::RuleExpression,
+        ) {
+            continue;
+        }
+        if ch == '-' && matches!(chars.peek(), Some((_, '>'))) && tracker.is_top_level() {
+            return Some(idx);
+        }
+    }
+
+    None
+}
+
+#[derive(Clone, Copy, Debug)]
+enum ScanMode {
+    Annotations,
+    RuleExpression,
+}
+
+#[derive(Default, Debug)]
+struct DelimiterTracker {
+    in_quote: Option<char>,
+    escaped: bool,
+    in_regex: bool,
+    regex_in_class: bool,
+    line_comment: bool,
+    paren_depth: usize,
+    bracket_depth: usize,
+    brace_depth: usize,
+}
+
+impl DelimiterTracker {
+    fn scan_annotations(input: &str) -> Result<Self> {
+        let mut tracker = Self::default();
+        let mut chars = input.char_indices().peekable();
+        while let Some((_idx, ch)) = chars.next() {
+            tracker.consume(
+                ch,
+                chars.peek().map(|(_, next)| *next),
+                ScanMode::Annotations,
+            );
+        }
+        if tracker.in_quote.is_some() {
+            return Err(anyhow!("unterminated quote in semantic annotation payload"));
+        }
+        Ok(tracker)
+    }
+
+    fn consume(&mut self, ch: char, next: Option<char>, mode: ScanMode) -> bool {
+        if self.line_comment {
+            if ch == '\n' {
+                self.line_comment = false;
+            }
+            return true;
+        }
+
+        if let Some(quote) = self.in_quote {
+            if self.escaped {
+                self.escaped = false;
+                return true;
+            }
+            if ch == '\\' {
+                self.escaped = true;
+                return true;
+            }
+            if ch == quote {
+                self.in_quote = None;
+            }
+            return true;
+        }
+
+        if self.in_regex {
+            if self.escaped {
+                self.escaped = false;
+                return true;
+            }
+            match ch {
+                '\\' => {
+                    self.escaped = true;
+                    return true;
                 }
+                '[' => {
+                    self.regex_in_class = true;
+                    return true;
+                }
+                ']' if self.regex_in_class => {
+                    self.regex_in_class = false;
+                    return true;
+                }
+                '/' if !self.regex_in_class => {
+                    self.in_regex = false;
+                    return true;
+                }
+                _ => return true,
             }
-            None
         }
-        ParseContent::Alternative(child) => find_first_descendant_by_rule(child, rule_name),
-        ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => None,
+
+        match ch {
+            '"' | '\'' => {
+                self.in_quote = Some(ch);
+                true
+            }
+            '#' if matches!(mode, ScanMode::RuleExpression) => {
+                self.line_comment = true;
+                true
+            }
+            '/' if matches!(mode, ScanMode::RuleExpression)
+                && next.is_some()
+                && self.is_top_level() =>
+            {
+                self.in_regex = true;
+                true
+            }
+            '(' => {
+                self.paren_depth += 1;
+                false
+            }
+            ')' => {
+                self.paren_depth = self.paren_depth.saturating_sub(1);
+                false
+            }
+            '[' => {
+                self.bracket_depth += 1;
+                false
+            }
+            ']' => {
+                self.bracket_depth = self.bracket_depth.saturating_sub(1);
+                false
+            }
+            '{' => {
+                self.brace_depth += 1;
+                false
+            }
+            '}' => {
+                self.brace_depth = self.brace_depth.saturating_sub(1);
+                false
+            }
+            _ => false,
+        }
+    }
+
+    fn is_top_level(&self) -> bool {
+        self.paren_depth == 0 && self.bracket_depth == 0 && self.brace_depth == 0
+    }
+
+    fn is_open(&self) -> bool {
+        self.in_quote.is_some()
+            || self.in_regex
+            || self.paren_depth > 0
+            || self.bracket_depth > 0
+            || self.brace_depth > 0
     }
 }
 
@@ -507,20 +742,6 @@ fn find_top_level_colon(content: &str) -> Option<usize> {
     None
 }
 
-fn normalize_return_annotation_text(raw_return: &str) -> Option<String> {
-    let trimmed = raw_return.trim();
-    let body = trimmed.strip_prefix("->").map(str::trim).or_else(|| {
-        trimmed
-            .find("->")
-            .and_then(|idx| trimmed.get(idx + 2..).map(str::trim))
-    })?;
-    if body.is_empty() {
-        None
-    } else {
-        Some(body.to_string())
-    }
-}
-
 fn classify_return_annotation(body: &str) -> &'static str {
     let trimmed = body.trim();
     if trimmed.starts_with('{') && trimmed.ends_with('}') {
@@ -636,6 +857,42 @@ entry := "a" -> {type: "node"}
         assert!(
             first_rule.contains("[\"return_object\",\"{type: \\\"node\\\"}\"]"),
             "expected return annotation token in raw_ast, got: {}",
+            first_rule
+        );
+    }
+
+    #[test]
+    fn preserves_multiline_semantic_annotation_blocks() {
+        let input = r#"
+@dispatch: {
+    "range": make_range($1),
+    "literal": make_literal($1)
+}
+entry = alpha
+      | beta
+"#;
+        let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "multi", None)
+            .expect("frontend parse should succeed");
+        let raw_ast = envelope
+            .get("raw_ast")
+            .and_then(serde_json::Value::as_array)
+            .expect("raw_ast array should exist");
+        assert_eq!(raw_ast.len(), 1, "expected one rule in raw_ast");
+        let first_rule =
+            serde_json::to_string(raw_ast[0].as_array().expect("rule array")).expect("rule json");
+        assert!(
+            first_rule.contains("[\"semantic_annotation\",[\"dispatch\",\"{\\n    \\\"range\\\": make_range($1),\\n    \\\"literal\\\": make_literal($1)\\n}\"]]"),
+            "expected multiline dispatch annotation token in raw_ast, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"rule_reference\",\"alpha\"]"),
+            "expected first alternative in raw_ast, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"rule_reference\",\"beta\"]"),
+            "expected second alternative in raw_ast, got: {}",
             first_rule
         );
     }

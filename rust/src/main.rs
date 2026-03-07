@@ -34,7 +34,7 @@ const DEFAULT_STIMULI_MODULE_SEED: u64 = 1;
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
 #[command(
-    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, emit Rust stimuli modules, or preprocess SystemVerilog source files.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF frontend: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module\n  3. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  4. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  5. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]\n  6. SV preprocess stage: ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]\n  7. Generation-input AST dump: ast_pipeline INPUT --generate-* --dump-gen-ast [PATH]"
+    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, emit Rust stimuli modules, or preprocess SystemVerilog source files.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF raw_ast export: ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json\n  3. Rust EBNF frontend generation: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module [--emit-raw-ast-json RAW.json]\n  4. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  5. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  6. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]\n  7. SV preprocess stage: ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]\n  8. Generation-input AST dump: ast_pipeline INPUT --generate-* --dump-gen-ast [PATH]"
 )]
 struct Args {
     /// Input grammar source file (.json raw/transformed AST, or .ebnf when built with --features ebnf_dual_run)
@@ -536,7 +536,20 @@ fn main() -> Result<()> {
 
     let mut pipeline = RustASTPipeline::new(config);
 
-    let result = if args.generate_parser {
+    let standalone_raw_ast_export = is_ebnf_input_path(&args.input_path)
+        && args.emit_raw_ast_json.is_some()
+        && !args.generate_parser
+        && !args.generate_stimuli
+        && !args.generate_stimuli_module;
+
+    let result = if standalone_raw_ast_export {
+        let output_path = args
+            .emit_raw_ast_json
+            .as_deref()
+            .expect("standalone_raw_ast_export requires emit_raw_ast_json");
+        let rule_count = emit_rust_frontend_raw_ast_json(&args.input_path, output_path)?;
+        (rule_count, Vec::<String>::new())
+    } else if args.generate_parser {
         // Generate high-performance Rust parser using AST-based generator
         let output_rust = args
             .output
@@ -943,6 +956,33 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+fn emit_rust_frontend_raw_ast_json(input_path: &str, output_path: &str) -> Result<usize> {
+    #[cfg(feature = "ebnf_dual_run")]
+    {
+        let json_value = ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope(input_path)?;
+        let rule_count = json_value
+            .get("raw_ast")
+            .and_then(|raw_ast| raw_ast.as_array())
+            .map(|raw_ast| raw_ast.len())
+            .unwrap_or(0);
+        let raw_ast_json = serde_json::to_string_pretty(&json_value)?;
+        std::fs::write(output_path, raw_ast_json)?;
+        println!(
+            "Wrote Rust EBNF frontend raw_ast envelope to {}",
+            output_path
+        );
+        return Ok(rule_count);
+    }
+
+    #[cfg(not(feature = "ebnf_dual_run"))]
+    {
+        let _ = (input_path, output_path);
+        Err(anyhow::anyhow!(
+            "Rust EBNF raw_ast export requires building with --features ebnf_dual_run"
+        ))
+    }
+}
+
 fn maybe_dump_generation_ast(
     grammar: &LoadedGrammar,
     output_path: Option<&str>,
@@ -962,9 +1002,7 @@ fn maybe_dump_generation_ast(
     let json = encode_canonical_json(&dump, pretty)?;
     let write_result =
         write_json_dump_with_limit(path, &json, max_bytes, pretty, "generation_input_ast")
-            .with_context(|| {
-                format!("failed to write generation-input AST JSON '{}'", path)
-            })?;
+            .with_context(|| format!("failed to write generation-input AST JSON '{}'", path))?;
     if write_result.truncated {
         println!(
             "Wrote generation-input AST truncation diagnostics JSON to {} (full_bytes={}, max_bytes={}, written_bytes={})",
@@ -1604,12 +1642,11 @@ fn run_coverage_guided_fuzz_loop(
         let mut shrunk_counterexample = None;
         if let Some(sample_text) = sample.as_deref() {
             if validate_parseability {
-                let is_parseable =
-                    is_sample_parseable_by_generated_parser(
-                        grammar_name,
-                        grammar_profile,
-                        sample_text,
-                    )?;
+                let is_parseable = is_sample_parseable_by_generated_parser(
+                    grammar_name,
+                    grammar_profile,
+                    sample_text,
+                )?;
                 parseable = Some(is_parseable);
                 accepted = is_parseable;
                 if !is_parseable {
