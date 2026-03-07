@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "description": "Deterministic Nexsim-oriented realistic SystemVerilog corpus for preprocess/parse_full budget and integration hardening.",
   "cases": [
     {
@@ -60,13 +60,13 @@
       "name": "always_ff_sequential_block",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/always_ff_sequential_block.sv",
       "profiles": ["2017", "2023"],
-      "expect_parse_full_pass": false
+      "expect_parse_full_pass": true
     },
     {
       "name": "generate_for_array_assign",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/generate_for_array_assign.sv",
       "profiles": ["2017", "2023"],
-      "expect_parse_full_pass": false
+      "expect_parse_full_pass": true
     }
   ]
 }

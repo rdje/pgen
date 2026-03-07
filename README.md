@@ -38,7 +38,10 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `perl/`: legacy/frontend EBNF-to-JSON path (`ebnf_to_json.pl`) still used in hybrid flow
 - `docs/systemverilog/2017`, `docs/systemverilog/2023`: SV LRM conversion workspaces
 - `docs/vhdl/2019`: VHDL LRM conversion workspace
+- `grammars/systemverilog.ebnf`: active flattened profile-aware full-SV grammar synthesized from the IEEE 1800-2017/2023 markdown workspaces (`sv_2017`, `sv_2023`)
 - `grammars/systemverilog_2017_lrm_extracted.ebnf`, `grammars/systemverilog_2023_lrm_extracted.ebnf`: full extracted SV EBNF snapshots from the versioned markdown workspaces
+- `grammars/systemverilog_lrm_profiled_generated.ebnf`, `grammars/systemverilog_lrm_profiled_wrapper.ebnf`: profiled synthesis artifacts retained for regeneration traceability
+- `docs/systemverilog/profiled_generation_report.json`: structured report for staged dual-LRM profile synthesis
 - `tests/`: test how-to and test guides
 
 ## Standard Commands

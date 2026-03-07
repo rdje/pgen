@@ -2155,15 +2155,16 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
   - when a sample fails full parse replay, the gate deterministically retries with incremented seeds until parseable or retry budget is exhausted.
   - retry budget env:
     - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` (default `50`).
-- current seed status:
+- current active HDL grammar status:
+  - `grammars/systemverilog.ebnf` is now the active flattened dual-profile SystemVerilog grammar derived from the IEEE 1800-2017/2023 markdown workspaces.
   - `grammars/systemverilog.ebnf` passes `EBNF -> JSON -> parser -> stimuli`.
   - `grammars/vhdl.ebnf` passes `EBNF -> JSON -> parser -> stimuli` (initial seed baseline).
   - strict HDL gate (`make -C rust SHELL=/bin/bash hdl_frontend_gate`) is now green for both tracked grammars.
   - aggregate policy default now promotes HDL readiness to strict required mode (`PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1`).
 - SystemVerilog syntax-closure tracking artifact:
   - `SV_GRAMMAR_COVERAGE_MATRIX.md`
-  - contains Annex-A-aligned anchor mapping, grouped per-rule coverage status, and explicit unresolved-reference closure debt for the current seed grammar.
-  - current matrix state (2026-02-27): unresolved rule-reference debt in `grammars/systemverilog.ebnf` is zero; remaining closure work is Annex-A breadth and semantic legality.
+  - contains Annex-A-aligned anchor mapping, grouped per-rule coverage status, and explicit unresolved-reference closure debt for the current active grammar.
+  - unresolved rule-reference debt in `grammars/systemverilog.ebnf` is zero; remaining closure work is parser-quality hardening and higher-level semantic legality.
 
 EBNF frontend dual-run commands:
 ```bash
@@ -2672,19 +2673,19 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `expect_parse_full_pass=true` means parse-full pass is required,
     - `expect_parse_full_pass=false` means parse-full fail is currently accepted (a pass is tracked as improvement telemetry, not a failure),
     - report captures case-level outcomes plus aggregate timing/size/diagnostic totals.
-  - current checked-in baseline (`version: 2`):
+  - current checked-in baseline (`version: 3`):
     - `11` declared cases (`22` executions across `2017` + `2023`),
-    - `9` expected-pass families,
-    - `2` expected-fail realism sentinels:
-      - `always_ff_sequential_block`
-      - `generate_for_array_assign`
+    - `11` expected-pass families,
+    - `0` expected-fail realism sentinels.
   - supported expected-pass families currently include:
     - module ports + assignment,
     - named instantiation (single-port and multi-port),
     - package-qualified types and package-qualified constant/vector-width references,
     - interface/modport,
     - wildcard instantiation (`.*`),
-    - file-level `timeunit`.
+    - file-level `timeunit`,
+    - `always_ff` sequential blocks with edge-qualified event control,
+    - generate-`for` indexed continuous assignment (`assign y[i] = a[i];`).
 - aggregate observability behavior (`sota_exit_gate`):
   - aggregate stage state dir:
     - `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate`
@@ -2900,6 +2901,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `vhdl_strict_promotion_trial_failed`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
+  - runtime profile selection now activates real grammar-profile filtering (`sv_2017`, `sv_2023`) rather than metadata-only aliases,
   - gate executes selected profile set and reports profile-tagged rows in summary output.
 - stimuli mode behavior (from `systemverilog_core_v0_contract.json` `stimuli_modes`):
   - `sv_file`:

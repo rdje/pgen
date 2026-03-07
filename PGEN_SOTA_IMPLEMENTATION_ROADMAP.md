@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-06
+Last updated: 2026-03-07
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -275,6 +275,27 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-03-06): promoted canonical extracted SV EBNF snapshots into `grammars/`:
     - `grammars/systemverilog_2017_lrm_extracted.ebnf`
     - `grammars/systemverilog_2023_lrm_extracted.ebnf`
+  - Progress (2026-03-06): added staged profile-aware full-SV grammar synthesis from the versioned markdown workspaces:
+    - tool: `tools/extract_systemverilog_lrm_profiles.py`
+    - staged artifacts:
+      - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - `grammars/systemverilog_lrm_profiled_wrapper.ebnf`
+      - `docs/systemverilog/profiled_generation_report.json`
+    - achieved executable evidence for:
+      - `EBNF -> JSON`
+      - `JSON -> Rust parser source`
+      - generated-parser crate integration under the real `systemverilog` grammar name
+    - promotion blocker remains open:
+      - the staged full-profile parser still rejects minimal legal SV (`module m; endmodule`) and realistic-corpus probes, so active `grammars/systemverilog.ebnf` was intentionally restored to the proven seed grammar.
+  - Progress (2026-03-07): resolved the active-promotion blocker and promoted `grammars/systemverilog.ebnf` to the flattened dual-profile clause-derived grammar:
+    - extractor now supports `--output-active-ebnf` for reproducible promotion from the 2017/2023 markdown sources,
+    - active-file flattening avoids the current Perl frontend `include(...)` limitation,
+    - parser-facing translation fixes added for shared `assignment_operator` and labeled `generate_block` disambiguation,
+    - direct active-path validation now passes:
+      - `EBNF -> JSON`
+      - `JSON -> Rust parser source`
+      - generated-parser crate integration under the real `systemverilog` grammar name
+      - realistic corpus replay `22/22` across `sv_2017` and `sv_2023`.
 - [x] Build syntax-closure burn-down loop:
   - grow `systemverilog.ebnf` clause-by-clause under deterministic no-regression gates.
   - Progress (2026-02-27): first syntax-consistency hardening step complete: unresolved symbol references reduced to zero in the current seed grammar.
@@ -811,6 +832,18 @@ Toolbox baseline to leverage end-to-end:
         - `cases_declared=11`
         - `expected_pass_total=9`
         - `expected_fail_total=2`.
+  - Progress (2026-03-06): closed the remaining realistic-corpus parse gaps and promoted the manifest to an all-pass baseline (`version: 3`):
+    - `grammars/systemverilog.ebnf` now accepts:
+      - edge-qualified event controls (`@(posedge clk)`, `@(negedge rst_n)`),
+      - indexed selects in expressions/lvalues (`a[i]`, `y[i]`),
+    - promoted `always_ff_sequential_block` and `generate_for_array_assign` to required-pass cases in `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`,
+    - focused gate validation remained green:
+      - `parse_full_pass_ratio_percent=100`,
+      - `realistic_corpus_cases_declared=11`,
+      - `realistic_corpus_expected_pass_total=11`,
+      - `realistic_corpus_expected_fail_total=0`,
+      - `realistic_corpus_observed_parse_pass_total=22`,
+      - `realistic_corpus_observed_parse_fail_total=0`.
 - [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
   - deterministic error/diagnostic schema for host integration,
@@ -1045,6 +1078,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-06: Closed the last two SystemVerilog realistic-corpus parse gaps by hardening `grammars/systemverilog.ebnf` for edge-qualified event expressions and indexed selects/lvalues, then promoted `systemverilog_nexsim_realistic_corpus_v0.json` to `version: 3` with `11` expected-pass / `0` expected-fail cases (`22/22` realistic dual-profile parses pass in focused validation).
 - 2026-03-06: Expanded the deterministic Nexsim SystemVerilog realistic corpus (`systemverilog_nexsim_realistic_corpus_v0.json` -> `version: 2`) from 6 to 11 declared cases by adding package-qualification, named multi-port binding, wildcard binding, timeunit, and package-width instantiation families; revalidated `sv_stimuli_quality_gate` green with `parse_full_pass_ratio_percent=100`, `parse_full_passes=16/16`, and realistic-corpus totals `expected_pass_total=9`, `expected_fail_total=2`.
 - 2026-03-06: Completed full dual-SV LRM extraction refresh into versioned tracked workspaces (`docs/systemverilog/2017` and `docs/systemverilog/2023`) including `txt/`, `md/`, and grammar artifacts, added TOC-missing fallback extraction mode in `tools/split_sections.py`, and promoted canonical extracted EBNF snapshots to `grammars/systemverilog_2017_lrm_extracted.ebnf` and `grammars/systemverilog_2023_lrm_extracted.ebnf`.
 - 2026-03-06: Promoted aggregate VHDL stimuli quality stage to required strict by setting `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1` after VHDL strict-promotion ratchet evidence remained green.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-06 (+0100, task: sv-nexsim-realistic-corpus-v2)
+Last updated: 2026-03-07 (+0100, task: sv-dual-lrm-active-promotion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -32,6 +32,23 @@ Use this file to resume work without replaying full chat history.
   - canonical grammar snapshots promoted in `grammars/`:
     - `systemverilog_2017_lrm_extracted.ebnf`
     - `systemverilog_2023_lrm_extracted.ebnf`.
+  - staged profile-aware full-SV synthesis artifacts now also exist:
+    - `tools/extract_systemverilog_lrm_profiles.py`
+    - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+    - `grammars/systemverilog_lrm_profiled_wrapper.ebnf`
+    - `docs/systemverilog/profiled_generation_report.json`
+  - current promotion state:
+    - active `grammars/systemverilog.ebnf` is now the promoted flattened dual-profile grammar used by the normal HDL flow,
+    - the extractor now supports `--output-active-ebnf` so promotion is reproducible from the 2017/2023 markdown workspaces,
+    - direct active-path parser validation is green:
+      - `EBNF -> JSON`,
+      - `JSON -> Rust parser source`,
+      - generated-parser crate integration under the real `systemverilog` grammar name,
+      - realistic corpus direct replay `22/22` passes across `sv_2017` and `sv_2023`,
+    - key promotion fixes were:
+      - flattening the active grammar because the current Perl frontend does not expand `include(...)`,
+      - restoring shared `assignment_operator`,
+      - disambiguating labeled `generate_block` parsing (`begin : g`).
 - SOTA policy status:
   - strict EBNF readiness required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT=1`
   - strict EBNF dual-run required: `PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`
@@ -209,15 +226,17 @@ Use this file to resume work without replaying full chat history.
       - `expect_parse_full_pass=true` => required pass,
       - `expect_parse_full_pass=false` => fail accepted, pass counted as improvement signal.
     - current checked-in corpus baseline:
-      - manifest `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json` is now `version: 2`,
+      - manifest `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json` is now `version: 3`,
       - `11` declared cases / `22` executions across `2017` + `2023`,
-      - `9` expected-pass cases / `2` expected-fail realism sentinels,
+      - `11` expected-pass cases / `0` expected-fail realism sentinels,
       - added expected-pass families:
         - package constant assignment,
         - named multi-port instantiation,
         - wildcard instantiation (`.*`),
         - file-level `timeunit`,
-        - package-qualified vector-width instantiation.
+        - package-qualified vector-width instantiation,
+        - `always_ff` sequential block with edge-qualified event control,
+        - generate-`for` indexed continuous assignment.
     - latest strict validation evidence:
       - `PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1 PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PASS_RATIO=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
       - `parse_full_pass_ratio_percent=100`
@@ -2730,14 +2749,43 @@ Use this file to resume work without replaying full chat history.
   - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate` passed
   - focused `sota_exit_gate` policy-path run passed with dual-run as required.
 
+### 2026-03-06: Closed the last two expected-fail SV realistic-corpus cases
+- Context:
+  - the expanded Nexsim realistic corpus (`version: 2`) still carried two explicit expected-fail cases:
+    - `always_ff_sequential_block`
+    - `generate_for_array_assign`
+- Root cause and implementation:
+  - `grammars/systemverilog.ebnf`
+    - event expressions now accept optional edge qualifiers (`posedge`, `negedge`, `edge`),
+    - primaries and lvalues now accept indexed selects (`a[i]`, `y[i]`),
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - promoted from `version: 2` to `version: 3`,
+    - expectation split is now `11` expected-pass / `0` expected-fail.
+- Validation:
+  - focused gate:
+    - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_realistic_manifest_v3_check PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=0 bash rust/scripts/sv_stimuli_quality_gate.sh`
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `parse_full_pass_ratio_percent=100`
+    - `parse_full_passes=2/2`
+    - `semantic_baseline_passes=2/2`
+    - `realistic_corpus_cases_declared=11`
+    - `realistic_corpus_cases_executed=22`
+    - `realistic_corpus_expected_pass_total=11`
+    - `realistic_corpus_expected_fail_total=0`
+    - `realistic_corpus_observed_parse_pass_total=22`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_error_total=0`
+
 ## Next Likely Tasks (Priority)
 1. Close roadmap operational policy tail:
    - enforce branch protection requirement for `fixed-point-gate` pre-merge check.
 2. Continue Rust-native EBNF migration hardening:
    - preserve parity/dual-run contracts while reducing Perl frontend dependence.
 3. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
-   - keep expanding realistic/preprocessor corpora while preserving the `100%` generated-sample `parse_full` floor.
-4. Keep roadmap + UG + memory synced after every gate/contract increment.
+   - keep expanding beyond the now-green `11/11` realistic corpus baseline, especially preprocess-shaped and additional Nexsim integration families, while preserving the `100%` generated-sample `parse_full` floor.
+4. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the promoted active dual-profile grammar and keep the artifact evidence if it completes green.
+5. Keep roadmap + UG + memory synced after every gate/contract increment.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

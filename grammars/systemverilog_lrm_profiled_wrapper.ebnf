@@ -1,0 +1,30 @@
+# systemverilog.ebnf
+#
+# Profile-aware IEEE 1800 SystemVerilog wrapper grammar.
+#
+# The full clause-derived syntax surface now lives in
+# `systemverilog_lrm_profiled_generated.ebnf`, which is generated from:
+# - `docs/systemverilog/2017/md/section-41-data-read-api.md`
+# - `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md`
+#
+# This wrapper keeps the stable parser entrypoints and the parseable-subset entry
+# rule used by the existing closed-loop quality gates.
+
+@branch_policy: priority_first
+@priority: [12, 3, 2, 1, 1]
+@coverage_target: 4
+@critical_path: true
+systemverilog_file := source_text
+
+@branch_policy: priority_first
+@priority: [20, 6, 4, 2]
+systemverilog_parseable_file := parseable_source_item*
+
+@branch_policy: priority_first
+@priority: [20, 6, 4, 2]
+parseable_source_item := semi
+                       | package_import_declaration
+                       | timeunits_declaration
+                       | compiler_directive
+
+include("systemverilog_lrm_profiled_generated")

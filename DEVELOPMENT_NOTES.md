@@ -1,4 +1,167 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Active `systemverilog.ebnf` Promotion to Flattened Dual-LRM Grammar
+### Context
+The staged dual-LRM grammar work had reached an awkward midpoint: the extracted/profiled SystemVerilog grammar could be synthesized and compiled into parser source, but the staged wrapper still looked blocked because the normal Perl frontend only saw three rules. The real blocker was not the LRM extraction itself; it was that the wrapper depended on `include(...)`, which the current Perl HDL path does not expand. Once that was understood, the remaining work reduced to flattening the active file and fixing the last parser-facing translation gaps.
+
+### Implementation
+Promotion work completed in three parts:
+- made the extractor produce a reproducible active grammar:
+  - `/Users/richarddje/Documents/github/pgen/tools/extract_systemverilog_lrm_profiles.py`
+    - now accepts `--output-active-ebnf`,
+    - writes the stable active preamble (`systemverilog_file`, `systemverilog_parseable_file`, `parseable_source_item`) plus the flattened dual-profile grammar body into one file.
+- fixed the remaining parser-facing translation holes:
+  - restored `assignment_operator` as a shared rule so `genvar_iteration` accepts `i = i + 1` in both `sv_2017` and `sv_2023`,
+  - rewrote `generate_block` to prefer `kw_begin ...` directly and keep the explicit `label : begin ...` form separate, preventing `begin : g` from being misread as a pre-`begin` label.
+- promoted the active grammar:
+  - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+    - is now the flattened active dual-profile grammar instead of the old seed grammar.
+
+### Validation
+Reproducible promotion command:
+- `python3 tools/extract_systemverilog_lrm_profiles.py --md-2017 docs/systemverilog/2017/md/section-41-data-read-api.md --md-2023 docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md --output-ebnf grammars/systemverilog_lrm_profiled_generated.ebnf --output-active-ebnf grammars/systemverilog.ebnf --output-report docs/systemverilog/profiled_generation_report.json`
+
+Active-path parser validation:
+- flattened active grammar frontend:
+  - `perl tools/ebnf_to_json.pl --pretty --quiet /tmp/systemverilog.ebnf -o /tmp/systemverilog_full_profile.json`
+- parser generation:
+  - `cargo run --no-default-features --features bootstrap --bin ast_pipeline_bootstrap -- /tmp/systemverilog_full_profile.json --generate-parser --bootstrap-mode --eliminate-left-recursion --output /tmp/systemverilog_full_profile_parser.rs`
+- generated adapter build:
+  - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_full_profile_parser.rs cargo build --features generated_parsers --bin parseability_probe`
+- realistic corpus matrix:
+  - `11` declared cases,
+  - `22` profile-tagged executions,
+  - `0` failures under direct parseability replay.
+
+Focused regressions that now pass in both profiles:
+- package-qualified vector widths,
+- modports,
+- package-vector instantiation,
+- `generate for` with `i = i + 1` and labeled `begin : g` blocks.
+
+### Notes
+- The wrapper and generated fragment remain useful as synthesis/debug artifacts, but the active grammar must stay flattened until the Perl frontend gains real `include(...)` support.
+- A full `sv_stimuli_quality_gate` run was started against the promoted active grammar; the expensive closed-loop replay phase was still in flight at handoff time, so direct active-path parser replay is the completed proof point for this increment.
+
+## 2026-03-06 - Dual-LRM Profiled SystemVerilog Grammar Staging: Extraction/Generation Works, Active Promotion Still Blocked
+### Context
+The repository already had versioned IEEE 1800-2017 and IEEE 1800-2023 markdown workspaces plus raw extracted grammar artifacts, but the active `systemverilog` profile surface was still effectively metadata-only: both `sv_2017` and `sv_2023` routed through the same seed grammar. The next step was to see whether we could actually derive a single profile-aware grammar from the two LRM markdown sources and drive it through the existing `EBNF -> JSON -> parser` toolchain.
+
+### Implementation
+Added `/Users/richarddje/Documents/github/pgen/tools/extract_systemverilog_lrm_profiles.py` with three responsibilities:
+- extract the Annex-A rule inventories directly from:
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/md/section-41-data-read-api.md`
+  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md`
+- normalize the PDF/markdown conversion artifacts that prevent direct use:
+  - footnote-suffixed rule heads (`timeunits_declaration3`, `dpi_function_proto26,27`, ...),
+  - literal-token drift from markdown conversion,
+  - profile-level rule deltas between 2017 and 2023,
+- emit a single parser-facing staged grammar surface:
+  - shared rules where 2017/2023 bodies match,
+  - wrapper rules + profiled subrules where the LRMs differ,
+  - generated literal-token rules and a machine-readable report.
+
+Staged artifacts added:
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf`
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_wrapper.ebnf`
+- `/Users/richarddje/Documents/github/pgen/docs/systemverilog/profiled_generation_report.json`
+
+Important operational decision:
+- I did **not** leave `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf` on the new wrapper.
+- After validating the staged path, the active file was restored to the prior seed grammar because the staged full-profile parser still failed direct parse probes on minimal legal SystemVerilog.
+
+### Validation
+Successful staged pipeline checkpoints:
+- generator extraction:
+  - `python3 tools/extract_systemverilog_lrm_profiles.py ...`
+  - observed:
+    - `734` extracted canonical rules from the 2017 markdown source,
+    - `747` extracted canonical rules from the 2023 markdown source.
+- staged wrapper frontend:
+  - `perl tools/ebnf_to_json.pl --pretty --quiet /tmp/systemverilog_profiled_wrapper.ebnf -o /tmp/systemverilog_profiled_wrapper.json`
+  - passed.
+- staged wrapper parser generation:
+  - `cargo run --no-default-features --features bootstrap --bin ast_pipeline_bootstrap -- /tmp/systemverilog_profiled_wrapper.json --generate-parser --bootstrap-mode --eliminate-left-recursion --output /tmp/systemverilog_profiled_wrapper_parser.rs`
+  - passed.
+- real-grammar-name generated-parser integration:
+  - `perl tools/ebnf_to_json.pl --pretty --quiet grammars/systemverilog.ebnf -o /tmp/systemverilog_active.json`
+  - `cargo run --no-default-features --features bootstrap --bin ast_pipeline_bootstrap -- /tmp/systemverilog_active.json --generate-parser --bootstrap-mode --eliminate-left-recursion --output /tmp/systemverilog_parser.rs`
+  - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_parser.rs cargo build --features generated_parsers --bin parseability_probe`
+  - all passed.
+
+Promotion blocker:
+- direct parse probes with the staged full-profile parser still fail:
+  - minimal sample `module m; endmodule` rejected in both `sv_2017` and `sv_2023`,
+  - realistic corpus samples such as `always_ff_sequential_block.sv` and `generate_for_array_assign.sv` are also rejected.
+
+### Notes
+- The hard problem has shifted:
+  - extraction and profile-aware grammar synthesis now work,
+  - parser-source generation now works,
+  - remaining work is in the semantic accuracy of the LRM-to-active-EBNF translation, especially around constructs where the markdown conversion loses the LRM’s formatting distinction between metasyntax and literal punctuation.
+- Known high-value next debugging targets:
+  - remaining literal `[]` / `{}` disambiguation debt,
+  - markdown-derived lexical rules that are still too lossy for direct parse correctness,
+  - any productions still polluted by conversion artifacts that survive the current footnote scrub.
+
+## 2026-03-06 - Phase P SV Realistic Closure: Closed Remaining `always_ff` and Indexed-Generate Parse Gaps
+### Context
+After the `v2` realistic-corpus expansion, the Nexsim-oriented SystemVerilog manifest still carried two explicit expected-fail sentinels: `always_ff_sequential_block` and `generate_for_array_assign`. Both were realistic legal SV families that we wanted to promote from telemetry-only improvement signals into required-pass evidence. The blocking question was whether the remaining gap lived in the corpus expectations or in the grammar surface itself.
+
+### Implementation
+Root-cause isolation with generated-parser probes showed two concrete grammar gaps:
+- event controls accepted `@identifier` and `@(expression)` but not edge-qualified forms like `@(posedge clk)`,
+- primaries/lvalues accepted bare hierarchical identifiers but not indexed element references like `a[i]` and `y[i]`.
+
+Grammar hardening:
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+  - changed `event_expression` to consume `event_primary` items with optional edge qualifiers,
+  - added `edge_identifier := kw_posedge | kw_negedge | kw_edge`,
+  - added `select` / `bit_select` support,
+  - promoted indexed selects into both `primary` and `variable_lvalue`.
+
+Corpus expectation promotion:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - bumped `version` from `2` to `3`,
+  - promoted:
+    - `always_ff_sequential_block`
+    - `generate_for_array_assign`
+  - current expectation split is now:
+    - `11` expected parse-full passes,
+    - `0` expected parse-full failures.
+
+Documentation updates:
+- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation
+Focused contract-level validation:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_realistic_manifest_v3_check PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=0 bash rust/scripts/sv_stimuli_quality_gate.sh`
+
+Observed focused results:
+- generated sample path:
+  - `closed_loop_profiles_passed=2/2`
+  - `parse_full_pass_ratio_percent=100`
+  - `parse_full_passes=2/2`
+  - `semantic_baseline_passes=2/2`
+- realistic corpus:
+  - `realistic_corpus_cases_declared=11`
+  - `realistic_corpus_cases_executed=22`
+  - `realistic_corpus_expected_pass_total=11`
+  - `realistic_corpus_expected_fail_total=0`
+  - `realistic_corpus_observed_parse_pass_total=22`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_error_total=0`
+
+Targeted direct probes:
+- `parseability_probe --parse systemverilog rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/always_ff_sequential_block.sv` -> pass
+- `parseability_probe --parse systemverilog rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/generate_for_array_assign.sv` -> pass
+
+### Notes
+- This converts the realistic Nexsim corpus from a mixed pass/fail telemetry set into a full required-pass parser-evidence baseline.
+- The closure came from grammar generalization, not from adding sample-specific exceptions in the Rust harness.
+
 ## 2026-03-06 - Phase P Semantic Closure Evidence: Expanded Nexsim Realistic SystemVerilog Corpus (`v2`)
 ### Context
 The realistic-corpus stage in `sv_stimuli_quality_gate` was already wired and contractized, but its deterministic corpus was still shallow (`6` declared cases). We had proof that the current generated parser could handle several additional realistic SystemVerilog families, but that evidence was not yet baked into the checked-in Nexsim corpus. The next useful hardening step was therefore to widen the deterministic corpus without relaxing the contract floor: `parse_full` had to remain `100%` on the generated closed-loop samples while the realistic corpus gained more legal supported cases.

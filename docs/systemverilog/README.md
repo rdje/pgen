@@ -15,6 +15,10 @@ Source PDFs:
 - `*/grammar_normalized.ebnf`: normalized grammar output
 - `*/grammar_clean.ebnf`: cleaned full extracted EBNF
 - `*/grammar_report.json`: extraction report (counts, diagnostics)
+- `../../grammars/systemverilog.ebnf`: active flattened single-file dual-profile grammar used by the HDL flow
+- `profiled_generation_report.json`: staged single-grammar dual-profile synthesis report (`sv_2017`, `sv_2023`)
+- `../../grammars/systemverilog_lrm_profiled_generated.ebnf`: generated dual-profile grammar fragment retained for regeneration/reporting
+- `../../grammars/systemverilog_lrm_profiled_wrapper.ebnf`: wrapper scaffold retained for reference/debugging
 
 ## Quick start
 Generate IEEE 1800-2017 artifacts:
@@ -48,3 +52,18 @@ python3 tools/ieee_lrm_converter.py \
 Tips:
 - Use `--clause-depth 2` for finer section granularity.
 - Use `--limit N` for fast smoke tests.
+
+Profile-aware synthesis:
+```bash
+python3 tools/extract_systemverilog_lrm_profiles.py \
+  --md-2017 docs/systemverilog/2017/md/section-41-data-read-api.md \
+  --md-2023 docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md \
+  --output-ebnf grammars/systemverilog_lrm_profiled_generated.ebnf \
+  --output-active-ebnf grammars/systemverilog.ebnf \
+  --output-report docs/systemverilog/profiled_generation_report.json
+```
+
+Note:
+- the active `grammars/systemverilog.ebnf` is now the promoted flattened dual-profile grammar used by the normal HDL flow;
+- `grammars/systemverilog_lrm_profiled_generated.ebnf` and `grammars/systemverilog_lrm_profiled_wrapper.ebnf` are retained as synthesis/debug artifacts;
+- the active file is flattened because the current Perl `ebnf_to_json.pl` frontend does not expand `include(...)`.
