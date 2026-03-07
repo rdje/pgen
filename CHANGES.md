@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-07 - Capture RTLSyn Planned Parser Stack In Roadmap
+### ✅ Achievement Summary
+Recorded the planned RTLSyn parser-family minimum set in the roadmap as future work, without starting implementation.
+
+### Scope of Changes
+- Updated:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - added a dedicated future-track phase for the RTLSyn parser stack,
+    - captured the four mandatory planned families:
+      - synthesizable RTL frontend parser,
+      - constant-expression parser/evaluator,
+      - Liberty parser,
+      - SDC parser,
+    - captured the later-only planned readers/parsers:
+      - gate-level Verilog netlist,
+      - pipeline/config parser,
+      - optional SDF reader.
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+    - added handoff context that this RTLSyn parser-stack scope is roadmap-only and not active implementation work.
+
+### Validation Results
+- Documentation surface check only:
+  - confirmed the roadmap and handoff state now carry the RTLSyn planned parser-stack requirements.
+
+### Notes
+- This amendment is intentionally planning-only.
+- No parser, evaluator, or crate implementation was started in this task.
+
 ## 2026-03-07 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 10`
 ### ✅ Achievement Summary
 Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `39` to `46` declared all-pass cases by promoting the next validated width-vector, deep-include, wildcard/internal-packed, and macro-expanded port-name/import families.

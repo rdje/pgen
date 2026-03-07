@@ -42,6 +42,17 @@ Use this file to resume work without replaying full chat history.
   - several private GitHub Actions workflow runs are still failing for reasons not yet isolated from this environment,
   - resume that investigation from a clean committed snapshot, not the current dirty local worktree,
   - keep this follow-up off the active critical path until explicitly resumed.
+- Planned future-scope capture:
+  - the roadmap now includes a dedicated RTLSyn parser-stack phase covering the four mandatory planned families:
+    - synthesizable RTL frontend parser,
+    - constant-expression parser/evaluator,
+    - Liberty parser,
+    - SDC parser,
+  - it also records later-only readers/parsers:
+    - gate-level Verilog netlist,
+    - pipeline/config formats,
+    - optional SDF,
+  - this is roadmap-only for now and is not active implementation work.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),

@@ -1093,6 +1093,36 @@ Objective: make AST visibility first-class for generator and generated-parser de
     - VHDL triage (`vhdl_gen_ast.json` + `vhdl_ast.json`),
     - regex onboarding flow (generation-input AST + deterministic stimuli/coverage/gap loop with gap-driven replay).
 
+### Phase S (Planned): RTLSyn Parser Stack Minimum Viable Coverage
+Objective: capture the minimum parser/evaluator surface required by the planned RTLSyn flow. This is a roadmap amendment only, not an active implementation phase yet.
+
+- [ ] Add an RTL frontend parser crate for the synthesizable RTL subset only:
+  - SystemVerilog frontend scope should cover the planned synthesis-facing subset rather than full SV,
+  - required baseline includes modules, ports, declarations, continuous assigns, procedural blocks, parameters/localparams, and generate constructs,
+  - this remains the most critical parser family because the frontend boundary is already backend-pluggable for future PGEN integration.
+- [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
+  - required for parameter/localparam evaluation,
+  - required for width expressions and part-select arithmetic,
+  - required for generate conditions and generate-loop evaluation,
+  - treat this as mandatory for meaningful elaboration completeness.
+- [ ] Add a Liberty parser crate:
+  - required to extract cell Boolean functions,
+  - required to extract timing arcs,
+  - required to extract area/power attributes,
+  - mandatory for real technology mapping and timing-driven flow closure.
+- [ ] Add an SDC parser crate for the planned timing-constraint subset:
+  - minimum subset is:
+    - `create_clock`
+    - `set_input_delay`
+    - `set_output_delay`
+    - `set_false_path`
+    - `set_multicycle_path`
+  - mandatory for constraint-driven STA and mapping.
+- [ ] Planned later, not day-1 mandatory:
+  - gate-level Verilog netlist reader for stronger equivalence/debug loops,
+  - pipeline/config parser for TOML/YAML/JSON pass scripts,
+  - optional SDF reader for round-trip timing validation if that workflow becomes necessary.
+
 ## Current Sprint: Pillar 1
 
 ### Completed in this sprint
@@ -1120,6 +1150,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-07: Added a roadmap-only RTLSyn parser-stack track capturing the four mandatory planned parser families (synthesizable RTL frontend, constant-expression evaluator, Liberty, and SDC) plus later-only gate-netlist/config/SDF readers; no implementation was started in this amendment.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `39` to `46` declared all-pass cases (`version: 10`) by promoting width-vector import/use integration, deeper include-chain wildcard/internal-packed variants, and macro-expanded port-name/import families; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=92/92`.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `32` to `39` declared all-pass cases (`version: 9`) by promoting deeper include-chain composition, macro-expanded multi-port/module-name instantiation variants, and richer multi-constant import/use families; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=78/78`.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `28` to `32` declared all-pass cases (`version: 8`) by promoting macro-expanded module-local package import, package-import named-port instantiation, macro-expanded named-port actual, and nested local-include named-port families; direct validation passed `8/8` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=64/64`.

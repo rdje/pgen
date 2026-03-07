@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - Roadmap Amendment: RTLSyn Planned Parser Stack
+### Context
+You identified a distinct downstream requirement set for the planned RTLSyn flow that should be visible in the main roadmap even though it is not part of the active implementation thread.
+
+### Implementation
+Updated:
+- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - added a dedicated future-track phase for the RTLSyn parser stack,
+  - recorded the mandatory planned families:
+    - synthesizable RTL frontend parser,
+    - constant-expression parser/evaluator,
+    - Liberty parser,
+    - SDC parser,
+  - recorded the later-only readers/parsers:
+    - gate-level Verilog netlist,
+    - pipeline/config parser,
+    - optional SDF reader.
+- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+  - added handoff context that this is roadmap-only and not active implementation work.
+
+### Validation
+- Documentation surface check:
+  - confirmed the roadmap and live handoff file both carry the RTLSyn parser-stack planning note.
+
+### Notes
+- This is intentionally a planning capture only.
+- No code, grammar, or crate implementation was started.
+
 ## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 10` Width-Vector + Macro Port-Name Increment
 ### Context
 After the `version: 9` promotion, the next clean Phase P/Q increment was to widen the checked-in corpus with the next already-validated search space instead of reopening grammar work: width-vector import/use integration, deeper include-chain variants that exercise wildcard or internal-packed wiring, and macro-expanded named-port identifier forms.
