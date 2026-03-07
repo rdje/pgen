@@ -452,7 +452,7 @@ constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9f454fd4
 
 constraint_declaration := constraint_declaration_sv_2017 | constraint_declaration_sv_2023
 
-constraint_expression := ( kw_soft_eb74f2cb )? expression_or_dist semi | uniqueness_constraint semi | expression implies constraint_set | kw_if_958f57f5 lparen expression rparen constraint_set ( kw_else_ae050f5b constraint_set )? | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier ( loop_variables )? rparen constraint_set | kw_disable_ccf09e2d kw_soft_eb74f2cb constraint_primary semi
+constraint_expression := ( kw_soft_eb74f2cb )? expression_or_dist semi | uniqueness_constraint semi | expression implies constraint_set | kw_if_958f57f5 lparen expression rparen constraint_set ( kw_else_ae050f5b constraint_set )? | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen constraint_set | kw_disable_ccf09e2d kw_soft_eb74f2cb constraint_primary semi
 
 constraint_identifier := identifier
 
@@ -555,10 +555,10 @@ cycle_delay_const_range_expression := constant_expression colon constant_express
 cycle_delay_range := kw_token_93ac8946 constant_primary | kw_token_93ac8946 ( cycle_delay_const_range_expression )? | kw_token_71b8cf7e | kw_token_9768502a
 
 @profiles: ["sv_2017"]
-data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi kw_n_10_b1d57811 | type_declaration | package_import_declaration | net_type_declaration
+data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | net_type_declaration
 
 @profiles: ["sv_2023"]
-data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi kw_n_14_fa35e192 | type_declaration | package_import_declaration | nettype_declaration
+data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | nettype_declaration
 
 data_declaration := data_declaration_sv_2017 | data_declaration_sv_2023
 
@@ -1086,7 +1086,7 @@ local_parameter_declaration := local_parameter_declaration_sv_2017 | local_param
 
 loop_generate_construct := kw_for_43eef9a6 lparen genvar_initialization semi genvar_expression semi genvar_iteration rparen generate_block
 
-loop_statement := kw_forever_e07f8c4a statement_or_null | kw_repeat_c0ac4842 lparen expression rparen statement_or_null | kw_while_6517f89c lparen expression rparen statement_or_null | kw_for_43eef9a6 lparen ( for_initialization )? semi ( expression )? semi ( for_step )? rparen statement_or_null | kw_do_eadcd9bd statement_or_null kw_while_6517f89c lparen expression rparen semi | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier ( loop_variables )? rparen statement
+loop_statement := kw_forever_e07f8c4a statement_or_null | kw_repeat_c0ac4842 lparen expression rparen statement_or_null | kw_while_6517f89c lparen expression rparen statement_or_null | kw_for_43eef9a6 lparen ( for_initialization )? semi ( expression )? semi ( for_step )? rparen statement_or_null | kw_do_eadcd9bd statement_or_null kw_while_6517f89c lparen expression rparen semi | kw_foreach_4d3e8614 lparen ps_or_hierarchical_array_identifier lbrack loop_variables rbrack rparen statement
 
 loop_variables := ( index_variable_identifier )? ( comma ( index_variable_identifier )? )*
 

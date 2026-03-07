@@ -1,4 +1,72 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Grammar Closure: Packed Internal Declarations + `foreach`; Realistic Corpus `version: 7`
+### Context
+The active Phase P/Q blocker was no longer just “`foreach` is unsupported.” The clause-derived active grammar still carried extracted numeric artifacts in `data_declaration`, so internal packed declarations like `logic [3:0] arr;` were falling out of the proper declaration path. That underlying issue also prevented the realistic `foreach (arr[idx])` array-assignment shape from parsing.
+
+### Implementation
+Updated:
+- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+  - removed stray extracted numeric terminals from:
+    - `data_declaration_sv_2017`
+    - `data_declaration_sv_2023`
+  - corrected `foreach` syntax in:
+    - `loop_statement`
+    - `constraint_expression`
+  - both sites now use the bracketed iterator-slot form required by the LRM:
+    - `foreach (ps_or_hierarchical_array_identifier[loop_variables])`
+- Promoted the checked-in realistic corpus:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - `version: 7`
+    - `cases: 28`
+- Added new required-pass fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/foreach_array_assign.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/for_loop_internal_packed_assign.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/internal_packed_named_port_instantiation.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/internal_packed_wildcard_instantiation.sv`
+
+This promotion widens the realistic corpus in two useful directions:
+- previously blocked syntax closure:
+  - internal packed variable declarations,
+  - `foreach` array assignment.
+- integration shapes that depend on internal packed declarations being parseable:
+  - named-port instantiation from an internal packed signal,
+  - wildcard instantiation from an internal packed signal.
+
+### Validation
+Minimal repros with regenerated parser:
+- `packed_decl_only.sv` now passes in `sv_2017` and `sv_2023`.
+- `foreach_array_assign.sv` now passes in `sv_2017` and `sv_2023`.
+
+Promoted-slice direct replay:
+- regenerated `systemverilog.json` from the active grammar,
+- regenerated a temporary parser,
+- rebuilt `parseability_probe` with `PGEN_SYSTEMVERILOG_PARSER_PATH`,
+- observed:
+  - `4` new cases,
+  - `2` profiles each,
+  - `8/8` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v7_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5484`
+  - `closed_loop_replay_targets_total=5211`
+  - `realistic_corpus_cases_declared=28`
+  - `realistic_corpus_cases_executed=56`
+  - `realistic_corpus_observed_parse_pass_total=56`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- The prior `foreach` blocker is closed.
+- After this fix, several previously failing probe-only candidates also started passing direct dual-profile replay:
+  - macro-expanded module-local package import,
+  - package-import named-port instantiation,
+  - macro-expanded named-port actual,
+  - nested local-include named-port instantiation.
+- I did not promote those four additional families in this same task; they are the clean next corpus-expansion candidates.
+
 ## 2026-03-07 - Surfaced Bounded SV Replay Override In User-Facing Docs
 ### Context
 After `sv_stimuli_quality_gate` gained the ad hoc replay-budget override `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`, the control existed in code/changelog/memory but was still missing from the main operator docs.
