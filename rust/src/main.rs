@@ -11,7 +11,8 @@ use pgen::ast_pipeline::stimuli_generator::{
 use pgen::ast_pipeline::{
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
     ast_generator_direct::generate_parser_ast_based, configure_trace_output,
-    resolve_trace_verbosity, set_global_trace_verbosity,
+    extract_semantic_directive, parse_semantic_string_list, resolve_trace_verbosity,
+    set_global_trace_verbosity,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
@@ -106,6 +107,10 @@ struct Args {
     /// Override grammar entry rule for generation
     #[arg(long)]
     entry_rule: Option<String>,
+
+    /// Optional grammar profile filter (for example `sv_2017`, `sv_2023`, `vhdl_1076_2019`)
+    #[arg(long)]
+    grammar_profile: Option<String>,
 
     /// Maximum recursive depth during stimuli generation
     #[arg(long, default_value_t = 24)]
@@ -537,10 +542,13 @@ fn main() -> Result<()> {
             .output
             .unwrap_or_else(|| default_parser_output_path(&args.input_path));
 
-        let grammar = load_grammar_bundle(
-            &args.input_path,
-            &mut pipeline,
-            args.emit_raw_ast_json.as_deref(),
+        let grammar = apply_grammar_profile_filter(
+            load_grammar_bundle(
+                &args.input_path,
+                &mut pipeline,
+                args.emit_raw_ast_json.as_deref(),
+            )?,
+            args.grammar_profile.as_deref(),
         )?;
         maybe_dump_generation_ast(
             &grammar,
@@ -563,10 +571,13 @@ fn main() -> Result<()> {
         println!("SOTA parser generated: {}", output_rust);
         (0, Vec::<String>::new())
     } else if args.generate_stimuli_module {
-        let grammar = load_grammar_bundle(
-            &args.input_path,
-            &mut pipeline,
-            args.emit_raw_ast_json.as_deref(),
+        let grammar = apply_grammar_profile_filter(
+            load_grammar_bundle(
+                &args.input_path,
+                &mut pipeline,
+                args.emit_raw_ast_json.as_deref(),
+            )?,
+            args.grammar_profile.as_deref(),
         )?;
         maybe_dump_generation_ast(
             &grammar,
@@ -610,6 +621,7 @@ fn main() -> Result<()> {
         let samples = if args.validate_parseability {
             generate_parseable_stimuli(
                 &grammar.grammar_name,
+                args.grammar_profile.as_deref(),
                 &mut generator,
                 args.count,
                 Some(resolved_entry_rule.as_str()),
@@ -674,10 +686,13 @@ fn main() -> Result<()> {
         }
         (samples.len(), grammar.rule_order)
     } else if args.generate_stimuli {
-        let grammar = load_grammar_bundle(
-            &args.input_path,
-            &mut pipeline,
-            args.emit_raw_ast_json.as_deref(),
+        let grammar = apply_grammar_profile_filter(
+            load_grammar_bundle(
+                &args.input_path,
+                &mut pipeline,
+                args.emit_raw_ast_json.as_deref(),
+            )?,
+            args.grammar_profile.as_deref(),
         )?;
         maybe_dump_generation_ast(
             &grammar,
@@ -735,6 +750,7 @@ fn main() -> Result<()> {
                 args.entry_rule.as_deref(),
                 args.coverage_guided_fuzz_rounds,
                 seed_start,
+                args.grammar_profile.as_deref(),
                 args.validate_parseability,
                 merged_coverage.clone(),
             )?;
@@ -759,6 +775,7 @@ fn main() -> Result<()> {
             let generated_samples = if args.validate_parseability {
                 generate_parseable_stimuli(
                     &grammar.grammar_name,
+                    args.grammar_profile.as_deref(),
                     &mut generator,
                     args.count,
                     args.entry_rule.as_deref(),
@@ -817,6 +834,7 @@ fn main() -> Result<()> {
         } else if args.validate_parseability {
             let generated_samples = generate_parseable_stimuli(
                 &grammar.grammar_name,
+                args.grammar_profile.as_deref(),
                 &mut generator,
                 args.count,
                 args.entry_rule.as_deref(),
@@ -831,8 +849,11 @@ fn main() -> Result<()> {
         };
 
         if args.validate_parseability && args.target_report_input.is_some() {
-            let (accepted, rejected) =
-                filter_parseable_samples(&grammar.grammar_name, samples.into_iter())?;
+            let (accepted, rejected) = filter_parseable_samples(
+                &grammar.grammar_name,
+                args.grammar_profile.as_deref(),
+                samples.into_iter(),
+            )?;
             samples = accepted;
             println!(
                 "Target-driven parseability filter accepted {} samples and rejected {}",
@@ -1143,6 +1164,140 @@ fn load_grammar_bundle_from_json_value(
     }
 }
 
+fn normalize_grammar_profile_name(profile: &str) -> String {
+    let normalized = profile.trim().to_ascii_lowercase();
+    match normalized.as_str() {
+        "sv_2017" | "2017" | "ieee1800-2017" | "ieee_1800_2017" => "sv_2017".to_string(),
+        "sv_2023" | "2023" | "ieee1800-2023" | "ieee_1800_2023" => "sv_2023".to_string(),
+        "vhdl_1076_2019" | "1076_2019" | "1076-2019" | "ieee1076-2019" | "ieee_1076_2019" => {
+            "vhdl_1076_2019".to_string()
+        }
+        _ => normalized,
+    }
+}
+
+fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profile: &str) -> bool {
+    let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+        return true;
+    };
+
+    let mut allowed_profiles: Option<Vec<String>> = None;
+    for annotation in entries {
+        let payload = match annotation.name() {
+            Some(name) if name.trim().eq_ignore_ascii_case("profiles") => match annotation.ast() {
+                pgen::ast_pipeline::UnifiedSemanticAST::TransformExpr { expression } => {
+                    expression.as_str()
+                }
+                pgen::ast_pipeline::UnifiedSemanticAST::Raw { content } => content.as_str(),
+            },
+            _ => match annotation.ast() {
+                pgen::ast_pipeline::UnifiedSemanticAST::TransformExpr { expression } => {
+                    let Some((name, payload)) = extract_semantic_directive(expression) else {
+                        continue;
+                    };
+                    if name != "profiles" {
+                        continue;
+                    }
+                    allowed_profiles = parse_semantic_string_list(&payload).map(|values| {
+                        values
+                            .into_iter()
+                            .map(|value| normalize_grammar_profile_name(&value))
+                            .collect()
+                    });
+                    continue;
+                }
+                pgen::ast_pipeline::UnifiedSemanticAST::Raw { content } => {
+                    let Some((name, payload)) = extract_semantic_directive(content) else {
+                        continue;
+                    };
+                    if name != "profiles" {
+                        continue;
+                    }
+                    allowed_profiles = parse_semantic_string_list(&payload).map(|values| {
+                        values
+                            .into_iter()
+                            .map(|value| normalize_grammar_profile_name(&value))
+                            .collect()
+                    });
+                    continue;
+                }
+            },
+        };
+
+        allowed_profiles = parse_semantic_string_list(payload).map(|values| {
+            values
+                .into_iter()
+                .map(|value| normalize_grammar_profile_name(&value))
+                .collect()
+        });
+    }
+
+    match allowed_profiles {
+        Some(allowed) if !allowed.is_empty() => allowed.iter().any(|value| value == active_profile),
+        _ => true,
+    }
+}
+
+fn filter_annotations_by_profile(
+    annotations: Annotations,
+    retained_rules: &HashSet<String>,
+) -> Annotations {
+    let mut branch_return_annotations = annotations.branch_return_annotations;
+    branch_return_annotations.retain(|rule_name, _| retained_rules.contains(rule_name));
+
+    let mut semantic_annotations = annotations.semantic_annotations;
+    semantic_annotations.retain(|rule_name, _| retained_rules.contains(rule_name));
+
+    Annotations {
+        branch_return_annotations,
+        semantic_annotations,
+    }
+}
+
+fn apply_grammar_profile_filter(
+    grammar: LoadedGrammar,
+    grammar_profile: Option<&str>,
+) -> Result<LoadedGrammar> {
+    let Some(profile) = grammar_profile else {
+        return Ok(grammar);
+    };
+    let active_profile = normalize_grammar_profile_name(profile);
+    let Some(annotations) = grammar.annotations.as_ref() else {
+        return Ok(grammar);
+    };
+
+    let retained_rule_order = grammar
+        .rule_order
+        .iter()
+        .filter(|rule_name| rule_profile_matches(annotations, rule_name, &active_profile))
+        .cloned()
+        .collect::<Vec<_>>();
+    if retained_rule_order.is_empty() {
+        return Err(anyhow::anyhow!(
+            "Grammar profile '{}' removed all rules from grammar '{}'",
+            active_profile,
+            grammar.grammar_name
+        ));
+    }
+
+    let retained_rules = retained_rule_order.iter().cloned().collect::<HashSet<_>>();
+    let retained_grammar_tree = grammar
+        .grammar_tree
+        .into_iter()
+        .filter(|(rule_name, _)| retained_rules.contains(rule_name))
+        .collect::<HashMap<_, _>>();
+    let retained_annotations = grammar
+        .annotations
+        .map(|entries| filter_annotations_by_profile(entries, &retained_rules));
+
+    Ok(LoadedGrammar {
+        grammar_name: grammar.grammar_name,
+        grammar_tree: retained_grammar_tree,
+        rule_order: retained_rule_order,
+        annotations: retained_annotations,
+    })
+}
+
 fn default_parser_output_path(input_path: &str) -> String {
     let input = Path::new(input_path);
     let stem = input
@@ -1278,10 +1433,15 @@ fn summarize_sample(sample: &str, max_chars: usize) -> String {
     format!("{}...", truncated)
 }
 
-fn shrink_parseability_counterexample(grammar_name: &str, sample: &str) -> Result<String> {
+fn shrink_parseability_counterexample(
+    grammar_name: &str,
+    grammar_profile: Option<&str>,
+    sample: &str,
+) -> Result<String> {
     minimize_failing_input(sample, |candidate| {
         Ok(!is_sample_parseable_by_generated_parser(
             grammar_name,
+            grammar_profile,
             candidate,
         )?)
     })
@@ -1368,6 +1528,7 @@ fn run_coverage_guided_fuzz_loop(
     entry_rule: Option<&str>,
     rounds: usize,
     seed_start: u64,
+    grammar_profile: Option<&str>,
     validate_parseability: bool,
     initial_coverage: StimuliCoverageMetrics,
 ) -> Result<CoverageGuidedFuzzOutcome> {
@@ -1444,12 +1605,17 @@ fn run_coverage_guided_fuzz_loop(
         if let Some(sample_text) = sample.as_deref() {
             if validate_parseability {
                 let is_parseable =
-                    is_sample_parseable_by_generated_parser(grammar_name, sample_text)?;
+                    is_sample_parseable_by_generated_parser(
+                        grammar_name,
+                        grammar_profile,
+                        sample_text,
+                    )?;
                 parseable = Some(is_parseable);
                 accepted = is_parseable;
                 if !is_parseable {
                     shrunk_counterexample = Some(shrink_parseability_counterexample(
                         grammar_name,
+                        grammar_profile,
                         sample_text,
                     )?);
                 }
@@ -1659,7 +1825,11 @@ fn minimize_fuzz_corpus_cases(cases: &[FuzzCorpusCandidate]) -> Vec<usize> {
     selected
 }
 
-fn filter_parseable_samples<I>(grammar_name: &str, samples: I) -> Result<(Vec<String>, usize)>
+fn filter_parseable_samples<I>(
+    grammar_name: &str,
+    grammar_profile: Option<&str>,
+    samples: I,
+) -> Result<(Vec<String>, usize)>
 where
     I: IntoIterator<Item = String>,
 {
@@ -1667,7 +1837,7 @@ where
     let mut accepted = Vec::new();
     let mut rejected = 0usize;
     for sample in samples {
-        if is_sample_parseable_by_generated_parser(grammar_name, &sample)? {
+        if is_sample_parseable_by_generated_parser(grammar_name, grammar_profile, &sample)? {
             accepted.push(sample);
         } else {
             rejected = rejected.saturating_add(1);
@@ -1708,6 +1878,7 @@ fn supported_generated_parseability_grammars_csv() -> String {
 
 fn generate_parseable_stimuli(
     grammar_name: &str,
+    grammar_profile: Option<&str>,
     generator: &mut StimuliGenerator<'_>,
     requested_count: usize,
     entry_rule: Option<&str>,
@@ -1741,7 +1912,7 @@ fn generate_parseable_stimuli(
             }
         };
 
-        if is_sample_parseable_by_generated_parser(grammar_name, &sample)? {
+        if is_sample_parseable_by_generated_parser(grammar_name, grammar_profile, &sample)? {
             accepted.push(sample);
         } else {
             parser_rejections += 1;
@@ -1762,7 +1933,7 @@ fn generate_parseable_stimuli(
 
     if accepted.len() < requested_count {
         let counterexample_note = if let Some(sample) = last_parser_rejected_sample {
-            let shrunk = shrink_parseability_counterexample(grammar_name, &sample)
+            let shrunk = shrink_parseability_counterexample(grammar_name, grammar_profile, &sample)
                 .unwrap_or_else(|_| sample.clone());
             format!(
                 " Last parseability counterexample: '{}' (shrunk='{}').",
@@ -1825,15 +1996,32 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
     Ok(())
 }
 #[cfg(feature = "generated_parsers")]
-fn is_sample_parseable_by_generated_parser(grammar_name: &str, sample: &str) -> Result<bool> {
-    parser_registry::parse_sample(grammar_name, sample).ok_or_else(|| {
-        let supported = supported_generated_parseability_grammars_csv();
-        anyhow::anyhow!(
-            "Unsupported grammar '{}' for generated parseability validation. Supported grammars: {}",
-            grammar_name,
-            supported
-        )
-    })
+fn is_sample_parseable_by_generated_parser(
+    grammar_name: &str,
+    grammar_profile: Option<&str>,
+    sample: &str,
+) -> Result<bool> {
+    parser_registry::parse_sample_with_profile(grammar_name, sample, grammar_profile).ok_or_else(
+        || {
+            let supported = supported_generated_parseability_grammars_csv();
+            anyhow::anyhow!(
+                "Unsupported grammar '{}' for generated parseability validation. Supported grammars: {}",
+                grammar_name,
+                supported
+            )
+        },
+    )
+}
+
+#[cfg(not(feature = "generated_parsers"))]
+fn is_sample_parseable_by_generated_parser(
+    _grammar_name: &str,
+    _grammar_profile: Option<&str>,
+    _sample: &str,
+) -> Result<bool> {
+    Err(anyhow::anyhow!(
+        "Generated parser parseability checks are unavailable without --features generated_parsers"
+    ))
 }
 
 #[cfg(not(feature = "generated_parsers"))]
@@ -1850,13 +2038,6 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
             supported
         ))
     }
-}
-
-#[cfg(not(feature = "generated_parsers"))]
-fn is_sample_parseable_by_generated_parser(_grammar_name: &str, _sample: &str) -> Result<bool> {
-    Err(anyhow::anyhow!(
-        "Generated parser parseability checks are unavailable without --features generated_parsers"
-    ))
 }
 
 #[cfg(test)]

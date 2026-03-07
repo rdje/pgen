@@ -300,6 +300,7 @@ impl AstBasedGenerator {
                 position: usize,
                 memo: HashMap<(RuleId, usize), Option<ParseNode<'input>>>,
                 recursion_guard: RecursionGuard,
+                grammar_profile: Option<String>,
                 recovery_events: Vec<RecoveryEvent>,
                 recovery_counts: HashMap<String, usize>,
                 recovery_parse_count: usize,
@@ -526,6 +527,7 @@ impl AstBasedGenerator {
                     position: 0,
                     memo: HashMap::new(),
                     recursion_guard: RecursionGuard::new(100),
+                    grammar_profile: None,
                     recovery_events: Vec::new(),
                     recovery_counts: HashMap::new(),
                     recovery_parse_count: 0,
@@ -579,6 +581,14 @@ impl AstBasedGenerator {
 
             pub fn #parse_full_method(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.parse_full()
+            }
+
+            pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
+                self.grammar_profile = profile.map(|value| value.to_string());
+            }
+
+            pub fn grammar_profile(&self) -> Option<&str> {
+                self.grammar_profile.as_deref()
             }
 
             pub fn recovery_events(&self) -> &[RecoveryEvent] {
@@ -704,6 +714,19 @@ impl AstBasedGenerator {
         let deterministic_partition_group = deterministic_partition_policy
             .group_label
             .unwrap_or_else(|| format!("rule.{}", rule_name));
+        let rule_profiles = self.rule_profiles(rule_name);
+        let profile_guard = if rule_profiles.is_empty() {
+            quote! {}
+        } else {
+            let profile_literals = rule_profiles.iter().map(|profile| profile.as_str());
+            quote! {
+                if !self.rule_profile_is_enabled(&[#(#profile_literals),*]) {
+                    return Err(ParseError::Backtrack {
+                        position,
+                    });
+                }
+            }
+        };
 
         // Build the complete method
         Ok(quote! {
@@ -743,6 +766,8 @@ impl AstBasedGenerator {
                     }
                     _ => {}
                 }
+
+                #profile_guard
 
                 self.recursion_guard.enter(#rule_name, position);
 
@@ -1700,6 +1725,18 @@ impl AstBasedGenerator {
                 }
                 let clamped_end = end.min(self.input.len());
                 String::from_utf8_lossy(&self.input.as_bytes()[start..clamped_end]).to_string()
+            }
+            fn rule_profile_is_enabled(&self, allowed_profiles: &[&str]) -> bool {
+                if allowed_profiles.is_empty() {
+                    return true;
+                }
+
+                match self.grammar_profile.as_deref() {
+                    Some(active) => allowed_profiles
+                        .iter()
+                        .any(|candidate| active.eq_ignore_ascii_case(candidate)),
+                    None => true,
+                }
             }
             fn bytes_match_at(&self, start: usize, expected: &[u8]) -> bool {
                 let Some(end) = start.checked_add(expected.len()) else {
@@ -3216,6 +3253,34 @@ impl AstBasedGenerator {
         }
 
         policy
+    }
+
+    fn rule_profiles(&self, rule_name: &str) -> Vec<String> {
+        let Some(annotations) = &self.annotations else {
+            return Vec::new();
+        };
+        let Some(entries) = annotations.semantic_annotations.get(rule_name) else {
+            return Vec::new();
+        };
+
+        let mut profiles = Vec::new();
+        for annotation in entries {
+            let Some((name, payload)) = Self::semantic_directive_parts(annotation) else {
+                continue;
+            };
+            if name != "profiles" {
+                continue;
+            }
+            if let Some(parsed) = parse_semantic_string_list(&payload) {
+                profiles = parsed
+                    .into_iter()
+                    .map(|value| value.trim().to_ascii_lowercase())
+                    .filter(|value| !value.is_empty())
+                    .collect();
+            }
+        }
+
+        profiles
     }
 
     fn deterministic_partition_offset(group_key: &str, branch_count: usize) -> usize {

@@ -642,6 +642,19 @@ impl AnnotationValidator {
                     });
                 }
             }
+            "profiles" => {
+                if parse_semantic_string_list(payload_trimmed).is_none() {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_PROFILES_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: "Directive '@profiles' expects one or more profile names, for example '[\"sv_2017\", \"sv_2023\"]'.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             "range" => {
                 if parse_semantic_numeric_bounds(payload_trimmed).is_none() {
                     report.diagnostics.push(AnnotationDiagnostic {

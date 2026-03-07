@@ -336,6 +336,10 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         name: "deterministic_group",
         capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
+    SemanticDirectiveSpec {
+        name: "profiles",
+        capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
+    },
     // Literal-oriented generation hint directives.
     SemanticDirectiveSpec {
         name: "literal",

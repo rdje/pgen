@@ -907,7 +907,7 @@ fn run_grammar_parse(
     validate_input_limits(input, limits)?;
     validate_profile_match(grammar, profile)?;
     match grammar {
-        GrammarFamily::SystemVerilog => parse_generated_systemverilog(input),
+        GrammarFamily::SystemVerilog => parse_generated_systemverilog(input, Some(profile.as_str())),
         GrammarFamily::Vhdl => parse_generated_vhdl(input),
     }
 }
@@ -934,7 +934,9 @@ fn run_grammar_parse_ast_dump(
     validate_ast_dump_options(options)?;
     validate_profile_match(grammar, profile)?;
     let ast_json = match grammar {
-        GrammarFamily::SystemVerilog => parse_generated_systemverilog_ast_json(input)?,
+        GrammarFamily::SystemVerilog => {
+            parse_generated_systemverilog_ast_json(input, Some(profile.as_str()))?
+        }
         GrammarFamily::Vhdl => parse_generated_vhdl_ast_json(input)?,
     };
     encode_ast_dump_payload(&ast_json, options)
@@ -1151,7 +1153,10 @@ fn parse_generated_semantic(input: &str) -> Result<(), ParseDiagnostic> {
     }
 }
 
-fn parse_generated_systemverilog(input: &str) -> Result<(), ParseDiagnostic> {
+fn parse_generated_systemverilog(
+    input: &str,
+    grammar_profile: Option<&str>,
+) -> Result<(), ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     {
         use crate::generated_parsers::systemverilog::SystemverilogParser;
@@ -1159,6 +1164,7 @@ fn parse_generated_systemverilog(input: &str) -> Result<(), ParseDiagnostic> {
             input,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
         );
+        parser.set_grammar_profile(grammar_profile);
         return parser
             .parse_full_systemverilog_file()
             .map(|_| ())
@@ -1169,7 +1175,7 @@ fn parse_generated_systemverilog(input: &str) -> Result<(), ParseDiagnostic> {
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     {
-        let _ = input;
+        let _ = (input, grammar_profile);
         Err(ParseDiagnostic {
             code: "E_BACKEND_UNAVAILABLE".to_string(),
             message:
@@ -1179,7 +1185,10 @@ fn parse_generated_systemverilog(input: &str) -> Result<(), ParseDiagnostic> {
     }
 }
 
-fn parse_generated_systemverilog_ast_json(input: &str) -> Result<JsonValue, ParseDiagnostic> {
+fn parse_generated_systemverilog_ast_json(
+    input: &str,
+    grammar_profile: Option<&str>,
+) -> Result<JsonValue, ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     {
         use crate::generated_parsers::systemverilog::SystemverilogParser;
@@ -1187,6 +1196,7 @@ fn parse_generated_systemverilog_ast_json(input: &str) -> Result<JsonValue, Pars
             input,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
         );
+        parser.set_grammar_profile(grammar_profile);
         let parsed = parser
             .parse_full_systemverilog_file()
             .map_err(|err| ParseDiagnostic {
@@ -1200,7 +1210,7 @@ fn parse_generated_systemverilog_ast_json(input: &str) -> Result<JsonValue, Pars
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     {
-        let _ = input;
+        let _ = (input, grammar_profile);
         Err(ParseDiagnostic {
             code: "E_BACKEND_UNAVAILABLE".to_string(),
             message:

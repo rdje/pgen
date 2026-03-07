@@ -5,7 +5,7 @@ use serde::Serialize;
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name>\n  parseability_probe --parse <grammar_name> <input_file>\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--max-bytes N]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--max-bytes N]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES"
+    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES"
 }
 
 fn default_ast_dump_file(grammar_name: &str) -> String {
@@ -101,6 +101,28 @@ fn parse_dump_command_tail(args: &[String]) -> Result<(Option<String>, Option<us
     Ok((output_file, max_bytes))
 }
 
+fn strip_profile_flag(args: &[String]) -> Result<(Vec<String>, Option<String>)> {
+    let mut remaining = Vec::new();
+    let mut profile = None;
+    let mut idx = 0usize;
+    while idx < args.len() {
+        if args[idx] == "--profile" {
+            if profile.is_some() {
+                bail!("--profile cannot be specified multiple times");
+            }
+            let value = args
+                .get(idx + 1)
+                .ok_or_else(|| anyhow::anyhow!("--profile requires a value"))?;
+            profile = Some(value.clone());
+            idx += 2;
+            continue;
+        }
+        remaining.push(args[idx].clone());
+        idx += 1;
+    }
+    Ok((remaining, profile))
+}
+
 fn canonicalize_json_value(value: serde_json::Value) -> serde_json::Value {
     match value {
         serde_json::Value::Array(values) => {
@@ -186,7 +208,8 @@ fn supported_grammars_csv() -> String {
 }
 
 #[cfg(feature = "generated_parsers")]
-fn command_supports(grammar_name: &str) -> Result<()> {
+fn command_supports(grammar_name: &str, profile: Option<&str>) -> Result<()> {
+    let _ = profile;
     if parser_registry::supports_grammar(grammar_name) {
         println!(
             "generated parseability adapter available for grammar '{}'",
@@ -202,16 +225,16 @@ fn command_supports(grammar_name: &str) -> Result<()> {
 }
 
 #[cfg(not(feature = "generated_parsers"))]
-fn command_supports(grammar_name: &str) -> Result<()> {
-    let _ = grammar_name;
+fn command_supports(grammar_name: &str, profile: Option<&str>) -> Result<()> {
+    let _ = (grammar_name, profile);
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
 #[cfg(feature = "generated_parsers")]
-fn command_parse(grammar_name: &str, input_file: &str) -> Result<()> {
+fn command_parse(grammar_name: &str, input_file: &str, profile: Option<&str>) -> Result<()> {
     let sample = std::fs::read_to_string(input_file)
         .with_context(|| format!("failed to read input file '{}'", input_file))?;
-    match parser_registry::parse_sample(grammar_name, &sample) {
+    match parser_registry::parse_sample_with_profile(grammar_name, &sample, profile) {
         Some(true) => {
             println!(
                 "parse_full passed for grammar '{}' on '{}'",
@@ -237,13 +260,15 @@ fn command_parse_dump_ast(
     grammar_name: &str,
     input_file: &str,
     output_file: Option<&str>,
+    profile: Option<&str>,
     pretty: bool,
     max_bytes: Option<usize>,
 ) -> Result<()> {
     let sample = std::fs::read_to_string(input_file)
         .with_context(|| format!("failed to read input file '{}'", input_file))?;
     let parse_result =
-        parser_registry::parse_sample_ast_json(grammar_name, &sample).ok_or_else(|| {
+        parser_registry::parse_sample_ast_json_with_profile(grammar_name, &sample, profile)
+            .ok_or_else(|| {
             anyhow::anyhow!(
                 "parseability adapter unavailable for grammar '{}'. Supported grammars: {}",
                 grammar_name,
@@ -302,16 +327,17 @@ fn command_parse_dump_ast(
     grammar_name: &str,
     input_file: &str,
     output_file: Option<&str>,
+    profile: Option<&str>,
     pretty: bool,
     max_bytes: Option<usize>,
 ) -> Result<()> {
-    let _ = (grammar_name, input_file, output_file, pretty, max_bytes);
+    let _ = (grammar_name, input_file, output_file, profile, pretty, max_bytes);
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
 #[cfg(not(feature = "generated_parsers"))]
-fn command_parse(grammar_name: &str, input_file: &str) -> Result<()> {
-    let _ = (grammar_name, input_file);
+fn command_parse(grammar_name: &str, input_file: &str, profile: Option<&str>) -> Result<()> {
+    let _ = (grammar_name, input_file, profile);
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
@@ -324,25 +350,32 @@ fn main() -> Result<()> {
 
     match args[1].as_str() {
         "--supports" => {
-            if args.len() != 3 {
+            let (remaining, profile) = strip_profile_flag(&args[2..])?;
+            if remaining.len() != 1 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            command_supports(&args[2])
+            command_supports(&remaining[0], profile.as_deref())
         }
         "--parse" => {
-            if args.len() != 4 {
+            let (remaining, profile) = strip_profile_flag(&args[2..])?;
+            if remaining.len() != 2 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            command_parse(&args[2], &args[3])
+            command_parse(&remaining[0], &remaining[1], profile.as_deref())
         }
         "--parse-dump-ast" => {
             if args.len() < 4 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            let (output_file, cli_max_bytes) = match parse_dump_command_tail(&args[4..]) {
+            let (remaining, profile) = strip_profile_flag(&args[2..])?;
+            if remaining.len() < 2 {
+                eprintln!("{}", usage());
+                std::process::exit(2);
+            }
+            let (output_file, cli_max_bytes) = match parse_dump_command_tail(&remaining[2..]) {
                 Ok(values) => values,
                 Err(err) => {
                     eprintln!("{}", usage());
@@ -352,14 +385,26 @@ fn main() -> Result<()> {
                 }
             };
             let max_bytes = resolve_dump_max_bytes(cli_max_bytes)?;
-            command_parse_dump_ast(&args[2], &args[3], output_file.as_deref(), false, max_bytes)
+            command_parse_dump_ast(
+                &remaining[0],
+                &remaining[1],
+                output_file.as_deref(),
+                profile.as_deref(),
+                false,
+                max_bytes,
+            )
         }
         "--parse-dump-ast-pretty" => {
             if args.len() < 4 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            let (output_file, cli_max_bytes) = match parse_dump_command_tail(&args[4..]) {
+            let (remaining, profile) = strip_profile_flag(&args[2..])?;
+            if remaining.len() < 2 {
+                eprintln!("{}", usage());
+                std::process::exit(2);
+            }
+            let (output_file, cli_max_bytes) = match parse_dump_command_tail(&remaining[2..]) {
                 Ok(values) => values,
                 Err(err) => {
                     eprintln!("{}", usage());
@@ -369,7 +414,14 @@ fn main() -> Result<()> {
                 }
             };
             let max_bytes = resolve_dump_max_bytes(cli_max_bytes)?;
-            command_parse_dump_ast(&args[2], &args[3], output_file.as_deref(), true, max_bytes)
+            command_parse_dump_ast(
+                &remaining[0],
+                &remaining[1],
+                output_file.as_deref(),
+                profile.as_deref(),
+                true,
+                max_bytes,
+            )
         }
         _ => {
             eprintln!("{}", usage());

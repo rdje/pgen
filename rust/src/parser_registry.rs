@@ -103,15 +103,30 @@ fn parse_with_ebnf_ast_json(sample: &str) -> Result<JsonValue, String> {
 
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog(sample: &str) -> bool {
+    parse_with_systemverilog_profile(sample, None)
+}
+
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>) -> bool {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+    parser.set_grammar_profile(grammar_profile);
     parser.parse_full_systemverilog_file().is_ok()
 }
 
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog_ast_json(sample: &str) -> Result<JsonValue, String> {
+    parse_with_systemverilog_ast_json_profile(sample, None)
+}
+
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_with_systemverilog_ast_json_profile(
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> Result<JsonValue, String> {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+    parser.set_grammar_profile(grammar_profile);
     let parsed = parser
         .parse_full_systemverilog_file()
         .map_err(|err| err.to_string())?;
@@ -210,12 +225,32 @@ pub fn supports_grammar(grammar_name: &str) -> bool {
 }
 
 pub fn parse_sample(grammar_name: &str, sample: &str) -> Option<bool> {
-    find_entry(grammar_name).map(|entry| entry.parse(sample))
+    parse_sample_with_profile(grammar_name, sample, None)
+}
+
+pub fn parse_sample_with_profile(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> Option<bool> {
+    match grammar_name {
+        #[cfg(has_generated_systemverilog_parser)]
+        "systemverilog" => Some(parse_with_systemverilog_profile(sample, grammar_profile)),
+        _ => find_entry(grammar_name).map(|entry| entry.parse(sample)),
+    }
 }
 
 pub fn parse_sample_ast_json(
     grammar_name: &str,
     sample: &str,
+) -> Option<Result<JsonValue, String>> {
+    parse_sample_ast_json_with_profile(grammar_name, sample, None)
+}
+
+pub fn parse_sample_ast_json_with_profile(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
 ) -> Option<Result<JsonValue, String>> {
     match grammar_name {
         "return_annotation" => Some(parse_with_return_annotation_ast_json(sample)),
@@ -227,7 +262,10 @@ pub fn parse_sample_ast_json(
         #[cfg(feature = "ebnf_dual_run")]
         "ebnf" => Some(parse_with_ebnf_ast_json(sample)),
         #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_with_systemverilog_ast_json(sample)),
+        "systemverilog" => Some(parse_with_systemverilog_ast_json_profile(
+            sample,
+            grammar_profile,
+        )),
         #[cfg(has_generated_systemverilog_preprocessor_parser)]
         "systemverilog_preprocessor" => {
             Some(parse_with_systemverilog_preprocessor_ast_json(sample))
