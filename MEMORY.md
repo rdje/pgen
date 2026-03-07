@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: sv-realistic-corpus-expansion-v8)
+Last updated: 2026-03-07 (+0100, task: sv-realistic-corpus-expansion-v9)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -67,7 +67,7 @@ Use this file to resume work without replaying full chat history.
       - restoring shared `assignment_operator`,
       - disambiguating labeled `generate_block` parsing (`begin : g`).
   - realistic corpus expansion status:
-    - checked-in Nexsim realistic corpus manifest is now `version: 8` with `32` declared all-pass cases,
+    - checked-in Nexsim realistic corpus manifest is now `version: 9` with `39` declared all-pass cases,
     - newly promoted required-pass families:
       - local include expansion,
       - `ifdef` branch-selected module,
@@ -90,8 +90,15 @@ Use this file to resume work without replaying full chat history.
       - package-import named-port instantiation,
       - macro-expanded named-port actual,
       - nested local-include named-port instantiation,
+      - module-local import with multiple imported constants,
+      - imported-child multi-bind instantiation,
+      - deeper three-step local include-chain named-port instantiation,
+      - macro-expanded multi-port actuals,
+      - macro-expanded module-name multi-port instantiation,
+      - macro-expanded module-name wildcard instantiation,
+      - macro-expanded module-local multi-assign import/use,
     - direct preprocess + parse-full validation for the latest slice is green:
-      - `8/8` passes across `sv_2017` and `sv_2023`.
+      - `14/14` passes across `sv_2017` and `sv_2023`.
     - bounded full-gate evidence refresh is now green:
       - `rust/scripts/sv_stimuli_quality_gate.sh` accepts ad hoc replay-budget override:
         - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
@@ -102,19 +109,19 @@ Use this file to resume work without replaying full chat history.
         - `closed_loop_target_max_attempts_source=contract|env_override`
       - realistic-corpus staged preprocess now forwards the original case directory as `--sv-include-dir`, fixing local `.svh` include resolution after fixture copy into `$WORK_DIR`,
       - bounded evidence run:
-        - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v8_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+        - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v9_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
       - observed:
         - `closed_loop_profiles_passed=2/2`
         - `closed_loop_initial_targets_total=5484`
         - `closed_loop_replay_targets_total=5211`
-        - `realistic_corpus_cases_declared=32`
-        - `realistic_corpus_cases_executed=64`
-        - `realistic_corpus_observed_parse_pass_total=64`
+        - `realistic_corpus_cases_declared=39`
+        - `realistic_corpus_cases_executed=78`
+        - `realistic_corpus_observed_parse_pass_total=78`
         - `realistic_corpus_observed_parse_fail_total=0`
         - `realistic_corpus_preprocess_error_total=0`
     - previous concrete blocker now closed:
       - `foreach` array-assignment file shape now passes `parse_full` in both profiles after preprocess and is promoted into the required-pass realistic corpus.
-    - latest expansion also promoted the previously direct-probed preprocess/import composition families, so the immediate next work returns to discovering the next parser-backed realistic family beyond the new baseline.
+    - latest expansion also promoted the next deeper include-chain and macro/import composition families, so the immediate next work returns to discovering the next parser-backed realistic family beyond the new baseline.
 - Rust-native EBNF migration snapshot:
   - `ast_pipeline` now supports standalone Rust raw-AST export:
     - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
@@ -2897,11 +2904,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
-   - keep expanding beyond the new `32`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
+   - keep expanding beyond the new `39`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
    - likely next probe targets:
-     - deeper include-chain composition beyond the current two-level local-include case,
-     - multi-port and wildcard variants of the newly promoted macro-expanded named-port family,
-     - additional module-local import/use combinations that exercise more than a single imported constant.
+     - deeper include-chain variants that combine the current three-step include shape with wildcard or internal packed-signal usage,
+     - macro-expanded port-name identifier families (not just macro-expanded actuals or module names),
+     - richer import/use combinations involving widths or multiple imported declarations consumed across more than one module.
 2. Continue Rust-native EBNF migration hardening:
    - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
 3. Keep roadmap + UG + memory synced after every gate/contract increment.

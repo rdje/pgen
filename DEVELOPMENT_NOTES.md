@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 9` Deep Include + Macro/Import Composition Increment
+### Context
+After the `version: 8` promotion, the next clean Phase P/Q increment was to push one step further on all three open probe directions recorded in memory:
+- deeper include-chain composition,
+- multi-port / wildcard macro-instantiation variants,
+- richer module-local import/use combinations beyond a single imported constant.
+
+### Implementation
+Promoted seven additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 9`
+  - `cases: 39`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_assign.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_bind_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_named_port.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_actual_multi_port.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_assign.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_port.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_wildcard.sv`
+- support include files:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_mid.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_leaf.svh`
+
+This slice extends the realistic corpus in three useful directions at once:
+- deeper include topology:
+  - three-step local include chain ending in a named-port instantiation family.
+- macro-instantiation breadth:
+  - macro-expanded multi-port actuals,
+  - macro-expanded module-name multi-port instantiation,
+  - macro-expanded module-name wildcard instantiation.
+- richer import/use composition:
+  - module-local import with multiple imported constants,
+  - macro-expanded module-local import with multiple imported constants,
+  - imported-child multi-bind instantiation.
+
+### Validation
+Direct dual-profile replay:
+- preprocessed each new preprocess-shaped case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each direct or preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+- observed:
+  - `7` new cases,
+  - `2` profiles each,
+  - `14/14` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v9_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5484`
+  - `closed_loop_replay_targets_total=5211`
+  - `realistic_corpus_cases_declared=39`
+  - `realistic_corpus_cases_executed=78`
+  - `realistic_corpus_observed_parse_pass_total=78`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This increment deliberately promoted the whole probe-backed batch rather than splitting it into smaller commits, because all seven shapes validated cleanly with the same current grammar.
+- The next likely realistic-corpus targets are now genuinely new search space again rather than deferred already-proven files.
+
 ## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 8` Preprocess/Import Composition Increment
 ### Context
 After the packed-declaration / `foreach` closure, the next clean Phase P/Q step was to promote the four direct-probed integration families that had been left intentionally untracked in the prior task: module-local import, named-port instantiation through imported package state, macro-expanded named-port actuals, and nested local-include composition.
