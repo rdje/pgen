@@ -706,8 +706,9 @@ pub fn parse_grammar_profile_ast_dump_with_limits(
     limits: &ParseLimits,
     options: &AstDumpOptions,
 ) -> GrammarAstDumpOutcome {
-    match parse_grammar_profile_ast_dump_with_limits_result(grammar, profile, input, limits, options)
-    {
+    match parse_grammar_profile_ast_dump_with_limits_result(
+        grammar, profile, input, limits, options,
+    ) {
         Ok(ast_dump) => GrammarAstDumpOutcome {
             api_version: EMBEDDING_API_VERSION.to_string(),
             grammar,
@@ -814,7 +815,10 @@ pub fn parse_grammar_profile_ast_dump_named_with_limits_result(
 }
 
 /// Convenience AST-dump entry point for Nexsim SV integration (`IEEE 1800-2017` profile).
-pub fn parse_systemverilog_2017_ast_dump(input: &str, options: &AstDumpOptions) -> GrammarAstDumpOutcome {
+pub fn parse_systemverilog_2017_ast_dump(
+    input: &str,
+    options: &AstDumpOptions,
+) -> GrammarAstDumpOutcome {
     parse_grammar_profile_ast_dump(
         GrammarFamily::SystemVerilog,
         GrammarProfile::Sv2017,
@@ -824,7 +828,10 @@ pub fn parse_systemverilog_2017_ast_dump(input: &str, options: &AstDumpOptions) 
 }
 
 /// Convenience AST-dump entry point for Nexsim SV integration (`IEEE 1800-2023` profile).
-pub fn parse_systemverilog_2023_ast_dump(input: &str, options: &AstDumpOptions) -> GrammarAstDumpOutcome {
+pub fn parse_systemverilog_2023_ast_dump(
+    input: &str,
+    options: &AstDumpOptions,
+) -> GrammarAstDumpOutcome {
     parse_grammar_profile_ast_dump(
         GrammarFamily::SystemVerilog,
         GrammarProfile::Sv2023,
@@ -834,8 +841,16 @@ pub fn parse_systemverilog_2023_ast_dump(input: &str, options: &AstDumpOptions) 
 }
 
 /// Convenience AST-dump entry point for Nexsim VHDL integration (`IEEE 1076-2019` profile).
-pub fn parse_vhdl_1076_2019_ast_dump(input: &str, options: &AstDumpOptions) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, input, options)
+pub fn parse_vhdl_1076_2019_ast_dump(
+    input: &str,
+    options: &AstDumpOptions,
+) -> GrammarAstDumpOutcome {
+    parse_grammar_profile_ast_dump(
+        GrammarFamily::Vhdl,
+        GrammarProfile::Vhdl1076_2019,
+        input,
+        options,
+    )
 }
 
 /// Convenience AST-dump entry point with explicit limits for `IEEE 1800-2017`.
@@ -907,7 +922,9 @@ fn run_grammar_parse(
     validate_input_limits(input, limits)?;
     validate_profile_match(grammar, profile)?;
     match grammar {
-        GrammarFamily::SystemVerilog => parse_generated_systemverilog(input, Some(profile.as_str())),
+        GrammarFamily::SystemVerilog => {
+            parse_generated_systemverilog(input, Some(profile.as_str()))
+        }
         GrammarFamily::Vhdl => parse_generated_vhdl(input),
     }
 }
@@ -970,13 +987,15 @@ fn canonicalize_json_value(value: JsonValue) -> JsonValue {
     }
 }
 
-fn serialize_canonical_json<T: Serialize>(value: &T, pretty: bool) -> Result<String, ParseDiagnostic> {
-    let normalized = canonicalize_json_value(serde_json::to_value(value).map_err(|err| {
-        ParseDiagnostic {
+fn serialize_canonical_json<T: Serialize>(
+    value: &T,
+    pretty: bool,
+) -> Result<String, ParseDiagnostic> {
+    let normalized =
+        canonicalize_json_value(serde_json::to_value(value).map_err(|err| ParseDiagnostic {
             code: "E_PARSE_FAILURE".to_string(),
             message: format!("failed to serialize parser AST payload: {}", err),
-        }
-    })?);
+        })?);
     if pretty {
         serde_json::to_string_pretty(&normalized).map_err(|err| ParseDiagnostic {
             code: "E_PARSE_FAILURE".to_string(),
@@ -1510,15 +1529,15 @@ mod tests {
     fn parser_embedding_convenience_sv2017_matches_profile_entry_point() {
         let input = "module m; endmodule";
         let convenience = parse_systemverilog_2017(input);
-        let profile = parse_grammar_profile(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
-            input,
-        );
+        let profile =
+            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, input);
 
         assert_eq!(convenience.status, profile.status);
         assert_eq!(
-            convenience.diagnostic.as_ref().map(|diag| diag.code.as_str()),
+            convenience
+                .diagnostic
+                .as_ref()
+                .map(|diag| diag.code.as_str()),
             profile.diagnostic.as_ref().map(|diag| diag.code.as_str())
         );
     }
@@ -1527,15 +1546,15 @@ mod tests {
     fn parser_embedding_convenience_sv2023_matches_profile_entry_point() {
         let input = "module m; endmodule";
         let convenience = parse_systemverilog_2023(input);
-        let profile = parse_grammar_profile(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2023,
-            input,
-        );
+        let profile =
+            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2023, input);
 
         assert_eq!(convenience.status, profile.status);
         assert_eq!(
-            convenience.diagnostic.as_ref().map(|diag| diag.code.as_str()),
+            convenience
+                .diagnostic
+                .as_ref()
+                .map(|diag| diag.code.as_str()),
             profile.diagnostic.as_ref().map(|diag| diag.code.as_str())
         );
     }
@@ -1544,15 +1563,15 @@ mod tests {
     fn parser_embedding_convenience_vhdl_matches_profile_entry_point() {
         let input = "entity e is end entity;";
         let convenience = parse_vhdl_1076_2019(input);
-        let profile = parse_grammar_profile(
-            GrammarFamily::Vhdl,
-            GrammarProfile::Vhdl1076_2019,
-            input,
-        );
+        let profile =
+            parse_grammar_profile(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, input);
 
         assert_eq!(convenience.status, profile.status);
         assert_eq!(
-            convenience.diagnostic.as_ref().map(|diag| diag.code.as_str()),
+            convenience
+                .diagnostic
+                .as_ref()
+                .map(|diag| diag.code.as_str()),
             profile.diagnostic.as_ref().map(|diag| diag.code.as_str())
         );
     }
@@ -1712,10 +1731,8 @@ mod tests {
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     #[test]
     fn parser_embedding_ast_dump_reports_missing_systemverilog_backend() {
-        let outcome = parse_systemverilog_2017_ast_dump(
-            "module m; endmodule",
-            &AstDumpOptions::default(),
-        );
+        let outcome =
+            parse_systemverilog_2017_ast_dump("module m; endmodule", &AstDumpOptions::default());
         assert_eq!(outcome.status, ParseStatus::Failure);
         let diagnostic = outcome
             .diagnostic
@@ -1727,10 +1744,8 @@ mod tests {
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn parser_embedding_ast_dump_uses_systemverilog_generated_backend_when_available() {
-        let outcome = parse_systemverilog_2017_ast_dump(
-            "module m; endmodule",
-            &AstDumpOptions::default(),
-        );
+        let outcome =
+            parse_systemverilog_2017_ast_dump("module m; endmodule", &AstDumpOptions::default());
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
         assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
         if outcome.status == ParseStatus::Success {

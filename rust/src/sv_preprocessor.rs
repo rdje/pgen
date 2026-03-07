@@ -6,7 +6,7 @@
 //! - conditional-compilation flow (`ifdef/`ifndef/`elsif/`else/`endif),
 //! - source mapping metadata from expanded output back to originating file/line.
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -1331,9 +1331,9 @@ fn is_ident_continue(b: u8) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        parse_strict_warning_codes, preprocess_systemverilog_file, ConditionalSymbolPolicy,
-        IncludePathPolicy, MacroRedefinitionPolicy, PreprocessorDiagnosticSeverity,
-        SvPreprocessorConfig,
+        ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
+        PreprocessorDiagnosticSeverity, SvPreprocessorConfig, parse_strict_warning_codes,
+        preprocess_systemverilog_file,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -1374,10 +1374,12 @@ mod tests {
         assert!(output.text.contains("logic from_inc;"));
         assert!(output.text.contains("logic from_top;"));
         assert!(output.included_files.iter().any(|p| p.ends_with("inc.svh")));
-        assert!(output
-            .source_map
-            .iter()
-            .any(|m| m.source.file.ends_with("inc.svh")));
+        assert!(
+            output
+                .source_map
+                .iter()
+                .any(|m| m.source.file.ends_with("inc.svh"))
+        );
     }
 
     #[test]

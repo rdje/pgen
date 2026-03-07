@@ -1,7 +1,7 @@
 // Return Annotation Handler for Code Generation
 // Supports both bootstrap mode (limited) and full mode
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Return annotation processing modes

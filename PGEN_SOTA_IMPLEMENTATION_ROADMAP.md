@@ -78,6 +78,10 @@ Build PGEN into a state-of-the-art parser and stimuli generation platform with p
 - [x] Fix `grammars/ebnf.ebnf` compatibility gaps so readiness strict mode is green for all tracked grammars.
 - [x] Add dual-run differential harness between Perl `ebnf_to_json.pl` and Rust-native EBNF parser (`generated/ebnf.rs`) once Rust EBNF parser generation path is available.
 - [x] Add Rust-front-end `raw_ast` export mode plus gate-path frontend selection (`PGEN_EBNF_FRONTEND_IMPL=perl|rust`) and close multiline semantic-annotation handling for tracked grammars.
+  - Progress (2026-03-07): closed the `regex.ebnf` raw-AST parity audit from a clean committed snapshot:
+    - Rust `raw_ast` export keeps all `87` top-level rules present in source,
+    - the legacy Perl export reports only `78`,
+    - the missing `9` Perl-side rules are real trailing helper definitions, so Rust should not filter them out.
 
 ### Phase I (New): SOTA Exit Criteria Aggregation
 - [x] Add aggregate `make sota_exit_gate` to execute required release-grade checks in one command.
@@ -1071,6 +1075,15 @@ Objective: make AST visibility first-class for generator and generated-parser de
 ### Remaining for Pillar 1 completion
 - None; the current Pillar 1 sprint tail is closed.
 
+### Operational Follow-Up (Paused)
+- Investigate the currently failing private GitHub Actions workflow runs triggered after the latest CI portability changes, using a clean committed snapshot rather than the dirty local worktree.
+- Goal:
+  - identify the exact workflow/gate root causes from committed state only,
+  - patch the failing scripts/workflows,
+  - revalidate the affected gate entrypoints before resuming normal CI confidence.
+- Status:
+  - intentionally paused for now per operator direction so mainline roadmap implementation can continue.
+
 ## Risks and Mitigations
 - Risk: Non-deterministic codegen details (ordering, paths, timestamps) can create false drifts.
   - Mitigation: Fixed output paths per cycle, byte-level comparisons, and explicit diff output on mismatch.
@@ -1080,6 +1093,7 @@ Objective: make AST visibility first-class for generator and generated-parser de
   - Mitigation: Maintain conformance tests and feature matrix tracking as required checklists.
 
 ## Change Log (Roadmap Updates)
+- 2026-03-07: Closed the `regex.ebnf` raw-AST parity audit for the Rust-native EBNF migration: clean committed-snapshot replay showed the Rust frontend correctly retains all `87` source rules while the legacy Perl export under-reports `9` real trailing helper definitions (`78` total), so the closure direction is to preserve Rust behavior and treat Perl parity as a known legacy limitation.
 - 2026-03-07: Closed the Pillar 1 branch-protection tail by adding tracked policy config (`rust/config/branch_protection_policy.json`), local validator script/Make target (`branch_protection_contract_gate`), and CI workflow (`branch-protection-contract-gate`) that enforce the minimum required pre-merge checks and `pull_request` trigger coverage.
 - 2026-03-06: Closed the last two SystemVerilog realistic-corpus parse gaps by hardening `grammars/systemverilog.ebnf` for edge-qualified event expressions and indexed selects/lvalues, then promoted `systemverilog_nexsim_realistic_corpus_v0.json` to `version: 3` with `11` expected-pass / `0` expected-fail cases (`22/22` realistic dual-profile parses pass in focused validation).
 - 2026-03-06: Expanded the deterministic Nexsim SystemVerilog realistic corpus (`systemverilog_nexsim_realistic_corpus_v0.json` -> `version: 2`) from 6 to 11 declared cases by adding package-qualification, named multi-port binding, wildcard binding, timeunit, and package-width instantiation families; revalidated `sv_stimuli_quality_gate` green with `parse_full_pass_ratio_percent=100`, `parse_full_passes=16/16`, and realistic-corpus totals `expected_pass_total=9`, `expected_fail_total=2`.

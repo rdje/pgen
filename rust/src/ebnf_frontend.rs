@@ -757,8 +757,26 @@ fn classify_return_annotation(body: &str) -> &'static str {
 mod tests {
     use super::{
         classify_return_annotation, parse_ebnf_text_to_raw_ast_envelope,
+        parse_ebnf_file_to_raw_ast_envelope,
         parse_semantic_annotation_text, tokenize_rule_expression,
     };
+    use std::collections::BTreeSet;
+    use std::path::PathBuf;
+
+    fn collect_rule_names(envelope: &serde_json::Value) -> BTreeSet<String> {
+        envelope
+            .get("raw_ast")
+            .and_then(serde_json::Value::as_array)
+            .expect("raw_ast array should exist")
+            .iter()
+            .filter_map(|rule| {
+                let head = rule.as_array()?.first()?.as_array()?;
+                let token_type = head.first()?.as_str()?;
+                let rule_name = head.get(1)?.as_str()?;
+                (token_type == "rule").then(|| rule_name.to_string())
+            })
+            .collect()
+    }
 
     #[test]
     fn tokenizes_basic_group_and_quantifier_expression() {
@@ -895,5 +913,32 @@ entry = alpha
             "expected second alternative in raw_ast, got: {}",
             first_rule
         );
+    }
+
+    #[test]
+    fn regex_frontend_keeps_trailing_helper_rules_present_in_source_grammar() {
+        let grammar_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../grammars/regex.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path.to_str().expect("utf8 path"))
+                .expect("frontend parse should succeed");
+        let rule_names = collect_rule_names(&envelope);
+
+        for expected in [
+            "code_not_squote_or_backslash",
+            "code_safe_special",
+            "letter",
+            "digit",
+            "hex_digit",
+            "octal_digit",
+            "whitespace",
+            "any_char",
+            "special_char",
+        ] {
+            assert!(
+                rule_names.contains(expected),
+                "expected regex helper rule '{}' to remain present in Rust raw_ast export",
+                expected
+            );
+        }
     }
 }

@@ -4,21 +4,20 @@
 
 use super::Logger;
 use crate::ast_pipeline::{
-    ast_return_transform::AstReturnTransformer, extract_semantic_directive,
+    ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
+    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue,
+    UnifiedSemanticAST, ast_return_transform::AstReturnTransformer, extract_semantic_directive,
     normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
     parse_semantic_branch_priorities, parse_semantic_charset, parse_semantic_constraint_expression,
     parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
     parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
     parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_pattern,
-    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class, ASTNode,
-    ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
-    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue,
-    UnifiedSemanticAST,
+    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
 };
 use anyhow::Result;
 use prettyplease;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use std::collections::{HashMap, HashSet};
 use syn::Ident;
 

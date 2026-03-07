@@ -4,11 +4,11 @@
 
 use anyhow::Result;
 use proc_macro2::{Span, TokenStream};
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use std::collections::HashMap;
 use syn::{
-    parse_quote, punctuated::Punctuated, token, Block, Expr, ExprBlock, ExprIf, ExprLet, ExprMatch,
-    Ident, Item, ItemFn, ItemImpl, Local, Pat, PatIdent, Path, Stmt, Token, Type, TypePath,
+    Block, Expr, ExprBlock, ExprIf, ExprLet, ExprMatch, Ident, Item, ItemFn, ItemImpl, Local, Pat,
+    PatIdent, Path, Stmt, Token, Type, TypePath, parse_quote, punctuated::Punctuated, token,
 };
 
 /// AST-based code generator that produces syntactically correct Rust code

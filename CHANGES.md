@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-07 - Closed `regex.ebnf` Raw-AST Parity Audit
+### ✅ Achievement Summary
+Resolved the open Rust-vs-Perl raw-AST parity question for `grammars/regex.ebnf`: the Rust frontend is keeping real source rules, and the legacy Perl export is the side that under-reports them.
+
+### Scope of Changes
+- Added focused regression coverage:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs`
+    - new test asserts the Rust raw-AST export for `grammars/regex.ebnf` retains the trailing helper rules that are physically present in source.
+- Synced task-state documentation:
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation Results
+- Clean committed-snapshot replay:
+  - Rust raw-AST export: `87` rules
+  - Perl raw-AST export: `78` rules
+  - Rust-only delta confirmed as real source-defined helper rules:
+    - `code_not_squote_or_backslash`
+    - `code_safe_special`
+    - `letter`
+    - `digit`
+    - `hex_digit`
+    - `octal_digit`
+    - `whitespace`
+    - `any_char`
+    - `special_char`
+
+### Notes
+- Closure direction is explicit:
+  - keep the Rust frontend behavior,
+  - do not filter these helper rules out,
+  - treat the older Perl raw-AST export as a known under-reporting path for this grammar.
+
 ## 2026-03-07 - Provision `jq` Explicitly In GitHub Gate Workflows
 ### ✅ Achievement Summary
 Hardened the tracked GitHub Actions gate workflows so they no longer rely on runner-image defaults for `jq`.

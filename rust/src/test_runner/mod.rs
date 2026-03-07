@@ -8,9 +8,9 @@ pub mod parsers;
 pub mod round_trip_tests;
 
 // Re-export the shared Logger trait
-pub use crate::ast_pipeline::TraceVerbosity;
 pub use crate::Logger;
 pub use crate::NoOpLogger;
+pub use crate::ast_pipeline::TraceVerbosity;
 
 // File logger that writes to the test runner's log file
 #[derive(Clone, Debug)]

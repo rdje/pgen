@@ -1,5 +1,5 @@
-use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use crate::ast_pipeline::UnifiedSemanticAST;
+use crate::ast_pipeline::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 
 use super::{Logger, Parser};
 use anyhow::Result;

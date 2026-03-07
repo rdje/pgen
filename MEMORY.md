@@ -38,6 +38,10 @@ Use this file to resume work without replaying full chat history.
   - tracked gate workflows now explicitly ensure `jq` is installed before gate execution,
   - no remaining unguarded `rg` usage in the tracked workflow/gate surface,
   - no `fd`, `yq`, `tree`, `realpath`, or `gtimeout` assumptions found in the tracked workflow/gate surface.
+- Paused operational follow-up:
+  - several private GitHub Actions workflow runs are still failing for reasons not yet isolated from this environment,
+  - resume that investigation from a clean committed snapshot, not the current dirty local worktree,
+  - keep this follow-up off the active critical path until explicitly resumed.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),
@@ -82,10 +86,10 @@ Use this file to resume work without replaying full chat history.
       - `PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
       - all `5` contract grammars `pass`
       - `regex final_targets=0`
-  - remaining parity nuance:
-    - Rust raw-AST export emits `87` rules for `grammars/regex.ebnf`,
-    - Perl raw-AST export emits `78`,
-    - extra Rust-emitted helper rules:
+  - regex raw-AST parity audit status:
+    - clean committed-snapshot replay confirmed the Rust frontend is preserving real top-level helper rules from `grammars/regex.ebnf`,
+    - Rust raw-AST export emits `87` rules while the Perl export emits `78`,
+    - the `9` rule delta is present only on the Perl side and consists of real trailing helper definitions still present in source:
       - `code_not_squote_or_backslash`
       - `code_safe_special`
       - `letter`
@@ -95,7 +99,9 @@ Use this file to resume work without replaying full chat history.
       - `whitespace`
       - `any_char`
       - `special_char`
-    - both Rust-path gates are green despite this; treat as parity-audit follow-up, not current blocker.
+    - conclusion:
+      - do not filter these rules out of the Rust frontend,
+      - treat the legacy Perl raw-AST export as under-reporting this subset rather than treating Rust as over-emitting it.
 - SOTA policy status:
   - Branch-protection contract is now tracked and executable:
     - policy file:
@@ -2841,18 +2847,20 @@ Use this file to resume work without replaying full chat history.
     - `realistic_corpus_preprocess_error_total=0`
 
 ## Next Likely Tasks (Priority)
-1. Continue Rust-native EBNF migration hardening:
-   - audit the `regex.ebnf` Perl-vs-Rust raw-AST parity gap (`78` vs `87` rules) and decide whether the Perl export was truncating trailing helper rules or whether the Rust scanner should filter them.
-2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
+1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
    - keep expanding beyond the now-green `11/11` realistic corpus baseline, especially preprocess-shaped and additional Nexsim integration families, while preserving the `100%` generated-sample `parse_full` floor.
-3. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the promoted active dual-profile grammar and keep the artifact evidence if it completes green.
+2. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the promoted active dual-profile grammar and keep the artifact evidence if it completes green.
+3. Continue Rust-native EBNF migration hardening:
+   - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
 4. Keep roadmap + UG + memory synced after every gate/contract increment.
+5. Paused operational follow-up:
+   - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
 - Rust EBNF frontend now passes readiness + closed-loop quality gate paths, but is not full replacement yet because:
   - parseability bootstrap still regenerates `generated/ebnf.rs` through the Perl path,
-  - the `regex.ebnf` raw-AST parity delta (`87` Rust vs `78` Perl) still needs explicit closure/audit.
+  - the legacy Perl raw-AST export still under-reports `9` real `regex.ebnf` helper rules relative to the Rust frontend, so raw-AST parity must be interpreted with that known limitation in mind.
 - Semantic-annotation leverage in SV/VHDL stimuli generation is still partial; mode-level policy exists but full directive-driven steering is not closed yet.
 - Declared-before-use runtime semantic enforcement is active in `sv_semantic_file` with parseability guardrails; parse-full debt is now measured (`parse_full_pass_ratio_percent`) but still significant in semantic-closure mode.
 - SV preprocessor trusted-reference differential path still depends on host availability of external backends (`iverilog`/`verilator`), but offline curated differential gate now provides deterministic no-external baseline evidence.

@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::Serialize;
 
 #[cfg(feature = "generated_parsers")]
@@ -269,12 +269,12 @@ fn command_parse_dump_ast(
     let parse_result =
         parser_registry::parse_sample_ast_json_with_profile(grammar_name, &sample, profile)
             .ok_or_else(|| {
-            anyhow::anyhow!(
-                "parseability adapter unavailable for grammar '{}'. Supported grammars: {}",
-                grammar_name,
-                supported_grammars_csv()
-            )
-        })?;
+                anyhow::anyhow!(
+                    "parseability adapter unavailable for grammar '{}'. Supported grammars: {}",
+                    grammar_name,
+                    supported_grammars_csv()
+                )
+            })?;
     let ast_json = parse_result.map_err(|err| {
         anyhow::anyhow!(
             "parse_full rejected sample for grammar '{}' on '{}': {}",
@@ -331,7 +331,14 @@ fn command_parse_dump_ast(
     pretty: bool,
     max_bytes: Option<usize>,
 ) -> Result<()> {
-    let _ = (grammar_name, input_file, output_file, profile, pretty, max_bytes);
+    let _ = (
+        grammar_name,
+        input_file,
+        output_file,
+        profile,
+        pretty,
+        max_bytes,
+    );
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
@@ -481,9 +488,10 @@ mod tests {
             "20".to_string(),
         ];
         let err = parse_dump_command_tail(&args).expect_err("duplicate max-bytes must fail");
-        assert!(err
-            .to_string()
-            .contains("cannot be specified multiple times"));
+        assert!(
+            err.to_string()
+                .contains("cannot be specified multiple times")
+        );
     }
 
     #[test]

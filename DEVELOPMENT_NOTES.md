@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - `regex.ebnf` Raw-AST Parity Audit Closure
+### Context
+The Rust-native EBNF migration had one remaining parity nuance: `grammars/regex.ebnf` produced `87` rules from the Rust raw-AST export but only `78` from the legacy Perl `ebnf_to_json.pl` path. The unresolved question was whether the Rust frontend was over-emitting rules or whether the older Perl export was truncating legitimate helper definitions.
+
+### Implementation
+Reproduced the comparison from a clean committed snapshot instead of the dirty local worktree, then added a regression check in:
+- `/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs`
+
+The new test asserts that the Rust raw-AST export retains the trailing helper rules that still exist as real top-level definitions in `grammars/regex.ebnf`.
+
+### Validation
+Clean committed-snapshot replay confirmed:
+- Rust raw-AST export: `87` rules
+- Perl raw-AST export: `78` rules
+- rules present only in the Rust export:
+  - `code_not_squote_or_backslash`
+  - `code_safe_special`
+  - `letter`
+  - `digit`
+  - `hex_digit`
+  - `octal_digit`
+  - `whitespace`
+  - `any_char`
+  - `special_char`
+
+Each of those rules is physically present in the source grammar, so the Rust side is preserving valid top-level rule definitions.
+
+### Notes
+- Decision:
+  - keep the Rust frontend behavior as-is,
+  - do not add filtering to hide these rules,
+  - treat the legacy Perl raw-AST export as under-reporting this helper-rule subset for `regex.ebnf`.
+
 ## 2026-03-07 - GitHub Workflow Tooling Sanity Check: Explicit `jq`
 ### Context
 After the `rg` failure in the branch protection gate, the next sanity check was to look for other non-baseline command assumptions in the tracked GitHub Actions workflow/gate surface before pushing again. The main remaining risk was `jq`: several gate scripts use it, but the workflow jobs were relying on the runner image having it preinstalled.
