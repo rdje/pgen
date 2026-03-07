@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 8` Preprocess/Import Composition Increment
+### Context
+After the packed-declaration / `foreach` closure, the next clean Phase P/Q step was to promote the four direct-probed integration families that had been left intentionally untracked in the prior task: module-local import, named-port instantiation through imported package state, macro-expanded named-port actuals, and nested local-include composition.
+
+### Implementation
+Promoted four additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 8`
+  - `cases: 32`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_package_import.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_named_port_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_actual_named_port.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_named_port.sv`
+- support include files:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_leaf.svh`
+
+This slice extends the realistic corpus in two directions:
+- preprocess composition:
+  - macro-expanded import statements,
+  - macro-expanded named-port actuals,
+  - nested local includes.
+- package/import integration:
+  - named-port instantiation from a module that relies on module-local package import.
+
+### Validation
+Direct dual-profile replay:
+- preprocessed each new case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+- observed:
+  - `4` new cases,
+  - `2` profiles each,
+  - `8/8` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v8_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5484`
+  - `closed_loop_replay_targets_total=5211`
+  - `realistic_corpus_cases_declared=32`
+  - `realistic_corpus_cases_executed=64`
+  - `realistic_corpus_observed_parse_pass_total=64`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- The `version: 8` slice is intentionally all-pass again; no expected-fail sentinels were added in this increment.
+- The immediate next corpus work is back to finding the next realistic family that is either newly parser-supported or worth closing at grammar level.
+
 ## 2026-03-07 - SystemVerilog Grammar Closure: Packed Internal Declarations + `foreach`; Realistic Corpus `version: 7`
 ### Context
 The active Phase P/Q blocker was no longer just “`foreach` is unsupported.” The clause-derived active grammar still carried extracted numeric artifacts in `data_declaration`, so internal packed declarations like `logic [3:0] arr;` were falling out of the proper declaration path. That underlying issue also prevented the realistic `foreach (arr[idx])` array-assignment shape from parsing.
