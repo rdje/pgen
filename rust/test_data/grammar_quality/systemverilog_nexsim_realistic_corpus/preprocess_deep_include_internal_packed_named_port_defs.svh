@@ -1,0 +1,1 @@
+`define PACKED_WIDTH 4

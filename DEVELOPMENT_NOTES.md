@@ -1,4 +1,71 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 10` Width-Vector + Macro Port-Name Increment
+### Context
+After the `version: 9` promotion, the next clean Phase P/Q increment was to widen the checked-in corpus with the next already-validated search space instead of reopening grammar work: width-vector import/use integration, deeper include-chain variants that exercise wildcard or internal-packed wiring, and macro-expanded named-port identifier forms.
+
+### Implementation
+Promoted seven additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 10`
+  - `cases: 46`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_width_vector_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_width_vector_instantiation.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_width_vector_assign.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_internal_packed.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_port.sv`
+- support include files:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_mid.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_leaf.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_mid.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_leaf.svh`
+
+This slice extends the realistic corpus in three useful directions:
+- width-vector import/use composition:
+  - module-local import feeding child-vector instantiation,
+  - package-import child-vector instantiation.
+- deeper include topology:
+  - three-step local include chain ending in wildcard instantiation,
+  - three-step local include chain ending in internal-packed named-port instantiation.
+- macro-expanded port/import breadth:
+  - macro-expanded import of width-vector package constants,
+  - macro-expanded named-port identifiers on internal-packed signals,
+  - macro-expanded named-port identifiers on multi-port instantiations.
+
+### Validation
+Direct dual-profile replay:
+- preprocessed each new preprocess-shaped case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each direct or preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+- observed:
+  - `7` new cases,
+  - `2` profiles each,
+  - `14/14` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v10_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5484`
+  - `closed_loop_replay_targets_total=5211`
+  - `realistic_corpus_cases_declared=46`
+  - `realistic_corpus_cases_executed=92`
+  - `realistic_corpus_observed_parse_pass_total=92`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_warning_total=2`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This increment kept the manifest all-pass again; no expected-fail sentinels were introduced here.
+- The next corpus search space is now further out: richer macro-expanded port-name combinations with widths/imports across multiple modules, or the next profile-sensitive families beyond the current composition baseline.
+
 ## 2026-03-07 - SystemVerilog Realistic Corpus Expansion: `version: 9` Deep Include + Macro/Import Composition Increment
 ### Context
 After the `version: 8` promotion, the next clean Phase P/Q increment was to push one step further on all three open probe directions recorded in memory:
