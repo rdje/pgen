@@ -17,6 +17,7 @@ PARSE_FULL_MIN_PASS_RATIO_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MIN_PARSE_FULL_PAS
 PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_MIN_PARSE_FULL_PASS_RATIO:-}"
 SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
+TARGET_MAX_ATTEMPTS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
 LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
 STIMULI_MODE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MODE:-}"
@@ -1318,6 +1319,11 @@ declared_shadow_contract_strict="$(jq -er 'if (.semantic_promotion.declared_iden
 sample_count="${SAMPLE_COUNT_OVERRIDE:-$default_sample_count}"
 seed_base="${SEED_BASE_OVERRIDE:-$default_seed_base}"
 replay_sample_count="$(jq -er --argjson fallback "$sample_count" '(.closed_loop.replay_sample_count // $fallback) | numbers' "$CONTRACT_FILE")"
+target_max_attempts_source="contract"
+if [[ -n "$TARGET_MAX_ATTEMPTS_OVERRIDE" ]]; then
+    target_max_attempts="$TARGET_MAX_ATTEMPTS_OVERRIDE"
+    target_max_attempts_source="env_override"
+fi
 if [[ -n "$STIMULI_MODE_OVERRIDE" ]]; then
     stimuli_mode="$STIMULI_MODE_OVERRIDE"
 elif [[ "$SEMANTIC_CLOSURE_MODE" == "1" ]]; then
@@ -1626,6 +1632,7 @@ echo "closed_loop_enabled: $closed_loop_enabled"
 echo "closed_loop_effective_enabled: $closed_loop_effective_enabled"
 echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
+echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
 echo "failure_replay_enabled: $failure_replay_enabled"
@@ -2276,6 +2283,7 @@ if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
         case_expect_parse_full_pass="$(jq -er 'if has("expect_parse_full_pass") then (if .expect_parse_full_pass then 1 else 0 end) else 1 end' <<<"$case_json")"
         case_profiles_csv="$(jq -er '(.profiles // []) | map(select(type=="string")) | join(",")' <<<"$case_json")"
         case_source_path="$(resolve_path "$case_source_rel")"
+        case_source_dir="$(dirname "$case_source_path")"
         require_file "$case_source_path"
 
         if [[ "$case_expect_parse_full_pass" -eq 1 ]]; then
@@ -2325,6 +2333,7 @@ if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
                 --preprocess-systemverilog \
                 --output "$case_preprocessed_file" \
                 --sv-diagnostics-json "$case_diagnostics_json" \
+                --sv-include-dir "$case_source_dir" \
                 --sv-include-max-depth "$include_max_depth" \
                 --sv-include-path-policy "$include_path_policy" \
                 --sv-macro-redefine-policy "$macro_redefine_policy" \
@@ -2898,6 +2907,7 @@ jq -n \
     echo "closed_loop_enabled: $closed_loop_enabled"
     echo "closed_loop_gap_report_threshold: $gap_report_threshold"
     echo "closed_loop_target_max_attempts: $target_max_attempts"
+    echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
     echo "closed_loop_replay_sample_count: $replay_sample_count"
     echo "closed_loop_profiles_passed: $closed_loop_profile_pass_count/$profile_count"
     echo "closed_loop_profiles_skipped: $closed_loop_profile_skip_count/$profile_count"

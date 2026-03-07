@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: sv-realistic-corpus-expansion)
+Last updated: 2026-03-07 (+0100, task: sv-stimuli-gate-bounded-rerun)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -76,6 +76,23 @@ Use this file to resume work without replaying full chat history.
       - module-local package import with imported localparam assignment,
     - direct preprocess + parse-full validation for the new slice is green:
       - `10/10` passes across `sv_2017` and `sv_2023`.
+    - bounded full-gate evidence refresh is now green:
+      - `rust/scripts/sv_stimuli_quality_gate.sh` accepts ad hoc replay-budget override:
+        - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
+      - gate summaries now surface:
+        - `closed_loop_target_max_attempts_source=contract|env_override`
+      - realistic-corpus staged preprocess now forwards the original case directory as `--sv-include-dir`, fixing local `.svh` include resolution after fixture copy into `$WORK_DIR`,
+      - bounded evidence run:
+        - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v4_bounded_20260307_r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+      - observed:
+        - `closed_loop_profiles_passed=2/2`
+        - `closed_loop_initial_targets_total=5486`
+        - `closed_loop_replay_targets_total=5213`
+        - `realistic_corpus_cases_declared=16`
+        - `realistic_corpus_cases_executed=32`
+        - `realistic_corpus_observed_parse_pass_total=32`
+        - `realistic_corpus_observed_parse_fail_total=0`
+        - `realistic_corpus_preprocess_error_total=0`
 - Rust-native EBNF migration snapshot:
   - `ast_pipeline` now supports standalone Rust raw-AST export:
     - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
@@ -2857,9 +2874,9 @@ Use this file to resume work without replaying full chat history.
     - `realistic_corpus_preprocess_error_total=0`
 
 ## Next Likely Tasks (Priority)
-1. Re-run the full long closed-loop `sv_stimuli_quality_gate` against the expanded `version: 4` realistic corpus and keep the artifact evidence if it completes green.
-2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
+1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
    - keep expanding beyond the new `16`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
+2. Decide whether `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` should be surfaced in end-user/operator docs beyond roadmap/state notes if bounded reruns become a normal workflow.
 3. Continue Rust-native EBNF migration hardening:
    - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
 4. Keep roadmap + UG + memory synced after every gate/contract increment.

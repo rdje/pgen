@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-07 - Close SV `version: 4` Corpus Gate Follow-Up With Bounded Replay Evidence
+### ✅ Achievement Summary
+Closed the immediate follow-up from the `version: 4` SystemVerilog realistic-corpus expansion by hardening `sv_stimuli_quality_gate` for bounded evidence reruns and by fixing realistic-case local include resolution after fixture staging.
+
+### Scope of Changes
+- Updated:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+    - added ad hoc replay-budget override:
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
+    - gate summaries now report whether `closed_loop_target_max_attempts` came from the contract or an environment override,
+    - realistic-corpus preprocess replays now add the original case source directory via `--sv-include-dir`, so local `.svh` includes still resolve after a case is copied into the gate work directory.
+
+### Validation Results
+- Script validation:
+  - `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- Direct staged-fixture include replay:
+  - copied `preprocess_include_localparam.sv` to `/tmp`,
+  - replayed `rust/target/debug/ast_pipeline --preprocess-systemverilog` with:
+    - `--sv-include-dir /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus`
+  - observed:
+    - `diagnostics=0`
+    - `errors=0`
+- Bounded full-gate evidence refresh:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v4_bounded_20260307_r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `closed_loop_target_max_attempts_source=env_override`
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_initial_targets_total=5486`
+    - `closed_loop_replay_targets_total=5213`
+    - `realistic_corpus_cases_declared=16`
+    - `realistic_corpus_cases_executed=32`
+    - `realistic_corpus_observed_parse_pass_total=32`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- The contract default remains `closed_loop.target_max_attempts=5000`; the new environment variable is for bounded reruns and artifact refreshes, not a contract ratchet.
+- The first bounded rerun exposed the realistic-corpus include-path bug; the second bounded rerun after the fix passed green.
+
 ## 2026-03-07 - Expand SystemVerilog Nexsim Realistic Corpus With Preprocess Cases
 ### ✅ Achievement Summary
 Expanded the deterministic Nexsim-oriented SystemVerilog realistic corpus with five more all-pass required cases, biased toward preprocess-shaped files and one additional package-import integration family.
@@ -32,7 +71,7 @@ Expanded the deterministic Nexsim-oriented SystemVerilog realistic corpus with f
   - function-like macro substitution in a localparam,
   - `define/undef` guard fallthrough,
   - package-import localparam assignment.
-- The full long `sv_stimuli_quality_gate` rerun remains the next follow-up item for refreshed aggregate evidence on the expanded corpus.
+- The subsequent bounded full-gate evidence refresh is recorded above; the default contract still retains the larger `5000`-attempt replay budget.
 
 ## 2026-03-07 - Closed `regex.ebnf` Raw-AST Parity Audit
 ### ✅ Achievement Summary
