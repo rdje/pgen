@@ -1,4 +1,73 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-08 - SystemVerilog Realistic Corpus Expansion: `version: 14` Three-Child + Multi-Module Imported-Width Increment
+### Context
+After the `version: 13` promotion, the next useful Phase P/Q increment was to keep driving exactly the search space the roadmap called out: take the imported-width compositions through more than one downstream module, then push the existing two-child pipeline families one step further into three-child forms across direct, include-driven, and macro-expanded shapes.
+
+### Implementation
+Promoted nine additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 14`
+  - `cases: 77`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_three_stage_named_port.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_three_stage_wildcard.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_three_child_pipeline.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_three_child_pipeline.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_pipeline.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_stage_wildcard.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_three_child_pipeline.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_three_child.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_three_child.sv`
+- support include files:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_mid.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_leaf.svh`
+
+This slice extends the realistic corpus in four useful directions:
+- multi-module imported-width depth:
+  - imported-width source plus three-stage named-port bridge,
+  - imported-width source plus three-stage wildcard bridge.
+- three-child pipeline breadth:
+  - module-local import multi-width three-child pipeline composition,
+  - package-import multi-width three-child pipeline composition.
+- deeper include topology:
+  - three-step local include chain ending in package-width three-child pipeline composition,
+  - three-step local include chain ending in package-width three-stage wildcard reuse.
+- width-aware macro breadth:
+  - macro-expanded multi-width import three-child pipeline composition,
+  - macro-expanded module-name multi-width three-child composition,
+  - macro-expanded port-name multi-width three-child composition.
+
+### Validation
+Direct dual-profile replay:
+- preprocessed each new preprocess-shaped case with:
+  - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+- parsed each direct or preprocessed output with:
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017`
+  - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2023`
+- observed:
+  - `9` new cases,
+  - `2` profiles each,
+  - `18/18` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v14_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5484`
+  - `closed_loop_replay_targets_total=5211`
+  - `realistic_corpus_cases_declared=77`
+  - `realistic_corpus_cases_executed=154`
+  - `realistic_corpus_observed_parse_pass_total=154`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_warning_total=2`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This increment stayed fully all-pass again; no expected-fail sentinels were added.
+- The next likely search space is now further out again: imported-width propagation through still richer multi-module topologies, include-driven reuse with more than three child stages or mixed wildcard/named-port bridges, and additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
+
 ## 2026-03-08 - SystemVerilog Realistic Corpus Expansion: `version: 13` Multi-Module Width/Import Two-Child Increment
 ### Context
 After the `version: 12` promotion, the next useful Phase P/Q increment was to keep the same parser-backed width/import frontier moving outward rather than pivoting to a different family too early: take the multi-width import/use patterns across more than one module, add two-child pipeline composition, and prove the same shapes under deeper include and macro-expanded module-name/port-name forms.
