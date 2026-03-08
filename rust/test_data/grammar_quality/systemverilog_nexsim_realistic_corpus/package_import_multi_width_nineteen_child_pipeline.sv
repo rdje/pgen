@@ -1,0 +1,57 @@
+package defs_pkg;
+  localparam logic [3:0] A = 4'b1010;
+  localparam logic [3:0] B = 4'b0101;
+endpackage
+
+module imported_width_pair(output logic [3:0] a, output logic [3:0] b);
+  import defs_pkg::*;
+  assign a = A;
+  assign b = B;
+endmodule
+
+module width_pipe_stage(input logic [3:0] a, input logic [3:0] b, output logic [3:0] y);
+  assign y = a;
+endmodule
+
+module package_import_multi_width_nineteen_child_pipeline(output logic [3:0] q);
+  logic [3:0] s0;
+  logic [3:0] s1;
+  logic [3:0] mid0;
+  logic [3:0] mid1;
+  logic [3:0] mid2;
+  logic [3:0] mid3;
+  logic [3:0] mid4;
+  logic [3:0] mid5;
+  logic [3:0] mid6;
+  logic [3:0] mid7;
+  logic [3:0] mid8;
+  logic [3:0] mid9;
+  logic [3:0] mid10;
+  logic [3:0] mid11;
+  logic [3:0] mid12;
+  logic [3:0] mid13;
+  logic [3:0] mid14;
+  logic [3:0] mid15;
+  logic [3:0] mid16;
+  logic [3:0] mid17;
+  imported_width_pair src(.a(s0), .b(s1));
+  width_pipe_stage u0(.a(s0), .b(s1), .y(mid0));
+  width_pipe_stage u1(.a(mid0), .b(s1), .y(mid1));
+  width_pipe_stage u2(.a(mid1), .b(s1), .y(mid2));
+  width_pipe_stage u3(.a(mid2), .b(s1), .y(mid3));
+  width_pipe_stage u4(.a(mid3), .b(s1), .y(mid4));
+  width_pipe_stage u5(.a(mid4), .b(s1), .y(mid5));
+  width_pipe_stage u6(.a(mid5), .b(s1), .y(mid6));
+  width_pipe_stage u7(.a(mid6), .b(s1), .y(mid7));
+  width_pipe_stage u8(.a(mid7), .b(s1), .y(mid8));
+  width_pipe_stage u9(.a(mid8), .b(s1), .y(mid9));
+  width_pipe_stage u10(.a(mid9), .b(s1), .y(mid10));
+  width_pipe_stage u11(.a(mid10), .b(s1), .y(mid11));
+  width_pipe_stage u12(.a(mid11), .b(s1), .y(mid12));
+  width_pipe_stage u13(.a(mid12), .b(s1), .y(mid13));
+  width_pipe_stage u14(.a(mid13), .b(s1), .y(mid14));
+  width_pipe_stage u15(.a(mid14), .b(s1), .y(mid15));
+  width_pipe_stage u16(.a(mid15), .b(s1), .y(mid16));
+  width_pipe_stage u17(.a(mid16), .b(s1), .y(mid17));
+  width_pipe_stage u18(.a(mid17), .b(s1), .y(q));
+endmodule
