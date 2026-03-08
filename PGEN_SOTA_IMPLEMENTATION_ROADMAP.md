@@ -1159,24 +1159,24 @@ Toolbox baseline to leverage end-to-end:
       - `realistic_corpus_cases_executed=334`,
       - `realistic_corpus_observed_parse_pass_total=334`,
       - `realistic_corpus_observed_parse_fail_total=0`.
-  - Progress (2026-03-08): expanded the checked-in Nexsim realistic corpus to `194` declared deterministic all-pass cases (`version: 27`) with richer imported-width tetradeca-bridge composition, sixteen-child pipelines, deeper include-chain tetradeca-bridge reuse, and width-aware macro sixteen-child families:
+  - Progress (2026-03-08): expanded the checked-in Nexsim realistic corpus to `203` declared deterministic all-pass cases (`version: 28`) with richer imported-width pentadeca-bridge composition, seventeen-child pipelines, deeper include-chain pentadeca-bridge reuse, and width-aware macro seventeen-child families:
     - added required-pass cases for:
-      - multi-module imported-width tetradeca-bridge named-port composition,
-      - multi-module imported-width tetradeca-bridge wildcard composition,
-      - module-local import multi-width sixteen-child pipeline composition,
-      - package-import multi-width sixteen-child pipeline composition,
-      - deeper include-chain package-width sixteen-child pipeline composition,
-      - deeper include-chain package-width tetradeca-bridge wildcard reuse,
-      - macro-expanded multi-width import sixteen-child pipeline composition,
-      - macro-expanded module-name multi-width sixteen-child composition,
-      - macro-expanded port-name multi-width sixteen-child composition,
+      - multi-module imported-width pentadeca-bridge named-port composition,
+      - multi-module imported-width pentadeca-bridge wildcard composition,
+      - module-local import multi-width seventeen-child pipeline composition,
+      - package-import multi-width seventeen-child pipeline composition,
+      - deeper include-chain package-width seventeen-child pipeline composition,
+      - deeper include-chain package-width pentadeca-bridge wildcard reuse,
+      - macro-expanded multi-width import seventeen-child pipeline composition,
+      - macro-expanded module-name multi-width seventeen-child composition,
+      - macro-expanded port-name multi-width seventeen-child composition,
     - direct dual-profile preprocess + parse-full validation for the new cases remained green:
       - `18/18` passes across `sv_2017` and `sv_2023`,
     - bounded full-gate refresh remained green:
       - `closed_loop_profiles_passed=2/2`,
-      - `realistic_corpus_cases_declared=194`,
-      - `realistic_corpus_cases_executed=388`,
-      - `realistic_corpus_observed_parse_pass_total=388`,
+      - `realistic_corpus_cases_declared=203`,
+      - `realistic_corpus_cases_executed=406`,
+      - `realistic_corpus_observed_parse_pass_total=406`,
       - `realistic_corpus_observed_parse_fail_total=0`.
 - [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
@@ -1465,7 +1465,7 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
 - 2026-03-08: Expanded the Nexsim SystemVerilog realistic corpus from `140` to `149` declared all-pass cases (`version: 22`) by promoting richer imported-width nona-bridge composition, eleven-child pipelines, deeper include-chain nona-bridge reuse, and width-aware macro eleven-child families; direct validation passed `18/18` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=298/298`.
 - 2026-03-08: Expanded the Nexsim SystemVerilog realistic corpus from `149` to `158` declared all-pass cases (`version: 23`) by promoting richer imported-width deca-bridge composition, twelve-child pipelines, deeper include-chain deca-bridge reuse, and width-aware macro twelve-child families; direct validation passed `18/18` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=316/316`.
 - 2026-03-08: Expanded the Nexsim SystemVerilog realistic corpus from `158` to `167` declared all-pass cases (`version: 24`) by promoting richer imported-width undeca-bridge composition, thirteen-child pipelines, deeper include-chain undeca-bridge reuse, and width-aware macro thirteen-child families; direct validation passed `18/18` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=334/334`.
-- 2026-03-08: Expanded the Nexsim SystemVerilog realistic corpus from `185` to `194` declared all-pass cases (`version: 27`) by promoting richer imported-width tetradeca-bridge composition, sixteen-child pipelines, deeper include-chain tetradeca-bridge reuse, and width-aware macro sixteen-child families; direct validation passed `18/18` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=388/388`.
+- 2026-03-08: Expanded the Nexsim SystemVerilog realistic corpus from `194` to `203` declared all-pass cases (`version: 28`) by promoting richer imported-width pentadeca-bridge composition, seventeen-child pipelines, deeper include-chain pentadeca-bridge reuse, and width-aware macro seventeen-child families; direct validation passed `18/18` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=406/406`.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `46` to `53` declared all-pass cases (`version: 11`) by promoting multi-width import/use integration, macro-expanded module-name width variants, and deeper include-chain package-width composition; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=106/106`.
 - 2026-03-07: Added a roadmap-only RTLSyn parser-stack track capturing the four mandatory planned parser families (synthesizable RTL frontend, constant-expression evaluator, Liberty, and SDC) plus later-only gate-netlist/config/SDF readers; no implementation was started in this amendment.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `39` to `46` declared all-pass cases (`version: 10`) by promoting width-vector import/use integration, deeper include-chain wildcard/internal-packed variants, and macro-expanded port-name/import families; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=92/92`.
