@@ -1159,6 +1159,25 @@ Toolbox baseline to leverage end-to-end:
       - `realistic_corpus_cases_executed=334`,
       - `realistic_corpus_observed_parse_pass_total=334`,
       - `realistic_corpus_observed_parse_fail_total=0`.
+  - Progress (2026-03-08): expanded the checked-in Nexsim realistic corpus to `248` declared deterministic all-pass cases (`version: 33`) with richer imported-width eicosa-bridge composition, twenty-two-child pipelines, deeper include-chain eicosa-bridge reuse, and width-aware macro twenty-two-child families:
+    - added required-pass cases for:
+      - multi-module imported-width eicosa-bridge named-port composition,
+      - multi-module imported-width eicosa-bridge wildcard composition,
+      - module-local import multi-width twenty-two-child pipeline composition,
+      - package-import multi-width twenty-two-child pipeline composition,
+      - deeper include-chain package-width twenty-two-child pipeline composition,
+      - deeper include-chain package-width eicosa-bridge wildcard reuse,
+      - macro-expanded multi-width import twenty-two-child pipeline composition,
+      - macro-expanded module-name multi-width twenty-two-child composition,
+      - macro-expanded port-name multi-width twenty-two-child composition,
+    - direct dual-profile preprocess + parse-full validation for the new cases remained green:
+      - `18/18` passes across `sv_2017` and `sv_2023`,
+    - bounded full-gate refresh remained green:
+      - `closed_loop_profiles_passed=2/2`,
+      - `realistic_corpus_cases_declared=248`,
+      - `realistic_corpus_cases_executed=496`,
+      - `realistic_corpus_observed_parse_pass_total=496`,
+      - `realistic_corpus_observed_parse_fail_total=0`.
   - Progress (2026-03-08): expanded the checked-in Nexsim realistic corpus to `239` declared deterministic all-pass cases (`version: 32`) with richer imported-width enneadeca-bridge composition, twenty-one-child pipelines, deeper include-chain enneadeca-bridge reuse, and width-aware macro twenty-one-child families:
     - added required-pass cases for:
       - multi-module imported-width enneadeca-bridge named-port composition,
