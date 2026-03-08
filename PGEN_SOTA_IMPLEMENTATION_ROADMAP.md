@@ -932,6 +932,24 @@ Toolbox baseline to leverage end-to-end:
       - `realistic_corpus_cases_executed=120`,
       - `realistic_corpus_observed_parse_pass_total=120`,
       - `realistic_corpus_observed_parse_fail_total=0`.
+  - Progress (2026-03-08): expanded the checked-in Nexsim realistic corpus to `68` declared deterministic all-pass cases (`version: 13`) with multi-module width/import chains, two-child pipeline composition, deeper include-chain two-child reuse, and width-aware macro two-child families:
+    - added required-pass cases for:
+      - multi-module imported-width chain named-port binding,
+      - module-local import multi-width two-child pipeline composition,
+      - package-import multi-width two-child pipeline composition,
+      - deeper include-chain package-width two-child pipeline composition,
+      - deeper include-chain package-width two-child wildcard reuse,
+      - macro-expanded multi-width import two-child pipeline composition,
+      - macro-expanded module-name multi-width two-child composition,
+      - macro-expanded port-name multi-width two-child composition,
+    - direct dual-profile preprocess + parse-full validation for the new cases remained green:
+      - `16/16` passes across `sv_2017` and `sv_2023`,
+    - bounded full-gate refresh remained green:
+      - `closed_loop_profiles_passed=2/2`,
+      - `realistic_corpus_cases_declared=68`,
+      - `realistic_corpus_cases_executed=136`,
+      - `realistic_corpus_observed_parse_pass_total=136`,
+      - `realistic_corpus_observed_parse_fail_total=0`.
 - [x] Publish Nexsim-facing parser embedding API profile contract (SV/VHDL):
   - stable profile-aware parse entry points (`2017`/`2023` for SV, `1076-2019` for VHDL),
   - deterministic error/diagnostic schema for host integration,
@@ -1207,6 +1225,7 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
 
 ## Change Log (Roadmap Updates)
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `53` to `60` declared all-pass cases (`version: 12`) by promoting multi-width wildcard/named-port variants, deeper include-chain package-width reuse, and width-aware macro import/module-name/port-name families; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=120/120`.
+- 2026-03-08: Expanded the Nexsim SystemVerilog realistic corpus from `60` to `68` declared all-pass cases (`version: 13`) by promoting multi-module imported-width chains, two-child pipeline composition, deeper include-chain two-child reuse, and width-aware macro two-child families; direct validation passed `16/16` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=136/136`.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `46` to `53` declared all-pass cases (`version: 11`) by promoting multi-width import/use integration, macro-expanded module-name width variants, and deeper include-chain package-width composition; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=106/106`.
 - 2026-03-07: Added a roadmap-only RTLSyn parser-stack track capturing the four mandatory planned parser families (synthesizable RTL frontend, constant-expression evaluator, Liberty, and SDC) plus later-only gate-netlist/config/SDF readers; no implementation was started in this amendment.
 - 2026-03-07: Expanded the Nexsim SystemVerilog realistic corpus from `39` to `46` declared all-pass cases (`version: 10`) by promoting width-vector import/use integration, deeper include-chain wildcard/internal-packed variants, and macro-expanded port-name/import families; direct validation passed `14/14` across `sv_2017` and `sv_2023`, and a bounded full `sv_stimuli_quality_gate` rerun stayed green with realistic-corpus totals `observed_parse_pass_total=92/92`.

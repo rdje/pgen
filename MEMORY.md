@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-07 (+0100, task: sv-realistic-corpus-expansion-v12)
+Last updated: 2026-03-08 (+0100, task: sv-realistic-corpus-expansion-v13)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -95,7 +95,7 @@ Use this file to resume work without replaying full chat history.
       - restoring shared `assignment_operator`,
       - disambiguating labeled `generate_block` parsing (`begin : g`).
   - realistic corpus expansion status:
-    - checked-in Nexsim realistic corpus manifest is now `version: 12` with `60` declared all-pass cases,
+    - checked-in Nexsim realistic corpus manifest is now `version: 13` with `68` declared all-pass cases,
     - newly promoted required-pass families:
       - local include expansion,
       - `ifdef` branch-selected module,
@@ -146,8 +146,16 @@ Use this file to resume work without replaying full chat history.
       - macro-expanded multi-width import plus named-port instantiation,
       - macro-expanded module-name multi-width binding,
       - macro-expanded port-name internal-packed multi-width binding,
+      - multi-module imported-width chain named-port binding,
+      - module-local import multi-width two-child pipeline composition,
+      - package-import multi-width two-child pipeline composition,
+      - deeper include-chain package-width two-child pipeline composition,
+      - deeper include-chain package-width two-child wildcard reuse,
+      - macro-expanded multi-width import two-child pipeline composition,
+      - macro-expanded module-name multi-width two-child composition,
+      - macro-expanded port-name multi-width two-child composition,
     - direct preprocess + parse-full validation for the latest slice is green:
-      - `14/14` passes across `sv_2017` and `sv_2023`.
+      - `16/16` passes across `sv_2017` and `sv_2023`.
     - bounded full-gate evidence refresh is now green:
       - `rust/scripts/sv_stimuli_quality_gate.sh` accepts ad hoc replay-budget override:
         - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
@@ -158,20 +166,23 @@ Use this file to resume work without replaying full chat history.
         - `closed_loop_target_max_attempts_source=contract|env_override`
       - realistic-corpus staged preprocess now forwards the original case directory as `--sv-include-dir`, fixing local `.svh` include resolution after fixture copy into `$WORK_DIR`,
       - bounded evidence run:
-        - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v12_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+        - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v13_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
       - observed:
         - `closed_loop_profiles_passed=2/2`
         - `closed_loop_initial_targets_total=5484`
         - `closed_loop_replay_targets_total=5211`
-        - `realistic_corpus_cases_declared=60`
-        - `realistic_corpus_cases_executed=120`
-        - `realistic_corpus_observed_parse_pass_total=120`
+        - `realistic_corpus_cases_declared=68`
+        - `realistic_corpus_cases_executed=136`
+        - `realistic_corpus_observed_parse_pass_total=136`
         - `realistic_corpus_observed_parse_fail_total=0`
         - `realistic_corpus_preprocess_warning_total=2`
         - `realistic_corpus_preprocess_error_total=0`
     - previous concrete blocker now closed:
       - `foreach` array-assignment file shape now passes `parse_full` in both profiles after preprocess and is promoted into the required-pass realistic corpus.
-    - latest expansion also promoted multi-width wildcard/named-port and package-width include-reuse families, so the immediate next work returns to discovering the next parser-backed realistic family beyond the new baseline.
+    - latest expansion also promoted multi-module width/import two-child pipeline families, so the immediate next work returns to discovering the next parser-backed realistic family beyond the new baseline:
+      - richer multi-module width/import topologies,
+      - deeper include chains with more than two child stages,
+      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
 - Rust-native EBNF migration snapshot:
   - `ast_pipeline` now supports standalone Rust raw-AST export:
     - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
