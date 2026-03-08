@@ -1,4 +1,63 @@
 # CHANGES.md
+## 2026-03-08 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 23`
+### ✅ Achievement Summary
+Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `149` to `158` declared all-pass cases by promoting richer imported-width deca-bridge compositions, twelve-child pipeline families, deeper include-chain twelve-child reuse, and macro-expanded twelve-child forms.
+
+### Scope of Changes
+- Updated corpus manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - promoted from `version: 22` to `version: 23`
+    - declared cases increased from `149` to `158`
+- Added new realistic-corpus fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_deca_bridge_named_port.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_deca_bridge_wildcard.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twelve_child_pipeline.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twelve_child_pipeline.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_pipeline.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_deca_bridge_wildcard.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twelve_child_pipeline.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twelve_child.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twelve_child.sv`
+  - support include files:
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_defs.svh`
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_mid.svh`
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_leaf.svh`
+
+### Validation Results
+- Direct realistic-case replay through the real SV preprocess + parseability path:
+  - each new preprocess-shaped case was preprocessed with:
+    - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
+  - each direct or preprocessed output was `parse_full`-probed with:
+    - `rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017|sv_2023`
+  - observed:
+    - `18/18` passes across the `9` new cases and `2` LRM profiles.
+- Bounded aggregate evidence refresh:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v23_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_initial_targets_total=5484`
+    - `closed_loop_replay_targets_total=5211`
+    - `realistic_corpus_cases_declared=158`
+    - `realistic_corpus_cases_executed=316`
+    - `realistic_corpus_expected_pass_total=158`
+    - `realistic_corpus_expected_fail_total=0`
+    - `realistic_corpus_observed_parse_pass_total=316`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_warning_total=2`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- The newly promoted families are:
+  - multi-module imported-width deca-bridge named-port composition,
+  - multi-module imported-width deca-bridge wildcard composition,
+  - module-local import multi-width twelve-child pipeline composition,
+  - package-import multi-width twelve-child pipeline composition,
+  - deeper include-chain package-width twelve-child pipeline composition,
+  - deeper include-chain package-width deca-bridge wildcard reuse,
+  - macro-expanded multi-width import twelve-child pipeline composition,
+  - macro-expanded module-name multi-width twelve-child composition,
+  - macro-expanded port-name multi-width twelve-child composition.
+
 ## 2026-03-08 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 22`
 ### ✅ Achievement Summary
 Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `140` to `149` declared all-pass cases by promoting richer imported-width nona-bridge compositions, eleven-child pipeline families, deeper include-chain eleven-child reuse, and macro-expanded eleven-child forms.
