@@ -1,0 +1,15 @@
+`include "preprocess_deep_include_package_width_four_child_defs.svh"
+
+module deep_width_bridge(input logic [3:0] a, input logic [3:0] b, output logic [3:0] y);
+  logic [3:0] mid0;
+  logic [3:0] mid1;
+  deep_width_pipe_stage u0(.a(a), .b(b), .y(mid0));
+  deep_width_pipe_stage u1(.a(mid0), .b(b), .y(mid1));
+  deep_width_pipe_stage u2(.a(mid1), .b(b), .y(y));
+endmodule
+
+module deep_width_double_bridge(input logic [3:0] a, input logic [3:0] b, output logic [3:0] q);
+  logic [3:0] bridge_mid;
+  deep_width_bridge u0(.a(a), .b(b), .y(bridge_mid));
+  deep_width_bridge u1(.a(bridge_mid), .b(b), .y(q));
+endmodule
