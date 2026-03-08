@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-08 (+0100, task: sv-realistic-corpus-expansion-v25)
+Last updated: 2026-03-08 (+0100, task: sv-realistic-corpus-expansion-v26)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -95,7 +95,7 @@ Use this file to resume work without replaying full chat history.
       - restoring shared `assignment_operator`,
       - disambiguating labeled `generate_block` parsing (`begin : g`).
   - realistic corpus expansion status:
-    - checked-in Nexsim realistic corpus manifest is now `version: 25` with `176` declared all-pass cases,
+    - checked-in Nexsim realistic corpus manifest is now `version: 26` with `185` declared all-pass cases,
     - newly promoted required-pass families:
       - local include expansion,
       - `ifdef` branch-selected module,
@@ -253,15 +253,15 @@ Use this file to resume work without replaying full chat history.
       - macro-expanded multi-width import thirteen-child pipeline composition,
       - macro-expanded module-name multi-width thirteen-child composition,
       - macro-expanded port-name multi-width thirteen-child composition,
-      - multi-module imported-width dodeca-bridge named-port composition,
-      - multi-module imported-width dodeca-bridge wildcard composition,
-      - module-local import multi-width fourteen-child pipeline composition,
-      - package-import multi-width fourteen-child pipeline composition,
-      - deeper include-chain package-width fourteen-child pipeline composition,
-      - deeper include-chain package-width dodeca-bridge wildcard reuse,
-      - macro-expanded multi-width import fourteen-child pipeline composition,
-      - macro-expanded module-name multi-width fourteen-child composition,
-      - macro-expanded port-name multi-width fourteen-child composition,
+      - multi-module imported-width trideca-bridge named-port composition,
+      - multi-module imported-width trideca-bridge wildcard composition,
+      - module-local import multi-width fifteen-child pipeline composition,
+      - package-import multi-width fifteen-child pipeline composition,
+      - deeper include-chain package-width fifteen-child pipeline composition,
+      - deeper include-chain package-width trideca-bridge wildcard reuse,
+      - macro-expanded multi-width import fifteen-child pipeline composition,
+      - macro-expanded module-name multi-width fifteen-child composition,
+      - macro-expanded port-name multi-width fifteen-child composition,
     - direct preprocess + parse-full validation for the latest slice is green:
       - `18/18` passes across `sv_2017` and `sv_2023`.
     - bounded full-gate evidence refresh is now green:
@@ -274,22 +274,22 @@ Use this file to resume work without replaying full chat history.
         - `closed_loop_target_max_attempts_source=contract|env_override`
       - realistic-corpus staged preprocess now forwards the original case directory as `--sv-include-dir`, fixing local `.svh` include resolution after fixture copy into `$WORK_DIR`,
       - bounded evidence run:
-        - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v25_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+        - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v26_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
       - observed:
         - `closed_loop_profiles_passed=2/2`
         - `closed_loop_initial_targets_total=5484`
         - `closed_loop_replay_targets_total=5211`
-        - `realistic_corpus_cases_declared=176`
-        - `realistic_corpus_cases_executed=352`
-        - `realistic_corpus_observed_parse_pass_total=352`
+        - `realistic_corpus_cases_declared=185`
+        - `realistic_corpus_cases_executed=370`
+        - `realistic_corpus_observed_parse_pass_total=370`
         - `realistic_corpus_observed_parse_fail_total=0`
         - `realistic_corpus_preprocess_warning_total=2`
         - `realistic_corpus_preprocess_error_total=0`
     - previous concrete blocker now closed:
       - `foreach` array-assignment file shape now passes `parse_full` in both profiles after preprocess and is promoted into the required-pass realistic corpus.
-    - latest expansion also promoted richer imported-width dodeca-bridge and fourteen-child families, so the immediate next work returns to discovering the next parser-backed realistic family beyond the new baseline:
+    - latest expansion also promoted richer imported-width trideca-bridge and fifteen-child families, so the immediate next work returns to discovering the next parser-backed realistic family beyond the new baseline:
       - richer multi-module width/import topologies,
-      - deeper include chains with more than fourteen child stages,
+      - deeper include chains with more than fifteen child stages,
       - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
 - Rust-native EBNF migration snapshot:
   - `ast_pipeline` now supports standalone Rust raw-AST export:
@@ -3073,10 +3073,10 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
-   - keep expanding beyond the new `176`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
+   - keep expanding beyond the new `185`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
    - likely next probe targets:
      - richer multi-module width/import compositions that propagate through still more than one downstream bridge or stage family,
-     - deeper include-chain variants that combine package-width state with more than fourteen child stages or mixed wildcard/named-port reuse across multiple modules,
+     - deeper include-chain variants that combine package-width state with more than fifteen child stages or mixed wildcard/named-port reuse across multiple modules,
      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
 2. Continue Rust-native EBNF migration hardening:
    - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
