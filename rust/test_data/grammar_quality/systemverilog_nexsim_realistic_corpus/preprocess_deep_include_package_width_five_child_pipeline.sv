@@ -1,0 +1,18 @@
+`include "preprocess_deep_include_package_width_five_child_leaf.svh"
+
+module preprocess_deep_include_package_width_five_child_pipeline(output logic [3:0] q);
+  import deep_cfg_pkg::*;
+  logic [3:0] s0;
+  logic [3:0] s1;
+  logic [3:0] mid0;
+  logic [3:0] mid1;
+  logic [3:0] mid2;
+  logic [3:0] mid3;
+  assign s0 = A;
+  assign s1 = B;
+  deep_width_pipe_stage u0(.a(s0), .b(s1), .y(mid0));
+  deep_width_pipe_stage u1(.a(mid0), .b(s1), .y(mid1));
+  deep_width_pipe_stage u2(.a(mid1), .b(s1), .y(mid2));
+  deep_width_pipe_stage u3(.a(mid2), .b(s1), .y(mid3));
+  deep_width_pipe_stage u4(.a(mid3), .b(s1), .y(q));
+endmodule
