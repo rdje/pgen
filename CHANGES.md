@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-03-08 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 34`
+### ✅ Achievement Summary
+Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `248` to `257` declared all-pass cases by promoting richer imported-width heneicosa-bridge compositions, twenty-three-child pipeline families, deeper include-chain heneicosa-bridge reuse, and macro-expanded twenty-three-child forms.
+
+### Scope of Changes
+- Updated corpus manifest:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+    - promoted from `version: 33` to `version: 34`
+    - declared cases increased from `248` to `257`
+- Added new realistic-corpus fixtures:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heneicosa_bridge_named_port.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heneicosa_bridge_wildcard.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_three_child_pipeline.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_three_child_pipeline.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_pipeline.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_heneicosa_bridge_wildcard.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_three_child_pipeline.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_three_child.sv`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_three_child.sv`
+  - support include files:
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_defs.svh`
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_mid.svh`
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_leaf.svh`
+
+### Validation Results
+- Direct realistic-case replay through the real SV preprocess + parseability path:
+  - observed:
+    - `18/18` passes across the `9` new cases and `2` LRM profiles.
+- Bounded aggregate evidence refresh:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v34_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - `closed_loop_profiles_passed=2/2`
+    - `closed_loop_initial_targets_total=5484`
+    - `closed_loop_replay_targets_total=5211`
+    - `realistic_corpus_cases_declared=257`
+    - `realistic_corpus_cases_executed=514`
+    - `realistic_corpus_expected_pass_total=257`
+    - `realistic_corpus_expected_fail_total=0`
+    - `realistic_corpus_observed_parse_pass_total=514`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_warning_total=2`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This promotion stayed all-pass; no expected-fail sentinels were added.
+- Promoted families:
+  - multi-module imported-width heneicosa-bridge named-port composition,
+  - multi-module imported-width heneicosa-bridge wildcard composition,
+  - module-local import multi-width twenty-three-child pipeline composition,
+  - package-import multi-width twenty-three-child pipeline composition,
+  - deeper include-chain package-width twenty-three-child pipeline composition,
+  - deeper include-chain package-width heneicosa-bridge wildcard reuse,
+  - macro-expanded multi-width import twenty-three-child pipeline composition,
+  - macro-expanded module-name multi-width twenty-three-child composition,
+  - macro-expanded port-name multi-width twenty-three-child composition.
+
 ## 2026-03-08 - Expand SystemVerilog Nexsim Realistic Corpus To `version: 33`
 ### ✅ Achievement Summary
 Expanded the checked-in Nexsim-oriented SystemVerilog realistic corpus from `239` to `248` declared all-pass cases by promoting richer imported-width eicosa-bridge compositions, twenty-two-child pipeline families, deeper include-chain eicosa-bridge reuse, and macro-expanded twenty-two-child forms.
