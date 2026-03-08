@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-08 - SystemVerilog Realistic Corpus Expansion: `version: 29` Hexadeca-Bridge + Eighteen-Child Increment
+### Context
+After the `version: 28` promotion, the next useful Phase P/Q increment was to keep moving the same parser-backed topology frontier outward one notch again: take the imported-width chain through one more downstream bridge family, and step the direct/include/macro pipeline families beyond the current seventeen-child ceiling into eighteen-child forms.
+
+### Implementation
+Promoted nine additional required-pass cases into:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `version: 29`
+  - `cases: 212`
+
+New fixtures:
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexadeca_bridge_named_port.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexadeca_bridge_wildcard.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_eighteen_child_pipeline.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_eighteen_child_pipeline.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_pipeline.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hexadeca_bridge_wildcard.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_eighteen_child_pipeline.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_eighteen_child.sv`
+- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_eighteen_child.sv`
+- support include files:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_defs.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_mid.svh`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_leaf.svh`
+
+This slice extends the realistic corpus in four useful directions:
+- richer imported-width topology:
+  - imported-width source plus hexadeca-bridge named-port composition,
+  - imported-width source plus hexadeca-bridge wildcard composition.
+- eighteen-child pipeline breadth:
+  - module-local import multi-width eighteen-child pipeline composition,
+  - package-import multi-width eighteen-child pipeline composition.
+- deeper include topology:
+  - three-step local include chain ending in package-width eighteen-child pipeline composition,
+  - three-step local include chain ending in package-width hexadeca-bridge wildcard reuse.
+- width-aware macro breadth:
+  - macro-expanded multi-width import eighteen-child pipeline composition,
+  - macro-expanded module-name multi-width eighteen-child composition,
+  - macro-expanded port-name multi-width eighteen-child composition.
+
+### Validation
+Direct dual-profile replay:
+- observed:
+  - `9` new cases,
+  - `2` profiles each,
+  - `18/18` `parse_full` passes.
+
+Bounded full-gate refresh on the promoted manifest:
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v29_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- observed summary:
+  - `closed_loop_profiles_passed=2/2`
+  - `closed_loop_initial_targets_total=5484`
+  - `closed_loop_replay_targets_total=5211`
+  - `realistic_corpus_cases_declared=212`
+  - `realistic_corpus_cases_executed=424`
+  - `realistic_corpus_observed_parse_pass_total=424`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_warning_total=2`
+  - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This increment stayed fully all-pass again; no expected-fail sentinels were added.
+- The next likely search space is now further out again: even richer multi-bridge imported-width compositions, include-driven reuse beyond eighteen-child depth, mixed wildcard/named-port bridge topologies, and additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
+
 ## 2026-03-08 - SystemVerilog Realistic Corpus Expansion: `version: 28` Pentadeca-Bridge + Seventeen-Child Increment
 ### Context
 After the `version: 27` promotion, the next useful Phase P/Q increment was to keep moving the same parser-backed topology frontier outward one notch at a time again: take the imported-width chain through one more downstream bridge family, and step the direct/include/macro pipeline families beyond the current sixteen-child ceiling into seventeen-child forms.
