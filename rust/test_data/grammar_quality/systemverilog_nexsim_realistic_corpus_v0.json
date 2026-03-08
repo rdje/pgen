@@ -1,5 +1,5 @@
 {
-  "version": 16,
+  "version": 17,
   "description": "Deterministic Nexsim-oriented realistic SystemVerilog corpus for preprocess/parse_full budget and integration hardening.",
   "cases": [
     {
@@ -569,6 +569,60 @@
     {
       "name": "preprocess_macro_port_name_multi_width_five_child",
       "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_five_child.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "multi_module_imported_width_quad_bridge_named_port",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_quad_bridge_named_port.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "multi_module_imported_width_quad_bridge_wildcard",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_quad_bridge_wildcard.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "module_local_import_multi_width_six_child_pipeline",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_six_child_pipeline.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "package_import_multi_width_six_child_pipeline",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_six_child_pipeline.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_deep_include_package_width_six_child_pipeline",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_pipeline.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_deep_include_package_width_quad_bridge_wildcard",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_quad_bridge_wildcard.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_import_multi_width_six_child_pipeline",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_six_child_pipeline.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_module_name_multi_width_six_child",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_six_child.sv",
+      "profiles": ["2017", "2023"],
+      "expect_parse_full_pass": true
+    },
+    {
+      "name": "preprocess_macro_port_name_multi_width_six_child",
+      "path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_six_child.sv",
       "profiles": ["2017", "2023"],
       "expect_parse_full_pass": true
     }
