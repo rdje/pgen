@@ -126,8 +126,8 @@ create-placeholders:
 # - normal binary is built with generated_parsers so non-bootstrap annotation parsing uses generated backends
 $(RUST_AST_PIPELINE_BOOTSTRAP): $(AST_PIPELINE_SOURCES)
 	@echo "Ensuring parser placeholders exist to avoid circular dependency..."
-	@source ./scripts/create_placeholder_parser.sh Semantic_annotationParser $(SEMANTIC_ANNOTATION_PARSER)
-	@source ./scripts/create_placeholder_parser.sh Return_annotationParser $(RETURN_ANNOTATION_PARSER)
+	@[ -f $(SEMANTIC_ANNOTATION_PARSER) ] || source ./scripts/create_placeholder_parser.sh Semantic_annotationParser $(SEMANTIC_ANNOTATION_PARSER)
+	@[ -f $(RETURN_ANNOTATION_PARSER) ] || source ./scripts/create_placeholder_parser.sh Return_annotationParser $(RETURN_ANNOTATION_PARSER)
 	@echo "Building Rust AST pipeline binary only (avoiding circular dependency)..."
 	cd $(RUST_DIR) && cargo build --bin ast_pipeline_bootstrap  --no-default-features --features bootstrap
 
@@ -225,6 +225,7 @@ help:
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
 	@echo "  branch_protection_contract_gate - Validate tracked branch-protection required-check contract vs workflows"
+	@echo "  ci_workflow_local_gate - Run tracked GitHub workflow gate commands from a tracked-only local export"
 	@echo "  clippy_on_rust_change - Run cargo clippy flow automatically when Rust/generated Rust files changed"
 	@echo "  sota_exit_gate - Run release-grade aggregate gate (fixed-point, annotation, differential, performance, embedding, EBNF readiness report)"
 	@echo "  sota_release_policy - Show active SOTA release policy file"
@@ -436,6 +437,12 @@ branch_protection_contract_gate:
 	@echo "🛡️  Running branch protection contract gate..."
 	cd $(RUST_DIR) && ./scripts/branch_protection_contract_gate.sh
 	@echo "✅ Branch protection contract gate passed."
+
+.PHONY: ci_workflow_local_gate
+ci_workflow_local_gate:
+	@echo "🧪 Running local GitHub workflow parity gate..."
+	cd $(RUST_DIR) && ./scripts/ci_workflow_local_gate.sh
+	@echo "✅ Local GitHub workflow parity gate passed."
 
 .PHONY: clippy_on_rust_change
 clippy_on_rust_change:

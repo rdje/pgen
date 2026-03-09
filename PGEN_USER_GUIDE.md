@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-03-07
+Last updated: 2026-03-09
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -65,6 +65,7 @@ make -C rust SHELL=/bin/bash sota_exit_gate
 make -C rust SHELL=/bin/bash sota_release_policy
 make -C rust SHELL=/bin/bash fixed_point_gate
 make -C rust SHELL=/bin/bash annotation_contract_gate
+make -C rust SHELL=/bin/bash ci_workflow_local_gate
 make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate
 make -C rust SHELL=/bin/bash performance_gate
 make -C rust SHELL=/bin/bash differential_regression_gate
@@ -130,6 +131,32 @@ make -C rust SHELL=/bin/bash return_annotation_parser
 make -C rust SHELL=/bin/bash semantic_annotation_parser
 make -C rust SHELL=/bin/bash regex_parser
 ```
+
+## 4a) Local CI Workflow Parity
+
+Use the local workflow parity gate before pushing when you want a clean-checkout approximation of the tracked GitHub workflow surface:
+
+```bash
+make -C rust SHELL=/bin/bash ci_workflow_local_gate
+```
+
+Behavior:
+- exports the current tracked worktree into a temporary local replay directory,
+- excludes untracked files on purpose so local-only artifacts cannot hide CI failures,
+- audits repo-local static `include!(...)` literals for absolute paths,
+- verifies the tracked workflow/config/script surface required by the gate workflows,
+- runs the same top-level gate commands used by the tracked `.github/workflows/*.yml` files.
+
+Useful controls:
+- run a subset of workflows:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate,branch-protection-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- override local Cargo offline reuse:
+  - `PGEN_CI_WORKFLOW_LOCAL_CARGO_OFFLINE=false make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
+Compile-time include contract:
+- repo-local `include!(...)` paths must stay relative,
+- build-script-resolved HDL parser includes are emitted relative to `rust/src/` by `rust/build.rs`,
+- clean local replay and GitHub workflow checkouts should not depend on absolute filesystem paths.
 
 ## 5) `ast_pipeline` CLI Guide
 

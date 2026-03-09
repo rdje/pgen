@@ -39,6 +39,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `generated/`: version-controlled canonical generated artifacts used by compile-time includes and clean-checkout gates
 - `rust/target/generated_logs/`: scratch generation/debug logs kept out of `generated/`
 - `rust/src/`: Rust AST pipeline, generators, parser registry, embedding API
+- `rust/build.rs`: compile-time generated-parser include path resolver; emits relative `include!(env!(...))` paths from `rust/src/` so clean checkouts and relocated worktrees do not depend on absolute filesystem paths
 - `rust/config/branch_protection_policy.json`: tracked minimum branch-protection required-check contract
 - `rust/scripts/`: executable quality gates and policy runners
 - `rust/test_data/grammar_quality/`: gate contracts, corpora, deterministic case manifests
@@ -58,6 +59,10 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash sota_exit_gate`
 - Branch-protection contract gate:
   - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+- Local workflow parity gate:
+  - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - focused replay example:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
 - SV quality gate:
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - bounded replay rerun example:

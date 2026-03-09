@@ -5,7 +5,7 @@
       "documentation" : "See docs/ast_transformation_pipeline.md for detailed transformation algorithms",
       "ebnf_version" : "1.0",
       "format" : "raw_ast",
-      "generated_at" : "2026-02-16T14:20:01Z",
+      "generated_at" : "2026-03-09T15:07:41Z",
       "generator" : "ebnf_to_json.pl",
       "next_step" : "Apply transformation pipeline: step2_group_by_or → step2_5_handle_parentheses → step3_parse_sequences → step4_handle_quantifiers → step5_build_tree_structure",
       "source_file" : "../grammars/semantic_annotation.ebnf"
@@ -2770,6 +2770,22 @@
          ],
          [
             "rule_reference",
+            "qualified_name"
+         ],
+         [
+            "operator",
+            "|"
+         ],
+         [
+            "rule_reference",
+            "rule_reference"
+         ],
+         [
+            "operator",
+            "|"
+         ],
+         [
+            "rule_reference",
             "identifier_literal"
          ],
          [
@@ -2808,7 +2824,49 @@
          ],
          [
             "rule_reference",
+            "implication_expr"
+         ],
+         [
+            "return_scalar",
+            "$1"
+         ]
+      ],
+      [
+         [
+            "rule",
+            "implication_expr"
+         ],
+         [
+            "rule_reference",
             "logical_or_expr"
+         ],
+         [
+            "group_open",
+            "("
+         ],
+         [
+            "regex",
+            "\\s*"
+         ],
+         [
+            "quoted_string",
+            "=>"
+         ],
+         [
+            "regex",
+            "\\s*"
+         ],
+         [
+            "rule_reference",
+            "logical_or_expr"
+         ],
+         [
+            "group_close",
+            ")"
+         ],
+         [
+            "operator",
+            "?"
          ],
          [
             "return_scalar",

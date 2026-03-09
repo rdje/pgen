@@ -57,6 +57,7 @@ pub struct SemanticAnnotationParser<'input> {
     position: usize,
     memo: HashMap<(RuleId, usize), Option<ParseNode<'input>>>,
     recursion_guard: RecursionGuard,
+    grammar_profile: Option<String>,
     recovery_events: Vec<RecoveryEvent>,
     recovery_counts: HashMap<String, usize>,
     recovery_parse_count: usize,
@@ -124,72 +125,74 @@ impl<'input> SemanticAnnotationParser<'input> {
     const RULE_UNARY_OP: RuleId = 49u16;
     const RULE_PRIMARY_EXPR: RuleId = 50u16;
     const RULE_LOGICAL_EXPRESSION: RuleId = 51u16;
-    const RULE_LOGICAL_OR_EXPR: RuleId = 52u16;
-    const RULE_LOGICAL_AND_EXPR: RuleId = 53u16;
-    const RULE_LOGICAL_NOT_EXPR: RuleId = 54u16;
-    const RULE_COMPARISON_EXPRESSION: RuleId = 55u16;
-    const RULE_ADDITIVE_COMPARISON_EXPR: RuleId = 56u16;
-    const RULE_COMPARISON_OP: RuleId = 57u16;
-    const RULE_CONDITIONAL_EXPRESSION: RuleId = 58u16;
-    const RULE_FUNCTION_CALL: RuleId = 59u16;
-    const RULE_FUNCTION_NAME: RuleId = 60u16;
-    const RULE_QUALIFIED_NAME: RuleId = 61u16;
-    const RULE_FUNCTION_ARGUMENT: RuleId = 62u16;
-    const RULE_POSITIONAL_ARGUMENT: RuleId = 63u16;
-    const RULE_NAMED_ARGUMENT: RuleId = 64u16;
-    const RULE_SPREAD_ARGUMENT: RuleId = 65u16;
-    const RULE_LAMBDA_EXPRESSION: RuleId = 66u16;
-    const RULE_LAMBDA_PARAMETER: RuleId = 67u16;
-    const RULE_DESTRUCTURING_PARAMETER: RuleId = 68u16;
-    const RULE_TYPE_REFERENCE_LR_BASE: RuleId = 69u16;
-    const RULE_TYPE_REFERENCE: RuleId = 70u16;
-    const RULE_PRIMITIVE_TYPE: RuleId = 71u16;
-    const RULE_GENERIC_TYPE: RuleId = 72u16;
-    const RULE_UNION_TYPE: RuleId = 73u16;
-    const RULE_INTERSECTION_TYPE: RuleId = 74u16;
-    const RULE_FUNCTION_TYPE: RuleId = 75u16;
-    const RULE_ARRAY_TYPE: RuleId = 76u16;
-    const RULE_OPTIONAL_TYPE: RuleId = 77u16;
-    const RULE_RULE_REFERENCE: RuleId = 78u16;
-    const RULE_RULE_REFERENCE_NAME: RuleId = 79u16;
-    const RULE_SYMBOL_REFERENCE: RuleId = 80u16;
-    const RULE_PATH_REFERENCE: RuleId = 81u16;
-    const RULE_ABSOLUTE_PATH: RuleId = 82u16;
-    const RULE_RELATIVE_PATH: RuleId = 83u16;
-    const RULE_HOME_PATH: RuleId = 84u16;
-    const RULE_URL_REFERENCE: RuleId = 85u16;
-    const RULE_PRECEDENCE_VALUE: RuleId = 86u16;
-    const RULE_PRECEDENCE_LEVEL: RuleId = 87u16;
-    const RULE_PRECEDENCE_ASSOCIATIVITY: RuleId = 88u16;
-    const RULE_CONSTRAINT_VALUE: RuleId = 89u16;
-    const RULE_CONSTRAINT_TYPE: RuleId = 90u16;
-    const RULE_CONSTRAINT_EXPRESSION: RuleId = 91u16;
-    const RULE_PERFORMANCE_VALUE: RuleId = 92u16;
-    const RULE_COMPLEXITY_SPEC: RuleId = 93u16;
-    const RULE_COMPLEXITY_EXPR: RuleId = 94u16;
-    const RULE_MEMORY_SPEC: RuleId = 95u16;
-    const RULE_MEMORY_AMOUNT: RuleId = 96u16;
-    const RULE_MEMORY_UNIT: RuleId = 97u16;
-    const RULE_TIMING_SPEC: RuleId = 98u16;
-    const RULE_TIME_AMOUNT: RuleId = 99u16;
-    const RULE_TIME_UNIT: RuleId = 100u16;
-    const RULE_VERSION_VALUE: RuleId = 101u16;
-    const RULE_SEMANTIC_VERSION: RuleId = 102u16;
-    const RULE_VERSION_RANGE: RuleId = 103u16;
-    const RULE_EXCEPTION_SPEC: RuleId = 104u16;
-    const RULE_EXCEPTION_TYPE: RuleId = 105u16;
-    const RULE_PLATFORM_SPEC: RuleId = 106u16;
-    const RULE_PLATFORM_NAME: RuleId = 107u16;
-    const RULE_WHITESPACE: RuleId = 108u16;
-    const RULE_LINE_COMMENT: RuleId = 109u16;
-    const RULE_BLOCK_COMMENT: RuleId = 110u16;
-    const RULE_DOC_COMMENT: RuleId = 111u16;
+    const RULE_IMPLICATION_EXPR: RuleId = 52u16;
+    const RULE_LOGICAL_OR_EXPR: RuleId = 53u16;
+    const RULE_LOGICAL_AND_EXPR: RuleId = 54u16;
+    const RULE_LOGICAL_NOT_EXPR: RuleId = 55u16;
+    const RULE_COMPARISON_EXPRESSION: RuleId = 56u16;
+    const RULE_ADDITIVE_COMPARISON_EXPR: RuleId = 57u16;
+    const RULE_COMPARISON_OP: RuleId = 58u16;
+    const RULE_CONDITIONAL_EXPRESSION: RuleId = 59u16;
+    const RULE_FUNCTION_CALL: RuleId = 60u16;
+    const RULE_FUNCTION_NAME: RuleId = 61u16;
+    const RULE_QUALIFIED_NAME: RuleId = 62u16;
+    const RULE_FUNCTION_ARGUMENT: RuleId = 63u16;
+    const RULE_POSITIONAL_ARGUMENT: RuleId = 64u16;
+    const RULE_NAMED_ARGUMENT: RuleId = 65u16;
+    const RULE_SPREAD_ARGUMENT: RuleId = 66u16;
+    const RULE_LAMBDA_EXPRESSION: RuleId = 67u16;
+    const RULE_LAMBDA_PARAMETER: RuleId = 68u16;
+    const RULE_DESTRUCTURING_PARAMETER: RuleId = 69u16;
+    const RULE_TYPE_REFERENCE_LR_BASE: RuleId = 70u16;
+    const RULE_TYPE_REFERENCE: RuleId = 71u16;
+    const RULE_PRIMITIVE_TYPE: RuleId = 72u16;
+    const RULE_GENERIC_TYPE: RuleId = 73u16;
+    const RULE_UNION_TYPE: RuleId = 74u16;
+    const RULE_INTERSECTION_TYPE: RuleId = 75u16;
+    const RULE_FUNCTION_TYPE: RuleId = 76u16;
+    const RULE_ARRAY_TYPE: RuleId = 77u16;
+    const RULE_OPTIONAL_TYPE: RuleId = 78u16;
+    const RULE_RULE_REFERENCE: RuleId = 79u16;
+    const RULE_RULE_REFERENCE_NAME: RuleId = 80u16;
+    const RULE_SYMBOL_REFERENCE: RuleId = 81u16;
+    const RULE_PATH_REFERENCE: RuleId = 82u16;
+    const RULE_ABSOLUTE_PATH: RuleId = 83u16;
+    const RULE_RELATIVE_PATH: RuleId = 84u16;
+    const RULE_HOME_PATH: RuleId = 85u16;
+    const RULE_URL_REFERENCE: RuleId = 86u16;
+    const RULE_PRECEDENCE_VALUE: RuleId = 87u16;
+    const RULE_PRECEDENCE_LEVEL: RuleId = 88u16;
+    const RULE_PRECEDENCE_ASSOCIATIVITY: RuleId = 89u16;
+    const RULE_CONSTRAINT_VALUE: RuleId = 90u16;
+    const RULE_CONSTRAINT_TYPE: RuleId = 91u16;
+    const RULE_CONSTRAINT_EXPRESSION: RuleId = 92u16;
+    const RULE_PERFORMANCE_VALUE: RuleId = 93u16;
+    const RULE_COMPLEXITY_SPEC: RuleId = 94u16;
+    const RULE_COMPLEXITY_EXPR: RuleId = 95u16;
+    const RULE_MEMORY_SPEC: RuleId = 96u16;
+    const RULE_MEMORY_AMOUNT: RuleId = 97u16;
+    const RULE_MEMORY_UNIT: RuleId = 98u16;
+    const RULE_TIMING_SPEC: RuleId = 99u16;
+    const RULE_TIME_AMOUNT: RuleId = 100u16;
+    const RULE_TIME_UNIT: RuleId = 101u16;
+    const RULE_VERSION_VALUE: RuleId = 102u16;
+    const RULE_SEMANTIC_VERSION: RuleId = 103u16;
+    const RULE_VERSION_RANGE: RuleId = 104u16;
+    const RULE_EXCEPTION_SPEC: RuleId = 105u16;
+    const RULE_EXCEPTION_TYPE: RuleId = 106u16;
+    const RULE_PLATFORM_SPEC: RuleId = 107u16;
+    const RULE_PLATFORM_NAME: RuleId = 108u16;
+    const RULE_WHITESPACE: RuleId = 109u16;
+    const RULE_LINE_COMMENT: RuleId = 110u16;
+    const RULE_BLOCK_COMMENT: RuleId = 111u16;
+    const RULE_DOC_COMMENT: RuleId = 112u16;
     pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
         Self {
             input,
             position: 0,
             memo: HashMap::new(),
             recursion_guard: RecursionGuard::new(100),
+            grammar_profile: None,
             recovery_events: Vec::new(),
             recovery_counts: HashMap::new(),
             recovery_parse_count: 0,
@@ -232,6 +235,12 @@ impl<'input> SemanticAnnotationParser<'input> {
     }
     pub fn parse_full_semantic_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
         self.parse_full()
+    }
+    pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
+        self.grammar_profile = profile.map(|value| value.to_string());
+    }
+    pub fn grammar_profile(&self) -> Option<&str> {
+        self.grammar_profile.as_deref()
     }
     pub fn recovery_events(&self) -> &[RecoveryEvent] {
         &self.recovery_events
@@ -34567,13 +34576,13 @@ impl<'input> SemanticAnnotationParser<'input> {
                         parser
                             .deterministic_partition_offset_runtime(
                                 &deterministic_partition_effective_group,
-                                4usize,
+                                6usize,
                             )
                     } else {
                         0usize
                     };
-                    let mut evaluation_order: Vec<usize> = (0..4usize).collect();
-                    if deterministic_partition_effective_enabled && 4usize > 1
+                    let mut evaluation_order: Vec<usize> = (0..6usize).collect();
+                    if deterministic_partition_effective_enabled && 6usize > 1
                         && deterministic_partition_offset > 0
                     {
                         evaluation_order.rotate_left(deterministic_partition_offset);
@@ -34595,7 +34604,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                         0,
                                                         &format!(
                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                            1usize, 4usize, "primary_expr", parser.position
+                                                            1usize, 6usize, "primary_expr", parser.position
                                                         ),
                                                     );
                                             }
@@ -34610,7 +34619,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                         0,
                                                         &format!(
                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                            1usize, 4usize, "primary_expr", parser.position
+                                                            1usize, 6usize, "primary_expr", parser.position
                                                         ),
                                                     );
                                             }
@@ -34687,7 +34696,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                 0,
                                                 &format!(
                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                    1usize, 4usize, "primary_expr", parser.position
+                                                    1usize, 6usize, "primary_expr", parser.position
                                                 ),
                                             );
                                     }
@@ -34708,12 +34717,12 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                         0,
                                                         &format!(
                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                            2usize, 4usize, "primary_expr", parser.position
+                                                            2usize, 6usize, "primary_expr", parser.position
                                                         ),
                                                     );
                                             }
                                             let result = ParseContent::Alternative(
-                                                Box::new(parser.parse_identifier_literal()?),
+                                                Box::new(parser.parse_qualified_name()?),
                                             );
                                             if parser.logger.is_enabled() {
                                                 parser
@@ -34723,7 +34732,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                         0,
                                                         &format!(
                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                            2usize, 4usize, "primary_expr", parser.position
+                                                            2usize, 6usize, "primary_expr", parser.position
                                                         ),
                                                     );
                                             }
@@ -34800,7 +34809,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                 0,
                                                 &format!(
                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                    2usize, 4usize, "primary_expr", parser.position
+                                                    2usize, 6usize, "primary_expr", parser.position
                                                 ),
                                             );
                                     }
@@ -34821,58 +34830,13 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                         0,
                                                         &format!(
                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                            3usize, 4usize, "primary_expr", parser.position
+                                                            3usize, 6usize, "primary_expr", parser.position
                                                         ),
                                                     );
                                             }
-                                            let mut sequence_elements = Vec::with_capacity(3usize);
-                                            {
-                                                let element_start = parser.position;
-                                                let element_content = {
-                                                    let matched_str = parser.match_string("(")?;
-                                                    let result = ParseContent::Terminal(matched_str);
-                                                    result
-                                                };
-                                                let element_end = parser.position;
-                                                sequence_elements
-                                                    .push(ParseNode {
-                                                        rule_name: "element_0",
-                                                        content: element_content,
-                                                        span: element_start..element_end,
-                                                    });
-                                            }
-                                            {
-                                                let element_start = parser.position;
-                                                let element_content = {
-                                                    let result = ParseContent::Alternative(
-                                                        Box::new(parser.parse_arithmetic_expression()?),
-                                                    );
-                                                    result
-                                                };
-                                                let element_end = parser.position;
-                                                sequence_elements
-                                                    .push(ParseNode {
-                                                        rule_name: "element_1",
-                                                        content: element_content,
-                                                        span: element_start..element_end,
-                                                    });
-                                            }
-                                            {
-                                                let element_start = parser.position;
-                                                let element_content = {
-                                                    let matched_str = parser.match_string(")")?;
-                                                    let result = ParseContent::Terminal(matched_str);
-                                                    result
-                                                };
-                                                let element_end = parser.position;
-                                                sequence_elements
-                                                    .push(ParseNode {
-                                                        rule_name: "element_2",
-                                                        content: element_content,
-                                                        span: element_start..element_end,
-                                                    });
-                                            }
-                                            let result = ParseContent::Sequence(sequence_elements);
+                                            let result = ParseContent::Alternative(
+                                                Box::new(parser.parse_rule_reference()?),
+                                            );
                                             if parser.logger.is_enabled() {
                                                 parser
                                                     .logger
@@ -34881,7 +34845,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                         0,
                                                         &format!(
                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                            3usize, 4usize, "primary_expr", parser.position
+                                                            3usize, 6usize, "primary_expr", parser.position
                                                         ),
                                                     );
                                             }
@@ -34958,7 +34922,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                 0,
                                                 &format!(
                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                    3usize, 4usize, "primary_expr", parser.position
+                                                    3usize, 6usize, "primary_expr", parser.position
                                                 ),
                                             );
                                     }
@@ -34979,7 +34943,278 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                         0,
                                                         &format!(
                                                             "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                            4usize, 4usize, "primary_expr", parser.position
+                                                            4usize, 6usize, "primary_expr", parser.position
+                                                        ),
+                                                    );
+                                            }
+                                            let result = ParseContent::Alternative(
+                                                Box::new(parser.parse_identifier_literal()?),
+                                            );
+                                            if parser.logger.is_enabled() {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "../generated/semantic_annotation_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                            4usize, 6usize, "primary_expr", parser.position
+                                                        ),
+                                                    );
+                                            }
+                                            Ok(result)
+                                        })
+                                    {
+                                        let candidate_end = parser.position;
+                                        parser.position = parse_start;
+                                        let candidate_priority: i64 = 0i64;
+                                        let current_branch_index: usize = 3usize;
+                                        let transformed = {
+                                            let content = content;
+                                            content
+                                        };
+                                        let should_take = if "longest_match" == "ordered" {
+                                            best_content.is_none()
+                                        } else if "longest_match" == "priority_first" {
+                                            if best_content.is_none() {
+                                                true
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            }
+                                        } else if best_content.is_none() {
+                                            true
+                                        } else if candidate_end > best_end {
+                                            true
+                                        } else if candidate_end < best_end {
+                                            false
+                                        } else if candidate_priority > best_priority {
+                                            true
+                                        } else if candidate_priority < best_priority {
+                                            false
+                                        } else {
+                                            match "left" {
+                                                "right" => current_branch_index > best_branch_index,
+                                                "nonassoc" => {
+                                                    if current_branch_index != best_branch_index {
+                                                        nonassoc_tie = true;
+                                                    }
+                                                    false
+                                                }
+                                                _ => false,
+                                            }
+                                        };
+                                        if should_take {
+                                            best_end = candidate_end;
+                                            best_priority = candidate_priority;
+                                            best_branch_index = current_branch_index;
+                                            best_branch = 4usize;
+                                            best_content = Some(transformed);
+                                        }
+                                    } else if parser.logger.is_enabled() {
+                                        parser
+                                            .logger
+                                            .log_info(
+                                                "../generated/semantic_annotation_parser.rs",
+                                                0,
+                                                &format!(
+                                                    "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                    4usize, 6usize, "primary_expr", parser.position
+                                                ),
+                                            );
+                                    }
+                                }
+                            }
+                            4usize => {
+                                if "longest_match" == "ordered" && best_content.is_some()
+                                {} else {
+                                    parser.position = parse_start;
+                                    if let Some(content) = parser
+                                        .try_parse(|p| {
+                                            let parser = p;
+                                            if parser.logger.is_enabled() {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "../generated/semantic_annotation_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                            5usize, 6usize, "primary_expr", parser.position
+                                                        ),
+                                                    );
+                                            }
+                                            let mut sequence_elements = Vec::with_capacity(3usize);
+                                            {
+                                                let element_start = parser.position;
+                                                let element_content = {
+                                                    let matched_str = parser.match_string("(")?;
+                                                    let result = ParseContent::Terminal(matched_str);
+                                                    result
+                                                };
+                                                let element_end = parser.position;
+                                                sequence_elements
+                                                    .push(ParseNode {
+                                                        rule_name: "element_0",
+                                                        content: element_content,
+                                                        span: element_start..element_end,
+                                                    });
+                                            }
+                                            {
+                                                let element_start = parser.position;
+                                                let element_content = {
+                                                    let result = ParseContent::Alternative(
+                                                        Box::new(parser.parse_arithmetic_expression()?),
+                                                    );
+                                                    result
+                                                };
+                                                let element_end = parser.position;
+                                                sequence_elements
+                                                    .push(ParseNode {
+                                                        rule_name: "element_1",
+                                                        content: element_content,
+                                                        span: element_start..element_end,
+                                                    });
+                                            }
+                                            {
+                                                let element_start = parser.position;
+                                                let element_content = {
+                                                    let matched_str = parser.match_string(")")?;
+                                                    let result = ParseContent::Terminal(matched_str);
+                                                    result
+                                                };
+                                                let element_end = parser.position;
+                                                sequence_elements
+                                                    .push(ParseNode {
+                                                        rule_name: "element_2",
+                                                        content: element_content,
+                                                        span: element_start..element_end,
+                                                    });
+                                            }
+                                            let result = ParseContent::Sequence(sequence_elements);
+                                            if parser.logger.is_enabled() {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "../generated/semantic_annotation_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                            5usize, 6usize, "primary_expr", parser.position
+                                                        ),
+                                                    );
+                                            }
+                                            Ok(result)
+                                        })
+                                    {
+                                        let candidate_end = parser.position;
+                                        parser.position = parse_start;
+                                        let candidate_priority: i64 = 0i64;
+                                        let current_branch_index: usize = 4usize;
+                                        let transformed = {
+                                            let content = content;
+                                            content
+                                        };
+                                        let should_take = if "longest_match" == "ordered" {
+                                            best_content.is_none()
+                                        } else if "longest_match" == "priority_first" {
+                                            if best_content.is_none() {
+                                                true
+                                            } else if candidate_priority > best_priority {
+                                                true
+                                            } else if candidate_priority < best_priority {
+                                                false
+                                            } else if candidate_end > best_end {
+                                                true
+                                            } else if candidate_end < best_end {
+                                                false
+                                            } else {
+                                                match "left" {
+                                                    "right" => current_branch_index > best_branch_index,
+                                                    "nonassoc" => {
+                                                        if current_branch_index != best_branch_index {
+                                                            nonassoc_tie = true;
+                                                        }
+                                                        false
+                                                    }
+                                                    _ => false,
+                                                }
+                                            }
+                                        } else if best_content.is_none() {
+                                            true
+                                        } else if candidate_end > best_end {
+                                            true
+                                        } else if candidate_end < best_end {
+                                            false
+                                        } else if candidate_priority > best_priority {
+                                            true
+                                        } else if candidate_priority < best_priority {
+                                            false
+                                        } else {
+                                            match "left" {
+                                                "right" => current_branch_index > best_branch_index,
+                                                "nonassoc" => {
+                                                    if current_branch_index != best_branch_index {
+                                                        nonassoc_tie = true;
+                                                    }
+                                                    false
+                                                }
+                                                _ => false,
+                                            }
+                                        };
+                                        if should_take {
+                                            best_end = candidate_end;
+                                            best_priority = candidate_priority;
+                                            best_branch_index = current_branch_index;
+                                            best_branch = 5usize;
+                                            best_content = Some(transformed);
+                                        }
+                                    } else if parser.logger.is_enabled() {
+                                        parser
+                                            .logger
+                                            .log_info(
+                                                "../generated/semantic_annotation_parser.rs",
+                                                0,
+                                                &format!(
+                                                    "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                    5usize, 6usize, "primary_expr", parser.position
+                                                ),
+                                            );
+                                    }
+                                }
+                            }
+                            5usize => {
+                                if "longest_match" == "ordered" && best_content.is_some()
+                                {} else {
+                                    parser.position = parse_start;
+                                    if let Some(content) = parser
+                                        .try_parse(|p| {
+                                            let parser = p;
+                                            if parser.logger.is_enabled() {
+                                                parser
+                                                    .logger
+                                                    .log_info(
+                                                        "../generated/semantic_annotation_parser.rs",
+                                                        0,
+                                                        &format!(
+                                                            "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                            6usize, 6usize, "primary_expr", parser.position
                                                         ),
                                                     );
                                             }
@@ -34994,7 +35229,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                         0,
                                                         &format!(
                                                             "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                            4usize, 4usize, "primary_expr", parser.position
+                                                            6usize, 6usize, "primary_expr", parser.position
                                                         ),
                                                     );
                                             }
@@ -35004,7 +35239,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                         let candidate_end = parser.position;
                                         parser.position = parse_start;
                                         let candidate_priority: i64 = 0i64;
-                                        let current_branch_index: usize = 3usize;
+                                        let current_branch_index: usize = 5usize;
                                         let transformed = {
                                             let content = content;
                                             {
@@ -35075,7 +35310,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                             best_end = candidate_end;
                                             best_priority = candidate_priority;
                                             best_branch_index = current_branch_index;
-                                            best_branch = 4usize;
+                                            best_branch = 6usize;
                                             best_content = Some(transformed);
                                         }
                                     } else if parser.logger.is_enabled() {
@@ -35086,7 +35321,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                                 0,
                                                 &format!(
                                                     "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                    4usize, 4usize, "primary_expr", parser.position
+                                                    6usize, 6usize, "primary_expr", parser.position
                                                 ),
                                             );
                                     }
@@ -35110,7 +35345,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                                     0,
                                     &format!(
                                         "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                        "primary_expr", best_branch, 4usize, best_end
+                                        "primary_expr", best_branch, 6usize, best_end
                                         .saturating_sub(parse_start), best_priority, "left",
                                         "longest_match"
                                     ),
@@ -35287,7 +35522,7 @@ impl<'input> SemanticAnnotationParser<'input> {
                 |parser| {
                     let mut semantic_selected_branch_index: Option<usize> = None;
                     let result = ParseContent::Alternative(
-                        Box::new(parser.parse_logical_or_expr()?),
+                        Box::new(parser.parse_implication_expr()?),
                     );
                     let end_pos = parser.position;
                     parser
@@ -35379,6 +35614,269 @@ impl<'input> SemanticAnnotationParser<'input> {
                             &format!(
                                 "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
                                 "logical_expression", e, self.position
+                            ),
+                        );
+                }
+            }
+        }
+        result
+    }
+    pub fn parse_implication_expr(&mut self) -> ParseResult<ParseNode<'input>> {
+        let filename_str = "../generated/semantic_annotation_parser.rs";
+        let position = self.position;
+        let cycle_type = self.recursion_guard.check_cycle("implication_expr", position);
+        match cycle_type {
+            CycleType::Infinite => {
+                if self.logger.is_enabled() {
+                    self.logger
+                        .log_error(
+                            "../generated/semantic_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "💥 Infinite recursion detected in rule '{}' at position {}",
+                                "implication_expr", position
+                            ),
+                        );
+                }
+                return Err(ParseError::InvalidSyntax {
+                    message: "Infinite recursion detected",
+                    position,
+                });
+            }
+            CycleType::LeftRecursive => {
+                if self.logger.is_enabled() {
+                    self.logger
+                        .log_error(
+                            "../generated/semantic_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "🔄 Left recursion detected in rule '{}' at position {}",
+                                "implication_expr", position
+                            ),
+                        );
+                }
+                return Err(ParseError::InvalidSyntax {
+                    message: "Left recursion detected",
+                    position,
+                });
+            }
+            CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
+                if self.logger.is_enabled() {
+                    self.logger
+                        .log_error(
+                            "../generated/semantic_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})",
+                                "implication_expr", position, depth
+                            ),
+                        );
+                }
+                return Err(ParseError::RecursionDepthExceeded {
+                    position,
+                    depth,
+                });
+            }
+            _ => {}
+        }
+        self.recursion_guard.enter("implication_expr", position);
+        let start_pos = self.position;
+        let result = self
+            .memoized_call(
+                Self::RULE_IMPLICATION_EXPR,
+                |parser| {
+                    let mut semantic_selected_branch_index: Option<usize> = None;
+                    let mut sequence_elements = Vec::with_capacity(2usize);
+                    {
+                        let element_start = parser.position;
+                        let element_content = {
+                            let result = ParseContent::Alternative(
+                                Box::new(parser.parse_logical_or_expr()?),
+                            );
+                            result
+                        };
+                        let element_end = parser.position;
+                        sequence_elements
+                            .push(ParseNode {
+                                rule_name: "element_0",
+                                content: element_content,
+                                span: element_start..element_end,
+                            });
+                    }
+                    {
+                        let element_start = parser.position;
+                        let element_content = if let Some(content) = parser
+                            .try_parse(|p| {
+                                let parser = p;
+                                let mut sequence_elements = Vec::with_capacity(4usize);
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let matched_str = parser.match_regex("\\s*", true)?;
+                                        let result = ParseContent::Terminal(matched_str);
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_0",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let matched_str = parser.match_string("=>")?;
+                                        let result = ParseContent::Terminal(matched_str);
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_1",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let matched_str = parser.match_regex("\\s*", true)?;
+                                        let result = ParseContent::Terminal(matched_str);
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_2",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                {
+                                    let element_start = parser.position;
+                                    let element_content = {
+                                        let result = ParseContent::Alternative(
+                                            Box::new(parser.parse_logical_or_expr()?),
+                                        );
+                                        result
+                                    };
+                                    let element_end = parser.position;
+                                    sequence_elements
+                                        .push(ParseNode {
+                                            rule_name: "element_3",
+                                            content: element_content,
+                                            span: element_start..element_end,
+                                        });
+                                }
+                                let result = ParseContent::Sequence(sequence_elements);
+                                Ok(result)
+                            })
+                        {
+                            content
+                        } else {
+                            ParseContent::Sequence(Vec::new())
+                        };
+                        let element_end = parser.position;
+                        sequence_elements
+                            .push(ParseNode {
+                                rule_name: "element_1",
+                                content: element_content,
+                                span: element_start..element_end,
+                            });
+                    }
+                    let result = ParseContent::Sequence(sequence_elements);
+                    let end_pos = parser.position;
+                    parser
+                        .record_coverage_target_event(
+                            "implication_expr",
+                            start_pos,
+                            end_pos,
+                            semantic_selected_branch_index,
+                            0u64,
+                            false,
+                        );
+                    let deterministic_partition_effective_enabled = parser
+                        .effective_deterministic_partition_enabled(false);
+                    let deterministic_partition_effective_group = parser
+                        .effective_deterministic_partition_group(
+                            "implication_expr",
+                            "rule.implication_expr",
+                        );
+                    parser
+                        .record_deterministic_partition_event(
+                            "implication_expr",
+                            start_pos,
+                            end_pos,
+                            deterministic_partition_effective_enabled,
+                            &deterministic_partition_effective_group,
+                        );
+                    Ok(ParseNode {
+                        rule_name: "implication_expr",
+                        content: result,
+                        span: start_pos..end_pos,
+                    })
+                },
+            );
+        self.recursion_guard.exit();
+        match &result {
+            Ok(node) => {
+                if self.logger.is_enabled() {
+                    let consumed = node.span.end - start_pos;
+                    if consumed > 0 {
+                        let consumed_preview = self
+                            .byte_window_lossy(start_pos, node.span.end);
+                        self.logger
+                            .log_success(
+                                "../generated/semantic_annotation_parser.rs",
+                                0,
+                                &format!(
+                                    "✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')",
+                                    "implication_expr", start_pos, node.span.end, consumed,
+                                    consumed_preview
+                                ),
+                            );
+                    } else {
+                        self.logger
+                            .log_warning(
+                                "../generated/semantic_annotation_parser.rs",
+                                0,
+                                &format!(
+                                    "⚠️ Rule '{}' matched with zero length at position {}",
+                                    "implication_expr", start_pos
+                                ),
+                            );
+                    }
+                    self.logger
+                        .log_success(
+                            "../generated/semantic_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "✅ Exiting rule '{}' successfully - advanced from {} to {}",
+                                "implication_expr", start_pos, self.position
+                            ),
+                        );
+                }
+            }
+            Err(e) => {
+                if false {
+                    self.record_negative_case_failure(
+                        "implication_expr",
+                        start_pos,
+                        self.position,
+                        false,
+                        &format!("{:?}", e),
+                    );
+                }
+                if self.logger.is_enabled() {
+                    self.logger
+                        .log_error(
+                            "../generated/semantic_annotation_parser.rs",
+                            0,
+                            &format!(
+                                "❌ Exiting rule '{}' with error: {:?} - backtracked to {}",
+                                "implication_expr", e, self.position
                             ),
                         );
                 }
@@ -65003,6 +65501,19 @@ impl<'input> SemanticAnnotationParser<'input> {
         }
         let clamped_end = end.min(self.input.len());
         String::from_utf8_lossy(&self.input.as_bytes()[start..clamped_end]).to_string()
+    }
+    fn rule_profile_is_enabled(&self, allowed_profiles: &[&str]) -> bool {
+        if allowed_profiles.is_empty() {
+            return true;
+        }
+        match self.grammar_profile.as_deref() {
+            Some(active) => {
+                allowed_profiles
+                    .iter()
+                    .any(|candidate| active.eq_ignore_ascii_case(candidate))
+            }
+            None => true,
+        }
     }
     fn bytes_match_at(&self, start: usize, expected: &[u8]) -> bool {
         let Some(end) = start.checked_add(expected.len()) else {

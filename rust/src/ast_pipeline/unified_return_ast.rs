@@ -1203,9 +1203,10 @@ impl UnifiedReturnAST {
                 }
                 Ok(UnifiedReturnAST::Passthrough)
             }
-            ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => {
-                Err("Unsupported terminal-only return_annotation parse node".to_string())
-            }
+            ParseContent::Terminal(_) | ParseContent::TransformedTerminal(_) => Self::node_text(
+                input, node,
+            )
+            .and_then(|text| Self::parse_bootstrap(text, logger)),
             ParseContent::Quantified(_, _) => {
                 Err("Unsupported quantified-only return_annotation parse node".to_string())
             }
@@ -2290,6 +2291,19 @@ mod tests {
 
         let logger = crate::test_runner::NoOpLogger;
         let samples = vec![
+            (
+                "$1",
+                UnifiedReturnAST::PositionalRef { index: 1 },
+            ),
+            (
+                "{key: $1}",
+                UnifiedReturnAST::Object {
+                    properties: std::collections::HashMap::from([(
+                        "key".to_string(),
+                        Box::new(UnifiedReturnAST::PositionalRef { index: 1 }),
+                    )]),
+                },
+            ),
             (
                 "-> my_ident_01",
                 UnifiedReturnAST::Identifier {

@@ -10,6 +10,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=PGEN_VHDL_PARSER_PATH");
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into()));
+    let source_dir = manifest_dir.join("src");
     let systemverilog_configured_path = env::var("PGEN_SYSTEMVERILOG_PARSER_PATH")
         .unwrap_or_else(|_| "../generated/systemverilog_parser.rs".to_string());
     let systemverilog_preprocessor_configured_path =
@@ -36,7 +37,7 @@ fn main() {
         println!("cargo:rustc-cfg=has_generated_systemverilog_parser");
         println!(
             "cargo:rustc-env=PGEN_SYSTEMVERILOG_PARSER_PATH_RESOLVED={}",
-            systemverilog_resolved.to_string_lossy()
+            relativize_for_include(&source_dir, &systemverilog_resolved).display()
         );
     }
 
@@ -44,7 +45,7 @@ fn main() {
         println!("cargo:rustc-cfg=has_generated_systemverilog_preprocessor_parser");
         println!(
             "cargo:rustc-env=PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH_RESOLVED={}",
-            systemverilog_preprocessor_resolved.to_string_lossy()
+            relativize_for_include(&source_dir, &systemverilog_preprocessor_resolved).display()
         );
     }
 
@@ -52,7 +53,7 @@ fn main() {
         println!("cargo:rustc-cfg=has_generated_vhdl_parser");
         println!(
             "cargo:rustc-env=PGEN_VHDL_PARSER_PATH_RESOLVED={}",
-            vhdl_resolved.to_string_lossy()
+            relativize_for_include(&source_dir, &vhdl_resolved).display()
         );
     }
 }
@@ -68,4 +69,42 @@ fn resolve_path(manifest_dir: &Path, raw: &str) -> PathBuf {
         Ok(abs) => abs,
         Err(_) => joined,
     }
+}
+
+fn relativize_for_include(source_dir: &Path, target: &Path) -> PathBuf {
+    let normalized_source_dir = source_dir
+        .canonicalize()
+        .unwrap_or_else(|_| source_dir.to_path_buf());
+    let normalized_target = target.canonicalize().unwrap_or_else(|_| target.to_path_buf());
+    path_relative_from(&normalized_target, &normalized_source_dir)
+        .unwrap_or_else(|| normalized_target.clone())
+}
+
+fn path_relative_from(path: &Path, base: &Path) -> Option<PathBuf> {
+    let path_components: Vec<_> = path.components().collect();
+    let base_components: Vec<_> = base.components().collect();
+
+    if path_components.is_empty() || base_components.is_empty() {
+        return Some(path.to_path_buf());
+    }
+
+    if path_components.first() != base_components.first() {
+        return None;
+    }
+
+    let common_prefix_len = path_components
+        .iter()
+        .zip(base_components.iter())
+        .take_while(|(lhs, rhs)| lhs == rhs)
+        .count();
+
+    let mut relative = PathBuf::new();
+    for _ in common_prefix_len..base_components.len() {
+        relative.push("..");
+    }
+    for component in &path_components[common_prefix_len..] {
+        relative.push(component.as_os_str());
+    }
+
+    Some(relative)
 }

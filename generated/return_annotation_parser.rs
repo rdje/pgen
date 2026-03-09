@@ -57,6 +57,7 @@ pub struct ReturnAnnotationParser<'input> {
     position: usize,
     memo: HashMap<(RuleId, usize), Option<ParseNode<'input>>>,
     recursion_guard: RecursionGuard,
+    grammar_profile: Option<String>,
     recovery_events: Vec<RecoveryEvent>,
     recovery_counts: HashMap<String, usize>,
     recovery_parse_count: usize,
@@ -109,6 +110,7 @@ impl<'input> ReturnAnnotationParser<'input> {
             position: 0,
             memo: HashMap::new(),
             recursion_guard: RecursionGuard::new(100),
+            grammar_profile: None,
             recovery_events: Vec::new(),
             recovery_counts: HashMap::new(),
             recovery_parse_count: 0,
@@ -151,6 +153,12 @@ impl<'input> ReturnAnnotationParser<'input> {
     }
     pub fn parse_full_return_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
         self.parse_full()
+    }
+    pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
+        self.grammar_profile = profile.map(|value| value.to_string());
+    }
+    pub fn grammar_profile(&self) -> Option<&str> {
+        self.grammar_profile.as_deref()
     }
     pub fn recovery_events(&self) -> &[RecoveryEvent] {
         &self.recovery_events
@@ -12228,6 +12236,19 @@ impl<'input> ReturnAnnotationParser<'input> {
         }
         let clamped_end = end.min(self.input.len());
         String::from_utf8_lossy(&self.input.as_bytes()[start..clamped_end]).to_string()
+    }
+    fn rule_profile_is_enabled(&self, allowed_profiles: &[&str]) -> bool {
+        if allowed_profiles.is_empty() {
+            return true;
+        }
+        match self.grammar_profile.as_deref() {
+            Some(active) => {
+                allowed_profiles
+                    .iter()
+                    .any(|candidate| active.eq_ignore_ascii_case(candidate))
+            }
+            None => true,
+        }
     }
     fn bytes_match_at(&self, start: usize, expected: &[u8]) -> bool {
         let Some(end) = start.checked_add(expected.len()) else {

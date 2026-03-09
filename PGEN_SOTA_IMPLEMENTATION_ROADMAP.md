@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-08
+Last updated: 2026-03-09
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -112,6 +112,9 @@ Interpretation rule:
 - [x] Promote EBNF frontend strict mode (`ebnf_frontend_gate`) to required inside aggregate gate once `grammars/ebnf.ebnf` compatibility is fixed.
 - [x] Define and enforce explicit release pass policy for aggregate gate output (for example branch protection + release checklist criteria).
 - [x] Add non-bootstrap annotation end-to-end gate (`annotation_nonbootstrap_e2e_gate`) and enforce it in both standalone CI and aggregate SOTA required-check policy.
+- [x] Add tracked-worktree local workflow parity gate (`make ci_workflow_local_gate`) that replays the required GitHub workflow command surface from a tracked-only export and rejects absolute repo-local `include!(...)` literals.
+- [x] Enforce relative compile-time generated-parser include path resolution from `rust/src/` for build-script-driven HDL parser includes so clean checkouts and relocated worktrees do not depend on absolute filesystem paths.
+- [x] Align aggregate SOTA policy with measured SV parse-full evidence by keeping random-stimuli parse-full ratio in promotion mode until the required ratchet converges, instead of asserting a premature hard `100%` release threshold.
 
 ### Phase J (New): Semantic Steering Control Surface + Return Completeness
 - [x] Publish semantic steering control matrix with parser/stimuli control taxonomy, current support status, and target tiers (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`).

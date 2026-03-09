@@ -289,13 +289,18 @@ unary_op := "+" | "-" | "!" | "~"
 
 primary_expr := 
     numeric_literal |
+    qualified_name |
+    rule_reference |
     identifier_literal |
     "(" arithmetic_expression ")" |
     function_call
     -> $1
 
 # Logical expressions
-logical_expression := logical_or_expr
+logical_expression := implication_expr
+    -> $1
+
+implication_expr := logical_or_expr (/\s*/ "=>" /\s*/ logical_or_expr)?
     -> $1
 
 logical_or_expr := logical_and_expr ("||" logical_and_expr)*
