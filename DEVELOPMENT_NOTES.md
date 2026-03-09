@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - VHDL Sampled Generation Now Emits Parser-Backed Parseability Telemetry
+### Context
+`vhdl_stimuli_quality_gate` already had a generated parser and an explicit parse-full probe, but its sampled generation stage was still effectively binary: emit one raw sample, then report whether parse-full happened to accept it. That left the VHDL loop behind the SV and non-annotation EBNF loops on parser-trust observability because retry cost, parser rejection rate, and empty/error generation causes were invisible.
+
+### Implementation
+- Promoted `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to `version: 3`:
+  - added `parseability_generation.enabled`,
+  - added `parseability_generation.max_attempts_per_sample`.
+- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`:
+  - after generating the VHDL parser source, the gate now rebuilds both `ast_pipeline` and `parseability_probe` against that parser,
+  - scored sample rows now use the shared parser-backed generation path:
+    - `--validate-parseability`
+    - `--parseability-max-attempts`
+    - `--parseability-report-json`
+  - per-sample CSV rows now expose parseability attempts, accept/reject counts, parser rejections, generation errors, empty generations, and acceptance rate,
+  - aggregate summary text now emits parseability-generation totals plus `vhdl_parseability_generation_report.json`,
+  - closed-loop replay and realistic-corpus stages were left semantically unchanged.
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - observed:
+    - parseability generation: `requested_total=2`, `attempts_total=3`, `accepted_total=2`, `rejected_total=1`, `acceptance_rate_percent=66.67`
+    - parse_full: `2/2`
+    - closed-loop target debt: `254 -> 0`
+    - realistic corpus parity stayed exact (`8` expected-pass observed pass, `6` expected-fail observed fail).
+
+### Notes
+- This is the same trust pattern already used in the SV scored loop: parser-backed generation evidence is now explicit instead of inferred from final pass/fail.
+- The change remains EBNF-agnostic in spirit because it reuses the shared parseability-report contract rather than adding VHDL-specific generator heuristics.
+
 ## 2026-03-09 - HDL Readiness Now Uses The Shared Parseability Report Path
 ### Context
 `hdl_frontend_readiness_gate` was still the odd one out after the EBNF and SV parseability-telemetry work. It had explicit parser replay, but the implementation was still an HDL-specific manifest/retry loop that only surfaced binary `parseability=pass|fail`. That was weaker than the project’s newer parser-trust contract and duplicated behavior the shared CLI already knew how to report.

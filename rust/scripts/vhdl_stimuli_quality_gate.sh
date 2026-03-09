@@ -15,6 +15,7 @@ CONTRACT_FILE="${PGEN_VHDL_STIMULI_QUALITY_CONTRACT:-$RUST_DIR/test_data/grammar
 PARSE_FULL_MODE="${PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE:-auto}"
 SAMPLE_COUNT_OVERRIDE="${PGEN_VHDL_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_VHDL_STIMULI_QUALITY_SEED_BASE:-}"
+PARSEABILITY_MAX_ATTEMPTS_OVERRIDE="${PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS:-}"
 REALISTIC_CORPUS_MODE="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE:-auto}"
 REALISTIC_CORPUS_OVERRIDE="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS:-}"
 REALISTIC_CORPUS_MAX_CASES="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES:-0}"
@@ -45,6 +46,20 @@ require_nonempty_file() {
         echo "error: expected non-empty artifact '$path'" >&2
         exit 1
     fi
+}
+
+parseability_summary_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er ".summary.${field} | numbers" "$path"
+}
+
+parseability_acceptance_rate_percent() {
+    local path="$1"
+    local attempts accepted
+    attempts="$(parseability_summary_field_u64 "$path" "attempts")"
+    accepted="$(parseability_summary_field_u64 "$path" "accepted")"
+    perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$accepted" "$attempts"
 }
 
 now_ms() {
@@ -136,6 +151,8 @@ closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 e
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
 require_non_increasing_target_debt="$(jq -er 'if (.closed_loop.require_non_increasing_target_debt // true) then 1 else 0 end' "$CONTRACT_FILE")"
+parseability_generation_contract_enabled="$(jq -er 'if (.parseability_generation.enabled // false) then 1 else 0 end' "$CONTRACT_FILE")"
+default_parseability_max_attempts_per_sample="$(jq -er '(.parseability_generation.max_attempts_per_sample // 50) | numbers' "$CONTRACT_FILE")"
 realistic_corpus_contract_enforced="$(jq -er 'if (.realistic_corpus.enforce // false) then 1 else 0 end' "$CONTRACT_FILE")"
 realistic_corpus_rel_default="$(jq -er '(.realistic_corpus.cases_path // "") | strings' "$CONTRACT_FILE")"
 realistic_max_parse_full_ms_per_case="$(jq -er '(.realistic_corpus.max_parse_full_ms_per_case // 0) | numbers' "$CONTRACT_FILE")"
@@ -143,6 +160,7 @@ realistic_max_sample_bytes="$(jq -er '(.realistic_corpus.max_sample_bytes // 0) 
 
 sample_count="${SAMPLE_COUNT_OVERRIDE:-$default_sample_count}"
 seed_base="${SEED_BASE_OVERRIDE:-$default_seed_base}"
+parseability_max_attempts_per_sample="${PARSEABILITY_MAX_ATTEMPTS_OVERRIDE:-$default_parseability_max_attempts_per_sample}"
 replay_sample_count="$(jq -er --argjson fallback "$sample_count" '(.closed_loop.replay_sample_count // $fallback) | numbers' "$CONTRACT_FILE")"
 realistic_corpus_rel="$realistic_corpus_rel_default"
 if [[ -n "$REALISTIC_CORPUS_OVERRIDE" ]]; then
@@ -171,6 +189,10 @@ if ! [[ "$target_max_attempts" =~ ^[0-9]+$ ]] || [[ "$target_max_attempts" -lt 1
 fi
 if ! [[ "$replay_sample_count" =~ ^[0-9]+$ ]] || [[ "$replay_sample_count" -lt 1 ]]; then
     echo "error: closed_loop.replay_sample_count must be an integer >= 1" >&2
+    exit 2
+fi
+if ! [[ "$parseability_max_attempts_per_sample" =~ ^[0-9]+$ ]] || [[ "$parseability_max_attempts_per_sample" -lt 1 ]]; then
+    echo "error: parseability_generation.max_attempts_per_sample must be an integer >= 1" >&2
     exit 2
 fi
 if ! [[ "$realistic_max_parse_full_ms_per_case" =~ ^[0-9]+$ ]]; then
@@ -209,8 +231,10 @@ echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
+echo "parseability_generation_contract_enabled: $parseability_generation_contract_enabled"
+echo "parseability_generation_max_attempts_per_sample: $parseability_max_attempts_per_sample"
 
-echo "sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
+echo "sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,parseability_attempts,parseability_accepted,parseability_rejected,parseability_parser_rejections,parseability_generation_errors,parseability_empty_generations,parseability_acceptance_rate_percent,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
 run_logged_rust "build_ast_pipeline_for_vhdl_generation" \
     cargo build --features generated_parsers --bin ast_pipeline
@@ -231,11 +255,15 @@ run_logged "generate_vhdl_parser" \
     --output "$parser_out"
 require_nonempty_file "$parser_out"
 
-run_logged_rust "build_parseability_probe_with_vhdl_adapter" \
+run_logged_rust "build_ast_pipeline_and_parseability_probe_with_vhdl_adapter" \
     env PGEN_VHDL_PARSER_PATH="$parser_out" \
-    cargo build --features generated_parsers --bin parseability_probe
+    cargo build --features generated_parsers --bin ast_pipeline --bin parseability_probe
 if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
     echo "error: parseability_probe binary is missing at '$PARSE_PROBE_BIN' after adapter build" >&2
+    exit 1
+fi
+if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
+    echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after adapter build" >&2
     exit 1
 fi
 
@@ -300,6 +328,15 @@ if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
         exit 1
     fi
     require_file "$realistic_corpus_path"
+fi
+
+parseability_generation_enabled=0
+parseability_generation_effective="disabled_by_contract"
+if [[ "$parse_full_enabled" -eq 1 && "$parseability_generation_contract_enabled" -eq 1 ]]; then
+    parseability_generation_enabled=1
+    parseability_generation_effective="enabled"
+elif [[ "$parse_full_enabled" -ne 1 ]]; then
+    parseability_generation_effective="disabled_by_parse_full_mode"
 fi
 
 closed_loop_initial_status="skip"
@@ -367,6 +404,15 @@ fi
 parse_full_pass_count=0
 parse_full_skip_count=0
 parse_full_fail_count=0
+parseability_generation_requested_total=0
+parseability_generation_attempts_total=0
+parseability_generation_accepted_total=0
+parseability_generation_rejected_total=0
+parseability_generation_parser_rejections_total=0
+parseability_generation_errors_total=0
+parseability_generation_empty_generations_total=0
+parseability_generation_acceptance_rate_percent="0.00"
+parseability_generation_report_json="$WORK_DIR/${grammar_name}_parseability_generation_report.json"
 total_warnings=0
 total_errors=0
 realistic_cases_declared=0
@@ -385,6 +431,22 @@ realistic_cases_jsonl="$WORK_DIR/${grammar_name}_realistic_corpus_cases.jsonl"
 for ((idx = 0; idx < sample_count; idx++)); do
     seed=$((seed_base + idx))
     sample_file="$WORK_DIR/sample_${idx}.vhd"
+    parseability_report_json="$WORK_DIR/sample_${idx}.parseability_generation.json"
+    parseability_attempts=0
+    parseability_accepted=0
+    parseability_rejected=0
+    parseability_parser_rejections=0
+    parseability_generation_errors=0
+    parseability_empty_generations=0
+    parseability_acceptance_rate_percent="0.00"
+    parseability_args=()
+    if [[ "$parseability_generation_enabled" -eq 1 ]]; then
+        parseability_args=(
+            --validate-parseability
+            --parseability-max-attempts "$parseability_max_attempts_per_sample"
+            --parseability-report-json "$parseability_report_json"
+        )
+    fi
 
     run_logged "sample_${idx}_generate_stimulus" \
         "$AST_PIPELINE_BIN" "$grammar_json" \
@@ -392,8 +454,32 @@ for ((idx = 0; idx < sample_count; idx++)); do
         --count 1 \
         --seed "$seed" \
         --entry-rule "$entry_rule" \
-        --output "$sample_file"
+        --output "$sample_file" \
+        "${parseability_args[@]}"
     require_nonempty_file "$sample_file"
+
+    if [[ "$parseability_generation_enabled" -eq 1 ]]; then
+        require_nonempty_file "$parseability_report_json"
+        if ! jq -e ".grammar_name == \"$grammar_name\" and .summary.requested == 1 and .summary.accepted == 1 and .summary.attempts >= .summary.accepted and .summary.rejected == (.summary.attempts - .summary.accepted)" "$parseability_report_json" >/dev/null; then
+            echo "error: parseability report validation failed for sample ${idx}: $parseability_report_json" >&2
+            exit 1
+        fi
+        parseability_requested="$(parseability_summary_field_u64 "$parseability_report_json" "requested")"
+        parseability_attempts="$(parseability_summary_field_u64 "$parseability_report_json" "attempts")"
+        parseability_accepted="$(parseability_summary_field_u64 "$parseability_report_json" "accepted")"
+        parseability_rejected="$(parseability_summary_field_u64 "$parseability_report_json" "rejected")"
+        parseability_parser_rejections="$(parseability_summary_field_u64 "$parseability_report_json" "parser_rejections")"
+        parseability_generation_errors="$(parseability_summary_field_u64 "$parseability_report_json" "generation_errors")"
+        parseability_empty_generations="$(parseability_summary_field_u64 "$parseability_report_json" "empty_generations")"
+        parseability_acceptance_rate_percent="$(parseability_acceptance_rate_percent "$parseability_report_json")"
+        parseability_generation_requested_total=$((parseability_generation_requested_total + parseability_requested))
+        parseability_generation_attempts_total=$((parseability_generation_attempts_total + parseability_attempts))
+        parseability_generation_accepted_total=$((parseability_generation_accepted_total + parseability_accepted))
+        parseability_generation_rejected_total=$((parseability_generation_rejected_total + parseability_rejected))
+        parseability_generation_parser_rejections_total=$((parseability_generation_parser_rejections_total + parseability_parser_rejections))
+        parseability_generation_errors_total=$((parseability_generation_errors_total + parseability_generation_errors))
+        parseability_generation_empty_generations_total=$((parseability_generation_empty_generations_total + parseability_empty_generations))
+    fi
 
     parse_status="skip"
     parse_note="parse_full stage skipped"
@@ -403,11 +489,19 @@ for ((idx = 0; idx < sample_count; idx++)); do
         if "$PARSE_PROBE_BIN" --parse "$grammar_name" "$sample_file" >"$parse_log" 2>&1; then
             echo "    ok (${parse_log})"
             parse_status="pass"
-            parse_note="parse_full accepted generated sample"
+            if [[ "$parseability_generation_enabled" -eq 1 ]]; then
+                parse_note="parse_full accepted parser-backed generated sample"
+            else
+                parse_note="parse_full accepted generated sample"
+            fi
             parse_full_pass_count=$((parse_full_pass_count + 1))
         else
             parse_status="fail"
-            parse_note="parse_full rejected generated sample"
+            if [[ "$parseability_generation_enabled" -eq 1 ]]; then
+                parse_note="parse_full rejected parser-backed generated sample"
+            else
+                parse_note="parse_full rejected generated sample"
+            fi
             parse_full_fail_count=$((parse_full_fail_count + 1))
             if [[ "$PARSE_FULL_MODE" == "1" ]]; then
                 echo "    fail (${parse_log})" >&2
@@ -422,8 +516,40 @@ for ((idx = 0; idx < sample_count; idx++)); do
         parse_note="parse_full unavailable (${parse_full_effective})"
     fi
 
-    echo "${idx},${seed},${closed_loop_initial_status},${closed_loop_replay_status},pass,${parse_status},0,0,pass,${parse_note}" >>"$SUMMARY_CSV"
+    echo "${idx},${seed},${closed_loop_initial_status},${closed_loop_replay_status},pass,${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_parser_rejections},${parseability_generation_errors},${parseability_empty_generations},${parseability_acceptance_rate_percent},${parse_status},0,0,pass,${parse_note}" >>"$SUMMARY_CSV"
 done
+
+parseability_generation_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$parseability_generation_accepted_total" "$parseability_generation_attempts_total")"
+
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg effective_mode "$parseability_generation_effective" \
+    --argjson enabled "$parseability_generation_enabled" \
+    --argjson requested_total "$parseability_generation_requested_total" \
+    --argjson attempts_total "$parseability_generation_attempts_total" \
+    --argjson accepted_total "$parseability_generation_accepted_total" \
+    --argjson rejected_total "$parseability_generation_rejected_total" \
+    --argjson parser_rejections_total "$parseability_generation_parser_rejections_total" \
+    --argjson generation_errors_total "$parseability_generation_errors_total" \
+    --argjson empty_generations_total "$parseability_generation_empty_generations_total" \
+    --argjson max_attempts_per_sample "$parseability_max_attempts_per_sample" \
+    --arg acceptance_rate_percent "$parseability_generation_acceptance_rate_percent" \
+    '{
+        grammar_name: $grammar_name,
+        effective_mode: $effective_mode,
+        enabled: ($enabled == 1),
+        max_attempts_per_sample: $max_attempts_per_sample,
+        totals: {
+            requested_total: $requested_total,
+            attempts_total: $attempts_total,
+            accepted_total: $accepted_total,
+            rejected_total: $rejected_total,
+            parser_rejections_total: $parser_rejections_total,
+            generation_errors_total: $generation_errors_total,
+            empty_generations_total: $empty_generations_total,
+            acceptance_rate_percent: ($acceptance_rate_percent | tonumber)
+        }
+    }' >"$parseability_generation_report_json"
 
 realistic_cases_json='[]'
 if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
@@ -596,6 +722,18 @@ jq -n \
     echo "closed_loop_note: $closed_loop_note"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
+    echo "parseability_generation_enabled: $parseability_generation_enabled"
+    echo "parseability_generation_effective: $parseability_generation_effective"
+    echo "parseability_generation_max_attempts_per_sample: $parseability_max_attempts_per_sample"
+    echo "parseability_generation_requested_total: $parseability_generation_requested_total"
+    echo "parseability_generation_attempts_total: $parseability_generation_attempts_total"
+    echo "parseability_generation_accepted_total: $parseability_generation_accepted_total"
+    echo "parseability_generation_rejected_total: $parseability_generation_rejected_total"
+    echo "parseability_generation_parser_rejections_total: $parseability_generation_parser_rejections_total"
+    echo "parseability_generation_errors_total: $parseability_generation_errors_total"
+    echo "parseability_generation_empty_generations_total: $parseability_generation_empty_generations_total"
+    echo "parseability_generation_acceptance_rate_percent: $parseability_generation_acceptance_rate_percent"
+    echo "parseability_generation_report_json: $parseability_generation_report_json"
     echo "parse_full_passes: $parse_full_pass_count/$sample_count"
     echo "parse_full_failures: $parse_full_fail_count"
     echo "parse_full_skips: $parse_full_skip_count"

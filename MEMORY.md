@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-09 (+0100, task: hdl-readiness-parseability-telemetry)
+Last updated: 2026-03-10 (+0100, task: vhdl-stimuli-parseability-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -159,6 +159,27 @@ Use this file to resume work without replaying full chat history.
   - current focused evidence at `PGEN_HDL_FRONTEND_STIMULI_COUNT=2`:
     - `systemverilog`: `attempts=16`, `accepted=2`, `rejected=14`, `acceptance_rate_percent=12.50`
     - `vhdl`: `attempts=8`, `accepted=2`, `rejected=6`, `acceptance_rate_percent=25.00`
+- VHDL stimuli parseability telemetry snapshot:
+  - `vhdl_stimuli_quality_gate` now uses parser-backed generation telemetry for scored sample rows instead of raw generation plus binary parse-full-only outcome,
+  - `vhdl_core_v0_contract.json` is now `version: 3` with:
+    - `parseability_generation.enabled`
+    - `parseability_generation.max_attempts_per_sample`
+  - the gate now rebuilds `ast_pipeline` and `parseability_probe` against the freshly generated VHDL parser before the sampled stage,
+  - aggregate summary now exposes:
+    - `parseability_generation_requested_total`
+    - `parseability_generation_attempts_total`
+    - `parseability_generation_accepted_total`
+    - `parseability_generation_rejected_total`
+    - `parseability_generation_parser_rejections_total`
+    - `parseability_generation_errors_total`
+    - `parseability_generation_empty_generations_total`
+    - `parseability_generation_acceptance_rate_percent`
+    - `parseability_generation_report_json`
+  - current focused evidence at `PGEN_VHDL_STIMULI_QUALITY_COUNT=2`:
+    - parseability generation: `requested_total=2`, `attempts_total=3`, `accepted_total=2`, `rejected_total=1`, `acceptance_rate_percent=66.67`
+    - parse_full: `2/2`
+    - closed-loop target debt: `254 -> 0`
+    - realistic corpus parity: `8` expected-pass observed pass, `6` expected-fail observed fail
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),

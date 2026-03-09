@@ -2640,6 +2640,7 @@ Optional VHDL stimuli quality-gate tuning:
 - `PGEN_VHDL_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_VHDL_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
 - `PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS` (override contract `parseability_generation.max_attempts_per_sample`)
 - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE` (`auto`/`0`/`1`, default `auto`)
   - `0`: disable VHDL realistic-corpus validation stage.
   - `auto`: follow contract toggle `realistic_corpus.enforce`.
@@ -3186,7 +3187,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
 
 `vhdl_stimuli_quality_gate` closed-loop stage contract:
 - deterministic flow:
-  - `EBNF -> JSON -> parser -> coverage/gap(initial) -> target-driven replay -> parse_full(optional)`.
+  - `EBNF -> JSON -> parser -> coverage/gap(initial) -> target-driven replay -> parser-backed sample generation telemetry -> parse_full(optional)`.
 - contract controls (from `vhdl_core_v0_contract.json`):
   - `entry_rule`
   - `sample_count`
@@ -3195,6 +3196,22 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - `closed_loop.target_max_attempts`
   - `closed_loop.replay_sample_count`
   - `closed_loop.require_non_increasing_target_debt`
+  - `parseability_generation.enabled`
+  - `parseability_generation.max_attempts_per_sample`
+- parser-backed sample-generation telemetry:
+  - when parse-full is enabled and `parseability_generation.enabled=true`, the sampled stage uses the shared `ast_pipeline --validate-parseability --parseability-report-json` path before the explicit parse-full probe.
+  - aggregate summary now emits:
+    - `parseability_generation_requested_total`
+    - `parseability_generation_attempts_total`
+    - `parseability_generation_accepted_total`
+    - `parseability_generation_rejected_total`
+    - `parseability_generation_parser_rejections_total`
+    - `parseability_generation_errors_total`
+    - `parseability_generation_empty_generations_total`
+    - `parseability_generation_acceptance_rate_percent`
+    - `parseability_generation_report_json`
+  - deterministic aggregate artifact:
+    - `rust/target/vhdl_stimuli_quality_gate/work/vhdl_parseability_generation_report.json`
 - parse-full stage behavior:
   - `auto`: gate builds a temporary `vhdl` parser-registry adapter from generated parser artifact and runs parse-full when available,
   - `0`: disabled,

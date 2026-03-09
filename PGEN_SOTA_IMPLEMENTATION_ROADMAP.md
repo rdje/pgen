@@ -272,6 +272,16 @@ Engine generalization rule:
 - [x] Add dedicated VHDL closed-loop stimuli quality gate (`make vhdl_stimuli_quality_gate`) with contractized controls.
   - Progress (2026-02-27): added `rust/scripts/vhdl_stimuli_quality_gate.sh` + contract manifest `rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to enforce deterministic `EBNF -> JSON -> parser -> coverage/gap -> replay -> parse_full(optional)` execution on `grammars/vhdl.ebnf`.
   - Progress (2026-02-27): added `rust/Makefile` target `vhdl_stimuli_quality_gate` and validated the gate with deterministic closed-loop convergence (`replay_targets <= initial_targets`) on the VHDL seed grammar.
+  - Progress (2026-03-10): promoted VHDL sampled generation onto the shared parser-backed telemetry contract:
+    - promoted `vhdl_core_v0_contract.json` to `version: 3` with `parseability_generation.enabled` and `parseability_generation.max_attempts_per_sample`,
+    - `vhdl_stimuli_quality_gate` now rebuilds `ast_pipeline` and `parseability_probe` against the freshly generated VHDL parser and uses `--validate-parseability --parseability-report-json` for scored sample rows,
+    - aggregate VHDL quality summary now emits parseability-effort totals plus `vhdl_parseability_generation_report.json`,
+    - focused validation at `PGEN_VHDL_STIMULI_QUALITY_COUNT=2` stayed green while exposing real acceptance effort:
+      - `requested_total=2`
+      - `attempts_total=3`
+      - `accepted_total=2`
+      - `rejected_total=1`
+      - `acceptance_rate_percent=66.67`.
   - Progress (2026-03-06): expanded VHDL corpus hardening with deterministic realistic-corpus stage and contractized thresholds:
     - promoted `vhdl_core_v0_contract.json` to `version: 2` with new `realistic_corpus` section (`enforce`, corpus path, parse-full latency and sample-size budgets),
     - added curated deterministic corpus manifest + fixtures:

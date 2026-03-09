@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-03-10 - Add Parser-Backed Parseability Telemetry To `vhdl_stimuli_quality_gate`
+### ✅ Achievement Summary
+The VHDL quality gate no longer treats sampled generation as a binary “generated then maybe parse_full passed” stage. Sampled rows now use the shared parser-backed parseability-report contract, and the gate publishes aggregate acceptance-effort evidence without changing the existing closed-loop replay debt checks.
+
+### Scope of Changes
+- Promoted the VHDL quality contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+    - bumped to `version: 3`,
+    - added `parseability_generation.enabled`,
+    - added `parseability_generation.max_attempts_per_sample`.
+- Extended the gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+    - now rebuilds `ast_pipeline` and `parseability_probe` against the freshly generated VHDL parser,
+    - scored sample rows now use:
+      - `--validate-parseability`
+      - `--parseability-max-attempts`
+      - `--parseability-report-json`
+    - summary CSV rows now include:
+      - `parseability_attempts`
+      - `parseability_accepted`
+      - `parseability_rejected`
+      - `parseability_parser_rejections`
+      - `parseability_generation_errors`
+      - `parseability_empty_generations`
+      - `parseability_acceptance_rate_percent`
+    - gate summary text now emits aggregate parseability-generation totals and a discoverable report artifact:
+      - `/Users/richarddje/Documents/github/pgen/rust/target/vhdl_stimuli_quality_gate/work/vhdl_parseability_generation_report.json`
+    - closed-loop initial/replay semantics and non-increasing target-debt enforcement remain unchanged.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh` ✅
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate` ✅
+  - observed:
+    - parseability generation: `requested_total=2`, `attempts_total=3`, `accepted_total=2`, `rejected_total=1`, `acceptance_rate_percent=66.67`
+    - parse_full: `2/2`
+    - closed-loop target debt: `254 -> 0`
+    - realistic corpus parity remained green: `8` expected-pass observed pass, `6` expected-fail observed fail
+
 ## 2026-03-09 - Promote HDL Frontend Readiness To Shared Parseability Telemetry
 ### ✅ Achievement Summary
 The HDL frontend readiness surface no longer hand-rolls parser replay retries and collapse everything to `pass/fail`. It now uses the same shared parseability-report contract as the other parser-trust gates, and the CLI exposes a generic `--parseability-max-attempts` budget so readiness can keep an explicit attempt cap without inventing HDL-only behavior.
