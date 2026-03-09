@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-09 - Promote `json` And `regex` To Parser-Backed EBNF Frontend Readiness
+### Context
+After adding parser-backed readiness telemetry, the next trust gap was obvious: the report still treated `json` and `regex` as unsupported even though they are first-class tracked EBNFs. Trying to wire them in exposed the real issue, and it was not `json`-specific or `regex`-specific: duplicate raw-AST rule heads were being carried through code generation as duplicate parser definitions.
+
+### Implementation
+- Generalized optional generated-parser plumbing:
+  - `/Users/richarddje/Documents/github/pgen/rust/build.rs`
+  - `/Users/richarddje/Documents/github/pgen/rust/src/lib.rs`
+  - `/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs`
+    - added optional `json` / `regex` generated-parser support through `PGEN_JSON_PARSER_PATH` and `PGEN_REGEX_PARSER_PATH`,
+    - added parseability adapters and registry tests for both grammars.
+- Fixed the real generic generator bug in `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs`:
+  - raw-AST transforms now merge duplicate rule heads into one grammar rule with combined alternatives,
+  - return and semantic annotations from repeated heads are accumulated instead of overwritten,
+  - added regression test `transform_from_raw_ast_merges_duplicate_rule_heads_into_one_rule`.
+- Promoted `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`:
+  - the gate now rebuilds parser-backed validation binaries for each tracked grammar (`ebnf`, `json`, `regex`) against that run's freshly generated parser source,
+  - both Perl-fronted and Rust-fronted readiness flows now finish with parser-backed parseability rows for all tracked grammars.
+
+### Validation
+- `PGEN_JSON_PARSER_PATH=/tmp/pgen_next_task/json_parser.rs PGEN_REGEX_PARSER_PATH=/tmp/pgen_next_task/regex_parser.rs cargo test --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" parser_registry::tests:: -- --nocapture`
+- `PGEN_JSON_PARSER_PATH=/tmp/pgen_next_task/json_parser.rs PGEN_REGEX_PARSER_PATH=/tmp/pgen_next_task/regex_parser.rs PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_json_regex_perl PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness`
+  - observed:
+    - `ebnf`: `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
+    - `json`: `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
+    - `regex`: `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
+- `PGEN_JSON_PARSER_PATH=/tmp/pgen_next_task/json_parser.rs PGEN_REGEX_PARSER_PATH=/tmp/pgen_next_task/regex_parser.rs PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_json_regex_rust PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 PGEN_EBNF_FRONTEND_IMPL=rust make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness`
+  - observed:
+    - same parser-backed readiness shape and all tracked rows passing under the Rust frontend path.
+
+### Notes
+- The readiness gate is now truthful and stronger at the same time: `json` and `regex` no longer sit in the report as unsupported placeholders.
+- The duplicate-rule merge fix is intentionally EBNF-agnostic and belongs to the shared AST pipeline, not to grammar-specific heuristics.
+
 ## 2026-03-09 - Parser-Backed Readiness Telemetry For The EBNF Frontend Gate
 ### Context
 After adding shared parseability-effort telemetry to the CLI and to `ebnf_stimuli_quality_gate`, `ebnf_frontend_readiness_gate` was still lagging behind: it could only say that tracked grammars reached `EBNF -> JSON -> parser -> stimuli`, not whether any of those stimuli were parser-backed or how much retry cost parser-backed acceptance required. That left the readiness surface too binary for the project’s parser-trust bar.

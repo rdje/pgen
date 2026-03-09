@@ -5,7 +5,11 @@ fn main() {
     println!("cargo:rustc-check-cfg=cfg(has_generated_systemverilog_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_systemverilog_preprocessor_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_vhdl_parser)");
+    println!("cargo:rustc-check-cfg=cfg(has_generated_json_parser)");
+    println!("cargo:rustc-check-cfg=cfg(has_generated_regex_parser)");
     println!("cargo:rerun-if-env-changed=PGEN_EBNF_PARSER_PATH");
+    println!("cargo:rerun-if-env-changed=PGEN_JSON_PARSER_PATH");
+    println!("cargo:rerun-if-env-changed=PGEN_REGEX_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_SYSTEMVERILOG_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_VHDL_PARSER_PATH");
@@ -15,6 +19,10 @@ fn main() {
     let bin_source_dir = source_dir.join("bin");
     let ebnf_configured_path =
         env::var("PGEN_EBNF_PARSER_PATH").unwrap_or_else(|_| "../generated/ebnf.rs".to_string());
+    let json_configured_path = env::var("PGEN_JSON_PARSER_PATH")
+        .unwrap_or_else(|_| "../generated/json_parser.rs".to_string());
+    let regex_configured_path = env::var("PGEN_REGEX_PARSER_PATH")
+        .unwrap_or_else(|_| "../generated/regex_parser.rs".to_string());
     let systemverilog_configured_path = env::var("PGEN_SYSTEMVERILOG_PARSER_PATH")
         .unwrap_or_else(|_| "../generated/systemverilog_parser.rs".to_string());
     let systemverilog_preprocessor_configured_path =
@@ -25,6 +33,10 @@ fn main() {
 
     let ebnf_resolved = resolve_path(&manifest_dir, &ebnf_configured_path);
     println!("cargo:rerun-if-changed={}", ebnf_resolved.to_string_lossy());
+    let json_resolved = resolve_path(&manifest_dir, &json_configured_path);
+    println!("cargo:rerun-if-changed={}", json_resolved.to_string_lossy());
+    let regex_resolved = resolve_path(&manifest_dir, &regex_configured_path);
+    println!("cargo:rerun-if-changed={}", regex_resolved.to_string_lossy());
     let systemverilog_resolved = resolve_path(&manifest_dir, &systemverilog_configured_path);
     println!(
         "cargo:rerun-if-changed={}",
@@ -46,6 +58,22 @@ fn main() {
         "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED_BIN={}",
         relativize_for_include(&bin_source_dir, &ebnf_resolved).display()
     );
+
+    if json_resolved.is_file() {
+        println!("cargo:rustc-cfg=has_generated_json_parser");
+        println!(
+            "cargo:rustc-env=PGEN_JSON_PARSER_PATH_RESOLVED={}",
+            relativize_for_include(&source_dir, &json_resolved).display()
+        );
+    }
+
+    if regex_resolved.is_file() {
+        println!("cargo:rustc-cfg=has_generated_regex_parser");
+        println!(
+            "cargo:rustc-env=PGEN_REGEX_PARSER_PATH_RESOLVED={}",
+            relativize_for_include(&source_dir, &regex_resolved).display()
+        );
+    }
 
     if systemverilog_resolved.is_file() {
         println!("cargo:rustc-cfg=has_generated_systemverilog_parser");

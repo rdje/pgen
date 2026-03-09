@@ -2197,9 +2197,13 @@ PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_gate
     - `parseability_rejected`
     - `parseability_acceptance_rate_percent`
     - `parseability_report_json`
-  - currently tracked parser-backed readiness coverage is explicit:
-    - `ebnf` runs parseability-validated generation through the freshly generated `ebnf` parser for the current readiness run,
-    - `json` and `regex` still report `parser_registry_support=unavailable` / `parseability=skip` instead of claiming validation that does not exist.
+  - currently tracked parser-backed readiness coverage is now available for all tracked grammars:
+    - `ebnf`, `json`, and `regex` each rebuild `ast_pipeline` and `parseability_probe` against the freshly generated readiness-run parser for that grammar,
+    - the rebuild path is generic and env-driven (`PGEN_EBNF_PARSER_PATH`, `PGEN_JSON_PARSER_PATH`, `PGEN_REGEX_PARSER_PATH`) rather than tied to one grammar,
+    - focused evidence at `PGEN_EBNF_FRONTEND_STIMULI_COUNT=2` is currently:
+      - `ebnf`: `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
+      - `json`: `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
+      - `regex`: `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
 
 HDL frontend readiness commands (Pillar 5 kickoff):
 ```bash

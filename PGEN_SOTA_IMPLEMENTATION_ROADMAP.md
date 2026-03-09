@@ -113,6 +113,11 @@ Engine generalization rule:
     - readiness summary now exposes parser-registry support and parseability-effort telemetry (`attempts`, `accepted`, `rejected`, acceptance rate, report path),
     - `ebnf` parseability validation is now executed against the freshly generated readiness-run parser via `PGEN_EBNF_PARSER_PATH`, not a stale tracked parser artifact,
     - unsupported tracked grammars (`json`, `regex`) now report `parser_registry_support=unavailable` / `parseability=skip` explicitly instead of silently looking equivalent to parser-backed coverage.
+  - Progress (2026-03-09): generalized parser-backed readiness from `ebnf` only to the full tracked EBNF roster:
+    - `build.rs` / `lib.rs` / `parser_registry.rs` now support optional generated-parser injection for `json` and `regex` through the same env-driven contract used by `ebnf`,
+    - `ebnf_frontend_readiness_gate` now rebuilds parser-backed validation binaries for each tracked grammar (`ebnf`, `json`, `regex`) against that run's freshly generated parser source,
+    - the underlying AST pipeline now merges duplicate raw-AST rule heads generically instead of emitting duplicate generated parser methods/constants, which was the real blocker for `json` parser promotion,
+    - focused readiness evidence is now green for both frontend paths with parser-backed rows for all tracked grammars.
 
 ### Phase I (New): SOTA Exit Criteria Aggregation
 - [x] Add aggregate `make sota_exit_gate` to execute required release-grade checks in one command.

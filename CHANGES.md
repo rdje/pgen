@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-09 - Promote `json` And `regex` To Parser-Backed EBNF Readiness
+### ✅ Achievement Summary
+Extended parser-backed EBNF frontend readiness from `ebnf` alone to the full tracked trio `ebnf/json/regex`. The real blocker turned out to be generic raw-AST handling: duplicate rule heads were being emitted as duplicate generated parser items instead of one merged rule.
+
+### Scope of Changes
+- Generalized optional generated-parser plumbing:
+  - `/Users/richarddje/Documents/github/pgen/rust/build.rs`
+  - `/Users/richarddje/Documents/github/pgen/rust/src/lib.rs`
+  - `/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs`
+    - added optional generated-parser injection for `json` and `regex` using the same env-driven pattern as `ebnf`,
+    - added parser-registry adapters and tests so parser-backed parseability can be exercised when those parser sources are present.
+- Fixed the underlying generator bug generically:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs`
+    - duplicate raw-AST rule heads now merge into a single rule with combined alternatives and merged annotations instead of producing duplicate generated parser symbols,
+    - added a regression test to keep that invariant explicit.
+- Promoted the readiness gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
+    - the gate now rebuilds `ast_pipeline` and `parseability_probe` against the freshly generated parser for each tracked grammar (`ebnf`, `json`, `regex`) before parser-backed replay.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
 ## 2026-03-09 - Add Parser-Backed Parseability Telemetry To `ebnf_frontend_readiness_gate`
 ### ✅ Achievement Summary
 Extended the EBNF frontend readiness report so it no longer stops at binary `EBNF -> JSON -> parser -> stimuli` success. The gate now exposes parser-registry support and parseability-effort telemetry for tracked grammars that actually have generated-parser replay coverage, while explicitly marking unsupported grammars as such.

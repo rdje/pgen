@@ -866,7 +866,9 @@ impl RustASTPipeline {
                     if let Some(rule_name) = self.extract_rule_name(first_elem) {
                         eprintln!("       ✅  Rule declaration found: '{}' ", rule_name);
                         eprintln!("       File: {}:{}", file!(), line!());
-                        rule_order.push(rule_name.clone());
+                        if !rule_order.contains(&rule_name) {
+                            rule_order.push(rule_name.clone());
+                        }
 
                         // Parse the rule content (everything after the rule declaration)
                         let rule_content = &rule_array[1..];
@@ -891,19 +893,28 @@ impl RustASTPipeline {
                                 .iter()
                                 .any(|entry| entry.is_some())
                             {
-                                annotations.branch_return_annotations.insert(
-                                    rule_name.clone(),
-                                    parsed_rule.branch_return_annotations.clone(),
-                                );
+                                annotations
+                                    .branch_return_annotations
+                                    .entry(rule_name.clone())
+                                    .or_default()
+                                    .extend(parsed_rule.branch_return_annotations.clone());
                             }
                             if !parsed_rule.semantic_annotations.is_empty() {
-                                annotations.semantic_annotations.insert(
-                                    rule_name.clone(),
-                                    parsed_rule.semantic_annotations.clone(),
-                                );
+                                annotations
+                                    .semantic_annotations
+                                    .entry(rule_name.clone())
+                                    .or_default()
+                                    .extend(parsed_rule.semantic_annotations.clone());
                             }
                         }
-                        grammar_tree.insert(rule_name, parsed_rule.ast_node);
+                        if let Some(existing_rule) = grammar_tree.get(&rule_name).cloned() {
+                            let mut merged_alternatives = Self::as_alternatives(&existing_rule);
+                            merged_alternatives.extend(Self::as_alternatives(&parsed_rule.ast_node));
+                            grammar_tree
+                                .insert(rule_name, Self::build_or_node(merged_alternatives));
+                        } else {
+                            grammar_tree.insert(rule_name, parsed_rule.ast_node);
+                        }
                         eprintln!();
                     } else {
                         eprintln!("       ❌  ERROR: Failed to extract rule name from element");
@@ -2492,6 +2503,26 @@ mod tests {
                 "expected named semantic annotation with preserved raw payload, got {:?}",
                 other
             ),
+        }
+    }
+
+    #[test]
+    fn transform_from_raw_ast_merges_duplicate_rule_heads_into_one_rule() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![
+            json!([["rule", "value"], ["quoted_string", "a"]]),
+            json!([["rule", "value"], ["quoted_string", "b"]]),
+        ];
+
+        let (grammar_tree, rule_order, _annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+
+        assert_eq!(rule_order, vec!["value".to_string()]);
+        let value_rule = grammar_tree.get("value").expect("merged value rule");
+        match value_rule {
+            ASTNode::Or { alternatives } => assert_eq!(alternatives.len(), 2),
+            other => panic!("expected merged alternation, got {:?}", other),
         }
     }
 }

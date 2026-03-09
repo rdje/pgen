@@ -42,6 +42,14 @@ pub mod generated_parsers {
     pub mod systemverilog {
         include!(env!("PGEN_SYSTEMVERILOG_PARSER_PATH_RESOLVED"));
     }
+    #[cfg(has_generated_json_parser)]
+    pub mod json {
+        include!(env!("PGEN_JSON_PARSER_PATH_RESOLVED"));
+    }
+    #[cfg(has_generated_regex_parser)]
+    pub mod regex {
+        include!(env!("PGEN_REGEX_PARSER_PATH_RESOLVED"));
+    }
     #[cfg(has_generated_systemverilog_preprocessor_parser)]
     pub mod systemverilog_preprocessor {
         include!(env!("PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH_RESOLVED"));

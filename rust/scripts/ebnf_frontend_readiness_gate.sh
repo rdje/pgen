@@ -68,26 +68,30 @@ parseability_acceptance_rate_percent() {
 }
 
 build_frontend_binaries() {
-    local ebnf_parser_path="${1:-}"
-    if [[ -n "$ebnf_parser_path" ]]; then
-        (
-            cd "$RUST_DIR"
-            PGEN_EBNF_PARSER_PATH="$ebnf_parser_path" cargo build \
-                --features "generated_parsers ebnf_dual_run" \
-                --bin ast_pipeline \
-                --bin parseability_probe \
-                >/dev/null
-        )
-    else
-        (
-            cd "$RUST_DIR"
-            cargo build \
-                --features "generated_parsers ebnf_dual_run" \
-                --bin ast_pipeline \
-                --bin parseability_probe \
-                >/dev/null
-        )
-    fi
+    (
+        cd "$RUST_DIR"
+        env "$@" cargo build \
+            --features "generated_parsers ebnf_dual_run" \
+            --bin ast_pipeline \
+            --bin parseability_probe \
+            >/dev/null
+    )
+}
+
+parseability_build_env_for_grammar() {
+    local grammar="$1"
+    local parser_path="$2"
+    case "$grammar" in
+        ebnf)
+            printf 'PGEN_EBNF_PARSER_PATH=%s\n' "$parser_path"
+            ;;
+        json)
+            printf 'PGEN_JSON_PARSER_PATH=%s\n' "$parser_path"
+            ;;
+        regex)
+            printf 'PGEN_REGEX_PARSER_PATH=%s\n' "$parser_path"
+            ;;
+    esac
 }
 
 require_tool jq
@@ -156,16 +160,15 @@ for grammar in "${GRAMMARS[@]}"; do
         ebnf_to_json_status="pass"
         if "$AST_PIPELINE_BIN" "$json_out" --generate-parser --eliminate-left-recursion -o "$parser_out" >"$parser_log" 2>&1; then
             json_to_parser_status="pass"
-            if [[ "$grammar" == "ebnf" ]]; then
-                echo "==> Rebuilding ast_pipeline and parseability_probe for ebnf parseability"
-                if build_frontend_binaries "$parser_out" >"$probe_build_log" 2>&1; then
-                    :
-                else
-                    parser_registry_support_status="fail"
-                    parseability_status="fail"
-                    failures=$((failures + 1))
-                    notes="failed to rebuild parseability binaries (see logs/${grammar}.parseability_probe_build.log)"
-                fi
+            build_env_line="$(parseability_build_env_for_grammar "$grammar" "$parser_out")"
+            echo "==> Rebuilding ast_pipeline and parseability_probe for ${grammar} parseability"
+            if build_frontend_binaries "$build_env_line" >"$probe_build_log" 2>&1; then
+                :
+            else
+                parser_registry_support_status="fail"
+                parseability_status="fail"
+                failures=$((failures + 1))
+                notes="failed to rebuild parseability binaries (see logs/${grammar}.parseability_probe_build.log)"
             fi
 
             if [[ "$notes" == "ok" ]]; then

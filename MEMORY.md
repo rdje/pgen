@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-09 (+0100, task: ebnf-frontend-readiness-parseability-telemetry)
+Last updated: 2026-03-09 (+0100, task: ebnf-frontend-readiness-json-regex-promotion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -120,12 +120,16 @@ Use this file to resume work without replaying full chat history.
     - `builtin_semantic_annotation`: `attempts=4`, `accepted=4`, `rejected=0`, `acceptance_rate_percent=100.00`.
 - EBNF frontend readiness parseability snapshot:
   - `ebnf_frontend_readiness_gate` now exposes parser-registry support and parseability-effort telemetry instead of stopping at binary frontend success,
-  - `ebnf` readiness is rebuilt against the freshly generated readiness-run parser through `PGEN_EBNF_PARSER_PATH`,
+  - readiness now rebuilds `ast_pipeline` / `parseability_probe` against the freshly generated readiness-run parser for each tracked grammar through:
+    - `PGEN_EBNF_PARSER_PATH`
+    - `PGEN_JSON_PARSER_PATH`
+    - `PGEN_REGEX_PARSER_PATH`
+  - the enabling shared fix lives in the Rust AST pipeline: duplicate raw-AST rule heads now merge generically instead of producing duplicate generated parser items,
   - current focused evidence at `PGEN_EBNF_FRONTEND_STIMULI_COUNT=2`:
     - Perl frontend path:
       - `ebnf`: `parser_registry_support=pass`, `parseability=pass`, `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
-      - `json`: `parser_registry_support=unavailable`, `parseability=skip`
-      - `regex`: `parser_registry_support=unavailable`, `parseability=skip`
+      - `json`: `parser_registry_support=pass`, `parseability=pass`, `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
+      - `regex`: `parser_registry_support=pass`, `parseability=pass`, `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
     - Rust frontend path:
       - same readiness telemetry shape and all tracked rows passing.
 - SV dual-LRM conversion snapshot status:

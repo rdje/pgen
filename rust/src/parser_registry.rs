@@ -5,6 +5,10 @@
 use crate::ast_pipeline::{ParseNode, UnifiedSemanticAST, runtime_logger, runtime_logger_box};
 #[cfg(feature = "ebnf_dual_run")]
 use crate::ebnf_generated_parser::EbnfParser;
+#[cfg(has_generated_json_parser)]
+use crate::generated_parsers::json::JsonParser;
+#[cfg(has_generated_regex_parser)]
+use crate::generated_parsers::regex::RegexParser;
 #[cfg(has_generated_systemverilog_parser)]
 use crate::generated_parsers::systemverilog::SystemverilogParser;
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
@@ -98,6 +102,32 @@ fn parse_with_ebnf_ast_json(sample: &str) -> Result<JsonValue, String> {
     let parsed = parser
         .parse_full_grammar_file()
         .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
+#[cfg(has_generated_json_parser)]
+fn parse_with_json(sample: &str) -> bool {
+    let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+    parser.parse_full_json().is_ok()
+}
+
+#[cfg(has_generated_json_parser)]
+fn parse_with_json_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+    let parsed = parser.parse_full_json().map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
+#[cfg(has_generated_regex_parser)]
+fn parse_with_regex(sample: &str) -> bool {
+    let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
+    parser.parse_full_regex().is_ok()
+}
+
+#[cfg(has_generated_regex_parser)]
+fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
+    let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
     parse_node_to_json(&parsed)
 }
 
@@ -195,6 +225,16 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "ebnf",
         parse_sample: parse_with_ebnf,
     },
+    #[cfg(has_generated_json_parser)]
+    GeneratedParserRegistryEntry {
+        grammar_name: "json",
+        parse_sample: parse_with_json,
+    },
+    #[cfg(has_generated_regex_parser)]
+    GeneratedParserRegistryEntry {
+        grammar_name: "regex",
+        parse_sample: parse_with_regex,
+    },
     #[cfg(has_generated_systemverilog_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog",
@@ -261,6 +301,10 @@ pub fn parse_sample_ast_json_with_profile(
         }
         #[cfg(feature = "ebnf_dual_run")]
         "ebnf" => Some(parse_with_ebnf_ast_json(sample)),
+        #[cfg(has_generated_json_parser)]
+        "json" => Some(parse_with_json_ast_json(sample)),
+        #[cfg(has_generated_regex_parser)]
+        "regex" => Some(parse_with_regex_ast_json(sample)),
         #[cfg(has_generated_systemverilog_parser)]
         "systemverilog" => Some(parse_with_systemverilog_ast_json_profile(
             sample,
@@ -301,6 +345,20 @@ mod tests {
     fn registry_exposes_ebnf_when_dual_run_enabled() {
         let grammars = registered_grammars();
         assert!(grammars.contains(&"ebnf"));
+    }
+
+    #[cfg(has_generated_json_parser)]
+    #[test]
+    fn registry_exposes_json_when_generated_parser_present() {
+        let grammars = registered_grammars();
+        assert!(grammars.contains(&"json"));
+    }
+
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn registry_exposes_regex_when_generated_parser_present() {
+        let grammars = registered_grammars();
+        assert!(grammars.contains(&"regex"));
     }
 
     #[cfg(has_generated_systemverilog_parser)]
@@ -357,5 +415,19 @@ mod tests {
             Some(true)
         );
         assert_eq!(parse_sample("ebnf", ":::not-ebnf:::"), Some(false));
+    }
+
+    #[cfg(has_generated_json_parser)]
+    #[test]
+    fn json_parseability_adapter_accepts_valid_json_and_rejects_garbage() {
+        assert_eq!(parse_sample("json", r#"{"k":[1,true,null]}"#), Some(true));
+        assert_eq!(parse_sample("json", "{]"), Some(false));
+    }
+
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {
+        assert_eq!(parse_sample("regex", "(foo|bar)+"), Some(true));
+        assert_eq!(parse_sample("regex", "("), Some(false));
     }
 }
