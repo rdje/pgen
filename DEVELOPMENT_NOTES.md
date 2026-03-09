@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-09 - Structured Parseability Report Contract For Stimuli Generation
+### Context
+After moving scored SystemVerilog sample generation onto the real generated parser, the next gap was observability. We could say that sampled outputs eventually passed `parse_full`, but we still had no machine-readable measure of how many retries that took. That was too weak for a trust-oriented parser/stimuli story because “accepted after many retries” and “accepted easily” are materially different states.
+
+### Implementation
+- Added a shared `--parseability-report-json PATH` artifact to `/Users/richarddje/Documents/github/pgen/rust/src/main.rs` for parseability-aware stimuli generation.
+  - The report captures:
+    - `requested`
+    - `accepted`
+    - `rejected`
+    - `attempts`
+    - `parser_rejections`
+    - `generation_errors`
+    - `empty_generations`
+    - acceptance/rejection-rate derivations
+  - The same summary type now supports:
+    - direct parseability-retry generation,
+    - target-driven parseability filtering,
+    - coverage-guided fuzz replay aggregation.
+- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` to request one report per sampled stimulus and aggregate the results into:
+  - per-sample `summary.csv` columns,
+  - gate `summary.txt` totals,
+  - `systemverilog_parseability_generation_report.json`.
+- Updated `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md` so the new artifact is part of the documented CLI contract rather than an undiscoverable internal flag.
+
+### Validation
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `cargo run --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --validate-parseability --parseability-report-json /tmp/pgen_return_parseability_report.json --count 1 --output /tmp/pgen_return_parseability_samples.txt`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_report_gate PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed:
+    - `parseability_generation_requested_total=4`
+    - `parseability_generation_accepted_total=4`
+    - `parseability_generation_rejected_total=9`
+    - `parseability_generation_attempts_total=13`
+    - `parseability_generation_acceptance_rate_percent=30.77`
+    - `parse_full_passes=4/4`
+
+### Notes
+- This is a grammar-agnostic observability increment, not a SystemVerilog-specific heuristic.
+- The new report makes retry cost visible enough to support honest ratcheting toward easier generation instead of hiding acceptance effort behind eventual success.
+- The next meaningful follow-up is preserving this observability if parser-in-loop generation is extended into closed-loop replay without breaking the target-debt invariant.
+
 ## 2026-03-09 - Grammar-Agnostic Stimuli Generator Hardening + Parser-In-Loop SV Scored Generation
 ### Context
 The observed SystemVerilog random-stimuli `parse_full` ratio was too low to be acceptable, and the correct response was not to weaken the bar or add SystemVerilog-specific generator tricks. The requirement is now explicit: shared parser/stimuli fixes must be EBNF-agnostic and defensible as engine behavior. For the active SV quality task, that meant fixing generic candidate validity and then forcing the scored samples through the real generated parser for the active SystemVerilog profile.

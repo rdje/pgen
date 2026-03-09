@@ -136,6 +136,10 @@ struct Args {
     #[arg(long)]
     validate_parseability: bool,
 
+    /// Write parseability validation summary JSON for stimuli generation
+    #[arg(long, requires = "validate_parseability")]
+    parseability_report_json: Option<String>,
+
     /// Load prior stimuli coverage JSON and merge new generation coverage into it
     #[arg(long)]
     coverage_input: Option<String>,
@@ -298,7 +302,7 @@ struct AstDumpWriteResult {
     full_bytes: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ParseabilitySummary {
     requested: usize,
     accepted: usize,
@@ -307,6 +311,87 @@ struct ParseabilitySummary {
     generation_errors: usize,
     empty_generations: usize,
     parser_rejections: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ParseabilityGenerationReport {
+    grammar_name: String,
+    grammar_profile: Option<String>,
+    entry_rule: String,
+    summary: ParseabilitySummary,
+}
+
+#[derive(Debug, Clone)]
+struct ParseableStimuliOutcome {
+    samples: Vec<String>,
+    summary: ParseabilitySummary,
+}
+
+impl ParseabilitySummary {
+    fn acceptance_rate_percent(&self) -> f64 {
+        if self.attempts == 0 {
+            0.0
+        } else {
+            (self.accepted as f64 * 100.0) / self.attempts as f64
+        }
+    }
+
+    fn rejection_rate_percent(&self) -> f64 {
+        if self.attempts == 0 {
+            0.0
+        } else {
+            (self.rejected as f64 * 100.0) / self.attempts as f64
+        }
+    }
+
+    fn from_filter(requested: usize, accepted: usize, rejected: usize) -> Self {
+        Self {
+            requested,
+            accepted,
+            rejected,
+            attempts: requested,
+            generation_errors: 0,
+            empty_generations: 0,
+            parser_rejections: rejected,
+        }
+    }
+
+    fn from_coverage_guided_replay(report: &CoverageGuidedFuzzReplayReport) -> Self {
+        let generation_errors = report
+            .cases
+            .iter()
+            .filter(|case| case.generation_error.is_some())
+            .count();
+        let empty_generations = report
+            .cases
+            .iter()
+            .filter(|case| case.sample.is_none() && case.generation_error.is_none())
+            .count();
+        Self {
+            requested: report.rounds,
+            accepted: report.accepted_cases,
+            rejected: report.rejected_cases,
+            attempts: report.rounds,
+            generation_errors,
+            empty_generations,
+            parser_rejections: report.parseability_counterexamples,
+        }
+    }
+
+    fn summary_line(&self) -> String {
+        format!(
+            "Parseability validation accepted {}/{} samples ({} rejected over {} attempts | acceptance {:.2}% / rejection {:.2}% | parse_rejections={} generation_errors={} empty_generations={})",
+            self.accepted,
+            self.requested,
+            self.rejected,
+            self.attempts,
+            self.acceptance_rate_percent(),
+            self.rejection_rate_percent(),
+            self.parser_rejections,
+            self.generation_errors,
+            self.empty_generations
+        )
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -387,6 +472,7 @@ fn main() -> Result<()> {
     let stimuli_like_mode = args.generate_stimuli || args.generate_stimuli_module;
     if !stimuli_like_mode {
         let has_shared_stimuli_flags = args.validate_parseability
+            || args.parseability_report_json.is_some()
             || args.coverage_input.is_some()
             || args.coverage_output.is_some()
             || args.gap_report_json.is_some()
@@ -396,7 +482,7 @@ fn main() -> Result<()> {
             || args.enforce_word_boundary_spacing;
         if has_shared_stimuli_flags {
             return Err(anyhow::anyhow!(
-                "--validate-parseability/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
+                "--validate-parseability/--parseability-report-json/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
             ));
         }
     }
@@ -632,13 +718,23 @@ fn main() -> Result<()> {
             args.entry_rule.as_deref(),
         )?;
         let samples = if args.validate_parseability {
-            generate_parseable_stimuli(
+            let outcome = generate_parseable_stimuli(
                 &grammar.grammar_name,
                 args.grammar_profile.as_deref(),
                 &mut generator,
                 args.count,
                 Some(resolved_entry_rule.as_str()),
-            )?
+            )?;
+            if let Some(report_path) = args.parseability_report_json.as_deref() {
+                write_parseability_report(
+                    report_path,
+                    &grammar.grammar_name,
+                    args.grammar_profile.as_deref(),
+                    resolved_entry_rule.as_str(),
+                    &outcome.summary,
+                )?;
+            }
+            outcome.samples
         } else {
             generator.generate_many(args.count, Some(resolved_entry_rule.as_str()))?
         };
@@ -748,6 +844,7 @@ fn main() -> Result<()> {
 
         let mut merged_coverage = generator.coverage_metrics().clone();
         let mut replay_report: Option<CoverageGuidedFuzzReplayReport> = None;
+        let mut parseability_summary: Option<ParseabilitySummary> = None;
 
         let mut samples = if args.coverage_guided_fuzz_rounds > 0 {
             let seed_start = args
@@ -769,6 +866,11 @@ fn main() -> Result<()> {
             )?;
             println!("{}", fuzz_outcome.replay_report.summary_line());
             merged_coverage = fuzz_outcome.merged_coverage.clone();
+            if args.validate_parseability {
+                parseability_summary = Some(ParseabilitySummary::from_coverage_guided_replay(
+                    &fuzz_outcome.replay_report,
+                ));
+            }
             replay_report = Some(fuzz_outcome.replay_report);
             fuzz_outcome.minimized_samples
         } else if let Some(priority_report_input_path) = args.gap_priority_report_input.as_deref() {
@@ -786,13 +888,15 @@ fn main() -> Result<()> {
                 applied_targets, priority_report_input_path
             );
             let generated_samples = if args.validate_parseability {
-                generate_parseable_stimuli(
+                let outcome = generate_parseable_stimuli(
                     &grammar.grammar_name,
                     args.grammar_profile.as_deref(),
                     &mut generator,
                     args.count,
                     args.entry_rule.as_deref(),
-                )?
+                )?;
+                parseability_summary = Some(outcome.summary);
+                outcome.samples
             } else {
                 generator.generate_many(args.count, args.entry_rule.as_deref())?
             };
@@ -845,15 +949,16 @@ fn main() -> Result<()> {
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples
         } else if args.validate_parseability {
-            let generated_samples = generate_parseable_stimuli(
+            let outcome = generate_parseable_stimuli(
                 &grammar.grammar_name,
                 args.grammar_profile.as_deref(),
                 &mut generator,
                 args.count,
                 args.entry_rule.as_deref(),
             )?;
+            parseability_summary = Some(outcome.summary);
             merged_coverage = generator.coverage_metrics().clone();
-            generated_samples
+            outcome.samples
         } else {
             let generated_samples =
                 generator.generate_many(args.count, args.entry_rule.as_deref())?;
@@ -862,17 +967,40 @@ fn main() -> Result<()> {
         };
 
         if args.validate_parseability && args.target_report_input.is_some() {
+            let requested_before_filter = samples.len();
             let (accepted, rejected) = filter_parseable_samples(
                 &grammar.grammar_name,
                 args.grammar_profile.as_deref(),
                 samples.into_iter(),
             )?;
             samples = accepted;
-            println!(
-                "Target-driven parseability filter accepted {} samples and rejected {}",
+            let summary = ParseabilitySummary::from_filter(
+                requested_before_filter,
                 samples.len(),
-                rejected
+                rejected,
             );
+            println!("{}", summary.summary_line());
+            parseability_summary = Some(summary);
+        }
+
+        if let Some(report_path) = args.parseability_report_json.as_deref() {
+            let resolved_entry_rule = resolve_stimuli_entry_rule(
+                &grammar.grammar_tree,
+                &grammar.rule_order,
+                args.entry_rule.as_deref(),
+            )?;
+            let Some(summary) = parseability_summary.as_ref() else {
+                return Err(anyhow::anyhow!(
+                    "--parseability-report-json requires parseability-aware generation or filtering; current generation mode did not produce a parseability summary"
+                ));
+            };
+            write_parseability_report(
+                report_path,
+                &grammar.grammar_name,
+                args.grammar_profile.as_deref(),
+                resolved_entry_rule.as_str(),
+                summary,
+            )?;
         }
 
         if let Some(output_file) = args.output {
@@ -1919,7 +2047,7 @@ fn generate_parseable_stimuli(
     generator: &mut StimuliGenerator<'_>,
     requested_count: usize,
     entry_rule: Option<&str>,
-) -> Result<Vec<String>> {
+) -> Result<ParseableStimuliOutcome> {
     ensure_parseability_support(grammar_name)?;
 
     let max_attempts = requested_count.saturating_mul(50).max(requested_count);
@@ -1993,31 +2121,32 @@ fn generate_parseable_stimuli(
             counterexample_note
         ));
     }
-    let acceptance_rate = if summary.attempts == 0 {
-        0.0
-    } else {
-        (summary.accepted as f64 * 100.0) / summary.attempts as f64
-    };
-    let rejection_rate = if summary.attempts == 0 {
-        0.0
-    } else {
-        (summary.rejected as f64 * 100.0) / summary.attempts as f64
-    };
+    println!("{}", summary.summary_line());
 
-    println!(
-        "Parseability validation accepted {}/{} samples ({} rejected over {} attempts | acceptance {:.2}% / rejection {:.2}% | parse_rejections={} generation_errors={} empty_generations={})",
-        summary.accepted,
-        summary.requested,
-        summary.rejected,
-        summary.attempts,
-        acceptance_rate,
-        rejection_rate,
-        summary.parser_rejections,
-        summary.generation_errors,
-        summary.empty_generations
-    );
+    Ok(ParseableStimuliOutcome {
+        samples: accepted,
+        summary,
+    })
+}
 
-    Ok(accepted)
+fn write_parseability_report(
+    output_path: &str,
+    grammar_name: &str,
+    grammar_profile: Option<&str>,
+    entry_rule: &str,
+    summary: &ParseabilitySummary,
+) -> Result<()> {
+    ensure_parent_dir_exists(output_path)?;
+    let report = ParseabilityGenerationReport {
+        grammar_name: grammar_name.to_string(),
+        grammar_profile: grammar_profile.map(ToOwned::to_owned),
+        entry_rule: entry_rule.to_string(),
+        summary: summary.clone(),
+    };
+    let report_json = serde_json::to_string_pretty(&report)?;
+    std::fs::write(output_path, report_json)?;
+    println!("Wrote parseability validation report to {}", output_path);
+    Ok(())
 }
 
 #[cfg(feature = "generated_parsers")]
@@ -2080,12 +2209,12 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        FuzzCorpusCandidate, LoadedGrammar, StimuliCoverageMetrics, canonicalize_json_value,
-        coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
-        generate_stimuli_module_source, is_ebnf_input_path, maybe_dump_generation_ast,
-        minimize_failing_input, minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
-        resolve_stimuli_module_seed, supported_generated_parseability_grammars,
-        supports_generated_parseability,
+        FuzzCorpusCandidate, LoadedGrammar, ParseabilitySummary, StimuliCoverageMetrics,
+        canonicalize_json_value, coverage_branch_hit_delta, default_parser_output_path,
+        default_stimuli_module_output_path, generate_stimuli_module_source, is_ebnf_input_path,
+        maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
+        parse_recovery_stimuli_mode, resolve_stimuli_module_seed,
+        supported_generated_parseability_grammars, supports_generated_parseability,
     };
     use pgen::ast_pipeline::stimuli_generator::{BranchCoverageGroup, RecoveryStimuliMode};
     use pgen::ast_pipeline::{ASTNode, ASTValue, TokenValue};
@@ -2111,6 +2240,35 @@ mod tests {
         assert!(supports_generated_parseability("return_annotation"));
         assert!(supports_generated_parseability("semantic_annotation"));
         assert!(!supports_generated_parseability("unknown"));
+    }
+
+    #[test]
+    fn parseability_summary_reports_acceptance_and_rejection_rates() {
+        let summary = ParseabilitySummary {
+            requested: 4,
+            accepted: 3,
+            rejected: 1,
+            attempts: 6,
+            generation_errors: 1,
+            empty_generations: 0,
+            parser_rejections: 0,
+        };
+
+        assert!((summary.acceptance_rate_percent() - 50.0).abs() < f64::EPSILON);
+        assert!((summary.rejection_rate_percent() - (100.0 / 6.0)).abs() < 1e-9);
+        assert!(summary.summary_line().contains("acceptance 50.00%"));
+    }
+
+    #[test]
+    fn parseability_filter_summary_attributes_rejections_to_parser() {
+        let summary = ParseabilitySummary::from_filter(5, 2, 3);
+        assert_eq!(summary.requested, 5);
+        assert_eq!(summary.accepted, 2);
+        assert_eq!(summary.rejected, 3);
+        assert_eq!(summary.attempts, 5);
+        assert_eq!(summary.parser_rejections, 3);
+        assert_eq!(summary.generation_errors, 0);
+        assert_eq!(summary.empty_generations, 0);
     }
 
     #[test]

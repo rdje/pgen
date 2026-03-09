@@ -1692,7 +1692,7 @@ run_logged "package_qualification_contract_suite" \
 run_logged "context_legality_contract_suite" \
     run_context_legality_contract_suite "$context_legality_suite_path" "$enforce_context_legality_suite"
 
-echo "profile,sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
+echo "profile,sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,parseability_attempts,parseability_accepted,parseability_rejected,parseability_parser_rejections,parseability_generation_errors,parseability_empty_generations,parseability_acceptance_rate_percent,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
 run_logged_rust "build_ast_pipeline_for_sv_generation" \
     cargo build --features generated_parsers --bin ast_pipeline
@@ -1884,6 +1884,13 @@ perf_parse_full_max_ms=0
 perf_parse_full_samples=0
 perf_sample_bytes_max=0
 perf_preprocessed_bytes_max=0
+parseability_generation_requested_total=0
+parseability_generation_accepted_total=0
+parseability_generation_rejected_total=0
+parseability_generation_attempts_total=0
+parseability_generation_parser_rejections_total=0
+parseability_generation_errors_total=0
+parseability_generation_empty_generations_total=0
 realistic_cases_declared=0
 realistic_cases_executed=0
 realistic_expected_pass_total=0
@@ -2071,13 +2078,26 @@ for profile_idx in "${!run_profiles[@]}"; do
         sample_file="$WORK_DIR/sample_${profile_key}_${idx}.sv"
         preprocessed_file="$WORK_DIR/sample_${profile_key}_${idx}.preprocessed.sv"
         diagnostics_json="$WORK_DIR/sample_${profile_key}_${idx}.diagnostics.json"
+        parseability_report_json="$WORK_DIR/sample_${profile_key}_${idx}.parseability_generation.json"
+        parseability_attempts=0
+        parseability_accepted=0
+        parseability_rejected=0
+        parseability_parser_rejections=0
+        parseability_generation_errors=0
+        parseability_empty_generations=0
+        parseability_acceptance_rate_percent="0"
 
         generate_started_ms="$(now_ms)"
+        parseability_report_args=()
+        if [[ "$parseability_generation_enabled" -eq 1 ]]; then
+            parseability_report_args=(--parseability-report-json "$parseability_report_json")
+        fi
         run_logged "sample_${profile_key}_${idx}_generate_stimulus" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             "${parseability_generation_args[@]}" \
+            "${parseability_report_args[@]}" \
             --enforce-word-boundary-spacing \
             --count 1 \
             --seed "$seed" \
@@ -2098,6 +2118,24 @@ for profile_idx in "${!run_profiles[@]}"; do
         fi
         enforce_threshold_le "$perf_budget_enabled" "stimuli_generate_ms_per_sample" "$generate_elapsed_ms" "$perf_max_generate_ms_per_sample" "profile=${lrm_profile},sample=${idx}"
         enforce_threshold_le "$perf_budget_enabled" "stimuli_sample_bytes" "$sample_size_bytes" "$perf_max_sample_bytes" "profile=${lrm_profile},sample=${idx}"
+        if [[ "$parseability_generation_enabled" -eq 1 ]]; then
+            require_file "$parseability_report_json"
+            parseability_requested="$(jq -er '.summary.requested | numbers' "$parseability_report_json")"
+            parseability_attempts="$(jq -er '.summary.attempts | numbers' "$parseability_report_json")"
+            parseability_accepted="$(jq -er '.summary.accepted | numbers' "$parseability_report_json")"
+            parseability_rejected="$(jq -er '.summary.rejected | numbers' "$parseability_report_json")"
+            parseability_parser_rejections="$(jq -er '.summary.parser_rejections | numbers' "$parseability_report_json")"
+            parseability_generation_errors="$(jq -er '.summary.generation_errors | numbers' "$parseability_report_json")"
+            parseability_empty_generations="$(jq -er '.summary.empty_generations | numbers' "$parseability_report_json")"
+            parseability_acceptance_rate_percent="$(jq -er '.summary | if .attempts == 0 then 0 else ((.accepted * 100.0) / .attempts) end' "$parseability_report_json")"
+            parseability_generation_requested_total=$((parseability_generation_requested_total + parseability_requested))
+            parseability_generation_attempts_total=$((parseability_generation_attempts_total + parseability_attempts))
+            parseability_generation_accepted_total=$((parseability_generation_accepted_total + parseability_accepted))
+            parseability_generation_rejected_total=$((parseability_generation_rejected_total + parseability_rejected))
+            parseability_generation_parser_rejections_total=$((parseability_generation_parser_rejections_total + parseability_parser_rejections))
+            parseability_generation_errors_total=$((parseability_generation_errors_total + parseability_generation_errors))
+            parseability_generation_empty_generations_total=$((parseability_generation_empty_generations_total + parseability_empty_generations))
+        fi
 
         preprocess_started_ms="$(now_ms)"
         run_logged "sample_${profile_key}_${idx}_preprocess" \
@@ -2184,7 +2222,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                 semantic_note="${semantic_note}; shrunk_failure=${semantic_shrink_file}; shrunk_lines=${semantic_shrink_lines}"
                 semantic_shrink_count=$((semantic_shrink_count + 1))
             fi
-            echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,fail,${parse_status},${warning_count},${error_count},fail,$(csv_sanitize "$semantic_note")" >>"$SUMMARY_CSV"
+            echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_parser_rejections},${parseability_generation_errors},${parseability_empty_generations},${parseability_acceptance_rate_percent},pass,fail,${parse_status},${warning_count},${error_count},fail,$(csv_sanitize "$semantic_note")" >>"$SUMMARY_CSV"
             echo "error: semantic baseline validation failed for profile '${lrm_profile}' sample_${idx}: ${semantic_note}" >&2
             exit 1
         fi
@@ -2231,7 +2269,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         fi
 
         final_note="$parse_note"
-        echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,$(csv_sanitize "$final_note")" >>"$SUMMARY_CSV"
+        echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_parser_rejections},${parseability_generation_errors},${parseability_empty_generations},${parseability_acceptance_rate_percent},pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,$(csv_sanitize "$final_note")" >>"$SUMMARY_CSV"
     done
 done
 
@@ -2778,6 +2816,36 @@ else
 fi
 
 parse_full_quality_report_json="$WORK_DIR/${grammar_name}_parse_full_quality_report.json"
+parseability_generation_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$parseability_generation_accepted_total" "$parseability_generation_attempts_total")"
+parseability_generation_report_json="$WORK_DIR/${grammar_name}_parseability_generation_report.json"
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg note "$parseability_generation_note" \
+    --argjson enabled "$parseability_generation_enabled" \
+    --argjson requested_total "$parseability_generation_requested_total" \
+    --argjson accepted_total "$parseability_generation_accepted_total" \
+    --argjson rejected_total "$parseability_generation_rejected_total" \
+    --argjson attempts_total "$parseability_generation_attempts_total" \
+    --argjson parser_rejections_total "$parseability_generation_parser_rejections_total" \
+    --argjson generation_errors_total "$parseability_generation_errors_total" \
+    --argjson empty_generations_total "$parseability_generation_empty_generations_total" \
+    --argjson acceptance_rate_percent "$parseability_generation_acceptance_rate_percent" \
+    '{
+        grammar_name: $grammar_name,
+        enabled: ($enabled == 1),
+        note: $note,
+        observed: {
+            requested_total: $requested_total,
+            accepted_total: $accepted_total,
+            rejected_total: $rejected_total,
+            attempts_total: $attempts_total,
+            parser_rejections_total: $parser_rejections_total,
+            generation_errors_total: $generation_errors_total,
+            empty_generations_total: $empty_generations_total,
+            acceptance_rate_percent: $acceptance_rate_percent
+        }
+    }' >"$parseability_generation_report_json"
+
 jq -n \
     --arg grammar_name "$grammar_name" \
     --arg effective_mode "$parse_full_quality_effective" \
@@ -2964,6 +3032,15 @@ jq -n \
     echo "parse_full_effective: $parse_full_effective"
     echo "parseability_generation_enabled: $parseability_generation_enabled"
     echo "parseability_generation_note: $parseability_generation_note"
+    echo "parseability_generation_requested_total: $parseability_generation_requested_total"
+    echo "parseability_generation_accepted_total: $parseability_generation_accepted_total"
+    echo "parseability_generation_rejected_total: $parseability_generation_rejected_total"
+    echo "parseability_generation_attempts_total: $parseability_generation_attempts_total"
+    echo "parseability_generation_parser_rejections_total: $parseability_generation_parser_rejections_total"
+    echo "parseability_generation_generation_errors_total: $parseability_generation_errors_total"
+    echo "parseability_generation_empty_generations_total: $parseability_generation_empty_generations_total"
+    echo "parseability_generation_acceptance_rate_percent: $parseability_generation_acceptance_rate_percent"
+    echo "parseability_generation_report_json: $parseability_generation_report_json"
     echo "parse_full_quality_enforced: $parse_full_quality_contract_enforced"
     echo "parse_full_quality_effective: $parse_full_quality_effective"
     echo "parse_full_quality_note: $parse_full_quality_note"

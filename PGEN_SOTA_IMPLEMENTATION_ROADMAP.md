@@ -867,6 +867,11 @@ Toolbox baseline to leverage end-to-end:
         - `cases_declared=11`
         - `expected_pass_total=9`
         - `expected_fail_total=2`.
+  - Progress (2026-03-09): added grammar-agnostic parseability telemetry to `ast_pipeline` stimuli generation and consumed it inside `sv_stimuli_quality_gate`:
+    - new CLI artifact: `--parseability-report-json PATH` alongside `--validate-parseability`,
+    - report captures `requested`, `accepted`, `rejected`, `attempts`, parser rejections, generation errors, empty generations, and acceptance rate,
+    - `sv_stimuli_quality_gate` now records per-sample and aggregate parseability-effort evidence in `summary.csv`, `summary.txt`, and `systemverilog_parseability_generation_report.json`,
+    - focused validation showed the sampled `sv_file` slice still at `parse_full_pass_ratio_percent=100` while surfacing real acceptance effort (`accepted_total=4`, `rejected_total=9`, `attempts_total=13`, `acceptance_rate_percent=30.77`) instead of hiding retry cost.
   - Progress (2026-03-06): closed the remaining realistic-corpus parse gaps and promoted the manifest to an all-pass baseline (`version: 3`):
     - `grammars/systemverilog.ebnf` now accepts:
       - edge-qualified event controls (`@(posedge clk)`, `@(negedge rst_n)`),

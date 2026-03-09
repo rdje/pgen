@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-09 (+0100, task: grammar-agnostic-stimuli-hardening)
+Last updated: 2026-03-09 (+0100, task: parseability-generation-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -94,9 +94,17 @@ Use this file to resume work without replaying full chat history.
   - the shared regex-backed stimuli generator now rejects candidates that do not satisfy the originating regex contract,
   - `sv_stimuli_quality_gate` now rebuilds `ast_pipeline` with the freshly generated SystemVerilog adapter and uses parser-in-loop sample generation (`--validate-parseability`) for scored sample rows,
   - active-profile generation now also passes `--grammar-profile` instead of generating from the union grammar,
+  - `ast_pipeline` now supports `--parseability-report-json PATH` so parseability-aware generation emits structured acceptance-effort telemetry instead of only stdout text,
+  - `sv_stimuli_quality_gate` now aggregates that telemetry into per-sample CSV columns, gate summary totals, and `systemverilog_parseability_generation_report.json`,
   - measured evidence from focused runs:
     - `sv_file` scored generation reached `parse_full_pass_ratio_percent=100` with `16/16` passes across both profiles at `PGEN_SV_STIMULI_QUALITY_COUNT=8`,
     - `sv_semantic_file` scored generation reached `parse_full_pass_ratio_percent=100` with `8/8` passes across both profiles at `PGEN_SV_STIMULI_QUALITY_COUNT=4`,
+    - focused parseability-telemetry proof on `sv_file` (`count=2`) stayed green while exposing retry cost:
+      - `parseability_generation_requested_total=4`
+      - `parseability_generation_accepted_total=4`
+      - `parseability_generation_rejected_total=9`
+      - `parseability_generation_attempts_total=13`
+      - `parseability_generation_acceptance_rate_percent=30.77`,
   - closed-loop replay remains raw-generation for now because applying parser-in-loop generation there increased target debt (`1771 -> 1779`) and would violate the current replay invariant.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
@@ -3146,11 +3154,13 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
-   - keep expanding beyond the new `239`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
+   - keep expanding beyond the new `284`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
    - likely next probe targets:
      - richer multi-module width/import compositions that propagate through still more than one downstream bridge or stage family,
      - deeper include-chain variants that combine package-width state with more than twenty-one child stages or mixed wildcard/named-port reuse across multiple modules,
      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
+   - parser-trust follow-up inside the same area:
+     - preserve the new parseability-effort observability if parser-in-loop generation is extended into closed-loop replay, without violating the non-increasing target-debt invariant.
 2. Continue Rust-native EBNF migration hardening:
    - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
 3. Keep roadmap + UG + memory synced after every gate/contract increment.

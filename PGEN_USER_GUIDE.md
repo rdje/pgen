@@ -56,6 +56,7 @@ In practical terms:
 - parseability means `parse_full_*` success for the target grammar,
 - prefix-only acceptance is not considered parseable,
 - with `--validate-parseability`, only fully parseable generated samples are counted as accepted.
+- `--parseability-report-json PATH` writes machine-readable parseability generation telemetry (`requested`, `accepted`, `rejected`, `attempts`, rejection breakdown, acceptance rate).
 
 ## 3) Fast Start
 
@@ -225,6 +226,7 @@ High-value stimuli flags:
 - `--recovery-stimuli-mode` (`baseline`, `recovery_biased`, `near_sync_negative`)
 - `--enforce-word-boundary-spacing` (append delimiter spaces after terminal `\\b` regex samples to reduce merged-token outputs)
 - `--validate-parseability`
+- `--parseability-report-json`
 - `--coverage-input`
 - `--coverage-output`
 - `--gap-report-json`
@@ -601,8 +603,11 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast
   --seed 7201 \
   --entry-rule semantic_annotation \
   --validate-parseability \
+  --parseability-report-json /tmp/semantic_parseability.json \
   --output /tmp/semantic_replay.txt
 ```
+
+With `--validate-parseability`, add `--parseability-report-json PATH` when you want structured acceptance-effort telemetry for the run rather than only the human-readable summary line on stdout.
 
 ### Deterministic Replay and Seed Compatibility Guarantees
 - In-memory mode (`--generate-stimuli`):

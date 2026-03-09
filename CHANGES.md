@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-03-09 - Add Structured Parseability Generation Telemetry To CLI And SV Gate
+### ✅ Achievement Summary
+Added a shared machine-readable parseability-report contract to `ast_pipeline` and wired the SystemVerilog stimuli quality gate to consume it. This turns parser-in-loop generation from a binary pass/fail signal into objective acceptance-effort telemetry without introducing grammar-specific generator behavior.
+
+### Scope of Changes
+- Added shared parseability report output and summary helpers:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`
+- Extended the SystemVerilog stimuli gate to aggregate per-sample parseability effort:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- Documented the new CLI flag:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- Synced roadmap/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Shared CLI/unit coverage:
+  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture` ✅
+- Shell gate syntax:
+  - `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- Direct CLI artifact proof:
+  - `cargo run --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --validate-parseability --parseability-report-json /tmp/pgen_return_parseability_report.json --count 1 --output /tmp/pgen_return_parseability_samples.txt` ✅
+- Focused SV gate proof with aggregated telemetry:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_report_gate PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+    - observed:
+      - `parseability_generation_requested_total=4`
+      - `parseability_generation_accepted_total=4`
+      - `parseability_generation_rejected_total=9`
+      - `parseability_generation_attempts_total=13`
+      - `parseability_generation_acceptance_rate_percent=30.77`
+      - `parse_full_passes=4/4`
+
+### Notes
+- This is intentionally EBNF-agnostic. The shared CLI now exposes parseability retry cost for any grammar with generated-parser validation support.
+- The new telemetry makes it much easier to distinguish “all accepted eventually” from “easy to generate parseable samples,” which is essential for honest parser/stimuli quality ratcheting.
+
 ## 2026-03-09 - Harden Stimuli Generation With Grammar-Agnostic Regex Contracts And Parser-In-Loop SV Validation
 ### ✅ Achievement Summary
 Closed the current SystemVerilog random-stimuli quality task with objective, non-trick fixes: the shared Rust stimuli generator now rejects regex-derived candidates that do not satisfy the originating regex contract, and the SystemVerilog stimuli quality gate now rebuilds `ast_pipeline` against the freshly generated SystemVerilog parser so scored samples are accepted by the real generated parser rather than only by heuristic generation.
