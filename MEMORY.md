@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-09 (+0100, task: ci-workflow-local-parity)
+Last updated: 2026-03-09 (+0100, task: grammar-agnostic-stimuli-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -87,6 +87,17 @@ Use this file to resume work without replaying full chat history.
     - performance budgets,
     - deterministic reproducibility,
     - embedder-facing diagnostics and AST visibility.
+- Shared engine generalization rule:
+  - parser-generator and stimuli-generator fixes must remain EBNF-agnostic unless the behavior is explicitly modeled in a grammar/profile contract,
+  - grammar-specific accommodations should land in grammar/profile/corpus artifacts instead of shared runtime heuristics.
+- Active SV stimuli quality closure snapshot:
+  - the shared regex-backed stimuli generator now rejects candidates that do not satisfy the originating regex contract,
+  - `sv_stimuli_quality_gate` now rebuilds `ast_pipeline` with the freshly generated SystemVerilog adapter and uses parser-in-loop sample generation (`--validate-parseability`) for scored sample rows,
+  - active-profile generation now also passes `--grammar-profile` instead of generating from the union grammar,
+  - measured evidence from focused runs:
+    - `sv_file` scored generation reached `parse_full_pass_ratio_percent=100` with `16/16` passes across both profiles at `PGEN_SV_STIMULI_QUALITY_COUNT=8`,
+    - `sv_semantic_file` scored generation reached `parse_full_pass_ratio_percent=100` with `8/8` passes across both profiles at `PGEN_SV_STIMULI_QUALITY_COUNT=4`,
+  - closed-loop replay remains raw-generation for now because applying parser-in-loop generation there increased target debt (`1771 -> 1779`) and would violate the current replay invariant.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),

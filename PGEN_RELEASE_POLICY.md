@@ -26,6 +26,10 @@ Release-policy preference order:
 
 If one of these qualities is not backed by machine-checkable evidence, it should be treated as release debt rather than assumed complete.
 
+Shared-engine policy:
+- fixes in the parser generator or stimuli generator should generalize across EBNFs rather than hard-code behavior for one grammar,
+- grammar-specific accommodations belong in tracked grammar/profile artifacts and their contracts, not in shared runtime heuristics masquerading as engine quality.
+
 This policy is consumed by:
 - `rust/scripts/sota_exit_gate.sh`
 - `make -C rust SHELL=/bin/bash sota_exit_gate`

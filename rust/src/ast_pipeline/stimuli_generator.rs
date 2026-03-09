@@ -2518,7 +2518,7 @@ impl<'a> StimuliGenerator<'a> {
         }
         let constraints = self.rule_value_constraints(current_rule);
         if let Some(semantic_hint) = self.semantic_hint_for_rule(current_rule) {
-            if self.value_satisfies_constraints(&semantic_hint, &constraints) {
+            if self.regex_candidate_satisfies_contract(trimmed, &semantic_hint, &constraints) {
                 self.trace(
                     TraceLevel::Debug,
                     format_args!(
@@ -2528,6 +2528,13 @@ impl<'a> StimuliGenerator<'a> {
                 );
                 return self.apply_word_boundary_spacing(trimmed, semantic_hint);
             }
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "Regex generation rejected semantic hint for rule='{}': '{}'",
+                    current_rule, semantic_hint
+                ),
+            );
         }
 
         if !constraints.enum_values.is_empty() {
@@ -2568,30 +2575,30 @@ impl<'a> StimuliGenerator<'a> {
             return self.apply_word_boundary_spacing(trimmed, candidate);
         }
 
-        let sample_once = |this: &mut Self| match regex_syntax::parse(trimmed) {
-            Ok(hir) => this.generate_from_regex_hir(&hir),
-            Err(_) => "x".to_string(),
+        let parsed_hir = match regex_syntax::parse(trimmed) {
+            Ok(hir) => Some(hir),
+            Err(err) => {
+                self.trace(
+                    TraceLevel::Low,
+                    format_args!(
+                        "Regex generation could not parse pattern for rule='{}': '{}' ({})",
+                        current_rule, trimmed, err
+                    ),
+                );
+                None
+            }
         };
 
-        if constraints.is_empty() {
-            let candidate = sample_once(self);
-            self.trace(
-                TraceLevel::Debug,
-                format_args!(
-                    "Regex generation (unconstrained) candidate for rule='{}': '{}'",
-                    current_rule, candidate
-                ),
-            );
-            return self.apply_word_boundary_spacing(trimmed, candidate);
-        }
-
         for _ in 0..64 {
-            let candidate = sample_once(self);
-            if self.value_satisfies_constraints(&candidate, &constraints) {
+            let Some(hir) = parsed_hir.as_ref() else {
+                break;
+            };
+            let candidate = self.generate_from_regex_hir(hir);
+            if self.regex_candidate_satisfies_contract(trimmed, &candidate, &constraints) {
                 self.trace(
                     TraceLevel::Debug,
                     format_args!(
-                        "Regex generation accepted constrained candidate for rule='{}': '{}'",
+                        "Regex generation accepted contract-satisfying candidate for rule='{}': '{}'",
                         current_rule, candidate
                     ),
                 );
@@ -2600,7 +2607,7 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         if let Some(fallback) = constraints.enum_values.first() {
-            if Self::regex_matches_entire(trimmed, fallback) {
+            if self.regex_candidate_satisfies_contract(trimmed, fallback, &constraints) {
                 self.trace(
                     TraceLevel::Low,
                     format_args!(
@@ -2612,15 +2619,14 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
-        let fallback = sample_once(self);
         self.trace(
             TraceLevel::Low,
             format_args!(
-                "Regex generation using final fallback for rule='{}': '{}'",
-                current_rule, fallback
+                "Regex generation failed to synthesize contract-satisfying sample for rule='{}' pattern='{}'",
+                current_rule, trimmed
             ),
         );
-        self.apply_word_boundary_spacing(trimmed, fallback)
+        String::new()
     }
 
     fn regex_matches_entire(pattern: &str, candidate: &str) -> bool {
@@ -2630,6 +2636,16 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         false
+    }
+
+    fn regex_candidate_satisfies_contract(
+        &self,
+        pattern: &str,
+        candidate: &str,
+        constraints: &SemanticValueConstraints,
+    ) -> bool {
+        Self::regex_matches_entire(pattern, candidate)
+            && self.value_satisfies_constraints(candidate, constraints)
     }
 
     fn apply_word_boundary_spacing(&self, pattern: &str, candidate: String) -> String {
@@ -4965,10 +4981,9 @@ mod tests {
             .generate_many(1, None)
             .expect("word-boundary regex generation should succeed");
 
-        let re = Regex::new(r"\bword\b").expect("valid regex");
         assert!(
-            re.is_match(&value[0]),
-            "generated sample must satisfy word-boundary regex: {:?}",
+            StimuliGenerator::regex_matches_entire(r"\bword\b", &value[0]),
+            "generated sample must fully satisfy word-boundary regex: {:?}",
             value[0]
         );
     }
@@ -4998,6 +5013,11 @@ mod tests {
         let value = generator
             .generate_many(1, None)
             .expect("word-boundary spacing generation should succeed");
+        assert!(
+            StimuliGenerator::regex_matches_entire(r"input\b", value[0].trim_end()),
+            "trimmed word-boundary sample must satisfy regex contract: {:?}",
+            value[0]
+        );
         assert!(
             value[0].starts_with("input"),
             "word-boundary sample should preserve regex literal prefix: {:?}",
@@ -5047,6 +5067,27 @@ mod tests {
         assert!(
             value[0].starts_with("module automatic "),
             "word spacing should separate adjacent lexical segments: {:?}",
+            value[0]
+        );
+        let parts: Vec<&str> = value[0].split_whitespace().collect();
+        assert!(
+            parts.len() >= 3,
+            "word spacing sequence should keep lexical segments distinct: {:?}",
+            value[0]
+        );
+        assert!(
+            StimuliGenerator::regex_matches_entire("module", parts[0]),
+            "first segment must satisfy originating regex: {:?}",
+            value[0]
+        );
+        assert!(
+            StimuliGenerator::regex_matches_entire("automatic", parts[1]),
+            "second segment must satisfy originating regex: {:?}",
+            value[0]
+        );
+        assert!(
+            StimuliGenerator::regex_matches_entire("[A-Za-z]+", parts[2]),
+            "third segment must satisfy originating regex: {:?}",
             value[0]
         );
     }

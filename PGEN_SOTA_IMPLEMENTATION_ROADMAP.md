@@ -27,6 +27,11 @@ Execution preference for this roadmap:
 Interpretation rule:
 - if a claimed parser quality does not have a machine-checkable artifact, gate, contract, or invariant behind it, treat that quality as not yet closed.
 
+Engine generalization rule:
+- shared parser-generator and stimuli-generator fixes must be EBNF-agnostic and justified as engine-wide behavior, not as special handling for one grammar,
+- grammar- or profile-specific behavior belongs in the grammar, contract, corpus, or profile layer unless there is a defensible engine-level reason to generalize it,
+- if a fix only makes sense for one specific EBNF, treat it as grammar debt or contract debt, not as a shared generator improvement.
+
 ## Status Legend
 - `Not Started`
 - `In Progress`

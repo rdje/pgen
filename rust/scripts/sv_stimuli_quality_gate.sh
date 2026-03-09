@@ -1712,6 +1712,14 @@ run_logged "generate_sv_parser" \
     --output "$parser_out"
 require_nonempty_file "$parser_out"
 
+run_logged_rust "build_ast_pipeline_with_systemverilog_adapter" \
+    env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
+    cargo build --features generated_parsers --bin ast_pipeline
+if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
+    echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after adapter build" >&2
+    exit 1
+fi
+
 run_logged_rust "build_parseability_probe_with_systemverilog_adapter" \
     env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
     cargo build --features generated_parsers --bin parseability_probe
@@ -1757,6 +1765,15 @@ else
         parse_full_enabled=0
         parse_full_effective="unsupported_adapter"
     fi
+fi
+
+parseability_generation_enabled=0
+parseability_generation_note="generation uses raw stimuli only"
+parseability_generation_args=()
+if [[ "$parse_full_enabled" -eq 1 ]]; then
+    parseability_generation_enabled=1
+    parseability_generation_note="generation retries until generated parser accepts the sample"
+    parseability_generation_args=(--validate-parseability)
 fi
 
 perf_budget_enabled=0
@@ -1922,6 +1939,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         run_logged "profile_${profile_key}_closed_loop_initial" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
             --count "$sample_count" \
             --seed "$profile_seed_base" \
@@ -1945,6 +1963,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         run_logged "profile_${profile_key}_closed_loop_initial_replay" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
             --count "$sample_count" \
             --seed "$profile_seed_base" \
@@ -1970,6 +1989,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         run_logged "profile_${profile_key}_closed_loop_replay" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
             --count "$replay_sample_count" \
             --seed "$closed_loop_replay_seed" \
@@ -2056,6 +2076,8 @@ for profile_idx in "${!run_profiles[@]}"; do
         run_logged "sample_${profile_key}_${idx}_generate_stimulus" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --grammar-profile "$lrm_profile" \
+            "${parseability_generation_args[@]}" \
             --enforce-word-boundary-spacing \
             --count 1 \
             --seed "$seed" \
@@ -2940,6 +2962,8 @@ jq -n \
     echo "context_legality_suite_failed: $context_legality_suite_failed"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"
+    echo "parseability_generation_enabled: $parseability_generation_enabled"
+    echo "parseability_generation_note: $parseability_generation_note"
     echo "parse_full_quality_enforced: $parse_full_quality_contract_enforced"
     echo "parse_full_quality_effective: $parse_full_quality_effective"
     echo "parse_full_quality_note: $parse_full_quality_note"

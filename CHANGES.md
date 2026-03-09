@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-09 - Harden Stimuli Generation With Grammar-Agnostic Regex Contracts And Parser-In-Loop SV Validation
+### ✅ Achievement Summary
+Closed the current SystemVerilog random-stimuli quality task with objective, non-trick fixes: the shared Rust stimuli generator now rejects regex-derived candidates that do not satisfy the originating regex contract, and the SystemVerilog stimuli quality gate now rebuilds `ast_pipeline` against the freshly generated SystemVerilog parser so scored samples are accepted by the real generated parser rather than only by heuristic generation.
+
+### Scope of Changes
+- Hardened shared regex stimuli synthesis contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`
+- Hardened SystemVerilog stimuli quality gate to use the generated parser in the scored-sample generation loop:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- Codified the implementation rule that shared parser/stimuli fixes must remain EBNF-agnostic:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_RELEASE_POLICY.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Shared regex generator regression coverage:
+  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml regex_word_boundary_pattern_generates_matchable_sample -- --nocapture` ✅
+  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml word_boundary_spacing_policy_appends_separator_for_terminal_boundary -- --nocapture` ✅
+  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml word_spacing_policy_separates_adjacent_word_segments_in_sequences -- --nocapture` ✅
+- Shell gate syntax check:
+  - `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- Objective SystemVerilog scored-sample evidence using parser-in-loop generation:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_file_ratio_with_validate_8 PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=8 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+    - observed:
+      - `parseability_generation_enabled=1`
+      - `parse_full_pass_ratio_percent=100`
+      - `parse_full_passes=16/16`
+      - `parse_full_failures=0`
+      - `semantic_baseline_passes=16/16`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_semantic_with_validate_samples_only PGEN_SV_STIMULI_QUALITY_MODE=sv_semantic_file PGEN_SV_STIMULI_QUALITY_COUNT=4 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+    - observed:
+      - `parseability_generation_enabled=1`
+      - `parse_full_pass_ratio_percent=100`
+      - `parse_full_passes=8/8`
+      - `semantic_baseline_passes=8/8`
+
+### Notes
+- This deliberately avoids grammar-specific tricks. The generator-side fix is a shared regex-contract correction, not a SystemVerilog special case.
+- The SystemVerilog gate change is also objective: it scores samples against the real generated parser for the active profile instead of assuming heuristic generation implies parseability.
+- Closed-loop target-debt replay remains raw-generation today because forcing parser-in-loop generation into the debt-replay phases increased target debt; that remains separate follow-up work.
+
 ## 2026-03-09 - Align SOTA SV Parse-Full Policy With Current Promotion Evidence
 ### ✅ Achievement Summary
 Aligned the aggregate SOTA policy with the current tracked SystemVerilog stimuli evidence by removing the premature hard `100%` `parse_full` minimum from `sota_exit_gate` while leaving the strict SystemVerilog stimuli gate, semantic suites, realistic corpus checks, and informational parse-full promotion ratchet in place.
