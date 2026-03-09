@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-09 - Cross-EBNF Parseability Effort Telemetry In The Non-Annotation Quality Gate
+### Context
+Once the shared `--parseability-report-json` contract existed, leaving `ebnf_stimuli_quality_gate` on plain pass/fail would have kept the non-annotation loop less observable than the SystemVerilog loop. That was the next obvious trust gap: parseability-required grammars in the generic EBNF gate needed the same visibility into retry cost and parser rejection rates. While closing that gap, a second issue surfaced: the gate was regenerating tracked `generated/ebnf.json` and `generated/ebnf.rs` as a side effect, which is wrong for a validation gate.
+
+### Implementation
+- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh` so parseability-required grammars now request a parseability report for each closed-loop stage:
+  - `stage0_baseline`
+  - `stage1_gap_priority`
+  - `stage2_target_drive`
+  - `stage3_recompute_gap`
+- The gate now aggregates those stage reports into:
+  - new summary CSV columns:
+    - `parseability_attempts_total`
+    - `parseability_accepted_total`
+    - `parseability_rejected_total`
+    - `parseability_parser_rejections_total`
+    - `parseability_generation_errors_total`
+    - `parseability_empty_generations_total`
+    - `parseability_acceptance_rate_percent`
+    - `parseability_report_json`
+  - a per-grammar aggregate JSON artifact:
+    - `<label>_parseability_report.json`
+- Added a build-time override for the generated EBNF parser include path:
+  - `/Users/richarddje/Documents/github/pgen/rust/build.rs` now accepts `PGEN_EBNF_PARSER_PATH`,
+  - `/Users/richarddje/Documents/github/pgen/rust/src/lib.rs` and `/Users/richarddje/Documents/github/pgen/rust/src/bin/ebnf_dual_run_diff.rs` now include the generated EBNF parser through build-script-provided env paths,
+  - `ebnf_stimuli_quality_gate` now boots `ebnf_dual_run` from work-dir artifacts (`ebnf_bootstrap.rs`) instead of overwriting tracked `generated/ebnf.rs`.
+- Non-parseability grammars keep zeroed totals with `parseability_report_json=n/a`, so the CSV stays structurally stable.
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh`
+- `PGEN_EBNF_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_ebnf_parseability_gate_fix PGEN_EBNF_STIMULI_QUALITY_COUNT=1 PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_stimuli_quality_gate`
+  - observed:
+    - `ebnf`: `attempts=33`, `accepted=19`, `rejected=14`, `acceptance_rate_percent=57.58`
+    - `builtin_return_annotation`: `attempts=31`, `accepted=20`, `rejected=11`, `acceptance_rate_percent=64.52`
+    - `builtin_semantic_annotation`: `attempts=4`, `accepted=4`, `rejected=0`, `acceptance_rate_percent=100.00`
+- `cargo build --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ebnf_dual_run_diff`
+- post-run cleanliness check:
+  - `git status --short` no longer reports modifications to tracked `generated/ebnf.json` or `generated/ebnf.rs`
+
+### Notes
+- This is a gate-level observability increment only; it does not change generator semantics or weaken the gate.
+- The next natural follow-up is to reuse the same parseability-effort contract in any other parser-backed closed loops that currently still expose only eventual success.
+- The clean-worktree fix matters operationally: local gate runs can now be trusted as validation steps rather than hidden artifact-regeneration steps.
+
 ## 2026-03-09 - Structured Parseability Report Contract For Stimuli Generation
 ### Context
 After moving scored SystemVerilog sample generation onto the real generated parser, the next gap was observability. We could say that sampled outputs eventually passed `parse_full`, but we still had no machine-readable measure of how many retries that took. That was too weak for a trust-oriented parser/stimuli story because “accepted after many retries” and “accepted easily” are materially different states.

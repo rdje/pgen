@@ -209,6 +209,15 @@ Engine generalization rule:
   - Progress (2026-02-21): `builtin_return_annotation` is parser-registry-backed for generated parseability checks and promoted to `require_parseability=true`.
   - Closure (2026-02-22): `builtin_semantic_annotation` now uses a matching builtin-semantic parseability adapter in `parser_registry` (bootstrap semantic contract behavior via `UnifiedSemanticAST::parse_bootstrap`), and is promoted to `require_parseability=true` in `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`.
   - Progress (2026-02-26): added parser-registry `ebnf` parseability adapter (feature-gated by `ebnf_dual_run`), promoted `ebnf` contract entry to `require_parseability=true`, and hardened `ebnf_stimuli_quality_gate` with two-phase build/bootstrap (`generated_parsers` then `generated_parsers+ebnf_dual_run` after generating `generated/ebnf.rs`) so required parseability is executable in gate paths.
+  - Progress (2026-03-09): extended `ebnf_stimuli_quality_gate` with machine-readable parseability-effort telemetry for parseability-required grammars:
+    - each parseability-required grammar now emits per-stage report artifacts (`stage0`/`stage1`/`stage2`/`stage3`) through the shared `ast_pipeline --parseability-report-json` contract,
+    - gate summary CSV/text now reports aggregate parseability attempts, accepted samples, rejected samples, parser rejections, and acceptance rate,
+    - per-grammar aggregate artifact is now emitted as `<label>_parseability_report.json`,
+    - the gate now builds `ebnf_dual_run` with a work-dir bootstrap parser via `PGEN_EBNF_PARSER_PATH` instead of mutating tracked `generated/ebnf.rs`,
+    - focused validation (`PGEN_EBNF_STIMULI_QUALITY_COUNT=1`, `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25`) stayed green while exposing real acceptance effort:
+      - `ebnf`: `attempts=33`, `accepted=19`, `acceptance_rate_percent=57.58`,
+      - `builtin_return_annotation`: `attempts=31`, `accepted=20`, `acceptance_rate_percent=64.52`,
+      - `builtin_semantic_annotation`: `attempts=4`, `accepted=4`, `acceptance_rate_percent=100.00`.
 
 ### Phase N (New): Generated Stimuli Module Artifacts (`<grammar>_stimuli.rs`)
 - [x] Add explicit AST-pipeline generation mode for Rust stimuli modules (for example `--generate-stimuli-module`) from both JSON and EBNF frontend inputs.

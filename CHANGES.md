@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-09 - Add Parseability Effort Telemetry To `ebnf_stimuli_quality_gate`
+### ✅ Achievement Summary
+Extended the non-annotation EBNF quality gate to consume the shared parseability-report contract, so parseability-required grammars now report acceptance effort across the whole closed loop rather than only ending in a pass/fail outcome. The gate also no longer dirties tracked `generated/ebnf.json` / `generated/ebnf.rs` during local validation.
+
+### Scope of Changes
+- Extended non-annotation EBNF gate parseability observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh`
+- Added build-time override for the generated EBNF parser include path so gate-local bootstrap artifacts can live under the gate work directory:
+  - `/Users/richarddje/Documents/github/pgen/rust/build.rs`
+  - `/Users/richarddje/Documents/github/pgen/rust/src/lib.rs`
+  - `/Users/richarddje/Documents/github/pgen/rust/src/bin/ebnf_dual_run_diff.rs`
+- Synced roadmap/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Shell gate syntax:
+  - `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh` ✅
+- Focused bounded gate proof:
+  - `PGEN_EBNF_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_ebnf_parseability_gate_fix PGEN_EBNF_STIMULI_QUALITY_COUNT=1 PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_stimuli_quality_gate` ✅
+    - observed parseability-required grammar totals:
+      - `ebnf`: `attempts=33`, `accepted=19`, `rejected=14`, `acceptance_rate_percent=57.58`
+      - `builtin_return_annotation`: `attempts=31`, `accepted=20`, `rejected=11`, `acceptance_rate_percent=64.52`
+      - `builtin_semantic_annotation`: `attempts=4`, `accepted=4`, `rejected=0`, `acceptance_rate_percent=100.00`
+- Clean-worktree proof:
+  - after the bounded gate rerun, `git status --short` no longer showed `generated/ebnf.json` or `generated/ebnf.rs` modifications.
+
+### Notes
+- This keeps the observability model aligned across grammar families: parser-in-loop retry cost is no longer only visible in the SV gate.
+- New aggregate per-grammar artifacts now land as `<label>_parseability_report.json` under the gate work directory.
+- The gate-local `ebnf` bootstrap parser now lives under `rust/target/...` state instead of overwriting tracked generated artifacts.
+
 ## 2026-03-09 - Add Structured Parseability Generation Telemetry To CLI And SV Gate
 ### ✅ Achievement Summary
 Added a shared machine-readable parseability-report contract to `ast_pipeline` and wired the SystemVerilog stimuli quality gate to consume it. This turns parser-in-loop generation from a binary pass/fail signal into objective acceptance-effort telemetry without introducing grammar-specific generator behavior.

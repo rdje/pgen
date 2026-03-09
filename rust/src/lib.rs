@@ -20,7 +20,7 @@ pub use ast_pipeline::NoOpLogger;
 
 #[cfg(feature = "ebnf_dual_run")]
 pub mod ebnf_generated_parser {
-    include!("../../generated/ebnf.rs");
+    include!(env!("PGEN_EBNF_PARSER_PATH_RESOLVED"));
 }
 
 // Generated parsers from EBNF grammars

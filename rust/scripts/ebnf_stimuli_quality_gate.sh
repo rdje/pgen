@@ -5,8 +5,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
 TOOLS_DIR="$ROOT_DIR/tools"
 GRAMMARS_DIR="$ROOT_DIR/grammars"
-GENERATED_DIR="$ROOT_DIR/generated"
-
 STATE_DIR="${PGEN_EBNF_STIMULI_QUALITY_STATE_DIR:-$RUST_DIR/target/ebnf_stimuli_quality_gate}"
 LOG_DIR="$STATE_DIR/logs"
 WORK_DIR="$STATE_DIR/work"
@@ -22,8 +20,8 @@ FRONTEND_IMPL="${PGEN_EBNF_FRONTEND_IMPL:-perl}"
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 EBNF_BOOTSTRAP_GRAMMAR="$GRAMMARS_DIR/ebnf.ebnf"
-EBNF_BOOTSTRAP_JSON="$GENERATED_DIR/ebnf.json"
-EBNF_BOOTSTRAP_RS="$GENERATED_DIR/ebnf.rs"
+EBNF_BOOTSTRAP_JSON="$WORK_DIR/ebnf_bootstrap.json"
+EBNF_BOOTSTRAP_RS="$WORK_DIR/ebnf_bootstrap.rs"
 
 if ! [[ "$SAMPLE_COUNT" =~ ^[0-9]+$ ]] || [[ "$SAMPLE_COUNT" -lt 1 ]]; then
     echo "error: PGEN_EBNF_STIMULI_QUALITY_COUNT must be an integer >= 1" >&2
@@ -115,6 +113,17 @@ assert_json() {
     fi
 }
 
+parseability_summary_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er ".summary.${field} | numbers" "$path"
+}
+
+parseability_acceptance_rate_percent() {
+    local path="$1"
+    jq -er '.summary | if .attempts == 0 then 0 else ((.accepted * 100.0) / .attempts) end' "$path"
+}
+
 parse_target_summary() {
     local log_path="$1"
     local line
@@ -151,10 +160,53 @@ closed_loop_for_grammar() {
     local samples1="$WORK_DIR/${label}_samples_stage1.txt"
     local samples2="$WORK_DIR/${label}_samples_stage2.txt"
     local samples3="$WORK_DIR/${label}_samples_stage3.txt"
+    local parseability_report_json="$WORK_DIR/${label}_parseability_report.json"
+    local stage0_parseability_json="$WORK_DIR/${label}_parseability_stage0.json"
+    local stage1_parseability_json="$WORK_DIR/${label}_parseability_stage1.json"
+    local stage2_parseability_json="$WORK_DIR/${label}_parseability_stage2.json"
+    local stage3_parseability_json="$WORK_DIR/${label}_parseability_stage3.json"
+    local stage0_parseability_attempts=0
+    local stage0_parseability_accepted=0
+    local stage0_parseability_rejected=0
+    local stage0_parseability_parser_rejections=0
+    local stage0_parseability_generation_errors=0
+    local stage0_parseability_empty_generations=0
+    local stage1_parseability_attempts=0
+    local stage1_parseability_accepted=0
+    local stage1_parseability_rejected=0
+    local stage1_parseability_parser_rejections=0
+    local stage1_parseability_generation_errors=0
+    local stage1_parseability_empty_generations=0
+    local stage2_parseability_attempts=0
+    local stage2_parseability_accepted=0
+    local stage2_parseability_rejected=0
+    local stage2_parseability_parser_rejections=0
+    local stage2_parseability_generation_errors=0
+    local stage2_parseability_empty_generations=0
+    local stage3_parseability_attempts=0
+    local stage3_parseability_accepted=0
+    local stage3_parseability_rejected=0
+    local stage3_parseability_parser_rejections=0
+    local stage3_parseability_generation_errors=0
+    local stage3_parseability_empty_generations=0
+    local parseability_attempts_total=0
+    local parseability_accepted_total=0
+    local parseability_rejected_total=0
+    local parseability_parser_rejections_total=0
+    local parseability_generation_errors_total=0
+    local parseability_empty_generations_total=0
+    local parseability_acceptance_rate_total="0.00"
+    local parseability_report_path_for_summary="n/a"
 
-    local -a parseability_args=()
+    local -a parseability_args_stage0=()
+    local -a parseability_args_stage1=()
+    local -a parseability_args_stage2=()
+    local -a parseability_args_stage3=()
     if [[ "$require_parseability" -eq 1 ]]; then
-        parseability_args+=(--validate-parseability)
+        parseability_args_stage0=(--validate-parseability --parseability-report-json "$stage0_parseability_json")
+        parseability_args_stage1=(--validate-parseability --parseability-report-json "$stage1_parseability_json")
+        parseability_args_stage2=(--validate-parseability --parseability-report-json "$stage2_parseability_json")
+        parseability_args_stage3=(--validate-parseability --parseability-report-json "$stage3_parseability_json")
     fi
 
     run_logged "${label}_stage0_baseline" \
@@ -162,7 +214,7 @@ closed_loop_for_grammar() {
         --generate-stimuli \
         --count "$SAMPLE_COUNT" \
         --seed "$seed_base" \
-        "${parseability_args[@]}" \
+        "${parseability_args_stage0[@]}" \
         --gap-report-threshold "$GAP_THRESHOLD" \
         --output "$samples0" \
         --coverage-output "$coverage0" \
@@ -189,13 +241,23 @@ closed_loop_for_grammar() {
     covered_rules0="$(jq -er '[.rule_success_hits[] | select(. > 0)] | length | numbers' "$coverage0")"
     covered_branches0="$(jq -er '[.branch_groups[]?.success_counts[]? | select(. > 0)] | length | numbers' "$coverage0")"
     initial_targets="$(jq -er '.targets | length | numbers' "$gap0")"
+    if [[ "$require_parseability" -eq 1 ]]; then
+        require_nonempty_file "$stage0_parseability_json"
+        assert_json "$stage0_parseability_json" ".grammar_name == \"$grammar_name\"" "stage0 parseability grammar_name mismatch"
+        stage0_parseability_attempts="$(parseability_summary_field_u64 "$stage0_parseability_json" "attempts")"
+        stage0_parseability_accepted="$(parseability_summary_field_u64 "$stage0_parseability_json" "accepted")"
+        stage0_parseability_rejected="$(parseability_summary_field_u64 "$stage0_parseability_json" "rejected")"
+        stage0_parseability_parser_rejections="$(parseability_summary_field_u64 "$stage0_parseability_json" "parser_rejections")"
+        stage0_parseability_generation_errors="$(parseability_summary_field_u64 "$stage0_parseability_json" "generation_errors")"
+        stage0_parseability_empty_generations="$(parseability_summary_field_u64 "$stage0_parseability_json" "empty_generations")"
+    fi
 
     run_logged "${label}_stage1_gap_priority" \
         "$AST_PIPELINE_BIN" "$grammar_json" \
         --generate-stimuli \
         --count "$SAMPLE_COUNT" \
         --seed "$((seed_base + 1))" \
-        "${parseability_args[@]}" \
+        "${parseability_args_stage1[@]}" \
         --coverage-input "$coverage0" \
         --gap-priority-report-input "$gap0" \
         --output "$samples1" \
@@ -233,12 +295,22 @@ closed_loop_for_grammar() {
         echo "error: ${label} stage1 covered_branches regressed ($covered_branches0 -> $covered_branches1)" >&2
         exit 1
     fi
+    if [[ "$require_parseability" -eq 1 ]]; then
+        require_nonempty_file "$stage1_parseability_json"
+        assert_json "$stage1_parseability_json" ".grammar_name == \"$grammar_name\"" "stage1 parseability grammar_name mismatch"
+        stage1_parseability_attempts="$(parseability_summary_field_u64 "$stage1_parseability_json" "attempts")"
+        stage1_parseability_accepted="$(parseability_summary_field_u64 "$stage1_parseability_json" "accepted")"
+        stage1_parseability_rejected="$(parseability_summary_field_u64 "$stage1_parseability_json" "rejected")"
+        stage1_parseability_parser_rejections="$(parseability_summary_field_u64 "$stage1_parseability_json" "parser_rejections")"
+        stage1_parseability_generation_errors="$(parseability_summary_field_u64 "$stage1_parseability_json" "generation_errors")"
+        stage1_parseability_empty_generations="$(parseability_summary_field_u64 "$stage1_parseability_json" "empty_generations")"
+    fi
 
     run_logged "${label}_stage2_target_drive" \
         "$AST_PIPELINE_BIN" "$grammar_json" \
         --generate-stimuli \
         --seed "$((seed_base + 2))" \
-        "${parseability_args[@]}" \
+        "${parseability_args_stage2[@]}" \
         --coverage-input "$coverage1" \
         --target-report-input "$gap0" \
         --target-max-attempts "$TARGET_MAX_ATTEMPTS" \
@@ -272,6 +344,16 @@ closed_loop_for_grammar() {
         echo "error: ${label} stage2 covered_branches regressed ($covered_branches1 -> $covered_branches2)" >&2
         exit 1
     fi
+    if [[ "$require_parseability" -eq 1 ]]; then
+        require_nonempty_file "$stage2_parseability_json"
+        assert_json "$stage2_parseability_json" ".grammar_name == \"$grammar_name\"" "stage2 parseability grammar_name mismatch"
+        stage2_parseability_attempts="$(parseability_summary_field_u64 "$stage2_parseability_json" "attempts")"
+        stage2_parseability_accepted="$(parseability_summary_field_u64 "$stage2_parseability_json" "accepted")"
+        stage2_parseability_rejected="$(parseability_summary_field_u64 "$stage2_parseability_json" "rejected")"
+        stage2_parseability_parser_rejections="$(parseability_summary_field_u64 "$stage2_parseability_json" "parser_rejections")"
+        stage2_parseability_generation_errors="$(parseability_summary_field_u64 "$stage2_parseability_json" "generation_errors")"
+        stage2_parseability_empty_generations="$(parseability_summary_field_u64 "$stage2_parseability_json" "empty_generations")"
+    fi
 
     local stage2_log="$LOG_DIR/${label}_stage2_target_drive.log"
     local resolved_targets total_targets target_attempts
@@ -291,7 +373,7 @@ closed_loop_for_grammar() {
         --generate-stimuli \
         --count 1 \
         --seed "$((seed_base + 3))" \
-        "${parseability_args[@]}" \
+        "${parseability_args_stage3[@]}" \
         --coverage-input "$coverage2" \
         --output "$samples3" \
         --coverage-output "$coverage3" \
@@ -309,14 +391,70 @@ closed_loop_for_grammar() {
     local successes3 final_targets
     successes3="$(extract_json_u64 "$coverage3" ".sample_successes")"
     final_targets="$(jq -er '.targets | length | numbers' "$gap3")"
+    if [[ "$require_parseability" -eq 1 ]]; then
+        require_nonempty_file "$stage3_parseability_json"
+        assert_json "$stage3_parseability_json" ".grammar_name == \"$grammar_name\"" "stage3 parseability grammar_name mismatch"
+        stage3_parseability_attempts="$(parseability_summary_field_u64 "$stage3_parseability_json" "attempts")"
+        stage3_parseability_accepted="$(parseability_summary_field_u64 "$stage3_parseability_json" "accepted")"
+        stage3_parseability_rejected="$(parseability_summary_field_u64 "$stage3_parseability_json" "rejected")"
+        stage3_parseability_parser_rejections="$(parseability_summary_field_u64 "$stage3_parseability_json" "parser_rejections")"
+        stage3_parseability_generation_errors="$(parseability_summary_field_u64 "$stage3_parseability_json" "generation_errors")"
+        stage3_parseability_empty_generations="$(parseability_summary_field_u64 "$stage3_parseability_json" "empty_generations")"
+    fi
 
     if (( final_targets > initial_targets )); then
         echo "error: ${label} final actionable targets regressed ($initial_targets -> $final_targets)" >&2
         exit 1
     fi
 
+    if [[ "$require_parseability" -eq 1 ]]; then
+        parseability_attempts_total=$((stage0_parseability_attempts + stage1_parseability_attempts + stage2_parseability_attempts + stage3_parseability_attempts))
+        parseability_accepted_total=$((stage0_parseability_accepted + stage1_parseability_accepted + stage2_parseability_accepted + stage3_parseability_accepted))
+        parseability_rejected_total=$((stage0_parseability_rejected + stage1_parseability_rejected + stage2_parseability_rejected + stage3_parseability_rejected))
+        parseability_parser_rejections_total=$((stage0_parseability_parser_rejections + stage1_parseability_parser_rejections + stage2_parseability_parser_rejections + stage3_parseability_parser_rejections))
+        parseability_generation_errors_total=$((stage0_parseability_generation_errors + stage1_parseability_generation_errors + stage2_parseability_generation_errors + stage3_parseability_generation_errors))
+        parseability_empty_generations_total=$((stage0_parseability_empty_generations + stage1_parseability_empty_generations + stage2_parseability_empty_generations + stage3_parseability_empty_generations))
+        parseability_acceptance_rate_total="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$parseability_accepted_total" "$parseability_attempts_total")"
+        jq -n \
+            --arg label "$label" \
+            --arg grammar_name "$grammar_name" \
+            --argjson required "$require_parseability" \
+            --argjson attempts_total "$parseability_attempts_total" \
+            --argjson accepted_total "$parseability_accepted_total" \
+            --argjson rejected_total "$parseability_rejected_total" \
+            --argjson parser_rejections_total "$parseability_parser_rejections_total" \
+            --argjson generation_errors_total "$parseability_generation_errors_total" \
+            --argjson empty_generations_total "$parseability_empty_generations_total" \
+            --argjson acceptance_rate_percent "$parseability_acceptance_rate_total" \
+            --slurpfile stage0 "$stage0_parseability_json" \
+            --slurpfile stage1 "$stage1_parseability_json" \
+            --slurpfile stage2 "$stage2_parseability_json" \
+            --slurpfile stage3 "$stage3_parseability_json" \
+            '{
+                id: $label,
+                grammar_name: $grammar_name,
+                parseability_required: ($required == 1),
+                stages: {
+                    stage0_baseline: $stage0[0],
+                    stage1_gap_priority: $stage1[0],
+                    stage2_target_drive: $stage2[0],
+                    stage3_recompute_gap: $stage3[0]
+                },
+                totals: {
+                    attempts: $attempts_total,
+                    accepted: $accepted_total,
+                    rejected: $rejected_total,
+                    parser_rejections: $parser_rejections_total,
+                    generation_errors: $generation_errors_total,
+                    empty_generations: $empty_generations_total,
+                    acceptance_rate_percent: $acceptance_rate_percent
+                }
+            }' >"$parseability_report_json"
+        parseability_report_path_for_summary="$parseability_report_json"
+    fi
+
     echo "    ${label} closed-loop summary: parseability_required=${require_parseability} initial_targets=$initial_targets resolved=$resolved_targets final_targets=$final_targets target_attempts=$target_attempts"
-    echo "${label},${grammar_name},${require_parseability},${initial_targets},${resolved_targets},${final_targets},${target_attempts},${successes0},${successes3},pass" >>"$SUMMARY_CSV"
+    echo "${label},${grammar_name},${require_parseability},${parseability_attempts_total},${parseability_accepted_total},${parseability_rejected_total},${parseability_parser_rejections_total},${parseability_generation_errors_total},${parseability_empty_generations_total},${parseability_acceptance_rate_total},${parseability_report_path_for_summary},${initial_targets},${resolved_targets},${final_targets},${target_attempts},${successes0},${successes3},pass" >>"$SUMMARY_CSV"
 }
 
 require_tool jq
@@ -346,7 +484,7 @@ echo "target_max_attempts: $TARGET_MAX_ATTEMPTS"
 echo "frontend_impl: $FRONTEND_IMPL"
 echo "require_ebnf_parseability: $require_ebnf_parseability"
 
-echo "grammar,grammar_name,parseability_required,initial_targets,resolved_targets,final_targets,target_attempts,stage0_successes,stage3_successes,status" >"$SUMMARY_CSV"
+echo "grammar,grammar_name,parseability_required,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,parseability_report_json,initial_targets,resolved_targets,final_targets,target_attempts,stage0_successes,stage3_successes,status" >"$SUMMARY_CSV"
 
 run_logged_rust "build_generated_ast_pipeline" \
     cargo build --features generated_parsers --bin ast_pipeline
@@ -367,7 +505,6 @@ run_frontend_to_json() {
 }
 
 if [[ "$require_ebnf_parseability" -eq 1 ]]; then
-    mkdir -p "$GENERATED_DIR"
     require_file "$EBNF_BOOTSTRAP_GRAMMAR"
 
     run_logged "prepare_ebnf_frontend_json_for_parseability" \
@@ -382,6 +519,7 @@ if [[ "$require_ebnf_parseability" -eq 1 ]]; then
     require_nonempty_file "$EBNF_BOOTSTRAP_RS"
 
     run_logged_rust "rebuild_generated_ast_pipeline_with_ebnf_dual_run" \
+        env PGEN_EBNF_PARSER_PATH="$EBNF_BOOTSTRAP_RS" \
         cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
     if [[ ! -x "$AST_PIPELINE_BIN" ]]; then

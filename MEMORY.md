@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-09 (+0100, task: parseability-generation-telemetry)
+Last updated: 2026-03-09 (+0100, task: ebnf-parseability-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -106,6 +106,18 @@ Use this file to resume work without replaying full chat history.
       - `parseability_generation_attempts_total=13`
       - `parseability_generation_acceptance_rate_percent=30.77`,
   - closed-loop replay remains raw-generation for now because applying parser-in-loop generation there increased target debt (`1771 -> 1779`) and would violate the current replay invariant.
+- Cross-EBNF parseability-effort telemetry snapshot:
+  - `ebnf_stimuli_quality_gate` now consumes the shared `--parseability-report-json` contract for parseability-required grammars,
+  - summary CSV/text now reports aggregate parseability attempts/acceptance/rejections plus a discoverable per-grammar report path,
+  - per-grammar aggregate artifacts now land as:
+    - `ebnf_parseability_report.json`
+    - `builtin_return_annotation_parseability_report.json`
+    - `builtin_semantic_annotation_parseability_report.json`
+  - `ebnf_dual_run` builds now accept `PGEN_EBNF_PARSER_PATH`, and the gate uses a work-dir bootstrap parser instead of mutating tracked `generated/ebnf.*`,
+  - focused bounded evidence:
+    - `ebnf`: `attempts=33`, `accepted=19`, `rejected=14`, `acceptance_rate_percent=57.58`,
+    - `builtin_return_annotation`: `attempts=31`, `accepted=20`, `rejected=11`, `acceptance_rate_percent=64.52`,
+    - `builtin_semantic_annotation`: `attempts=4`, `accepted=4`, `rejected=0`, `acceptance_rate_percent=100.00`.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),
@@ -3163,6 +3175,8 @@ Use this file to resume work without replaying full chat history.
      - preserve the new parseability-effort observability if parser-in-loop generation is extended into closed-loop replay, without violating the non-increasing target-debt invariant.
 2. Continue Rust-native EBNF migration hardening:
    - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
+   - likely next useful parser-trust increment inside the non-annotation loop:
+     - promote the new parseability-effort report into any readiness/reporting surfaces that still only expose binary parseability success.
 3. Keep roadmap + UG + memory synced after every gate/contract increment.
 4. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.

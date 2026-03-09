@@ -10,7 +10,7 @@ pub mod ast_pipeline {
 
 #[allow(dead_code)]
 mod generated_ebnf {
-    include!("../../../generated/ebnf.rs");
+    include!(env!("PGEN_EBNF_PARSER_PATH_RESOLVED_BIN"));
 }
 
 use ast_pipeline::{ParseContent, ParseError};

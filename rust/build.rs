@@ -5,12 +5,16 @@ fn main() {
     println!("cargo:rustc-check-cfg=cfg(has_generated_systemverilog_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_systemverilog_preprocessor_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_vhdl_parser)");
+    println!("cargo:rerun-if-env-changed=PGEN_EBNF_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_SYSTEMVERILOG_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_VHDL_PARSER_PATH");
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into()));
     let source_dir = manifest_dir.join("src");
+    let bin_source_dir = source_dir.join("bin");
+    let ebnf_configured_path =
+        env::var("PGEN_EBNF_PARSER_PATH").unwrap_or_else(|_| "../generated/ebnf.rs".to_string());
     let systemverilog_configured_path = env::var("PGEN_SYSTEMVERILOG_PARSER_PATH")
         .unwrap_or_else(|_| "../generated/systemverilog_parser.rs".to_string());
     let systemverilog_preprocessor_configured_path =
@@ -19,6 +23,8 @@ fn main() {
     let vhdl_configured_path = env::var("PGEN_VHDL_PARSER_PATH")
         .unwrap_or_else(|_| "../generated/vhdl_parser.rs".to_string());
 
+    let ebnf_resolved = resolve_path(&manifest_dir, &ebnf_configured_path);
+    println!("cargo:rerun-if-changed={}", ebnf_resolved.to_string_lossy());
     let systemverilog_resolved = resolve_path(&manifest_dir, &systemverilog_configured_path);
     println!(
         "cargo:rerun-if-changed={}",
@@ -32,6 +38,14 @@ fn main() {
     );
     let vhdl_resolved = resolve_path(&manifest_dir, &vhdl_configured_path);
     println!("cargo:rerun-if-changed={}", vhdl_resolved.to_string_lossy());
+    println!(
+        "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED={}",
+        relativize_for_include(&source_dir, &ebnf_resolved).display()
+    );
+    println!(
+        "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED_BIN={}",
+        relativize_for_include(&bin_source_dir, &ebnf_resolved).display()
+    );
 
     if systemverilog_resolved.is_file() {
         println!("cargo:rustc-cfg=has_generated_systemverilog_parser");
