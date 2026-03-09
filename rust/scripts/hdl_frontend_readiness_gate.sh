@@ -36,23 +36,87 @@ if ! [[ "$PARSEABILITY_MAX_ATTEMPTS" =~ ^[0-9]+$ ]] || [[ "$PARSEABILITY_MAX_ATT
     exit 2
 fi
 
+PARSEABILITY_ATTEMPT_BUDGET=$((STIMULI_COUNT * PARSEABILITY_MAX_ATTEMPTS))
+
 mkdir -p "$STATE_DIR" "$LOG_DIR" "$WORK_DIR"
 
-echo "==> Building ast_pipeline binary"
-(cd "$RUST_DIR" && cargo build --bin ast_pipeline >/dev/null)
+require_tool() {
+    local tool="$1"
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "error: required tool '$tool' is not available in PATH" >&2
+        exit 1
+    fi
+}
+
+require_nonempty_file() {
+    local path="$1"
+    if [[ ! -s "$path" ]]; then
+        echo "error: expected non-empty artifact '$path'" >&2
+        exit 1
+    fi
+}
+
+parseability_summary_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er ".summary.${field} | numbers" "$path"
+}
+
+parseability_acceptance_rate_percent() {
+    local path="$1"
+    local attempts accepted
+    attempts="$(parseability_summary_field_u64 "$path" "attempts")"
+    accepted="$(parseability_summary_field_u64 "$path" "accepted")"
+    perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$accepted" "$attempts"
+}
+
+build_frontend_binaries() {
+    (
+        cd "$RUST_DIR"
+        env "$@" cargo build \
+            --features generated_parsers \
+            --bin ast_pipeline \
+            --bin parseability_probe \
+            >/dev/null
+    )
+}
+
+parseability_build_env_for_grammar() {
+    local grammar="$1"
+    local parser_path="$2"
+    case "$grammar" in
+        systemverilog)
+            printf 'PGEN_SYSTEMVERILOG_PARSER_PATH=%s\n' "$parser_path"
+            ;;
+        vhdl)
+            printf 'PGEN_VHDL_PARSER_PATH=%s\n' "$parser_path"
+            ;;
+    esac
+}
+
+require_tool jq
+
+echo "==> Building ast_pipeline and parseability_probe binaries"
+build_frontend_binaries
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary not found at '$AST_PIPELINE_BIN'" >&2
     exit 1
 fi
+if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
+    echo "error: parseability_probe binary not found at '$PARSE_PROBE_BIN'" >&2
+    exit 1
+fi
 
-echo "grammar,grammar_file,ebnf_to_json,json_to_parser,json_to_stimuli,parser_registry_support,parseability,overall,notes" >"$SUMMARY_CSV"
+echo "grammar,grammar_file,ebnf_to_json,json_to_parser,json_to_stimuli,parser_registry_support,parseability,parseability_attempts,parseability_accepted,parseability_rejected,parseability_acceptance_rate_percent,parseability_report_json,overall,notes" >"$SUMMARY_CSV"
 {
     echo "PGEN HDL Frontend Readiness Summary"
     echo "state_dir: $STATE_DIR"
     echo "strict_mode: $STRICT"
     echo "stimuli_count: $STIMULI_COUNT"
     echo "stimuli_seed: $STIMULI_SEED"
+    echo "parseability_max_attempts_per_sample: $PARSEABILITY_MAX_ATTEMPTS"
+    echo "parseability_attempt_budget: $PARSEABILITY_ATTEMPT_BUDGET"
     echo
 } >"$SUMMARY_TXT"
 
@@ -63,7 +127,6 @@ for grammar in "${GRAMMARS[@]}"; do
     json_out="$WORK_DIR/${grammar}.json"
     parser_out="$WORK_DIR/${grammar}_parser.rs"
     stimuli_out="$WORK_DIR/${grammar}_stimuli.txt"
-    stimuli_manifest="$WORK_DIR/${grammar}_stimuli_samples.list"
 
     grammar_file_status="missing"
     ebnf_to_json_status="skip"
@@ -71,15 +134,20 @@ for grammar in "${GRAMMARS[@]}"; do
     json_to_stimuli_status="skip"
     parser_registry_support_status="skip"
     parseability_status="skip"
+    parseability_attempts="0"
+    parseability_accepted="0"
+    parseability_rejected="0"
+    parseability_acceptance_rate="0.00"
+    parseability_report_path="n/a"
     overall="not_ready"
     notes="grammar file missing (expected ${grammar}.ebnf)"
 
     ebnf_log="$LOG_DIR/${grammar}.ebnf_to_json.log"
     parser_log="$LOG_DIR/${grammar}.json_to_parser.log"
     stimuli_log="$LOG_DIR/${grammar}.json_to_stimuli.log"
-    probe_build_log="$LOG_DIR/${grammar}.parseability_probe_build.log"
+    probe_build_log="$LOG_DIR/${grammar}.parseability_binaries_build.log"
     probe_support_log="$LOG_DIR/${grammar}.parseability_support.log"
-    parseability_log="$LOG_DIR/${grammar}.parseability.log"
+    parseability_report_json="$WORK_DIR/${grammar}_parseability_report.json"
 
     if [[ -f "$grammar_file" ]]; then
         grammar_file_status="present"
@@ -88,93 +156,46 @@ for grammar in "${GRAMMARS[@]}"; do
             ebnf_to_json_status="pass"
             if "$AST_PIPELINE_BIN" "$json_out" --generate-parser --eliminate-left-recursion -o "$parser_out" >"$parser_log" 2>&1; then
                 json_to_parser_status="pass"
-                : >"$stimuli_log"
-                : >"$stimuli_out"
-                : >"$stimuli_manifest"
-                stimuli_generation_failed=0
-                emitted_stimuli=0
+                build_env_line="$(parseability_build_env_for_grammar "$grammar" "$parser_out")"
+                echo "==> Rebuilding ast_pipeline and parseability_probe for ${grammar} parseability"
+                if build_frontend_binaries "$build_env_line" >"$probe_build_log" 2>&1; then
+                    :
+                else
+                    parser_registry_support_status="fail"
+                    parseability_status="fail"
+                    overall="fail"
+                    failures=$((failures + 1))
+                    notes="failed to rebuild parseability binaries (see logs/${grammar}.parseability_binaries_build.log)"
+                fi
 
-                for ((stimulus_idx = 0; stimulus_idx < STIMULI_COUNT; stimulus_idx++)); do
-                    stimulus_seed=$((STIMULI_SEED + stimulus_idx))
-                    stimulus_file="$WORK_DIR/${grammar}_stimulus_${stimulus_idx}.txt"
-                    if "$AST_PIPELINE_BIN" "$json_out" --generate-stimuli --count 1 --seed "$stimulus_seed" --output "$stimulus_file" >>"$stimuli_log" 2>&1; then
-                        if [[ -s "$stimulus_file" ]]; then
-                            printf '%s\n' "$stimulus_file" >>"$stimuli_manifest"
-                            emitted_stimuli=$((emitted_stimuli + 1))
-                        fi
-                    else
-                        stimuli_generation_failed=1
-                        break
-                    fi
-                done
-
-                if [[ "$stimuli_generation_failed" -eq 0 && "$emitted_stimuli" -gt 0 ]]; then
-                    json_to_stimuli_status="pass"
-                    probe_build_ok=0
-                    if [[ "$grammar" == "systemverilog" ]]; then
-                        if (cd "$RUST_DIR" && PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" cargo build --features generated_parsers --bin parseability_probe >"$probe_build_log" 2>&1); then
-                            probe_build_ok=1
-                        fi
-                    elif [[ "$grammar" == "vhdl" ]]; then
-                        if (cd "$RUST_DIR" && PGEN_VHDL_PARSER_PATH="$parser_out" cargo build --features generated_parsers --bin parseability_probe >"$probe_build_log" 2>&1); then
-                            probe_build_ok=1
-                        fi
-                    fi
-
-                    if [[ "$probe_build_ok" -eq 0 || ! -x "$PARSE_PROBE_BIN" ]]; then
-                        parser_registry_support_status="fail"
-                        parseability_status="fail"
-                        overall="fail"
-                        failures=$((failures + 1))
-                        notes="failed to build parseability_probe (see logs/${grammar}.parseability_probe_build.log)"
-                    elif "$PARSE_PROBE_BIN" --supports "$grammar" >"$probe_support_log" 2>&1; then
+                if [[ "$notes" == "ok" ]]; then
+                    if "$PARSE_PROBE_BIN" --supports "$grammar" >"$probe_support_log" 2>&1; then
                         parser_registry_support_status="pass"
-
-                        sample_index=0
-                        parseability_failed=0
-                        : >"$parseability_log"
-                        while IFS= read -r sample_file || [[ -n "$sample_file" ]]; do
-                            [[ -n "$sample_file" ]] || continue
-                            if ! "$PARSE_PROBE_BIN" --parse "$grammar" "$sample_file" >>"$parseability_log" 2>&1; then
-                                sample_base_seed=$((STIMULI_SEED + sample_index))
-                                recovered=0
-                                for ((retry_idx = 1; retry_idx < PARSEABILITY_MAX_ATTEMPTS; retry_idx++)); do
-                                    retry_seed=$((sample_base_seed + retry_idx * STIMULI_COUNT))
-                                    if "$AST_PIPELINE_BIN" "$json_out" --generate-stimuli --count 1 --seed "$retry_seed" --output "$sample_file" >>"$stimuli_log" 2>&1 && [[ -s "$sample_file" ]]; then
-                                        if "$PARSE_PROBE_BIN" --parse "$grammar" "$sample_file" >>"$parseability_log" 2>&1; then
-                                            echo "Recovered parseability for sample ${sample_index} with retry seed ${retry_seed}" >>"$parseability_log"
-                                            recovered=1
-                                            break
-                                        fi
-                                    fi
-                                done
-                                if [[ "$recovered" -eq 0 ]]; then
-                                    parseability_failed=1
-                                    break
-                                fi
+                        if "$AST_PIPELINE_BIN" "$json_out" --generate-stimuli --count "$STIMULI_COUNT" --seed "$STIMULI_SEED" --validate-parseability --parseability-max-attempts "$PARSEABILITY_ATTEMPT_BUDGET" --parseability-report-json "$parseability_report_json" --output "$stimuli_out" >"$stimuli_log" 2>&1; then
+                            require_nonempty_file "$stimuli_out"
+                            require_nonempty_file "$parseability_report_json"
+                            if jq -e ".grammar_name == \"$grammar\" and .summary.requested == $STIMULI_COUNT and .summary.accepted == $STIMULI_COUNT and .summary.attempts >= .summary.accepted and .summary.rejected == (.summary.attempts - .summary.accepted)" "$parseability_report_json" >/dev/null; then
+                                json_to_stimuli_status="pass"
+                                parseability_status="pass"
+                                parseability_attempts="$(parseability_summary_field_u64 "$parseability_report_json" "attempts")"
+                                parseability_accepted="$(parseability_summary_field_u64 "$parseability_report_json" "accepted")"
+                                parseability_rejected="$(parseability_summary_field_u64 "$parseability_report_json" "rejected")"
+                                parseability_acceptance_rate="$(parseability_acceptance_rate_percent "$parseability_report_json")"
+                                parseability_report_path="$parseability_report_json"
+                                overall="pass"
+                            else
+                                json_to_stimuli_status="fail"
+                                parseability_status="fail"
+                                overall="fail"
+                                failures=$((failures + 1))
+                                notes="parseability report validation failed (see work/${grammar}_parseability_report.json)"
                             fi
-                            sample_index=$((sample_index + 1))
-                        done <"$stimuli_manifest"
-
-                        if [[ "$sample_index" -eq 0 ]]; then
-                            parseability_failed=1
-                            echo "no non-empty stimuli samples were emitted" >>"$parseability_log"
-                        fi
-
-                        if [[ "$parseability_failed" -eq 1 ]]; then
+                        else
+                            json_to_stimuli_status="fail"
                             parseability_status="fail"
                             overall="fail"
                             failures=$((failures + 1))
-                            notes="parseability failed (see logs/${grammar}.parseability.log)"
-                        else
-                            : >"$stimuli_out"
-                            while IFS= read -r accepted_sample_file || [[ -n "$accepted_sample_file" ]]; do
-                                [[ -n "$accepted_sample_file" ]] || continue
-                                cat "$accepted_sample_file" >>"$stimuli_out"
-                                printf '\n\n' >>"$stimuli_out"
-                            done <"$stimuli_manifest"
-                            parseability_status="pass"
-                            overall="pass"
+                            notes="parseability-backed json_to_stimuli failed (see logs/${grammar}.json_to_stimuli.log)"
                         fi
                     else
                         parser_registry_support_status="fail"
@@ -183,11 +204,6 @@ for grammar in "${GRAMMARS[@]}"; do
                         failures=$((failures + 1))
                         notes="parser_registry adapter unavailable (see logs/${grammar}.parseability_support.log)"
                     fi
-                else
-                    json_to_stimuli_status="fail"
-                    overall="fail"
-                    failures=$((failures + 1))
-                    notes="json_to_stimuli failed (see logs/${grammar}.json_to_stimuli.log)"
                 fi
             else
                 json_to_parser_status="fail"
@@ -205,7 +221,7 @@ for grammar in "${GRAMMARS[@]}"; do
         failures=$((failures + 1))
     fi
 
-    echo "${grammar},${grammar_file_status},${ebnf_to_json_status},${json_to_parser_status},${json_to_stimuli_status},${parser_registry_support_status},${parseability_status},${overall},${notes}" >>"$SUMMARY_CSV"
+    echo "${grammar},${grammar_file_status},${ebnf_to_json_status},${json_to_parser_status},${json_to_stimuli_status},${parser_registry_support_status},${parseability_status},${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_acceptance_rate},${parseability_report_path},${overall},${notes}" >>"$SUMMARY_CSV"
 done
 
 {

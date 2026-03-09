@@ -140,6 +140,10 @@ struct Args {
     #[arg(long, requires = "validate_parseability")]
     parseability_report_json: Option<String>,
 
+    /// Max generation attempts for parseability-aware stimuli generation (defaults to count * 50)
+    #[arg(long, requires = "validate_parseability")]
+    parseability_max_attempts: Option<usize>,
+
     /// Load prior stimuli coverage JSON and merge new generation coverage into it
     #[arg(long)]
     coverage_input: Option<String>,
@@ -473,6 +477,7 @@ fn main() -> Result<()> {
     if !stimuli_like_mode {
         let has_shared_stimuli_flags = args.validate_parseability
             || args.parseability_report_json.is_some()
+            || args.parseability_max_attempts.is_some()
             || args.coverage_input.is_some()
             || args.coverage_output.is_some()
             || args.gap_report_json.is_some()
@@ -482,7 +487,7 @@ fn main() -> Result<()> {
             || args.enforce_word_boundary_spacing;
         if has_shared_stimuli_flags {
             return Err(anyhow::anyhow!(
-                "--validate-parseability/--parseability-report-json/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
+                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
             ));
         }
     }
@@ -495,6 +500,12 @@ fn main() -> Result<()> {
         ));
     }
     let dump_gen_ast_max_bytes = resolve_dump_gen_ast_max_bytes(&args)?;
+
+    if matches!(args.parseability_max_attempts, Some(0)) {
+        return Err(anyhow::anyhow!(
+            "--parseability-max-attempts must be greater than 0"
+        ));
+    }
 
     if args.preprocess_systemverilog {
         let include_dirs = args
@@ -724,6 +735,7 @@ fn main() -> Result<()> {
                 &mut generator,
                 args.count,
                 Some(resolved_entry_rule.as_str()),
+                args.parseability_max_attempts,
             )?;
             if let Some(report_path) = args.parseability_report_json.as_deref() {
                 write_parseability_report(
@@ -894,6 +906,7 @@ fn main() -> Result<()> {
                     &mut generator,
                     args.count,
                     args.entry_rule.as_deref(),
+                    args.parseability_max_attempts,
                 )?;
                 parseability_summary = Some(outcome.summary);
                 outcome.samples
@@ -955,6 +968,7 @@ fn main() -> Result<()> {
                 &mut generator,
                 args.count,
                 args.entry_rule.as_deref(),
+                args.parseability_max_attempts,
             )?;
             parseability_summary = Some(outcome.summary);
             merged_coverage = generator.coverage_metrics().clone();
@@ -2047,10 +2061,12 @@ fn generate_parseable_stimuli(
     generator: &mut StimuliGenerator<'_>,
     requested_count: usize,
     entry_rule: Option<&str>,
+    max_attempts_override: Option<usize>,
 ) -> Result<ParseableStimuliOutcome> {
     ensure_parseability_support(grammar_name)?;
 
-    let max_attempts = requested_count.saturating_mul(50).max(requested_count);
+    let max_attempts =
+        resolve_parseability_max_attempts(requested_count, max_attempts_override);
     let mut accepted = Vec::with_capacity(requested_count);
     let mut attempts = 0usize;
     let mut rejected = 0usize;
@@ -2127,6 +2143,10 @@ fn generate_parseable_stimuli(
         samples: accepted,
         summary,
     })
+}
+
+fn resolve_parseability_max_attempts(requested_count: usize, override_attempts: Option<usize>) -> usize {
+    override_attempts.unwrap_or_else(|| requested_count.saturating_mul(50).max(requested_count))
 }
 
 fn write_parseability_report(
@@ -2213,7 +2233,8 @@ mod tests {
         canonicalize_json_value, coverage_branch_hit_delta, default_parser_output_path,
         default_stimuli_module_output_path, generate_stimuli_module_source, is_ebnf_input_path,
         maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
-        parse_recovery_stimuli_mode, resolve_stimuli_module_seed,
+        parse_recovery_stimuli_mode, resolve_parseability_max_attempts,
+        resolve_stimuli_module_seed,
         supported_generated_parseability_grammars, supports_generated_parseability,
     };
     use pgen::ast_pipeline::stimuli_generator::{BranchCoverageGroup, RecoveryStimuliMode};
@@ -2269,6 +2290,17 @@ mod tests {
         assert_eq!(summary.parser_rejections, 3);
         assert_eq!(summary.generation_errors, 0);
         assert_eq!(summary.empty_generations, 0);
+    }
+
+    #[test]
+    fn parseability_max_attempts_defaults_to_count_times_fifty() {
+        assert_eq!(resolve_parseability_max_attempts(4, None), 200);
+        assert_eq!(resolve_parseability_max_attempts(1, None), 50);
+    }
+
+    #[test]
+    fn parseability_max_attempts_honors_override() {
+        assert_eq!(resolve_parseability_max_attempts(4, Some(17)), 17);
     }
 
     #[test]

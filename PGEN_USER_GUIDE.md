@@ -57,6 +57,7 @@ In practical terms:
 - prefix-only acceptance is not considered parseable,
 - with `--validate-parseability`, only fully parseable generated samples are counted as accepted.
 - `--parseability-report-json PATH` writes machine-readable parseability generation telemetry (`requested`, `accepted`, `rejected`, `attempts`, rejection breakdown, acceptance rate).
+- `--parseability-max-attempts N` sets an explicit total attempt budget for parseability-aware generation instead of relying on the default `count * 50`.
 
 ## 3) Fast Start
 
@@ -227,6 +228,7 @@ High-value stimuli flags:
 - `--enforce-word-boundary-spacing` (append delimiter spaces after terminal `\\b` regex samples to reduce merged-token outputs)
 - `--validate-parseability`
 - `--parseability-report-json`
+- `--parseability-max-attempts`
 - `--coverage-input`
 - `--coverage-output`
 - `--gap-report-json`
@@ -603,11 +605,12 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast
   --seed 7201 \
   --entry-rule semantic_annotation \
   --validate-parseability \
+  --parseability-max-attempts 3200 \
   --parseability-report-json /tmp/semantic_parseability.json \
   --output /tmp/semantic_replay.txt
 ```
 
-With `--validate-parseability`, add `--parseability-report-json PATH` when you want structured acceptance-effort telemetry for the run rather than only the human-readable summary line on stdout.
+With `--validate-parseability`, add `--parseability-report-json PATH` when you want structured acceptance-effort telemetry for the run rather than only the human-readable summary line on stdout. Add `--parseability-max-attempts N` when a gate or experiment needs an explicit acceptance-effort budget.
 
 ### Deterministic Replay and Seed Compatibility Guarantees
 - In-memory mode (`--generate-stimuli`):
@@ -2224,12 +2227,17 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
   - fails on missing grammar files or failing flow stages.
 - readiness stage outputs now include parser replay visibility:
   - `parser_registry_support` (adapter availability),
-  - `parseability` (sample replay through generated parser adapter).
+  - `parseability` (sample replay through generated parser adapter),
+  - `parseability_attempts`,
+  - `parseability_accepted`,
+  - `parseability_rejected`,
+  - `parseability_acceptance_rate_percent`,
+  - `parseability_report_json`.
 - parseability stage behavior:
-  - generated samples are tracked as per-sample files (manifest-driven) to preserve multiline stimuli integrity.
-  - when a sample fails full parse replay, the gate deterministically retries with incremented seeds until parseable or retry budget is exhausted.
+  - parser-backed readiness now uses the shared `ast_pipeline --validate-parseability --parseability-report-json` path instead of an HDL-only manual retry loop.
+  - the gate rebuilds both `ast_pipeline` and `parseability_probe` against the freshly generated HDL parser from the current readiness run before measuring parseability.
   - retry budget env:
-    - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` (default `50`).
+    - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` (default `50` requested attempts per emitted sample; the gate maps this into the shared total attempt budget passed to `--parseability-max-attempts`).
 - current active HDL grammar status:
   - `grammars/systemverilog.ebnf` is now the active flattened dual-profile SystemVerilog grammar derived from the IEEE 1800-2017/2023 markdown workspaces.
   - `grammars/systemverilog.ebnf` passes `EBNF -> JSON -> parser -> stimuli`.

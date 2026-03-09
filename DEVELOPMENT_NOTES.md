@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-09 - HDL Readiness Now Uses The Shared Parseability Report Path
+### Context
+`hdl_frontend_readiness_gate` was still the odd one out after the EBNF and SV parseability-telemetry work. It had explicit parser replay, but the implementation was still an HDL-specific manifest/retry loop that only surfaced binary `parseability=pass|fail`. That was weaker than the project’s newer parser-trust contract and duplicated behavior the shared CLI already knew how to report.
+
+### Implementation
+- Generalized `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`:
+  - added `--parseability-max-attempts` so parseability-aware generation can take an explicit total attempt budget instead of only the default `count * 50`,
+  - threaded the override through all parseability-aware generation call sites,
+  - added focused tests for the default and overridden budget resolution.
+- Promoted `/Users/richarddje/Documents/github/pgen/rust/scripts/hdl_frontend_readiness_gate.sh` onto the shared path:
+  - the gate now rebuilds `ast_pipeline` and `parseability_probe` with the freshly generated `systemverilog` / `vhdl` parser from the current readiness run,
+  - it now measures readiness parseability through `--validate-parseability --parseability-report-json`,
+  - summary rows now expose:
+    - `parseability_attempts`
+    - `parseability_accepted`
+    - `parseability_rejected`
+    - `parseability_acceptance_rate_percent`
+    - `parseability_report_json`
+  - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` is preserved, but it now maps to the shared total-attempt budget instead of driving an HDL-only retry loop.
+
+### Validation
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/hdl_frontend_readiness_gate.sh`
+- `PGEN_HDL_FRONTEND_STATE_DIR=/tmp/pgen_hdl_frontend_readiness_parseability PGEN_HDL_FRONTEND_STIMULI_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash hdl_frontend_readiness`
+  - observed:
+    - `systemverilog`: `attempts=16`, `accepted=2`, `rejected=14`, `acceptance_rate_percent=12.50`
+    - `vhdl`: `attempts=8`, `accepted=2`, `rejected=6`, `acceptance_rate_percent=25.00`
+
+### Notes
+- This removes an HDL-specific observability fork and keeps the readiness path aligned with the project-wide parser-trust doctrine.
+- The change is generic in spirit: budgeted parseability generation is now a CLI capability, not a gate-local shell trick.
+
 ## 2026-03-09 - Add Explicit Raw-AST Under-Reporting Telemetry To The EBNF Dual-Run Gate
 ### Context
 The `regex.ebnf` helper-rule delta had already been explained: Rust raw-AST export preserves the real trailing helper rules, while the legacy Perl export under-reports them. But that knowledge only lived in narrative notes. The executable dual-run report still reduced everything to parser/full-parse parity, leaving the raw-AST limitation invisible unless someone already knew where to look.

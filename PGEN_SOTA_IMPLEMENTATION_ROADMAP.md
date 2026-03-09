@@ -259,6 +259,15 @@ Engine generalization rule:
   - Progress (2026-02-27): extended `hdl_frontend_readiness_gate` with explicit parser-registry parseability stages (`parser_registry_support`, `parseability`) so tracked SV/VHDL grammar flows now report parser replay viability in addition to parser generation success.
   - Progress (2026-02-27): resolved parseability-probe build compatibility drift by aligning generated semantic parser naming aliases and replacing stale `parser.debug_output` codegen with logger-based debug emission; regenerated annotation parsers from bootstrap pipeline.
   - Progress (2026-02-27): hardened gate parseability stage with per-sample manifest + deterministic retry-to-parseable loop (`PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS`) so strict HDL gate remains green under multiline stimuli outputs and stochastic generation variance.
+  - Progress (2026-03-09): promoted HDL readiness parseability onto the shared parser-backed contract:
+    - `ast_pipeline` now supports generic `--parseability-max-attempts`,
+    - `hdl_frontend_readiness_gate` now rebuilds `ast_pipeline` and `parseability_probe` against the freshly generated HDL parser and emits:
+      - `parseability_attempts`
+      - `parseability_accepted`
+      - `parseability_rejected`
+      - `parseability_acceptance_rate_percent`
+      - `parseability_report_json`
+    - the old HDL-specific manual retry loop is retired in favor of the shared `--validate-parseability --parseability-report-json` path.
   - Progress (2026-02-27): added executable `grammars/vhdl.ebnf` seed grammar and validated strict `make hdl_frontend_gate` with both `systemverilog` and `vhdl` rows passing.
 - [x] Add dedicated VHDL closed-loop stimuli quality gate (`make vhdl_stimuli_quality_gate`) with contractized controls.
   - Progress (2026-02-27): added `rust/scripts/vhdl_stimuli_quality_gate.sh` + contract manifest `rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to enforce deterministic `EBNF -> JSON -> parser -> coverage/gap -> replay -> parse_full(optional)` execution on `grammars/vhdl.ebnf`.

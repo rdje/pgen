@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-09 (+0100, task: ebnf-dual-run-under-report-telemetry)
+Last updated: 2026-03-09 (+0100, task: hdl-readiness-parseability-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -146,6 +146,19 @@ Use this file to resume work without replaying full chat history.
     - `ebnf`: `raw_ast_status=parity`
     - `json`: `raw_ast_status=parity`
     - `regex`: `raw_ast_status=perl_under_reports`, `raw_ast_missing_on_perl_count=9`
+- HDL frontend readiness parseability snapshot:
+  - `hdl_frontend_readiness_gate` now uses the shared parser-backed `ast_pipeline --validate-parseability --parseability-report-json` path instead of a gate-local sample-manifest retry loop,
+  - `rust/src/main.rs` now supports generic `--parseability-max-attempts` so readiness and future gates can set an explicit parseability attempt budget without HDL-specific shell logic,
+  - the HDL readiness summary now exposes:
+    - `parseability_attempts`
+    - `parseability_accepted`
+    - `parseability_rejected`
+    - `parseability_acceptance_rate_percent`
+    - `parseability_report_json`
+  - the gate preserves `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` by translating it to the shared total-attempt budget passed to `--parseability-max-attempts`,
+  - current focused evidence at `PGEN_HDL_FRONTEND_STIMULI_COUNT=2`:
+    - `systemverilog`: `attempts=16`, `accepted=2`, `rejected=14`, `acceptance_rate_percent=12.50`
+    - `vhdl`: `attempts=8`, `accepted=2`, `rejected=6`, `acceptance_rate_percent=25.00`
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),
