@@ -1159,6 +1159,25 @@ Toolbox baseline to leverage end-to-end:
       - `realistic_corpus_cases_executed=334`,
       - `realistic_corpus_observed_parse_pass_total=334`,
       - `realistic_corpus_observed_parse_fail_total=0`.
+  - Progress (2026-03-09): expanded the checked-in Nexsim realistic corpus to `266` declared deterministic all-pass cases (`version: 35`) with richer imported-width docosa-bridge composition, twenty-four-child pipelines, deeper include-chain docosa-bridge reuse, and width-aware macro twenty-four-child families:
+    - added required-pass cases for:
+      - multi-module imported-width docosa-bridge named-port composition,
+      - multi-module imported-width docosa-bridge wildcard composition,
+      - module-local import multi-width twenty-four-child pipeline composition,
+      - package-import multi-width twenty-four-child pipeline composition,
+      - deeper include-chain package-width twenty-four-child pipeline composition,
+      - deeper include-chain package-width docosa-bridge wildcard reuse,
+      - macro-expanded multi-width import twenty-four-child pipeline composition,
+      - macro-expanded module-name multi-width twenty-four-child composition,
+      - macro-expanded port-name multi-width twenty-four-child composition,
+    - direct dual-profile preprocess + parse-full validation for the new cases remained green:
+      - `18/18` passes across `sv_2017` and `sv_2023`,
+    - bounded full-gate refresh remained green:
+      - `closed_loop_profiles_passed=2/2`,
+      - `realistic_corpus_cases_declared=266`,
+      - `realistic_corpus_cases_executed=532`,
+      - `realistic_corpus_observed_parse_pass_total=532`,
+      - `realistic_corpus_observed_parse_fail_total=0`.
   - Progress (2026-03-08): expanded the checked-in Nexsim realistic corpus to `257` declared deterministic all-pass cases (`version: 34`) with richer imported-width heneicosa-bridge composition, twenty-three-child pipelines, deeper include-chain heneicosa-bridge reuse, and width-aware macro twenty-three-child families:
     - added required-pass cases for:
       - multi-module imported-width heneicosa-bridge named-port composition,
