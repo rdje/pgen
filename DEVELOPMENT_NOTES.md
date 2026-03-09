@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-09 - Parser-Backed Readiness Telemetry For The EBNF Frontend Gate
+### Context
+After adding shared parseability-effort telemetry to the CLI and to `ebnf_stimuli_quality_gate`, `ebnf_frontend_readiness_gate` was still lagging behind: it could only say that tracked grammars reached `EBNF -> JSON -> parser -> stimuli`, not whether any of those stimuli were parser-backed or how much retry cost parser-backed acceptance required. That left the readiness surface too binary for the project’s parser-trust bar.
+
+### Implementation
+- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh` so readiness rows now expose:
+  - `parser_registry_support`
+  - `parseability`
+  - `parseability_attempts`
+  - `parseability_accepted`
+  - `parseability_rejected`
+  - `parseability_acceptance_rate_percent`
+  - `parseability_report_json`
+- Added parser-backed readiness behavior for supported grammars:
+  - the gate now builds `ast_pipeline` and `parseability_probe` with `generated_parsers + ebnf_dual_run`,
+  - for `ebnf`, after generating the readiness-run parser source, it rebuilds both binaries with `PGEN_EBNF_PARSER_PATH=<workdir parser>` so parseability validation is executed against the freshly generated parser from the current readiness run.
+- Preserved honest reporting for unsupported grammars:
+  - tracked grammars without parser-registry adapters (`json`, `regex`) now explicitly report `parser_registry_support=unavailable` and `parseability=skip`,
+  - they still run raw stimuli generation so frontend viability remains measured, but they no longer look equivalent to parser-backed coverage.
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
+- `PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_parseability_perl PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness`
+  - observed:
+    - `ebnf`: `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
+    - `json`: `parser_registry_support=unavailable`
+    - `regex`: `parser_registry_support=unavailable`
+- `PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_parseability_rust PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 PGEN_EBNF_FRONTEND_IMPL=rust make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness`
+  - observed:
+    - same parser-backed readiness telemetry shape under the Rust frontend path.
+
+### Notes
+- This keeps the readiness report honest: parser-backed evidence is now visible where it exists and explicitly absent where it does not.
+- The next natural frontend-trust follow-up is expanding parser-registry coverage beyond `ebnf` so `json` and `regex` can graduate from `unavailable` / `skip` to real parseability-backed readiness.
+
 ## 2026-03-09 - Cross-EBNF Parseability Effort Telemetry In The Non-Annotation Quality Gate
 ### Context
 Once the shared `--parseability-report-json` contract existed, leaving `ebnf_stimuli_quality_gate` on plain pass/fail would have kept the non-annotation loop less observable than the SystemVerilog loop. That was the next obvious trust gap: parseability-required grammars in the generic EBNF gate needed the same visibility into retry cost and parser rejection rates. While closing that gap, a second issue surfaced: the gate was regenerating tracked `generated/ebnf.json` and `generated/ebnf.rs` as a side effect, which is wrong for a validation gate.

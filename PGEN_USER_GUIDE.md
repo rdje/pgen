@@ -2189,6 +2189,17 @@ PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_gate
 - Notes:
   - `PGEN_EBNF_FRONTEND_IMPL=perl` remains the default.
   - the Rust path now handles multiline semantic annotation blocks in tracked grammars such as `grammars/regex.ebnf`.
+  - readiness output now distinguishes plain frontend viability from parser-backed validation:
+    - `parser_registry_support`
+    - `parseability`
+    - `parseability_attempts`
+    - `parseability_accepted`
+    - `parseability_rejected`
+    - `parseability_acceptance_rate_percent`
+    - `parseability_report_json`
+  - currently tracked parser-backed readiness coverage is explicit:
+    - `ebnf` runs parseability-validated generation through the freshly generated `ebnf` parser for the current readiness run,
+    - `json` and `regex` still report `parser_registry_support=unavailable` / `parseability=skip` instead of claiming validation that does not exist.
 
 HDL frontend readiness commands (Pillar 5 kickoff):
 ```bash

@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-03-09 - Add Parser-Backed Parseability Telemetry To `ebnf_frontend_readiness_gate`
+### ✅ Achievement Summary
+Extended the EBNF frontend readiness report so it no longer stops at binary `EBNF -> JSON -> parser -> stimuli` success. The gate now exposes parser-registry support and parseability-effort telemetry for tracked grammars that actually have generated-parser replay coverage, while explicitly marking unsupported grammars as such.
+
+### Scope of Changes
+- Hardened EBNF frontend readiness reporting:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
+    - summary rows now include:
+      - `parser_registry_support`
+      - `parseability`
+      - `parseability_attempts`
+      - `parseability_accepted`
+      - `parseability_rejected`
+      - `parseability_acceptance_rate_percent`
+      - `parseability_report_json`
+    - `ebnf` readiness now rebuilds `ast_pipeline` / `parseability_probe` against the freshly generated readiness-run `ebnf` parser via `PGEN_EBNF_PARSER_PATH`,
+    - unsupported tracked grammars fall back to raw stimuli generation but report `parser_registry_support=unavailable` / `parseability=skip` explicitly.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- Shell gate syntax:
+  - `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh` ✅
+- Perl-frontend readiness proof:
+  - `PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_parseability_perl PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness` ✅
+    - observed:
+      - `ebnf`: `parser_registry_support=pass`, `parseability=pass`, `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
+      - `json`: `parser_registry_support=unavailable`, `parseability=skip`
+      - `regex`: `parser_registry_support=unavailable`, `parseability=skip`
+- Rust-frontend readiness proof:
+  - `PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_parseability_rust PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 PGEN_EBNF_FRONTEND_IMPL=rust make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness` ✅
+    - observed:
+      - same parser-backed readiness telemetry shape as the Perl-front-end run, with all tracked grammar rows passing.
+
+### Notes
+- This is a reporting-contract hardening step, not a grammar-specific heuristic change.
+- The gate now makes an important distinction visible:
+  - “frontend flow succeeds”
+  - versus
+  - “frontend flow is also parser-backed and we can quantify acceptance effort”.
+
 ## 2026-03-09 - Add Parseability Effort Telemetry To `ebnf_stimuli_quality_gate`
 ### ✅ Achievement Summary
 Extended the non-annotation EBNF quality gate to consume the shared parseability-report contract, so parseability-required grammars now report acceptance effort across the whole closed loop rather than only ending in a pass/fail outcome. The gate also no longer dirties tracked `generated/ebnf.json` / `generated/ebnf.rs` during local validation.

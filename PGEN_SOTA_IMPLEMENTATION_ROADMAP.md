@@ -109,6 +109,10 @@ Engine generalization rule:
     - Rust `raw_ast` export keeps all `87` top-level rules present in source,
     - the legacy Perl export reports only `78`,
     - the missing `9` Perl-side rules are real trailing helper definitions, so Rust should not filter them out.
+  - Progress (2026-03-09): extended `ebnf_frontend_readiness_gate` from binary frontend success into parser-trust reporting for supported grammars:
+    - readiness summary now exposes parser-registry support and parseability-effort telemetry (`attempts`, `accepted`, `rejected`, acceptance rate, report path),
+    - `ebnf` parseability validation is now executed against the freshly generated readiness-run parser via `PGEN_EBNF_PARSER_PATH`, not a stale tracked parser artifact,
+    - unsupported tracked grammars (`json`, `regex`) now report `parser_registry_support=unavailable` / `parseability=skip` explicitly instead of silently looking equivalent to parser-backed coverage.
 
 ### Phase I (New): SOTA Exit Criteria Aggregation
 - [x] Add aggregate `make sota_exit_gate` to execute required release-grade checks in one command.

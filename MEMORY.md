@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-09 (+0100, task: ebnf-parseability-telemetry)
+Last updated: 2026-03-09 (+0100, task: ebnf-frontend-readiness-parseability-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -118,6 +118,16 @@ Use this file to resume work without replaying full chat history.
     - `ebnf`: `attempts=33`, `accepted=19`, `rejected=14`, `acceptance_rate_percent=57.58`,
     - `builtin_return_annotation`: `attempts=31`, `accepted=20`, `rejected=11`, `acceptance_rate_percent=64.52`,
     - `builtin_semantic_annotation`: `attempts=4`, `accepted=4`, `rejected=0`, `acceptance_rate_percent=100.00`.
+- EBNF frontend readiness parseability snapshot:
+  - `ebnf_frontend_readiness_gate` now exposes parser-registry support and parseability-effort telemetry instead of stopping at binary frontend success,
+  - `ebnf` readiness is rebuilt against the freshly generated readiness-run parser through `PGEN_EBNF_PARSER_PATH`,
+  - current focused evidence at `PGEN_EBNF_FRONTEND_STIMULI_COUNT=2`:
+    - Perl frontend path:
+      - `ebnf`: `parser_registry_support=pass`, `parseability=pass`, `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
+      - `json`: `parser_registry_support=unavailable`, `parseability=skip`
+      - `regex`: `parser_registry_support=unavailable`, `parseability=skip`
+    - Rust frontend path:
+      - same readiness telemetry shape and all tracked rows passing.
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),
