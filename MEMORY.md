@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-09 (+0100, task: ebnf-frontend-readiness-json-regex-promotion)
+Last updated: 2026-03-09 (+0100, task: ebnf-dual-run-under-report-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -132,6 +132,20 @@ Use this file to resume work without replaying full chat history.
       - `regex`: `parser_registry_support=pass`, `parseability=pass`, `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
     - Rust frontend path:
       - same readiness telemetry shape and all tracked rows passing.
+- EBNF dual-run raw-AST telemetry snapshot:
+  - `ebnf_frontend_dual_run_diff_gate` now exports Rust raw-AST envelopes during the same report run and compares Perl-vs-Rust rule-name sets explicitly,
+  - per-grammar rows now expose:
+    - `rust_rule_count`
+    - `raw_ast_status`
+    - `raw_ast_missing_on_perl_count`
+    - `raw_ast_missing_on_rust_count`
+  - gate policy is now explicit:
+    - `parity` and `perl_under_reports` are non-failing when parser/full-parse parity holds,
+    - `rust_under_reports` and `divergent` remain unexpected and gate-failing,
+  - current focused evidence:
+    - `ebnf`: `raw_ast_status=parity`
+    - `json`: `raw_ast_status=parity`
+    - `regex`: `raw_ast_status=perl_under_reports`, `raw_ast_missing_on_perl_count=9`
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),
@@ -3188,7 +3202,6 @@ Use this file to resume work without replaying full chat history.
    - parser-trust follow-up inside the same area:
      - preserve the new parseability-effort observability if parser-in-loop generation is extended into closed-loop replay, without violating the non-increasing target-debt invariant.
 2. Continue Rust-native EBNF migration hardening:
-   - decide whether to add explicit legacy-Perl under-reporting telemetry to the EBNF dual-run reporting path now that the `regex.ebnf` helper-rule delta has been explained.
    - likely next useful parser-trust increment inside the non-annotation loop:
      - promote the new parseability-effort report into any readiness/reporting surfaces that still only expose binary parseability success.
 3. Keep roadmap + UG + memory synced after every gate/contract increment.

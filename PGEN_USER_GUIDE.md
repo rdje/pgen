@@ -2141,8 +2141,13 @@ Tracked baselines:
   - same checks, but fails on any grammar-flow failure
 - `ebnf_frontend_dual_run_diff` (local report target)
   - executes Perl-vs-Rust (`generated/ebnf.rs`) frontend differential report for `ebnf/json/regex`
+  - report now also includes Rust raw-AST export comparison against Perl `raw_ast` output:
+    - `raw_ast_status=parity|perl_under_reports|rust_under_reports|divergent`
+    - missing-rule counts on each side
+    - per-grammar `raw_ast_compare_json` artifact
 - `ebnf_frontend_dual_run_gate` (local strict target)
-  - same dual-run differential checks, but fails on any mismatch/failure
+  - same dual-run differential checks, but fails on unexpected mismatches/failures
+  - known legacy-Perl subset under-reporting is surfaced as informational telemetry (`perl_under_reports`) instead of being treated as a hard parity failure by itself
 - `performance-gate`
   - throughput/latency/failure thresholds
 - `differential-regression-gate`
@@ -2241,6 +2246,11 @@ EBNF frontend dual-run commands:
 make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff
 make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate
 ```
+
+- dual-run report semantics:
+  - parser/full-parse parity remains required for all tracked grammars,
+  - the report now also compares Perl `raw_ast` rule-name sets against the Rust frontend `raw_ast` export,
+  - when the Rust rule-name set is a strict superset of the Perl rule-name set, the row is reported as `raw_ast_status=perl_under_reports` with explicit missing-rule counts and artifact paths instead of being silently treated as plain parity.
 
 Aggregate SOTA policy note:
 - dual-run strict mode is required by default in `rust/config/sota_exit_policy.env` (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`).

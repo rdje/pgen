@@ -118,6 +118,11 @@ Engine generalization rule:
     - `ebnf_frontend_readiness_gate` now rebuilds parser-backed validation binaries for each tracked grammar (`ebnf`, `json`, `regex`) against that run's freshly generated parser source,
     - the underlying AST pipeline now merges duplicate raw-AST rule heads generically instead of emitting duplicate generated parser methods/constants, which was the real blocker for `json` parser promotion,
     - focused readiness evidence is now green for both frontend paths with parser-backed rows for all tracked grammars.
+  - Progress (2026-03-09): added explicit raw-AST comparison telemetry to `ebnf_frontend_dual_run_diff`:
+    - the dual-run gate now exports Rust raw-AST envelopes for `ebnf/json/regex` alongside Perl `raw_ast`,
+    - per-grammar reports now classify raw-AST set comparison as `parity`, `perl_under_reports`, `rust_under_reports`, or `divergent`,
+    - legacy Perl subset under-reporting is now visible as structured telemetry instead of being buried in narrative docs,
+    - only unexpected raw-AST divergence remains gate-failing; known Perl-under-report subset cases stay informational.
 
 ### Phase I (New): SOTA Exit Criteria Aggregation
 - [x] Add aggregate `make sota_exit_gate` to execute required release-grade checks in one command.

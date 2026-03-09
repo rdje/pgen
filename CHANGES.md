@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-09 - Add Explicit Perl Under-Reporting Telemetry To EBNF Dual-Run Reports
+### ✅ Achievement Summary
+The EBNF dual-run differential report now makes legacy Perl raw-AST under-reporting explicit. Instead of relying on memory or narrative docs to explain the `regex.ebnf` helper-rule delta, the gate now publishes Rust raw-AST comparison telemetry for every tracked grammar.
+
+### Scope of Changes
+- Extended the dual-run gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+    - now builds `ast_pipeline` with `ebnf_dual_run` support so the same run can export Rust raw-AST envelopes,
+    - emits per-grammar Rust raw-AST artifacts and `raw_ast_compare_json`,
+    - summary/report rows now include:
+      - `rust_rule_count`
+      - `raw_ast_status`
+      - `raw_ast_missing_on_perl_count`
+      - `raw_ast_missing_on_rust_count`
+    - classifies raw-AST set comparison generically as:
+      - `parity`
+      - `perl_under_reports`
+      - `rust_under_reports`
+      - `divergent`
+    - treats `perl_under_reports` as informational while keeping unexpected raw-AST divergence gate-failing.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
 ## 2026-03-09 - Promote `json` And `regex` To Parser-Backed EBNF Readiness
 ### ✅ Achievement Summary
 Extended parser-backed EBNF frontend readiness from `ebnf` alone to the full tracked trio `ebnf/json/regex`. The real blocker turned out to be generic raw-AST handling: duplicate rule heads were being emitted as duplicate generated parser items instead of one merged rule.

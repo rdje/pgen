@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-09 - Add Explicit Raw-AST Under-Reporting Telemetry To The EBNF Dual-Run Gate
+### Context
+The `regex.ebnf` helper-rule delta had already been explained: Rust raw-AST export preserves the real trailing helper rules, while the legacy Perl export under-reports them. But that knowledge only lived in narrative notes. The executable dual-run report still reduced everything to parser/full-parse parity, leaving the raw-AST limitation invisible unless someone already knew where to look.
+
+### Implementation
+- Updated `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`:
+  - `ast_pipeline` is now built with `--features ebnf_dual_run` so the gate can export Rust raw-AST envelopes during the same run,
+  - each tracked grammar now emits:
+    - Perl raw-AST JSON
+    - Rust parse/full-parse JSON
+    - Rust raw-AST JSON
+    - `raw_ast_compare_json`
+  - the gate compares unique rule-name sets from Perl and Rust raw-AST outputs and classifies the result as:
+    - `parity`
+    - `perl_under_reports`
+    - `rust_under_reports`
+    - `divergent`
+  - summary rows now expose `rust_rule_count`, `raw_ast_status`, and missing-rule counts on each side.
+- Preserved an objective gate policy:
+  - parser/full-parse parity is still required,
+  - `perl_under_reports` is informational because it is a known legacy-export limitation,
+  - unexpected raw-AST divergence (`rust_under_reports` / `divergent`) remains gate-failing.
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+  - observed:
+    - `ebnf`: `raw_ast_status=parity`
+    - `json`: `raw_ast_status=parity`
+    - `regex`: `raw_ast_status=perl_under_reports`
+      - missing on Perl side: `9` helper rules
+    - parser/full-parse rows remained passing for all tracked grammars.
+
+### Notes
+- This turns a known interpretive caveat into machine-readable telemetry.
+- The comparison logic is EBNF-agnostic: it reasons over rule-name-set inclusion rather than special-casing `regex.ebnf`.
+
 ## 2026-03-09 - Promote `json` And `regex` To Parser-Backed EBNF Frontend Readiness
 ### Context
 After adding parser-backed readiness telemetry, the next trust gap was obvious: the report still treated `json` and `regex` as unsupported even though they are first-class tracked EBNFs. Trying to wire them in exposed the real issue, and it was not `json`-specific or `regex`-specific: duplicate raw-AST rule heads were being carried through code generation as duplicate parser definitions.
