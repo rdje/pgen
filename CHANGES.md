@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-10 - Deemphasize Low-Yield Target Branches Generically
+### ✅ Achievement Summary
+The shared stimuli engine now penalizes target branches based on sustained low accepted-success yield, not only the zero-success case. This is an engine-level parser-trust improvement: once parser-backed replay has enough history to show that a branch is being selected repeatedly and rarely accepted, target guidance now de-emphasizes that branch generically across grammars instead of continuing to overpay its target debt.
+
+### Scope of Changes
+- Hardened the shared stimuli engine:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`
+    - replaced the zero-success-only target-branch throttle with a generic ratio-based failure throttle,
+    - added regression test `target_branch_failure_throttle_penalizes_persistently_low_success_ratio`,
+    - added regression test `coverage_guidance_multiplier_deemphasizes_low_yield_target_branch`.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_branch_failure_throttle_penalizes_persistently_low_success_ratio -- --nocapture` ✅
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml coverage_guidance_multiplier_deemphasizes_low_yield_target_branch -- --nocapture` ✅
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture` ✅
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - authoritative replay debt improved: `4876 -> 3925`
+    - replay shadow improved to `requested_total=491`, `accepted_total=148`, `rejected_total=343`, `acceptance_rate_percent=30.14`
+    - prior strict baseline for the same bounded run was `requested_total=474`, `accepted_total=135`, `rejected_total=339`, `acceptance_rate_percent=28.48`
+- bounded VHDL proof with a temporary reduced replay-budget contract override ✅
+  - observed:
+    - authoritative replay debt improved: `271 -> 20`
+    - replay shadow improved to `requested_total=31`, `accepted_total=9`, `rejected_total=22`, `acceptance_rate_percent=29.03`
+    - prior strict baseline for the same bounded proof was `requested_total=31`, `accepted_total=7`, `rejected_total=24`, `acceptance_rate_percent=22.58`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-10 - Make Target-Driven Parseability Roll Back Rejected Success Debt
 ### ✅ Achievement Summary
 The shared target-driven generation path is now validator-aware. When `ast_pipeline` runs with `--target-report-input --validate-parseability`, parser-rejected outputs no longer count as resolved rule/branch successes internally. That closes a real parser-trust bug: replay-shadow telemetry now measures target-driven parseability against accepted hits, not against raw successes that were filtered out afterward.

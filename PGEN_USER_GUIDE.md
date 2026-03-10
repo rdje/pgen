@@ -616,6 +616,7 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
 - parser-rejected outputs do not pay down rule/branch success debt,
 - rejected outputs are excluded from returned samples,
 - branch-selection history is still retained so the generator can throttle repeatedly failing target branches instead of forgetting them.
+- once a branch has enough history, that throttle is driven by accepted-success yield (`selected_counts` versus `success_counts`), so branches that are selected often and rarely accepted are de-emphasized generically instead of only clamping zero-success branches.
 
 ### Deterministic Replay and Seed Compatibility Guarantees
 - In-memory mode (`--generate-stimuli`):
@@ -2742,8 +2743,8 @@ Optional SV syntax-closure gate tuning:
       - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`
       - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400`
       - observed:
-        - authoritative replay debt: `4876 -> 3894`
-        - replay parseability shadow: `requested_total=474`, `accepted_total=135`, `rejected_total=339`, `acceptance_rate_percent=28.48`
+        - authoritative replay debt: `4876 -> 3925`
+        - replay parseability shadow: `requested_total=491`, `accepted_total=148`, `rejected_total=343`, `acceptance_rate_percent=30.14`
 - per-sample deterministic flow:
   - `stimuli_generate -> preprocess -> parse_full(optional) -> semantic_validate_baseline`.
 - trusted-reference differential taxonomy:
@@ -3243,6 +3244,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - it does not change `closed_loop_replay_targets`,
     - it exists to measure how much of the target-driven replay output remains parseable under the generated parser.
   - inside the shadow run, parser-rejected outputs do not count as resolved successes for the target plan; the generator retains branch-selection history but rolls back rule/branch success debt on rejected candidates.
+  - that retained history now also drives a generic low-yield branch throttle, so replay-shadow and future parser-backed target loops can back off branches that consume many attempts per accepted output.
   - summary text now emits:
     - `closed_loop_parseability_shadow_requested_total`
     - `closed_loop_parseability_shadow_attempts_total`

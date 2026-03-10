@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - Target Guidance Now Penalizes Low-Yield Branches, Not Only Zero-Success Branches
+### Context
+The parser-aware debt rollback made replay-shadow accounting honest, but it also exposed the next generic engine weakness: target guidance was still only clamping branches with zero accepted successes. That was too coarse. A branch that gets selected many times and only rarely produces parser-accepted output should also lose priority, otherwise the engine keeps wasting replay budget on objectively low-yield branches.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`:
+  - replaced the zero-success-only target-branch throttle with a ratio-based throttle driven by branch selection history versus accepted successes,
+  - kept the behavior EBNF-agnostic by basing it only on shared coverage counters (`selected_counts` / `success_counts`),
+  - added focused regression tests for:
+    - throttle ordering on low-success-ratio history,
+    - multiplier behavior when two branches have the same remaining deficit but very different accepted-yield history.
+
+### Validation
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_branch_failure_throttle_penalizes_persistently_low_success_ratio -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml coverage_guidance_multiplier_deemphasizes_low_yield_target_branch -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed:
+    - authoritative replay debt: `4876 -> 3925`
+    - replay shadow: `requested_total=491`, `accepted_total=148`, `rejected_total=343`, `acceptance_rate_percent=30.14`
+    - previous strict baseline for the same bounded run: `requested_total=474`, `accepted_total=135`, `rejected_total=339`, `acceptance_rate_percent=28.48`
+- bounded VHDL proof with a temporary reduced replay-budget contract override:
+  - observed:
+    - authoritative replay debt: `271 -> 20`
+    - replay shadow: `requested_total=31`, `accepted_total=9`, `rejected_total=22`, `acceptance_rate_percent=29.03`
+    - previous strict baseline for the same bounded proof: `requested_total=31`, `accepted_total=7`, `rejected_total=24`, `acceptance_rate_percent=22.58`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Notes
+- This is still measurement-backed, not a trick: the authoritative replay debt contract remains intact and only the generic branch-weight guidance changed.
+- The next shared quality step is likely improving how fast target replay finds alternative parseable branches after a low-yield branch has been downweighted.
+
 ## 2026-03-10 - Target-Driven Parseability No Longer Lets Rejected Outputs Pay Debt
 ### Context
 The replay-shadow telemetry exposed a deeper issue in the shared engine path. `ast_pipeline --target-report-input --validate-parseability` was still resolving target debt on raw generator success and only filtering parser-rejected outputs afterward. That meant the target plan could internally “close” on samples the generated parser would never accept. The fix had to be generic and engine-level, not an SV-only shell adjustment.

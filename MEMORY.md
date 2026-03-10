@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-10 (+0100, task: target-driven-parseability-debt-rollback)
+Last updated: 2026-03-10 (+0100, task: low-yield-target-branch-throttle)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -98,6 +98,7 @@ Use this file to resume work without replaying full chat history.
   - `sv_stimuli_quality_gate` now aggregates that telemetry into per-sample CSV columns, gate summary totals, and `systemverilog_parseability_generation_report.json`,
   - closed-loop replay now also emits telemetry-only parser-backed shadow evidence into `systemverilog_closed_loop_parseability_shadow_report.json` while leaving raw replay target/preprocess debt authoritative,
   - the shared target-driven parseability path now rolls back rule/branch success debt on parser-rejected outputs while preserving branch-selection history, so `--target-report-input --validate-parseability` no longer closes targets on post-hoc-filtered rejects,
+  - the shared target-guidance path now also penalizes persistently low-yield branches generically using accepted-success ratio history instead of only the zero-success case,
   - measured evidence from focused runs:
     - `sv_file` scored generation reached `parse_full_pass_ratio_percent=100` with `16/16` passes across both profiles at `PGEN_SV_STIMULI_QUALITY_COUNT=8`,
     - `sv_semantic_file` scored generation reached `parse_full_pass_ratio_percent=100` with `8/8` passes across both profiles at `PGEN_SV_STIMULI_QUALITY_COUNT=4`,
@@ -107,23 +108,23 @@ Use this file to resume work without replaying full chat history.
       - `parseability_generation_rejected_total=9`
       - `parseability_generation_attempts_total=13`
       - `parseability_generation_acceptance_rate_percent=30.77`,
-    - focused closed-loop replay-shadow proof on `sv_file` (`count=1`, bounded replay budget `400`) stayed green with stricter target-driven parseability accounting:
+    - focused closed-loop replay-shadow proof on `sv_file` (`count=1`, bounded replay budget `400`) stayed green and improved under the generic low-yield branch throttle:
       - `closed_loop_initial_targets_total=4876`
-      - `closed_loop_replay_targets_total=3894`
-      - `closed_loop_parseability_shadow_requested_total=474`
-      - `closed_loop_parseability_shadow_accepted_total=135`
-      - `closed_loop_parseability_shadow_rejected_total=339`
-      - `closed_loop_parseability_shadow_acceptance_rate_percent=28.48`,
+      - `closed_loop_replay_targets_total=3925`
+      - `closed_loop_parseability_shadow_requested_total=491`
+      - `closed_loop_parseability_shadow_accepted_total=148`
+      - `closed_loop_parseability_shadow_rejected_total=343`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=30.14`,
   - closed-loop replay remains raw-generation for authoritative debt accounting because a parser-in-loop replay replacement can still increase target debt; the new shadow stage exists to measure that gap objectively without relaxing the invariant.
 - VHDL replay parseability shadow snapshot:
   - the same shared validator-aware target loop now backs `vhdl_stimuli_quality_gate` replay-shadow generation,
-  - bounded proof with a temporary reduced replay budget remained green:
+  - bounded proof with a temporary reduced replay budget remained green and improved under the same generic low-yield branch throttle:
     - `closed_loop_initial_targets=271`
-    - `closed_loop_replay_targets=33`
+    - `closed_loop_replay_targets=20`
     - `closed_loop_parseability_shadow_requested_total=31`
-    - `closed_loop_parseability_shadow_accepted_total=7`
-    - `closed_loop_parseability_shadow_rejected_total=24`
-    - `closed_loop_parseability_shadow_acceptance_rate_percent=22.58`
+    - `closed_loop_parseability_shadow_accepted_total=9`
+    - `closed_loop_parseability_shadow_rejected_total=22`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
 - Cross-EBNF parseability-effort telemetry snapshot:
   - `ebnf_stimuli_quality_gate` now consumes the shared `--parseability-report-json` contract for parseability-required grammars,
   - summary CSV/text now reports aggregate parseability attempts/acceptance/rejections plus a discoverable per-grammar report path,
@@ -3263,7 +3264,8 @@ Use this file to resume work without replaying full chat history.
      - deeper include-chain variants that combine package-width state with more than twenty-one child stages or mixed wildcard/named-port reuse across multiple modules,
      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
    - parser-trust follow-up inside the same area:
-     - preserve the new parseability-effort observability if parser-in-loop generation is extended into closed-loop replay, without violating the non-increasing target-debt invariant.
+     - continue lifting parser-backed replay-shadow acceptance from the new `30.14%` bounded SV baseline without relaxing the authoritative non-increasing target-debt invariant.
+     - likely next shared-engine direction: improve alternative-branch exploration after low-yield branches are downweighted, again without grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
    - likely next useful parser-trust increment inside the non-annotation loop:
      - promote the new parseability-effort report into any readiness/reporting surfaces that still only expose binary parseability success.

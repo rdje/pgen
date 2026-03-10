@@ -2560,33 +2560,33 @@ impl<'a> StimuliGenerator<'a> {
             branch_node,
         ));
 
-        // Prevent target-driven mode from over-selecting a branch that has repeatedly failed.
-        if branch_target_deficit > 0 && success_hits == 0 && selected_hits > 0 {
-            let throttle = Self::failing_target_branch_throttle(selected_hits);
+        // Prevent target-driven mode from over-selecting branches that repeatedly fail parser-backed validation.
+        if branch_target_deficit > 0 && selected_hits > 0 {
+            let throttle = Self::target_branch_failure_throttle(selected_hits, success_hits);
             multiplier = (multiplier / throttle).max(1);
         }
 
         multiplier
     }
 
-    fn failing_target_branch_throttle(selected_hits: u64) -> u64 {
-        if selected_hits >= 2048 {
-            256
-        } else if selected_hits >= 1024 {
-            128
-        } else if selected_hits >= 512 {
-            96
-        } else if selected_hits >= 256 {
-            64
-        } else if selected_hits >= 128 {
-            32
-        } else if selected_hits >= 64 {
-            16
-        } else if selected_hits >= 32 {
-            8
-        } else {
-            4
+    fn target_branch_failure_throttle(selected_hits: u64, success_hits: u64) -> u64 {
+        if selected_hits < 8 {
+            return 1;
         }
+
+        if success_hits.saturating_mul(3) > selected_hits {
+            return 1;
+        }
+
+        let raw_throttle = if success_hits == 0 {
+            selected_hits.saturating_mul(2)
+        } else {
+            selected_hits
+                .saturating_add(success_hits.saturating_sub(1))
+                .saturating_div(success_hits)
+        };
+
+        raw_throttle.clamp(1, 256)
     }
 
     fn count_uncovered_rule_references(&self, node: &ASTNode) -> usize {
@@ -5488,6 +5488,77 @@ mod tests {
         assert!(
             group.selected_counts.get(1).copied().unwrap_or(0) > 0,
             "rejected branch should still accumulate selection history for throttling"
+        );
+    }
+
+    #[test]
+    fn target_branch_failure_throttle_penalizes_persistently_low_success_ratio() {
+        assert_eq!(StimuliGenerator::target_branch_failure_throttle(4, 0), 1);
+        assert!(
+            StimuliGenerator::target_branch_failure_throttle(64, 0)
+                > StimuliGenerator::target_branch_failure_throttle(64, 16),
+            "zero-success branches should be throttled harder than branches with real success history"
+        );
+        assert!(
+            StimuliGenerator::target_branch_failure_throttle(64, 1)
+                > StimuliGenerator::target_branch_failure_throttle(64, 16),
+            "very low success ratios should be throttled harder than healthier branches"
+        );
+        assert_eq!(StimuliGenerator::target_branch_failure_throttle(64, 40), 1);
+    }
+
+    #[test]
+    fn coverage_guidance_multiplier_deemphasizes_low_yield_target_branch() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 890);
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        let applied = generator.apply_targets(&report.targets);
+        assert!(
+            applied >= 2,
+            "expected branch targets to apply alongside any entry-rule debt"
+        );
+
+        let group = generator
+            .coverage
+            .branch_groups
+            .get_mut("start::root")
+            .expect("branch group should exist");
+        group.selected_counts = vec![64, 64];
+        group.success_counts = vec![1, 16];
+
+        let thresholds = generator
+            .target_plan
+            .branch_thresholds
+            .get_mut("start::root")
+            .expect("branch target plan should exist");
+        thresholds.insert(0, 2);
+        thresholds.insert(1, 17);
+
+        let alternatives = match grammar_tree.get("start").expect("rule should exist") {
+            ASTNode::Or { alternatives } => alternatives,
+            other => panic!("expected OR node, got {:?}", other),
+        };
+
+        let low_yield_multiplier =
+            generator.coverage_guidance_multiplier("start", "root", 0, &alternatives[0]);
+        let healthy_multiplier =
+            generator.coverage_guidance_multiplier("start", "root", 1, &alternatives[1]);
+
+        assert!(
+            low_yield_multiplier < healthy_multiplier,
+            "low-yield target branch should be deemphasized once selection history shows poor parseability (low_yield={}, healthy={})",
+            low_yield_multiplier,
+            healthy_multiplier
         );
     }
 

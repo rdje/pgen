@@ -946,6 +946,25 @@ Toolbox baseline to leverage end-to-end:
       - `closed_loop_parseability_shadow_accepted_total=7`
       - `closed_loop_parseability_shadow_rejected_total=24`
       - `closed_loop_parseability_shadow_acceptance_rate_percent=22.58`
+  - Progress (2026-03-10): hardened shared target guidance so persistently low-yield branches are de-emphasized generically instead of only clamping zero-success branches:
+    - `StimuliGenerator` target-branch throttling is now driven by accepted-success ratio history (`selected_counts` vs `success_counts`) with no grammar-specific logic,
+    - new regression tests prove:
+      - low-success-ratio branches are throttled harder than healthier branches with comparable history,
+      - coverage guidance can prefer a healthier branch over a low-yield branch when remaining deficit is otherwise comparable,
+    - focused bounded SV evidence improved under the same replay-shadow configuration:
+      - `closed_loop_initial_targets_total=4876`
+      - `closed_loop_replay_targets_total=3925`
+      - `closed_loop_parseability_shadow_requested_total=491`
+      - `closed_loop_parseability_shadow_accepted_total=148`
+      - `closed_loop_parseability_shadow_rejected_total=343`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=30.14`
+    - bounded VHDL proof under the same temporary reduced replay budget also improved:
+      - `closed_loop_initial_targets=271`
+      - `closed_loop_replay_targets=20`
+      - `closed_loop_parseability_shadow_requested_total=31`
+      - `closed_loop_parseability_shadow_accepted_total=9`
+      - `closed_loop_parseability_shadow_rejected_total=22`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
   - Progress (2026-03-06): closed the remaining realistic-corpus parse gaps and promoted the manifest to an all-pass baseline (`version: 3`):
     - `grammars/systemverilog.ebnf` now accepts:
       - edge-qualified event controls (`@(posedge clk)`, `@(negedge rst_n)`),
