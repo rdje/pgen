@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-03-10 - Add Parseability Report Parity to `stimuli_module_parity_gate`
+### ✅ Achievement Summary
+The stimuli-module parity gate now treats parser-backed acceptance effort as a first-class parity contract instead of a hidden binary precondition. For parseability-required grammars, it now verifies that in-memory generation and generated `*_stimuli.rs` module generation produce identical parseability report JSON, and it surfaces the resulting attempt/accept/reject totals directly in the gate summary.
+
+### Scope of Changes
+- Hardened parity-gate observability and contract enforcement:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/stimuli_module_parity_gate.sh`
+    - emits `--parseability-report-json` for both in-memory and generated-module generation paths when parseability is required,
+    - canonicalizes and compares those reports directly,
+    - extends summary CSV/text with:
+      - `parseability_attempts_total`
+      - `parseability_accepted_total`
+      - `parseability_rejected_total`
+      - `parseability_parser_rejections_total`
+      - `parseability_generation_errors_total`
+      - `parseability_empty_generations_total`
+      - `parseability_acceptance_rate_percent`
+      - both parseability report artifact paths.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/stimuli_module_parity_gate.sh` ✅
+- `PGEN_STIMULI_MODULE_PARITY_COUNT=4 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash stimuli_module_parity_gate` ✅
+  - observed parity summary evidence:
+    - `return_annotation`: `attempts=4`, `accepted=4`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=8`, `accepted=4`, `rejected=4`, `parser_rejections=4`, `acceptance_rate_percent=50.00`
+
 ## 2026-03-10 - Surface Aggregate Readiness Parseability Telemetry
 ### ✅ Achievement Summary
 The aggregate release gate now surfaces parser-backed readiness evidence directly for both non-annotation EBNF and HDL frontend readiness. `sota_exit_gate` now routes those readiness stages under aggregate-scoped state dirs and prints their full readiness tables in aggregate `summary.txt`, including parseability attempts, accepted/rejected counts, acceptance rate, and report paths.

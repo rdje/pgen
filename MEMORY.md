@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-10 (+0100, task: aggregate-readiness-telemetry-surfacing)
+Last updated: 2026-03-10 (+0100, task: stimuli-module-parseability-parity)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -84,6 +84,24 @@ Use this file to resume work without replaying full chat history.
     - HDL readiness:
       - `systemverilog` `1/15` accepted (`6.67%`)
       - `vhdl` `1/5` accepted (`20.00%`)
+- Stimuli-module parity parseability surface:
+  - `stimuli_module_parity_gate` now treats parser-backed acceptance effort as part of the parity contract instead of an implicit precondition,
+  - for parseability-required grammars it emits and compares:
+    - in-memory `--parseability-report-json`
+    - generated-module `--parseability-report-json`
+  - summary artifacts now expose:
+    - `parseability_attempts_total`
+    - `parseability_accepted_total`
+    - `parseability_rejected_total`
+    - `parseability_parser_rejections_total`
+    - `parseability_generation_errors_total`
+    - `parseability_empty_generations_total`
+    - `parseability_acceptance_rate_percent`
+    - both report artifact paths
+  - focused proof used the normal gate state dir with `PGEN_STIMULI_MODULE_PARITY_COUNT=4`,
+  - observed bounded parity evidence:
+    - `return_annotation`: `attempts=4`, `accepted=4`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=8`, `accepted=4`, `rejected=4`, `parser_rejections=4`, `acceptance_rate_percent=50.00`
 - Build-script include path contract:
   - `rust/build.rs` now emits build-script-resolved HDL parser include paths relative to `rust/src/`,
   - compile-time repo-local `include!(...)` resolution should not depend on absolute filesystem paths.
@@ -3312,7 +3330,7 @@ Use this file to resume work without replaying full chat history.
      - likely next shared-engine direction: improve alternative-branch exploration after low-yield branches are downweighted, again without grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
    - likely next useful parser-trust increment inside the non-annotation loop:
-     - promote the new parseability-effort report into any remaining reporting surfaces beyond the now-covered aggregate readiness/quality paths, especially places that still collapse parser-backed effort into binary success only.
+     - promote the new parseability-effort report into any remaining reporting surfaces beyond the now-covered aggregate readiness/quality/parity paths, especially places that still collapse parser-backed effort into binary success only.
 3. Keep roadmap + UG + memory synced after every gate/contract increment.
 4. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.

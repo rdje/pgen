@@ -634,6 +634,7 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
   - `max_repeat`,
   - `recovery_stimuli_mode`,
   - parseability filter setting,
+  - parseability attempt budget (when parseability validation is enabled),
   - coverage merge input (if used).
 - Cross-mode parity (samples + coverage + gap) is enforced by:
 ```bash
@@ -2139,6 +2140,8 @@ Tracked baselines:
     - same grammar + seed + generation config,
     - identical sample corpus,
     - identical coverage metrics JSON and gap report JSON (canonicalized compare),
+    - for parseability-required grammars, identical parseability report JSON including attempts / accepted / rejected / rejection breakdown,
+    - summary CSV/text now surfaces parseability attempts, accepted/rejected totals, acceptance rate, and both report artifact paths,
     - contract-driven grammar roster from `rust/test_data/grammar_quality/stimuli_module_parity_contract.json`
 - `ast_dump_contract_gate` (local gate target)
   - deterministic + bounded AST dump contract verification for both dump surfaces:

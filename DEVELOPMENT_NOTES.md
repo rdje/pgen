@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - Stimuli-Module Parity Now Includes Parseability Report Equality
+### Context
+`stimuli_module_parity_gate` was already proving deterministic parity for sample corpus, coverage JSON, and gap JSON between in-memory generation and generated `*_stimuli.rs` modules. That still left parser-backed acceptance effort implicit: when parseability was required, both paths had to succeed, but the gate was not proving that they took the same number of attempts or rejected the same samples for the same reasons. Under the parser trust doctrine, that was incomplete parity evidence.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/stimuli_module_parity_gate.sh`:
+  - emits `--parseability-report-json` for both parity paths when the contract marks a grammar as parseability-required,
+  - canonicalizes and compares the resulting in-memory vs module parseability reports,
+  - extends summary CSV/text with parseability totals and report artifact paths.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/stimuli_module_parity_gate.sh`
+- `PGEN_STIMULI_MODULE_PARITY_COUNT=4 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash stimuli_module_parity_gate`
+  - observed:
+    - `return_annotation`: `attempts=4`, `accepted=4`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=8`, `accepted=4`, `rejected=4`, `parser_rejections=4`, `acceptance_rate_percent=50.00`
+
+### Notes
+- This does not change parser or generator behavior. It closes an observability gap in the parity contract by making parser-backed acceptance effort part of deterministic cross-mode evidence.
+
 ## 2026-03-10 - Aggregate Readiness Runs Now Surface Parseability Tables
 ### Context
 The readiness gates were already producing the right parser-backed telemetry, but aggregate `sota_exit_gate` runs still hid it. At sign-off time, operators could see only that `ebnf_frontend_gate` and `hdl_frontend_gate` passed, not how many attempts were needed to get parseable emitted samples or where the readiness parseability reports lived. That was a visibility gap, not a parser bug, so the fix belonged in aggregate observability.

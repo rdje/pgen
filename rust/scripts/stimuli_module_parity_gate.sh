@@ -104,6 +104,20 @@ assert_json() {
     fi
 }
 
+parseability_summary_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er ".summary.${field} | numbers" "$path"
+}
+
+parseability_acceptance_rate_percent() {
+    local path="$1"
+    local attempts accepted
+    attempts="$(parseability_summary_field_u64 "$path" "attempts")"
+    accepted="$(parseability_summary_field_u64 "$path" "accepted")"
+    perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$accepted" "$attempts"
+}
+
 canonicalize_json() {
     local input_path="$1"
     local output_path="$2"
@@ -198,6 +212,20 @@ parity_for_grammar() {
     local sample_diff="$WORK_DIR/${label}_sample_literals.diff"
     local coverage_diff="$WORK_DIR/${label}_coverage.diff"
     local gap_diff="$WORK_DIR/${label}_gap.diff"
+    local parseability_diff="$WORK_DIR/${label}_parseability.diff"
+    local inmem_parseability_report="$WORK_DIR/${label}_parseability_inmemory.json"
+    local module_parseability_report="$WORK_DIR/${label}_parseability_module.json"
+    local inmem_parseability_norm="$WORK_DIR/${label}_parseability_inmemory.normalized.json"
+    local module_parseability_norm="$WORK_DIR/${label}_parseability_module.normalized.json"
+    local parseability_attempts_total=0
+    local parseability_accepted_total=0
+    local parseability_rejected_total=0
+    local parseability_parser_rejections_total=0
+    local parseability_generation_errors_total=0
+    local parseability_empty_generations_total=0
+    local parseability_acceptance_rate_total="0.00"
+    local inmem_parseability_report_path="n/a"
+    local module_parseability_report_path="n/a"
 
     local -a base_args=(
         "$grammar_json"
@@ -210,12 +238,15 @@ parity_for_grammar() {
     if [[ -n "$entry_rule" ]]; then
         base_args+=(--entry-rule "$entry_rule")
     fi
+    local -a inmem_parseability_args=()
+    local -a module_parseability_args=()
     if [[ "$parseability_required" -eq 1 ]]; then
-        base_args+=(--validate-parseability)
+        inmem_parseability_args=(--validate-parseability --parseability-report-json "$inmem_parseability_report")
+        module_parseability_args=(--validate-parseability --parseability-report-json "$module_parseability_report")
     fi
 
     run_logged "${label}_inmemory_generate" \
-        "$AST_PIPELINE_BIN" "${base_args[@]}" \
+        "$AST_PIPELINE_BIN" "${base_args[@]}" "${inmem_parseability_args[@]}" \
         --generate-stimuli \
         --output "$inmem_samples" \
         --coverage-output "$inmem_coverage" \
@@ -226,9 +257,14 @@ parity_for_grammar() {
     require_nonempty_file "$inmem_gap"
     assert_json "$inmem_coverage" ".grammar_name == \"$grammar_name\"" "in-memory coverage grammar mismatch for '$label'"
     assert_json "$inmem_gap" ".grammar_name == \"$grammar_name\"" "in-memory gap grammar mismatch for '$label'"
+    if [[ "$parseability_required" -eq 1 ]]; then
+        require_nonempty_file "$inmem_parseability_report"
+        assert_json "$inmem_parseability_report" ".grammar_name == \"$grammar_name\"" "in-memory parseability grammar mismatch for '$label'"
+        inmem_parseability_report_path="$inmem_parseability_report"
+    fi
 
     run_logged "${label}_module_generate" \
-        "$AST_PIPELINE_BIN" "${base_args[@]}" \
+        "$AST_PIPELINE_BIN" "${base_args[@]}" "${module_parseability_args[@]}" \
         --generate-stimuli-module \
         --output "$module_rs" \
         --coverage-output "$module_coverage" \
@@ -239,6 +275,11 @@ parity_for_grammar() {
     require_nonempty_file "$module_gap"
     assert_json "$module_coverage" ".grammar_name == \"$grammar_name\"" "module coverage grammar mismatch for '$label'"
     assert_json "$module_gap" ".grammar_name == \"$grammar_name\"" "module gap grammar mismatch for '$label'"
+    if [[ "$parseability_required" -eq 1 ]]; then
+        require_nonempty_file "$module_parseability_report"
+        assert_json "$module_parseability_report" ".grammar_name == \"$grammar_name\"" "module parseability grammar mismatch for '$label'"
+        module_parseability_report_path="$module_parseability_report"
+    fi
 
     emit_samples_as_rust_literals "$inmem_samples" "$inmem_literals"
     extract_module_rust_literals "$module_rs" "$module_literals"
@@ -268,10 +309,23 @@ parity_for_grammar() {
     canonicalize_json "$module_gap" "$module_gap_norm"
     assert_file_equals "$inmem_gap_norm" "$module_gap_norm" "$gap_diff" "${label} gap parity"
 
+    if [[ "$parseability_required" -eq 1 ]]; then
+        canonicalize_json "$inmem_parseability_report" "$inmem_parseability_norm"
+        canonicalize_json "$module_parseability_report" "$module_parseability_norm"
+        assert_file_equals "$inmem_parseability_norm" "$module_parseability_norm" "$parseability_diff" "${label} parseability report parity"
+        parseability_attempts_total="$(parseability_summary_field_u64 "$inmem_parseability_report" "attempts")"
+        parseability_accepted_total="$(parseability_summary_field_u64 "$inmem_parseability_report" "accepted")"
+        parseability_rejected_total="$(parseability_summary_field_u64 "$inmem_parseability_report" "rejected")"
+        parseability_parser_rejections_total="$(parseability_summary_field_u64 "$inmem_parseability_report" "parser_rejections")"
+        parseability_generation_errors_total="$(parseability_summary_field_u64 "$inmem_parseability_report" "generation_errors")"
+        parseability_empty_generations_total="$(parseability_summary_field_u64 "$inmem_parseability_report" "empty_generations")"
+        parseability_acceptance_rate_total="$(parseability_acceptance_rate_percent "$inmem_parseability_report")"
+    fi
+
     local entry_rule_used
     entry_rule_used="$(jq -er '.entry_rule | strings' "$inmem_gap")"
-    echo "    ${label} parity summary: parseability_required=${parseability_required} entry_rule=${entry_rule_used} samples=$SAMPLE_COUNT seed=$seed"
-    echo "${label},${grammar_name},${parseability_required},${entry_rule_used},${SAMPLE_COUNT},${seed},pass" >>"$SUMMARY_CSV"
+    echo "    ${label} parity summary: parseability_required=${parseability_required} entry_rule=${entry_rule_used} samples=$SAMPLE_COUNT seed=$seed attempts=${parseability_attempts_total} accepted=${parseability_accepted_total}"
+    echo "${label},${grammar_name},${parseability_required},${entry_rule_used},${SAMPLE_COUNT},${seed},${parseability_attempts_total},${parseability_accepted_total},${parseability_rejected_total},${parseability_parser_rejections_total},${parseability_generation_errors_total},${parseability_empty_generations_total},${parseability_acceptance_rate_total},${inmem_parseability_report_path},${module_parseability_report_path},pass" >>"$SUMMARY_CSV"
 }
 
 require_tool jq
@@ -298,7 +352,7 @@ echo "gap_threshold: $GAP_THRESHOLD"
 echo "max_depth: $MAX_DEPTH"
 echo "max_repeat: $MAX_REPEAT"
 
-echo "grammar,grammar_name,parseability_required,entry_rule,sample_count,seed,status" >"$SUMMARY_CSV"
+echo "grammar,grammar_name,parseability_required,entry_rule,sample_count,seed,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,inmemory_parseability_report_json,module_parseability_report_json,status" >"$SUMMARY_CSV"
 
 run_logged_rust "build_generated_ast_pipeline" \
     cargo build --features generated_parsers --bin ast_pipeline

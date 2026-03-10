@@ -251,6 +251,10 @@ Engine generalization rule:
   - when to use in-memory vs generated stimuli module,
   - embedding workflow examples for `generated/<grammar>_stimuli.rs`,
   - deterministic replay/seed compatibility guarantees.
+  - Progress (2026-03-10): hardened `stimuli_module_parity_gate` so parseability is part of the executable parity contract, not only an implicit precondition:
+    - the gate now emits `--parseability-report-json` for both in-memory and generated-module paths when the contract requires parseability,
+    - it canonicalizes and compares those reports directly,
+    - summary artifacts now expose parseability attempts, accepted/rejected counts, acceptance rate, and both report paths for each tracked grammar.
 
 ### Phase O (New): Industrial Frontend Readiness Kickoff (SV/VHDL)
 - [x] Add executable HDL frontend readiness report target (`make hdl_frontend_readiness`) with state artifacts under `rust/target/hdl_frontend_gate`.
