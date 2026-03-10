@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-10 (+0100, task: annotation-stimuli-quality-parseability-telemetry)
+Last updated: 2026-03-10 (+0100, task: sv-preprocessor-parseability-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -146,6 +146,24 @@ Use this file to resume work without replaying full chat history.
   - observed bounded evidence:
     - `return_annotation`: `parseability_attempts_total=161`, `accepted_total=161`, `acceptance_rate_percent=100.00`, `initial_targets=55`, `final_targets=0`
     - `semantic_annotation`: `parseability_attempts_total=205`, `accepted_total=114`, `rejected_total=91`, `acceptance_rate_percent=55.61`, `initial_targets=295`, `final_targets=84`
+- SV preprocessor parseability telemetry surface:
+  - `sv_preprocessor_quality_gate` now emits structured parseability reports for the core closed-loop stages when the generated adapter is available,
+  - the gate now writes aggregate totals plus `systemverilog_preprocessor_parseability_report.json` into `summary.csv` / `summary.txt`,
+  - deterministic stage0 replay now also proves parseability report parity, not only sample/coverage/gap parity,
+  - aggregate `sota_exit_gate` now surfaces:
+    - `sv_preprocessor_quality_parseability_attempts_total`
+    - `sv_preprocessor_quality_parseability_accepted_total`
+    - `sv_preprocessor_quality_parseability_rejected_total`
+    - `sv_preprocessor_quality_parseability_acceptance_rate_percent`
+    - `sv_preprocessor_quality_parseability_report_json`
+  - focused reduced proof used:
+    - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1`
+    - `PGEN_SV_PREPROCESSOR_DIFF_MODE=0`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400`
+  - observed bounded evidence:
+    - stage summary: `attempts_total=140`, `accepted_total=88`, `rejected_total=52`, `acceptance_rate_percent=62.86`
+    - aggregate summary surfaced the same totals under the SV preprocessor telemetry section
 - Build-script include path contract:
   - `rust/build.rs` now emits build-script-resolved HDL parser include paths relative to `rust/src/`,
   - compile-time repo-local `include!(...)` resolution should not depend on absolute filesystem paths.

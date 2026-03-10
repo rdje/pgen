@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - SV Preprocessor Quality Gate Now Emits Parseability Summary Artifacts
+### Context
+`sv_preprocessor_quality_gate` already had a real generated-parser parseability path, but it still surfaced only `parseability_mode_effective` at both stage and aggregate levels. That meant operators could see that parseability was enabled without seeing how much parser-backed retry effort the preprocessor grammar actually needed.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`:
+  - emits structured parseability reports for the core closed-loop stages when parseability is enabled,
+  - validates stage-level parseability report invariants and deterministic stage-0 replay report parity,
+  - writes aggregate parseability totals plus `systemverilog_preprocessor_parseability_report.json` into `summary.csv` / `summary.txt`.
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+  - parses the new preprocessor summary rows,
+  - surfaces aggregate preprocessor parseability attempts / accepted / rejected totals, acceptance rate, and report path in top-level sign-off output.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- reduced gate proof:
+  - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_preprocessor_quality_gate`
+  - observed:
+    - `parseability_attempts_total=140`
+    - `parseability_accepted_total=88`
+    - `parseability_rejected_total=52`
+    - `parseability_acceptance_rate_percent=62.86`
+- focused aggregate proof:
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_sv_preproc_parseability ... make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - aggregate summary now surfaces the same preprocessor parseability totals and report path.
+
+### Notes
+- This is observability hardening only. Differential and fuzz contracts are unchanged; aggregate sign-off is simply less blind than before.
+
 ## 2026-03-10 - Annotation Stimuli Quality Gate Now Emits Closed-Loop Parseability Summary Artifacts
 ### Context
 `annotation_stimuli_quality_gate` was already the strictest annotation stimuli proof in the repo, but its parser-backed stages still hid acceptance effort behind pass/fail. That made the closed-loop target summary visible while leaving parser-backed retry cost invisible, especially on semantic closure where the generator plainly works harder.

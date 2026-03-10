@@ -2141,6 +2141,12 @@ Tracked baselines:
     - baseline/gap-priority/target-driven/final-gap no-regression checks,
     - preprocessor-specific coverage assertions (`include/define/conditional/macro` families),
     - deterministic coverage-guided fuzz replay parity checks
+  - parser-backed preprocessor stages now emit aggregate parseability telemetry when the generated adapter is available:
+    - `parseability_attempts_total`
+    - `parseability_accepted_total`
+    - `parseability_rejected_total`
+    - `parseability_acceptance_rate_percent`
+    - `parseability_report_json`
   - parseability mode:
     - `auto` (default): enable parseability/shrink checks when parser-registry adapter exists,
     - `1`: require parseability adapter (fail if unavailable),
@@ -2464,6 +2470,8 @@ Optional SV preprocessor quality-gate tuning:
 `sv_preprocessor_quality_gate` trusted-reference differential taxonomy:
 - gate emits differential report JSON at:
   - `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_differential_report.json`
+- when parseability is enabled, gate also emits aggregate parseability report JSON at:
+  - `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parseability_report.json`
 - runner interface contract (`PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER`):
   - positional args:
     - `$1`: input SV sample file

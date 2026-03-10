@@ -1445,6 +1445,10 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - shrinking for failing preprocessability samples.
   - Progress (2026-02-27): gate script implemented (`rust/scripts/sv_preprocessor_quality_gate.sh`) with stage-0 deterministic replay checks, closed-loop stage progression invariants, key preprocessor-rule hit assertions, target-drive integrity checks, and deterministic coverage-guided fuzz replay verification.
   - Progress (2026-02-28): enabled executable parser-registry parseability path for `systemverilog_preprocessor` by wiring dynamic generated-parser adapter support (`build.rs`, `lib.rs`, `parser_registry`) and updating `sv_preprocessor_quality_gate` to self-generate `systemverilog_preprocessor_parser.rs` then rebuild `ast_pipeline` with `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH` before stage execution. `auto` parseability mode now resolves to `enabled` in gate summary with real parseability validation active.
+  - Progress (2026-03-10): promoted parser-backed preprocessor generation onto the shared parseability-report contract:
+    - the core closed-loop stages now emit structured parseability reports and an aggregate `systemverilog_preprocessor_parseability_report.json`,
+    - gate `summary.csv` / `summary.txt` now expose attempts / accepted / rejected totals, acceptance rate, and report path,
+    - aggregate `sota_exit_gate` now surfaces those parseability totals directly in the SV preprocessor telemetry section.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-10 - Add Parseability Telemetry to `sv_preprocessor_quality_gate`
+### ✅ Achievement Summary
+The SystemVerilog preprocessor quality gate no longer stops at “parseability enabled.” It now emits structured parseability reports for its core closed-loop stages, aggregates those totals in stage summary artifacts, and surfaces the same metrics through `sota_exit_gate`.
+
+### Scope of Changes
+- Hardened preprocessor closed-loop observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`
+    - stage0/stage1/stage2/stage3 now emit structured parseability reports when parseability is enabled,
+    - validates stage-level report invariants and deterministic stage0 replay report parity,
+    - writes aggregate totals plus `systemverilog_preprocessor_parseability_report.json` into `summary.csv` / `summary.txt`.
+- Hardened aggregate surfacing:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+    - now parses preprocessor parseability totals and report path from stage `summary.csv`,
+    - surfaces those metrics in aggregate SV preprocessor telemetry.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR=/tmp/pgen_sv_preproc_parseability_summary PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_preprocessor_quality_gate` ✅
+  - observed summary evidence:
+    - `parseability_attempts_total=140`
+    - `parseability_accepted_total=88`
+    - `parseability_rejected_total=52`
+    - `parseability_acceptance_rate_percent=62.86`
+- focused aggregate replay with only preprocessor stage enabled ✅
+  - aggregate summary now surfaces:
+    - `sv_preprocessor_quality_parseability_attempts_total=140`
+    - `sv_preprocessor_quality_parseability_accepted_total=88`
+    - `sv_preprocessor_quality_parseability_rejected_total=52`
+    - `sv_preprocessor_quality_parseability_acceptance_rate_percent=62.86`
+
 ## 2026-03-10 - Add Parseability Telemetry to `annotation_stimuli_quality_gate`
 ### ✅ Achievement Summary
 The annotation stimuli quality gate now exposes parser-backed acceptance effort across its closed-loop stages instead of treating parseability as a binary prerequisite. Each stage emits structured parseability report artifacts, and the gate now surfaces aggregate per-grammar parseability telemetry alongside target-closure summary data.
