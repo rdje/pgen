@@ -2049,6 +2049,7 @@ Tracked baselines:
   - deterministic bootstrap artifact regeneration
 - `sota_exit_gate` (local aggregate target)
   - one-shot release-grade aggregate check for fixed-point, annotation, non-annotation EBNF quality loop, stimuli-module parity, differential, performance, embedding, and EBNF readiness reporting
+  - `rust/target/sota_exit_gate/summary.txt` now surfaces parser-backed quality telemetry from aggregate-scoped EBNF/SV/VHDL closed-loop stages, not only top-level pass/fail rows
 - `sota_release_policy` (local utility target)
   - prints the tracked machine policy consumed by `sota_exit_gate`
 - `branch_protection_contract_gate` (local gate target)
@@ -2835,6 +2836,10 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `sv_stimuli_quality_diff_mismatch_count`
     - `sv_stimuli_quality_performance_report_json`
     - `sv_stimuli_quality_performance_enabled`
+    - `sv_stimuli_quality_closed_loop_initial_targets_total`
+    - `sv_stimuli_quality_closed_loop_replay_targets_total`
+    - `sv_stimuli_quality_closed_loop_parseability_shadow_*`
+    - `sv_stimuli_quality_parseability_generation_*`
 - deterministic port-binding legality semantic contract precheck:
   - contract keys (`systemverilog_core_v0_contract.json`):
     - `semantic_contracts.port_binding_legality_suite_path`
@@ -3280,6 +3285,16 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - `sota_exit_gate` now executes this stage as required strict (`run=1`, `strict=1`) via:
     - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
     - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1`.
+- aggregate observability behavior (`sota_exit_gate`):
+  - aggregate stage state dir:
+    - `rust/target/sota_exit_gate/work/vhdl_stimuli_quality_gate`
+  - aggregate output and `summary.txt` include:
+    - `vhdl_stimuli_quality_state_dir`
+    - `vhdl_stimuli_quality_closed_loop_initial_targets`
+    - `vhdl_stimuli_quality_closed_loop_replay_targets`
+    - `vhdl_stimuli_quality_closed_loop_parseability_shadow_*`
+    - `vhdl_stimuli_quality_parseability_generation_*`
+    - `vhdl_stimuli_quality_realistic_corpus_report_json`
 - deterministic realistic-corpus stage:
   - contract keys (`vhdl_core_v0_contract.json`):
     - `realistic_corpus.enforce`

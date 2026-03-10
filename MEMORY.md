@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-10 (+0100, task: low-yield-target-branch-throttle)
+Last updated: 2026-03-10 (+0100, task: aggregate-parseability-telemetry-surfacing)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -40,6 +40,31 @@ Use this file to resume work without replaying full chat history.
   - tracked-export local replay exposed that `sota_exit_gate` was still forcing `sv_stimuli_quality_gate` to a hard `100%` random-stimuli `parse_full` threshold even though current tracked evidence is `37%`,
   - `rust/config/sota_exit_policy.env` now leaves that ratio in promotion/informational mode instead of failing aggregate runs prematurely,
   - the strict aggregate SV gate still keeps the semantic suites, realistic corpus, and other required subchecks enabled.
+- Aggregate parser-trust telemetry surface:
+  - `sota_exit_gate` now routes `ebnf_stimuli_quality_gate` and `vhdl_stimuli_quality_gate` under aggregate-scoped state dirs:
+    - `rust/target/sota_exit_gate/work/ebnf_stimuli_quality_gate`
+    - `rust/target/sota_exit_gate/work/vhdl_stimuli_quality_gate`
+  - aggregate `summary.txt` now surfaces:
+    - the EBNF parseability summary table from aggregate-scoped `summary.csv`,
+    - SV closed-loop target debt plus replay parseability-shadow and parser-backed sample-generation totals,
+    - VHDL closed-loop target debt plus replay parseability-shadow and parser-backed sample-generation totals,
+    - the VHDL realistic-corpus report path,
+  - focused aggregate proof used isolated state dir `/tmp/pgen_sota_exit_gate_summary_validate` and a temporary reduced VHDL contract override (`target_max_attempts=200`, `replay_sample_count=4`) to keep validation bounded,
+  - observed bounded aggregate evidence:
+    - SV:
+      - `closed_loop_initial_targets_total=4876`
+      - `closed_loop_replay_targets_total=4423`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=26.98`
+      - `parseability_generation_acceptance_rate_percent=20.00`
+    - EBNF:
+      - `ebnf` `19/32` accepted (`59.38%`)
+      - `builtin_return_annotation` `15/31` accepted (`48.39%`)
+      - `builtin_semantic_annotation` `4/4` accepted (`100.00%`)
+    - VHDL:
+      - `closed_loop_initial_targets=271`
+      - `closed_loop_replay_targets=20`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
+      - `parseability_generation_acceptance_rate_percent=100.00`
 - Build-script include path contract:
   - `rust/build.rs` now emits build-script-resolved HDL parser include paths relative to `rust/src/`,
   - compile-time repo-local `include!(...)` resolution should not depend on absolute filesystem paths.

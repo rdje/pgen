@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-03-10 - Surface Parser-Backed Aggregate Telemetry in `sota_exit_gate`
+### ✅ Achievement Summary
+The aggregate release gate now exposes parser-backed quality evidence directly in its top-level artifacts instead of forcing operators to drill into nested stage directories. `sota_exit_gate` now scopes `ebnf_stimuli_quality_gate` and `vhdl_stimuli_quality_gate` under aggregate state just like SV already was, and `summary.txt` now surfaces EBNF parseability tables plus SV/VHDL parseability-generation and replay-shadow telemetry.
+
+### Scope of Changes
+- Hardened aggregate gate observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+    - scopes `ebnf_stimuli_quality_gate` under `rust/target/sota_exit_gate/work/ebnf_stimuli_quality_gate`,
+    - scopes `vhdl_stimuli_quality_gate` under `rust/target/sota_exit_gate/work/vhdl_stimuli_quality_gate`,
+    - surfaces EBNF summary CSV contents directly in aggregate `summary.txt`,
+    - surfaces SV aggregate telemetry for:
+      - closed-loop target debt,
+      - replay parseability shadow,
+      - parser-backed sample-generation acceptance effort,
+    - surfaces VHDL aggregate telemetry for:
+      - authoritative closed-loop target debt,
+      - replay parseability shadow,
+      - parser-backed sample-generation acceptance effort,
+      - realistic-corpus report path.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- bounded aggregate replay with aggregate-scoped EBNF/SV/VHDL telemetry proof ✅
+  - command:
+    - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_gate_summary_validate PGEN_SOTA_REQUIRED_CHECKS=ebnf_stimuli_quality_gate PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_EBNF_STIMULI_QUALITY_COUNT=1 PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_CONTRACT=/tmp/pgen_vhdl_quality_contract.xdfw.json make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - observed aggregate summary evidence:
+    - SV:
+      - `closed_loop_initial_targets_total=4876`
+      - `closed_loop_replay_targets_total=4423`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=26.98`
+      - `parseability_generation_acceptance_rate_percent=20.00`
+    - EBNF:
+      - `ebnf` parseability acceptance `59.38%` (`19/32`)
+      - `builtin_return_annotation` parseability acceptance `48.39%` (`15/31`)
+      - `builtin_semantic_annotation` parseability acceptance `100.00%` (`4/4`)
+    - VHDL:
+      - `closed_loop_initial_targets=271`
+      - `closed_loop_replay_targets=20`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
+      - `parseability_generation_acceptance_rate_percent=100.00`
+  - aggregate run ended `required_failures=0`, `all_failures=0`.
+
 ## 2026-03-10 - Deemphasize Low-Yield Target Branches Generically
 ### ✅ Achievement Summary
 The shared stimuli engine now penalizes target branches based on sustained low accepted-success yield, not only the zero-success case. This is an engine-level parser-trust improvement: once parser-backed replay has enough history to show that a branch is being selected repeatedly and rarely accepted, target guidance now de-emphasizes that branch generically across grammars instead of continuing to overpay its target debt.

@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - Aggregate Release Summary Now Surfaces Parser-Backed EBNF/SV/VHDL Evidence
+### Context
+`sota_exit_gate` was already executing the right closed-loop stages, but the top-level operator artifact still under-reported parser trust evidence. EBNF parseability totals stayed buried in the nested `ebnf_stimuli_quality_gate` state dir, VHDL quality artifacts were not aggregate-scoped, and SV/VHDL parser-backed acceptance telemetry only existed inside stage-local summaries. That made release sign-off weaker than the trust doctrine requires because the aggregate gate was acting like a pass/fail wrapper instead of an observable sign-off surface.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+  - routed `ebnf_stimuli_quality_gate` under aggregate state at:
+    - `rust/target/sota_exit_gate/work/ebnf_stimuli_quality_gate`
+  - routed `vhdl_stimuli_quality_gate` under aggregate state at:
+    - `rust/target/sota_exit_gate/work/vhdl_stimuli_quality_gate`
+  - extended aggregate `summary.txt` with:
+    - the EBNF stimuli summary table from the aggregate-scoped stage CSV,
+    - SV closed-loop target debt plus replay-shadow and parser-backed generation metrics,
+    - VHDL closed-loop target debt plus replay-shadow and parser-backed generation metrics,
+    - the VHDL realistic-corpus report path for direct drill-down.
+- Updated operator docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- bounded aggregate replay in isolated state dir:
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_gate_summary_validate ... make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - used a temporary reduced VHDL contract override only to bound the replay-shadow budget for validation:
+    - `.closed_loop.target_max_attempts = 200`
+    - `.closed_loop.replay_sample_count = 4`
+  - observed aggregate summary sections:
+    - SV:
+      - `closed_loop_initial_targets_total=4876`
+      - `closed_loop_replay_targets_total=4423`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=26.98`
+      - `parseability_generation_acceptance_rate_percent=20.00`
+    - EBNF:
+      - `ebnf` `19/32` accepted (`59.38%`)
+      - `builtin_return_annotation` `15/31` accepted (`48.39%`)
+      - `builtin_semantic_annotation` `4/4` accepted (`100.00%`)
+    - VHDL:
+      - `closed_loop_initial_targets=271`
+      - `closed_loop_replay_targets=20`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
+      - `parseability_generation_acceptance_rate_percent=100.00`
+
+### Notes
+- This change is intentionally observability-first: it does not relax any aggregate gate policy and it does not alter stage-local parser/stimuli behavior.
+- The aggregate artifact now behaves more like a sign-off report and less like a shell wrapper around subordinate gates.
+
 ## 2026-03-10 - Target Guidance Now Penalizes Low-Yield Branches, Not Only Zero-Success Branches
 ### Context
 The parser-aware debt rollback made replay-shadow accounting honest, but it also exposed the next generic engine weakness: target guidance was still only clamping branches with zero accepted successes. That was too coarse. A branch that gets selected many times and only rarely produces parser-accepted output should also lose priority, otherwise the engine keeps wasting replay budget on objectively low-yield branches.
