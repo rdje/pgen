@@ -518,6 +518,10 @@ Toolbox baseline to leverage end-to-end:
       - `blockers.failed_trial_count`
       - `blockers.non_shadow_blocked_trial_count`
     - this removes remaining blocker-count lookup friction when triaging aggregate promotion `hold` outcomes.
+  - Progress (2026-03-11): promoted parser-backed effort telemetry into declared-shadow promotion evidence:
+    - `sv_declared_shadow_promotion_gate` now aggregates both parser-backed sample-generation effort and closed-loop replay-shadow effort across strict trials,
+    - promotion reports now carry per-trial and aggregate parseability telemetry instead of collapsing parser-backed effort into binary trial pass/fail,
+    - aggregate `sota_exit_gate` now surfaces the declared-shadow promotion parseability-generation and replay-shadow totals directly.
   - Progress (2026-03-01): promoted runtime declaration-before-use enforcement in semantic-closure profile with parseability guardrails (`systemverilog_core_v0_contract.json` v20):
     - `sv_semantic_file` now enables `require_declared_identifiers_before_use=true`,
     - added `require_declared_identifiers_parseable_only=true` for semantic-closure runs to skip declaration-before-use runtime checks when `parse_full` is not `pass`,

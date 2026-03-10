@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-11 - Add Parseability Telemetry to `sv_declared_shadow_promotion_gate`
+### ✅ Achievement Summary
+The declared-shadow promotion trial gate no longer treats parser-backed effort as hidden background work inside strict SV trial runs. It now aggregates parser-backed sample-generation and replay-shadow acceptance effort across trials and surfaces the same evidence through `sota_exit_gate`.
+
+### Scope of Changes
+- Hardened declared-shadow promotion observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+    - now reads parser-backed sample-generation and closed-loop replay-shadow reports from each strict `sv_stimuli_quality_gate` trial,
+    - records those metrics per trial in `systemverilog_declared_identifier_promotion_report.json`,
+    - aggregates attempts / accepted / rejected totals plus acceptance rates for both parser-backed surfaces,
+    - surfaces the aggregate totals in standalone `summary.txt`.
+- Hardened aggregate surfacing:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+    - now parses the new declared-shadow promotion parseability totals from the stage report,
+    - surfaces those metrics in aggregate declared-shadow promotion telemetry.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS=50 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate` ✅
+  - observed summary evidence:
+    - `parseability_generation_attempts_total=13`
+    - `parseability_generation_accepted_total=4`
+    - `parseability_generation_rejected_total=9`
+    - `closed_loop_parseability_shadow_attempts_total=100`
+    - `closed_loop_parseability_shadow_accepted_total=26`
+    - `closed_loop_parseability_shadow_rejected_total=74`
+- focused aggregate replay with only declared-shadow promotion enabled ✅
+  - aggregate summary now surfaces:
+    - `sv_declared_shadow_promotion_parseability_generation_attempts_total=13`
+    - `sv_declared_shadow_promotion_parseability_generation_accepted_total=4`
+    - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_attempts_total=100`
+    - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_accepted_total=26`
+
 ## 2026-03-10 - Add Parseability Telemetry to `sv_preprocessor_quality_gate`
 ### ✅ Achievement Summary
 The SystemVerilog preprocessor quality gate no longer stops at “parseability enabled.” It now emits structured parseability reports for its core closed-loop stages, aggregates those totals in stage summary artifacts, and surfaces the same metrics through `sota_exit_gate`.

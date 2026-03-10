@@ -2943,10 +2943,22 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `eligibility.eligible_for_runtime_enforcement`
     - `declared_shadow_parseable_only` (effective parseability scope forwarded to strict declared-shadow trial checks)
     - aggregated strict-trial totals (`checked/passed/failed`)
+    - aggregated parser-backed effort telemetry:
+      - `parseability_generation.observed.attempts_total`
+      - `parseability_generation.observed.accepted_total`
+      - `parseability_generation.observed.rejected_total`
+      - `parseability_generation.observed.acceptance_rate_percent`
+      - `closed_loop_parseability_shadow.observed.attempts_total`
+      - `closed_loop_parseability_shadow.observed.accepted_total`
+      - `closed_loop_parseability_shadow.observed.rejected_total`
+      - `closed_loop_parseability_shadow.observed.acceptance_rate_percent`
     - `totals.skipped_unparseable` from parseable-only filtering in underlying strict trials
     - per-trial blocker attribution:
       - `trials[].blocker_key`
       - `trials[].blocker_detail`
+    - per-trial parser-backed effort telemetry:
+      - `trials[].parseability_generation`
+      - `trials[].closed_loop_parseability_shadow`
     - aggregate blocker attribution:
       - `blockers.failed_trial_count`
       - `blockers.non_shadow_blocked_trial_count`
@@ -2981,7 +2993,15 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_declared_shadow_promotion_primary_non_shadow_blocker`
       - `sv_declared_shadow_promotion_declared_shadow_parseable_only`
       - `sv_declared_shadow_promotion_failed_trial_count`
-      - `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`.
+      - `sv_declared_shadow_promotion_non_shadow_blocked_trial_count`
+      - `sv_declared_shadow_promotion_parseability_generation_attempts_total`
+      - `sv_declared_shadow_promotion_parseability_generation_accepted_total`
+      - `sv_declared_shadow_promotion_parseability_generation_rejected_total`
+      - `sv_declared_shadow_promotion_parseability_generation_acceptance_rate_percent`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_attempts_total`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_accepted_total`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_rejected_total`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`.
 - parse-full ratio promotion trial gate:
   - target:
     - `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`

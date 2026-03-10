@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Declared-Shadow Promotion Gate Now Emits Parseability Summary Artifacts
+### Context
+`sv_declared_shadow_promotion_gate` was already running strict `sv_stimuli_quality_gate` trials, but it only reported declared-shadow outcomes and blocker attribution. The parser-backed generation effort and replay-shadow acceptance cost inside those trials remained invisible, which was below the parser-trust bar for a promotion gate used in aggregate sign-off.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`:
+  - harvests parser-backed sample-generation and closed-loop replay-shadow reports from each strict trial,
+  - records both surfaces per trial in `systemverilog_declared_identifier_promotion_report.json`,
+  - aggregates attempts / accepted / rejected totals, error buckets, and acceptance rates across all trials,
+  - surfaces those totals in standalone `summary.txt`.
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+  - parses the new declared-shadow promotion parseability totals from the stage report,
+  - surfaces them in aggregate declared-shadow promotion telemetry so sign-off can see parser-backed effort directly.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- focused promotion proof:
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS=50 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+  - observed:
+    - `parseability_generation_attempts_total=13`
+    - `parseability_generation_accepted_total=4`
+    - `closed_loop_parseability_shadow_attempts_total=100`
+    - `closed_loop_parseability_shadow_accepted_total=26`
+- focused aggregate proof:
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_declared_shadow_parseability ... PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - aggregate summary surfaced the same declared-shadow promotion parseability totals and acceptance rates.
+
+### Notes
+- This is promotion-gate observability hardening only. It does not change declared-shadow eligibility rules or SV parser/generator behavior; it makes the parser-backed effort behind promotion evidence measurable.
+
 ## 2026-03-10 - SV Preprocessor Quality Gate Now Emits Parseability Summary Artifacts
 ### Context
 `sv_preprocessor_quality_gate` already had a real generated-parser parseability path, but it still surfaced only `parseability_mode_effective` at both stage and aggregate levels. That meant operators could see that parseability was enabled without seeing how much parser-backed retry effort the preprocessor grammar actually needed.
