@@ -1,6 +1,6 @@
 {
-  "version": 3,
-  "description": "Phase O VHDL pre-merge quality contract for deterministic closed-loop stimuli generation, parser-backed sample generation telemetry, optional parse-full validation, and realistic curated corpus checks.",
+  "version": 4,
+  "description": "Phase O VHDL pre-merge quality contract for deterministic closed-loop stimuli generation, parser-backed sample generation telemetry, closed-loop replay parseability shadow telemetry, optional parse-full validation, and realistic curated corpus checks.",
   "grammar_name": "vhdl",
   "ebnf_path": "grammars/vhdl.ebnf",
   "entry_rule": "vhdl_file",
@@ -11,7 +11,8 @@
     "gap_report_threshold": 1,
     "target_max_attempts": 5000,
     "replay_sample_count": 8,
-    "require_non_increasing_target_debt": true
+    "require_non_increasing_target_debt": true,
+    "parseability_shadow_enabled": true
   },
   "parseability_generation": {
     "enabled": true,

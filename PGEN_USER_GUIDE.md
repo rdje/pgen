@@ -3196,8 +3196,25 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - `closed_loop.target_max_attempts`
   - `closed_loop.replay_sample_count`
   - `closed_loop.require_non_increasing_target_debt`
+  - `closed_loop.parseability_shadow_enabled`
   - `parseability_generation.enabled`
   - `parseability_generation.max_attempts_per_sample`
+- closed-loop replay parseability shadow:
+  - when `closed_loop.parseability_shadow_enabled=true`, the gate runs an additional parser-backed replay command using the same target report and seed as the authoritative raw replay stage.
+  - this shadow run is telemetry-only:
+    - it does not replace the authoritative debt check,
+    - it does not change `closed_loop_replay_targets`,
+    - it exists to measure how much of the target-driven replay output remains parseable under the generated parser.
+  - summary text now emits:
+    - `closed_loop_parseability_shadow_requested_total`
+    - `closed_loop_parseability_shadow_attempts_total`
+    - `closed_loop_parseability_shadow_accepted_total`
+    - `closed_loop_parseability_shadow_rejected_total`
+    - `closed_loop_parseability_shadow_parser_rejections_total`
+    - `closed_loop_parseability_shadow_generation_errors_total`
+    - `closed_loop_parseability_shadow_empty_generations_total`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent`
+    - `closed_loop_parseability_shadow_report_json`
 - parser-backed sample-generation telemetry:
   - when parse-full is enabled and `parseability_generation.enabled=true`, the sampled stage uses the shared `ast_pipeline --validate-parseability --parseability-report-json` path before the explicit parse-full probe.
   - aggregate summary now emits:
@@ -3212,6 +3229,9 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `parseability_generation_report_json`
   - deterministic aggregate artifact:
     - `rust/target/vhdl_stimuli_quality_gate/work/vhdl_parseability_generation_report.json`
+  - focused replay-shadow evidence at `PGEN_VHDL_STIMULI_QUALITY_COUNT=2` currently shows:
+    - authoritative replay target debt: `254 -> 0`
+    - parser-backed replay shadow: `requested_total=550`, `accepted_total=109`, `rejected_total=441`, `acceptance_rate_percent=19.82`
 - parse-full stage behavior:
   - `auto`: gate builds a temporary `vhdl` parser-registry adapter from generated parser artifact and runs parse-full when available,
   - `0`: disabled,

@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - VHDL Replay Now Emits Parseability Shadow Telemetry
+### Context
+After promoting parser-backed telemetry for the scored VHDL samples, the remaining blind spot was obvious: target-driven replay still only told us that raw replay debt had gone down. That is necessary, but not sufficient. We also need to know how much of that replay output is actually parseable under the generated parser, without changing the replay stage so aggressively that we lose the debt invariant we rely on today.
+
+### Implementation
+- Promoted `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to `version: 4`:
+  - added `closed_loop.parseability_shadow_enabled`.
+- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`:
+  - the gate now runs a `closed_loop_replay_parseability_shadow` stage after the authoritative raw replay stage,
+  - the shadow run reuses the same:
+    - seed,
+    - target report,
+    - replay sample count,
+    - target max attempts,
+  - but adds parser-backed validation via `--validate-parseability --parseability-report-json`,
+  - summary text now publishes replay-shadow requested/attempt/accept/reject totals plus a report artifact path,
+  - authoritative debt enforcement still comes only from the raw replay gap report, so the invariant is preserved.
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - observed:
+    - authoritative replay debt: `254 -> 0`
+    - replay shadow: `requested_total=550`, `accepted_total=109`, `rejected_total=441`, `acceptance_rate_percent=19.82`
+    - scored parser-backed sample generation remained green at `2/2`
+    - realistic corpus parity remained exact (`8` pass / `6` fail against expectation).
+
+### Notes
+- This is a shadow-measurement step, not a policy trick. The gate now makes the replay parseability gap visible while still enforcing the same debt contract as before.
+- The next real parser-quality question is whether shared target-driven generation can become parser-aware without regressing target debt.
+
 ## 2026-03-10 - VHDL Sampled Generation Now Emits Parser-Backed Parseability Telemetry
 ### Context
 `vhdl_stimuli_quality_gate` already had a generated parser and an explicit parse-full probe, but its sampled generation stage was still effectively binary: emit one raw sample, then report whether parse-full happened to accept it. That left the VHDL loop behind the SV and non-annotation EBNF loops on parser-trust observability because retry cost, parser rejection rate, and empty/error generation causes were invisible.

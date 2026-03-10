@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-10 (+0100, task: vhdl-stimuli-parseability-telemetry)
+Last updated: 2026-03-10 (+0100, task: vhdl-replay-parseability-shadow)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -180,6 +180,17 @@ Use this file to resume work without replaying full chat history.
     - parse_full: `2/2`
     - closed-loop target debt: `254 -> 0`
     - realistic corpus parity: `8` expected-pass observed pass, `6` expected-fail observed fail
+- VHDL replay parseability shadow snapshot:
+  - `vhdl_core_v0_contract.json` is now `version: 4` with `closed_loop.parseability_shadow_enabled`,
+  - `vhdl_stimuli_quality_gate` now runs a parser-backed `closed_loop_replay_parseability_shadow` stage after the authoritative raw replay stage,
+  - this stage is telemetry-only:
+    - it reuses the same replay seed, target report, and target attempt budget,
+    - it does not alter `closed_loop_replay_targets`,
+    - it does not alter debt enforcement,
+  - current focused evidence at `PGEN_VHDL_STIMULI_QUALITY_COUNT=2`:
+    - authoritative replay debt: `254 -> 0`
+    - replay shadow: `requested_total=550`, `accepted_total=109`, `rejected_total=441`, `acceptance_rate_percent=19.82`
+    - scored parser-backed sample generation remained green: `2/2`
 - SV dual-LRM conversion snapshot status:
   - `docs/systemverilog/2017/{txt,md}` fully populated (`59` sections each),
   - `docs/systemverilog/2023/{txt,md}` fully populated (`58` sections each),

@@ -282,6 +282,16 @@ Engine generalization rule:
       - `accepted_total=2`
       - `rejected_total=1`
       - `acceptance_rate_percent=66.67`.
+  - Progress (2026-03-10): added closed-loop replay parseability shadow telemetry without changing authoritative debt enforcement:
+    - promoted `vhdl_core_v0_contract.json` to `version: 4` with `closed_loop.parseability_shadow_enabled`,
+    - `vhdl_stimuli_quality_gate` now runs a parser-backed replay shadow on the same target report/seed as the authoritative raw replay stage,
+    - the raw replay stage still owns `closed_loop_replay_targets` and non-increasing debt enforcement,
+    - focused validation at `PGEN_VHDL_STIMULI_QUALITY_COUNT=2` stayed green while surfacing a real parser-quality gap in replay:
+      - authoritative replay debt: `254 -> 0`
+      - replay shadow: `requested_total=550`
+      - `accepted_total=109`
+      - `rejected_total=441`
+      - `acceptance_rate_percent=19.82`.
   - Progress (2026-03-06): expanded VHDL corpus hardening with deterministic realistic-corpus stage and contractized thresholds:
     - promoted `vhdl_core_v0_contract.json` to `version: 2` with new `realistic_corpus` section (`enforce`, corpus path, parse-full latency and sample-size budgets),
     - added curated deterministic corpus manifest + fixtures:

@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-03-10 - Add Closed-Loop Replay Parseability Shadow To `vhdl_stimuli_quality_gate`
+### ✅ Achievement Summary
+The VHDL gate now measures parser-backed replay quality without weakening the authoritative closed-loop debt contract. A new shadow replay run uses the same target report and seed as the raw replay stage, but only for telemetry, so the gate can expose how much of target-driven replay output remains parseable while keeping debt enforcement anchored to the raw replay path.
+
+### Scope of Changes
+- Promoted the VHDL quality contract again:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+    - bumped to `version: 4`,
+    - added `closed_loop.parseability_shadow_enabled`.
+- Extended the VHDL gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+    - after authoritative raw replay, the gate now runs `closed_loop_replay_parseability_shadow`,
+    - the shadow run uses:
+      - `--target-report-input`
+      - `--validate-parseability`
+      - `--parseability-report-json`
+    - summary text now emits replay-shadow telemetry:
+      - `closed_loop_parseability_shadow_requested_total`
+      - `closed_loop_parseability_shadow_attempts_total`
+      - `closed_loop_parseability_shadow_accepted_total`
+      - `closed_loop_parseability_shadow_rejected_total`
+      - `closed_loop_parseability_shadow_parser_rejections_total`
+      - `closed_loop_parseability_shadow_generation_errors_total`
+      - `closed_loop_parseability_shadow_empty_generations_total`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent`
+      - `closed_loop_parseability_shadow_report_json`
+    - authoritative debt enforcement is unchanged and still uses the raw replay gap report.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh` ✅
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate` ✅
+  - observed:
+    - authoritative replay debt: `254 -> 0`
+    - replay parseability shadow: `requested_total=550`, `accepted_total=109`, `rejected_total=441`, `acceptance_rate_percent=19.82`
+    - scored parser-backed sample generation stayed green: `requested_total=2`, `accepted_total=2`
+    - realistic corpus parity remained green: `8` expected-pass observed pass, `6` expected-fail observed fail
+
 ## 2026-03-10 - Add Parser-Backed Parseability Telemetry To `vhdl_stimuli_quality_gate`
 ### ✅ Achievement Summary
 The VHDL quality gate no longer treats sampled generation as a binary “generated then maybe parse_full passed” stage. Sampled rows now use the shared parser-backed parseability-report contract, and the gate publishes aggregate acceptance-effort evidence without changing the existing closed-loop replay debt checks.
