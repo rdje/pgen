@@ -2118,6 +2118,7 @@ Tracked baselines:
     - SC-12 bootstrap/generated contract slice + differential taxonomy parity checks
 - `annotation_robustness_gate` (local gate target)
   - advanced return/semantic suites in bootstrap/generated modes + generated parseability/coverage/gap checks
+  - parser-backed stimuli rows now emit structured parseability reports and summary CSV/text with attempts, accepted/rejected totals, acceptance rate, and report paths
 - `annotation_stimuli_quality_gate` (local gate target)
   - strict deterministic closed-loop verification for return/semantic annotation grammars:
     - baseline parseability/coverage/gap,

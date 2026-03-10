@@ -95,6 +95,10 @@ Engine generalization rule:
 - [x] Add semantic leverage contract gate (`semantic_usage_gate`) for parser/stimuli steering behavior.
 - [x] Align validator, parser codegen, and stimuli hinting on a shared canonical semantic transform parser.
 - [x] Add annotation robustness gate (advanced suites + generated parseability/coverage/gap checks) and enforce it via `annotation_contract_gate`.
+  - Progress (2026-03-10): promoted the parser-backed stimuli rows onto the shared parseability-report contract:
+    - `annotation_robustness_gate` now emits `--parseability-report-json` for return and semantic generated-parser stimuli runs,
+    - gate artifacts now include `summary.csv` / `summary.txt` with attempts, accepted/rejected totals, acceptance rate, and report paths,
+    - focused evidence now exposes real semantic retry cost instead of collapsing the stage to pass/fail.
 
 ### Phase G (Current)
 - [x] Add embedding API input bounds (`ParseLimits`) with stable diagnostics for oversized/invalid inputs.

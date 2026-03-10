@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - Annotation Robustness Gate Now Emits Parseability Summary Artifacts
+### Context
+`annotation_robustness_gate` was already running parser-backed stimuli generation for generated return and semantic annotation grammars, but the gate still reported only pass/fail. That hid real acceptance effort inside a required annotation-contract surface and made semantic retry cost invisible to operators.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_robustness_gate.sh`:
+  - emits `--parseability-report-json` for return and semantic generated-parser stimuli runs,
+  - validates report grammar identity plus requested/accepted/rejected accounting,
+  - writes `summary.csv` / `summary.txt` with parseability telemetry and artifact paths for both parser-backed rows.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_robustness_gate.sh`
+- `PGEN_ANNOTATION_ROBUSTNESS_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_robustness_gate`
+  - observed:
+    - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=3`, `accepted=2`, `rejected=1`, `parser_rejections=1`, `acceptance_rate_percent=66.67`
+
+### Notes
+- This is a gate observability hardening change. Parser and stimuli behavior are unchanged; the gate now exposes the parser-backed effort it was already consuming.
+
 ## 2026-03-10 - Non-Bootstrap Annotation E2E Gate Now Emits Parseability Summary Artifacts
 ### Context
 `annotation_nonbootstrap_e2e_gate` was already using generated-parser stimuli generation with `--validate-parseability` for return and semantic grammars, but the gate still collapsed that effort into binary success. Operators could tell the gate passed, but not whether it took the requested count exactly, how many retries were needed, or where the parser-backed parseability reports lived. That was below the parser trust bar for a required CI / aggregate check.

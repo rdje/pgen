@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-10 - Add Parseability Telemetry to `annotation_robustness_gate`
+### ✅ Achievement Summary
+The annotation robustness gate no longer collapses its parser-backed stimuli stage into binary success. It now emits structured parseability reports for the generated return and semantic stimuli runs, validates them, and surfaces the resulting telemetry in gate summary artifacts.
+
+### Scope of Changes
+- Hardened annotation robustness observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_robustness_gate.sh`
+    - emits `--parseability-report-json` for return and semantic generated-parser stimuli generation,
+    - validates grammar name, requested/accepted counts, and rejection accounting in those reports,
+    - adds `summary.csv` / `summary.txt` with:
+      - stimuli / coverage / gap artifact paths
+      - parseability attempts / accepted / rejected totals
+      - parser rejection / generation error / empty generation counts
+      - parseability acceptance rate
+      - parseability report path
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_robustness_gate.sh` ✅
+- `PGEN_ANNOTATION_ROBUSTNESS_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_robustness_gate` ✅
+  - observed summary evidence:
+    - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=3`, `accepted=2`, `rejected=1`, `parser_rejections=1`, `acceptance_rate_percent=66.67`
+
 ## 2026-03-10 - Add Parseability Telemetry to `annotation_nonbootstrap_e2e_gate`
 ### ✅ Achievement Summary
 The non-bootstrap annotation end-to-end gate no longer treats parser-backed stimuli parseability as a hidden binary condition. It now emits structured parseability reports for the generated-parser return and semantic stimuli stages, validates those reports, and surfaces the telemetry in gate summary artifacts.

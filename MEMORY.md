@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-10 (+0100, task: annotation-nonbootstrap-parseability-telemetry)
+Last updated: 2026-03-10 (+0100, task: annotation-robustness-parseability-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -117,6 +117,18 @@ Use this file to resume work without replaying full chat history.
     - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
     - `semantic_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
     - `regex`: `parseability_required=0`
+- Annotation robustness parseability surface:
+  - `annotation_robustness_gate` now emits parser-backed parseability report artifacts for the generated return and semantic stimuli stages,
+  - the gate now writes `summary.csv` / `summary.txt` with:
+    - stimuli / coverage / gap artifact paths
+    - parseability attempts / accepted / rejected totals
+    - parser rejection / generation error / empty generation totals
+    - parseability acceptance rate
+    - parseability report path
+  - focused proof used the normal gate state dir with `PGEN_ANNOTATION_ROBUSTNESS_COUNT=2`,
+  - observed bounded evidence:
+    - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=3`, `accepted=2`, `rejected=1`, `parser_rejections=1`, `acceptance_rate_percent=66.67`
 - Build-script include path contract:
   - `rust/build.rs` now emits build-script-resolved HDL parser include paths relative to `rust/src/`,
   - compile-time repo-local `include!(...)` resolution should not depend on absolute filesystem paths.
