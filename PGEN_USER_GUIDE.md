@@ -2063,6 +2063,11 @@ Tracked baselines:
     - `enable_runtime_declared_identifiers` or `hold`
 - `annotation_contract_gate` (local gate target)
   - validator + built-in/shared contracts + semantic leverage + advanced robustness checks
+- `annotation_nonbootstrap_e2e_gate` (local gate target)
+  - generated-parser end-to-end verification for non-bootstrap annotation flow:
+    - non-bootstrap parser generation for return / semantic / regex,
+    - parser-backed stimuli generation for return / semantic with structured parseability reports,
+    - summary CSV/text now surfaces attempts, accepted/rejected totals, acceptance rate, and report paths for parser-backed rows
 - `sc06_contract_gate` (local gate target)
   - SC-06 branch weighting/selection Tier-4 contract:
     - typed branch-policy payload validation contracts,

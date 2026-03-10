@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - Non-Bootstrap Annotation E2E Gate Now Emits Parseability Summary Artifacts
+### Context
+`annotation_nonbootstrap_e2e_gate` was already using generated-parser stimuli generation with `--validate-parseability` for return and semantic grammars, but the gate still collapsed that effort into binary success. Operators could tell the gate passed, but not whether it took the requested count exactly, how many retries were needed, or where the parser-backed parseability reports lived. That was below the parser trust bar for a required CI / aggregate check.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_nonbootstrap_e2e_gate.sh`:
+  - emits `--parseability-report-json` for return and semantic non-bootstrap stimuli runs,
+  - validates report grammar identity plus requested/accepted/rejected accounting,
+  - writes `summary.csv` / `summary.txt` covering parser, stimuli, coverage, gap, and parseability telemetry artifacts,
+  - leaves `regex` as an explicit non-parseability row so current gate scope stays honest.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_nonbootstrap_e2e_gate.sh`
+- `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+  - observed:
+    - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `regex`: `parseability_required=0`
+
+### Notes
+- This is an observability and contract-strengthening change, not a behavior change in the parser or generator.
+
 ## 2026-03-10 - Stimuli-Module Parity Now Includes Parseability Report Equality
 ### Context
 `stimuli_module_parity_gate` was already proving deterministic parity for sample corpus, coverage JSON, and gap JSON between in-memory generation and generated `*_stimuli.rs` modules. That still left parser-backed acceptance effort implicit: when parseability was required, both paths had to succeed, but the gate was not proving that they took the same number of attempts or rejected the same samples for the same reasons. Under the parser trust doctrine, that was incomplete parity evidence.

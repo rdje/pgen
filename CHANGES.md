@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-03-10 - Add Parseability Telemetry to `annotation_nonbootstrap_e2e_gate`
+### ✅ Achievement Summary
+The non-bootstrap annotation end-to-end gate no longer treats parser-backed stimuli parseability as a hidden binary condition. It now emits structured parseability reports for the generated-parser return and semantic stimuli stages, validates those reports, and surfaces the telemetry in gate summary artifacts.
+
+### Scope of Changes
+- Hardened non-bootstrap annotation E2E observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_nonbootstrap_e2e_gate.sh`
+    - emits `--parseability-report-json` for return and semantic generated-parser stimuli generation,
+    - validates grammar name, requested/accepted counts, and rejection accounting in those reports,
+    - adds `summary.csv` / `summary.txt` with:
+      - parser output path
+      - stimuli / coverage / gap artifact paths
+      - parseability attempts / accepted / rejected totals
+      - parser rejection / generation error / empty generation counts
+      - parseability acceptance rate
+      - parseability report path
+    - keeps `regex` explicit as a non-parseability row rather than widening gate scope silently.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_nonbootstrap_e2e_gate.sh` ✅
+- `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate` ✅
+  - observed summary evidence:
+    - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `regex`: explicit `parseability_required=0`
+
 ## 2026-03-10 - Add Parseability Report Parity to `stimuli_module_parity_gate`
 ### ✅ Achievement Summary
 The stimuli-module parity gate now treats parser-backed acceptance effort as a first-class parity contract instead of a hidden binary precondition. For parseability-required grammars, it now verifies that in-memory generation and generated `*_stimuli.rs` module generation produce identical parseability report JSON, and it surfaces the resulting attempt/accept/reject totals directly in the gate summary.

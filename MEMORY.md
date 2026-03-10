@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-10 (+0100, task: stimuli-module-parseability-parity)
+Last updated: 2026-03-10 (+0100, task: annotation-nonbootstrap-parseability-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -102,6 +102,21 @@ Use this file to resume work without replaying full chat history.
   - observed bounded parity evidence:
     - `return_annotation`: `attempts=4`, `accepted=4`, `acceptance_rate_percent=100.00`
     - `semantic_annotation`: `attempts=8`, `accepted=4`, `rejected=4`, `parser_rejections=4`, `acceptance_rate_percent=50.00`
+- Non-bootstrap annotation E2E parseability surface:
+  - `annotation_nonbootstrap_e2e_gate` now emits parser-backed parseability report artifacts for the return and semantic generated-parser stimuli stages,
+  - the gate now writes `summary.csv` / `summary.txt` with:
+    - parser output path
+    - stimuli / coverage / gap artifact paths
+    - parseability attempts / accepted / rejected totals
+    - parser rejection / generation error / empty generation totals
+    - parseability acceptance rate
+    - parseability report path
+  - `regex` remains explicit as `parseability_required=0` so the gate surface reflects current scope honestly,
+  - focused proof used the normal gate state dir with `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=2`,
+  - observed bounded evidence:
+    - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `semantic_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
+    - `regex`: `parseability_required=0`
 - Build-script include path contract:
   - `rust/build.rs` now emits build-script-resolved HDL parser include paths relative to `rust/src/`,
   - compile-time repo-local `include!(...)` resolution should not depend on absolute filesystem paths.

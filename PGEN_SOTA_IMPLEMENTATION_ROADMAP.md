@@ -131,6 +131,10 @@ Engine generalization rule:
 - [x] Promote EBNF frontend strict mode (`ebnf_frontend_gate`) to required inside aggregate gate once `grammars/ebnf.ebnf` compatibility is fixed.
 - [x] Define and enforce explicit release pass policy for aggregate gate output (for example branch protection + release checklist criteria).
 - [x] Add non-bootstrap annotation end-to-end gate (`annotation_nonbootstrap_e2e_gate`) and enforce it in both standalone CI and aggregate SOTA required-check policy.
+  - Progress (2026-03-10): promoted parser-backed non-bootstrap annotation stimuli checks onto the shared parseability-report contract:
+    - `annotation_nonbootstrap_e2e_gate` now emits `--parseability-report-json` for return and semantic generated-parser stimuli runs,
+    - gate artifacts now include `summary.csv` / `summary.txt` with attempts, accepted/rejected totals, acceptance rate, and report paths,
+    - regex remains a non-parseability row so the gate exposes current scope explicitly instead of implying parser-backed coverage where none is claimed.
 - [x] Add tracked-worktree local workflow parity gate (`make ci_workflow_local_gate`) that replays the required GitHub workflow command surface from a tracked-only export and rejects absolute repo-local `include!(...)` literals.
 - [x] Enforce relative compile-time generated-parser include path resolution from `rust/src/` for build-script-driven HDL parser includes so clean checkouts and relocated worktrees do not depend on absolute filesystem paths.
 - [x] Align aggregate SOTA policy with measured SV parse-full evidence by keeping random-stimuli parse-full ratio in promotion mode until the required ratchet converges, instead of asserting a premature hard `100%` release threshold.
