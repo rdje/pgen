@@ -91,6 +91,20 @@ require_nonempty_file() {
     fi
 }
 
+parseability_summary_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er ".summary.${field} | numbers" "$path"
+}
+
+parseability_acceptance_rate_percent() {
+    local path="$1"
+    local attempts accepted
+    attempts="$(parseability_summary_field_u64 "$path" "attempts")"
+    accepted="$(parseability_summary_field_u64 "$path" "accepted")"
+    perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$accepted" "$attempts"
+}
+
 now_ms() {
     perl -MTime::HiRes=time -e 'printf "%.0f\n", time()*1000'
 }
@@ -1294,6 +1308,7 @@ closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 e
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
 require_non_increasing_target_debt="$(jq -er 'if (.closed_loop.require_non_increasing_target_debt // true) then 1 else 0 end' "$CONTRACT_FILE")"
+parseability_shadow_contract_enabled="$(jq -er 'if (.closed_loop.parseability_shadow_enabled // false) then 1 else 0 end' "$CONTRACT_FILE")"
 failure_replay_enabled="$(jq -er 'if (.failure_replay.enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
 shrink_semantic_failures="$(jq -er 'if (.failure_replay.shrink_semantic_failures // true) then 1 else 0 end' "$CONTRACT_FILE")"
 shrink_parse_full_failures="$(jq -er 'if (.failure_replay.shrink_parse_full_failures // true) then 1 else 0 end' "$CONTRACT_FILE")"
@@ -1635,6 +1650,7 @@ echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
+echo "closed_loop_parseability_shadow_contract_enabled: $parseability_shadow_contract_enabled"
 echo "failure_replay_enabled: $failure_replay_enabled"
 echo "failure_replay_shrink_semantic_failures: $shrink_semantic_failures"
 echo "failure_replay_shrink_parse_full_failures: $shrink_parse_full_failures"
@@ -1776,6 +1792,23 @@ if [[ "$parse_full_enabled" -eq 1 ]]; then
     parseability_generation_args=(--validate-parseability)
 fi
 
+closed_loop_parseability_shadow_enabled=0
+closed_loop_parseability_shadow_effective="disabled_by_contract"
+closed_loop_parseability_shadow_note="closed-loop replay parseability shadow disabled by contract"
+if [[ "$parseability_shadow_contract_enabled" -eq 1 ]]; then
+    if [[ "$closed_loop_effective_enabled" -ne 1 ]]; then
+        closed_loop_parseability_shadow_effective="disabled_by_closed_loop"
+        closed_loop_parseability_shadow_note="closed-loop replay parseability shadow skipped because closed-loop replay is disabled"
+    elif [[ "$parse_full_enabled" -ne 1 ]]; then
+        closed_loop_parseability_shadow_effective="disabled_by_parse_full"
+        closed_loop_parseability_shadow_note="closed-loop replay parseability shadow skipped because parser-backed validation is unavailable (${parse_full_effective})"
+    else
+        closed_loop_parseability_shadow_enabled=1
+        closed_loop_parseability_shadow_effective="enabled"
+        closed_loop_parseability_shadow_note="closed-loop replay parseability shadow enabled"
+    fi
+fi
+
 perf_budget_enabled=0
 perf_budget_effective="disabled_by_mode"
 perf_budget_note="performance budget checks disabled by mode"
@@ -1871,6 +1904,14 @@ closed_loop_initial_preprocess_warnings_total=0
 closed_loop_initial_preprocess_errors_total=0
 closed_loop_replay_preprocess_warnings_total=0
 closed_loop_replay_preprocess_errors_total=0
+closed_loop_parseability_shadow_requested_total=0
+closed_loop_parseability_shadow_attempts_total=0
+closed_loop_parseability_shadow_accepted_total=0
+closed_loop_parseability_shadow_rejected_total=0
+closed_loop_parseability_shadow_parser_rejections_total=0
+closed_loop_parseability_shadow_generation_errors_total=0
+closed_loop_parseability_shadow_empty_generations_total=0
+closed_loop_parseability_shadow_acceptance_rate_percent="0.00"
 total_warnings=0
 total_errors=0
 semantic_shrink_count=0
@@ -1914,9 +1955,12 @@ declared_shadow_report_json="$WORK_DIR/${grammar_name}_declared_identifier_shado
 declared_shadow_cases_jsonl="$WORK_DIR/${grammar_name}_declared_identifier_shadow_cases.jsonl"
 realistic_report_json="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_report.json"
 realistic_cases_jsonl="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_cases.jsonl"
+closed_loop_parseability_shadow_report_json="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_report.json"
+closed_loop_parseability_shadow_profiles_jsonl="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_profiles.jsonl"
 if [[ "$declared_shadow_enabled" -eq 1 ]]; then
     : >"$declared_shadow_cases_jsonl"
 fi
+: >"$closed_loop_parseability_shadow_profiles_jsonl"
 profile_count="${#run_profiles[@]}"
 total_samples=$((sample_count * profile_count))
 
@@ -2066,6 +2110,76 @@ for profile_idx in "${!run_profiles[@]}"; do
         if [[ "$require_non_increasing_target_debt" -eq 1 ]] && (( replay_preprocess_errors > initial_preprocess_errors )); then
             echo "error: closed-loop replay increased preprocess error debt for profile '${lrm_profile}' (${initial_preprocess_errors} -> ${replay_preprocess_errors})" >&2
             exit 1
+        fi
+
+        if [[ "$closed_loop_parseability_shadow_enabled" -eq 1 ]]; then
+            closed_loop_replay_parseability_shadow_stimuli="$WORK_DIR/profile_${profile_key}_replay_parseability_shadow.sv"
+            closed_loop_replay_parseability_shadow_report="$WORK_DIR/profile_${profile_key}_replay_parseability_shadow_report.json"
+
+            run_logged "profile_${profile_key}_closed_loop_replay_parseability_shadow" \
+                "$AST_PIPELINE_BIN" "$grammar_json" \
+                --generate-stimuli \
+                --grammar-profile "$lrm_profile" \
+                --enforce-word-boundary-spacing \
+                --count "$replay_sample_count" \
+                --seed "$closed_loop_replay_seed" \
+                --entry-rule "$mode_entry_rule" \
+                --max-depth "$mode_max_depth" \
+                --max-repeat "$mode_max_repeat" \
+                --recovery-stimuli-mode "$mode_recovery_stimuli_mode" \
+                --output "$closed_loop_replay_parseability_shadow_stimuli" \
+                --target-max-attempts "$target_max_attempts" \
+                --target-report-input "$closed_loop_initial_gap_json" \
+                --validate-parseability \
+                --parseability-report-json "$closed_loop_replay_parseability_shadow_report"
+            require_nonempty_file "$closed_loop_replay_parseability_shadow_report"
+            if ! jq -e ".grammar_name == \"$grammar_name\" and .summary.attempts == .summary.requested and .summary.accepted <= .summary.requested and .summary.rejected == (.summary.attempts - .summary.accepted)" "$closed_loop_replay_parseability_shadow_report" >/dev/null; then
+                echo "error: closed-loop replay parseability shadow report validation failed for profile '${lrm_profile}': $closed_loop_replay_parseability_shadow_report" >&2
+                exit 1
+            fi
+
+            shadow_requested="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "requested")"
+            shadow_attempts="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "attempts")"
+            shadow_accepted="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "accepted")"
+            shadow_rejected="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "rejected")"
+            shadow_parser_rejections="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "parser_rejections")"
+            shadow_generation_errors="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "generation_errors")"
+            shadow_empty_generations="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "empty_generations")"
+            shadow_acceptance_rate_percent="$(parseability_acceptance_rate_percent "$closed_loop_replay_parseability_shadow_report")"
+
+            closed_loop_parseability_shadow_requested_total=$((closed_loop_parseability_shadow_requested_total + shadow_requested))
+            closed_loop_parseability_shadow_attempts_total=$((closed_loop_parseability_shadow_attempts_total + shadow_attempts))
+            closed_loop_parseability_shadow_accepted_total=$((closed_loop_parseability_shadow_accepted_total + shadow_accepted))
+            closed_loop_parseability_shadow_rejected_total=$((closed_loop_parseability_shadow_rejected_total + shadow_rejected))
+            closed_loop_parseability_shadow_parser_rejections_total=$((closed_loop_parseability_shadow_parser_rejections_total + shadow_parser_rejections))
+            closed_loop_parseability_shadow_generation_errors_total=$((closed_loop_parseability_shadow_generation_errors_total + shadow_generation_errors))
+            closed_loop_parseability_shadow_empty_generations_total=$((closed_loop_parseability_shadow_empty_generations_total + shadow_empty_generations))
+
+            jq -cn \
+                --arg profile "$lrm_profile" \
+                --arg report_json "$closed_loop_replay_parseability_shadow_report" \
+                --argjson requested "$shadow_requested" \
+                --argjson attempts "$shadow_attempts" \
+                --argjson accepted "$shadow_accepted" \
+                --argjson rejected "$shadow_rejected" \
+                --argjson parser_rejections "$shadow_parser_rejections" \
+                --argjson generation_errors "$shadow_generation_errors" \
+                --argjson empty_generations "$shadow_empty_generations" \
+                --argjson acceptance_rate_percent "$shadow_acceptance_rate_percent" \
+                '{
+                    profile: $profile,
+                    report_json: $report_json,
+                    observed: {
+                        requested: $requested,
+                        attempts: $attempts,
+                        accepted: $accepted,
+                        rejected: $rejected,
+                        parser_rejections: $parser_rejections,
+                        generation_errors: $generation_errors,
+                        empty_generations: $empty_generations,
+                        acceptance_rate_percent: $acceptance_rate_percent
+                    }
+                }' >>"$closed_loop_parseability_shadow_profiles_jsonl"
         fi
 
         closed_loop_profile_pass_count=$((closed_loop_profile_pass_count + 1))
@@ -2818,6 +2932,42 @@ fi
 parse_full_quality_report_json="$WORK_DIR/${grammar_name}_parse_full_quality_report.json"
 parseability_generation_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$parseability_generation_accepted_total" "$parseability_generation_attempts_total")"
 parseability_generation_report_json="$WORK_DIR/${grammar_name}_parseability_generation_report.json"
+closed_loop_parseability_shadow_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$closed_loop_parseability_shadow_accepted_total" "$closed_loop_parseability_shadow_attempts_total")"
+closed_loop_parseability_shadow_profiles_json="[]"
+if [[ -s "$closed_loop_parseability_shadow_profiles_jsonl" ]]; then
+    closed_loop_parseability_shadow_profiles_json="$(jq -s '.' "$closed_loop_parseability_shadow_profiles_jsonl")"
+fi
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg effective_mode "$closed_loop_parseability_shadow_effective" \
+    --arg note "$closed_loop_parseability_shadow_note" \
+    --argjson enabled "$closed_loop_parseability_shadow_enabled" \
+    --argjson requested_total "$closed_loop_parseability_shadow_requested_total" \
+    --argjson attempts_total "$closed_loop_parseability_shadow_attempts_total" \
+    --argjson accepted_total "$closed_loop_parseability_shadow_accepted_total" \
+    --argjson rejected_total "$closed_loop_parseability_shadow_rejected_total" \
+    --argjson parser_rejections_total "$closed_loop_parseability_shadow_parser_rejections_total" \
+    --argjson generation_errors_total "$closed_loop_parseability_shadow_generation_errors_total" \
+    --argjson empty_generations_total "$closed_loop_parseability_shadow_empty_generations_total" \
+    --argjson acceptance_rate_percent "$closed_loop_parseability_shadow_acceptance_rate_percent" \
+    --argjson profiles "$closed_loop_parseability_shadow_profiles_json" \
+    '{
+        grammar_name: $grammar_name,
+        enabled: ($enabled == 1),
+        effective_mode: $effective_mode,
+        note: $note,
+        observed: {
+            requested_total: $requested_total,
+            attempts_total: $attempts_total,
+            accepted_total: $accepted_total,
+            rejected_total: $rejected_total,
+            parser_rejections_total: $parser_rejections_total,
+            generation_errors_total: $generation_errors_total,
+            empty_generations_total: $empty_generations_total,
+            acceptance_rate_percent: $acceptance_rate_percent
+        },
+        profiles: $profiles
+    }' >"$closed_loop_parseability_shadow_report_json"
 jq -n \
     --arg grammar_name "$grammar_name" \
     --arg note "$parseability_generation_note" \
@@ -3008,6 +3158,18 @@ jq -n \
     echo "closed_loop_initial_preprocess_errors_total: $closed_loop_initial_preprocess_errors_total"
     echo "closed_loop_replay_preprocess_warnings_total: $closed_loop_replay_preprocess_warnings_total"
     echo "closed_loop_replay_preprocess_errors_total: $closed_loop_replay_preprocess_errors_total"
+    echo "closed_loop_parseability_shadow_enabled: $closed_loop_parseability_shadow_enabled"
+    echo "closed_loop_parseability_shadow_effective: $closed_loop_parseability_shadow_effective"
+    echo "closed_loop_parseability_shadow_note: $closed_loop_parseability_shadow_note"
+    echo "closed_loop_parseability_shadow_requested_total: $closed_loop_parseability_shadow_requested_total"
+    echo "closed_loop_parseability_shadow_attempts_total: $closed_loop_parseability_shadow_attempts_total"
+    echo "closed_loop_parseability_shadow_accepted_total: $closed_loop_parseability_shadow_accepted_total"
+    echo "closed_loop_parseability_shadow_rejected_total: $closed_loop_parseability_shadow_rejected_total"
+    echo "closed_loop_parseability_shadow_parser_rejections_total: $closed_loop_parseability_shadow_parser_rejections_total"
+    echo "closed_loop_parseability_shadow_generation_errors_total: $closed_loop_parseability_shadow_generation_errors_total"
+    echo "closed_loop_parseability_shadow_empty_generations_total: $closed_loop_parseability_shadow_empty_generations_total"
+    echo "closed_loop_parseability_shadow_acceptance_rate_percent: $closed_loop_parseability_shadow_acceptance_rate_percent"
+    echo "closed_loop_parseability_shadow_report_json: $closed_loop_parseability_shadow_report_json"
     echo "declared_identifier_suite_status: $declared_identifier_suite_status"
     echo "declared_identifier_suite_total: $declared_identifier_suite_total"
     echo "declared_identifier_suite_passed: $declared_identifier_suite_passed"

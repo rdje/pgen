@@ -2707,6 +2707,37 @@ Optional SV syntax-closure gate tuning:
   - with `closed_loop.require_non_increasing_target_debt=true`, gate enforces:
     - `replay_targets <= initial_targets`
     - `replay_preprocess_errors <= initial_preprocess_errors` (per profile)
+  - replay parseability shadow telemetry:
+    - contract key:
+      - `closed_loop.parseability_shadow_enabled`
+    - behavior:
+      - after the authoritative raw replay stage, the gate reruns the same target-driven replay seed/profile input in parser-backed generation mode,
+      - the shadow stage is telemetry-only and does not alter:
+        - `closed_loop_replay_targets_total`
+        - non-increasing target debt enforcement
+        - non-increasing preprocess error debt enforcement
+    - summary metrics:
+      - `closed_loop_parseability_shadow_enabled`
+      - `closed_loop_parseability_shadow_effective`
+      - `closed_loop_parseability_shadow_note`
+      - `closed_loop_parseability_shadow_requested_total`
+      - `closed_loop_parseability_shadow_attempts_total`
+      - `closed_loop_parseability_shadow_accepted_total`
+      - `closed_loop_parseability_shadow_rejected_total`
+      - `closed_loop_parseability_shadow_parser_rejections_total`
+      - `closed_loop_parseability_shadow_generation_errors_total`
+      - `closed_loop_parseability_shadow_empty_generations_total`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent`
+      - `closed_loop_parseability_shadow_report_json`
+    - focused evidence:
+      - `PGEN_SV_STIMULI_QUALITY_COUNT=1`
+      - `PGEN_SV_STIMULI_DIFF_MODE=0`
+      - `PGEN_SV_STIMULI_PERF_BUDGET_MODE=0`
+      - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0`
+      - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400`
+      - observed:
+        - authoritative replay debt: `4876 -> 3894`
+        - replay parseability shadow: `requested_total=785`, `accepted_total=229`, `rejected_total=556`, `acceptance_rate_percent=29.17`
 - per-sample deterministic flow:
   - `stimuli_generate -> preprocess -> parse_full(optional) -> semantic_validate_baseline`.
 - trusted-reference differential taxonomy:

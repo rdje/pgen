@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - SV Replay Now Emits Parseability Shadow Telemetry
+### Context
+The SV scored sample loop already exposed parser-backed retry cost, but the closed-loop replay stage still only told us whether raw replay debt had gone down. That left a blind spot in parser trust: replay could be converging on coverage targets while still producing a large amount of parser-rejected output. We need to see that gap without mutating the replay stage so aggressively that the existing target-debt and preprocess-debt invariants stop meaning what they mean today.
+
+### Implementation
+- Promoted `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `version: 26`:
+  - added `closed_loop.parseability_shadow_enabled`.
+- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`:
+  - the gate now runs `profile_<lrm>_closed_loop_replay_parseability_shadow` after each authoritative raw replay stage,
+  - the shadow run reuses the same:
+    - profile,
+    - replay seed,
+    - replay sample count,
+    - target report,
+    - target max attempts,
+  - but adds parser-backed validation via `--validate-parseability --parseability-report-json`,
+  - aggregate summary text and a machine-readable report now publish replay-shadow requested/attempt/accept/reject totals,
+  - authoritative replay debt enforcement still comes only from the raw replay gap/preprocess artifacts, so the invariant is preserved.
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed:
+    - authoritative replay debt: `4876 -> 3894`
+    - replay shadow: `requested_total=785`, `accepted_total=229`, `rejected_total=556`, `acceptance_rate_percent=29.17`
+    - scored parser-backed sample generation remained green at `2/2`
+    - parse_full remained `2/2`
+
+### Notes
+- This is a measurement step, not a workaround. The gate now makes replay parseability debt visible while preserving the same authoritative raw replay contract.
+- The next real closure question is whether the shared target-driven generator can become parser-aware enough that replay-shadow acceptance rises substantially without increasing raw replay debt.
+
 ## 2026-03-10 - VHDL Replay Now Emits Parseability Shadow Telemetry
 ### Context
 After promoting parser-backed telemetry for the scored VHDL samples, the remaining blind spot was obvious: target-driven replay still only told us that raw replay debt had gone down. That is necessary, but not sufficient. We also need to know how much of that replay output is actually parseable under the generated parser, without changing the replay stage so aggressively that we lose the debt invariant we rely on today.

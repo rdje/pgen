@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-09
+Last updated: 2026-03-10
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -924,6 +924,17 @@ Toolbox baseline to leverage end-to-end:
     - report captures `requested`, `accepted`, `rejected`, `attempts`, parser rejections, generation errors, empty generations, and acceptance rate,
     - `sv_stimuli_quality_gate` now records per-sample and aggregate parseability-effort evidence in `summary.csv`, `summary.txt`, and `systemverilog_parseability_generation_report.json`,
     - focused validation showed the sampled `sv_file` slice still at `parse_full_pass_ratio_percent=100` while surfacing real acceptance effort (`accepted_total=4`, `rejected_total=9`, `attempts_total=13`, `acceptance_rate_percent=30.77`) instead of hiding retry cost.
+  - Progress (2026-03-10): added closed-loop replay parseability shadow telemetry to `sv_stimuli_quality_gate` without weakening the authoritative debt contract:
+    - promoted `systemverilog_core_v0_contract.json` to `version: 26` with `closed_loop.parseability_shadow_enabled`,
+    - per-profile replay now has a parser-backed shadow rerun using the same replay seed, target report, and target-attempt budget as the raw replay stage,
+    - the raw replay stage still owns `closed_loop_replay_targets_total` and the non-increasing target/preprocess-debt invariants,
+    - focused bounded evidence remained green while making replay parseability debt visible:
+      - `closed_loop_initial_targets_total=4876`
+      - `closed_loop_replay_targets_total=3894`
+      - `closed_loop_parseability_shadow_requested_total=785`
+      - `closed_loop_parseability_shadow_accepted_total=229`
+      - `closed_loop_parseability_shadow_rejected_total=556`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=29.17`
   - Progress (2026-03-06): closed the remaining realistic-corpus parse gaps and promoted the manifest to an all-pass baseline (`version: 3`):
     - `grammars/systemverilog.ebnf` now accepts:
       - edge-qualified event controls (`@(posedge clk)`, `@(negedge rst_n)`),

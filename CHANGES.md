@@ -1,4 +1,54 @@
 # CHANGES.md
+## 2026-03-10 - Add Closed-Loop Replay Parseability Shadow To `sv_stimuli_quality_gate`
+### ✅ Achievement Summary
+The SystemVerilog gate now measures parser-backed replay quality without weakening the authoritative closed-loop debt contract. A new replay-shadow stage reruns target-driven replay with the same seed/profile/target report under parser-backed generation, so the gate exposes how much of replay output is still parseable while leaving target-debt and preprocess-debt enforcement anchored to the raw replay path.
+
+### Scope of Changes
+- Promoted the SV quality contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+    - bumped to `version: 26`,
+    - added `closed_loop.parseability_shadow_enabled`.
+- Extended the SV gate:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+    - added shared parseability-report helpers for replay-shadow extraction,
+    - after the authoritative per-profile raw replay stage, the gate now runs `profile_<lrm>_closed_loop_replay_parseability_shadow`,
+    - the shadow run reuses the same:
+      - profile,
+      - replay seed,
+      - replay sample count,
+      - target report,
+      - target max attempts,
+    - but adds parser-backed validation via:
+      - `--validate-parseability`
+      - `--parseability-report-json`
+    - summary text now publishes replay-shadow telemetry:
+      - `closed_loop_parseability_shadow_requested_total`
+      - `closed_loop_parseability_shadow_attempts_total`
+      - `closed_loop_parseability_shadow_accepted_total`
+      - `closed_loop_parseability_shadow_rejected_total`
+      - `closed_loop_parseability_shadow_parser_rejections_total`
+      - `closed_loop_parseability_shadow_generation_errors_total`
+      - `closed_loop_parseability_shadow_empty_generations_total`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent`
+      - `closed_loop_parseability_shadow_report_json`
+    - the gate now emits aggregate replay-shadow JSON:
+      - `/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate/work/systemverilog_closed_loop_parseability_shadow_report.json`
+    - authoritative debt enforcement is unchanged and still uses the raw replay gap/preprocess artifacts.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - authoritative replay debt: `4876 -> 3894`
+    - replay parseability shadow: `requested_total=785`, `accepted_total=229`, `rejected_total=556`, `acceptance_rate_percent=29.17`
+    - scored parser-backed sample generation stayed green: `requested_total=2`, `accepted_total=2`
+    - parse_full remained `2/2`
+
 ## 2026-03-10 - Add Closed-Loop Replay Parseability Shadow To `vhdl_stimuli_quality_gate`
 ### ✅ Achievement Summary
 The VHDL gate now measures parser-backed replay quality without weakening the authoritative closed-loop debt contract. A new shadow replay run uses the same target report and seed as the raw replay stage, but only for telemetry, so the gate can expose how much of target-driven replay output remains parseable while keeping debt enforcement anchored to the raw replay path.
