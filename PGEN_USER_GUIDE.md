@@ -2125,6 +2125,10 @@ Tracked baselines:
     - gap-priority generation with merged-coverage invariants,
     - target-driven generation summary integrity,
     - final gap no-regression checks
+  - parser-backed stages now emit aggregated parseability summary artifacts:
+    - `summary.csv` / `summary.txt`
+    - per-grammar `<label>_parseability_report.json`
+    - parseability attempts / accepted / rejected totals, rejection breakdown, acceptance rate, and target-closure context
 - `ebnf_stimuli_quality_gate` (local gate target)
   - strict deterministic closed-loop verification for tracked non-annotation EBNFs (separate from annotation loop):
     - `EBNF -> JSON` frontend success (`ebnf_to_json.pl`),

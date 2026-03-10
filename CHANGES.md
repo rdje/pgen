@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-10 - Add Parseability Telemetry to `annotation_stimuli_quality_gate`
+### ✅ Achievement Summary
+The annotation stimuli quality gate now exposes parser-backed acceptance effort across its closed-loop stages instead of treating parseability as a binary prerequisite. Each stage emits structured parseability report artifacts, and the gate now surfaces aggregate per-grammar parseability telemetry alongside target-closure summary data.
+
+### Scope of Changes
+- Hardened annotation closed-loop observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh`
+    - stage0/stage1/stage2/stage3 now emit `--parseability-report-json`,
+    - validates stage-level parseability report invariants for baseline, gap-priority, target-driven, and final-gap recompute phases,
+    - writes per-grammar aggregate parseability reports plus top-level `summary.csv` / `summary.txt`,
+    - summary artifacts now include:
+      - parseability attempts / accepted / rejected totals
+      - parser rejection / generation error / empty generation totals
+      - parseability acceptance rate
+      - parseability report path
+      - initial/resolved/final target counts and stage sample attempts/successes
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh` ✅
+- `PGEN_ANNOTATION_STIMULI_QUALITY_COUNT=2 PGEN_ANNOTATION_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_stimuli_quality_gate` ✅
+  - observed summary evidence:
+    - `return_annotation`: `parseability_attempts_total=161`, `accepted_total=161`, `acceptance_rate_percent=100.00`, `initial_targets=55`, `final_targets=0`
+    - `semantic_annotation`: `parseability_attempts_total=205`, `accepted_total=114`, `rejected_total=91`, `acceptance_rate_percent=55.61`, `initial_targets=295`, `final_targets=84`
+
 ## 2026-03-10 - Add Parseability Telemetry to `annotation_robustness_gate`
 ### ✅ Achievement Summary
 The annotation robustness gate no longer collapses its parser-backed stimuli stage into binary success. It now emits structured parseability reports for the generated return and semantic stimuli runs, validates them, and surfaces the resulting telemetry in gate summary artifacts.

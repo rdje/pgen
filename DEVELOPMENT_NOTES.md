@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - Annotation Stimuli Quality Gate Now Emits Closed-Loop Parseability Summary Artifacts
+### Context
+`annotation_stimuli_quality_gate` was already the strictest annotation stimuli proof in the repo, but its parser-backed stages still hid acceptance effort behind pass/fail. That made the closed-loop target summary visible while leaving parser-backed retry cost invisible, especially on semantic closure where the generator plainly works harder.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh`:
+  - stage0 baseline, stage1 gap-priority, stage2 target-drive, and stage3 final-gap recompute now each emit `--parseability-report-json`,
+  - stage-level parseability report invariants are validated explicitly,
+  - the gate now writes per-grammar aggregate parseability reports and top-level `summary.csv` / `summary.txt` with both parseability and target-closure metrics,
+  - declared `perl` as an explicit required tool because summary-rate formatting depends on it.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh`
+- `PGEN_ANNOTATION_STIMULI_QUALITY_COUNT=2 PGEN_ANNOTATION_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_stimuli_quality_gate`
+  - observed:
+    - `return_annotation`: `parseability_attempts_total=161`, `accepted_total=161`, `acceptance_rate_percent=100.00`, `final_targets=0`
+    - `semantic_annotation`: `parseability_attempts_total=205`, `accepted_total=114`, `rejected_total=91`, `acceptance_rate_percent=55.61`, `final_targets=84`
+
+### Notes
+- This is a parser-trust observability hardening change. It does not alter target-debt rules or generator semantics; it makes the existing parser-backed effort legible.
+
 ## 2026-03-10 - Annotation Robustness Gate Now Emits Parseability Summary Artifacts
 ### Context
 `annotation_robustness_gate` was already running parser-backed stimuli generation for generated return and semantic annotation grammars, but the gate still reported only pass/fail. That hid real acceptance effort inside a required annotation-contract surface and made semantic retry cost invisible to operators.

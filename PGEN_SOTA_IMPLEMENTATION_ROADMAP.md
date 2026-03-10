@@ -205,6 +205,10 @@ Engine generalization rule:
   - deterministic replay guarantees,
   - gap-target convergence thresholds,
   - failure-shrinking/minimization coverage.
+  - Progress (2026-03-10): promoted the four parser-backed closed-loop stages onto the shared parseability-report contract:
+    - stage0/stage1/stage2/stage3 now emit per-stage parseability reports,
+    - gate artifacts now include per-grammar aggregate parseability reports plus `summary.csv` / `summary.txt`,
+    - focused evidence now exposes real semantic closed-loop retry cost instead of reducing the gate to pass/fail.
 - [x] Implement generated-parser-backed typed AST closure for full return grammar in non-bootstrap path (remove bootstrap typed-AST fallback for conforming inputs).
   - Progress (2026-02-21): non-bootstrap return entry parsing now requires generated parser success and no longer falls back to bootstrap entry parsing.
   - Progress (2026-02-22): added full generated-pass return corpus typed-AST closure proof (`generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus`) with expectation-aware suite discovery and bootstrap parity assertions for comparable cases.
