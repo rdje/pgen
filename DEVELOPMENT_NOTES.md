@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - Aggregate Readiness Runs Now Surface Parseability Tables
+### Context
+The readiness gates were already producing the right parser-backed telemetry, but aggregate `sota_exit_gate` runs still hid it. At sign-off time, operators could see only that `ebnf_frontend_gate` and `hdl_frontend_gate` passed, not how many attempts were needed to get parseable emitted samples or where the readiness parseability reports lived. That was a visibility gap, not a parser bug, so the fix belonged in aggregate observability.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+  - routed EBNF readiness under:
+    - `rust/target/sota_exit_gate/work/ebnf_frontend_readiness`
+  - routed HDL readiness under:
+    - `rust/target/sota_exit_gate/work/hdl_frontend_readiness`
+  - appended both readiness summary tables directly into aggregate `summary.txt`.
+- Updated operator-facing docs:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- focused aggregate readiness replay:
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_readiness_summary ... make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - observed readiness table rows in aggregate summary:
+    - EBNF:
+      - `ebnf` `1/2` accepted (`50.00%`)
+      - `json` `1/1` accepted (`100.00%`)
+      - `regex` `1/1` accepted (`100.00%`)
+    - HDL:
+      - `systemverilog` `1/15` accepted (`6.67%`)
+      - `vhdl` `1/5` accepted (`20.00%`)
+
+### Notes
+- This keeps readiness evidence aligned with the parser trust doctrine: aggregate sign-off now exposes readiness attempt cost, not only readiness pass/fail.
+- No parser behavior changed in this patch; only aggregate state routing and summary surfacing changed.
+
 ## 2026-03-10 - Aggregate Release Summary Now Surfaces Parser-Backed EBNF/SV/VHDL Evidence
 ### Context
 `sota_exit_gate` was already executing the right closed-loop stages, but the top-level operator artifact still under-reported parser trust evidence. EBNF parseability totals stayed buried in the nested `ebnf_stimuli_quality_gate` state dir, VHDL quality artifacts were not aggregate-scoped, and SV/VHDL parser-backed acceptance telemetry only existed inside stage-local summaries. That made release sign-off weaker than the trust doctrine requires because the aggregate gate was acting like a pass/fail wrapper instead of an observable sign-off surface.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-10 (+0100, task: aggregate-parseability-telemetry-surfacing)
+Last updated: 2026-03-10 (+0100, task: aggregate-readiness-telemetry-surfacing)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -65,6 +65,25 @@ Use this file to resume work without replaying full chat history.
       - `closed_loop_replay_targets=20`
       - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
       - `parseability_generation_acceptance_rate_percent=100.00`
+- Aggregate readiness telemetry surface:
+  - `sota_exit_gate` now routes readiness stages under aggregate-scoped state dirs:
+    - `rust/target/sota_exit_gate/work/ebnf_frontend_readiness`
+    - `rust/target/sota_exit_gate/work/hdl_frontend_readiness`
+  - aggregate `summary.txt` now surfaces the full readiness tables, including:
+    - `parseability_attempts`
+    - `parseability_accepted`
+    - `parseability_rejected`
+    - `parseability_acceptance_rate_percent`
+    - `parseability_report_json`
+  - focused aggregate readiness proof used isolated state dir `/tmp/pgen_sota_exit_readiness_summary`,
+  - observed bounded aggregate evidence:
+    - EBNF readiness:
+      - `ebnf` `1/2` accepted (`50.00%`)
+      - `json` `1/1` accepted (`100.00%`)
+      - `regex` `1/1` accepted (`100.00%`)
+    - HDL readiness:
+      - `systemverilog` `1/15` accepted (`6.67%`)
+      - `vhdl` `1/5` accepted (`20.00%`)
 - Build-script include path contract:
   - `rust/build.rs` now emits build-script-resolved HDL parser include paths relative to `rust/src/`,
   - compile-time repo-local `include!(...)` resolution should not depend on absolute filesystem paths.
@@ -3293,7 +3312,7 @@ Use this file to resume work without replaying full chat history.
      - likely next shared-engine direction: improve alternative-branch exploration after low-yield branches are downweighted, again without grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
    - likely next useful parser-trust increment inside the non-annotation loop:
-     - promote the new parseability-effort report into any readiness/reporting surfaces that still only expose binary parseability success.
+     - promote the new parseability-effort report into any remaining reporting surfaces beyond the now-covered aggregate readiness/quality paths, especially places that still collapse parser-backed effort into binary success only.
 3. Keep roadmap + UG + memory synced after every gate/contract increment.
 4. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.

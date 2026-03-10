@@ -2219,6 +2219,13 @@ PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_gate
       - `ebnf`: `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
       - `json`: `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
       - `regex`: `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
+  - aggregate observability behavior (`sota_exit_gate`):
+    - aggregate stage state dir:
+      - `rust/target/sota_exit_gate/work/ebnf_frontend_readiness`
+    - aggregate output and `summary.txt` include:
+      - `ebnf_frontend_readiness_state_dir`
+      - `ebnf_frontend_readiness_summary_csv`
+      - the full readiness table with parser-backed parseability columns
 
 HDL frontend readiness commands (Pillar 5 kickoff):
 ```bash
@@ -2251,6 +2258,13 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
   - `grammars/vhdl.ebnf` passes `EBNF -> JSON -> parser -> stimuli` (initial seed baseline).
   - strict HDL gate (`make -C rust SHELL=/bin/bash hdl_frontend_gate`) is now green for both tracked grammars.
   - aggregate policy default now promotes HDL readiness to strict required mode (`PGEN_SOTA_POLICY_REQUIRE_HDL_FRONTEND_STRICT=1`).
+- aggregate observability behavior (`sota_exit_gate`):
+  - aggregate stage state dir:
+    - `rust/target/sota_exit_gate/work/hdl_frontend_readiness`
+  - aggregate output and `summary.txt` include:
+    - `hdl_frontend_readiness_state_dir`
+    - `hdl_frontend_readiness_summary_csv`
+    - the full readiness table with parser-backed parseability columns
 - SystemVerilog syntax-closure tracking artifact:
   - `SV_GRAMMAR_COVERAGE_MATRIX.md`
   - contains Annex-A-aligned anchor mapping, grouped per-rule coverage status, and explicit unresolved-reference closure debt for the current active grammar.

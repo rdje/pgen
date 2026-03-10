@@ -348,6 +348,10 @@ SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED="<unset>"
 SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED="<unset>"
 EBNF_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 EBNF_STIMULI_QUALITY_SUMMARY_CSV="<unset>"
+EBNF_FRONTEND_READINESS_STAGE_STATE_DIR="<unset>"
+EBNF_FRONTEND_READINESS_SUMMARY_CSV="<unset>"
+HDL_FRONTEND_READINESS_STAGE_STATE_DIR="<unset>"
+HDL_FRONTEND_READINESS_SUMMARY_CSV="<unset>"
 SV_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="<unset>"
 SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="<unset>"
@@ -590,12 +594,18 @@ for check_name in $REQUIRED_CHECKS; do
 done
 
 if [[ "$RUN_EBNF_READINESS" -eq 1 ]]; then
+    EBNF_FRONTEND_READINESS_STAGE_STATE_DIR="${STATE_DIR}/work/ebnf_frontend_readiness"
+    EBNF_FRONTEND_READINESS_SUMMARY_CSV="${EBNF_FRONTEND_READINESS_STAGE_STATE_DIR}/summary.csv"
     if [[ "$REQUIRE_EBNF_STRICT" -eq 1 ]]; then
         run_check "ebnf_frontend_gate" "required" "strict EBNF frontend readiness" \
-            make -C rust SHELL=/bin/bash ebnf_frontend_gate
+            env \
+                PGEN_EBNF_FRONTEND_STATE_DIR="$EBNF_FRONTEND_READINESS_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash ebnf_frontend_gate
     else
         run_check "ebnf_frontend_readiness" "informational" "report-only EBNF frontend readiness" \
-            make -C rust SHELL=/bin/bash ebnf_frontend_readiness
+            env \
+                PGEN_EBNF_FRONTEND_STATE_DIR="$EBNF_FRONTEND_READINESS_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash ebnf_frontend_readiness
     fi
 fi
 
@@ -610,12 +620,18 @@ if [[ "$RUN_EBNF_DUAL_RUN_DIFF" -eq 1 ]]; then
 fi
 
 if [[ "$RUN_HDL_FRONTEND_READINESS" -eq 1 ]]; then
+    HDL_FRONTEND_READINESS_STAGE_STATE_DIR="${STATE_DIR}/work/hdl_frontend_readiness"
+    HDL_FRONTEND_READINESS_SUMMARY_CSV="${HDL_FRONTEND_READINESS_STAGE_STATE_DIR}/summary.csv"
     if [[ "$REQUIRE_HDL_FRONTEND_STRICT" -eq 1 ]]; then
         run_check "hdl_frontend_gate" "required" "strict HDL frontend readiness (systemverilog + vhdl roster)" \
-            make -C rust SHELL=/bin/bash hdl_frontend_gate
+            env \
+                PGEN_HDL_FRONTEND_STATE_DIR="$HDL_FRONTEND_READINESS_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash hdl_frontend_gate
     else
         run_check "hdl_frontend_readiness" "informational" "report-only HDL frontend readiness (systemverilog + vhdl roster)" \
-            make -C rust SHELL=/bin/bash hdl_frontend_readiness
+            env \
+                PGEN_HDL_FRONTEND_STATE_DIR="$HDL_FRONTEND_READINESS_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash hdl_frontend_readiness
     fi
 fi
 
@@ -1121,6 +1137,28 @@ fi
         echo "sv_stimuli_quality_parseability_generation_rejected_total: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL"
         echo "sv_stimuli_quality_parseability_generation_acceptance_rate_percent: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT"
         echo "sv_stimuli_quality_parseability_generation_report_json: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON"
+    fi
+    if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" ]]; then
+        echo
+        echo "EBNF Frontend Readiness Telemetry"
+        echo "ebnf_frontend_readiness_state_dir: $EBNF_FRONTEND_READINESS_STAGE_STATE_DIR"
+        echo "ebnf_frontend_readiness_summary_csv: $EBNF_FRONTEND_READINESS_SUMMARY_CSV"
+        if command -v column >/dev/null 2>&1; then
+            column -s, -t "$EBNF_FRONTEND_READINESS_SUMMARY_CSV"
+        else
+            cat "$EBNF_FRONTEND_READINESS_SUMMARY_CSV"
+        fi
+    fi
+    if [[ -f "$HDL_FRONTEND_READINESS_SUMMARY_CSV" ]]; then
+        echo
+        echo "HDL Frontend Readiness Telemetry"
+        echo "hdl_frontend_readiness_state_dir: $HDL_FRONTEND_READINESS_STAGE_STATE_DIR"
+        echo "hdl_frontend_readiness_summary_csv: $HDL_FRONTEND_READINESS_SUMMARY_CSV"
+        if command -v column >/dev/null 2>&1; then
+            column -s, -t "$HDL_FRONTEND_READINESS_SUMMARY_CSV"
+        else
+            cat "$HDL_FRONTEND_READINESS_SUMMARY_CSV"
+        fi
     fi
     if [[ -f "$EBNF_STIMULI_QUALITY_SUMMARY_CSV" ]]; then
         echo

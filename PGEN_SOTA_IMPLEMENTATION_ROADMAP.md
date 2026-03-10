@@ -135,6 +135,7 @@ Engine generalization rule:
 - [x] Enforce relative compile-time generated-parser include path resolution from `rust/src/` for build-script-driven HDL parser includes so clean checkouts and relocated worktrees do not depend on absolute filesystem paths.
 - [x] Align aggregate SOTA policy with measured SV parse-full evidence by keeping random-stimuli parse-full ratio in promotion mode until the required ratchet converges, instead of asserting a premature hard `100%` release threshold.
 - [x] Surface parser-backed EBNF/SV/VHDL quality telemetry directly in aggregate `sota_exit_gate` artifacts so release sign-off sees parseability-generation and replay-shadow evidence without drilling into nested stage directories.
+- [x] Surface parser-backed EBNF/HDL readiness tables directly in aggregate `sota_exit_gate` artifacts so readiness parseability effort is visible at sign-off level, not only inside readiness-stage state dirs.
 
 ### Phase J (New): Semantic Steering Control Surface + Return Completeness
 - [x] Publish semantic steering control matrix with parser/stimuli control taxonomy, current support status, and target tiers (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`).

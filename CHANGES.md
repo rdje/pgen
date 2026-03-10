@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-03-10 - Surface Aggregate Readiness Parseability Telemetry
+### ✅ Achievement Summary
+The aggregate release gate now surfaces parser-backed readiness evidence directly for both non-annotation EBNF and HDL frontend readiness. `sota_exit_gate` now routes those readiness stages under aggregate-scoped state dirs and prints their full readiness tables in aggregate `summary.txt`, including parseability attempts, accepted/rejected counts, acceptance rate, and report paths.
+
+### Scope of Changes
+- Hardened aggregate readiness observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+    - scopes `ebnf_frontend_readiness` under `rust/target/sota_exit_gate/work/ebnf_frontend_readiness`,
+    - scopes `hdl_frontend_readiness` under `rust/target/sota_exit_gate/work/hdl_frontend_readiness`,
+    - surfaces the readiness summary tables directly in aggregate `summary.txt`.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- bounded aggregate readiness replay ✅
+  - command:
+    - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_readiness_summary PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=1 PGEN_SOTA_REQUIRE_EBNF_STRICT=1 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=1 PGEN_SOTA_REQUIRE_HDL_FRONTEND_STRICT=1 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_EBNF_FRONTEND_STIMULI_COUNT=1 PGEN_HDL_FRONTEND_STIMULI_COUNT=1 PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - observed aggregate summary evidence:
+    - EBNF readiness:
+      - `ebnf` parseability `1/2` accepted (`50.00%`)
+      - `json` parseability `1/1` accepted (`100.00%`)
+      - `regex` parseability `1/1` accepted (`100.00%`)
+    - HDL readiness:
+      - `systemverilog` parseability `1/15` accepted (`6.67%`)
+      - `vhdl` parseability `1/5` accepted (`20.00%`)
+  - aggregate run ended `required_failures=0`, `all_failures=0`.
+
 ## 2026-03-10 - Surface Parser-Backed Aggregate Telemetry in `sota_exit_gate`
 ### ✅ Achievement Summary
 The aggregate release gate now exposes parser-backed quality evidence directly in its top-level artifacts instead of forcing operators to drill into nested stage directories. `sota_exit_gate` now scopes `ebnf_stimuli_quality_gate` and `vhdl_stimuli_quality_gate` under aggregate state just like SV already was, and `summary.txt` now surfaces EBNF parseability tables plus SV/VHDL parseability-generation and replay-shadow telemetry.
