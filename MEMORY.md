@@ -108,7 +108,7 @@ Use this file to resume work without replaying full chat history.
       - `parseability_generation_rejected_total=9`
       - `parseability_generation_attempts_total=13`
       - `parseability_generation_acceptance_rate_percent=30.77`,
-    - focused closed-loop replay-shadow proof on `sv_file` (`count=1`, bounded replay budget `400`) stayed green and improved under the generic low-yield branch throttle:
+    - focused closed-loop replay-shadow proof on `sv_file` (`count=1`, bounded replay budget `400`) stayed green and improved parser-backed acceptance under the generic low-yield branch throttle:
       - `closed_loop_initial_targets_total=4876`
       - `closed_loop_replay_targets_total=3925`
       - `closed_loop_parseability_shadow_requested_total=491`
@@ -3264,7 +3264,7 @@ Use this file to resume work without replaying full chat history.
      - deeper include-chain variants that combine package-width state with more than twenty-one child stages or mixed wildcard/named-port reuse across multiple modules,
      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
    - parser-trust follow-up inside the same area:
-     - continue lifting parser-backed replay-shadow acceptance from the new `30.14%` bounded SV baseline without relaxing the authoritative non-increasing target-debt invariant.
+     - continue lifting parser-backed replay-shadow acceptance from the new `30.14%` bounded SV baseline while also recovering the slight authoritative replay-debt regression (`3925` vs prior `3894`) without relaxing the non-increasing target-debt invariant.
      - likely next shared-engine direction: improve alternative-branch exploration after low-yield branches are downweighted, again without grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
    - likely next useful parser-trust increment inside the non-annotation loop:

@@ -18,7 +18,7 @@ The parser-aware debt rollback made replay-shadow accounting honest, but it also
 - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
 - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - observed:
-    - authoritative replay debt: `4876 -> 3925`
+    - authoritative replay debt remained green but regressed slightly: `4876 -> 3925`
     - replay shadow: `requested_total=491`, `accepted_total=148`, `rejected_total=343`, `acceptance_rate_percent=30.14`
     - previous strict baseline for the same bounded run: `requested_total=474`, `accepted_total=135`, `rejected_total=339`, `acceptance_rate_percent=28.48`
 - bounded VHDL proof with a temporary reduced replay-budget contract override:
@@ -30,6 +30,7 @@ The parser-aware debt rollback made replay-shadow accounting honest, but it also
 
 ### Notes
 - This is still measurement-backed, not a trick: the authoritative replay debt contract remains intact and only the generic branch-weight guidance changed.
+- The result is mixed but real: parser-backed acceptance improved on both HDL paths, while bounded authoritative replay debt improved on VHDL and regressed slightly on SV. That means this throttle is a useful signal-quality improvement, not the final replay-closure fix.
 - The next shared quality step is likely improving how fast target replay finds alternative parseable branches after a low-yield branch has been downweighted.
 
 ## 2026-03-10 - Target-Driven Parseability No Longer Lets Rejected Outputs Pay Debt

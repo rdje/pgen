@@ -951,7 +951,7 @@ Toolbox baseline to leverage end-to-end:
     - new regression tests prove:
       - low-success-ratio branches are throttled harder than healthier branches with comparable history,
       - coverage guidance can prefer a healthier branch over a low-yield branch when remaining deficit is otherwise comparable,
-    - focused bounded SV evidence improved under the same replay-shadow configuration:
+    - focused bounded SV evidence improved parser-backed acceptance under the same replay-shadow configuration, but replay debt regressed slightly and remains an open follow-up:
       - `closed_loop_initial_targets_total=4876`
       - `closed_loop_replay_targets_total=3925`
       - `closed_loop_parseability_shadow_requested_total=491`
