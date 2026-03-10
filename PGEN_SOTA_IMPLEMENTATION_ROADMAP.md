@@ -928,13 +928,24 @@ Toolbox baseline to leverage end-to-end:
     - promoted `systemverilog_core_v0_contract.json` to `version: 26` with `closed_loop.parseability_shadow_enabled`,
     - per-profile replay now has a parser-backed shadow rerun using the same replay seed, target report, and target-attempt budget as the raw replay stage,
     - the raw replay stage still owns `closed_loop_replay_targets_total` and the non-increasing target/preprocess-debt invariants,
-    - focused bounded evidence remained green while making replay parseability debt visible:
+    - focused bounded evidence remained green while making replay parseability debt visible.
+  - Progress (2026-03-10): hardened the shared target-driven parseability path so parser-rejected outputs no longer pay target debt:
+    - `StimuliGenerator` now supports validator-aware target-driven generation that preserves branch-selection history but rolls back rule/branch success hits on rejected outputs,
+    - `ast_pipeline --target-report-input --validate-parseability` now uses that shared path instead of raw target closure followed by post-hoc filtering,
+    - focused bounded SV evidence remained green with unchanged authoritative replay debt and stricter shadow accounting:
       - `closed_loop_initial_targets_total=4876`
       - `closed_loop_replay_targets_total=3894`
-      - `closed_loop_parseability_shadow_requested_total=785`
-      - `closed_loop_parseability_shadow_accepted_total=229`
-      - `closed_loop_parseability_shadow_rejected_total=556`
-      - `closed_loop_parseability_shadow_acceptance_rate_percent=29.17`
+      - `closed_loop_parseability_shadow_requested_total=474`
+      - `closed_loop_parseability_shadow_accepted_total=135`
+      - `closed_loop_parseability_shadow_rejected_total=339`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=28.48`
+    - bounded VHDL proof under a temporary reduced replay budget also remained green:
+      - `closed_loop_initial_targets=271`
+      - `closed_loop_replay_targets=33`
+      - `closed_loop_parseability_shadow_requested_total=31`
+      - `closed_loop_parseability_shadow_accepted_total=7`
+      - `closed_loop_parseability_shadow_rejected_total=24`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=22.58`
   - Progress (2026-03-06): closed the remaining realistic-corpus parse gaps and promoted the manifest to an all-pass baseline (`version: 3`):
     - `grammars/systemverilog.ebnf` now accepts:
       - edge-qualified event controls (`@(posedge clk)`, `@(negedge rst_n)`),

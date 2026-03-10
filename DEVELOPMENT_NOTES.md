@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-10 - Target-Driven Parseability No Longer Lets Rejected Outputs Pay Debt
+### Context
+The replay-shadow telemetry exposed a deeper issue in the shared engine path. `ast_pipeline --target-report-input --validate-parseability` was still resolving target debt on raw generator success and only filtering parser-rejected outputs afterward. That meant the target plan could internally “close” on samples the generated parser would never accept. The fix had to be generic and engine-level, not an SV-only shell adjustment.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`:
+  - added validator-aware target-driven generation,
+  - added success-state snapshot/restore support so parser-rejected outputs roll back:
+    - rule success hits,
+    - branch success hits,
+  - intentionally preserved branch-selection history on rejected outputs so the generic failing-branch throttle still learns from those misses.
+- Updated `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`:
+  - `--target-report-input --validate-parseability` now uses the validator-aware target loop directly,
+  - target-driven parseability is no longer “generate then filter later”.
+
+### Validation
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed:
+    - authoritative replay debt unchanged: `4876 -> 3894`
+    - replay shadow now reports only accepted target-driven hits: `requested_total=474`, `accepted_total=135`, `rejected_total=339`, `acceptance_rate_percent=28.48`
+- bounded VHDL proof with a temporary reduced replay-budget contract override:
+  - observed:
+    - authoritative replay debt: `271 -> 33`
+    - replay shadow: `requested_total=31`, `accepted_total=7`, `rejected_total=24`, `acceptance_rate_percent=22.58`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Notes
+- This is the right direction even though the acceptance percentage did not jump upward: the metric is now stricter and more honest because rejected outputs no longer masquerade as resolved target coverage.
+- The next real quality step is improving the shared generator so accepted replay hits rise under this stricter accounting.
+
 ## 2026-03-10 - SV Replay Now Emits Parseability Shadow Telemetry
 ### Context
 The SV scored sample loop already exposed parser-backed retry cost, but the closed-loop replay stage still only told us whether raw replay debt had gone down. That left a blind spot in parser trust: replay could be converging on coverage targets while still producing a large amount of parser-rejected output. We need to see that gap without mutating the replay stage so aggressively that the existing target-debt and preprocess-debt invariants stop meaning what they mean today.

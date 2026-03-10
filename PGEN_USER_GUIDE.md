@@ -612,6 +612,11 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast
 
 With `--validate-parseability`, add `--parseability-report-json PATH` when you want structured acceptance-effort telemetry for the run rather than only the human-readable summary line on stdout. Add `--parseability-max-attempts N` when a gate or experiment needs an explicit acceptance-effort budget.
 
+When `--validate-parseability` is combined with `--target-report-input`, target-driven generation is validator-aware:
+- parser-rejected outputs do not pay down rule/branch success debt,
+- rejected outputs are excluded from returned samples,
+- branch-selection history is still retained so the generator can throttle repeatedly failing target branches instead of forgetting them.
+
 ### Deterministic Replay and Seed Compatibility Guarantees
 - In-memory mode (`--generate-stimuli`):
   - deterministic only when `--seed` is explicitly provided,
@@ -2712,6 +2717,7 @@ Optional SV syntax-closure gate tuning:
       - `closed_loop.parseability_shadow_enabled`
     - behavior:
       - after the authoritative raw replay stage, the gate reruns the same target-driven replay seed/profile input in parser-backed generation mode,
+      - parser-rejected replay-shadow outputs do not count as resolved rule/branch successes inside the shadow run,
       - the shadow stage is telemetry-only and does not alter:
         - `closed_loop_replay_targets_total`
         - non-increasing target debt enforcement
@@ -2737,7 +2743,7 @@ Optional SV syntax-closure gate tuning:
       - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400`
       - observed:
         - authoritative replay debt: `4876 -> 3894`
-        - replay parseability shadow: `requested_total=785`, `accepted_total=229`, `rejected_total=556`, `acceptance_rate_percent=29.17`
+        - replay parseability shadow: `requested_total=474`, `accepted_total=135`, `rejected_total=339`, `acceptance_rate_percent=28.48`
 - per-sample deterministic flow:
   - `stimuli_generate -> preprocess -> parse_full(optional) -> semantic_validate_baseline`.
 - trusted-reference differential taxonomy:
@@ -3236,6 +3242,7 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - it does not replace the authoritative debt check,
     - it does not change `closed_loop_replay_targets`,
     - it exists to measure how much of the target-driven replay output remains parseable under the generated parser.
+  - inside the shadow run, parser-rejected outputs do not count as resolved successes for the target plan; the generator retains branch-selection history but rolls back rule/branch success debt on rejected candidates.
   - summary text now emits:
     - `closed_loop_parseability_shadow_requested_total`
     - `closed_loop_parseability_shadow_attempts_total`

@@ -81,6 +81,12 @@ pub struct StimuliCoverageMetrics {
     pub branch_groups: HashMap<String, BranchCoverageGroup>,
 }
 
+#[derive(Debug, Clone)]
+struct StimuliCoverageSuccessSnapshot {
+    rule_success_hits: HashMap<String, u64>,
+    branch_success_counts: HashMap<String, Vec<u64>>,
+}
+
 impl StimuliCoverageMetrics {
     fn new(
         grammar_name: String,
@@ -245,6 +251,31 @@ impl StimuliCoverageMetrics {
                 group.total_branches = total_branches;
             }
             group.success_counts[branch_idx] += 1;
+        }
+    }
+
+    fn snapshot_success_state(&self) -> StimuliCoverageSuccessSnapshot {
+        StimuliCoverageSuccessSnapshot {
+            rule_success_hits: self.rule_success_hits.clone(),
+            branch_success_counts: self
+                .branch_groups
+                .iter()
+                .map(|(group_key, group)| (group_key.clone(), group.success_counts.clone()))
+                .collect(),
+        }
+    }
+
+    fn restore_success_state(&mut self, snapshot: &StimuliCoverageSuccessSnapshot) {
+        self.rule_success_hits = snapshot.rule_success_hits.clone();
+        for (group_key, group) in &mut self.branch_groups {
+            if let Some(success_counts) = snapshot.branch_success_counts.get(group_key) {
+                group.success_counts = success_counts.clone();
+            } else {
+                group.success_counts = vec![0; group.total_branches];
+            }
+            if group.success_counts.len() < group.total_branches {
+                group.success_counts.resize(group.total_branches, 0);
+            }
         }
     }
 
@@ -549,6 +580,13 @@ pub struct TargetDriveSummary {
     pub applied_targets: usize,
     pub resolved_targets: usize,
     pub unresolved_targets: Vec<TargetCoverageStatus>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct TargetDriveValidationSummary {
+    pub validated_outputs: usize,
+    pub accepted_outputs: usize,
+    pub rejected_outputs: usize,
 }
 
 impl TargetDriveSummary {
@@ -1165,6 +1203,105 @@ impl<'a> StimuliGenerator<'a> {
                 resolved_targets,
                 unresolved_targets,
             },
+        ))
+    }
+
+    pub fn generate_until_targets_with_filter<F>(
+        &mut self,
+        entry_rule: Option<&str>,
+        targets: &[StimuliCoverageTarget],
+        max_attempts: usize,
+        mut output_filter: F,
+    ) -> Result<(Vec<String>, TargetDriveSummary, TargetDriveValidationSummary)>
+    where
+        F: FnMut(&str) -> Result<bool>,
+    {
+        let resolved_entry = self.resolve_entry_rule(entry_rule)?;
+        let applicable_targets: Vec<StimuliCoverageTarget> = targets
+            .iter()
+            .filter(|target| target.reachable)
+            .cloned()
+            .collect();
+        let applied_targets = self.apply_targets(&applicable_targets);
+
+        let mut outputs = Vec::new();
+        let mut attempts = 0usize;
+        let mut generation_successes = 0usize;
+        let mut generation_errors = 0usize;
+        let mut best_remaining = applicable_targets.len();
+        let mut stagnant_iterations = 0usize;
+        let probe_threshold = 32usize;
+        let mut validation_summary = TargetDriveValidationSummary::default();
+
+        while attempts < max_attempts {
+            let pending = self.evaluate_target_statuses(&applicable_targets);
+            if pending.is_empty() {
+                break;
+            }
+
+            if pending.len() < best_remaining {
+                best_remaining = pending.len();
+                stagnant_iterations = 0;
+            } else {
+                stagnant_iterations = stagnant_iterations.saturating_add(1);
+            }
+
+            let generation_entry = if stagnant_iterations >= probe_threshold {
+                self.select_target_probe_rule(&pending, &resolved_entry)
+                    .unwrap_or_else(|| resolved_entry.clone())
+            } else {
+                resolved_entry.clone()
+            };
+
+            attempts = attempts.saturating_add(1);
+            let success_snapshot = self.coverage.snapshot_success_state();
+            match self.generate_from_entry(&generation_entry) {
+                Ok(sample) => {
+                    generation_successes = generation_successes.saturating_add(1);
+                    let accepted = output_filter(&sample)?;
+                    if generation_entry == resolved_entry {
+                        validation_summary.validated_outputs =
+                            validation_summary.validated_outputs.saturating_add(1);
+                    }
+                    if !accepted {
+                        self.coverage.restore_success_state(&success_snapshot);
+                        if generation_entry == resolved_entry {
+                            validation_summary.rejected_outputs =
+                                validation_summary.rejected_outputs.saturating_add(1);
+                        }
+                        continue;
+                    }
+
+                    if generation_entry == resolved_entry {
+                        validation_summary.accepted_outputs =
+                            validation_summary.accepted_outputs.saturating_add(1);
+                        outputs.push(sample);
+                    }
+                }
+                Err(_) => {
+                    generation_errors = generation_errors.saturating_add(1);
+                }
+            }
+        }
+
+        let unresolved_targets = self.evaluate_target_statuses(&applicable_targets);
+        let total_targets = applicable_targets.len();
+        let resolved_targets = total_targets.saturating_sub(unresolved_targets.len());
+        self.clear_targets();
+
+        Ok((
+            outputs,
+            TargetDriveSummary {
+                entry_rule: resolved_entry,
+                attempts,
+                generation_successes,
+                generation_errors,
+                total_targets,
+                applied_targets,
+                resolved_targets,
+                unresolved_targets,
+            },
+            validation_summary,
         ))
     }
 
@@ -5305,6 +5442,52 @@ mod tests {
         assert!(
             summary.unresolved_targets.is_empty(),
             "no unresolved targets expected"
+        );
+    }
+
+    #[test]
+    fn target_driven_generation_filter_rejects_branch_without_paying_target_debt() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 889);
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        assert!(!report.targets.is_empty(), "expected actionable targets");
+
+        let (samples, summary, validation) = generator
+            .generate_until_targets_with_filter(Some("start"), &report.targets, 200, |sample| {
+                Ok(sample == "L")
+            })
+            .expect("target-driven generation with filter should succeed");
+
+        assert_eq!(validation.accepted_outputs, samples.len());
+        assert!(samples.iter().all(|sample| sample == "L"));
+        assert!(
+            summary
+                .unresolved_targets
+                .iter()
+                .any(|status| matches!(status.target_type, StimuliCoverageTargetType::Branch)
+                    && status.branch_index == Some(1)),
+            "rejected branch must remain unresolved"
+        );
+
+        let group = generator
+            .coverage_metrics()
+            .branch_groups
+            .get("start::root")
+            .expect("branch group should exist");
+        assert_eq!(group.success_counts.get(1).copied().unwrap_or(0), 0);
+        assert!(
+            group.selected_counts.get(1).copied().unwrap_or(0) > 0,
+            "rejected branch should still accumulate selection history for throttling"
         );
     }
 

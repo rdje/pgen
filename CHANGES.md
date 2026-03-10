@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-10 - Make Target-Driven Parseability Roll Back Rejected Success Debt
+### ✅ Achievement Summary
+The shared target-driven generation path is now validator-aware. When `ast_pipeline` runs with `--target-report-input --validate-parseability`, parser-rejected outputs no longer count as resolved rule/branch successes internally. That closes a real parser-trust bug: replay-shadow telemetry now measures target-driven parseability against accepted hits, not against raw successes that were filtered out afterward.
+
+### Scope of Changes
+- Hardened the shared stimuli engine:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`
+    - added validator-aware target-driven generation,
+    - added success-state snapshot/restore support so rejected outputs roll back rule/branch success hits,
+    - preserved branch-selection history on rejected outputs so failing branches can still be throttled generically,
+    - added regression test `target_driven_generation_filter_rejects_branch_without_paying_target_debt`.
+- Promoted the generic CLI path:
+  - `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`
+    - `--target-report-input --validate-parseability` now uses the new validator-aware target loop instead of raw target closure followed by post-hoc parseability filtering.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture` ✅
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - observed:
+    - authoritative replay debt unchanged: `4876 -> 3894`
+    - stricter replay-shadow accounting: `requested_total=474`, `accepted_total=135`, `rejected_total=339`, `acceptance_rate_percent=28.48`
+- bounded VHDL proof with a temporary reduced replay-budget contract override ✅
+  - observed:
+    - bounded authoritative replay debt: `271 -> 33`
+    - bounded replay shadow: `requested_total=31`, `accepted_total=7`, `rejected_total=24`, `acceptance_rate_percent=22.58`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-10 - Add Closed-Loop Replay Parseability Shadow To `sv_stimuli_quality_gate`
 ### ✅ Achievement Summary
 The SystemVerilog gate now measures parser-backed replay quality without weakening the authoritative closed-loop debt contract. A new replay-shadow stage reruns target-driven replay with the same seed/profile/target report under parser-backed generation, so the gate exposes how much of replay output is still parseable while leaving target-debt and preprocess-debt enforcement anchored to the raw replay path.

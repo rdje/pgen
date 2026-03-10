@@ -925,11 +925,34 @@ fn main() -> Result<()> {
                     grammar.grammar_name
                 ));
             }
-            let (generated_samples, target_summary) = generator.generate_until_targets(
-                args.entry_rule.as_deref(),
-                &target_report.targets,
-                args.target_max_attempts,
-            )?;
+            let (generated_samples, target_summary) = if args.validate_parseability {
+                let (samples, summary, validation) = generator.generate_until_targets_with_filter(
+                    args.entry_rule.as_deref(),
+                    &target_report.targets,
+                    args.target_max_attempts,
+                    |sample| {
+                        is_sample_parseable_by_generated_parser(
+                            &grammar.grammar_name,
+                            args.grammar_profile.as_deref(),
+                            sample,
+                        )
+                    },
+                )?;
+                let summary_for_report = ParseabilitySummary::from_filter(
+                    validation.validated_outputs,
+                    validation.accepted_outputs,
+                    validation.rejected_outputs,
+                );
+                println!("{}", summary_for_report.summary_line());
+                parseability_summary = Some(summary_for_report);
+                (samples, summary)
+            } else {
+                generator.generate_until_targets(
+                    args.entry_rule.as_deref(),
+                    &target_report.targets,
+                    args.target_max_attempts,
+                )?
+            };
             println!("{}", target_summary.summary_line());
             if !target_summary.unresolved_targets.is_empty() {
                 println!(
@@ -980,7 +1003,10 @@ fn main() -> Result<()> {
             generated_samples
         };
 
-        if args.validate_parseability && args.target_report_input.is_some() {
+        if args.validate_parseability
+            && args.target_report_input.is_some()
+            && parseability_summary.is_none()
+        {
             let requested_before_filter = samples.len();
             let (accepted, rejected) = filter_parseable_samples(
                 &grammar.grammar_name,
