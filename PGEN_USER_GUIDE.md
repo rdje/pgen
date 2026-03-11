@@ -63,6 +63,10 @@ In practical terms:
   - `alternate_entry_accepted_outputs`
   - `alternate_entry_rejected_outputs`
 - target-driven quality gates surface those alternate-entry counters in their stage summaries or aggregate report artifacts so helper-rule probe churn is observable instead of inferred.
+- aggregate `sota_exit_gate` summary now surfaces those counters for:
+  - `sv_preprocessor_quality`
+  - `sv_stimuli_quality` replay-shadow telemetry
+  - `vhdl_stimuli_quality` replay-shadow telemetry
 
 ## 3) Fast Start
 

@@ -999,6 +999,13 @@ Toolbox baseline to leverage end-to-end:
     - focused bounded proofs showed the new counters are wired end-to-end, with non-zero HDL replay-shadow evidence now visible at the gate surface:
       - VHDL: `closed_loop_parseability_shadow_alternate_entry_attempts_total=185`, `accepted_outputs_total=1`, `rejected_outputs_total=184`
       - SV: `closed_loop_parseability_shadow_alternate_entry_attempts_total=205`, `accepted_outputs_total=16`, `rejected_outputs_total=189`
+  - Progress (2026-03-11): promoted that alternate-entry telemetry into aggregate sign-off:
+    - `sota_exit_gate` now surfaces target-drive alternate-entry counters for `sv_preprocessor_quality`, `sv_stimuli_quality`, and `vhdl_stimuli_quality`,
+    - focused bounded aggregate proof stayed green with:
+      - SV preprocessor: `alternate_entry_attempts_total=0`, `accepted_outputs_total=0`, `rejected_outputs_total=0`
+      - SV replay shadow: `alternate_entry_attempts_total=205`, `accepted_outputs_total=16`, `rejected_outputs_total=189`
+      - VHDL replay shadow: `alternate_entry_attempts_total=185`, `accepted_outputs_total=1`, `rejected_outputs_total=184`
+      - aggregate run finished with `required_failures=0` and `all_failures=0`
   - Progress (2026-03-10): hardened shared target guidance so persistently low-yield branches are de-emphasized generically instead of only clamping zero-success branches:
     - `StimuliGenerator` target-branch throttling is now driven by accepted-success ratio history (`selected_counts` vs `success_counts`) with no grammar-specific logic,
     - new regression tests prove:

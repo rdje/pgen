@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-03-11 - Surface Alternate-Entry Telemetry in Aggregate SOTA Sign-Off
+### ✅ Achievement Summary
+Top-level aggregate sign-off now surfaces the new target-drive alternate-entry counters instead of stopping at per-gate visibility. `sota_exit_gate` now exposes those counters directly for the SV preprocessor quality stage and for the SV/VHDL replay-shadow quality stages.
+
+### Scope of Changes
+- Hardened aggregate telemetry surfacing:
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+    - now harvests:
+      - `sv_preprocessor_quality_target_drive_alternate_entry_*`
+      - `sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_*`
+      - `vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_*`
+    - prints those fields in aggregate `summary.txt`.
+- Synced operator docs/state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- `bash -n rust/scripts/sota_exit_gate.sh` ✅
+- focused aggregate proof with only:
+  - `differential_baseline_contract`
+  - `sv_preprocessor_quality_gate`
+  - `sv_stimuli_quality_gate`
+  - `vhdl_stimuli_quality_gate`
+- observed aggregate evidence:
+  - SV preprocessor:
+    - `sv_preprocessor_quality_target_drive_alternate_entry_attempts_total=0`
+    - `sv_preprocessor_quality_target_drive_alternate_entry_accepted_outputs_total=0`
+    - `sv_preprocessor_quality_target_drive_alternate_entry_rejected_outputs_total=0`
+  - SV replay shadow:
+    - `sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_attempts_total=205`
+    - `sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=16`
+    - `sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=189`
+  - VHDL replay shadow:
+    - `vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_attempts_total=185`
+    - `vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=1`
+    - `vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=184`
+  - aggregate run finished with `required_failures=0` and `all_failures=0`
+
 ## 2026-03-11 - Surface Alternate-Entry Target-Drive Telemetry in Gate Artifacts
 ### ✅ Achievement Summary
 The new alternate-entry counters no longer live only inside raw target-driven parseability JSON. The target-driven quality gates now surface them in operator-visible summaries and aggregate report artifacts, so helper-rule probe churn is visible where the gates are actually reviewed.

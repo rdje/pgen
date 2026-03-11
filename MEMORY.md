@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: surface-target-driven-alternate-entry-telemetry)
+Last updated: 2026-03-11 (+0100, task: surface-aggregate-alternate-entry-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -153,6 +153,29 @@ Use this file to resume work without replaying full chat history.
       - `closed_loop_parseability_shadow_alternate_entry_attempts_total=205`
       - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=16`
       - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=189`
+- Aggregate sign-off now surfaces the same telemetry:
+  - `sota_exit_gate` now prints:
+    - `sv_preprocessor_quality_target_drive_alternate_entry_*`
+    - `sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_*`
+    - `vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_*`
+  - focused bounded aggregate proof used only:
+    - `differential_baseline_contract`
+    - `sv_preprocessor_quality_gate`
+    - `sv_stimuli_quality_gate`
+    - `vhdl_stimuli_quality_gate`
+  - observed aggregate evidence:
+    - SV preprocessor:
+      - `alternate_entry_attempts_total=0`
+      - `alternate_entry_accepted_outputs_total=0`
+      - `alternate_entry_rejected_outputs_total=0`
+    - SV replay shadow:
+      - `alternate_entry_attempts_total=205`
+      - `alternate_entry_accepted_outputs_total=16`
+      - `alternate_entry_rejected_outputs_total=189`
+    - VHDL replay shadow:
+      - `alternate_entry_attempts_total=185`
+      - `alternate_entry_accepted_outputs_total=1`
+      - `alternate_entry_rejected_outputs_total=184`
 - Stimuli-module parity parseability surface:
   - `stimuli_module_parity_gate` now treats parser-backed acceptance effort as part of the parity contract instead of an implicit precondition,
   - for parseability-required grammars it emits and compares:

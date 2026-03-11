@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Aggregate Sign-Off Now Surfaces Alternate-Entry Counters
+### Context
+After surfacing alternate-entry telemetry inside the individual gates, the remaining visibility gap was top-level sign-off. A reviewer reading `sota_exit_gate` still saw replay-shadow acceptance totals but not whether those retries were dominated by alternate non-entry probes.
+
+### Implementation
+- Hardened [/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now harvests target-drive alternate-entry counters from:
+    - `sv_preprocessor_quality_gate` summary CSV,
+    - `sv_stimuli_quality_gate` summary log,
+    - `vhdl_stimuli_quality_gate` summary log,
+  - prints those counters in aggregate `summary.txt` alongside the existing parseability totals.
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- focused aggregate bounded proof with only `differential_baseline_contract`, `sv_preprocessor_quality_gate`, `sv_stimuli_quality_gate`, and `vhdl_stimuli_quality_gate` enabled.
+- observed aggregate evidence:
+  - SV preprocessor:
+    - `alternate_entry_attempts_total=0`
+    - `alternate_entry_accepted_outputs_total=0`
+    - `alternate_entry_rejected_outputs_total=0`
+  - SV replay shadow:
+    - `alternate_entry_attempts_total=205`
+    - `alternate_entry_accepted_outputs_total=16`
+    - `alternate_entry_rejected_outputs_total=189`
+  - VHDL replay shadow:
+    - `alternate_entry_attempts_total=185`
+    - `alternate_entry_accepted_outputs_total=1`
+    - `alternate_entry_rejected_outputs_total=184`
+
+### Notes
+- This closes the observability path from raw target-driven report JSON all the way up to aggregate sign-off for the main HDL quality surfaces.
+- Promotion-trial reports do not yet expose alternate-entry totals in their own schemas; that remains a separate follow-up if we want the same visibility for promotion gates.
+
 ## 2026-03-11 - Gate Surfaces Now Expose Alternate-Entry Target-Drive Totals
 ### Context
 The raw parseability report already had the new `target_drive_validation` block, but that was still too buried for normal gate review. The operator-visible problem was unchanged: people reading `summary.txt` or aggregate parseability report JSON still had to manually open per-stage raw reports to tell whether replay churn came from helper-rule alternate probes.
