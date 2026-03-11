@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
     RecoveryStimuliMode, StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics,
-    StimuliGenerator,
+    StimuliGenerator, TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
@@ -323,12 +323,31 @@ struct ParseabilityGenerationReport {
     grammar_profile: Option<String>,
     entry_rule: String,
     summary: ParseabilitySummary,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    target_drive_validation: Option<TargetDriveParseabilityTelemetry>,
 }
 
 #[derive(Debug, Clone)]
 struct ParseableStimuliOutcome {
     samples: Vec<String>,
     summary: ParseabilitySummary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TargetDriveParseabilityTelemetry {
+    alternate_entry_attempts: usize,
+    alternate_entry_accepted_outputs: usize,
+    alternate_entry_rejected_outputs: usize,
+}
+
+impl TargetDriveParseabilityTelemetry {
+    fn from_validation(summary: &TargetDriveValidationSummary) -> Self {
+        Self {
+            alternate_entry_attempts: summary.alternate_entry_attempts,
+            alternate_entry_accepted_outputs: summary.alternate_entry_accepted_outputs,
+            alternate_entry_rejected_outputs: summary.alternate_entry_rejected_outputs,
+        }
+    }
 }
 
 impl ParseabilitySummary {
@@ -744,6 +763,7 @@ fn main() -> Result<()> {
                     args.grammar_profile.as_deref(),
                     resolved_entry_rule.as_str(),
                     &outcome.summary,
+                    None,
                 )?;
             }
             outcome.samples
@@ -857,6 +877,7 @@ fn main() -> Result<()> {
         let mut merged_coverage = generator.coverage_metrics().clone();
         let mut replay_report: Option<CoverageGuidedFuzzReplayReport> = None;
         let mut parseability_summary: Option<ParseabilitySummary> = None;
+        let mut parseability_target_drive_validation: Option<TargetDriveParseabilityTelemetry> = None;
 
         let mut samples = if args.coverage_guided_fuzz_rounds > 0 {
             let seed_start = args
@@ -945,6 +966,8 @@ fn main() -> Result<()> {
                 );
                 println!("{}", summary_for_report.summary_line());
                 parseability_summary = Some(summary_for_report);
+                parseability_target_drive_validation =
+                    Some(TargetDriveParseabilityTelemetry::from_validation(&validation));
                 (samples, summary)
             } else {
                 generator.generate_until_targets(
@@ -1034,13 +1057,14 @@ fn main() -> Result<()> {
                     "--parseability-report-json requires parseability-aware generation or filtering; current generation mode did not produce a parseability summary"
                 ));
             };
-            write_parseability_report(
-                report_path,
-                &grammar.grammar_name,
-                args.grammar_profile.as_deref(),
-                resolved_entry_rule.as_str(),
-                summary,
-            )?;
+                write_parseability_report(
+                    report_path,
+                    &grammar.grammar_name,
+                    args.grammar_profile.as_deref(),
+                    resolved_entry_rule.as_str(),
+                    summary,
+                    parseability_target_drive_validation.as_ref(),
+                )?;
         }
 
         if let Some(output_file) = args.output {
@@ -2181,6 +2205,7 @@ fn write_parseability_report(
     grammar_profile: Option<&str>,
     entry_rule: &str,
     summary: &ParseabilitySummary,
+    target_drive_validation: Option<&TargetDriveParseabilityTelemetry>,
 ) -> Result<()> {
     ensure_parent_dir_exists(output_path)?;
     let report = ParseabilityGenerationReport {
@@ -2188,6 +2213,7 @@ fn write_parseability_report(
         grammar_profile: grammar_profile.map(ToOwned::to_owned),
         entry_rule: entry_rule.to_string(),
         summary: summary.clone(),
+        target_drive_validation: target_drive_validation.cloned(),
     };
     let report_json = serde_json::to_string_pretty(&report)?;
     std::fs::write(output_path, report_json)?;
@@ -2255,12 +2281,13 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        FuzzCorpusCandidate, LoadedGrammar, ParseabilitySummary, StimuliCoverageMetrics,
-        canonicalize_json_value, coverage_branch_hit_delta, default_parser_output_path,
+        FuzzCorpusCandidate, LoadedGrammar, ParseabilitySummary,
+        TargetDriveParseabilityTelemetry, StimuliCoverageMetrics, canonicalize_json_value,
+        coverage_branch_hit_delta, default_parser_output_path,
         default_stimuli_module_output_path, generate_stimuli_module_source, is_ebnf_input_path,
         maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
         parse_recovery_stimuli_mode, resolve_parseability_max_attempts,
-        resolve_stimuli_module_seed,
+        resolve_stimuli_module_seed, write_parseability_report,
         supported_generated_parseability_grammars, supports_generated_parseability,
     };
     use pgen::ast_pipeline::stimuli_generator::{BranchCoverageGroup, RecoveryStimuliMode};
@@ -2316,6 +2343,46 @@ mod tests {
         assert_eq!(summary.parser_rejections, 3);
         assert_eq!(summary.generation_errors, 0);
         assert_eq!(summary.empty_generations, 0);
+    }
+
+    #[test]
+    fn parseability_report_serializes_target_drive_validation_when_present() {
+        let path = unique_temp_path("parseability_report.json");
+        let summary = ParseabilitySummary::from_filter(5, 2, 3);
+        let validation = TargetDriveParseabilityTelemetry {
+            alternate_entry_attempts: 7,
+            alternate_entry_accepted_outputs: 1,
+            alternate_entry_rejected_outputs: 6,
+        };
+
+        write_parseability_report(
+            path.to_str().expect("temp path should be UTF-8"),
+            "return_annotation",
+            None,
+            "start",
+            &summary,
+            Some(&validation),
+        )
+        .expect("parseability report write should succeed");
+
+        let report_json =
+            std::fs::read_to_string(&path).expect("parseability report should be readable");
+        let report_value: serde_json::Value =
+            serde_json::from_str(&report_json).expect("parseability report should be valid JSON");
+        assert_eq!(
+            report_value["target_drive_validation"]["alternate_entry_attempts"].as_u64(),
+            Some(7)
+        );
+        assert_eq!(
+            report_value["target_drive_validation"]["alternate_entry_accepted_outputs"].as_u64(),
+            Some(1)
+        );
+        assert_eq!(
+            report_value["target_drive_validation"]["alternate_entry_rejected_outputs"].as_u64(),
+            Some(6)
+        );
+
+        std::fs::remove_file(&path).expect("temporary parseability report should be removable");
     }
 
     #[test]

@@ -587,6 +587,9 @@ pub struct TargetDriveValidationSummary {
     pub validated_outputs: usize,
     pub accepted_outputs: usize,
     pub rejected_outputs: usize,
+    pub alternate_entry_attempts: usize,
+    pub alternate_entry_accepted_outputs: usize,
+    pub alternate_entry_rejected_outputs: usize,
 }
 
 impl TargetDriveSummary {
@@ -1258,6 +1261,11 @@ impl<'a> StimuliGenerator<'a> {
             match self.generate_from_entry(&generation_entry) {
                 Ok(sample) => {
                     generation_successes = generation_successes.saturating_add(1);
+                    if generation_entry != resolved_entry {
+                        validation_summary.alternate_entry_attempts = validation_summary
+                            .alternate_entry_attempts
+                            .saturating_add(1);
+                    }
                     let accepted = output_filter(&sample)?;
                     if generation_entry == resolved_entry {
                         validation_summary.validated_outputs =
@@ -1268,6 +1276,11 @@ impl<'a> StimuliGenerator<'a> {
                         if generation_entry == resolved_entry {
                             validation_summary.rejected_outputs =
                                 validation_summary.rejected_outputs.saturating_add(1);
+                        } else {
+                            validation_summary.alternate_entry_rejected_outputs =
+                                validation_summary
+                                    .alternate_entry_rejected_outputs
+                                    .saturating_add(1);
                         }
                         continue;
                     }
@@ -1276,6 +1289,11 @@ impl<'a> StimuliGenerator<'a> {
                         validation_summary.accepted_outputs =
                             validation_summary.accepted_outputs.saturating_add(1);
                         outputs.push(sample);
+                    } else {
+                        validation_summary.alternate_entry_accepted_outputs =
+                            validation_summary
+                                .alternate_entry_accepted_outputs
+                                .saturating_add(1);
                     }
                 }
                 Err(_) => {

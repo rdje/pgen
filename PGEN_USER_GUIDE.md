@@ -617,6 +617,11 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
 - rejected outputs are excluded from returned samples,
 - branch-selection history is still retained so the generator can throttle repeatedly failing target branches instead of forgetting them.
 - once a branch has enough history, that throttle is driven by accepted-success yield (`selected_counts` versus `success_counts`), so branches that are selected often and rarely accepted are de-emphasized generically instead of only clamping zero-success branches.
+- `--parseability-report-json` now also includes `target_drive_validation` for this mode, with:
+  - `alternate_entry_attempts`
+  - `alternate_entry_accepted_outputs`
+  - `alternate_entry_rejected_outputs`
+  so you can see how much parser-backed target closure was spent on non-entry probe rules versus real entry-shaped outputs.
 
 ### Deterministic Replay and Seed Compatibility Guarantees
 - In-memory mode (`--generate-stimuli`):

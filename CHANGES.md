@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-11 - Add Alternate-Entry Telemetry to Target-Driven Parseability Reports
+### ✅ Achievement Summary
+Target-driven parseability reports now expose how much validator-backed generation used alternate non-entry probe rules during `--target-report-input --validate-parseability` runs. This does not change generator behavior; it makes future replay-shadow tuning evidence-driven instead of inferred.
+
+### Scope of Changes
+- Hardened shared target-driven validation accounting:
+  - [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs)
+    - `TargetDriveValidationSummary` now records:
+      - `alternate_entry_attempts`
+      - `alternate_entry_accepted_outputs`
+      - `alternate_entry_rejected_outputs`
+    - parser-backed target-driven generation now increments those counters whenever replay probes a non-entry rule under `--validate-parseability`.
+- Hardened parseability report emission:
+  - [/Users/richarddje/Documents/github/pgen/rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs)
+    - `ParseabilityGenerationReport` now optionally includes `target_drive_validation`,
+    - `--parseability-report-json` preserves the existing summary contract and adds the alternate-entry block only for target-driven validator-backed runs.
+- Synced state trail:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml parseability_ -- --nocapture` ✅
+- `cargo test --manifest-path rust/Cargo.toml target_driven_generation -- --nocapture` ✅
+- `cargo test --manifest-path rust/Cargo.toml restore_branch_selection_state_can_rewind_rejected_probe_history_without_touching_success_restore_contract -- --nocapture` ✅
+- direct CLI proof with generated parsers enabled ✅
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --count 1 --target-report-input /tmp/pgen_return_gap.json --target-max-attempts 20 --validate-parseability --parseability-report-json /tmp/pgen_return_target_parseability.json --output /tmp/pgen_return_target_sample.txt`
+  - emitted report now contains:
+    - `target_drive_validation.alternate_entry_attempts`
+    - `target_drive_validation.alternate_entry_accepted_outputs`
+    - `target_drive_validation.alternate_entry_rejected_outputs`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-11 - Add Dependency-Aware Target Probe Escalation to Shared Stimuli Generation
 ### ✅ Achievement Summary
 The shared target-driven stimuli engine now escalates target probing earlier when a pending branch target shows sustained low-yield pressure and has unresolved dependency rules that can be probed directly. This is grammar-agnostic engine logic, not an SV/VHDL-specific heuristic.

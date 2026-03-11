@@ -983,6 +983,11 @@ Toolbox baseline to leverage end-to-end:
       - `closed_loop_parseability_shadow_acceptance_rate_percent=28.48`
     - bounded VHDL proof under a temporary reduced replay budget also remained green:
       - `closed_loop_initial_targets=271`
+  - Progress (2026-03-11): added alternate-entry telemetry to target-driven parseability reports without changing replay behavior:
+    - `TargetDriveValidationSummary` now records `alternate_entry_attempts`, `alternate_entry_accepted_outputs`, and `alternate_entry_rejected_outputs`,
+    - `ParseabilityGenerationReport` now optionally serializes that block as `target_drive_validation` for `--target-report-input --validate-parseability --parseability-report-json`,
+    - direct proof with `generated/return_annotation.json` emitted the new block in `/tmp/pgen_return_target_parseability.json`,
+    - this gives the next replay-shadow tuning step a machine-readable split between helper-rule probe churn and real entry-shaped parseability rejection.
       - `closed_loop_replay_targets=33`
       - `closed_loop_parseability_shadow_requested_total=31`
       - `closed_loop_parseability_shadow_accepted_total=7`

@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Target-Driven Parseability Reports Now Expose Alternate Entry Probes
+### Context
+The next shared-engine tuning target after dependency-aware probe escalation was parser-backed replay-shadow acceptance. A few candidate heuristic changes were explored locally, but their bounded HDL evidence was mixed. Before changing behavior again, the missing piece was explicit telemetry showing how much target-driven validator-backed replay was spending on alternate non-entry probe rules.
+
+### Implementation
+- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+  - `TargetDriveValidationSummary` now records:
+    - `alternate_entry_attempts`
+    - `alternate_entry_accepted_outputs`
+    - `alternate_entry_rejected_outputs`
+  - these counters are populated only in validator-backed target-driven runs and do not alter target debt, branch guidance, or returned sample semantics.
+- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - `ParseabilityGenerationReport` now optionally serializes `target_drive_validation`,
+  - plain parseability runs keep the same summary-only contract,
+  - `--target-report-input --validate-parseability --parseability-report-json` now emits the alternate-entry block for downstream inspection.
+
+### Validation
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml restore_branch_selection_state_can_rewind_rejected_probe_history_without_touching_success_restore_contract -- --nocapture`
+- direct CLI proof:
+  - `cargo run --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --count 1 --target-report-input /tmp/pgen_return_gap.json --target-max-attempts 20 --validate-parseability --parseability-report-json /tmp/pgen_return_target_parseability.json --output /tmp/pgen_return_target_sample.txt`
+  - emitted report included:
+    - `target_drive_validation.alternate_entry_attempts`
+    - `target_drive_validation.alternate_entry_accepted_outputs`
+    - `target_drive_validation.alternate_entry_rejected_outputs`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Notes
+- This is intentionally observability-first:
+  - it preserves the currently committed replay behavior,
+  - it avoids claiming a new shadow-acceptance fix without bounded evidence,
+  - it gives the next tuning task the exact alternate-entry probe counts needed to separate real entry-shaped parseability issues from helper-rule probe churn.
+
 ## 2026-03-11 - Shared Target Probing Now Prefers Real Dependency Escape Paths
 ### Context
 After low-yield branch throttling landed, the next open engine gap was what to do with that freed budget. Target-driven replay still used a fixed `probe_threshold = 32` and a simple fallback that only switched to another rule once stagnation was already long-lived, and it did not prioritize unresolved dependency rules over local branch/rule fallbacks. That left real parser-backed replay debt on the table.

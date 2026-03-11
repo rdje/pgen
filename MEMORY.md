@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: shared-target-probe-dependency-escalation)
+Last updated: 2026-03-11 (+0100, task: target-driven-parseability-alternate-entry-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -128,6 +128,18 @@ Use this file to resume work without replaying full chat history.
     - HDL readiness:
       - `systemverilog` `1/15` accepted (`6.67%`)
       - `vhdl` `1/5` accepted (`20.00%`)
+- Target-driven parseability report telemetry:
+  - `TargetDriveValidationSummary` now records alternate-entry probe effort for validator-backed target-driven runs:
+    - `alternate_entry_attempts`
+    - `alternate_entry_accepted_outputs`
+    - `alternate_entry_rejected_outputs`
+  - `ParseabilityGenerationReport` now optionally carries this block as `target_drive_validation` without changing the existing summary contract,
+  - focused direct proof used:
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --count 1 --target-report-input /tmp/pgen_return_gap.json --target-max-attempts 20 --validate-parseability --parseability-report-json /tmp/pgen_return_target_parseability.json --output /tmp/pgen_return_target_sample.txt`
+  - emitted report included:
+    - `target_drive_validation.alternate_entry_attempts=0`
+    - `target_drive_validation.alternate_entry_accepted_outputs=0`
+    - `target_drive_validation.alternate_entry_rejected_outputs=0`
 - Stimuli-module parity parseability surface:
   - `stimuli_module_parity_gate` now treats parser-backed acceptance effort as part of the parity contract instead of an implicit precondition,
   - for parseability-required grammars it emits and compares:
@@ -3534,6 +3546,7 @@ Use this file to resume work without replaying full chat history.
    - parser-trust follow-up inside the same area:
      - keep the new shared dependency-aware target probing, which materially improved bounded SV replay debt (`3925 -> 3785`) and bounded VHDL replay debt (`26 -> 12`),
      - next shared-engine direction is now narrower:
+       - use the new `target_drive_validation` alternate-entry counts to distinguish helper-rule probe churn from true entry-shaped parseability rejection,
        - recover some SV replay-shadow acceptance from the current `27.85%` bounded level without giving back the replay-debt gain,
        - continue avoiding grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
