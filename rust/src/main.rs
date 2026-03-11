@@ -335,17 +335,41 @@ struct ParseableStimuliOutcome {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct TargetDriveParseabilityTelemetry {
+    primary_entry_attempts: usize,
+    primary_entry_accepted_outputs: usize,
+    primary_entry_rejected_outputs: usize,
+    primary_entry_acceptance_rate_percent: f64,
     alternate_entry_attempts: usize,
     alternate_entry_accepted_outputs: usize,
     alternate_entry_rejected_outputs: usize,
+    alternate_entry_acceptance_rate_percent: f64,
 }
 
 impl TargetDriveParseabilityTelemetry {
+    fn acceptance_rate_percent(accepted: usize, attempts: usize) -> f64 {
+        if attempts == 0 {
+            0.0
+        } else {
+            (accepted as f64 * 100.0) / attempts as f64
+        }
+    }
+
     fn from_validation(summary: &TargetDriveValidationSummary) -> Self {
         Self {
+            primary_entry_attempts: summary.validated_outputs,
+            primary_entry_accepted_outputs: summary.accepted_outputs,
+            primary_entry_rejected_outputs: summary.rejected_outputs,
+            primary_entry_acceptance_rate_percent: Self::acceptance_rate_percent(
+                summary.accepted_outputs,
+                summary.validated_outputs,
+            ),
             alternate_entry_attempts: summary.alternate_entry_attempts,
             alternate_entry_accepted_outputs: summary.alternate_entry_accepted_outputs,
             alternate_entry_rejected_outputs: summary.alternate_entry_rejected_outputs,
+            alternate_entry_acceptance_rate_percent: Self::acceptance_rate_percent(
+                summary.alternate_entry_accepted_outputs,
+                summary.alternate_entry_attempts,
+            ),
         }
     }
 }
@@ -2290,7 +2314,9 @@ mod tests {
         resolve_stimuli_module_seed, write_parseability_report,
         supported_generated_parseability_grammars, supports_generated_parseability,
     };
-    use pgen::ast_pipeline::stimuli_generator::{BranchCoverageGroup, RecoveryStimuliMode};
+    use pgen::ast_pipeline::stimuli_generator::{
+        BranchCoverageGroup, RecoveryStimuliMode, TargetDriveValidationSummary,
+    };
     use pgen::ast_pipeline::{ASTNode, ASTValue, TokenValue};
     use std::collections::{HashMap, HashSet};
     use std::path::PathBuf;
@@ -2346,13 +2372,41 @@ mod tests {
     }
 
     #[test]
+    fn target_drive_parseability_telemetry_splits_primary_and_alternate_entries() {
+        let telemetry = TargetDriveParseabilityTelemetry::from_validation(
+            &TargetDriveValidationSummary {
+                validated_outputs: 4,
+                accepted_outputs: 3,
+                rejected_outputs: 1,
+                alternate_entry_attempts: 5,
+                alternate_entry_accepted_outputs: 2,
+                alternate_entry_rejected_outputs: 3,
+            },
+        );
+
+        assert_eq!(telemetry.primary_entry_attempts, 4);
+        assert_eq!(telemetry.primary_entry_accepted_outputs, 3);
+        assert_eq!(telemetry.primary_entry_rejected_outputs, 1);
+        assert!((telemetry.primary_entry_acceptance_rate_percent - 75.0).abs() < f64::EPSILON);
+        assert_eq!(telemetry.alternate_entry_attempts, 5);
+        assert_eq!(telemetry.alternate_entry_accepted_outputs, 2);
+        assert_eq!(telemetry.alternate_entry_rejected_outputs, 3);
+        assert!((telemetry.alternate_entry_acceptance_rate_percent - 40.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
     fn parseability_report_serializes_target_drive_validation_when_present() {
         let path = unique_temp_path("parseability_report.json");
         let summary = ParseabilitySummary::from_filter(5, 2, 3);
         let validation = TargetDriveParseabilityTelemetry {
+            primary_entry_attempts: 4,
+            primary_entry_accepted_outputs: 2,
+            primary_entry_rejected_outputs: 2,
+            primary_entry_acceptance_rate_percent: 50.0,
             alternate_entry_attempts: 7,
             alternate_entry_accepted_outputs: 1,
             alternate_entry_rejected_outputs: 6,
+            alternate_entry_acceptance_rate_percent: 100.0 / 7.0,
         };
 
         write_parseability_report(
@@ -2370,6 +2424,23 @@ mod tests {
         let report_value: serde_json::Value =
             serde_json::from_str(&report_json).expect("parseability report should be valid JSON");
         assert_eq!(
+            report_value["target_drive_validation"]["primary_entry_attempts"].as_u64(),
+            Some(4)
+        );
+        assert_eq!(
+            report_value["target_drive_validation"]["primary_entry_accepted_outputs"].as_u64(),
+            Some(2)
+        );
+        assert_eq!(
+            report_value["target_drive_validation"]["primary_entry_rejected_outputs"].as_u64(),
+            Some(2)
+        );
+        assert_eq!(
+            report_value["target_drive_validation"]["primary_entry_acceptance_rate_percent"]
+                .as_f64(),
+            Some(50.0)
+        );
+        assert_eq!(
             report_value["target_drive_validation"]["alternate_entry_attempts"].as_u64(),
             Some(7)
         );
@@ -2381,6 +2452,11 @@ mod tests {
             report_value["target_drive_validation"]["alternate_entry_rejected_outputs"].as_u64(),
             Some(6)
         );
+        let alternate_rate = report_value["target_drive_validation"]
+            ["alternate_entry_acceptance_rate_percent"]
+            .as_f64()
+            .expect("alternate entry rate should be present");
+        assert!((alternate_rate - (100.0 / 7.0)).abs() < 1e-9);
 
         std::fs::remove_file(&path).expect("temporary parseability report should be removable");
     }

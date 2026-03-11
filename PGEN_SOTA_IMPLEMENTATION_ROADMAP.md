@@ -993,6 +993,9 @@ Toolbox baseline to leverage end-to-end:
     - `ParseabilityGenerationReport` now optionally serializes that block as `target_drive_validation` for `--target-report-input --validate-parseability --parseability-report-json`,
     - direct proof with `generated/return_annotation.json` emitted the new block in `/tmp/pgen_return_target_parseability.json`,
     - this gives the next replay-shadow tuning step a machine-readable split between helper-rule probe churn and real entry-shaped parseability rejection.
+  - Progress (2026-03-11): promoted the primary-entry side of that split into the same report contract:
+    - `target_drive_validation` now also exposes `primary_entry_attempts`, `primary_entry_accepted_outputs`, `primary_entry_rejected_outputs`, and `primary_entry_acceptance_rate_percent`,
+    - downstream analysis no longer has to infer entry-shaped parseability debt indirectly from overall summary totals minus alternate-entry counts.
   - Progress (2026-03-11): surfaced target-driven alternate-entry telemetry in gate-visible artifacts instead of leaving it only in raw parseability JSON:
     - `annotation_stimuli_quality_gate`, `ebnf_stimuli_quality_gate`, and `sv_preprocessor_quality_gate` now expose stage-2 target-drive alternate-entry totals in their aggregate parseability report JSON and `summary.csv` / `summary.txt`,
     - `vhdl_stimuli_quality_gate` and `sv_stimuli_quality_gate` now surface closed-loop replay-shadow alternate-entry totals directly in gate `summary.txt`,

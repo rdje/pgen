@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-11 - Split Target-Drive Parseability Telemetry Into Primary vs Alternate Entry
+### ✅ Achievement Summary
+The generic parseability report contract now exposes the primary-entry side of validator-backed target-driven replay directly instead of only the alternate-entry side. That makes entry-shaped parseability debt machine-readable without forcing downstream tools to infer it by subtraction.
+
+### Scope of Changes
+- Hardened generic parseability report emission:
+  - [/Users/richarddje/Documents/github/pgen/rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs)
+    - `target_drive_validation` now serializes:
+      - `primary_entry_attempts`
+      - `primary_entry_accepted_outputs`
+      - `primary_entry_rejected_outputs`
+      - `primary_entry_acceptance_rate_percent`
+      - `alternate_entry_attempts`
+      - `alternate_entry_accepted_outputs`
+      - `alternate_entry_rejected_outputs`
+      - `alternate_entry_acceptance_rate_percent`
+- Synced operator docs/state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
 ## 2026-03-11 - Promote Alternate-Entry Telemetry Into Promotion Gates
 ### ✅ Achievement Summary
 Promotion-trial telemetry now carries the same replay-shadow alternate-entry counters that were already visible in the main quality gates and aggregate sign-off. Standalone promotion reports, standalone promotion summaries, and aggregate `sota_exit_gate` output all expose those counters for declared-shadow, parse-full-ratio, and VHDL strict promotion.

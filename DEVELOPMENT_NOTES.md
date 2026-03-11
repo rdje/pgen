@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Parseability Reports Now Split Primary vs Alternate Entry Validation
+### Context
+The report contract already exposed alternate-entry probe churn, but it still left the primary-entry side implicit. Downstream analysis had to subtract alternate-entry totals from the overall parseability summary to estimate true entry-shaped parseability debt.
+
+### Implementation
+- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - `target_drive_validation` now emits both primary-entry and alternate-entry split telemetry, including accepted/rejected counts and acceptance rates.
+- Added Rust regression coverage:
+  - explicit mapping test from `TargetDriveValidationSummary`,
+  - updated report-serialization test for the expanded schema.
+
+### Notes
+- This is still observability-only.
+- It gives the next shared-engine replay-tuning task a direct machine-readable split between helper-rule probe churn and true entry-shaped parseability rejection.
+
 ## 2026-03-11 - Promotion Gates Now Expose Alternate-Entry Replay-Shadow Counters
 ### Context
 After the main gates and aggregate sign-off surfaced alternate-entry probe churn, promotion-trial reports were still a blind spot. Reviewers could see replay-shadow acceptance totals for declared-shadow, parse-full-ratio, and VHDL strict promotion, but not whether those attempts were being spent on alternate non-entry probes.

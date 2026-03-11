@@ -59,9 +59,14 @@ In practical terms:
 - `--parseability-report-json PATH` writes machine-readable parseability generation telemetry (`requested`, `accepted`, `rejected`, `attempts`, rejection breakdown, acceptance rate).
 - `--parseability-max-attempts N` sets an explicit total attempt budget for parseability-aware generation instead of relying on the default `count * 50`.
 - when parseability is driven by `--target-report-input`, the report may also include `target_drive_validation` with:
+  - `primary_entry_attempts`
+  - `primary_entry_accepted_outputs`
+  - `primary_entry_rejected_outputs`
+  - `primary_entry_acceptance_rate_percent`
   - `alternate_entry_attempts`
   - `alternate_entry_accepted_outputs`
   - `alternate_entry_rejected_outputs`
+  - `alternate_entry_acceptance_rate_percent`
 - target-driven quality gates surface those alternate-entry counters in their stage summaries or aggregate report artifacts so helper-rule probe churn is observable instead of inferred.
 - aggregate `sota_exit_gate` summary now surfaces those counters for:
   - `sv_preprocessor_quality`
@@ -630,9 +635,14 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
 - branch-selection history is still retained so the generator can throttle repeatedly failing target branches instead of forgetting them.
 - once a branch has enough history, that throttle is driven by accepted-success yield (`selected_counts` versus `success_counts`), so branches that are selected often and rarely accepted are de-emphasized generically instead of only clamping zero-success branches.
 - `--parseability-report-json` now also includes `target_drive_validation` for this mode, with:
+  - `primary_entry_attempts`
+  - `primary_entry_accepted_outputs`
+  - `primary_entry_rejected_outputs`
+  - `primary_entry_acceptance_rate_percent`
   - `alternate_entry_attempts`
   - `alternate_entry_accepted_outputs`
   - `alternate_entry_rejected_outputs`
+  - `alternate_entry_acceptance_rate_percent`
   so you can see how much parser-backed target closure was spent on non-entry probe rules versus real entry-shaped outputs.
 
 ### Deterministic Replay and Seed Compatibility Guarantees
