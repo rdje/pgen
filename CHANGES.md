@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-03-11 - Add Parseability Telemetry to `vhdl_strict_promotion_gate`
+### ✅ Achievement Summary
+The VHDL strict-promotion trial gate no longer treats parser-backed effort as hidden work inside strict VHDL trials. It now aggregates parser-backed sample-generation and replay-shadow acceptance effort across trials, carries that telemetry in the promotion report, and surfaces the same evidence through `sota_exit_gate`.
+
+### Scope of Changes
+- Hardened VHDL strict-promotion observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh`
+    - now reads parser-backed sample-generation and closed-loop replay-shadow reports from each strict `vhdl_stimuli_quality_gate` trial,
+    - records those metrics per trial in `vhdl_strict_promotion_report.json`,
+    - aggregates attempts / accepted / rejected totals plus acceptance rates for both parser-backed surfaces,
+    - falls back to trial `summary.txt` when replay-shadow report fields are omitted and derives acceptance rate from accepted/attempt counts so per-trial evidence stays truthful,
+    - surfaces the aggregate totals in standalone `summary.txt`.
+- Hardened aggregate surfacing:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+    - now parses the new VHDL strict-promotion parseability totals from the stage report,
+    - surfaces those metrics in aggregate VHDL strict-promotion telemetry.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- focused promotion proof with bounded temporary contract override (`closed_loop.target_max_attempts=200`, `closed_loop.replay_sample_count=4`, `parseability_generation.max_attempts_per_sample=25`) ✅
+  - `PGEN_VHDL_STRICT_PROMOTION_MODE=auto PGEN_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE=1000 PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE=auto PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY=1 PGEN_VHDL_STIMULI_QUALITY_CONTRACT=/tmp/vhdl_core_v0_contract_bounded.json PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+  - observed summary evidence:
+    - `observed_ratio_min=max=avg=100`
+    - `parseability_generation_attempts_total=3`
+    - `parseability_generation_accepted_total=2`
+    - `parseability_generation_rejected_total=1`
+    - `parseability_generation_acceptance_rate_percent=66.67`
+    - `closed_loop_parseability_shadow_attempts_total=31`
+    - `closed_loop_parseability_shadow_accepted_total=5`
+    - `closed_loop_parseability_shadow_rejected_total=26`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
+- focused aggregate replay with only VHDL strict-promotion enabled ✅
+  - aggregate summary now surfaces:
+    - `vhdl_strict_promotion_parseability_generation_attempts_total=3`
+    - `vhdl_strict_promotion_parseability_generation_accepted_total=2`
+    - `vhdl_strict_promotion_parseability_generation_rejected_total=1`
+    - `vhdl_strict_promotion_parseability_generation_acceptance_rate_percent=66.67`
+    - `vhdl_strict_promotion_closed_loop_parseability_shadow_attempts_total=31`
+    - `vhdl_strict_promotion_closed_loop_parseability_shadow_accepted_total=5`
+    - `vhdl_strict_promotion_closed_loop_parseability_shadow_rejected_total=26`
+    - `vhdl_strict_promotion_closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
+
 ## 2026-03-11 - Add Parseability Telemetry to `sv_parse_full_ratio_promotion_gate`
 ### ✅ Achievement Summary
 The parse-full ratio promotion trial gate no longer treats parser-backed effort as hidden work inside strict SV ratio trials. It now aggregates parser-backed sample-generation and replay-shadow acceptance effort across trials and surfaces the same evidence through `sota_exit_gate`.

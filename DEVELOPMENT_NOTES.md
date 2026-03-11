@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - VHDL Strict-Promotion Gate Now Emits Parseability Summary Artifacts
+### Context
+`vhdl_strict_promotion_gate` was already running strict deterministic `vhdl_stimuli_quality_gate` trials, but it only reported ratio/parity outcomes and blocker attribution. The parser-backed sample-generation effort and replay-shadow acceptance cost inside those trials remained hidden, which was below the parser-trust bar for a promotion gate used in aggregate sign-off.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh`:
+  - harvests parser-backed sample-generation and closed-loop replay-shadow reports from each strict trial,
+  - records both surfaces per trial in `vhdl_strict_promotion_report.json`,
+  - aggregates attempts / accepted / rejected totals, error buckets, and acceptance rates across all trials,
+  - falls back to trial `summary.txt` when replay-shadow report fields such as `enabled` or acceptance rate are omitted and derives the percentage from accepted/attempt counts so per-trial evidence stays consistent,
+  - surfaces those totals in standalone `summary.txt`.
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+  - parses the new VHDL strict-promotion parseability totals from the stage report,
+  - surfaces them in aggregate VHDL strict-promotion telemetry so sign-off can see parser-backed effort directly.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh`
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- focused promotion proof with bounded temporary contract override:
+  - `PGEN_VHDL_STRICT_PROMOTION_MODE=auto PGEN_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE=1000 PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE=auto PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY=1 PGEN_VHDL_STIMULI_QUALITY_CONTRACT=/tmp/vhdl_core_v0_contract_bounded.json PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+  - observed:
+    - `observed_ratio_min=max=avg=100`
+    - `parseability_generation_attempts_total=3`
+    - `parseability_generation_accepted_total=2`
+    - `parseability_generation_rejected_total=1`
+    - `parseability_generation_acceptance_rate_percent=66.67`
+    - `closed_loop_parseability_shadow_attempts_total=31`
+    - `closed_loop_parseability_shadow_accepted_total=5`
+    - `closed_loop_parseability_shadow_rejected_total=26`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
+- focused aggregate proof:
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_vhdl_strict_promotion_parseability PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_EBNF_STIMULI_QUALITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=1 PGEN_SOTA_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_SOTA_VHDL_STRICT_PROMOTION_SEED_STRIDE=1000 PGEN_SOTA_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STIMULI_QUALITY_CONTRACT=/tmp/vhdl_core_v0_contract_bounded.json PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - aggregate summary surfaced the same VHDL strict-promotion parseability totals and acceptance rates with `required_failures=0` and `all_failures=0`.
+
+### Notes
+- This is promotion-gate observability hardening only. It does not change VHDL strict-promotion eligibility rules or generator semantics; it makes the parser-backed effort behind promotion evidence measurable and preserves truthful per-trial fields when upstream report JSON is sparse.
+
 ## 2026-03-11 - Parse-Full Promotion Gate Now Emits Parseability Summary Artifacts
 ### Context
 `sv_parse_full_ratio_promotion_gate` was already running strict `sv_stimuli_quality_gate` trials at a ratchet threshold, but it only reported ratio outcomes and blocker attribution. The parser-backed generation effort and replay-shadow acceptance cost inside those trials remained invisible, which was below the parser-trust bar for a promotion gate used in aggregate sign-off.

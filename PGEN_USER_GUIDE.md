@@ -3085,9 +3085,21 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `recommendation` (`enable_required_strict_mode` or `hold`)
     - `eligibility.eligible_for_required_strict_mode`
     - per-trial parse-full ratio outcomes and aggregated min/max/avg ratio telemetry
+    - aggregated parser-backed effort telemetry:
+      - `parseability_generation.observed.attempts_total`
+      - `parseability_generation.observed.accepted_total`
+      - `parseability_generation.observed.rejected_total`
+      - `parseability_generation.observed.acceptance_rate_percent`
+      - `closed_loop_parseability_shadow.observed.attempts_total`
+      - `closed_loop_parseability_shadow.observed.accepted_total`
+      - `closed_loop_parseability_shadow.observed.rejected_total`
+      - `closed_loop_parseability_shadow.observed.acceptance_rate_percent`
     - per-trial blocker attribution:
       - `trials[].blocker_key`
       - `trials[].blocker_detail`
+    - per-trial parser-backed effort telemetry:
+      - `trials[].parseability_generation`
+      - `trials[].closed_loop_parseability_shadow`
     - aggregate blocker attribution:
       - `blockers.failed_trial_count`
       - `blockers.primary_blocker`
@@ -3116,7 +3128,15 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `vhdl_strict_promotion_eligible_for_required_strict_mode`
       - `vhdl_strict_promotion_primary_blocker`
       - `vhdl_strict_promotion_trial_passed`
-      - `vhdl_strict_promotion_trial_failed`.
+      - `vhdl_strict_promotion_trial_failed`
+      - `vhdl_strict_promotion_parseability_generation_attempts_total`
+      - `vhdl_strict_promotion_parseability_generation_accepted_total`
+      - `vhdl_strict_promotion_parseability_generation_rejected_total`
+      - `vhdl_strict_promotion_parseability_generation_acceptance_rate_percent`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_attempts_total`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_accepted_total`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_rejected_total`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - runtime profile selection now activates real grammar-profile filtering (`sv_2017`, `sv_2023`) rather than metadata-only aliases,

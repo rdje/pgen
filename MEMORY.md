@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: sv-parse-full-promotion-parseability-telemetry)
+Last updated: 2026-03-11 (+0100, task: vhdl-strict-promotion-parseability-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -216,6 +216,33 @@ Use this file to resume work without replaying full chat history.
     - `closed_loop_parseability_shadow_attempts_total=100`
     - `closed_loop_parseability_shadow_accepted_total=26`
     - `closed_loop_parseability_shadow_rejected_total=74`
+- VHDL strict-promotion parseability telemetry surface:
+  - `vhdl_strict_promotion_gate` now harvests parser-backed sample-generation and closed-loop replay-shadow telemetry from each strict `vhdl_stimuli_quality_gate` trial instead of collapsing that effort into binary trial pass/fail,
+  - promotion report JSON now carries per-trial `parseability_generation` and `closed_loop_parseability_shadow` blocks plus aggregate totals/acceptance rates for both surfaces,
+  - per-trial replay-shadow evidence now falls back to `summary.txt` for omitted report fields and derives acceptance rate from accepted/attempt counts so the promotion report stays truthful even when the underlying replay-shadow JSON is sparse,
+  - aggregate `sota_exit_gate` now surfaces:
+    - `vhdl_strict_promotion_parseability_generation_attempts_total`
+    - `vhdl_strict_promotion_parseability_generation_accepted_total`
+    - `vhdl_strict_promotion_parseability_generation_rejected_total`
+    - `vhdl_strict_promotion_parseability_generation_acceptance_rate_percent`
+    - `vhdl_strict_promotion_closed_loop_parseability_shadow_attempts_total`
+    - `vhdl_strict_promotion_closed_loop_parseability_shadow_accepted_total`
+    - `vhdl_strict_promotion_closed_loop_parseability_shadow_rejected_total`
+    - `vhdl_strict_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`
+  - focused bounded proof used a temporary contract override:
+    - `closed_loop.target_max_attempts=200`
+    - `closed_loop.replay_sample_count=4`
+    - `parseability_generation.max_attempts_per_sample=25`
+  - observed bounded evidence:
+    - `observed_ratio_min=max=avg=100`
+    - `parseability_generation_attempts_total=3`
+    - `parseability_generation_accepted_total=2`
+    - `parseability_generation_rejected_total=1`
+    - `parseability_generation_acceptance_rate_percent=66.67`
+    - `closed_loop_parseability_shadow_attempts_total=31`
+    - `closed_loop_parseability_shadow_accepted_total=5`
+    - `closed_loop_parseability_shadow_rejected_total=26`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
 - Build-script include path contract:
   - `rust/build.rs` now emits build-script-resolved HDL parser include paths relative to `rust/src/`,
   - compile-time repo-local `include!(...)` resolution should not depend on absolute filesystem paths.

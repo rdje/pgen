@@ -341,6 +341,14 @@ Engine generalization rule:
       - `vhdl_strict_promotion_eligible_for_required_strict_mode`
       - `vhdl_strict_promotion_primary_blocker`.
   - Progress (2026-03-06): promoted VHDL strict-promotion in aggregate policy from informational to required strict (`run=1`, `strict=1`) after deterministic trial evidence converged and focused aggregate strict-mode validation remained green.
+  - Progress (2026-03-11): promoted parser-backed effort telemetry into VHDL strict-promotion evidence:
+    - `vhdl_strict_promotion_gate` now aggregates parser-backed sample-generation effort and closed-loop replay-shadow effort across strict trials,
+    - promotion reports now carry per-trial and aggregate parseability telemetry instead of reducing parser-backed effort to binary trial pass/fail,
+    - aggregate `sota_exit_gate` now surfaces the VHDL strict-promotion parseability-generation and replay-shadow totals directly,
+    - bounded validation with temporary contract override (`target_max_attempts=200`, `replay_sample_count=4`) stayed green with:
+      - sample-generation parseability `2/3` accepted (`66.67%`)
+      - replay-shadow parseability `5/31` accepted (`16.13%`)
+      - `observed_ratio_min=max=avg=100`.
 - [x] Wire `vhdl_stimuli_quality_gate` into aggregate SOTA exit policy with informational-first defaults.
   - Progress (2026-02-27): added aggregate policy defaults in `rust/config/sota_exit_policy.env`:
     - `PGEN_SOTA_POLICY_RUN_VHDL_STIMULI_QUALITY=1`
