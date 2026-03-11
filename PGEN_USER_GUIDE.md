@@ -3011,9 +3011,21 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     - `recommendation` (`raise_min_parse_full_pass_ratio` or `hold`)
     - `eligibility.eligible_for_ratio_promotion`
     - per-trial parse-full ratio outcomes and aggregated min/max/avg ratio telemetry
+    - aggregated parser-backed effort telemetry:
+      - `parseability_generation.observed.attempts_total`
+      - `parseability_generation.observed.accepted_total`
+      - `parseability_generation.observed.rejected_total`
+      - `parseability_generation.observed.acceptance_rate_percent`
+      - `closed_loop_parseability_shadow.observed.attempts_total`
+      - `closed_loop_parseability_shadow.observed.accepted_total`
+      - `closed_loop_parseability_shadow.observed.rejected_total`
+      - `closed_loop_parseability_shadow.observed.acceptance_rate_percent`
     - per-trial blocker attribution:
       - `trials[].blocker_key`
       - `trials[].blocker_detail`
+    - per-trial parser-backed effort telemetry:
+      - `trials[].parseability_generation`
+      - `trials[].closed_loop_parseability_shadow`
     - aggregate blocker attribution:
       - `blockers.failed_trial_count`
       - `blockers.non_ratio_blocked_trial_count`
@@ -3051,7 +3063,15 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_parse_full_ratio_promotion_observed_ratio_max`
       - `sv_parse_full_ratio_promotion_observed_ratio_avg`
       - `sv_parse_full_ratio_promotion_failed_trial_count`
-      - `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`.
+      - `sv_parse_full_ratio_promotion_non_ratio_blocked_trial_count`
+      - `sv_parse_full_ratio_promotion_parseability_generation_attempts_total`
+      - `sv_parse_full_ratio_promotion_parseability_generation_accepted_total`
+      - `sv_parse_full_ratio_promotion_parseability_generation_rejected_total`
+      - `sv_parse_full_ratio_promotion_parseability_generation_acceptance_rate_percent`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_attempts_total`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_accepted_total`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_rejected_total`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`.
     - aggregate summary artifact also persists these fields in:
       - `rust/target/sota_exit_gate/summary.txt`
       under section:

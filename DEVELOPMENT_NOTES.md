@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Parse-Full Promotion Gate Now Emits Parseability Summary Artifacts
+### Context
+`sv_parse_full_ratio_promotion_gate` was already running strict `sv_stimuli_quality_gate` trials at a ratchet threshold, but it only reported ratio outcomes and blocker attribution. The parser-backed generation effort and replay-shadow acceptance cost inside those trials remained invisible, which was below the parser-trust bar for a promotion gate used in aggregate sign-off.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`:
+  - harvests parser-backed sample-generation and closed-loop replay-shadow reports from each strict trial,
+  - records both surfaces per trial in `systemverilog_parse_full_ratio_promotion_report.json`,
+  - aggregates attempts / accepted / rejected totals, error buckets, and acceptance rates across all trials,
+  - surfaces those totals in standalone `summary.txt`.
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+  - parses the new parse-full promotion parseability totals from the stage report,
+  - surfaces them in aggregate parse-full promotion telemetry so sign-off can see parser-backed effort directly.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- focused promotion proof:
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE=auto PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=2 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=1000 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - observed:
+    - `observed_ratio_min=max=avg=100`
+    - `parseability_generation_attempts_total=13`
+    - `parseability_generation_accepted_total=4`
+    - `closed_loop_parseability_shadow_attempts_total=100`
+    - `closed_loop_parseability_shadow_accepted_total=26`
+- focused aggregate proof:
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_parse_full_promotion_parseability ... PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - aggregate summary surfaced the same parse-full promotion parseability totals and acceptance rates.
+
+### Notes
+- This is promotion-gate observability hardening only. It does not change parse-full ratio eligibility rules or SV parser/generator behavior; it makes the parser-backed effort behind ratchet evidence measurable.
+
 ## 2026-03-11 - Declared-Shadow Promotion Gate Now Emits Parseability Summary Artifacts
 ### Context
 `sv_declared_shadow_promotion_gate` was already running strict `sv_stimuli_quality_gate` trials, but it only reported declared-shadow outcomes and blocker attribution. The parser-backed generation effort and replay-shadow acceptance cost inside those trials remained invisible, which was below the parser-trust bar for a promotion gate used in aggregate sign-off.

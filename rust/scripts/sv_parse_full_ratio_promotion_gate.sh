@@ -161,11 +161,53 @@ ratio_count=0
 ratio_sum=0
 ratio_min=101
 ratio_max=0
+parseability_generation_requested_total=0
+parseability_generation_attempts_total=0
+parseability_generation_accepted_total=0
+parseability_generation_rejected_total=0
+parseability_generation_parser_rejections_total=0
+parseability_generation_generation_errors_total=0
+parseability_generation_empty_generations_total=0
+closed_loop_parseability_shadow_requested_total=0
+closed_loop_parseability_shadow_attempts_total=0
+closed_loop_parseability_shadow_accepted_total=0
+closed_loop_parseability_shadow_rejected_total=0
+closed_loop_parseability_shadow_parser_rejections_total=0
+closed_loop_parseability_shadow_generation_errors_total=0
+closed_loop_parseability_shadow_empty_generations_total=0
+
+summary_value_from_file() {
+    local key="$1"
+    local summary_file="$2"
+    if [[ ! -f "$summary_file" ]]; then
+        return 0
+    fi
+    awk -F': ' -v key="$key" '$1 == key { print substr($0, index($0, $2)) }' "$summary_file" | tail -n 1 || true
+}
+
+u64_or_zero() {
+    local value="${1:-}"
+    if [[ "$value" =~ ^[0-9]+$ ]]; then
+        printf '%s\n' "$value"
+    else
+        printf '0\n'
+    fi
+}
+
+number_or_zero() {
+    local value="${1:-}"
+    if [[ "$value" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        printf '%s\n' "$value"
+    else
+        printf '0\n'
+    fi
+}
 
 for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
     trial_seed_base=$((SEED_BASE + (trial_idx * SEED_STRIDE)))
     trial_state_dir="$WORK_DIR/trial_${trial_idx}"
     trial_log="$LOG_DIR/trial_${trial_idx}.log"
+    trial_summary_txt="$trial_state_dir/summary.txt"
     mkdir -p "$trial_state_dir"
 
     echo "==> strict_ratio_trial_${trial_idx}"
@@ -203,6 +245,114 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
     else
         trial_missing_ratio=$((trial_missing_ratio + 1))
     fi
+
+    trial_parseability_generation_report_json="$trial_state_dir/work/systemverilog_parseability_generation_report.json"
+    trial_closed_loop_parseability_shadow_report_json="$trial_state_dir/work/systemverilog_closed_loop_parseability_shadow_report.json"
+    if [[ ! -f "$trial_parseability_generation_report_json" ]]; then
+        trial_parseability_generation_report_json="$(summary_value_from_file "parseability_generation_report_json" "$trial_summary_txt")"
+    fi
+    if [[ ! -f "$trial_closed_loop_parseability_shadow_report_json" ]]; then
+        trial_closed_loop_parseability_shadow_report_json="$(summary_value_from_file "closed_loop_parseability_shadow_report_json" "$trial_summary_txt")"
+    fi
+
+    trial_parseability_generation_enabled="unknown"
+    trial_parseability_generation_requested_total=0
+    trial_parseability_generation_attempts_total=0
+    trial_parseability_generation_accepted_total=0
+    trial_parseability_generation_rejected_total=0
+    trial_parseability_generation_parser_rejections_total=0
+    trial_parseability_generation_generation_errors_total=0
+    trial_parseability_generation_empty_generations_total=0
+    trial_parseability_generation_acceptance_rate_percent="0.00"
+
+    if [[ -f "$trial_parseability_generation_report_json" ]]; then
+        trial_parseability_generation_enabled="$(jq -er 'if (.enabled // false) then "true" else "false" end' "$trial_parseability_generation_report_json" 2>/dev/null || echo "unknown")"
+        trial_parseability_generation_requested_total="$(jq -er '(.observed.requested_total // 0) | numbers' "$trial_parseability_generation_report_json" 2>/dev/null || echo 0)"
+        trial_parseability_generation_attempts_total="$(jq -er '(.observed.attempts_total // 0) | numbers' "$trial_parseability_generation_report_json" 2>/dev/null || echo 0)"
+        trial_parseability_generation_accepted_total="$(jq -er '(.observed.accepted_total // 0) | numbers' "$trial_parseability_generation_report_json" 2>/dev/null || echo 0)"
+        trial_parseability_generation_rejected_total="$(jq -er '(.observed.rejected_total // 0) | numbers' "$trial_parseability_generation_report_json" 2>/dev/null || echo 0)"
+        trial_parseability_generation_parser_rejections_total="$(jq -er '(.observed.parser_rejections_total // 0) | numbers' "$trial_parseability_generation_report_json" 2>/dev/null || echo 0)"
+        trial_parseability_generation_generation_errors_total="$(jq -er '(.observed.generation_errors_total // 0) | numbers' "$trial_parseability_generation_report_json" 2>/dev/null || echo 0)"
+        trial_parseability_generation_empty_generations_total="$(jq -er '(.observed.empty_generations_total // 0) | numbers' "$trial_parseability_generation_report_json" 2>/dev/null || echo 0)"
+        trial_parseability_generation_acceptance_rate_percent="$(jq -er '(.observed.acceptance_rate_percent // 0) | numbers' "$trial_parseability_generation_report_json" 2>/dev/null || echo "0.00")"
+    elif [[ -f "$trial_summary_txt" ]]; then
+        trial_parseability_generation_enabled="$(summary_value_from_file "parseability_generation_enabled" "$trial_summary_txt")"
+        trial_parseability_generation_requested_total="$(summary_value_from_file "parseability_generation_requested_total" "$trial_summary_txt")"
+        trial_parseability_generation_attempts_total="$(summary_value_from_file "parseability_generation_attempts_total" "$trial_summary_txt")"
+        trial_parseability_generation_accepted_total="$(summary_value_from_file "parseability_generation_accepted_total" "$trial_summary_txt")"
+        trial_parseability_generation_rejected_total="$(summary_value_from_file "parseability_generation_rejected_total" "$trial_summary_txt")"
+        trial_parseability_generation_parser_rejections_total="$(summary_value_from_file "parseability_generation_parser_rejections_total" "$trial_summary_txt")"
+        trial_parseability_generation_generation_errors_total="$(summary_value_from_file "parseability_generation_generation_errors_total" "$trial_summary_txt")"
+        trial_parseability_generation_empty_generations_total="$(summary_value_from_file "parseability_generation_empty_generations_total" "$trial_summary_txt")"
+        trial_parseability_generation_acceptance_rate_percent="$(summary_value_from_file "parseability_generation_acceptance_rate_percent" "$trial_summary_txt")"
+    fi
+
+    trial_closed_loop_parseability_shadow_enabled="unknown"
+    trial_closed_loop_parseability_shadow_effective="unknown"
+    trial_closed_loop_parseability_shadow_requested_total=0
+    trial_closed_loop_parseability_shadow_attempts_total=0
+    trial_closed_loop_parseability_shadow_accepted_total=0
+    trial_closed_loop_parseability_shadow_rejected_total=0
+    trial_closed_loop_parseability_shadow_parser_rejections_total=0
+    trial_closed_loop_parseability_shadow_generation_errors_total=0
+    trial_closed_loop_parseability_shadow_empty_generations_total=0
+    trial_closed_loop_parseability_shadow_acceptance_rate_percent="0.00"
+
+    if [[ -f "$trial_closed_loop_parseability_shadow_report_json" ]]; then
+        trial_closed_loop_parseability_shadow_enabled="$(jq -er 'if (.enabled // false) then "true" else "false" end' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo "unknown")"
+        trial_closed_loop_parseability_shadow_effective="$(jq -er '.effective_mode // "unknown"' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo "unknown")"
+        trial_closed_loop_parseability_shadow_requested_total="$(jq -er '(.observed.requested_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
+        trial_closed_loop_parseability_shadow_attempts_total="$(jq -er '(.observed.attempts_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
+        trial_closed_loop_parseability_shadow_accepted_total="$(jq -er '(.observed.accepted_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
+        trial_closed_loop_parseability_shadow_rejected_total="$(jq -er '(.observed.rejected_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
+        trial_closed_loop_parseability_shadow_parser_rejections_total="$(jq -er '(.observed.parser_rejections_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
+        trial_closed_loop_parseability_shadow_generation_errors_total="$(jq -er '(.observed.generation_errors_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
+        trial_closed_loop_parseability_shadow_empty_generations_total="$(jq -er '(.observed.empty_generations_total // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo 0)"
+        trial_closed_loop_parseability_shadow_acceptance_rate_percent="$(jq -er '(.observed.acceptance_rate_percent // 0) | numbers' "$trial_closed_loop_parseability_shadow_report_json" 2>/dev/null || echo "0.00")"
+    elif [[ -f "$trial_summary_txt" ]]; then
+        trial_closed_loop_parseability_shadow_enabled="$(summary_value_from_file "closed_loop_parseability_shadow_enabled" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_effective="$(summary_value_from_file "closed_loop_parseability_shadow_effective" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_requested_total="$(summary_value_from_file "closed_loop_parseability_shadow_requested_total" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_attempts_total="$(summary_value_from_file "closed_loop_parseability_shadow_attempts_total" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_accepted_total="$(summary_value_from_file "closed_loop_parseability_shadow_accepted_total" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_rejected_total="$(summary_value_from_file "closed_loop_parseability_shadow_rejected_total" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_parser_rejections_total="$(summary_value_from_file "closed_loop_parseability_shadow_parser_rejections_total" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_generation_errors_total="$(summary_value_from_file "closed_loop_parseability_shadow_generation_errors_total" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_empty_generations_total="$(summary_value_from_file "closed_loop_parseability_shadow_empty_generations_total" "$trial_summary_txt")"
+        trial_closed_loop_parseability_shadow_acceptance_rate_percent="$(summary_value_from_file "closed_loop_parseability_shadow_acceptance_rate_percent" "$trial_summary_txt")"
+    fi
+
+    trial_parseability_generation_requested_total="$(u64_or_zero "$trial_parseability_generation_requested_total")"
+    trial_parseability_generation_attempts_total="$(u64_or_zero "$trial_parseability_generation_attempts_total")"
+    trial_parseability_generation_accepted_total="$(u64_or_zero "$trial_parseability_generation_accepted_total")"
+    trial_parseability_generation_rejected_total="$(u64_or_zero "$trial_parseability_generation_rejected_total")"
+    trial_parseability_generation_parser_rejections_total="$(u64_or_zero "$trial_parseability_generation_parser_rejections_total")"
+    trial_parseability_generation_generation_errors_total="$(u64_or_zero "$trial_parseability_generation_generation_errors_total")"
+    trial_parseability_generation_empty_generations_total="$(u64_or_zero "$trial_parseability_generation_empty_generations_total")"
+    trial_parseability_generation_acceptance_rate_percent="$(number_or_zero "$trial_parseability_generation_acceptance_rate_percent")"
+    trial_closed_loop_parseability_shadow_requested_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_requested_total")"
+    trial_closed_loop_parseability_shadow_attempts_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_attempts_total")"
+    trial_closed_loop_parseability_shadow_accepted_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_accepted_total")"
+    trial_closed_loop_parseability_shadow_rejected_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_rejected_total")"
+    trial_closed_loop_parseability_shadow_parser_rejections_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_parser_rejections_total")"
+    trial_closed_loop_parseability_shadow_generation_errors_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_generation_errors_total")"
+    trial_closed_loop_parseability_shadow_empty_generations_total="$(u64_or_zero "$trial_closed_loop_parseability_shadow_empty_generations_total")"
+    trial_closed_loop_parseability_shadow_acceptance_rate_percent="$(number_or_zero "$trial_closed_loop_parseability_shadow_acceptance_rate_percent")"
+
+    parseability_generation_requested_total=$((parseability_generation_requested_total + trial_parseability_generation_requested_total))
+    parseability_generation_attempts_total=$((parseability_generation_attempts_total + trial_parseability_generation_attempts_total))
+    parseability_generation_accepted_total=$((parseability_generation_accepted_total + trial_parseability_generation_accepted_total))
+    parseability_generation_rejected_total=$((parseability_generation_rejected_total + trial_parseability_generation_rejected_total))
+    parseability_generation_parser_rejections_total=$((parseability_generation_parser_rejections_total + trial_parseability_generation_parser_rejections_total))
+    parseability_generation_generation_errors_total=$((parseability_generation_generation_errors_total + trial_parseability_generation_generation_errors_total))
+    parseability_generation_empty_generations_total=$((parseability_generation_empty_generations_total + trial_parseability_generation_empty_generations_total))
+    closed_loop_parseability_shadow_requested_total=$((closed_loop_parseability_shadow_requested_total + trial_closed_loop_parseability_shadow_requested_total))
+    closed_loop_parseability_shadow_attempts_total=$((closed_loop_parseability_shadow_attempts_total + trial_closed_loop_parseability_shadow_attempts_total))
+    closed_loop_parseability_shadow_accepted_total=$((closed_loop_parseability_shadow_accepted_total + trial_closed_loop_parseability_shadow_accepted_total))
+    closed_loop_parseability_shadow_rejected_total=$((closed_loop_parseability_shadow_rejected_total + trial_closed_loop_parseability_shadow_rejected_total))
+    closed_loop_parseability_shadow_parser_rejections_total=$((closed_loop_parseability_shadow_parser_rejections_total + trial_closed_loop_parseability_shadow_parser_rejections_total))
+    closed_loop_parseability_shadow_generation_errors_total=$((closed_loop_parseability_shadow_generation_errors_total + trial_closed_loop_parseability_shadow_generation_errors_total))
+    closed_loop_parseability_shadow_empty_generations_total=$((closed_loop_parseability_shadow_empty_generations_total + trial_closed_loop_parseability_shadow_empty_generations_total))
 
     trial_status="gate_fail"
     trial_note="strict ratio trial failed before ratio extraction"
@@ -242,7 +392,28 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
         --arg note "$trial_note" \
         --arg blocker_key "$trial_blocker_key" \
         --arg blocker_detail "$trial_blocker_detail" \
+        --arg parseability_generation_enabled "$trial_parseability_generation_enabled" \
+        --arg parseability_generation_report_json "$trial_parseability_generation_report_json" \
+        --arg closed_loop_parseability_shadow_enabled "$trial_closed_loop_parseability_shadow_enabled" \
+        --arg closed_loop_parseability_shadow_effective "$trial_closed_loop_parseability_shadow_effective" \
+        --arg closed_loop_parseability_shadow_report_json "$trial_closed_loop_parseability_shadow_report_json" \
         --argjson observed_ratio "$(if [[ -n "$trial_ratio" ]]; then echo "$trial_ratio"; else echo "null"; fi)" \
+        --argjson parseability_generation_requested_total "$trial_parseability_generation_requested_total" \
+        --argjson parseability_generation_attempts_total "$trial_parseability_generation_attempts_total" \
+        --argjson parseability_generation_accepted_total "$trial_parseability_generation_accepted_total" \
+        --argjson parseability_generation_rejected_total "$trial_parseability_generation_rejected_total" \
+        --argjson parseability_generation_parser_rejections_total "$trial_parseability_generation_parser_rejections_total" \
+        --argjson parseability_generation_generation_errors_total "$trial_parseability_generation_generation_errors_total" \
+        --argjson parseability_generation_empty_generations_total "$trial_parseability_generation_empty_generations_total" \
+        --argjson parseability_generation_acceptance_rate_percent "$trial_parseability_generation_acceptance_rate_percent" \
+        --argjson closed_loop_parseability_shadow_requested_total "$trial_closed_loop_parseability_shadow_requested_total" \
+        --argjson closed_loop_parseability_shadow_attempts_total "$trial_closed_loop_parseability_shadow_attempts_total" \
+        --argjson closed_loop_parseability_shadow_accepted_total "$trial_closed_loop_parseability_shadow_accepted_total" \
+        --argjson closed_loop_parseability_shadow_rejected_total "$trial_closed_loop_parseability_shadow_rejected_total" \
+        --argjson closed_loop_parseability_shadow_parser_rejections_total "$trial_closed_loop_parseability_shadow_parser_rejections_total" \
+        --argjson closed_loop_parseability_shadow_generation_errors_total "$trial_closed_loop_parseability_shadow_generation_errors_total" \
+        --argjson closed_loop_parseability_shadow_empty_generations_total "$trial_closed_loop_parseability_shadow_empty_generations_total" \
+        --argjson closed_loop_parseability_shadow_acceptance_rate_percent "$trial_closed_loop_parseability_shadow_acceptance_rate_percent" \
         '{
             trial_index: $trial_index,
             seed_base: $seed_base,
@@ -253,7 +424,36 @@ for ((trial_idx = 0; trial_idx < TRIALS; trial_idx++)); do
             note: $note,
             blocker_key: $blocker_key,
             blocker_detail: $blocker_detail,
-            observed_ratio_percent: $observed_ratio
+            observed_ratio_percent: $observed_ratio,
+            parseability_generation: {
+                enabled: $parseability_generation_enabled,
+                report_json: $parseability_generation_report_json,
+                observed: {
+                    requested_total: $parseability_generation_requested_total,
+                    attempts_total: $parseability_generation_attempts_total,
+                    accepted_total: $parseability_generation_accepted_total,
+                    rejected_total: $parseability_generation_rejected_total,
+                    parser_rejections_total: $parseability_generation_parser_rejections_total,
+                    generation_errors_total: $parseability_generation_generation_errors_total,
+                    empty_generations_total: $parseability_generation_empty_generations_total,
+                    acceptance_rate_percent: $parseability_generation_acceptance_rate_percent
+                }
+            },
+            closed_loop_parseability_shadow: {
+                enabled: $closed_loop_parseability_shadow_enabled,
+                effective_mode: $closed_loop_parseability_shadow_effective,
+                report_json: $closed_loop_parseability_shadow_report_json,
+                observed: {
+                    requested_total: $closed_loop_parseability_shadow_requested_total,
+                    attempts_total: $closed_loop_parseability_shadow_attempts_total,
+                    accepted_total: $closed_loop_parseability_shadow_accepted_total,
+                    rejected_total: $closed_loop_parseability_shadow_rejected_total,
+                    parser_rejections_total: $closed_loop_parseability_shadow_parser_rejections_total,
+                    generation_errors_total: $closed_loop_parseability_shadow_generation_errors_total,
+                    empty_generations_total: $closed_loop_parseability_shadow_empty_generations_total,
+                    acceptance_rate_percent: $closed_loop_parseability_shadow_acceptance_rate_percent
+                }
+            }
         }' >>"$TRIAL_CASES_JSONL"
 done
 
@@ -309,6 +509,9 @@ else
     promotion_note="insufficient strict ratio trial pass evidence"
 fi
 
+parseability_generation_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$parseability_generation_accepted_total" "$parseability_generation_attempts_total")"
+closed_loop_parseability_shadow_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$closed_loop_parseability_shadow_accepted_total" "$closed_loop_parseability_shadow_attempts_total")"
+
 jq -n \
     --arg mode "$PROMOTION_MODE" \
     --arg recommendation "$promotion_recommendation" \
@@ -332,6 +535,22 @@ jq -n \
     --arg primary_non_ratio_blocker "$primary_non_ratio_blocker" \
     --argjson blocker_breakdown "$blocker_breakdown_json" \
     --argjson non_ratio_blocker_breakdown "$non_ratio_blocker_breakdown_json" \
+    --argjson parseability_generation_requested_total "$parseability_generation_requested_total" \
+    --argjson parseability_generation_attempts_total "$parseability_generation_attempts_total" \
+    --argjson parseability_generation_accepted_total "$parseability_generation_accepted_total" \
+    --argjson parseability_generation_rejected_total "$parseability_generation_rejected_total" \
+    --argjson parseability_generation_parser_rejections_total "$parseability_generation_parser_rejections_total" \
+    --argjson parseability_generation_generation_errors_total "$parseability_generation_generation_errors_total" \
+    --argjson parseability_generation_empty_generations_total "$parseability_generation_empty_generations_total" \
+    --argjson parseability_generation_acceptance_rate_percent "$parseability_generation_acceptance_rate_percent" \
+    --argjson closed_loop_parseability_shadow_requested_total "$closed_loop_parseability_shadow_requested_total" \
+    --argjson closed_loop_parseability_shadow_attempts_total "$closed_loop_parseability_shadow_attempts_total" \
+    --argjson closed_loop_parseability_shadow_accepted_total "$closed_loop_parseability_shadow_accepted_total" \
+    --argjson closed_loop_parseability_shadow_rejected_total "$closed_loop_parseability_shadow_rejected_total" \
+    --argjson closed_loop_parseability_shadow_parser_rejections_total "$closed_loop_parseability_shadow_parser_rejections_total" \
+    --argjson closed_loop_parseability_shadow_generation_errors_total "$closed_loop_parseability_shadow_generation_errors_total" \
+    --argjson closed_loop_parseability_shadow_empty_generations_total "$closed_loop_parseability_shadow_empty_generations_total" \
+    --argjson closed_loop_parseability_shadow_acceptance_rate_percent "$closed_loop_parseability_shadow_acceptance_rate_percent" \
     --argjson trials_json "$trial_cases_json" \
     '{
         mode: $mode,
@@ -365,6 +584,30 @@ jq -n \
             breakdown: $blocker_breakdown,
             non_ratio_breakdown: $non_ratio_blocker_breakdown
         },
+        parseability_generation: {
+            observed: {
+                requested_total: $parseability_generation_requested_total,
+                attempts_total: $parseability_generation_attempts_total,
+                accepted_total: $parseability_generation_accepted_total,
+                rejected_total: $parseability_generation_rejected_total,
+                parser_rejections_total: $parseability_generation_parser_rejections_total,
+                generation_errors_total: $parseability_generation_generation_errors_total,
+                empty_generations_total: $parseability_generation_empty_generations_total,
+                acceptance_rate_percent: $parseability_generation_acceptance_rate_percent
+            }
+        },
+        closed_loop_parseability_shadow: {
+            observed: {
+                requested_total: $closed_loop_parseability_shadow_requested_total,
+                attempts_total: $closed_loop_parseability_shadow_attempts_total,
+                accepted_total: $closed_loop_parseability_shadow_accepted_total,
+                rejected_total: $closed_loop_parseability_shadow_rejected_total,
+                parser_rejections_total: $closed_loop_parseability_shadow_parser_rejections_total,
+                generation_errors_total: $closed_loop_parseability_shadow_generation_errors_total,
+                empty_generations_total: $closed_loop_parseability_shadow_empty_generations_total,
+                acceptance_rate_percent: $closed_loop_parseability_shadow_acceptance_rate_percent
+            }
+        },
         trials: $trials_json
     }' >"$PROMOTION_REPORT_JSON"
 
@@ -386,6 +629,14 @@ jq -n \
     echo "observed_ratio_min: $ratio_min"
     echo "observed_ratio_max: $ratio_max"
     echo "observed_ratio_avg: $observed_ratio_avg"
+    echo "parseability_generation_attempts_total: $parseability_generation_attempts_total"
+    echo "parseability_generation_accepted_total: $parseability_generation_accepted_total"
+    echo "parseability_generation_rejected_total: $parseability_generation_rejected_total"
+    echo "parseability_generation_acceptance_rate_percent: $parseability_generation_acceptance_rate_percent"
+    echo "closed_loop_parseability_shadow_attempts_total: $closed_loop_parseability_shadow_attempts_total"
+    echo "closed_loop_parseability_shadow_accepted_total: $closed_loop_parseability_shadow_accepted_total"
+    echo "closed_loop_parseability_shadow_rejected_total: $closed_loop_parseability_shadow_rejected_total"
+    echo "closed_loop_parseability_shadow_acceptance_rate_percent: $closed_loop_parseability_shadow_acceptance_rate_percent"
     echo "report_json: $PROMOTION_REPORT_JSON"
 } >"$SUMMARY_TXT"
 

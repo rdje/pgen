@@ -793,6 +793,10 @@ Toolbox baseline to leverage end-to-end:
       - `totals.observed_ratio_min`
       - `totals.observed_ratio_max`
     - this allows aggregate-side visibility of ratio dispersion, not only average.
+  - Progress (2026-03-11): promoted parser-backed effort telemetry into parse-full promotion evidence:
+    - `sv_parse_full_ratio_promotion_gate` now aggregates parser-backed sample-generation effort and closed-loop replay-shadow effort across strict trials,
+    - promotion reports now carry per-trial and aggregate parseability telemetry instead of reducing parser-backed effort to binary trial pass/fail,
+    - aggregate `sota_exit_gate` now surfaces the parse-full promotion parseability-generation and replay-shadow totals directly.
   - Progress (2026-03-01): persisted aggregate promotion telemetry into summary artifacts:
     - `rust/target/sota_exit_gate/summary.txt` now includes a dedicated `Promotion Telemetry` section when promotion stage runs, mirroring report-path/recommendation/blocker/ratio fields for CI artifact handoff.
   - Progress (2026-03-03): expanded deterministic SV semantic contract corpora with preprocess-heavy directive families:

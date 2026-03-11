@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-03-11 - Add Parseability Telemetry to `sv_parse_full_ratio_promotion_gate`
+### ✅ Achievement Summary
+The parse-full ratio promotion trial gate no longer treats parser-backed effort as hidden work inside strict SV ratio trials. It now aggregates parser-backed sample-generation and replay-shadow acceptance effort across trials and surfaces the same evidence through `sota_exit_gate`.
+
+### Scope of Changes
+- Hardened parse-full promotion observability:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+    - now reads parser-backed sample-generation and closed-loop replay-shadow reports from each strict `sv_stimuli_quality_gate` trial,
+    - records those metrics per trial in `systemverilog_parse_full_ratio_promotion_report.json`,
+    - aggregates attempts / accepted / rejected totals plus acceptance rates for both parser-backed surfaces,
+    - surfaces the aggregate totals in standalone `summary.txt`.
+- Hardened aggregate surfacing:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+    - now parses the new parse-full promotion parseability totals from the stage report,
+    - surfaces those metrics in aggregate parse-full promotion telemetry.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh` ✅
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` ✅
+- `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE=auto PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=2 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=1000 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate` ✅
+  - observed summary evidence:
+    - `observed_ratio_min=max=avg=100`
+    - `parseability_generation_attempts_total=13`
+    - `parseability_generation_accepted_total=4`
+    - `parseability_generation_rejected_total=9`
+    - `closed_loop_parseability_shadow_attempts_total=100`
+    - `closed_loop_parseability_shadow_accepted_total=26`
+    - `closed_loop_parseability_shadow_rejected_total=74`
+- focused aggregate replay with only parse-full promotion enabled ✅
+  - aggregate summary now surfaces:
+    - `sv_parse_full_ratio_promotion_parseability_generation_attempts_total=13`
+    - `sv_parse_full_ratio_promotion_parseability_generation_accepted_total=4`
+    - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_attempts_total=100`
+    - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_accepted_total=26`
+
 ## 2026-03-11 - Add Parseability Telemetry to `sv_declared_shadow_promotion_gate`
 ### ✅ Achievement Summary
 The declared-shadow promotion trial gate no longer treats parser-backed effort as hidden background work inside strict SV trial runs. It now aggregates parser-backed sample-generation and replay-shadow acceptance effort across trials and surfaces the same evidence through `sota_exit_gate`.
