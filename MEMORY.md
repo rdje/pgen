@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: target-driven-parseability-alternate-entry-telemetry)
+Last updated: 2026-03-11 (+0100, task: surface-target-driven-alternate-entry-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -140,6 +140,19 @@ Use this file to resume work without replaying full chat history.
     - `target_drive_validation.alternate_entry_attempts=0`
     - `target_drive_validation.alternate_entry_accepted_outputs=0`
     - `target_drive_validation.alternate_entry_rejected_outputs=0`
+- Target-driven alternate-entry telemetry is now surfaced in gate-visible artifacts:
+  - `annotation_stimuli_quality_gate`, `ebnf_stimuli_quality_gate`, and `sv_preprocessor_quality_gate` now copy stage-2 alternate-entry totals into aggregate parseability report JSON and `summary.csv` / `summary.txt`,
+  - `vhdl_stimuli_quality_gate` now surfaces closed-loop replay-shadow alternate-entry totals directly in `summary.txt`,
+  - `sv_stimuli_quality_gate` now surfaces closed-loop replay-shadow alternate-entry totals in `summary.txt` and in top-level/per-profile `systemverilog_closed_loop_parseability_shadow_report.json`,
+  - bounded proof evidence now visible at the gate surface:
+    - VHDL:
+      - `closed_loop_parseability_shadow_alternate_entry_attempts_total=185`
+      - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=1`
+      - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=184`
+    - SV:
+      - `closed_loop_parseability_shadow_alternate_entry_attempts_total=205`
+      - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=16`
+      - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=189`
 - Stimuli-module parity parseability surface:
   - `stimuli_module_parity_gate` now treats parser-backed acceptance effort as part of the parity contract instead of an implicit precondition,
   - for parseability-required grammars it emits and compares:

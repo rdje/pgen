@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-03-11 - Surface Alternate-Entry Target-Drive Telemetry in Gate Artifacts
+### ✅ Achievement Summary
+The new alternate-entry counters no longer live only inside raw target-driven parseability JSON. The target-driven quality gates now surface them in operator-visible summaries and aggregate report artifacts, so helper-rule probe churn is visible where the gates are actually reviewed.
+
+### Scope of Changes
+- Hardened target-driven gate summaries:
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh)
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh)
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh)
+    - stage-2 target-drive alternate-entry totals are now surfaced in aggregate parseability report JSON and gate `summary.csv` / `summary.txt`.
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh)
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh)
+    - closed-loop replay-shadow alternate-entry totals are now surfaced directly in gate `summary.txt`,
+    - the SV closed-loop shadow aggregate report now carries a `target_drive_validation` totals block plus per-profile alternate-entry telemetry.
+- Synced operator docs/state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- `bash -n rust/scripts/annotation_stimuli_quality_gate.sh` ✅
+- `bash -n rust/scripts/ebnf_stimuli_quality_gate.sh` ✅
+- `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh` ✅
+- `bash -n rust/scripts/sv_preprocessor_quality_gate.sh` ✅
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- bounded annotation proof ✅
+  - `PGEN_ANNOTATION_STIMULI_QUALITY_COUNT=1 PGEN_ANNOTATION_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate`
+- bounded EBNF proof ✅
+  - `PGEN_EBNF_STIMULI_QUALITY_COUNT=1 PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate`
+- bounded VHDL proof ✅
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - observed:
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total=185`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=1`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=184`
+- bounded SV preprocessor proof ✅
+  - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=50 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
+- bounded SV proof ✅
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed:
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total=205`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=16`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=189`
+
 ## 2026-03-11 - Add Alternate-Entry Telemetry to Target-Driven Parseability Reports
 ### ✅ Achievement Summary
 Target-driven parseability reports now expose how much validator-backed generation used alternate non-entry probe rules during `--target-report-input --validate-parseability` runs. This does not change generator behavior; it makes future replay-shadow tuning evidence-driven instead of inferred.

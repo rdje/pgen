@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-10
+Last updated: 2026-03-11
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -983,16 +983,22 @@ Toolbox baseline to leverage end-to-end:
       - `closed_loop_parseability_shadow_acceptance_rate_percent=28.48`
     - bounded VHDL proof under a temporary reduced replay budget also remained green:
       - `closed_loop_initial_targets=271`
-  - Progress (2026-03-11): added alternate-entry telemetry to target-driven parseability reports without changing replay behavior:
-    - `TargetDriveValidationSummary` now records `alternate_entry_attempts`, `alternate_entry_accepted_outputs`, and `alternate_entry_rejected_outputs`,
-    - `ParseabilityGenerationReport` now optionally serializes that block as `target_drive_validation` for `--target-report-input --validate-parseability --parseability-report-json`,
-    - direct proof with `generated/return_annotation.json` emitted the new block in `/tmp/pgen_return_target_parseability.json`,
-    - this gives the next replay-shadow tuning step a machine-readable split between helper-rule probe churn and real entry-shaped parseability rejection.
       - `closed_loop_replay_targets=33`
       - `closed_loop_parseability_shadow_requested_total=31`
       - `closed_loop_parseability_shadow_accepted_total=7`
       - `closed_loop_parseability_shadow_rejected_total=24`
       - `closed_loop_parseability_shadow_acceptance_rate_percent=22.58`
+  - Progress (2026-03-11): added alternate-entry telemetry to target-driven parseability reports without changing replay behavior:
+    - `TargetDriveValidationSummary` now records `alternate_entry_attempts`, `alternate_entry_accepted_outputs`, and `alternate_entry_rejected_outputs`,
+    - `ParseabilityGenerationReport` now optionally serializes that block as `target_drive_validation` for `--target-report-input --validate-parseability --parseability-report-json`,
+    - direct proof with `generated/return_annotation.json` emitted the new block in `/tmp/pgen_return_target_parseability.json`,
+    - this gives the next replay-shadow tuning step a machine-readable split between helper-rule probe churn and real entry-shaped parseability rejection.
+  - Progress (2026-03-11): surfaced target-driven alternate-entry telemetry in gate-visible artifacts instead of leaving it only in raw parseability JSON:
+    - `annotation_stimuli_quality_gate`, `ebnf_stimuli_quality_gate`, and `sv_preprocessor_quality_gate` now expose stage-2 target-drive alternate-entry totals in their aggregate parseability report JSON and `summary.csv` / `summary.txt`,
+    - `vhdl_stimuli_quality_gate` and `sv_stimuli_quality_gate` now surface closed-loop replay-shadow alternate-entry totals directly in gate `summary.txt`,
+    - focused bounded proofs showed the new counters are wired end-to-end, with non-zero HDL replay-shadow evidence now visible at the gate surface:
+      - VHDL: `closed_loop_parseability_shadow_alternate_entry_attempts_total=185`, `accepted_outputs_total=1`, `rejected_outputs_total=184`
+      - SV: `closed_loop_parseability_shadow_alternate_entry_attempts_total=205`, `accepted_outputs_total=16`, `rejected_outputs_total=189`
   - Progress (2026-03-10): hardened shared target guidance so persistently low-yield branches are de-emphasized generically instead of only clamping zero-success branches:
     - `StimuliGenerator` target-branch throttling is now driven by accepted-success ratio history (`selected_counts` vs `success_counts`) with no grammar-specific logic,
     - new regression tests prove:

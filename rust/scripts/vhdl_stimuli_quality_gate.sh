@@ -55,6 +55,12 @@ parseability_summary_field_u64() {
     jq -er ".summary.${field} | numbers" "$path"
 }
 
+parseability_target_drive_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er "(.target_drive_validation.${field} // 0) | numbers" "$path"
+}
+
 parseability_acceptance_rate_percent() {
     local path="$1"
     local attempts accepted
@@ -372,6 +378,9 @@ closed_loop_parseability_shadow_parser_rejections_total=0
 closed_loop_parseability_shadow_generation_errors_total=0
 closed_loop_parseability_shadow_empty_generations_total=0
 closed_loop_parseability_shadow_acceptance_rate_percent="0.00"
+closed_loop_parseability_shadow_alternate_entry_attempts_total=0
+closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=0
+closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=0
 closed_loop_parseability_shadow_report_json="$WORK_DIR/closed_loop_replay_parseability_shadow_report.json"
 
 if [[ "$closed_loop_enabled" -eq 1 ]]; then
@@ -455,6 +464,9 @@ if [[ "$closed_loop_enabled" -eq 1 ]]; then
         closed_loop_parseability_shadow_generation_errors_total="$(parseability_summary_field_u64 "$closed_loop_parseability_shadow_report_json" "generation_errors")"
         closed_loop_parseability_shadow_empty_generations_total="$(parseability_summary_field_u64 "$closed_loop_parseability_shadow_report_json" "empty_generations")"
         closed_loop_parseability_shadow_acceptance_rate_percent="$(parseability_acceptance_rate_percent "$closed_loop_parseability_shadow_report_json")"
+        closed_loop_parseability_shadow_alternate_entry_attempts_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_attempts")"
+        closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_accepted_outputs")"
+        closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_rejected_outputs")"
     fi
 fi
 
@@ -788,6 +800,9 @@ jq -n \
     echo "closed_loop_parseability_shadow_generation_errors_total: $closed_loop_parseability_shadow_generation_errors_total"
     echo "closed_loop_parseability_shadow_empty_generations_total: $closed_loop_parseability_shadow_empty_generations_total"
     echo "closed_loop_parseability_shadow_acceptance_rate_percent: $closed_loop_parseability_shadow_acceptance_rate_percent"
+    echo "closed_loop_parseability_shadow_alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total"
+    echo "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
+    echo "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
     echo "closed_loop_parseability_shadow_report_json: $closed_loop_parseability_shadow_report_json"
     echo "parse_full_mode: $PARSE_FULL_MODE"
     echo "parse_full_effective: $parse_full_effective"

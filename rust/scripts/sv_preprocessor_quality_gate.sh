@@ -142,6 +142,12 @@ parseability_summary_field_u64() {
     jq -er ".summary.${field} | numbers" "$path"
 }
 
+parseability_target_drive_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er "(.target_drive_validation.${field} // 0) | numbers" "$path"
+}
+
 parseability_acceptance_rate_percent() {
     local path="$1"
     local attempts accepted
@@ -265,6 +271,9 @@ parseability_parser_rejections_total=0
 parseability_generation_errors_total=0
 parseability_empty_generations_total=0
 parseability_acceptance_rate_percent_total="0.00"
+target_drive_alternate_entry_attempts_total=0
+target_drive_alternate_entry_accepted_outputs_total=0
+target_drive_alternate_entry_rejected_outputs_total=0
 parseability_report_json="n/a"
 declare -a parseability_args=()
 declare -a parseability_args_stage0a=()
@@ -518,6 +527,9 @@ if [[ "$parseability_enabled" -eq 1 ]]; then
     stage2_parseability_parser_rejections="$(parseability_summary_field_u64 "$stage2_parseability_json" "parser_rejections")"
     stage2_parseability_generation_errors="$(parseability_summary_field_u64 "$stage2_parseability_json" "generation_errors")"
     stage2_parseability_empty_generations="$(parseability_summary_field_u64 "$stage2_parseability_json" "empty_generations")"
+    target_drive_alternate_entry_attempts_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_attempts")"
+    target_drive_alternate_entry_accepted_outputs_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_accepted_outputs")"
+    target_drive_alternate_entry_rejected_outputs_total="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_rejected_outputs")"
 else
     stage2_parseability_attempts=0
     stage2_parseability_accepted=0
@@ -623,6 +635,9 @@ if [[ "$parseability_enabled" -eq 1 ]]; then
         --argjson generation_errors_total "$parseability_generation_errors_total" \
         --argjson empty_generations_total "$parseability_empty_generations_total" \
         --argjson acceptance_rate_percent "$parseability_acceptance_rate_percent_total" \
+        --argjson alternate_entry_attempts_total "$target_drive_alternate_entry_attempts_total" \
+        --argjson alternate_entry_accepted_outputs_total "$target_drive_alternate_entry_accepted_outputs_total" \
+        --argjson alternate_entry_rejected_outputs_total "$target_drive_alternate_entry_rejected_outputs_total" \
         --slurpfile stage0 "$stage0a_parseability_json" \
         --slurpfile stage1 "$stage1_parseability_json" \
         --slurpfile stage2 "$stage2_parseability_json" \
@@ -640,6 +655,11 @@ if [[ "$parseability_enabled" -eq 1 ]]; then
                 generation_errors: $generation_errors_total,
                 empty_generations: $empty_generations_total,
                 acceptance_rate_percent: $acceptance_rate_percent
+            },
+            target_drive_validation: {
+                alternate_entry_attempts_total: $alternate_entry_attempts_total,
+                alternate_entry_accepted_outputs_total: $alternate_entry_accepted_outputs_total,
+                alternate_entry_rejected_outputs_total: $alternate_entry_rejected_outputs_total
             },
             stages: {
                 stage0_baseline: $stage0[0],
@@ -1026,6 +1046,9 @@ initial_targets,$initial_targets
 resolved_targets,$resolved_targets
 final_targets,$final_targets
 target_attempts,$target_attempts
+target_drive_alternate_entry_attempts_total,$target_drive_alternate_entry_attempts_total
+target_drive_alternate_entry_accepted_outputs_total,$target_drive_alternate_entry_accepted_outputs_total
+target_drive_alternate_entry_rejected_outputs_total,$target_drive_alternate_entry_rejected_outputs_total
 fuzz_rounds,$FUZZ_ROUNDS
 fuzz_accepted,$fuzz_accepted
 fuzz_rejected,$fuzz_rejected

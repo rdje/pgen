@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-03-09
+Last updated: 2026-03-11
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -58,6 +58,11 @@ In practical terms:
 - with `--validate-parseability`, only fully parseable generated samples are counted as accepted.
 - `--parseability-report-json PATH` writes machine-readable parseability generation telemetry (`requested`, `accepted`, `rejected`, `attempts`, rejection breakdown, acceptance rate).
 - `--parseability-max-attempts N` sets an explicit total attempt budget for parseability-aware generation instead of relying on the default `count * 50`.
+- when parseability is driven by `--target-report-input`, the report may also include `target_drive_validation` with:
+  - `alternate_entry_attempts`
+  - `alternate_entry_accepted_outputs`
+  - `alternate_entry_rejected_outputs`
+- target-driven quality gates surface those alternate-entry counters in their stage summaries or aggregate report artifacts so helper-rule probe churn is observable instead of inferred.
 
 ## 3) Fast Start
 

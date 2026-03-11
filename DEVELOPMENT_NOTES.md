@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Gate Surfaces Now Expose Alternate-Entry Target-Drive Totals
+### Context
+The raw parseability report already had the new `target_drive_validation` block, but that was still too buried for normal gate review. The operator-visible problem was unchanged: people reading `summary.txt` or aggregate parseability report JSON still had to manually open per-stage raw reports to tell whether replay churn came from helper-rule alternate probes.
+
+### Implementation
+- Hardened shell gates that already consume target-driven parseability reports:
+  - `annotation_stimuli_quality_gate`
+  - `ebnf_stimuli_quality_gate`
+  - `sv_preprocessor_quality_gate`
+    - now carry stage-2 alternate-entry totals into aggregate parseability report JSON and `summary.csv` / `summary.txt`.
+  - `vhdl_stimuli_quality_gate`
+  - `sv_stimuli_quality_gate`
+    - now surface replay-shadow alternate-entry totals directly in gate `summary.txt`,
+    - SV closed-loop shadow aggregate JSON now carries those totals at the top level and per-profile.
+
+### Validation
+- `bash -n` passed on all five edited shell gates.
+- bounded gate proofs passed for annotation, EBNF, VHDL, SV preprocessor, and SV.
+- observed non-zero HDL replay-shadow evidence at the gate surface:
+  - VHDL:
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total=185`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=1`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=184`
+  - SV:
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total=205`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=16`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=189`
+
+### Notes
+- This is still observability-only.
+  - No generator behavior changed.
+  - The value is that the next tuning task can read the gate surface directly and distinguish alternate probe churn from true entry-shaped parseability debt.
+
 ## 2026-03-11 - Target-Driven Parseability Reports Now Expose Alternate Entry Probes
 ### Context
 The next shared-engine tuning target after dependency-aware probe escalation was parser-backed replay-shadow acceptance. A few candidate heuristic changes were explored locally, but their bounded HDL evidence was mixed. Before changing behavior again, the missing piece was explicit telemetry showing how much target-driven validator-backed replay was spending on alternate non-entry probe rules.

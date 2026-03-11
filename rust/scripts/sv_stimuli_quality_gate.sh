@@ -97,6 +97,12 @@ parseability_summary_field_u64() {
     jq -er ".summary.${field} | numbers" "$path"
 }
 
+parseability_target_drive_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er "(.target_drive_validation.${field} // 0) | numbers" "$path"
+}
+
 parseability_acceptance_rate_percent() {
     local path="$1"
     local attempts accepted
@@ -1957,6 +1963,9 @@ realistic_report_json="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_report.
 realistic_cases_jsonl="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_cases.jsonl"
 closed_loop_parseability_shadow_report_json="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_report.json"
 closed_loop_parseability_shadow_profiles_jsonl="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_profiles.jsonl"
+closed_loop_parseability_shadow_alternate_entry_attempts_total=0
+closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=0
+closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=0
 if [[ "$declared_shadow_enabled" -eq 1 ]]; then
     : >"$declared_shadow_cases_jsonl"
 fi
@@ -2146,6 +2155,9 @@ for profile_idx in "${!run_profiles[@]}"; do
             shadow_generation_errors="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "generation_errors")"
             shadow_empty_generations="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "empty_generations")"
             shadow_acceptance_rate_percent="$(parseability_acceptance_rate_percent "$closed_loop_replay_parseability_shadow_report")"
+            shadow_alternate_entry_attempts="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_attempts")"
+            shadow_alternate_entry_accepted_outputs="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_accepted_outputs")"
+            shadow_alternate_entry_rejected_outputs="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "alternate_entry_rejected_outputs")"
 
             closed_loop_parseability_shadow_requested_total=$((closed_loop_parseability_shadow_requested_total + shadow_requested))
             closed_loop_parseability_shadow_attempts_total=$((closed_loop_parseability_shadow_attempts_total + shadow_attempts))
@@ -2154,6 +2166,9 @@ for profile_idx in "${!run_profiles[@]}"; do
             closed_loop_parseability_shadow_parser_rejections_total=$((closed_loop_parseability_shadow_parser_rejections_total + shadow_parser_rejections))
             closed_loop_parseability_shadow_generation_errors_total=$((closed_loop_parseability_shadow_generation_errors_total + shadow_generation_errors))
             closed_loop_parseability_shadow_empty_generations_total=$((closed_loop_parseability_shadow_empty_generations_total + shadow_empty_generations))
+            closed_loop_parseability_shadow_alternate_entry_attempts_total=$((closed_loop_parseability_shadow_alternate_entry_attempts_total + shadow_alternate_entry_attempts))
+            closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total + shadow_alternate_entry_accepted_outputs))
+            closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total + shadow_alternate_entry_rejected_outputs))
 
             jq -cn \
                 --arg profile "$lrm_profile" \
@@ -2166,6 +2181,9 @@ for profile_idx in "${!run_profiles[@]}"; do
                 --argjson generation_errors "$shadow_generation_errors" \
                 --argjson empty_generations "$shadow_empty_generations" \
                 --argjson acceptance_rate_percent "$shadow_acceptance_rate_percent" \
+                --argjson alternate_entry_attempts "$shadow_alternate_entry_attempts" \
+                --argjson alternate_entry_accepted_outputs "$shadow_alternate_entry_accepted_outputs" \
+                --argjson alternate_entry_rejected_outputs "$shadow_alternate_entry_rejected_outputs" \
                 '{
                     profile: $profile,
                     report_json: $report_json,
@@ -2178,6 +2196,11 @@ for profile_idx in "${!run_profiles[@]}"; do
                         generation_errors: $generation_errors,
                         empty_generations: $empty_generations,
                         acceptance_rate_percent: $acceptance_rate_percent
+                    },
+                    target_drive_validation: {
+                        alternate_entry_attempts: $alternate_entry_attempts,
+                        alternate_entry_accepted_outputs: $alternate_entry_accepted_outputs,
+                        alternate_entry_rejected_outputs: $alternate_entry_rejected_outputs
                     }
                 }' >>"$closed_loop_parseability_shadow_profiles_jsonl"
         fi
@@ -2950,6 +2973,9 @@ jq -n \
     --argjson generation_errors_total "$closed_loop_parseability_shadow_generation_errors_total" \
     --argjson empty_generations_total "$closed_loop_parseability_shadow_empty_generations_total" \
     --argjson acceptance_rate_percent "$closed_loop_parseability_shadow_acceptance_rate_percent" \
+    --argjson alternate_entry_attempts_total "$closed_loop_parseability_shadow_alternate_entry_attempts_total" \
+    --argjson alternate_entry_accepted_outputs_total "$closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" \
+    --argjson alternate_entry_rejected_outputs_total "$closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" \
     --argjson profiles "$closed_loop_parseability_shadow_profiles_json" \
     '{
         grammar_name: $grammar_name,
@@ -2965,6 +2991,11 @@ jq -n \
             generation_errors_total: $generation_errors_total,
             empty_generations_total: $empty_generations_total,
             acceptance_rate_percent: $acceptance_rate_percent
+        },
+        target_drive_validation: {
+            alternate_entry_attempts_total: $alternate_entry_attempts_total,
+            alternate_entry_accepted_outputs_total: $alternate_entry_accepted_outputs_total,
+            alternate_entry_rejected_outputs_total: $alternate_entry_rejected_outputs_total
         },
         profiles: $profiles
     }' >"$closed_loop_parseability_shadow_report_json"
@@ -3169,6 +3200,9 @@ jq -n \
     echo "closed_loop_parseability_shadow_generation_errors_total: $closed_loop_parseability_shadow_generation_errors_total"
     echo "closed_loop_parseability_shadow_empty_generations_total: $closed_loop_parseability_shadow_empty_generations_total"
     echo "closed_loop_parseability_shadow_acceptance_rate_percent: $closed_loop_parseability_shadow_acceptance_rate_percent"
+    echo "closed_loop_parseability_shadow_alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total"
+    echo "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
+    echo "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
     echo "closed_loop_parseability_shadow_report_json: $closed_loop_parseability_shadow_report_json"
     echo "declared_identifier_suite_status: $declared_identifier_suite_status"
     echo "declared_identifier_suite_total: $declared_identifier_suite_total"

@@ -119,6 +119,12 @@ parseability_summary_field_u64() {
     jq -er ".summary.${field} | numbers" "$path"
 }
 
+parseability_target_drive_field_u64() {
+    local path="$1"
+    local field="$2"
+    jq -er "(.target_drive_validation.${field} // 0) | numbers" "$path"
+}
+
 parseability_acceptance_rate_percent() {
     local path="$1"
     jq -er '.summary | if .attempts == 0 then 0 else ((.accepted * 100.0) / .attempts) end' "$path"
@@ -183,6 +189,9 @@ closed_loop_for_grammar() {
     local stage2_parseability_parser_rejections=0
     local stage2_parseability_generation_errors=0
     local stage2_parseability_empty_generations=0
+    local stage2_target_drive_alternate_entry_attempts=0
+    local stage2_target_drive_alternate_entry_accepted_outputs=0
+    local stage2_target_drive_alternate_entry_rejected_outputs=0
     local stage3_parseability_attempts=0
     local stage3_parseability_accepted=0
     local stage3_parseability_rejected=0
@@ -353,6 +362,9 @@ closed_loop_for_grammar() {
         stage2_parseability_parser_rejections="$(parseability_summary_field_u64 "$stage2_parseability_json" "parser_rejections")"
         stage2_parseability_generation_errors="$(parseability_summary_field_u64 "$stage2_parseability_json" "generation_errors")"
         stage2_parseability_empty_generations="$(parseability_summary_field_u64 "$stage2_parseability_json" "empty_generations")"
+        stage2_target_drive_alternate_entry_attempts="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_attempts")"
+        stage2_target_drive_alternate_entry_accepted_outputs="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_accepted_outputs")"
+        stage2_target_drive_alternate_entry_rejected_outputs="$(parseability_target_drive_field_u64 "$stage2_parseability_json" "alternate_entry_rejected_outputs")"
     fi
 
     local stage2_log="$LOG_DIR/${label}_stage2_target_drive.log"
@@ -426,6 +438,9 @@ closed_loop_for_grammar() {
             --argjson generation_errors_total "$parseability_generation_errors_total" \
             --argjson empty_generations_total "$parseability_empty_generations_total" \
             --argjson acceptance_rate_percent "$parseability_acceptance_rate_total" \
+            --argjson alternate_entry_attempts_total "$stage2_target_drive_alternate_entry_attempts" \
+            --argjson alternate_entry_accepted_outputs_total "$stage2_target_drive_alternate_entry_accepted_outputs" \
+            --argjson alternate_entry_rejected_outputs_total "$stage2_target_drive_alternate_entry_rejected_outputs" \
             --slurpfile stage0 "$stage0_parseability_json" \
             --slurpfile stage1 "$stage1_parseability_json" \
             --slurpfile stage2 "$stage2_parseability_json" \
@@ -448,13 +463,18 @@ closed_loop_for_grammar() {
                     generation_errors: $generation_errors_total,
                     empty_generations: $empty_generations_total,
                     acceptance_rate_percent: $acceptance_rate_percent
+                },
+                target_drive_validation: {
+                    alternate_entry_attempts_total: $alternate_entry_attempts_total,
+                    alternate_entry_accepted_outputs_total: $alternate_entry_accepted_outputs_total,
+                    alternate_entry_rejected_outputs_total: $alternate_entry_rejected_outputs_total
                 }
             }' >"$parseability_report_json"
         parseability_report_path_for_summary="$parseability_report_json"
     fi
 
-    echo "    ${label} closed-loop summary: parseability_required=${require_parseability} initial_targets=$initial_targets resolved=$resolved_targets final_targets=$final_targets target_attempts=$target_attempts"
-    echo "${label},${grammar_name},${require_parseability},${parseability_attempts_total},${parseability_accepted_total},${parseability_rejected_total},${parseability_parser_rejections_total},${parseability_generation_errors_total},${parseability_empty_generations_total},${parseability_acceptance_rate_total},${parseability_report_path_for_summary},${initial_targets},${resolved_targets},${final_targets},${target_attempts},${successes0},${successes3},pass" >>"$SUMMARY_CSV"
+    echo "    ${label} closed-loop summary: parseability_required=${require_parseability} initial_targets=$initial_targets resolved=$resolved_targets final_targets=$final_targets target_attempts=$target_attempts alternate_entry_attempts=$stage2_target_drive_alternate_entry_attempts"
+    echo "${label},${grammar_name},${require_parseability},${parseability_attempts_total},${parseability_accepted_total},${parseability_rejected_total},${parseability_parser_rejections_total},${parseability_generation_errors_total},${parseability_empty_generations_total},${parseability_acceptance_rate_total},${parseability_report_path_for_summary},${stage2_target_drive_alternate_entry_attempts},${stage2_target_drive_alternate_entry_accepted_outputs},${stage2_target_drive_alternate_entry_rejected_outputs},${initial_targets},${resolved_targets},${final_targets},${target_attempts},${successes0},${successes3},pass" >>"$SUMMARY_CSV"
 }
 
 require_tool jq
@@ -484,7 +504,7 @@ echo "target_max_attempts: $TARGET_MAX_ATTEMPTS"
 echo "frontend_impl: $FRONTEND_IMPL"
 echo "require_ebnf_parseability: $require_ebnf_parseability"
 
-echo "grammar,grammar_name,parseability_required,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,parseability_report_json,initial_targets,resolved_targets,final_targets,target_attempts,stage0_successes,stage3_successes,status" >"$SUMMARY_CSV"
+echo "grammar,grammar_name,parseability_required,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,parseability_report_json,target_drive_alternate_entry_attempts_total,target_drive_alternate_entry_accepted_outputs_total,target_drive_alternate_entry_rejected_outputs_total,initial_targets,resolved_targets,final_targets,target_attempts,stage0_successes,stage3_successes,status" >"$SUMMARY_CSV"
 
 run_logged_rust "build_generated_ast_pipeline" \
     cargo build --features generated_parsers --bin ast_pipeline
