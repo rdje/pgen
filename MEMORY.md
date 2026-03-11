@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: vhdl-target-max-attempts-override)
+Last updated: 2026-03-11 (+0100, task: sota-vhdl-target-max-attempts-policy-surface)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -65,6 +65,29 @@ Use this file to resume work without replaying full chat history.
       - `closed_loop_replay_targets=20`
       - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
       - `parseability_generation_acceptance_rate_percent=100.00`
+- Aggregate VHDL replay-budget policy surface:
+  - `rust/config/sota_exit_policy.env` now defines `PGEN_SOTA_POLICY_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=5000`,
+  - aggregate runtime may override it with `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`,
+  - `sota_exit_gate` now forwards the same replay budget into both:
+    - `vhdl_stimuli_quality_gate`
+    - inherited `vhdl_strict_promotion_gate` runs
+  - aggregate `summary.txt` now surfaces:
+    - configured aggregate replay budget:
+      - `vhdl_stimuli_quality_target_max_attempts`
+      - `vhdl_stimuli_quality_target_max_attempts_source`
+    - effective gate-side replay budget:
+      - `vhdl_stimuli_quality_closed_loop_target_max_attempts`
+      - `vhdl_stimuli_quality_closed_loop_target_max_attempts_source`
+    - inherited strict-promotion replay budget:
+      - `vhdl_strict_promotion_inherited_stimuli_target_max_attempts`
+  - focused bounded aggregate proof used `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200` and strict aggregate VHDL quality + strict aggregate VHDL promotion with minimal surrounding checks,
+  - observed bounded evidence:
+    - `vhdl_stimuli_quality_target_max_attempts=200`
+    - `vhdl_stimuli_quality_target_max_attempts_source=runtime_override`
+    - `vhdl_stimuli_quality_closed_loop_target_max_attempts=200`
+    - `vhdl_stimuli_quality_closed_loop_target_max_attempts_source=env_override`
+    - `vhdl_stimuli_quality_closed_loop_replay_targets=26`
+    - `vhdl_strict_promotion_inherited_stimuli_target_max_attempts=200`
 - Aggregate readiness telemetry surface:
   - `sota_exit_gate` now routes readiness stages under aggregate-scoped state dirs:
     - `rust/target/sota_exit_gate/work/ebnf_frontend_readiness`

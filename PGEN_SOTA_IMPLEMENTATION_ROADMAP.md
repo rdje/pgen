@@ -359,6 +359,10 @@ Engine generalization rule:
     - direct and inherited strict-promotion runs can now use the live tracked contract with an env-scoped replay budget instead of copying the contract to `/tmp`,
     - gate summary now emits `closed_loop_target_max_attempts_source=contract|env_override`,
     - focused bounded direct proof stayed green with `target_max_attempts=200` (`replay_targets=26`) and strict-promotion inheritance remained green with no temporary contract clone.
+  - Progress (2026-03-11): promoted that VHDL replay-budget control to first-class aggregate policy/runtime surface:
+    - `rust/config/sota_exit_policy.env` now defines `PGEN_SOTA_POLICY_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`,
+    - `sota_exit_gate` now forwards `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` into both `vhdl_stimuli_quality_gate` and inherited `vhdl_strict_promotion_gate` runs,
+    - aggregate `summary.txt` now shows configured aggregate VHDL replay budget plus the effective gate-side `closed_loop_target_max_attempts(_source)` telemetry.
 - [x] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
   - Progress (2026-02-27): wired HDL readiness into aggregate `sota_exit_gate` as informational-first (`run=1`, `strict=0`) via policy/runtime controls while `vhdl.ebnf` remains pending.
   - Progress (2026-02-27): promoted HDL readiness to aggregate required strict mode (`run=1`, `strict=1`) after `systemverilog` + `vhdl` strict gate stability.

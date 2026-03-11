@@ -2411,6 +2411,7 @@ Aggregate gate tuning:
 - `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default from policy file; stimuli mode forwarded to promotion trials)
 - `PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY` (`1`/`0`, default from policy file)
 - `PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT` (`1`/`0`, default from policy file)
+- `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` (integer `>=1`, default from policy file; aggregate replay-budget override forwarded into `vhdl_stimuli_quality_gate` and inherited by `vhdl_strict_promotion_gate`)
 - `PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION` (`1`/`0`, default from policy file; controls aggregate execution of VHDL strict-promotion trials)
 - `PGEN_SOTA_REQUIRE_VHDL_STRICT_PROMOTION_STRICT` (`1`/`0`, default from policy file; strict mode fails aggregate gate when VHDL strict-promotion eligibility is not met)
 - `PGEN_SOTA_VHDL_STRICT_PROMOTION_TRIALS` (integer `>=1`, default from policy file; aggregate VHDL strict-promotion trial count)
@@ -3345,6 +3346,17 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - `closed_loop_target_max_attempts_source`
     - `contract`: using `closed_loop.target_max_attempts` from the manifest.
     - `env_override`: using `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` for that invocation.
+- aggregate `sota_exit_gate` also exposes:
+  - `PGEN_SOTA_POLICY_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
+  - `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
+  - summary fields:
+    - `vhdl_stimuli_quality_target_max_attempts`
+    - `vhdl_stimuli_quality_target_max_attempts_source`
+      - `policy`: using the aggregate policy/runtime surface.
+      - `runtime_override`: using `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` for that aggregate invocation.
+    - `vhdl_stimuli_quality_closed_loop_target_max_attempts`
+    - `vhdl_stimuli_quality_closed_loop_target_max_attempts_source`
+  - the same aggregate VHDL replay budget is inherited by `vhdl_strict_promotion_gate`.
 - closed-loop replay parseability shadow:
   - when `closed_loop.parseability_shadow_enabled=true`, the gate runs an additional parser-backed replay command using the same target report and seed as the authoritative raw replay stage.
   - this shadow run is telemetry-only:

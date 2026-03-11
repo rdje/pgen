@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Aggregate SOTA Policy Now Owns the VHDL Replay Budget
+### Context
+`vhdl_stimuli_quality_gate` already had an honest invocation-level replay-budget override, but aggregate `sota_exit_gate` still treated that as an implicit inherited env detail. That meant aggregate runs could use a bounded VHDL replay budget, but the control was not first-class in aggregate policy, not validated there, and not surfaced clearly in aggregate sign-off output.
+
+### Implementation
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`:
+  - added `PGEN_SOTA_POLICY_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=5000` as explicit aggregate default.
+- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+  - added aggregate runtime surface `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`,
+  - validates the effective value as integer `>=1`,
+  - forwards the same value into both aggregate `vhdl_stimuli_quality_gate` and inherited `vhdl_strict_promotion_gate` runs,
+  - records configured aggregate source as `policy` or `runtime_override`,
+  - harvests the effective gate-side `closed_loop_target_max_attempts` and `closed_loop_target_max_attempts_source` from the VHDL quality stage log,
+  - surfaces both configured aggregate fields and effective gate-side fields in aggregate `summary.txt`.
+- Updated operator docs/state:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+
+### Validation
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- focused aggregate bounded proof:
+  - `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200` with strict aggregate VHDL quality + strict aggregate VHDL promotion enabled and the rest of the aggregate surface reduced to the minimal required footprint,
+  - observed:
+    - `vhdl_stimuli_quality_target_max_attempts=200`
+    - `vhdl_stimuli_quality_target_max_attempts_source=runtime_override`
+    - `vhdl_stimuli_quality_closed_loop_target_max_attempts=200`
+    - `vhdl_stimuli_quality_closed_loop_target_max_attempts_source=env_override`
+    - `vhdl_stimuli_quality_closed_loop_replay_targets=26`
+    - `vhdl_strict_promotion_inherited_stimuli_target_max_attempts=200`
+    - aggregate run finished with `required_failures=0` and `all_failures=0`.
+
+### Notes
+- This keeps the replay budget honest at both layers:
+  - aggregate sign-off owns the policy/runtime budget it passes,
+  - the underlying VHDL gate still reports whether its effective value came from contract or env override.
+
 ## 2026-03-11 - VHDL Stimuli Quality Gate Now Supports Invocation-Level Replay-Budget Override
 ### Context
 Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only honored `closed_loop.target_max_attempts` from the tracked contract. To shorten local proofs or strict-promotion checks, the only practical path was copying the contract into `/tmp` and editing it, which was unnecessary friction compared with the existing SV bounded-replay override.
