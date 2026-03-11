@@ -355,6 +355,10 @@ Engine generalization rule:
     - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1`
   - Progress (2026-02-27): updated `rust/scripts/sota_exit_gate.sh` to ingest/validate runtime env flags, print effective VHDL gate mode in summary output, and execute `vhdl_stimuli_quality_gate` as informational or strict-required depending on policy.
   - Progress (2026-03-06): promoted aggregate VHDL stimuli quality stage from informational to required strict (`run=1`, `strict=1`) after strict-promotion ratchet and focused aggregate strict-path validation remained green.
+  - Progress (2026-03-11): added invocation-level bounded replay override `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` to `vhdl_stimuli_quality_gate`:
+    - direct and inherited strict-promotion runs can now use the live tracked contract with an env-scoped replay budget instead of copying the contract to `/tmp`,
+    - gate summary now emits `closed_loop_target_max_attempts_source=contract|env_override`,
+    - focused bounded direct proof stayed green with `target_max_attempts=200` (`replay_targets=26`) and strict-promotion inheritance remained green with no temporary contract clone.
 - [x] Decide aggregate SOTA policy integration mode for HDL readiness (informational first, then required strict once seed grammars stabilize).
   - Progress (2026-02-27): wired HDL readiness into aggregate `sota_exit_gate` as informational-first (`run=1`, `strict=0`) via policy/runtime controls while `vhdl.ebnf` remains pending.
   - Progress (2026-02-27): promoted HDL readiness to aggregate required strict mode (`run=1`, `strict=1`) after `systemverilog` + `vhdl` strict gate stability.

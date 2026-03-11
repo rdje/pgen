@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-03-11 - Add Bounded Replay Override to `vhdl_stimuli_quality_gate`
+### ✅ Achievement Summary
+The VHDL stimuli quality gate no longer requires a temporary contract copy just to run bounded closed-loop proofs. It now accepts `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` as an invocation-only override and reports whether the effective replay budget came from the contract or the environment.
+
+### Scope of Changes
+- Hardened VHDL quality-gate runtime controls:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+    - now supports `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`,
+    - keeps contract validation on the effective target-attempt budget,
+    - emits `closed_loop_target_max_attempts_source=contract|env_override` in startup logs and `summary.txt`.
+- Synced operator docs/state trail:
+  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md`
+  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+
+### Validation Results
+- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh` ✅
+- focused direct bounded proof via env override ✅
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - observed summary evidence:
+    - `closed_loop_target_max_attempts=200`
+    - `closed_loop_target_max_attempts_source=env_override`
+    - `closed_loop_initial_targets=254`
+    - `closed_loop_replay_targets=26`
+    - `parseability_generation_acceptance_rate_percent=66.67`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
+- focused strict-promotion inheritance proof via the same env override ✅
+  - `PGEN_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+  - observed summary evidence:
+    - `observed_ratio_min=max=avg=100`
+    - `parseability_generation_attempts_total=3`
+    - `closed_loop_parseability_shadow_attempts_total=31`
+    - no temporary contract override was required.
+
 ## 2026-03-11 - Add Parseability Telemetry to `vhdl_strict_promotion_gate`
 ### ✅ Achievement Summary
 The VHDL strict-promotion trial gate no longer treats parser-backed effort as hidden work inside strict VHDL trials. It now aggregates parser-backed sample-generation and replay-shadow acceptance effort across trials, carries that telemetry in the promotion report, and surfaces the same evidence through `sota_exit_gate`.

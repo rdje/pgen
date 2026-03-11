@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: vhdl-strict-promotion-parseability-telemetry)
+Last updated: 2026-03-11 (+0100, task: vhdl-target-max-attempts-override)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -243,6 +243,27 @@ Use this file to resume work without replaying full chat history.
     - `closed_loop_parseability_shadow_accepted_total=5`
     - `closed_loop_parseability_shadow_rejected_total=26`
     - `closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
+- VHDL bounded replay override surface:
+  - `vhdl_stimuli_quality_gate` now supports invocation-level override `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` for `closed_loop.target_max_attempts`,
+  - startup and summary artifacts now emit:
+    - `closed_loop_target_max_attempts`
+    - `closed_loop_target_max_attempts_source=contract|env_override`
+  - this override is inherited naturally by `vhdl_strict_promotion_gate` because it shells through `vhdl_stimuli_quality_gate`,
+  - focused bounded direct proof used:
+    - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2`
+    - `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200`
+    - `PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25`
+  - observed bounded direct evidence:
+    - `closed_loop_target_max_attempts=200`
+    - `closed_loop_target_max_attempts_source=env_override`
+    - `closed_loop_initial_targets=254`
+    - `closed_loop_replay_targets=26`
+    - `parseability_generation_acceptance_rate_percent=66.67`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
+  - focused bounded strict-promotion inheritance proof stayed green with the same env override and no temporary contract clone:
+    - `observed_ratio_min=max=avg=100`
+    - `parseability_generation_attempts_total=3`
+    - `closed_loop_parseability_shadow_attempts_total=31`
 - Build-script include path contract:
   - `rust/build.rs` now emits build-script-resolved HDL parser include paths relative to `rust/src/`,
   - compile-time repo-local `include!(...)` resolution should not depend on absolute filesystem paths.

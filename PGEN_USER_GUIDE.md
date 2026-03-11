@@ -2682,6 +2682,7 @@ Optional VHDL stimuli quality-gate tuning:
 - `PGEN_VHDL_STIMULI_QUALITY_COUNT` (override contract sample count)
 - `PGEN_VHDL_STIMULI_QUALITY_SEED_BASE` (override contract seed base)
 - `PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE` (`auto`/`0`/`1`, default `auto`)
+- `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` (integer `>=1`, overrides contract `closed_loop.target_max_attempts` for the current invocation only)
 - `PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS` (override contract `parseability_generation.max_attempts_per_sample`)
 - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE` (`auto`/`0`/`1`, default `auto`)
   - `0`: disable VHDL realistic-corpus validation stage.
@@ -3332,11 +3333,18 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
   - `seed_base`
   - `closed_loop.gap_report_threshold`
   - `closed_loop.target_max_attempts`
+    - runtime override:
+      - `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
   - `closed_loop.replay_sample_count`
   - `closed_loop.require_non_increasing_target_debt`
   - `closed_loop.parseability_shadow_enabled`
   - `parseability_generation.enabled`
   - `parseability_generation.max_attempts_per_sample`
+- summary text now also emits:
+  - `closed_loop_target_max_attempts`
+  - `closed_loop_target_max_attempts_source`
+    - `contract`: using `closed_loop.target_max_attempts` from the manifest.
+    - `env_override`: using `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` for that invocation.
 - closed-loop replay parseability shadow:
   - when `closed_loop.parseability_shadow_enabled=true`, the gate runs an additional parser-backed replay command using the same target report and seed as the authoritative raw replay stage.
   - this shadow run is telemetry-only:
