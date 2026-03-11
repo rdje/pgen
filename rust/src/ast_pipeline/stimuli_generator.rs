@@ -1150,7 +1150,6 @@ impl<'a> StimuliGenerator<'a> {
         let mut generation_errors = 0usize;
         let mut best_remaining = applicable_targets.len();
         let mut stagnant_iterations = 0usize;
-        let probe_threshold = 32usize;
 
         while attempts < max_attempts {
             let pending = self.evaluate_target_statuses(&applicable_targets);
@@ -1165,6 +1164,7 @@ impl<'a> StimuliGenerator<'a> {
                 stagnant_iterations = stagnant_iterations.saturating_add(1);
             }
 
+            let probe_threshold = self.target_probe_threshold(&pending);
             let generation_entry = if stagnant_iterations >= probe_threshold {
                 self.select_target_probe_rule(&pending, &resolved_entry)
                     .unwrap_or_else(|| resolved_entry.clone())
@@ -1230,7 +1230,6 @@ impl<'a> StimuliGenerator<'a> {
         let mut generation_errors = 0usize;
         let mut best_remaining = applicable_targets.len();
         let mut stagnant_iterations = 0usize;
-        let probe_threshold = 32usize;
         let mut validation_summary = TargetDriveValidationSummary::default();
 
         while attempts < max_attempts {
@@ -1246,6 +1245,7 @@ impl<'a> StimuliGenerator<'a> {
                 stagnant_iterations = stagnant_iterations.saturating_add(1);
             }
 
+            let probe_threshold = self.target_probe_threshold(&pending);
             let generation_entry = if stagnant_iterations >= probe_threshold {
                 self.select_target_probe_rule(&pending, &resolved_entry)
                     .unwrap_or_else(|| resolved_entry.clone())
@@ -1306,6 +1306,90 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn select_target_probe_rule(
+        &self,
+        pending: &[TargetCoverageStatus],
+        resolved_entry: &str,
+    ) -> Option<String> {
+        pending
+            .iter()
+            .find_map(|status| {
+                status.depends_on.iter().find_map(|rule_name| {
+                    if rule_name != resolved_entry
+                        && self.rule_target_deficit(rule_name.as_str()) > 0
+                        && self.grammar_tree.contains_key(rule_name.as_str())
+                    {
+                        Some(rule_name.clone())
+                    } else {
+                        None
+                    }
+                })
+            })
+            .or_else(|| {
+                pending.iter().find_map(|status| {
+                    if matches!(status.target_type, StimuliCoverageTargetType::Branch)
+                        && status.rule_name != resolved_entry
+                        && self.grammar_tree.contains_key(status.rule_name.as_str())
+                    {
+                        Some(status.rule_name.clone())
+                    } else {
+                        None
+                    }
+                })
+            })
+            .or_else(|| {
+                pending.iter().find_map(|status| {
+                    if status.rule_name != resolved_entry
+                        && self.grammar_tree.contains_key(status.rule_name.as_str())
+                    {
+                        Some(status.rule_name.clone())
+                    } else {
+                        None
+                    }
+                })
+            })
+    }
+
+    fn target_probe_threshold(&self, pending: &[TargetCoverageStatus]) -> usize {
+        let mut threshold = 32usize;
+        for status in pending {
+            let Some(node_path) = status.node_path.as_ref() else {
+                continue;
+            };
+            let Some(branch_index) = status.branch_index else {
+                continue;
+            };
+            let group_key = Self::branch_group_key(status.rule_name.as_str(), node_path);
+            let Some(group) = self.coverage.branch_groups.get(&group_key) else {
+                continue;
+            };
+            let selected_hits = group.selected_counts.get(branch_index).copied().unwrap_or(0);
+            let success_hits = group.success_counts.get(branch_index).copied().unwrap_or(0);
+            let throttle = Self::target_branch_failure_throttle(selected_hits, success_hits);
+            let has_probeable_dependency = status.depends_on.iter().any(|rule_name| {
+                self.rule_target_deficit(rule_name.as_str()) > 0
+                    && self.grammar_tree.contains_key(rule_name.as_str())
+            });
+            if throttle >= 8 {
+                if has_probeable_dependency {
+                    return 8;
+                }
+                threshold = threshold.min(16);
+                continue;
+            }
+            if throttle > 1 {
+                if has_probeable_dependency {
+                    threshold = threshold.min(16);
+                } else {
+                    threshold = threshold.min(24);
+                }
+            }
+        }
+
+        threshold
+    }
+
+    #[cfg(test)]
+    fn select_target_probe_rule_legacy(
         &self,
         pending: &[TargetCoverageStatus],
         resolved_entry: &str,
@@ -5559,6 +5643,88 @@ mod tests {
             "low-yield target branch should be deemphasized once selection history shows poor parseability (low_yield={}, healthy={})",
             low_yield_multiplier,
             healthy_multiplier
+        );
+    }
+
+    #[test]
+    fn target_probe_threshold_escalates_under_low_yield_branch_pressure() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        grammar_tree.insert("helper".to_string(), token("quoted_string", "H"));
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 891);
+        generator.target_plan.rule_thresholds.insert("helper".to_string(), 1);
+        let group = generator
+            .coverage
+            .branch_groups
+            .get_mut("start::root")
+            .expect("branch group should exist");
+        group.selected_counts = vec![0, 64];
+        group.success_counts = vec![0, 1];
+
+        let pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::1".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(1),
+            current_successes: 1,
+            required_successes: 2,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["helper".to_string()],
+        }];
+        assert_eq!(generator.target_probe_threshold(&pending), 8);
+    }
+
+    #[test]
+    fn target_probe_prefers_unresolved_dependency_rule_over_legacy_branch_fallback() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("rule_reference", "helper"), token("quoted_string", "X")],
+            },
+        );
+        grammar_tree.insert("helper".to_string(), token("quoted_string", "H"));
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 892);
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        let _ = generator.apply_targets(&report.targets);
+
+        let pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::1".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(1),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["helper".to_string()],
+        }];
+
+        assert_eq!(
+            generator.select_target_probe_rule_legacy(&pending, "start"),
+            None,
+            "legacy probing never escaped the entry rule in this case"
+        );
+        assert_eq!(
+            generator.select_target_probe_rule(&pending, "start"),
+            Some("helper".to_string()),
+            "new probing should prioritize unresolved dependency rules"
         );
     }
 

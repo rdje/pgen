@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Shared Target Probing Now Prefers Real Dependency Escape Paths
+### Context
+After low-yield branch throttling landed, the next open engine gap was what to do with that freed budget. Target-driven replay still used a fixed `probe_threshold = 32` and a simple fallback that only switched to another rule once stagnation was already long-lived, and it did not prioritize unresolved dependency rules over local branch/rule fallbacks. That left real parser-backed replay debt on the table.
+
+### Implementation
+- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+  - `generate_until_targets(...)` and `generate_until_targets_with_filter(...)` now compute probe threshold from pending target state instead of using a fixed `32`,
+  - early probe escalation is driven by the same generic low-yield branch signal (`selected_counts` vs `success_counts`) used by the target-branch throttle,
+  - strongest early probe is only used when there is an unresolved dependency rule that actually exists in the grammar and still carries target debt,
+  - `select_target_probe_rule(...)` now prefers unresolved dependency rules before falling back to non-entry branch/rule targets.
+- Added regression tests proving:
+  - low-yield pressure lowers the probe threshold when a real dependency rule can be probed,
+  - dependency-rule probing escapes an entry-rule-local stagnation shape that the legacy fallback could not.
+
+### Validation
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_probe_threshold_escalates_under_low_yield_branch_pressure -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_probe_prefers_unresolved_dependency_rule_over_legacy_branch_fallback -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture`
+- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
+- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- bounded SV proof:
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed:
+    - `closed_loop_initial_targets_total=4876`
+    - `closed_loop_replay_targets_total=3785`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=27.85`
+- bounded VHDL proof:
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - observed:
+    - `closed_loop_initial_targets=254`
+    - `closed_loop_replay_targets=12`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=20.00`
+    - `parseability_generation_acceptance_rate_percent=66.67`
+
+### Notes
+- The evidence is useful but mixed:
+  - SV replay debt improved materially (`3925 -> 3785`) relative to the prior low-yield-throttle baseline, but replay-shadow acceptance softened (`30.14% -> 27.85%`).
+  - VHDL improved on both fronts relative to the prior bounded direct proof (`replay_targets 26 -> 12`, shadow acceptance `16.13% -> 20.00%`).
+- The next shared-engine follow-up is still clear: recover some SV parser-backed shadow acceptance without giving back the replay-debt gain.
+
 ## 2026-03-11 - Aggregate SOTA Policy Now Owns the VHDL Replay Budget
 ### Context
 `vhdl_stimuli_quality_gate` already had an honest invocation-level replay-budget override, but aggregate `sota_exit_gate` still treated that as an implicit inherited env detail. That meant aggregate runs could use a bounded VHDL replay budget, but the control was not first-class in aggregate policy, not validated there, and not surfaced clearly in aggregate sign-off output.

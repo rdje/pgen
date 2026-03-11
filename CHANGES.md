@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-03-11 - Add Dependency-Aware Target Probe Escalation to Shared Stimuli Generation
+### ✅ Achievement Summary
+The shared target-driven stimuli engine now escalates target probing earlier when a pending branch target shows sustained low-yield pressure and has unresolved dependency rules that can be probed directly. This is grammar-agnostic engine logic, not an SV/VHDL-specific heuristic.
+
+### Scope of Changes
+- Hardened shared target-driven generation:
+  - [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs)
+    - replaced the fixed `probe_threshold = 32` behavior with a helper that lowers probe threshold under branch-level low-yield pressure,
+    - strongest early probe (`8` iterations) now only triggers when the pending branch target has unresolved probeable dependency rules,
+    - `select_target_probe_rule(...)` now prefers unresolved dependency rules before falling back to non-entry branch/rule targets.
+- Added regression tests:
+  - low-yield branch pressure lowers probe threshold only when there is a real dependency rule to probe,
+  - dependency probing now escapes entry-rule-local stagnation that the legacy fallback could not.
+- Synced state trail:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml target_probe_threshold_escalates_under_low_yield_branch_pressure -- --nocapture` ✅
+- `cargo test --manifest-path rust/Cargo.toml target_probe_prefers_unresolved_dependency_rule_over_legacy_branch_fallback -- --nocapture` ✅
+- `cargo test --manifest-path rust/Cargo.toml target_driven_generation -- --nocapture` ✅
+- `cargo test --manifest-path rust/Cargo.toml parseability_ -- --nocapture` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+- bounded SV parser-backed replay proof ✅
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed evidence:
+    - `closed_loop_initial_targets_total=4876`
+    - `closed_loop_replay_targets_total=3785`
+    - `closed_loop_parseability_shadow_requested_total=316`
+    - `closed_loop_parseability_shadow_accepted_total=88`
+    - `closed_loop_parseability_shadow_rejected_total=228`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=27.85`
+- bounded VHDL parser-backed replay proof ✅
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - observed evidence:
+    - `closed_loop_initial_targets=254`
+    - `closed_loop_replay_targets=12`
+    - `closed_loop_parseability_shadow_requested_total=15`
+    - `closed_loop_parseability_shadow_accepted_total=3`
+    - `closed_loop_parseability_shadow_rejected_total=12`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=20.00`
+    - `parseability_generation_acceptance_rate_percent=66.67`
+
 ## 2026-03-11 - Promote VHDL Replay Budget Override into Aggregate SOTA Policy
 ### ✅ Achievement Summary
 The bounded VHDL replay-budget override is now a first-class aggregate policy/runtime control. Aggregate `sota_exit_gate` runs no longer rely on ad hoc inherited env state to bound VHDL replay work; they explicitly own the replay budget they pass into both `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate`, and aggregate summary output now shows both configured and effective replay-budget telemetry.

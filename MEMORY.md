@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: sota-vhdl-target-max-attempts-policy-surface)
+Last updated: 2026-03-11 (+0100, task: shared-target-probe-dependency-escalation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -88,6 +88,27 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_stimuli_quality_closed_loop_target_max_attempts_source=env_override`
     - `vhdl_stimuli_quality_closed_loop_replay_targets=26`
     - `vhdl_strict_promotion_inherited_stimuli_target_max_attempts=200`
+- Shared target-probe dependency escalation:
+  - `StimuliGenerator` no longer uses a fixed `probe_threshold = 32` during target-driven replay,
+  - probe threshold is now lowered generically from pending target state using the same low-yield branch pressure signal (`selected_counts` vs `success_counts`) used by target-branch throttling,
+  - strongest early probe now requires a real unresolved dependency rule that exists in the grammar and still carries target debt,
+  - `select_target_probe_rule(...)` now prefers unresolved dependency rules before falling back to non-entry branch/rule probing.
+- Latest bounded parser-backed replay evidence for that change:
+  - SV (`PGEN_SV_STIMULI_QUALITY_COUNT=1`, `TARGET_MAX_ATTEMPTS=400`, diff/perf/realistic disabled):
+    - `closed_loop_initial_targets_total=4876`
+    - `closed_loop_replay_targets_total=3785`
+    - `closed_loop_parseability_shadow_requested_total=316`
+    - `closed_loop_parseability_shadow_accepted_total=88`
+    - `closed_loop_parseability_shadow_rejected_total=228`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=27.85`
+  - VHDL (`COUNT=2`, `TARGET_MAX_ATTEMPTS=200`, `PARSEABILITY_MAX_ATTEMPTS=25`):
+    - `closed_loop_initial_targets=254`
+    - `closed_loop_replay_targets=12`
+    - `closed_loop_parseability_shadow_requested_total=15`
+    - `closed_loop_parseability_shadow_accepted_total=3`
+    - `closed_loop_parseability_shadow_rejected_total=12`
+    - `closed_loop_parseability_shadow_acceptance_rate_percent=20.00`
+    - `parseability_generation_acceptance_rate_percent=66.67`
 - Aggregate readiness telemetry surface:
   - `sota_exit_gate` now routes readiness stages under aggregate-scoped state dirs:
     - `rust/target/sota_exit_gate/work/ebnf_frontend_readiness`
@@ -3511,8 +3532,10 @@ Use this file to resume work without replaying full chat history.
      - deeper include-chain variants that combine package-width state with more than twenty-one child stages or mixed wildcard/named-port reuse across multiple modules,
      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
    - parser-trust follow-up inside the same area:
-     - continue lifting parser-backed replay-shadow acceptance from the new `30.14%` bounded SV baseline while also recovering the slight authoritative replay-debt regression (`3925` vs prior `3894`) without relaxing the non-increasing target-debt invariant.
-     - likely next shared-engine direction: improve alternative-branch exploration after low-yield branches are downweighted, again without grammar-specific heuristics.
+     - keep the new shared dependency-aware target probing, which materially improved bounded SV replay debt (`3925 -> 3785`) and bounded VHDL replay debt (`26 -> 12`),
+     - next shared-engine direction is now narrower:
+       - recover some SV replay-shadow acceptance from the current `27.85%` bounded level without giving back the replay-debt gain,
+       - continue avoiding grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
    - likely next useful parser-trust increment inside the non-annotation loop:
      - promote the new parseability-effort report into any remaining reporting surfaces beyond the now-covered aggregate readiness/quality/parity paths, especially places that still collapse parser-backed effort into binary success only.

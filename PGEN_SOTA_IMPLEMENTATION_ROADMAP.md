@@ -1007,6 +1007,27 @@ Toolbox baseline to leverage end-to-end:
       - `closed_loop_parseability_shadow_accepted_total=9`
       - `closed_loop_parseability_shadow_rejected_total=22`
       - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
+  - Progress (2026-03-11): improved shared alternative probing after low-yield branches are downweighted, without grammar-specific heuristics:
+    - target-driven replay no longer uses a fixed `probe_threshold = 32`; it now lowers probe threshold from pending target state using the same generic low-yield signal,
+    - `select_target_probe_rule(...)` now prefers unresolved dependency rules before falling back to non-entry branch/rule probing,
+    - strongest early probe is gated on a real unresolved dependency rule so the engine does not over-force probe mode when there is nothing useful to escape to,
+    - new regression tests cover both:
+      - dependency-aware threshold lowering under low-yield pressure,
+      - dependency-rule preference over the legacy branch/rule fallback,
+    - bounded SV proof stayed green and materially improved replay debt relative to the prior low-yield-throttle baseline:
+      - `closed_loop_initial_targets_total=4876`
+      - `closed_loop_replay_targets_total=3785`
+      - `closed_loop_parseability_shadow_requested_total=316`
+      - `closed_loop_parseability_shadow_accepted_total=88`
+      - `closed_loop_parseability_shadow_rejected_total=228`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=27.85`
+    - bounded VHDL proof also improved relative to the prior direct bounded replay-budget proof:
+      - `closed_loop_initial_targets=254`
+      - `closed_loop_replay_targets=12`
+      - `closed_loop_parseability_shadow_requested_total=15`
+      - `closed_loop_parseability_shadow_accepted_total=3`
+      - `closed_loop_parseability_shadow_rejected_total=12`
+      - `closed_loop_parseability_shadow_acceptance_rate_percent=20.00`
   - Progress (2026-03-06): closed the remaining realistic-corpus parse gaps and promoted the manifest to an all-pass baseline (`version: 3`):
     - `grammars/systemverilog.ebnf` now accepts:
       - edge-qualified event controls (`@(posedge clk)`, `@(negedge rst_n)`),
